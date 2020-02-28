@@ -1216,11 +1216,15 @@ int rproc_trigger_recovery(struct rproc *rproc)
 	struct device *dev = &rproc->dev;
 	int ret;
 
-	dev_err(dev, "recovering %s\n", rproc->name);
-
 	ret = mutex_lock_interruptible(&rproc->lock);
 	if (ret)
 		return ret;
+
+	/* State could have changed before we got the mutex */
+	if (rproc->state != RPROC_CRASHED)
+		goto unlock_mutex;
+
+	dev_err(dev, "recovering %s\n", rproc->name);
 
 	ret = rproc_stop(rproc, true);
 	if (ret)
