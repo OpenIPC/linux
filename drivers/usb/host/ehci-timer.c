@@ -15,6 +15,9 @@
 /* This file is part of ehci-hcd.c */
 
 /*-------------------------------------------------------------------------*/
+#ifndef MP_USB_MSTAR
+#include <mstar/mpatch_macro.h>
+#endif
 
 /* Set a bit in the USBCMD register */
 static void ehci_set_command_bit(struct ehci_hcd *ehci, u32 bit)
@@ -73,6 +76,9 @@ static unsigned event_delays_ns[] = {
 	1125 * NSEC_PER_USEC,	/* EHCI_HRTIMER_UNLINK_INTR */
 	2 * NSEC_PER_MSEC,	/* EHCI_HRTIMER_FREE_ITDS */
 	2 * NSEC_PER_MSEC,	/* EHCI_HRTIMER_ACTIVE_UNLINK */
+#if (MP_USB_MSTAR==1)
+	4 * NSEC_PER_MSEC,	/* EHCI_HRTIMER_SITD_WATCHDOG */
+#endif
 	5 * NSEC_PER_MSEC,	/* EHCI_HRTIMER_START_UNLINK_INTR */
 	6 * NSEC_PER_MSEC,	/* EHCI_HRTIMER_ASYNC_UNLINKS */
 	10 * NSEC_PER_MSEC,	/* EHCI_HRTIMER_IAA_WATCHDOG */
@@ -309,12 +315,19 @@ static void end_free_itds(struct ehci_hcd *ehci)
 
 	list_for_each_entry_safe(itd, n, &ehci->cached_itd_list, itd_list) {
 		list_del(&itd->itd_list);
+/* tony.yu map between PHY addr & BUS addr */
+#if (MP_USB_MSTAR==1) && defined(BUS_PA_PATCH)
+		itd->itd_dma = PA2BUS(itd->itd_dma);
+#endif
 		dma_pool_free(ehci->itd_pool, itd, itd->itd_dma);
 		if (itd == ehci->last_itd_to_free)
 			break;
 	}
 	list_for_each_entry_safe(sitd, sn, &ehci->cached_sitd_list, sitd_list) {
 		list_del(&sitd->sitd_list);
+#if (MP_USB_MSTAR==1) && defined(BUS_PA_PATCH)
+		sitd->sitd_dma = PA2BUS(sitd->sitd_dma);
+#endif
 		dma_pool_free(ehci->sitd_pool, sitd, sitd->sitd_dma);
 		if (sitd == ehci->last_sitd_to_free)
 			break;
@@ -384,6 +397,26 @@ static void turn_on_io_watchdog(struct ehci_hcd *ehci)
 		ehci_enable_event(ehci, EHCI_HRTIMER_IO_WATCHDOG, true);
 }
 
+#if (MP_USB_MSTAR==1)
+static void turn_on_sitd_watchdog(struct ehci_hcd *ehci)
+{
+	/* Not needed if the controller isn't running or it's already enabled */
+	if (ehci->rh_state != EHCI_RH_RUNNING ||
+			(ehci->enabled_hrtimer_events &
+				BIT(EHCI_HRTIMER_SITD_WATCHDOG)))
+		return;
+
+	/*
+	 * Isochronous transfers always need the watchdog.
+	 * For other sorts we use it only if the flag is set.
+	 */
+	if (ehci->isoc_count > 0 || (ehci->need_io_watchdog &&
+			ehci->async_count + ehci->intr_count > 0))
+	{
+		ehci_enable_event(ehci, EHCI_HRTIMER_SITD_WATCHDOG, true);
+	}
+}
+#endif
 
 /*
  * Handler functions for the hrtimer event types.
@@ -397,6 +430,9 @@ static void (*event_handlers[])(struct ehci_hcd *) = {
 	ehci_handle_intr_unlinks,	/* EHCI_HRTIMER_UNLINK_INTR */
 	end_free_itds,			/* EHCI_HRTIMER_FREE_ITDS */
 	end_unlink_async,		/* EHCI_HRTIMER_ACTIVE_UNLINK */
+#if (MP_USB_MSTAR==1)
+	ehci_work,			/* EHCI_HRTIMER_SITD_WATCHDOG */
+#endif
 	ehci_handle_start_intr_unlinks,	/* EHCI_HRTIMER_START_UNLINK_INTR */
 	unlink_empty_async,		/* EHCI_HRTIMER_ASYNC_UNLINKS */
 	ehci_iaa_watchdog,		/* EHCI_HRTIMER_IAA_WATCHDOG */

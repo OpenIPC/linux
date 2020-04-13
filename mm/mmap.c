@@ -1469,6 +1469,10 @@ unsigned long do_mmap(struct file *file, unsigned long addr,
 	return addr;
 }
 
+#ifdef CONFIG_MSTAR_MMAHEAP 
+EXPORT_SYMBOL(do_mmap);
+#endif
+
 SYSCALL_DEFINE6(mmap_pgoff, unsigned long, addr, unsigned long, len,
 		unsigned long, prot, unsigned long, flags,
 		unsigned long, fd, unsigned long, pgoff)
@@ -2701,6 +2705,10 @@ int do_munmap(struct mm_struct *mm, unsigned long start, size_t len)
 
 	return 0;
 }
+
+#ifdef CONFIG_MSTAR_MMAHEAP 
+EXPORT_SYMBOL(do_munmap);
+#endif
 
 int vm_munmap(unsigned long start, size_t len)
 {

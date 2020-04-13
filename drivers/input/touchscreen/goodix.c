@@ -19,6 +19,7 @@
 #include <linux/dmi.h>
 #include <linux/firmware.h>
 #include <linux/gpio/consumer.h>
+#include <linux/gpio.h>
 #include <linux/i2c.h>
 #include <linux/input.h>
 #include <linux/input/mt.h>
@@ -29,7 +30,11 @@
 #include <linux/slab.h>
 #include <linux/acpi.h>
 #include <linux/of.h>
+#include <linux/of_irq.h>
+#include <linux/fs.h>
 #include <asm/unaligned.h>
+#include <asm/uaccess.h>
+#include <linux/namei.h>
 
 struct goodix_ts_data {
 	struct i2c_client *client;
@@ -51,8 +56,8 @@ struct goodix_ts_data {
 	unsigned long irq_flags;
 };
 
-#define GOODIX_GPIO_INT_NAME		"irq"
-#define GOODIX_GPIO_RST_NAME		"reset"
+#define GOODIX_GPIO_INT_NAME		"goodix_int"
+#define GOODIX_GPIO_RST_NAME		"goodix_rst"
 
 #define GOODIX_MAX_HEIGHT		4096
 #define GOODIX_MAX_WIDTH		4096
@@ -121,7 +126,6 @@ static int goodix_i2c_read(struct i2c_client *client,
 	struct i2c_msg msgs[2];
 	u16 wbuf = cpu_to_be16(reg);
 	int ret;
-
 	msgs[0].flags = 0;
 	msgs[0].addr  = client->addr;
 	msgs[0].len   = 2;
@@ -131,7 +135,6 @@ static int goodix_i2c_read(struct i2c_client *client,
 	msgs[1].addr  = client->addr;
 	msgs[1].len   = len;
 	msgs[1].buf   = buf;
-
 	ret = i2c_transfer(client->adapter, msgs, 2);
 	return ret < 0 ? ret : (ret != ARRAY_SIZE(msgs) ? -EIO : 0);
 }
@@ -397,29 +400,36 @@ static int goodix_int_sync(struct goodix_ts_data *ts)
 static int goodix_reset(struct goodix_ts_data *ts)
 {
 	int error;
+    unsigned gpio_rst;
+    unsigned gpio_int;
+    gpio_rst = desc_to_gpio(ts->gpiod_rst);
+    gpio_int = desc_to_gpio(ts->gpiod_int);
+
+    gpio_request(gpio_rst, GOODIX_GPIO_INT_NAME);
+    gpio_request(gpio_int, GOODIX_GPIO_RST_NAME);
 
 	/* begin select I2C slave addr */
-	error = gpiod_direction_output(ts->gpiod_rst, 0);
+	error = gpio_direction_output(gpio_rst, 0);
 	if (error)
 		return error;
 
 	msleep(20);				/* T2: > 10ms */
 
 	/* HIGH: 0x28/0x29, LOW: 0xBA/0xBB */
-	error = gpiod_direction_output(ts->gpiod_int, ts->client->addr == 0x14);
+	error = gpio_direction_output(gpio_int, ts->client->addr == 0x14);
 	if (error)
 		return error;
 
 	usleep_range(100, 2000);		/* T3: > 100us */
 
-	error = gpiod_direction_output(ts->gpiod_rst, 1);
+	error = gpio_direction_output(gpio_rst, 1);
 	if (error)
 		return error;
 
 	usleep_range(6000, 10000);		/* T4: > 5ms */
 
 	/* end select I2C slave addr */
-	error = gpiod_direction_input(ts->gpiod_rst);
+	error = gpio_direction_input(gpio_rst);
 	if (error)
 		return error;
 
@@ -435,6 +445,7 @@ static int goodix_reset(struct goodix_ts_data *ts)
  *
  * @ts: goodix_ts_data pointer
  */
+/*
 static int goodix_get_gpio_config(struct goodix_ts_data *ts)
 {
 	int error;
@@ -445,7 +456,7 @@ static int goodix_get_gpio_config(struct goodix_ts_data *ts)
 		return -EINVAL;
 	dev = &ts->client->dev;
 
-	/* Get the interrupt GPIO pin number */
+	//Get the interrupt GPIO pin number
 	gpiod = devm_gpiod_get_optional(dev, GOODIX_GPIO_INT_NAME, GPIOD_IN);
 	if (IS_ERR(gpiod)) {
 		error = PTR_ERR(gpiod);
@@ -454,10 +465,9 @@ static int goodix_get_gpio_config(struct goodix_ts_data *ts)
 				GOODIX_GPIO_INT_NAME, error);
 		return error;
 	}
-
 	ts->gpiod_int = gpiod;
 
-	/* Get the reset line GPIO pin number */
+	//Get the reset line GPIO pin number
 	gpiod = devm_gpiod_get_optional(dev, GOODIX_GPIO_RST_NAME, GPIOD_IN);
 	if (IS_ERR(gpiod)) {
 		error = PTR_ERR(gpiod);
@@ -471,7 +481,7 @@ static int goodix_get_gpio_config(struct goodix_ts_data *ts)
 
 	return 0;
 }
-
+*/
 /**
  * goodix_read_config - Read the embedded configuration of the panel
  *
@@ -678,7 +688,6 @@ static void goodix_config_cb(const struct firmware *cfg, void *ctx)
 		if (error)
 			goto err_release_cfg;
 	}
-
 	goodix_configure_dev(ts);
 
 err_release_cfg:
@@ -686,11 +695,140 @@ err_release_cfg:
 	complete_all(&ts->firmware_loading_complete);
 }
 
+ssize_t gtcfg_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+    int ret = 0;
+    char *srcbuf = NULL;
+    char tmpbuf[256] = {0};
+    struct goodix_ts_data *ts;
+
+    ts = (struct goodix_ts_data*)dev_get_drvdata(dev);
+    if(!ts){
+        dev_err(dev,"no driver data\n");
+        return -EINVAL;
+    }
+    srcbuf = (char*)kzalloc(256*5,GFP_KERNEL);
+    if(!srcbuf){
+        dev_err(dev,"kzalloc tmpbuf failed\n");
+        return -ENOMEM;
+    }
+    sprintf(tmpbuf,"ts_irqnum:%d\n",ts->client->irq);
+    strcat(srcbuf,tmpbuf);
+    sprintf(tmpbuf,"ts_intpin:%d\n",desc_to_gpio(ts->gpiod_int));
+    strcat(srcbuf,tmpbuf);
+    sprintf(tmpbuf,"ts_rstpin:%d\n",desc_to_gpio(ts->gpiod_rst));
+    strcat(srcbuf,tmpbuf);
+
+    ret = sprintf(buf,"%s",srcbuf);
+    kfree(srcbuf);
+
+    return ret;
+}
+
+ssize_t gtcfg_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
+{
+    long ret = 0;
+    char filepath[256];
+    char *str = NULL;
+    char *tmpbuf = NULL;
+    struct file* filp = NULL;
+    struct path p;
+    struct kstat ks;
+    unsigned long filesize = 0;
+    unsigned long long offset = 0;
+    mm_segment_t oldfs;
+    struct firmware cfg;
+    struct goodix_ts_data *ts;
+
+    ts = (struct goodix_ts_data*)dev_get_drvdata(dev);
+    if(!ts){
+        dev_err(dev,"no driver data\n");
+        return -EINVAL;
+    }
+    if(buf){
+        strcpy(filepath,buf);
+        str = filepath;
+        while((*str != ' ') && (*str != '\r') && (*str != '\n'))
+            str++;
+        *str = '\0';
+
+        oldfs = get_fs();
+        set_fs(get_ds());
+
+        filp = filp_open(filepath, O_RDONLY, 0);
+        if(IS_ERR(filp))
+        {
+            dev_err(dev,"Open File fail [%s]\n",filepath);
+            ret = PTR_ERR(filp);
+            set_fs(oldfs);
+            return ret;
+        }
+        kern_path(filepath, 0, &p);
+        vfs_getattr(&p, &ks);
+        filesize = ks.size;
+        if(filesize != GOODIX_CONFIG_911_LENGTH){
+            dev_err(dev,"file size Invalid [%s]\n",filepath);
+            filp_close(filp,NULL);
+            set_fs(oldfs);
+            return -EINVAL;
+        }
+        set_fs(oldfs);
+
+        tmpbuf = (char*)kzalloc(filesize,GFP_KERNEL);
+        if(!tmpbuf){
+            dev_err(dev,"alloc failed\n");
+            filp_close(filp,NULL);
+            set_fs(oldfs);
+            return -ENOMEM;
+        }
+        else{
+            cfg.data = tmpbuf;
+            cfg.size = filesize;
+        }
+
+        oldfs = get_fs();
+        set_fs(get_ds());
+        ret = vfs_read(filp, tmpbuf, filesize, &offset);
+        if(ret == cfg.size){
+            goodix_send_cfg(ts,&cfg);
+        }
+        filp_close(filp,NULL);
+        set_fs(oldfs);
+
+        kfree(tmpbuf);
+        printk("config done\n");
+
+        return count;
+    }
+    return 0;
+}
+
+DEVICE_ATTR(gtcfg,0664,gtcfg_show,gtcfg_store);
+
+static int goodix_ts_sysfs_init(struct goodix_ts_data *ts)
+{
+    int ret = 0;
+
+    ret = device_create_file(&ts->client->dev, &dev_attr_gtcfg);
+    if(ret){
+        dev_err(&ts->client->dev,"gt911 device create file failed\n");
+        return ret;
+    }
+    return ret;
+}
+
+static void goodix_ts_sysfs_deinit(struct goodix_ts_data *ts)
+{
+    device_remove_file(&ts->client->dev, &dev_attr_gtcfg);
+}
+
 static int goodix_ts_probe(struct i2c_client *client,
 			   const struct i2c_device_id *id)
 {
 	struct goodix_ts_data *ts;
 	int error;
+    u32 gpio_rst;
+    u32 gpio_int;
 
 	dev_dbg(&client->dev, "I2C Address: 0x%02x\n", client->addr);
 
@@ -707,10 +845,20 @@ static int goodix_ts_probe(struct i2c_client *client,
 	i2c_set_clientdata(client, ts);
 	init_completion(&ts->firmware_loading_complete);
 
+    if(0 != of_property_read_u32(client->dev.of_node, GOODIX_GPIO_RST_NAME, &gpio_rst))
+        return -EINVAL;
+    ts->gpiod_rst = gpio_to_desc(gpio_rst);
+    if(0 != of_property_read_u32(client->dev.of_node, GOODIX_GPIO_INT_NAME, &gpio_int))
+        return -EINVAL;
+    ts->gpiod_int = gpio_to_desc(gpio_int);
+
+    ts->client->irq = of_irq_get_byname(client->dev.of_node, GOODIX_GPIO_INT_NAME);
+    dev_dbg(&client->dev, "goodix_irq_num:%d\n",ts->client->irq);
+    /*
 	error = goodix_get_gpio_config(ts);
 	if (error)
 		return error;
-
+    */
 	if (ts->gpiod_int && ts->gpiod_rst) {
 		/* reset the controller */
 		error = goodix_reset(ts);
@@ -750,13 +898,15 @@ static int goodix_ts_probe(struct i2c_client *client,
 				error);
 			return error;
 		}
+    } else {
+        error = goodix_configure_dev(ts);
+        if (error)
+            return error;
+    }
 
-		return 0;
-	} else {
-		error = goodix_configure_dev(ts);
-		if (error)
-			return error;
-	}
+    if(goodix_ts_sysfs_init(ts)){
+        dev_err(&client->dev,"gt911 sysfs init failed\n");
+    }
 
 	return 0;
 }
@@ -765,6 +915,7 @@ static int goodix_ts_remove(struct i2c_client *client)
 {
 	struct goodix_ts_data *ts = i2c_get_clientdata(client);
 
+    goodix_ts_sysfs_deinit(ts);
 	if (ts->gpiod_int && ts->gpiod_rst)
 		wait_for_completion(&ts->firmware_loading_complete);
 

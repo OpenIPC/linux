@@ -8,6 +8,9 @@
 #include <linux/usb/hcd.h>
 #include <linux/scatterlist.h>
 
+#include "usb_common_sstar.h"
+
+
 #define to_urb(d) container_of(d, struct urb, kref)
 
 
@@ -180,6 +183,9 @@ void usb_unanchor_urb(struct urb *urb)
 }
 EXPORT_SYMBOL_GPL(usb_unanchor_urb);
 
+#if (MP_USB_MSTAR==1)
+extern u8 hcd_readb(struct usb_hcd *, size_t);
+#endif
 /*-------------------------------------------------------------------*/
 
 /**
@@ -517,8 +523,27 @@ int usb_submit_urb(struct urb *urb, gfp_t mem_flags)
 		case USB_SPEED_FULL:	/* units are frames/msec */
 		case USB_SPEED_LOW:
 			if (xfertype == USB_ENDPOINT_XFER_INT) {
+#if (MP_USB_MSTAR==1) //tony add for hotplug (FS)
+				struct usb_hcd *hcd;
+				hcd = bus_to_hcd(urb->dev->bus);
+				if (hcd->ehc_base!=0)
+				{
+					if((hcd_readb(hcd, 0x30) & BIT0)){
+						if (urb->interval > 255){
+							urb->interval = 255;	//Colin, 090305, Don't return EINVAL, the root hub would stop
+						}
+					}
+				}
+				else
+				{
+					if (urb->interval > 255){
+						urb->interval = 255;    //Colin, 090305, Don't return EINVAL, the root hub would stop
+					}
+				}
+#else
 				if (urb->interval > 255)
 					return -EINVAL;
+#endif
 				/* NOTE ohci only handles up to 32 */
 				max = 128;
 			} else {

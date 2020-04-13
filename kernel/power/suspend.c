@@ -32,8 +32,28 @@
 
 #include "power.h"
 
+//#include <mstar/mpatch_macro.h>
+#include <usb_patch_mstar.h>
+
 const char *pm_labels[] = { "mem", "standby", "freeze", NULL };
 const char *pm_states[PM_SUSPEND_MAX];
+
+#if (MP_USB_STR_PATCH==1)
+typedef enum
+{
+    E_STR_NONE,
+    E_STR_IN_SUSPEND,
+    E_STR_IN_RESUME
+}EN_STR_STATUS;
+
+static EN_STR_STATUS enStrStatus=E_STR_NONE;
+
+bool is_suspending(void)
+{
+    return (enStrStatus == E_STR_IN_SUSPEND);
+}
+EXPORT_SYMBOL_GPL(is_suspending);
+#endif
 
 unsigned int pm_suspend_global_flags;
 EXPORT_SYMBOL_GPL(pm_suspend_global_flags);

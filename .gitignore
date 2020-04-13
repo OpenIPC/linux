@@ -29,6 +29,7 @@
 *.bz2
 *.lzma
 *.xz
+*.mz
 *.lz4
 *.lzo
 *.patch
@@ -114,3 +115,14 @@ all.config
 
 # Kdevelop4
 *.kdev4
+
+modules/
+
+# camdriver
+/drivers/sstar/camdriver
+
+# version header
+drivers/sstar/include/ms_version.h
+
+# vim project
+.vimproj/

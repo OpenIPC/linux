@@ -10,6 +10,12 @@
  */
 
 #define DEBUG		/* Enable initcall_debug */
+#ifdef CONFIG_SS_PROFILING_TIME
+extern void recode_timestamp(int mark, const char* name);
+extern void recode_show(void);
+extern unsigned int read_timestamp(void);
+extern void recode_timestamp_ext(int mark, const char* name, unsigned int timestamp);
+#endif
 
 #include <linux/types.h>
 #include <linux/module.h>
@@ -481,7 +487,9 @@ asmlinkage __visible void __init start_kernel(void)
 {
 	char *command_line;
 	char *after_dashes;
-
+#ifdef CONFIG_SS_PROFILING_TIME
+    unsigned int t1 = read_timestamp();
+#endif
 	set_task_stack_end_magic(&init_task);
 	smp_setup_processor_id();
 	debug_objects_early_init();
@@ -504,6 +512,10 @@ asmlinkage __visible void __init start_kernel(void)
 	page_address_init();
 	pr_notice("%s", linux_banner);
 	setup_arch(&command_line);
+#ifdef CONFIG_SS_PROFILING_TIME
+    recode_timestamp_ext(0, "start_kernel+", t1); 
+    recode_timestamp(__LINE__, "setup_arch-");
+#endif
 	mm_init_cpumask(&init_mm);
 	setup_command_line(command_line);
 	setup_nr_cpu_ids();
@@ -848,7 +860,9 @@ static void __init do_initcall_level(int level)
 static void __init do_initcalls(void)
 {
 	int level;
-
+#ifdef CONFIG_SS_PROFILING_TIME
+    recode_timestamp(__LINE__, "do_initcalls+");
+#endif
 	for (level = 0; level < ARRAY_SIZE(initcall_levels) - 1; level++)
 		do_initcall_level(level);
 }
@@ -862,6 +876,9 @@ static void __init do_initcalls(void)
  */
 static void __init do_basic_setup(void)
 {
+#ifdef CONFIG_SS_PROFILING_TIME
+    recode_timestamp(__LINE__, "do_basic_setup+");
+#endif
 	cpuset_init_smp();
 	shmem_init();
 	driver_init();
@@ -869,6 +886,9 @@ static void __init do_basic_setup(void)
 	do_ctors();
 	usermodehelper_enable();
 	do_initcalls();
+#ifdef CONFIG_SS_PROFILING_TIME
+    recode_timestamp(__LINE__, "do_basic_setup-");
+#endif
 }
 
 static void __init do_pre_smp_initcalls(void)
@@ -939,17 +959,23 @@ static inline void mark_readonly(void)
 static int __ref kernel_init(void *unused)
 {
 	int ret;
-
+#ifdef CONFIG_SS_PROFILING_TIME
+	recode_timestamp(__LINE__, "kernel_init+");
+#endif
 	kernel_init_freeable();
 	/* need to finish all async __init code before freeing the memory */
 	async_synchronize_full();
+#ifndef CONFIG_DEFERRED_INIICALLS
 	free_initmem();
+#endif
 	mark_readonly();
 	system_state = SYSTEM_RUNNING;
 	numa_default_policy();
 
 	rcu_end_inkernel_boot();
-
+#ifdef CONFIG_SS_PROFILING_TIME
+    recode_timestamp(__LINE__, "ramdisk_execute_command+");
+#endif
 	if (ramdisk_execute_command) {
 		ret = run_init_process(ramdisk_execute_command);
 		if (!ret)
@@ -1045,3 +1071,33 @@ static noinline void __init kernel_init_freeable(void)
 	integrity_load_keys();
 	load_default_modules();
 }
+
+#ifdef CONFIG_DEFERRED_INIICALLS
+extern initcall_t __deferred_initcall_start[], __deferred_initcall_end[];
+/* call deferred init routines */
+void do_deferred_initcalls(void)
+{
+	initcall_t *call;
+	static int already_run=0;
+
+	if (already_run) {
+		printk("do_deferred_initcalls() has already run\n");
+		return;
+	}
+
+	already_run=1;
+
+	printk("Running do_deferred_initcalls()\n");
+
+// 	lock_kernel();	/* make environment similar to early boot */
+
+	for(call = __deferred_initcall_start;
+	    call < __deferred_initcall_end; call++)
+		do_one_initcall(*call);
+
+	flush_scheduled_work();
+
+	free_initmem();
+// 	unlock_kernel();
+}
+#endif

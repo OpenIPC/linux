@@ -242,6 +242,12 @@
 #define __assume_aligned(a, ...) __attribute__((__assume_aligned__(a, ## __VA_ARGS__)))
 #endif
 
+#if GCC_VERSION >= 90100
+#define __copy(symbol)          __attribute__((__copy__(symbol)))
+#else
+#define __copy(symbol)
+#endif
+
 /*
  * GCC 'asm goto' miscompiles certain code sequences:
  *

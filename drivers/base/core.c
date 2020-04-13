@@ -870,14 +870,26 @@ static int device_add_class_symlinks(struct device *dev)
 {
 	struct device_node *of_node = dev_of_node(dev);
 	int error;
-
+#ifdef CONFIG_DEFERRED_CREATE_DTS_SYSNODE
+    extern struct device **deferred_dts_node_dev;
+    extern int deferred_dts_node_dev_cnt;
+    if(!deferred_dts_node_dev)
+    {
+        deferred_dts_node_dev = kzalloc((sizeof(struct device *) * 128), GFP_KERNEL);
+        memset (deferred_dts_node_dev, 0, (sizeof(struct device *) * 128));
+    }
+    if (of_node) {
+        deferred_dts_node_dev[deferred_dts_node_dev_cnt] = dev;
+        deferred_dts_node_dev_cnt++;        
+    }
+#else
 	if (of_node) {
 		error = sysfs_create_link(&dev->kobj, &of_node->kobj,"of_node");
 		if (error)
 			dev_warn(dev, "Error %d creating of_node link\n",error);
 		/* An error here doesn't warrant bringing down the device */
 	}
-
+#endif
 	if (!dev->class)
 		return 0;
 

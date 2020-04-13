@@ -18,6 +18,10 @@
 
 #include <trace/events/irq.h>
 
+#if defined(CONFIG_MP_IRQ_TRACE)
+#include "../../drivers/sstar/include/ms_msys.h"
+#endif
+
 #include "internals.h"
 
 /**
@@ -137,12 +141,26 @@ irqreturn_t __handle_irq_event_percpu(struct irq_desc *desc, unsigned int *flags
 	irqreturn_t retval = IRQ_NONE;
 	unsigned int irq = desc->irq_data.irq;
 	struct irqaction *action;
-
+#if defined(CONFIG_MP_IRQ_TRACE)
+       MSYS_IRQ_INFO irq_info;
+#endif
 	for_each_action_of_desc(desc, action) {
 		irqreturn_t res;
 
 		trace_irq_handler_entry(irq, action);
+#if defined(CONFIG_MP_IRQ_TRACE)
+            if(irq > 32)
+            {
+                irq_info.IRQNumber = irq;
+                irq_info.timeStart = sched_clock();
+            }
+#endif
 		res = action->handler(irq, action->dev_id);
+
+#if defined(CONFIG_MP_IRQ_TRACE)
+		if(irq > 32)
+			irq_info.timeEnd = sched_clock();
+#endif
 		trace_irq_handler_exit(irq, action, res);
 
 		if (WARN_ONCE(!irqs_disabled(),"irq %u handler %pF enabled interrupts\n",
@@ -173,7 +191,16 @@ irqreturn_t __handle_irq_event_percpu(struct irq_desc *desc, unsigned int *flags
 
 		retval |= res;
 	}
-
+#if defined(CONFIG_MP_IRQ_TRACE)
+	if(irq > 32)
+	{
+            if (irq_info.timeEnd - irq_info.timeStart > 1000000)
+            {      
+                ms_records_irq(&irq_info);
+                ms_record_large_latency_in_top(&irq_info);
+            }
+	}
+#endif
 	return retval;
 }
 

@@ -4647,7 +4647,7 @@ static void __init resiliency_test(void)
 	validate_slab_cache(kmalloc_caches[9]);
 }
 #else
-#ifdef CONFIG_SYSFS
+#if defined(CONFIG_SYSFS) && !defined(CONFIG_DISABLE_SLAB_SYSFS_SUPPORT)
 static void resiliency_test(void) {};
 #endif
 #endif
@@ -5714,7 +5714,12 @@ static int __init slab_sysfs_init(void)
 	return 0;
 }
 
+#ifdef CONFIG_DEFERRED_INIICALLS_SLAB_SYSFS
+deferred_module_init(slab_sysfs_init);
+#else
 __initcall(slab_sysfs_init);
+#endif
+
 #endif /* CONFIG_SYSFS */
 
 /*

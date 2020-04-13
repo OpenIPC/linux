@@ -824,8 +824,10 @@ struct nand_chip {
 	int (*setup_data_interface)(struct mtd_info *mtd,
 				    const struct nand_data_interface *conf,
 				    bool check_only);
-
-
+#if defined(CONFIG_MS_NAND) || defined(CONFIG_MS_NAND_MODULE) || defined(CONFIG_MS_SPINAND)|| defined(CONFIG_MS_SPINAND_MODULE)
+	int (*mtd_param_init)(struct mtd_info *mtd,struct nand_chip *chip, int *maf_id, int *dev_id,
+				    const struct nand_flash_dev *type);
+#endif
 	int chip_delay;
 	unsigned int options;
 	unsigned int bbt_options;

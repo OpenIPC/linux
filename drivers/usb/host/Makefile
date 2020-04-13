@@ -1,10 +1,22 @@
 #
 # Makefile for USB Host Controller Drivers
 #
+#CONFIG_SSTAR_CHIP_NAME := $(subst ",,$(CONFIG_SSTAR_CHIP_NAME))
 
 # tell define_trace.h where to find the xhci trace header
 CFLAGS_xhci-trace.o := -I$(src)
 
+EXTRA_CFLAGS      += -Idrivers/sstar/usb/host
+EXTRA_CFLAGS      += -Idrivers/sstar/usb/host/$(CONFIG_SSTAR_CHIP_NAME)
+#EXTRA_CFLAGS      += -Idrivers/sstar2/hal/$(CONFIG_SSTAR_CHIP_NAME)/usb
+#ifdef CONFIG_MSTAR_BDMA
+#EXTRA_CFLAGS      += -Idrivers/sstar2/include
+#endif
+# necessary if defined(DYNAMIC_MIU_SIZE_MAPPING)
+#EXTRA_CFLAGS      += -Idrivers/sstar2/include/sys/common
+#EXTRA_CFLAGS      += -Idrivers/sstar2/include
+#EXTRA_CFLAGS      += -Idrivers/sstar2/drv/miu
+# mstar_porting_plat <<<
 fhci-y := fhci-hcd.o fhci-hub.o fhci-q.o
 fhci-y += fhci-mem.o fhci-tds.o fhci-sched.o
 
@@ -24,6 +36,10 @@ endif
 ifneq ($(CONFIG_USB_XHCI_RCAR), )
 	xhci-plat-hcd-y		+= xhci-rcar.o
 endif
+# mstar_porting_plat >>>
+xhci-hcd-$(CONFIG_MP_USB_MSTAR) += xhci-mstar.o
+xhci-hcd-$(CONFIG_MP_USB_MSTAR) += xhci-mstar-sysfs.o
+# mstar_porting_plat <<<
 
 obj-$(CONFIG_USB_WHCI_HCD)	+= whci/
 

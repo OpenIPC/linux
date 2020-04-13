@@ -20,6 +20,7 @@
 #include <linux/usb/video.h>
 
 #define fi_to_f_uvc_opts(f)	container_of(f, struct f_uvc_opts, func_inst)
+#define video_to_uvc(f)     container_of(f, struct uvc_device, video)
 
 struct f_uvc_opts {
 	struct usb_function_instance			func_inst;
@@ -28,6 +29,9 @@ struct f_uvc_opts {
 	unsigned int					streaming_maxpacket;
 	unsigned int					streaming_maxburst;
 
+#if defined(CONFIG_SS_GADGET) || defined(CONFIG_SS_GADGET_MODULE)
+	bool						bulk_streaming_ep;
+#endif
 	/*
 	 * Control descriptors array pointers for full-/high-speed and
 	 * super-speed. They point by default to the uvc_fs_control_cls and

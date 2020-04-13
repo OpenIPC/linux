@@ -183,6 +183,7 @@ machine-$(CONFIG_ARCH_MESON)		+= meson
 machine-$(CONFIG_ARCH_MMP)		+= mmp
 machine-$(CONFIG_ARCH_MPS2)		+= vexpress
 machine-$(CONFIG_ARCH_MOXART)		+= moxart
+machine-$(CONFIG_ARCH_SSTAR)		+= sstar
 machine-$(CONFIG_ARCH_MV78XX0)		+= mv78xx0
 machine-$(CONFIG_ARCH_MVEBU)		+= mvebu
 machine-$(CONFIG_ARCH_MXC)		+= imx
@@ -334,6 +335,13 @@ $(INSTALL_TARGETS):
 
 %.dtb: | scripts
 	$(Q)$(MAKE) $(build)=$(boot)/dts MACHINE=$(MACHINE) $(boot)/dts/$@
+	ifeq ($(CONFIG_SS_BUILTIN_DTB), y)
+		@if [ -e arch/arm/boot/Image ]; then \
+			echo "  BNDTB $@"; \
+			python scripts/ms_builtin_dtb_update.py arch/arm/boot/Image arch/arm/boot/dts/$@; \
+			echo; \
+		fi;
+	endif
 
 PHONY += dtbs dtbs_install
 

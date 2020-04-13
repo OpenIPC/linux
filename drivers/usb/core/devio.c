@@ -56,6 +56,9 @@
 
 #include "usb.h"
 
+#ifndef MP_USB_MSTAR
+#include <usb_patch_mstar.h>
+#endif
 #define USB_MAXBUS			64
 #define USB_DEVICE_MAX			(USB_MAXBUS * 128)
 #define USB_SG_SIZE			16384 /* split-size for large txs */
@@ -1122,6 +1125,10 @@ static int proc_control(struct usb_dev_state *ps, void __user *arg)
 		i = usb_control_msg(dev, pipe, ctrl.bRequest,
 				    ctrl.bRequestType, ctrl.wValue, ctrl.wIndex,
 				    tbuf, ctrl.wLength, tmo);
+#if (MP_USB_MSTAR==1)
+		if (dev->state != USB_STATE_CONFIGURED)
+			msleep(1);
+#endif
 		usb_lock_device(dev);
 		snoop_urb(dev, NULL, pipe, max(i, 0), min(i, 0), COMPLETE,
 			  tbuf, max(i, 0));

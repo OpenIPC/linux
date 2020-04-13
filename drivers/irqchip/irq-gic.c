@@ -50,6 +50,10 @@
 
 #include "irq-gic-common.h"
 
+#ifdef CONFIG_SS_AMP
+#include "drv_dualos.h"
+#endif
+
 #ifdef CONFIG_ARM64
 #include <asm/cpufeature.h>
 
@@ -348,16 +352,24 @@ static int gic_set_affinity(struct irq_data *d, const struct cpumask *mask_val,
 }
 #endif
 
+#if defined(CONFIG_MP_IRQ_TRACE)
+extern void ms_records_irq_count(int);
+#endif
+
 static void __exception_irq_entry gic_handle_irq(struct pt_regs *regs)
 {
 	u32 irqstat, irqnr;
 	struct gic_chip_data *gic = &gic_data[0];
 	void __iomem *cpu_base = gic_data_cpu_base(gic);
+        
 
 	do {
 		irqstat = readl_relaxed(cpu_base + GIC_CPU_INTACK);
 		irqnr = irqstat & GICC_IAR_INT_ID_MASK;
-
+        
+#if defined(CONFIG_MP_IRQ_TRACE)
+             ms_records_irq_count(irqnr);
+#endif
 		if (likely(irqnr > 15 && irqnr < 1020)) {
 			if (static_key_true(&supports_deactivate))
 				writel_relaxed(irqstat, cpu_base + GIC_CPU_EOI);
@@ -378,6 +390,31 @@ static void __exception_irq_entry gic_handle_irq(struct pt_regs *regs)
 			 */
 			smp_rmb();
 			handle_IPI(irqnr, regs);
+#elif	defined(CONFIG_LH_RTOS)
+			{
+				void handle_rsq(int);
+				irq_enter();
+				handle_rsq(irqnr);
+				irq_exit();
+			}
+#elif   defined(CONFIG_SS_AMP)
+            {
+				extern void handle_interos_call_req(void);
+				extern void handle_interos_call_resp(void);
+
+                switch (irqnr) {
+                case IPI_NR_RTOS_2_LINUX_CALL_REQ:
+                    irq_enter();
+                    handle_interos_call_req();
+		    		irq_exit();
+                    break;
+                case IPI_NR_LINUX_2_RTOS_CALL_RESP:
+                    irq_enter();
+                    handle_interos_call_resp();
+		    		irq_exit();
+                    break;
+                }
+            }
 #endif
 			continue;
 		}

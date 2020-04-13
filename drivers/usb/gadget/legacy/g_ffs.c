@@ -77,7 +77,7 @@ static struct usb_device_descriptor gfs_dev_desc = {
 };
 
 static char *func_names[GFS_MAX_DEVS];
-static unsigned int func_num;
+static unsigned int func_num = 2;
 
 module_param_named(bDeviceClass,    gfs_dev_desc.bDeviceClass,    byte,   0644);
 MODULE_PARM_DESC(bDeviceClass, "USB Device class");

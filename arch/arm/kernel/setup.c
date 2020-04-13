@@ -1058,6 +1058,7 @@ void __init hyp_mode_check(void)
 #endif
 }
 
+void __init prom_meminit(void);
 void __init setup_arch(char **cmdline_p)
 {
 	const struct machine_desc *mdesc;
@@ -1086,7 +1087,9 @@ void __init setup_arch(char **cmdline_p)
 	early_ioremap_init();
 
 	parse_early_param();
-
+#ifdef CONFIG_ARCH_SSTAR
+	prom_meminit();
+#endif
 #ifdef CONFIG_MMU
 	early_paging_init(mdesc);
 #endif

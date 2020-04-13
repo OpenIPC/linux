@@ -50,6 +50,11 @@
 
 #include "usb.h"
 
+#include "usb_common_sstar.h"
+
+
+extern u8 hcd_readb(struct usb_hcd *, size_t);
+extern void Chip_Flush_Memory(void);
 
 /*-------------------------------------------------------------------------*/
 
@@ -1433,6 +1438,10 @@ static void hcd_free_coherent(struct usb_bus *bus, dma_addr_t *dma_handle,
 
 void usb_hcd_unmap_urb_setup_for_dma(struct usb_hcd *hcd, struct urb *urb)
 {
+#if (MP_USB_MSTAR==1) && defined(BUS_PA_PATCH)
+	if (urb->transfer_flags & (URB_SETUP_MAP_SINGLE | URB_SETUP_MAP_LOCAL))
+		urb->setup_dma = PA2BUS(urb->setup_dma);
+#endif
 	if (IS_ENABLED(CONFIG_HAS_DMA) &&
 	    (urb->transfer_flags & URB_SETUP_MAP_SINGLE))
 		dma_unmap_single(hcd->self.controller,
@@ -1466,6 +1475,21 @@ void usb_hcd_unmap_urb_for_dma(struct usb_hcd *hcd, struct urb *urb)
 	usb_hcd_unmap_urb_setup_for_dma(hcd, urb);
 
 	dir = usb_urb_dir_in(urb) ? DMA_FROM_DEVICE : DMA_TO_DEVICE;
+#if (MP_USB_MSTAR==1) && defined(BUS_PA_PATCH)
+	if (urb->transfer_flags & URB_DMA_MAP_SG)
+	{
+		struct scatterlist *s;
+		int i;
+		for_each_sg(urb->sg, s, urb->num_sgs, i) {
+			s->dma_address = PA2BUS(s->dma_address);
+		}
+	}
+	else if (urb->transfer_flags & (URB_DMA_MAP_PAGE | URB_DMA_MAP_SINGLE | URB_MAP_LOCAL))
+		urb->transfer_dma = PA2BUS(urb->transfer_dma);
+	else if (urb->transfer_buffer_length != 0
+		&& (urb->transfer_flags & URB_NO_TRANSFER_DMA_MAP))
+		urb->transfer_dma = PA2BUS(urb->transfer_dma);
+#endif
 	if (IS_ENABLED(CONFIG_HAS_DMA) &&
 	    (urb->transfer_flags & URB_DMA_MAP_SG))
 		dma_unmap_sg(hcd->self.controller,
@@ -1531,6 +1555,9 @@ int usb_hcd_map_urb_for_dma(struct usb_hcd *hcd, struct urb *urb,
 						urb->setup_dma))
 				return -EAGAIN;
 			urb->transfer_flags |= URB_SETUP_MAP_SINGLE;
+#if (MP_USB_MSTAR==1) && defined(BUS_PA_PATCH)
+			urb->setup_dma = BUS2PA(urb->setup_dma);
+#endif
 		} else if (hcd->driver->flags & HCD_LOCAL_MEM) {
 			ret = hcd_alloc_coherent(
 					urb->dev->bus, mem_flags,
@@ -1538,6 +1565,9 @@ int usb_hcd_map_urb_for_dma(struct usb_hcd *hcd, struct urb *urb,
 					(void **)&urb->setup_packet,
 					sizeof(struct usb_ctrlrequest),
 					DMA_TO_DEVICE);
+#if (MP_USB_MSTAR==1) && defined(BUS_PA_PATCH)
+			urb->setup_dma = BUS2PA(urb->setup_dma);
+#endif
 			if (ret)
 				return ret;
 			urb->transfer_flags |= URB_SETUP_MAP_LOCAL;
@@ -1562,6 +1592,16 @@ int usb_hcd_map_urb_for_dma(struct usb_hcd *hcd, struct urb *urb,
 						urb->sg,
 						urb->num_sgs,
 						dir);
+#if (MP_USB_MSTAR==1) && defined(BUS_PA_PATCH)
+				if (n > 0)
+				{
+					struct scatterlist *s;
+					int i;
+					for_each_sg(urb->sg, s, urb->num_sgs, i) {
+						s->dma_address = BUS2PA(s->dma_address);
+					}
+				}
+#endif
 				if (n <= 0)
 					ret = -EAGAIN;
 				else
@@ -1583,6 +1623,9 @@ int usb_hcd_map_urb_for_dma(struct usb_hcd *hcd, struct urb *urb,
 					ret = -EAGAIN;
 				else
 					urb->transfer_flags |= URB_DMA_MAP_PAGE;
+#if (MP_USB_MSTAR==1) && defined(BUS_PA_PATCH)
+				urb->transfer_dma = BUS2PA(urb->transfer_dma);
+#endif
 			} else if (is_vmalloc_addr(urb->transfer_buffer)) {
 				WARN_ONCE(1, "transfer buffer not dma capable\n");
 				ret = -EAGAIN;
@@ -1597,6 +1640,9 @@ int usb_hcd_map_urb_for_dma(struct usb_hcd *hcd, struct urb *urb,
 					ret = -EAGAIN;
 				else
 					urb->transfer_flags |= URB_DMA_MAP_SINGLE;
+#if (MP_USB_MSTAR==1) && defined(BUS_PA_PATCH)
+				urb->transfer_dma = BUS2PA(urb->transfer_dma);
+#endif
 			}
 		} else if (hcd->driver->flags & HCD_LOCAL_MEM) {
 			ret = hcd_alloc_coherent(
@@ -1605,6 +1651,9 @@ int usb_hcd_map_urb_for_dma(struct usb_hcd *hcd, struct urb *urb,
 					&urb->transfer_buffer,
 					urb->transfer_buffer_length,
 					dir);
+#if (MP_USB_MSTAR==1) && defined(BUS_PA_PATCH)
+			urb->transfer_dma = BUS2PA(urb->transfer_dma);
+#endif
 			if (ret == 0)
 				urb->transfer_flags |= URB_MAP_LOCAL;
 		}
@@ -1612,6 +1661,14 @@ int usb_hcd_map_urb_for_dma(struct usb_hcd *hcd, struct urb *urb,
 				URB_SETUP_MAP_LOCAL)))
 			usb_hcd_unmap_urb_for_dma(hcd, urb);
 	}
+#if (MP_USB_MSTAR==1) && defined(BUS_PA_PATCH)
+	else if (urb->transfer_buffer_length != 0
+		&& (urb->transfer_flags & URB_NO_TRANSFER_DMA_MAP))
+	{
+		Chip_Flush_Memory();
+		urb->transfer_dma = BUS2PA(urb->transfer_dma);
+	}
+#endif
 	return ret;
 }
 EXPORT_SYMBOL_GPL(usb_hcd_map_urb_for_dma);
@@ -1914,6 +1971,9 @@ rescan:
 	}
 	spin_unlock_irq(&hcd_urb_list_lock);
 
+#if (MP_USB_MSTAR==1)
+	msleep(10); //120316, modify for wifi load/unload repeatly
+#endif
 	/* Wait until the endpoint queue is completely empty */
 	while (!list_empty (&ep->urb_list)) {
 		spin_lock_irq(&hcd_urb_list_lock);
@@ -2245,8 +2305,12 @@ int hcd_bus_suspend(struct usb_device *rhdev, pm_message_t msg)
 			(PMSG_IS_AUTO(msg) ? "auto-" : ""),
 			rhdev->do_remote_wakeup);
 	if (HCD_DEAD(hcd)) {
+#if (MP_USB_MSTAR==1)
+		printk("continue suspend for dead bus\n");
+#else
 		dev_dbg(&rhdev->dev, "skipped %s of dead bus\n", "suspend");
 		return 0;
+#endif
 	}
 
 	if (!hcd->driver->bus_suspend) {

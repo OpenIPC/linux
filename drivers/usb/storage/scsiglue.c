@@ -59,6 +59,9 @@
 #include "transport.h"
 #include "protocol.h"
 
+#ifndef MP_USB_MSTAR
+#include <usb_patch_mstar.h>
+#endif
 /*
  * Vendor IDs for companies that seem to include the READ CAPACITY bug
  * in all their devices
@@ -413,6 +416,12 @@ static int command_abort(struct scsi_cmnd *srb)
 
 	usb_stor_dbg(us, "%s called\n", __func__);
 
+#if (MP_USB_MSTAR==1)
+	if (srb->cmnd[0] == TEST_UNIT_READY)
+	{
+		msleep(1000);
+	}
+#endif
 	/*
 	 * us->srb together with the TIMED_OUT, RESETTING, and ABORTING
 	 * bits are protected by the host lock.

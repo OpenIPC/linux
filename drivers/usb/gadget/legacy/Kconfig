@@ -49,6 +49,13 @@ config USB_ZERO_HNPTEST
 	  the "B-Peripheral" role, that device will use HNP to let this
 	  one serve as the USB host instead (in the "B-Host" role).
 
+config USB_BI_DIRECTION
+	tristate "USB BI DIRECTION For DLA"
+	select USB_LIBCOMPOSITE
+	select USB_F_BI_DIRECTION
+	help
+	  Test Sample For Bi Direction
+
 config USB_AUDIO
 	tristate "Audio Gadget"
 	depends on SND
@@ -470,10 +477,8 @@ endif
 # or video class gadget drivers), or specific hardware, here.
 config USB_G_WEBCAM
 	tristate "USB Webcam Gadget"
-	depends on VIDEO_DEV
 	select USB_LIBCOMPOSITE
-	select VIDEOBUF2_VMALLOC
-	select USB_F_UVC
+	select USB_WEBCAM_UVC
 	help
 	  The Webcam Gadget acts as a composite USB Audio and Video Class
 	  device. It provides a userspace API to process UVC control requests
@@ -481,3 +486,19 @@ config USB_G_WEBCAM
 
 	  Say "y" to link the driver statically, or "m" to build a
 	  dynamically linked module called "g_webcam".
+
+config USB_WEBCAM_UVC
+    bool "Include configuration with UVC (Video)"
+    depends on USB_G_WEBCAM && VIDEO_DEV
+	select VIDEOBUF2_VMALLOC
+	select USB_F_UVC
+    help
+      external uvc function for webcam
+
+config USB_WEBCAM_UAC
+    bool "Include configuration with UAC (Audio)"
+    depends on USB_G_WEBCAM && SND
+    select SND_PCM
+    select USB_F_UAC1
+    help
+      external uac1 function for webcam

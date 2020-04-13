@@ -227,6 +227,10 @@ phys_addr_t __init arm_memblock_steal(phys_addr_t size, phys_addr_t align)
 	return phys;
 }
 
+#ifdef CONFIG_MSTAR_MMAHEAP
+extern void deal_with_reserve_mma_heap(void);
+#endif
+
 void __init arm_memblock_init(const struct machine_desc *mdesc)
 {
 	/* Register the kernel text, kernel data and initrd with memblock. */
@@ -271,6 +275,12 @@ void __init arm_memblock_init(const struct machine_desc *mdesc)
 
 	early_init_fdt_reserve_self();
 	early_init_fdt_scan_reserved_mem();
+
+// first reserve for mstar,
+//not place call this deal_with_reserve_mma_heap function in the end of arm_memblock_init.
+#ifdef CONFIG_MSTAR_MMAHEAP
+	deal_with_reserve_mma_heap();
+#endif
 
 	/* reserve memory for DMA contiguous allocations */
 	dma_contiguous_reserve(arm_dma_limit);

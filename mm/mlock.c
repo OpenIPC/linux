@@ -709,6 +709,10 @@ static __must_check int do_mlock(unsigned long start, size_t len, vm_flags_t fla
 	return 0;
 }
 
+#ifdef CONFIG_MSTAR_MMAHEAP 
+EXPORT_SYMBOL(__mm_populate);
+#endif
+
 SYSCALL_DEFINE2(mlock, unsigned long, start, size_t, len)
 {
 	return do_mlock(start, len, VM_LOCKED);

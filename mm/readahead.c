@@ -202,6 +202,14 @@ out:
 	return ret;
 }
 
+int do_page_cache_readahead(struct address_space *mapping, struct file *filp, pgoff_t offset, unsigned long nr_to_read)
+{
+	int ret = 0;
+	ret = __do_page_cache_readahead(mapping, filp, offset, nr_to_read, 0);
+	return ret;
+}
+EXPORT_SYMBOL(do_page_cache_readahead);
+
 /*
  * Chunk the readahead into 2 megabyte units, so that we don't pin too much
  * memory at once.

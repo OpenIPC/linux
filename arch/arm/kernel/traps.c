@@ -245,6 +245,9 @@ void show_stack(struct task_struct *tsk, unsigned long *sp)
 	dump_backtrace(NULL, tsk);
 	barrier();
 }
+#ifdef CONFIG_ARCH_SSTAR
+EXPORT_SYMBOL(show_stack);
+#endif
 
 #ifdef CONFIG_PREEMPT
 #define S_PREEMPT " PREEMPT"

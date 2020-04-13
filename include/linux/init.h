@@ -212,6 +212,13 @@ extern bool initcall_debug;
 	static initcall_t __initcall_##fn			\
 	__used __section(.security_initcall.init) = fn
 
+#ifdef CONFIG_DEFERRED_INIICALLS
+#define deferred_initcall(fn) \
+	static initcall_t __initcall_##fn \
+	__used __section(.deferred_initcall.init) = fn
+
+#define deferred_module_init(x)	deferred_initcall(x);
+#endif
 struct obs_kernel_param {
 	const char *str;
 	int (*setup_func)(char *);

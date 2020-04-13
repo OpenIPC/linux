@@ -27,6 +27,17 @@
 #include "xhci.h"
 #include "xhci-trace.h"
 
+#ifndef MP_USB_MSTAR
+#include <mstar/mpatch_macro.h>
+#endif
+
+#if (MP_USB_MSTAR==1) && (XHCI_FLUSHPIPE_PATCH)
+extern void Chip_Flush_Memory(void);
+#endif
+#if defined(CONFIG_SUSPEND) && defined(CONFIG_MP_USB_STR_PATCH)
+extern bool is_suspending(void);
+#endif /* CONFIG_MP_USB_STR_PATCH */
+
 #define	PORT_WAKE_BITS	(PORT_WKOC_E | PORT_WKDISC_E | PORT_WKCONN_E)
 #define	PORT_RWC_BITS	(PORT_CSC | PORT_PEC | PORT_WRC | PORT_OCC | \
 			 PORT_RC | PORT_PLC | PORT_PE)
@@ -435,13 +446,50 @@ static int xhci_stop_device(struct xhci_hcd *xhci, int slot_id, int suspend)
 	spin_unlock_irqrestore(&xhci->lock, flags);
 
 	/* Wait for last stop endpoint command to finish */
+#if defined(CONFIG_SUSPEND) && defined(CONFIG_MP_USB_STR_PATCH)
+	{
+		unsigned long total_time = 0, timeout_val;
+		int timeleft;
+
+		timeout_val = msecs_to_jiffies(USB_CTRL_SET_TIMEOUT);
+
+		while(1)
+		{
+			timeleft = wait_for_completion_interruptible_timeout(
+					cmd->completion, msecs_to_jiffies(HZ));
+
+			if(timeleft <= 0)
+			{
+				total_time += msecs_to_jiffies(HZ);
+				printk("[XHCI] waiting for stop dev... %lu\n", total_time);
+				if ( (timeleft < 0) || is_suspending() || (total_time >= timeout_val) )
+				{
+					xhci_warn(xhci, "%s while waiting for stop endpoint command\n",
+							total_time >= timeout_val ? "Timeout" : "Signal");
+					spin_lock_irqsave(&xhci->lock, flags);
+					/* The timeout might have raced with the event ring handler, so
+					 * only delete from the list if the item isn't poisoned.
+					 */
+					if (cmd->cmd_list.next != LIST_POISON1)
+						list_del(&cmd->cmd_list);
+					spin_unlock_irqrestore(&xhci->lock, flags);
+					ret = -ETIME;
+					break;
+				}
+			}
+			else
+				break;
+		}
+	}
+
+#else
 	wait_for_completion(cmd->completion);
 
 	if (cmd->status == COMP_CMD_ABORT || cmd->status == COMP_CMD_STOP) {
 		xhci_warn(xhci, "Timeout while waiting for stop endpoint command\n");
 		ret = -ETIME;
 	}
-
+#endif /* CONFIG_MP_USB_STR_PATCH */
 cmd_cleanup:
 	xhci_free_command(xhci, cmd);
 	return ret;
@@ -454,6 +502,10 @@ void xhci_ring_device(struct xhci_hcd *xhci, int slot_id)
 {
 	int i, s;
 	struct xhci_virt_ep *ep;
+
+#if (MP_USB_MSTAR==1) && (XHCI_FLUSHPIPE_PATCH)
+	Chip_Flush_Memory();
+#endif
 
 	for (i = 0; i < LAST_EP_INDEX + 1; i++) {
 		ep = &xhci->devs[slot_id]->eps[i];
@@ -472,12 +524,33 @@ void xhci_ring_device(struct xhci_hcd *xhci, int slot_id)
 static void xhci_disable_port(struct usb_hcd *hcd, struct xhci_hcd *xhci,
 		u16 wIndex, __le32 __iomem *addr, u32 port_status)
 {
+
+#if (MP_USB_MSTAR==1) && defined(XHCI_SSDISABLED_PATCH)
+	#if defined(XHCI_SSDISABLE_POWERDOWN_PATCH)
+	if ((hcd->speed == HCD_USB3) && (wIndex==0)) {
+		printk("[override P0]\n");
+		writeb((u8)((readb((void*)(hcd->u3top_base+0x2A*2)) & (u8)(~BIT3)) | BIT4),
+			(void*)(hcd->u3top_base+0x2A*2)); /// Override pipe_powerdown to P0  [4:3] = 2'b10
+	}
+	#endif /* XHCI_SSDISABLE_POWERDOWN_PATCH */
+	#if defined(XHCI_SSDISABLE_XUSB_PCIE_PATCH)
+	if ((hcd->speed == HCD_USB3) && (wIndex==0)) {
+		printk("[DPHY clock override P0]\n");
+		writeb((u8)((readb((void*)(hcd->u3dphy_base[0]+0x38*2)) & (u8)(~BIT2)) & (u8)(~BIT3)),
+			(void*)(hcd->u3dphy_base[0]+0x38*2)); // [3:2]='2b00
+		writeb((u8)(readb((void*)(hcd->u3dphy_base[0]+0x3C*2)) | BIT1),
+			(void*)(hcd->u3dphy_base[0]+0x3C*2)); // [1]='2b1
+	}
+	#endif
+#else
+
 	/* Don't allow the USB core to disable SuperSpeed ports. */
 	if (hcd->speed >= HCD_USB3) {
 		xhci_dbg(xhci, "Ignoring request to disable "
 				"SuperSpeed port.\n");
 		return;
 	}
+#endif
 
 	if (xhci->quirks & XHCI_BROKEN_PORT_PED) {
 		xhci_dbg(xhci,
@@ -488,8 +561,31 @@ static void xhci_disable_port(struct usb_hcd *hcd, struct xhci_hcd *xhci,
 	/* Write 1 to disable the port */
 	writel(port_status | PORT_PE, addr);
 	port_status = readl(addr);
+
+#if (MP_USB_MSTAR==1) && defined(XHCI_SSDISABLED_PATCH)
+	#if defined(XHCI_SSDISABLE_POWERDOWN_PATCH)
+	if ((hcd->speed == HCD_USB3) && ((readb((void*)(hcd->u3top_base+0x2A*2)) & (u8)(BIT4|BIT3)) == (u8)BIT4)) {
+		printk("[USB] make Fake HW signal\n");
+		udelay(5);
+		#if defined(XHCI_PHY_MS28)
+		writeb(0x40, (void*)(hcd->u3dphy_base[wIndex]+0x3A*2));
+		writeb(0x04, (void*)(hcd->u3dphy_base[wIndex]+0x3E*2));
+		writeb(0x00, (void*)(hcd->u3dphy_base[wIndex]+0x3E*2));
+		#endif
+	}
+	#endif
+	#if defined(XHCI_SSDISABLE_XUSB_PCIE_PATCH)
+	if ((hcd->speed == HCD_USB3) && (wIndex==0)) {
+		writeb((u8)((readb((void*)(hcd->u3dphy_base[0]+0x38*2)) & (u8)(~BIT2)) | BIT3),
+			(void*)(hcd->u3dphy_base[0]+0x38*2)); // [3:2]='2b10
+	}
+	#endif
+	printk("disable port, actual port %d status  = 0x%x\n",
+			wIndex, port_status);
+#else
 	xhci_dbg(xhci, "disable port, actual port %d status  = 0x%x\n",
 			wIndex, port_status);
+#endif
 }
 
 static void xhci_clear_port_change_bit(struct xhci_hcd *xhci, u16 wValue,
@@ -1143,6 +1239,9 @@ int xhci_hub_control(struct usb_hcd *hcd, u16 typeReq, u16 wValue,
 					wIndex, temp);
 			break;
 		case USB_PORT_FEAT_BH_PORT_RESET:
+#if (MP_USB_MSTAR==1)
+			printk("==> hub_port_warm_reset \n");
+#endif
 			temp |= PORT_WR;
 			writel(temp, port_array[wIndex]);
 
@@ -1323,6 +1422,10 @@ int xhci_bus_suspend(struct usb_hcd *hcd)
 	struct xhci_bus_state *bus_state;
 	unsigned long flags;
 
+#if (MP_USB_MSTAR==1)
+	printk("xhci_bus_suspend \n");
+#endif
+
 	max_ports = xhci_get_ports(hcd, &port_array);
 	bus_state = &xhci->bus_state[hcd_index(hcd)];
 
@@ -1381,6 +1484,9 @@ int xhci_bus_suspend(struct usb_hcd *hcd)
 	}
 	hcd->state = HC_STATE_SUSPENDED;
 	bus_state->next_statechange = jiffies + msecs_to_jiffies(10);
+#if (MP_USB_MSTAR==1)
+	disable_irq(hcd->irq); //20141106, for system suspend-resume
+#endif
 	spin_unlock_irqrestore(&xhci->lock, flags);
 	return 0;
 }
@@ -1426,6 +1532,10 @@ int xhci_bus_resume(struct usb_hcd *hcd)
 	bool need_usb2_u3_exit = false;
 	int slot_id;
 	int sret;
+
+#if (MP_USB_MSTAR==1)
+	printk("xhci_bus_resume \n");
+#endif
 
 	max_ports = xhci_get_ports(hcd, &port_array);
 	bus_state = &xhci->bus_state[hcd_index(hcd)];
@@ -1514,7 +1624,9 @@ int xhci_bus_resume(struct usb_hcd *hcd)
 	temp |= CMD_EIE;
 	writel(temp, &xhci->op_regs->command);
 	temp = readl(&xhci->op_regs->command);
-
+#if (MP_USB_MSTAR==1)
+	enable_irq(hcd->irq); //20150226, suspend fail cause ehci_hcd_mstar_drv_resume() not running
+#endif
 	spin_unlock_irqrestore(&xhci->lock, flags);
 	return 0;
 }

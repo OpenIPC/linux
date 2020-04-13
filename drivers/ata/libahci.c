@@ -47,6 +47,22 @@
 #include "ahci.h"
 #include "libata.h"
 
+
+#ifdef CONFIG_ARCH_INFINITY2
+    #undef writel
+    #undef readl
+
+    extern u32 ahci_reg_read(void __iomem * p_reg_addr);
+    extern void ahci_reg_write(u32 data, void __iomem * p_reg_addr);
+
+    #define writel ahci_reg_write
+    #define readl ahci_reg_read
+#endif
+
+#ifdef CONFIG_SS_SATA_AHCI_PLATFORM_HOST
+extern void Chip_Flush_Memory(void);
+#endif
+
 static int ahci_skip_host_reset;
 int ahci_ignore_sss;
 EXPORT_SYMBOL_GPL(ahci_ignore_sss);
@@ -199,6 +215,38 @@ MODULE_PARM_DESC(ahci_em_messages,
 static int devslp_idle_timeout __read_mostly = 1000;
 module_param(devslp_idle_timeout, int, 0644);
 MODULE_PARM_DESC(devslp_idle_timeout, "device sleep idle timeout");
+
+#if defined(CONFIG_ARCH_INFINITY2)
+u32 ahci_reg_read(void __iomem * p_reg_addr)
+{
+    u32 data;
+    phys_addr_t reg_addr = (phys_addr_t)p_reg_addr;
+
+#if defined(CONFIG_ARM64)
+    data = (readw(reg_addr + 0x04) << 16) + readw(reg_addr);
+#else
+    data = (ioread16((void __iomem *)(reg_addr + 0x04))<<16) + ioread16((void __iomem *)reg_addr);
+#endif
+    return data;
+}
+EXPORT_SYMBOL(ahci_reg_read);
+
+void ahci_reg_write(u32 data, void __iomem * p_reg_addr)
+{
+    phys_addr_t reg_addr = (phys_addr_t)p_reg_addr;
+
+#if defined(CONFIG_ARM64)
+    writew(data & 0xFFFF, reg_addr);
+    writew((data >> 16) & 0xFFFF, (reg_addr + 0x04));
+
+#else
+    iowrite16(data&0xFFFF, (void __iomem *)reg_addr);
+    iowrite16((data >> 16)&0xFFFF,(void __iomem *)(reg_addr + 0x04));
+#endif
+}
+EXPORT_SYMBOL(ahci_reg_write);
+
+#endif
 
 static void ahci_enable_ahci(void __iomem *mmio)
 {
@@ -1280,6 +1328,9 @@ void ahci_fill_cmd_slot(struct ahci_port_priv *pp, unsigned int tag,
 	pp->cmd_slot[tag].status = 0;
 	pp->cmd_slot[tag].tbl_addr = cpu_to_le32(cmd_tbl_dma & 0xffffffff);
 	pp->cmd_slot[tag].tbl_addr_hi = cpu_to_le32((cmd_tbl_dma >> 16) >> 16);
+#ifdef CONFIG_SS_SATA_AHCI_PLATFORM_HOST
+	Chip_Flush_Memory();
+#endif
 }
 EXPORT_SYMBOL_GPL(ahci_fill_cmd_slot);
 
@@ -1718,6 +1769,9 @@ static void ahci_error_intr(struct ata_port *ap, u32 irq_stat)
 		 * link.  There's no active qc on NCQ errors.  It will
 		 * be determined by EH by reading log page 10h.
 		 */
+#if defined(CONFIG_ARCH_INFINITY2)
+		printk("TF_ERR\n");
+#endif
 		if (active_qc)
 			active_qc->err_mask |= AC_ERR_DEV;
 		else
@@ -1770,7 +1824,7 @@ static void ahci_error_intr(struct ata_port *ap, u32 irq_stat)
 	/* okay, let's hand over to EH */
 
 	if (irq_stat & PORT_IRQ_FREEZE)
-		ata_port_freeze(ap);
+		ata_port_freeze(ap);  // for pmp  clues
 	else if (fbs_need_dec) {
 		ata_link_abort(link);
 		ahci_fbs_dec_intr(ap);
@@ -1799,7 +1853,7 @@ static void ahci_handle_port_interrupt(struct ata_port *ap,
 
 	if (unlikely(status & PORT_IRQ_ERROR)) {
 		ahci_error_intr(ap, status);
-		return;
+		return;// for pmp clues
 	}
 
 	if (status & PORT_IRQ_SDB_FIS) {

@@ -35,5 +35,7 @@ void __init driver_init(void)
 	cpu_dev_init();
 	memory_dev_init();
 	container_dev_init();
+#ifndef CONFIG_DEFERRED_CREATE_DTS_SYSNODE
 	of_core_init();
+#endif
 }

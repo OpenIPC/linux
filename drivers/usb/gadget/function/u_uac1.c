@@ -89,25 +89,31 @@ static int _snd_pcm_hw_param_set(struct snd_pcm_hw_params *params,
 }
 /*-------------------------------------------------------------------------*/
 
+#if defined(CONFIG_SS_GADGET) ||defined(CONFIG_SS_GADGET_MODULE)
 /**
  * Set default hardware params
  */
-static int playback_default_hw_params(struct gaudio_snd_dev *snd)
+static int capture_default_hw_params(struct gaudio_snd_dev *snd)
 {
 	struct snd_pcm_substream *substream = snd->substream;
 	struct snd_pcm_hw_params *params;
+	struct snd_pcm_sw_params sparams;
 	snd_pcm_sframes_t result;
+	struct f_uac1_opts	*audio_opts =
+            container_of(snd->card->func.fi, struct f_uac1_opts, func_inst);
 
-       /*
-	* SNDRV_PCM_ACCESS_RW_INTERLEAVED,
-	* SNDRV_PCM_FORMAT_S16_LE
-	* CHANNELS: 2
-	* RATE: 48000
-	*/
+	/*
+	 * SNDRV_PCM_ACCESS_RW_INTERLEAVED,
+	 * SNDRV_PCM_FORMAT_S16_LE
+	 * CHANNELS: 1
+	 * RATE: 16000
+	 */
 	snd->access = SNDRV_PCM_ACCESS_RW_INTERLEAVED;
 	snd->format = SNDRV_PCM_FORMAT_S16_LE;
-	snd->channels = 2;
-	snd->rate = 48000;
+	snd->channels = audio_opts->capture_channel_count;
+	snd->rate = audio_opts->capture_sample_rate;
+	snd->period_bytes = audio_opts->audio_capture_buf_size / 2;
+	snd->buffer_bytes = audio_opts->audio_capture_buf_size;
 
 	params = kzalloc(sizeof(*params), GFP_KERNEL);
 	if (!params)
@@ -122,6 +128,92 @@ static int playback_default_hw_params(struct gaudio_snd_dev *snd)
 			snd->channels, 0);
 	_snd_pcm_hw_param_set(params, SNDRV_PCM_HW_PARAM_RATE,
 			snd->rate, 0);
+	_snd_pcm_hw_param_set(params, SNDRV_PCM_HW_PARAM_PERIOD_BYTES,
+			snd->period_bytes, 0);
+	_snd_pcm_hw_param_set(params, SNDRV_PCM_HW_PARAM_BUFFER_BYTES,
+			snd->buffer_bytes, 0);
+
+	snd_pcm_kernel_ioctl(substream, SNDRV_PCM_IOCTL_DROP, NULL);
+	snd_pcm_kernel_ioctl(substream, SNDRV_PCM_IOCTL_HW_PARAMS, params);
+
+	/*sw params*/
+	memset(&sparams, 0, sizeof(sparams));
+	sparams.tstamp_mode = SNDRV_PCM_TSTAMP_ENABLE;
+	sparams.period_step = 1;
+	sparams.avail_min = 1;
+
+	sparams.start_threshold = 1;
+	/* pick a high stop threshold - todo: does this need further tuning */
+	sparams.stop_threshold = snd->buffer_bytes * 5;
+	sparams.silence_size = 0;
+	sparams.silence_threshold = 0;
+	sparams.boundary = snd->buffer_bytes / snd->format;
+	snd_pcm_kernel_ioctl(substream, SNDRV_PCM_IOCTL_SW_PARAMS, &sparams);
+
+	result = snd_pcm_kernel_ioctl(substream, SNDRV_PCM_IOCTL_PREPARE, NULL);
+	if (result < 0) {
+		ERROR(snd->card,
+			"Preparing sound card failed: %d\n", (int)result);
+		kfree(params);
+		return result;
+	}
+
+	/* Store the hardware parameters */
+	snd->access = params_access(params);
+	snd->format = params_format(params);
+	snd->channels = params_channels(params);
+	snd->rate = params_rate(params);
+
+	kfree(params);
+
+	INFO(snd->card,
+		"Capture Dev Hw params: access %x, format %x, channels %d, rate %d\n",
+		snd->access, snd->format, snd->channels, snd->rate);
+
+	return 0;
+}
+#endif
+/**
+ * Set default hardware params
+ */
+static int playback_default_hw_params(struct gaudio_snd_dev *snd)
+{
+	struct snd_pcm_substream *substream = snd->substream;
+	struct snd_pcm_hw_params *params;
+	snd_pcm_sframes_t result;
+	struct f_uac1_opts	*audio_opts =
+            container_of(snd->card->func.fi, struct f_uac1_opts, func_inst);
+
+   /*
+	* SNDRV_PCM_ACCESS_RW_INTERLEAVED,
+	* SNDRV_PCM_FORMAT_S16_LE
+	* CHANNELS: 1
+	* RATE: 16000
+	*/
+	snd->access = SNDRV_PCM_ACCESS_RW_INTERLEAVED;
+	snd->format = SNDRV_PCM_FORMAT_S16_LE;
+	snd->channels = audio_opts->playback_channel_count;
+	snd->rate = audio_opts->playback_sample_rate;
+	snd->period_bytes = audio_opts->audio_playback_buf_size / 2;
+	snd->buffer_bytes = audio_opts->audio_playback_buf_size;
+
+	params = kzalloc(sizeof(*params), GFP_KERNEL);
+	if (!params)
+		return -ENOMEM;
+
+	_snd_pcm_hw_params_any(params);
+	_snd_pcm_hw_param_set(params, SNDRV_PCM_HW_PARAM_ACCESS,
+			snd->access, 0);
+	_snd_pcm_hw_param_set(params, SNDRV_PCM_HW_PARAM_FORMAT,
+			snd->format, 0);
+	_snd_pcm_hw_param_set(params, SNDRV_PCM_HW_PARAM_CHANNELS,
+			snd->channels, 0);
+	_snd_pcm_hw_param_set(params, SNDRV_PCM_HW_PARAM_RATE,
+			snd->rate, 0);
+	_snd_pcm_hw_param_set(params, SNDRV_PCM_HW_PARAM_PERIOD_BYTES,
+			snd->period_bytes, 0);
+	_snd_pcm_hw_param_set(params, SNDRV_PCM_HW_PARAM_BUFFER_BYTES,
+			snd->buffer_bytes, 0);
 
 	snd_pcm_kernel_ioctl(substream, SNDRV_PCM_IOCTL_DROP, NULL);
 	snd_pcm_kernel_ioctl(substream, SNDRV_PCM_IOCTL_HW_PARAMS, params);
@@ -143,9 +235,72 @@ static int playback_default_hw_params(struct gaudio_snd_dev *snd)
 	kfree(params);
 
 	INFO(snd->card,
-		"Hardware params: access %x, format %x, channels %d, rate %d\n",
+		"Capture Dev Hw params: access %x, format %x, channels %d, rate %d\n",
 		snd->access, snd->format, snd->channels, snd->rate);
 
+	return 0;
+}
+/**
+ * Capture audio buffer data by ALSA PCM device
+ */
+size_t u_audio_capture(struct gaudio *card, void *buf, size_t count)
+{
+	struct gaudio_snd_dev    *snd = &card->capture;
+	struct snd_pcm_substream *substream = snd->substream;
+	struct snd_pcm_runtime   *runtime = substream->runtime;
+	mm_segment_t old_fs;
+	ssize_t result, retry_count = 0;
+	snd_pcm_sframes_t frames;
+#ifdef debug_uac
+	static loff_t f_pos = 0;
+	struct file* fp = NULL;
+	int rcount = 0;
+#endif
+try_again:
+	if(retry_count++ > 0 && retry_count < 1000)
+		msleep(30);
+	else if(retry_count > 1000)
+		return -EINVAL;
+
+	if (runtime->status->state == SNDRV_PCM_STATE_XRUN ||
+	    runtime->status->state == SNDRV_PCM_STATE_SUSPENDED ||
+	    runtime->status->state == SNDRV_PCM_STATE_SETUP) {
+		result = snd_pcm_kernel_ioctl(substream,
+			SNDRV_PCM_IOCTL_PREPARE, NULL);
+		if (result < 0) {
+			pr_err("Preparing capture failed: %d\n",
+				(int)result);
+			return result;
+		}
+	}
+	frames = bytes_to_frames(runtime, count);
+	old_fs = get_fs();
+	set_fs(KERNEL_DS);
+
+	pr_debug("frames = %d, count = %zd \n", (int)frames, count);
+#ifdef debug_uac
+	fp = filp_open("/config/input.pcm",O_RDONLY ,0);
+	if(IS_ERR(fp)) {
+		pr_err("No such PCM File: %s\n", "/config/input.pcm");
+		set_fs(old_fs);
+		goto try_again;//do nothing
+	}
+	else {
+		rcount = vfs_read(fp,buf,count,&f_pos);
+		if(count > rcount)
+			f_pos = 0;
+		filp_close(fp,NULL);
+		pr_debug("read count %d need count %d \n",rcount,count);
+	}
+#else
+	result = snd_pcm_lib_read(substream, buf, frames);
+	if (result != frames) {
+		pr_info("Capture warring: %d count%d, state%d \n", (int)result, count, runtime->status->state);
+		set_fs(old_fs);
+		goto try_again;
+	}
+#endif
+	set_fs(old_fs);
 	return 0;
 }
 
@@ -176,9 +331,11 @@ try_again:
 	frames = bytes_to_frames(runtime, count);
 	old_fs = get_fs();
 	set_fs(KERNEL_DS);
+	pr_debug("frames = %d, count = %zd \n", (int)frames, count);
+
 	result = snd_pcm_lib_write(snd->substream, (void __user *)buf, frames);
 	if (result != frames) {
-		ERROR(card, "Playback error: %d\n", (int)result);
+		pr_debug("Playback error: %d\n", (int)result);
 		set_fs(old_fs);
 		goto try_again;
 	}
@@ -195,6 +352,16 @@ int u_audio_get_playback_channels(struct gaudio *card)
 int u_audio_get_playback_rate(struct gaudio *card)
 {
 	return card->playback.rate;
+}
+
+int u_audio_get_capture_channels(struct gaudio *card)
+{
+	return card->capture.channels;
+}
+
+int u_audio_get_capture_rate(struct gaudio *card)
+{
+	return card->capture.rate;
 }
 
 /**
@@ -225,35 +392,52 @@ static int gaudio_open_snd_dev(struct gaudio *card)
 	}
 	snd->card = card;
 
+#if defined(CONFIG_SS_GADGET) ||defined(CONFIG_SS_GADGET_MODULE)
 	/* Open PCM playback device and setup substream */
-	snd = &card->playback;
-	snd->filp = filp_open(fn_play, O_WRONLY, 0);
-	if (IS_ERR(snd->filp)) {
-		int ret = PTR_ERR(snd->filp);
-
-		ERROR(card, "No such PCM playback device: %s\n", fn_play);
-		snd->filp = NULL;
-		return ret;
+	if(ENABLE_SPEAKER == opts->audio_play_mode ||
+	   ENABLE_MIC_AND_SPK == opts->audio_play_mode )
+#endif
+	{
+		snd = &card->playback;
+		snd->filp = filp_open(fn_play, O_WRONLY, 0);
+		if (IS_ERR(snd->filp)) {
+			int ret = PTR_ERR(snd->filp);
+			ERROR(card, "No such PCM playback device: %s\n", fn_play);
+			snd->substream = NULL;
+			snd->card = NULL;
+			snd->filp = NULL;
+			return ret;
+		} else
+		{
+			pcm_file = snd->filp->private_data;
+			snd->substream = pcm_file->substream;
+			snd->card = card;
+			playback_default_hw_params(snd);
+		}
 	}
-	pcm_file = snd->filp->private_data;
-	snd->substream = pcm_file->substream;
-	snd->card = card;
-	playback_default_hw_params(snd);
 
+#if defined(CONFIG_SS_GADGET) ||defined(CONFIG_SS_GADGET_MODULE)
 	/* Open PCM capture device and setup substream */
-	snd = &card->capture;
-	snd->filp = filp_open(fn_cap, O_RDONLY, 0);
-	if (IS_ERR(snd->filp)) {
-		ERROR(card, "No such PCM capture device: %s\n", fn_cap);
-		snd->substream = NULL;
-		snd->card = NULL;
-		snd->filp = NULL;
-	} else {
-		pcm_file = snd->filp->private_data;
-		snd->substream = pcm_file->substream;
-		snd->card = card;
+	if(ENABLE_MICROPHONE == opts->audio_play_mode ||
+	   ENABLE_MIC_AND_SPK == opts->audio_play_mode )
+	{
+		snd = &card->capture;
+		snd->filp = filp_open(fn_cap, O_RDONLY, 0);
+		if (IS_ERR(snd->filp)) {
+			int ret = PTR_ERR(snd->filp);
+			ERROR(card, "No such PCM capture device: %s\n", fn_cap);
+			snd->substream = NULL;
+			snd->card = NULL;
+			snd->filp = NULL;
+			return ret;
+		} else {
+			pcm_file = snd->filp->private_data;
+			snd->substream = pcm_file->substream;
+			snd->card = card;
+			capture_default_hw_params(snd);
+		}
 	}
-
+#endif
 	return 0;
 }
 
@@ -263,21 +447,36 @@ static int gaudio_open_snd_dev(struct gaudio *card)
 static int gaudio_close_snd_dev(struct gaudio *gau)
 {
 	struct gaudio_snd_dev	*snd;
+	struct f_uac1_opts *opts;
+
+	opts = container_of(gau->func.fi, struct f_uac1_opts, func_inst);
 
 	/* Close control device */
 	snd = &gau->control;
 	if (snd->filp)
 		filp_close(snd->filp, NULL);
 
+#if defined(CONFIG_SS_GADGET) ||defined(CONFIG_SS_GADGET_MODULE)
 	/* Close PCM playback device and setup substream */
-	snd = &gau->playback;
-	if (snd->filp)
-		filp_close(snd->filp, NULL);
+	if(ENABLE_SPEAKER == opts->audio_play_mode ||
+	   ENABLE_MIC_AND_SPK == opts->audio_play_mode )
+#endif
+	{
+		snd = &gau->playback;
+		if (snd->filp)
+			filp_close(snd->filp, NULL);
+	}
 
+#if defined(CONFIG_SS_GADGET) ||defined(CONFIG_SS_GADGET_MODULE)
 	/* Close PCM capture device and setup substream */
-	snd = &gau->capture;
-	if (snd->filp)
-		filp_close(snd->filp, NULL);
+	if(ENABLE_MICROPHONE == opts->audio_play_mode ||
+	   ENABLE_MIC_AND_SPK == opts->audio_play_mode )
+	{
+		snd = &gau->capture;
+		if (snd->filp)
+			filp_close(snd->filp, NULL);
+	}
+#endif
 
 	return 0;
 }

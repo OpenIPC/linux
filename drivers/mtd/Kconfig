@@ -23,6 +23,17 @@ config MTD_TESTS
 	  WARNING: some of the tests will ERASE entire MTD device which they
 	  test. Do not use these tests unless you really know what you do.
 
+if MTD_TESTS
+config MTD_SS_TESTS
+	bool "Special Tweak MTD tests"
+	default "0"
+	depends on MTD_TESTS
+	help
+	  Add special functionality of standard MTD test.
+	  For example, Add speed measurement for pagetest.
+	
+endif #MTD_TESTS
+
 config MTD_REDBOOT_PARTS
 	tristate "RedBoot partition table parsing"
 	---help---

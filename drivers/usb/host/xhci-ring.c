@@ -71,6 +71,18 @@
 #include "xhci-trace.h"
 #include "xhci-mtk.h"
 
+#ifndef MP_USB_MSTAR
+#include <mstar/mpatch_macro.h>
+#endif
+
+#if (MP_USB_MSTAR==1) && (XHCI_FLUSHPIPE_PATCH)
+extern void Chip_Flush_Memory(void);
+extern void Chip_Read_Memory(void);
+#endif
+#if defined(CONFIG_SUSPEND) && defined(CONFIG_MP_USB_STR_PATCH)
+extern bool is_suspending(void);
+#endif /* CONFIG_MP_USB_STR_PATCH */
+
 /*
  * Returns zero if the TRB isn't in this segment, otherwise it returns the DMA
  * address of the TRB.
@@ -251,6 +263,10 @@ static inline int room_on_ring(struct xhci_hcd *xhci, struct xhci_ring *ring,
 /* Ring the host controller doorbell after placing a command on the ring */
 void xhci_ring_cmd_db(struct xhci_hcd *xhci)
 {
+#if (MP_USB_MSTAR==1) && (XHCI_FLUSHPIPE_PATCH)
+	Chip_Flush_Memory();
+#endif
+
 	if (!(xhci->cmd_ring_state & CMD_RING_STATE_RUNNING))
 		return;
 
@@ -409,6 +425,10 @@ static void ring_doorbell_for_active_rings(struct xhci_hcd *xhci,
 {
 	unsigned int stream_id;
 	struct xhci_virt_ep *ep;
+
+#if (MP_USB_MSTAR==1) && (XHCI_FLUSHPIPE_PATCH)
+	Chip_Flush_Memory();
+#endif
 
 	ep = &xhci->devs[slot_id]->eps[ep_index];
 
@@ -918,7 +938,29 @@ void xhci_stop_endpoint_command_watchdog(unsigned long arg)
 	xhci = ep->xhci;
 
 	spin_lock_irqsave(&xhci->lock, flags);
+#if defined(CONFIG_SUSPEND) && defined(CONFIG_MP_USB_STR_PATCH)
+	if (ep->stop_cmds_pending > 0 && (ep->ep_state & EP_HALT_PENDING))
+	{
+		ep->stop_cmd_timer_count++;
+		printk("[XHCI] stop_cmd_timer_count %d ", ep->stop_cmd_timer_count);
+		if ( is_suspending() )
+		{
+			//printk("... suspend end\n");
+			spin_unlock_irqrestore(&xhci->lock, flags);
+			return;
+		}
 
+		if ( ep->stop_cmd_timer_count < XHCI_STOP_EP_CMD_TIMEOUT )
+		{
+			//printk("...continue\n");
+			ep->stop_cmd_timer.expires = jiffies + HZ;
+			add_timer(&ep->stop_cmd_timer);
+			spin_unlock_irqrestore(&xhci->lock, flags);
+			return;
+		}
+		//printk("...end\n");
+	}
+#endif /* CONFIG_MP_USB_STR_PATCH */
 	ep->stop_cmds_pending--;
 	if (!(ep->stop_cmds_pending == 0 && (ep->ep_state & EP_HALT_PENDING))) {
 		xhci_dbg_trace(xhci, trace_xhci_dbg_cancel_urb,
@@ -2562,12 +2604,28 @@ static int handle_tx_event(struct xhci_hcd *xhci,
 				trb_in_td(xhci, ep_ring->deq_seg,
 					  ep_ring->dequeue, td->last_trb,
 					  event_dma, true);
+#if (MP_USB_MSTAR==1) && defined(XHCI_TX_ERR_EVENT_PATCH)
+				if (trb_comp_code == COMP_TX_ERR) {
+					printk("Patch TRB ptr\n");
+					event_dma = xhci_trb_virt_to_dma(ep_ring->deq_seg, ep_ring->dequeue);
+					event_seg = trb_in_td(xhci, ep_ring->deq_seg, ep_ring->dequeue,
+                                          td->last_trb, event_dma, false);
+					if (event_seg)
+						goto GO_TX_EVENT;
+				}
+#endif
+
 				return -ESHUTDOWN;
 			}
 
 			ret = skip_isoc_td(xhci, td, event, ep, &status);
 			goto cleanup;
 		}
+
+#if (MP_USB_MSTAR==1) && defined(XHCI_TX_ERR_EVENT_PATCH)
+GO_TX_EVENT:
+#endif
+
 		if (trb_comp_code == COMP_SHORT_TX)
 			ep_ring->last_td_was_short = true;
 		else
@@ -2745,7 +2803,15 @@ irqreturn_t xhci_irq(struct usb_hcd *hcd)
 	union xhci_trb *event_ring_deq;
 	dma_addr_t deq;
 
+#if (MP_USB_MSTAR==1)
+	u32 handled_events;
+#endif
+
 	spin_lock(&xhci->lock);
+
+#if (MP_USB_MSTAR==1) && (XHCI_FLUSHPIPE_PATCH)
+	Chip_Read_Memory(); //Flush Read buffer when H/W finished
+#endif
 	/* Check if the xHC generated the interrupt, or the irq is shared */
 	status = readl(&xhci->op_regs->status);
 	if (status == 0xffffffff)
@@ -2797,10 +2863,27 @@ hw_died:
 	}
 
 	event_ring_deq = xhci->event_ring->dequeue;
+#if (MP_USB_MSTAR==1)
+	//Force to update ERDP every 16 events.
+	//For some USB devices, like camera or wifi dongle.
+	//In some busy case, driver has no time to update
+	//the event ring dequeue pointer. It makes XHC to think
+	//the event ring is full.
+	handled_events = 1;
+	while (xhci_handle_event(xhci) > 0)
+	{
+		if (handled_events++ % 16 == 0)
+		{
+			xhci_set_hc_event_deq(xhci);
+			event_ring_deq = xhci->event_ring->dequeue;
+		}
+	}
+#else
 	/* FIXME this should be a delayed service routine
 	 * that clears the EHB.
 	 */
 	while (xhci_handle_event(xhci) > 0) {}
+#endif
 
 	temp_64 = xhci_read_64(xhci, &xhci->ir_set->erst_dequeue);
 	/* If necessary, update the HW's version of the event ring deq ptr. */
@@ -2988,9 +3071,13 @@ static int prepare_transfer(struct xhci_hcd *xhci,
 static unsigned int count_trbs(u64 addr, u64 len)
 {
 	unsigned int num_trbs;
-
+#if (MP_USB_MSTAR==1)  //XHCI_CROSS64K_PATCH
+	num_trbs = DIV_ROUND_UP(len,
+			TRB_MAX_BUFF_SIZE);
+#else
 	num_trbs = DIV_ROUND_UP(len + (addr & (TRB_MAX_BUFF_SIZE - 1)),
 			TRB_MAX_BUFF_SIZE);
+#endif
 	if (num_trbs == 0)
 		num_trbs++;
 
@@ -3056,6 +3143,12 @@ static void giveback_first_trb(struct xhci_hcd *xhci, int slot_id,
 		start_trb->field[3] |= cpu_to_le32(start_cycle);
 	else
 		start_trb->field[3] &= cpu_to_le32(~TRB_CYCLE);
+
+#if (MP_USB_MSTAR==1) && (XHCI_FLUSHPIPE_PATCH)
+	wmb();
+	Chip_Flush_Memory();
+#endif
+
 	xhci_ring_ep_doorbell(xhci, slot_id, ep_index, stream_id);
 }
 
@@ -3278,7 +3371,11 @@ int xhci_queue_bulk_tx(struct xhci_hcd *xhci, gfp_t mem_flags,
 		field = TRB_TYPE(TRB_NORMAL);
 
 		/* TRB buffer should not cross 64KB boundaries */
+#if (MP_USB_MSTAR==1)  //XHCI_CROSS64K_PATCH
+		trb_buff_len = TRB_MAX_BUFF_SIZE;
+#else
 		trb_buff_len = TRB_BUFF_LEN_UP_TO_BOUNDARY(addr);
+#endif
 		trb_buff_len = min_t(unsigned int, trb_buff_len, block_len);
 
 		if (enqd_len + trb_buff_len > full_len)
@@ -3746,7 +3843,11 @@ static int xhci_queue_isoc_tx(struct xhci_hcd *xhci, gfp_t mem_flags,
 					field |= TRB_BEI;
 			}
 			/* Calculate TRB length */
+#if (MP_USB_MSTAR==1)  //XHCI_CROSS64K_PATCH
+			trb_buff_len = TRB_MAX_BUFF_SIZE;
+#else
 			trb_buff_len = TRB_BUFF_LEN_UP_TO_BOUNDARY(addr);
+#endif
 			if (trb_buff_len > td_remain_len)
 				trb_buff_len = td_remain_len;
 
@@ -3972,6 +4073,17 @@ int xhci_queue_address_device(struct xhci_hcd *xhci, struct xhci_command *cmd,
 			TRB_TYPE(TRB_ADDR_DEV) | SLOT_ID_FOR_TRB(slot_id)
 			| (setup == SETUP_CONTEXT_ONLY ? TRB_BSR : 0), false);
 }
+
+#if (MP_USB_MSTAR==1)
+int xhci_queue_address_device_BSR(struct xhci_hcd *xhci,
+        struct xhci_command *cmd,dma_addr_t in_ctx_ptr, u32 slot_id)
+{
+	return queue_command(xhci, cmd, lower_32_bits(in_ctx_ptr),
+			upper_32_bits(in_ctx_ptr), 0,
+			TRB_TYPE(TRB_ADDR_DEV) | SLOT_ID_FOR_TRB(slot_id) | (0x1 << 9),
+			false);
+}
+#endif
 
 int xhci_queue_vendor_command(struct xhci_hcd *xhci, struct xhci_command *cmd,
 		u32 field1, u32 field2, u32 field3, u32 field4)

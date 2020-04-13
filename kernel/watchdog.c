@@ -221,7 +221,10 @@ bool is_hardlockup(void)
 	__this_cpu_write(hrtimer_interrupts_saved, hrint);
 	return false;
 }
-
+#if defined(CONFIG_MP_IRQ_TRACE)
+unsigned long lastTouch = 0;
+#include "../drivers/sstar/include/ms_msys.h"
+#endif
 static int is_softlockup(unsigned long touch_ts)
 {
 	unsigned long now = get_timestamp();
@@ -230,6 +233,19 @@ static int is_softlockup(unsigned long touch_ts)
 		/* Warn about unreasonable delays. */
 		if (time_after(now, touch_ts + get_softlockup_thresh()))
 			return now - touch_ts;
+
+#if defined(CONFIG_MP_IRQ_TRACE)
+            if((now - touch_ts) > lastTouch)
+            {
+                    lastTouch = now - touch_ts;
+
+                    if(lastTouch >= (watchdog_thresh/2))
+                    {
+                        printk("!!!!!! lastTouch(s): %ld now:%lld\r\n", lastTouch, local_clock());
+                        ms_dump_irq_count();
+                    }
+            }
+#endif
 	}
 	return 0;
 }
@@ -253,6 +269,10 @@ void __weak watchdog_nmi_disable(unsigned int cpu)
 
 static int watchdog_enable_all_cpus(void);
 static void watchdog_disable_all_cpus(void);
+
+#if defined(CONFIG_MP_IRQ_TRACE)
+        #include "../../drivers/sstar/include/ms_msys.h"
+#endif
 
 /* watchdog kicker functions */
 static enum hrtimer_restart watchdog_timer_fn(struct hrtimer *hrtimer)
@@ -334,7 +354,12 @@ static enum hrtimer_restart watchdog_timer_fn(struct hrtimer *hrtimer)
 				return HRTIMER_RESTART;
 			}
 		}
-
+#if defined(CONFIG_MP_IRQ_TRACE)
+                printk("debug:\n");
+                ms_dump_irq_count();
+                msys_dump_sirq_info();
+                msys_dump_irq_info();
+#endif
 		pr_emerg("BUG: soft lockup - CPU#%d stuck for %us! [%s:%d]\n",
 			smp_processor_id(), duration,
 			current->comm, task_pid_nr(current));
@@ -345,6 +370,7 @@ static enum hrtimer_restart watchdog_timer_fn(struct hrtimer *hrtimer)
 			show_regs(regs);
 		else
 			dump_stack();
+
 
 		if (softlockup_all_cpu_backtrace) {
 			/* Avoid generating two back traces for current

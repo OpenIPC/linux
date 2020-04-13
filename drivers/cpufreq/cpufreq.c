@@ -31,6 +31,10 @@
 #include <linux/tick.h>
 #include <trace/events/power.h>
 
+#ifdef CONFIG_LH_RTOS
+#include "drv_dualos.h"
+#endif
+
 static LIST_HEAD(cpufreq_policy_list);
 
 static inline bool policy_is_inactive(struct cpufreq_policy *policy)
@@ -148,6 +152,7 @@ static inline u64 get_cpu_idle_time_jiffy(unsigned int cpu, u64 *wall)
 	return cputime_to_usecs(idle_time);
 }
 
+#ifndef CONFIG_LH_RTOS
 u64 get_cpu_idle_time(unsigned int cpu, u64 *wall, int io_busy)
 {
 	u64 idle_time = get_cpu_idle_time_us(cpu, io_busy ? wall : NULL);
@@ -159,6 +164,28 @@ u64 get_cpu_idle_time(unsigned int cpu, u64 *wall, int io_busy)
 
 	return idle_time;
 }
+#else
+u64 get_cpu_idle_time(unsigned int cpu, u64 *wall, int io_busy)
+{
+    u64 idle_time = get_cpu_idle_time_us(cpu, io_busy ? wall : NULL);
+    u64 idle_in_rtos_time;
+    rtkinfo_t *rtk;
+
+    rtk = get_rtkinfo();
+    if (rtk)
+    {
+        idle_in_rtos_time = rtk->linux_idle_in_rtos_time;
+    }
+
+    if (idle_time == -1ULL)
+        return get_cpu_idle_time_jiffy(cpu, wall) - RTK_TIME_TO_US(idle_in_rtos_time);
+    else if (!io_busy)
+        idle_time += get_cpu_iowait_time_us(cpu, wall);
+
+    return idle_time - RTK_TIME_TO_US(idle_in_rtos_time);
+}
+#endif
+
 EXPORT_SYMBOL_GPL(get_cpu_idle_time);
 
 /*

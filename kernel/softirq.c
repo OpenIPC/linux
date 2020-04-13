@@ -30,6 +30,11 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/irq.h>
 
+#if defined(CONFIG_MP_IRQ_TRACE)
+#include "../../drivers/sstar/include/ms_msys.h"
+extern int sirq_head_initialized ;
+extern void ms_records_sirq(MSYS_IRQ_INFO *irq_info);
+#endif
 /*
    - No shared variables, all the data are CPU local.
    - If a softirq needs serialization, let it serialize itself
@@ -137,7 +142,7 @@ EXPORT_SYMBOL(__local_bh_disable_ip);
 
 static void __local_bh_enable(unsigned int cnt)
 {
-	WARN_ON_ONCE(!irqs_disabled());
+	lockdep_assert_irqs_disabled();
 
 	if (softirq_count() == (cnt & SOFTIRQ_MASK))
 		trace_softirqs_on(_RET_IP_);
@@ -158,7 +163,8 @@ EXPORT_SYMBOL(_local_bh_enable);
 
 void __local_bh_enable_ip(unsigned long ip, unsigned int cnt)
 {
-	WARN_ON_ONCE(in_irq() || irqs_disabled());
+	WARN_ON_ONCE(in_irq());
+	lockdep_assert_irqs_enabled();
 #ifdef CONFIG_TRACE_IRQFLAGS
 	local_irq_disable();
 #endif
@@ -248,6 +254,9 @@ asmlinkage __visible void __softirq_entry __do_softirq(void)
 	__u32 pending;
 	int softirq_bit;
 
+#if defined(CONFIG_MP_IRQ_TRACE)
+	MSYS_IRQ_INFO irq_info;
+#endif
 	/*
 	 * Mask out PF_MEMALLOC s current task context is borrowed for the
 	 * softirq. A softirq handled such as network RX might set PF_MEMALLOC
@@ -280,9 +289,25 @@ restart:
 
 		kstat_incr_softirqs_this_cpu(vec_nr);
 
+#if defined(CONFIG_MP_IRQ_TRACE)
+	irq_info.IRQNumber = vec_nr;
+	irq_info.action = h->action;
+	irq_info.timeStart = sched_clock();
+#endif
 		trace_softirq_entry(vec_nr);
 		h->action(h);
 		trace_softirq_exit(vec_nr);
+
+#if defined(CONFIG_MP_IRQ_TRACE)
+        irq_info.timeEnd = sched_clock();
+        if (irq_info.timeEnd - irq_info.timeStart > 2500000)
+        {
+            if(sirq_head_initialized)
+            {
+                ms_records_sirq(&irq_info);
+            }
+        }
+#endif
 		if (unlikely(prev_count != preempt_count())) {
 			pr_err("huh, entered softirq %u %s %p with preempt_count %08x, exited with %08x?\n",
 			       vec_nr, softirq_to_name[vec_nr], h->action,
@@ -396,7 +421,7 @@ void irq_exit(void)
 #ifndef __ARCH_IRQ_EXIT_IRQS_DISABLED
 	local_irq_disable();
 #else
-	WARN_ON_ONCE(!irqs_disabled());
+	lockdep_assert_irqs_disabled();
 #endif
 
 	account_irq_exit_time(current);
@@ -488,7 +513,7 @@ EXPORT_SYMBOL(__tasklet_hi_schedule);
 
 void __tasklet_hi_schedule_first(struct tasklet_struct *t)
 {
-	BUG_ON(!irqs_disabled());
+	lockdep_assert_irqs_disabled();
 
 	t->next = __this_cpu_read(tasklet_hi_vec.head);
 	__this_cpu_write(tasklet_hi_vec.head, t);

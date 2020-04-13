@@ -33,6 +33,14 @@
 #include "xhci-trace.h"
 #include "xhci-mtk.h"
 
+#ifndef MP_USB_MSTAR
+#include <mstar/mpatch_macro.h>
+#endif
+
+#if (MP_USB_MSTAR==1) && (XHCI_FLUSHPIPE_PATCH)
+extern void Chip_Flush_Memory(void);
+#endif
+
 #define DRIVER_AUTHOR "Sarah Sharp"
 #define DRIVER_DESC "'eXtensible' Host Controller (xHC) Driver"
 
@@ -186,6 +194,25 @@ int xhci_reset(struct xhci_hcd *xhci)
 	 */
 	if (xhci->quirks & XHCI_INTEL_HOST)
 		udelay(1000);
+#if (MP_USB_MSTAR==1) && defined(XHCI_HC_RESET_PATCH)
+	/*
+	 * During xHCI reset period, the reading value of xHCI register could be zero.
+	 * It isn't reliable to check the command & status register below.
+	 * Add the checking of non-zero read-only register to wait for reset end.
+	 * Added by Jonas.
+	 */
+	for (i = 0; i< 1000; i++)
+	{
+		if (0 == readl(&xhci->cap_regs->hcc_params))
+		{
+			udelay(1000);
+			if (999==i)
+				printk("\n!! [xHCI ERROR] : hw reset doesn't end !! \n\n");
+		}
+		else
+			break;
+	}
+#endif
 
 	ret = xhci_handshake(&xhci->op_regs->command,
 			CMD_RESET, 0, 10 * 1000 * 1000);
@@ -553,6 +580,10 @@ int xhci_init(struct usb_hcd *hcd)
 	}
 	retval = xhci_mem_init(xhci, GFP_KERNEL);
 	xhci_dbg_trace(xhci, trace_xhci_dbg_init, "Finished xhci_init");
+
+#if (MP_USB_MSTAR==1) && (XHCI_FLUSHPIPE_PATCH)
+	Chip_Flush_Memory();
+#endif
 
 	/* Initializing Compliance Mode Recovery Data If Needed */
 	if (xhci_compliance_mode_recovery_timer_quirk_check()) {
@@ -947,6 +978,7 @@ int xhci_suspend(struct xhci_hcd *xhci, bool do_wakeup)
 	/* step 3: save registers */
 	xhci_save_registers(xhci);
 
+#if (MP_USB_MSTAR==0)
 	/* step 4: set CSS flag */
 	command = readl(&xhci->op_regs->command);
 	command |= CMD_CSS;
@@ -957,6 +989,8 @@ int xhci_suspend(struct xhci_hcd *xhci, bool do_wakeup)
 		spin_unlock_irq(&xhci->lock);
 		return -ETIMEDOUT;
 	}
+#endif
+
 	spin_unlock_irq(&xhci->lock);
 
 	/*
@@ -973,8 +1007,11 @@ int xhci_suspend(struct xhci_hcd *xhci, bool do_wakeup)
 
 	/* step 5: remove core well power */
 	/* synchronize irq when using MSI-X */
+#if (MP_USB_MSTAR==1)
+	synchronize_irq(hcd->irq);
+#else
 	xhci_msix_sync_irqs(xhci);
-
+#endif
 	return rc;
 }
 EXPORT_SYMBOL_GPL(xhci_suspend);
@@ -1050,6 +1087,27 @@ int xhci_resume(struct xhci_hcd *xhci, bool hibernated)
 		spin_unlock_irq(&xhci->lock);
 		xhci_cleanup_msix(xhci);
 
+#if (MP_USB_MSTAR==1)
+		{
+			int ii, jj;
+			struct xhci_virt_device *virt_dev;
+
+			for (ii = 1; ii < MAX_HC_SLOTS; ii++)
+			{
+				if ( !xhci->devs[ii] )
+					continue;
+
+				virt_dev = xhci->devs[ii];
+
+				for (jj = 0; jj < 31; ++jj)
+				{
+					virt_dev->eps[jj].ep_state &= ~EP_HALT_PENDING;
+					del_timer_sync(&virt_dev->eps[jj].stop_cmd_timer);
+				}
+			}
+			printk("[XHCI] stop all stop_cmd_timers...\n");
+		}
+#endif
 		xhci_dbg(xhci, "// Disabling event ring interrupts\n");
 		temp = readl(&xhci->op_regs->status);
 		writel(temp & ~STS_EINT, &xhci->op_regs->status);
@@ -1354,6 +1412,15 @@ int xhci_urb_enqueue(struct usb_hcd *hcd, struct urb *urb, gfp_t mem_flags)
 		goto exit;
 	}
 
+#if (MP_USB_MSTAR==1)
+	if (!xhci->devs[slot_id])
+	{
+		printk("[XHCI] virt dev is freed, stop to enqueue...\n");
+		ret = -ENODEV;
+		goto exit;
+	}
+#endif
+
 	if (usb_endpoint_xfer_isoc(&urb->ep->desc))
 		size = urb->number_of_packets;
 	else if (usb_endpoint_is_bulk_out(&urb->ep->desc) &&
@@ -1572,8 +1639,16 @@ int xhci_urb_dequeue(struct usb_hcd *hcd, struct urb *urb, int status)
 		}
 		ep->ep_state |= EP_HALT_PENDING;
 		ep->stop_cmds_pending++;
+#if (MP_USB_MSTAR==1)
+		printk("[XHCI] issue stop cmd\n");
+#endif
+#if defined(CONFIG_SUSPEND) && defined(CONFIG_MP_USB_STR_PATCH)
+		ep->stop_cmd_timer.expires = jiffies + HZ;
+		ep->stop_cmd_timer_count = 0;
+#else
 		ep->stop_cmd_timer.expires = jiffies +
 			XHCI_STOP_EP_CMD_TIMEOUT * HZ;
+#endif /* CONFIG_MP_USB_STR_PATCH */
 		add_timer(&ep->stop_cmd_timer);
 		xhci_queue_stop_endpoint(xhci, command, urb->dev->slot_id,
 					 ep_index, 0);
@@ -4917,6 +4992,10 @@ int xhci_gen_setup(struct usb_hcd *hcd, xhci_get_quirks_t get_quirks)
 	if (xhci->quirks & XHCI_NO_64BIT_SUPPORT)
 		xhci->hcc_params &= ~BIT(0);
 
+#if (MP_USB_MSTAR==1)
+	printk(KERN_NOTICE "[USB][XHC] primary_hcd dma_mask 0x%llx\n",
+			*hcd->self.controller->dma_mask);
+#else
 	/* Set dma_mask and coherent_dma_mask to 64-bits,
 	 * if xHC supports 64-bit addressing */
 	if (HCC_64BIT_ADDR(xhci->hcc_params) &&
@@ -4934,6 +5013,7 @@ int xhci_gen_setup(struct usb_hcd *hcd, xhci_get_quirks_t get_quirks)
 		xhci_dbg(xhci, "Enabling 32-bit DMA addresses.\n");
 		dma_set_coherent_mask(dev, DMA_BIT_MASK(32));
 	}
+#endif
 
 	xhci_dbg(xhci, "Calling HCD init\n");
 	/* Initialize HCD and host controller data structures. */
@@ -5034,6 +5114,15 @@ MODULE_LICENSE("GPL");
 
 static int __init xhci_hcd_init(void)
 {
+#if (MP_USB_MSTAR==1) // temp xhci init
+	int retval;
+
+	retval = xhci_register_plat();
+	if (retval < 0) {
+		printk(KERN_DEBUG "Problem registering platform driver.");
+		return retval;
+	}
+#endif
 	/*
 	 * Check the compiler generated sizes of structures that must be laid
 	 * out in specific ways for hardware access.

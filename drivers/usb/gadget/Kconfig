@@ -17,6 +17,7 @@ menuconfig USB_GADGET
 	tristate "USB Gadget Support"
 	select USB_COMMON
 	select NLS
+	select SS_GADGET
 	help
 	   USB is a master/slave protocol, organized with one master
 	   host (such as a PC) controlling up to 127 peripheral devices.
@@ -146,6 +147,9 @@ config USB_LIBCOMPOSITE
 	select CONFIGFS_FS
 	depends on USB_GADGET
 
+config SS_GADGET
+	tristate
+
 config USB_F_ACM
 	tristate
 
@@ -186,6 +190,9 @@ config USB_F_MASS_STORAGE
 	tristate
 
 config USB_F_FS
+	tristate
+
+config USB_F_BI_DIRECTION
 	tristate
 
 config USB_F_UAC1
