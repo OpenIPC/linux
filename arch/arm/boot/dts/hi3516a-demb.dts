@@ -151,13 +151,13 @@
 
 &mdio {
 	ethphy: ethernet-phy@1 {
-		reg = <1>;
+		reg = <1>; /* Disable to invoke autoprobe */
 	};
 };
 
 &higmac {
 	phy-handle = <&ethphy>;
-	phy-mode = "rgmii";
+	phy-mode = "rmii";
 };
 
 &mmc0 {
