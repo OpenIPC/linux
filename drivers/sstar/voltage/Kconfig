@@ -1,0 +1,11 @@
+config SS_VOLTAGE_CTRL
+    tristate "SStar Voltage Control"
+    depends on MS_GPIO && !ARCH_INFINITY2
+    default y
+    help
+
+config SS_VOLTAGE_CTRL_WITH_SIDD
+    tristate "SStar Voltage Control With SIDD"
+    depends on ARCH_INFINITY6E && SS_VOLTAGE_CTRL
+    default y
+    help

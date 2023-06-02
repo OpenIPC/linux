@@ -34,6 +34,7 @@
 #include "debug.h"
 #include "gadget.h"
 #include "io.h"
+#include "../drivers/sstar/include/ms_platform.h"
 
 static void __dwc3_ep0_do_control_status(struct dwc3 *dwc, struct dwc3_ep *dep);
 static void __dwc3_ep0_do_control_data(struct dwc3 *dwc,
@@ -60,6 +61,7 @@ static void dwc3_ep0_prepare_one_trb(struct dwc3 *dwc, u8 epnum,
 {
 	struct dwc3_trb			*trb;
 	struct dwc3_ep			*dep;
+	dma_addr_t              miu_addr;
 
 	dep = dwc->eps[epnum];
 
@@ -68,8 +70,9 @@ static void dwc3_ep0_prepare_one_trb(struct dwc3 *dwc, u8 epnum,
 	if (chain)
 		dep->trb_enqueue++;
 
-	trb->bpl = lower_32_bits(buf_dma);
-	trb->bph = upper_32_bits(buf_dma);
+    miu_addr = (dma_addr_t)Chip_Phys_to_MIU(buf_dma);
+	trb->bpl = lower_32_bits(miu_addr);
+	trb->bph = upper_32_bits(miu_addr);
 	trb->size = len;
 	trb->ctrl = type;
 
@@ -90,6 +93,7 @@ static int dwc3_ep0_start_trans(struct dwc3 *dwc, u8 epnum)
 	struct dwc3_gadget_ep_cmd_params params;
 	struct dwc3_ep			*dep;
 	int				ret;
+	dma_addr_t      miu_addr;
 
 	dep = dwc->eps[epnum];
 	if (dep->flags & DWC3_EP_BUSY) {
@@ -98,8 +102,10 @@ static int dwc3_ep0_start_trans(struct dwc3 *dwc, u8 epnum)
 	}
 
 	memset(&params, 0, sizeof(params));
-	params.param0 = upper_32_bits(dwc->ep0_trb_addr);
-	params.param1 = lower_32_bits(dwc->ep0_trb_addr);
+	Chip_Flush_MIU_Pipe();
+	miu_addr = (dma_addr_t)Chip_Phys_to_MIU(dwc->ep0_trb_addr);
+	params.param0 = upper_32_bits(miu_addr);
+	params.param1 = lower_32_bits(miu_addr);
 
 	ret = dwc3_send_gadget_ep_cmd(dep, DWC3_DEPCMD_STARTTRANSFER, &params);
 	if (ret < 0) {
@@ -433,10 +439,10 @@ static int dwc3_ep0_handle_feature(struct dwc3 *dwc,
 				return -EINVAL;
 
 			reg = dwc3_readl(dwc->regs, DWC3_DCTL);
-			if (set)
-				reg |= DWC3_DCTL_INITU1ENA;
-			else
-				reg &= ~DWC3_DCTL_INITU1ENA;
+			//if (set)
+				//reg |= DWC3_DCTL_INITU1ENA;
+			//else
+				//reg &= ~DWC3_DCTL_INITU1ENA;
 			dwc3_writel(dwc->regs, DWC3_DCTL, reg);
 			break;
 
@@ -448,10 +454,10 @@ static int dwc3_ep0_handle_feature(struct dwc3 *dwc,
 				return -EINVAL;
 
 			reg = dwc3_readl(dwc->regs, DWC3_DCTL);
-			if (set)
-				reg |= DWC3_DCTL_INITU2ENA;
-			else
-				reg &= ~DWC3_DCTL_INITU2ENA;
+			//if (set)
+				//reg |= DWC3_DCTL_INITU2ENA;
+			//else
+				//reg &= ~DWC3_DCTL_INITU2ENA;
 			dwc3_writel(dwc->regs, DWC3_DCTL, reg);
 			break;
 
@@ -595,7 +601,7 @@ static int dwc3_ep0_set_config(struct dwc3 *dwc, struct usb_ctrlrequest *ctrl)
 			 * nothing is pending from application.
 			 */
 			reg = dwc3_readl(dwc->regs, DWC3_DCTL);
-			reg |= (DWC3_DCTL_ACCEPTU1ENA | DWC3_DCTL_ACCEPTU2ENA);
+			//reg |= (DWC3_DCTL_ACCEPTU1ENA | DWC3_DCTL_ACCEPTU2ENA);
 			dwc3_writel(dwc->regs, DWC3_DCTL, reg);
 		}
 		break;

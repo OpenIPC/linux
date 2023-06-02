@@ -22,22 +22,125 @@
 #include "uvc.h"
 #include "uvc_queue.h"
 #include "uvc_video.h"
+#include "u_uvc.h"
 
 /* --------------------------------------------------------------------------
  * Video codecs
  */
 
+#ifdef CONFIG_USB_WEBCAM_UVC_SUPPORT_SG_TABLE
+static int
+uvc_video_encode_header_sgt(struct uvc_video *video, struct uvc_buffer *buf,
+		struct usb_request *req, int len)
+{
+#define UVC_HEADER_LEN 12
+
+	char *data = req->buf;
+
+	data[0] = UVC_HEADER_LEN;
+	data[1] = UVC_STREAM_EOH | video->fid;
+	data[2] = 0;
+	data[3] = 0;
+	data[4] = 0;
+	data[5] = 0;
+	data[6] = 0;
+	data[7] = 0;
+	data[8] = 0;
+	data[9] = 0;
+	data[10] = 0;
+	data[11] = 0;
+
+	if ((buf->bytesused - video->queue.buf_used <= len - UVC_HEADER_LEN) && (buf->bFrameEnd))
+		data[1] |= UVC_STREAM_EOF;
+
+	if (!video->queue.cur_sg)
+	{
+		video->queue.cur_sg = buf->sgt.sgl;
+	}
+	sg_init_table(req->sgt.sgl, req->sgt.nents);
+	return UVC_HEADER_LEN;
+}
+
+static int
+uvc_video_encode_data_sgt(struct uvc_video *video, struct uvc_buffer *buf,
+		struct usb_request *req, int len)
+{
+	struct uvc_video_queue *queue = &video->queue;
+	unsigned int nbytes;
+	void *mem;
+
+	/* Copy video data to the USB buffer. */
+	mem = buf->mem + queue->buf_used;
+	nbytes = min((unsigned int)len, buf->bytesused - queue->buf_used);
+
+	sg_set_buf(req->sgt.sgl, req->buf, UVC_HEADER_LEN);
+	if (sg_copy(queue->cur_sg, sg_next(req->sgt.sgl), nbytes))
+	{
+		BUG();
+	}
+	req->sg = req->sgt.sgl;
+	req->num_sgs = sg_nents(req->sgt.sgl);
+	queue->cur_sg = sg_advance(queue->cur_sg, nbytes);
+
+	queue->buf_used += nbytes;
+
+	return nbytes;
+}
+
+static void
+uvc_video_encode_isoc_sgt(struct usb_request *req, struct uvc_video *video,
+		struct uvc_buffer *buf)
+{
+	int len = video->req_size;
+	int ret;
+
+	/* Add the header. */
+	ret = uvc_video_encode_header_sgt(video, buf, req, len);
+	len -= ret;
+
+	/* Process video data. */
+	ret = uvc_video_encode_data_sgt(video, buf, req, len);
+	len -= ret;
+
+	req->length = video->req_size - len;
+
+	if (buf->bytesused == video->queue.buf_used) {
+		video->queue.cur_sg = NULL;
+		video->queue.buf_used = 0;
+		buf->state = UVC_BUF_STATE_DONE;
+		uvcg_queue_next_buffer(&video->queue, buf);
+		if (buf->bFrameEnd)
+			video->fid ^= UVC_STREAM_FID;
+	}
+}
+#endif
+
 static int
 uvc_video_encode_header(struct uvc_video *video, struct uvc_buffer *buf,
 		u8 *data, int len)
 {
-	data[0] = 2;
+	data[0] = 12;
 	data[1] = UVC_STREAM_EOH | video->fid;
+	data[2] = 0;
+	data[3] = 0;
+	data[4] = 0;
+	data[5] = 0;
+	data[6] = 0;
+	data[7] = 0;
+	data[8] = 0;
+	data[9] = 0;
+	data[10] = 0;
+	data[11] = 0;
 
-	if (buf->bytesused - video->queue.buf_used <= len - 2)
+#if defined(CONFIG_SS_GADGET) ||defined(CONFIG_SS_GADGET_MODULE)
+	if ((buf->bytesused - video->queue.buf_used <= len - 12) && (buf->bFrameEnd))
 		data[1] |= UVC_STREAM_EOF;
+#else
+	if (buf->bytesused - video->queue.buf_used <= len - 12)
+		data[1] |= UVC_STREAM_EOF;
+#endif
 
-	return 2;
+	return 12;
 }
 
 static int
@@ -58,6 +161,7 @@ uvc_video_encode_data(struct uvc_video *video, struct uvc_buffer *buf,
 	return nbytes;
 }
 
+#if defined(CONFIG_SS_GADGET) ||defined(CONFIG_SS_GADGET_MODULE)
 static void
 uvc_video_encode_bulk(struct usb_request *req, struct uvc_video *video,
 		struct uvc_buffer *buf)
@@ -88,7 +192,8 @@ uvc_video_encode_bulk(struct usb_request *req, struct uvc_video *video,
 		video->queue.buf_used = 0;
 		buf->state = UVC_BUF_STATE_DONE;
 		uvcg_queue_next_buffer(&video->queue, buf);
-		video->fid ^= UVC_STREAM_FID;
+		if (buf->bFrameEnd)
+			video->fid ^= UVC_STREAM_FID;
 
 		video->payload_size = 0;
 	}
@@ -97,6 +202,7 @@ uvc_video_encode_bulk(struct usb_request *req, struct uvc_video *video,
 	    buf->bytesused == video->queue.buf_used)
 		video->payload_size = 0;
 }
+#endif
 
 static void
 uvc_video_encode_isoc(struct usb_request *req, struct uvc_video *video,
@@ -121,13 +227,65 @@ uvc_video_encode_isoc(struct usb_request *req, struct uvc_video *video,
 		video->queue.buf_used = 0;
 		buf->state = UVC_BUF_STATE_DONE;
 		uvcg_queue_next_buffer(&video->queue, buf);
+#if defined(CONFIG_SS_GADGET) ||defined(CONFIG_SS_GADGET_MODULE)
+		if (buf->bFrameEnd)
+			video->fid ^= UVC_STREAM_FID;
+#else
 		video->fid ^= UVC_STREAM_FID;
+#endif
 	}
 }
 
 /* --------------------------------------------------------------------------
  * Request handling
  */
+static int uvcg_video_ep_queue(struct uvc_video *video, struct usb_request *req)
+{
+	int ret;
+
+#ifdef CONFIG_USB_WEBCAM_UVC_SUPPORT_SG_TABLE
+#ifdef DEBUG_SG//test
+{
+		struct uvc_device *uvc = video_to_uvc(video);
+		struct usb_gadget * gadget = fuvc_to_gadget(uvc->func);
+
+		if (gadget->sg_supported)
+		{
+			char *buf = kmalloc(req->length, GFP_KERNEL);
+			unsigned int copy_len = 0;
+			unsigned int correct = 1;
+			unsigned i;
+
+			copy_len = sg_pcopy_to_buffer(req->sgt.sgl, req->sgt.nents, buf, req->length, 0);
+
+			for (i=0; i < req->length;i++)
+			{
+				if (buf[i]!= ((char*)req->buf)[i])
+				{
+					printk(KERN_DEBUG"index%d val%d val%d\n", i, buf[i], ((char*)req->buf)[i]);
+					correct = 0;
+				}
+			}
+			printk(KERN_DEBUG"data is header0x%x 0x%x\n", buf[0], buf[1]);
+			printk(KERN_DEBUG"data is (%s) reqlen%d copylen%d req->num_sgs%d\n",
+				correct?"right":"bad", req->length, copy_len, req->num_sgs);
+			kfree(buf);
+		}
+}
+#endif
+#endif
+	ret = usb_ep_queue(video->ep, req, GFP_ATOMIC);
+	if (ret < 0) {
+		uvcg_err(&video->uvc->func, "Failed to queue request (%d).\n",
+			 ret);
+
+		/* Isochronous endpoints can't be halted. */
+		if (usb_endpoint_xfer_bulk(video->ep->desc))
+			usb_ep_set_halt(video->ep);
+	}
+
+	return ret;
+}
 
 /*
  * I somehow feel that synchronisation won't be easy to achieve here. We have
@@ -164,59 +322,48 @@ uvc_video_complete(struct usb_ep *ep, struct usb_request *req)
 {
 	struct uvc_video *video = req->context;
 	struct uvc_video_queue *queue = &video->queue;
-	struct uvc_buffer *buf;
 	unsigned long flags;
-	int ret;
 
 	switch (req->status) {
 	case 0:
 		break;
 
 	case -ESHUTDOWN:	/* disconnect from host. */
-		printk(KERN_DEBUG "VS request cancelled.\n");
+		uvcg_dbg(&video->uvc->func, "VS request cancelled.\n");
 		uvcg_queue_cancel(queue, 1);
-		goto requeue;
+		break;
 
 	default:
-		printk(KERN_INFO "VS request completed with status %d.\n",
-			req->status);
+		uvcg_info(&video->uvc->func,
+			  "VS request completed with status %d.\n",
+			  req->status);
 		uvcg_queue_cancel(queue, 0);
-		goto requeue;
 	}
 
-	spin_lock_irqsave(&video->queue.irqlock, flags);
-	buf = uvcg_queue_head(&video->queue);
-	if (buf == NULL) {
-		spin_unlock_irqrestore(&video->queue.irqlock, flags);
-		goto requeue;
-	}
-
-	video->encode(req, video, buf);
-
-	if ((ret = usb_ep_queue(ep, req, GFP_ATOMIC)) < 0) {
-		printk(KERN_INFO "Failed to queue request (%d).\n", ret);
-		usb_ep_set_halt(ep);
-		spin_unlock_irqrestore(&video->queue.irqlock, flags);
-		uvcg_queue_cancel(queue, 0);
-		goto requeue;
-	}
-	spin_unlock_irqrestore(&video->queue.irqlock, flags);
-
-	return;
-
-requeue:
 	spin_lock_irqsave(&video->req_lock, flags);
 	list_add_tail(&req->list, &video->req_free);
 	spin_unlock_irqrestore(&video->req_lock, flags);
+
+	schedule_work(&video->pump);
 }
 
 static int
 uvc_video_free_requests(struct uvc_video *video)
 {
 	unsigned int i;
+#ifdef CONFIG_USB_WEBCAM_UVC_SUPPORT_SG_TABLE
+	struct uvc_device *uvc = video_to_uvc(video);
+	struct usb_gadget * gadget = fuvc_to_gadget(uvc->func);
+#endif
 
 	for (i = 0; i < UVC_NUM_REQUESTS; ++i) {
 		if (video->req[i]) {
+#ifdef CONFIG_USB_WEBCAM_UVC_SUPPORT_SG_TABLE
+		if (gadget->sg_supported)
+		{
+			sg_free_table(&video->req[i]->sgt);
+		}
+#endif
 			usb_ep_free_request(video->ep, video->req[i]);
 			video->req[i] = NULL;
 		}
@@ -237,13 +384,30 @@ uvc_video_alloc_requests(struct uvc_video *video)
 {
 	unsigned int req_size;
 	unsigned int i;
+#if defined(CONFIG_SS_GADGET) ||defined(CONFIG_SS_GADGET_MODULE)
+	struct uvc_device *uvc = video_to_uvc(video);
+	struct f_uvc_opts *opts = fi_to_f_uvc_opts(uvc->func.fi);
+#endif
 	int ret = -ENOMEM;
+
+#ifdef CONFIG_USB_WEBCAM_UVC_SUPPORT_SG_TABLE
+	struct usb_gadget * gadget = fuvc_to_gadget(uvc->func);
+#endif
 
 	BUG_ON(video->req_size);
 
-	req_size = video->ep->maxpacket
-		 * max_t(unsigned int, video->ep->maxburst, 1)
-		 * (video->ep->mult);
+#if defined(CONFIG_SS_GADGET) ||defined(CONFIG_SS_GADGET_MODULE)
+	if (opts->bulk_streaming_ep)
+	{
+		req_size = video->imagesize;
+	}
+	else
+#endif
+	{
+		req_size = video->ep->maxpacket
+			* max_t(unsigned int, video->ep->maxburst, 1)
+			* (video->ep->mult);
+	}
 
 	for (i = 0; i < UVC_NUM_REQUESTS; ++i) {
 		video->req_buffer[i] = kmalloc(req_size, GFP_KERNEL);
@@ -259,6 +423,18 @@ uvc_video_alloc_requests(struct uvc_video *video)
 		video->req[i]->complete = uvc_video_complete;
 		video->req[i]->context = video;
 
+#ifdef CONFIG_USB_WEBCAM_UVC_SUPPORT_SG_TABLE
+	if (gadget->sg_supported)
+	{
+		ret = sg_alloc_table(&video->req[i]->sgt,
+			UVC_MAX_REQ_SG_LIST_NUM,
+			GFP_KERNEL);
+		if (ret)
+		{
+			goto error;
+		}
+	}
+#endif
 		list_add_tail(&video->req[i]->list, &video->req_free);
 	}
 
@@ -281,8 +457,9 @@ error:
  * This function fills the available USB requests (listed in req_free) with
  * video data from the queued buffers.
  */
-int uvcg_video_pump(struct uvc_video *video)
+static void uvcg_video_pump(struct work_struct *work)
 {
+	struct uvc_video *video = container_of(work, struct uvc_video, pump);
 	struct uvc_video_queue *queue = &video->queue;
 	struct usb_request *req;
 	struct uvc_buffer *buf;
@@ -300,7 +477,7 @@ int uvcg_video_pump(struct uvc_video *video)
 		spin_lock_irqsave(&video->req_lock, flags);
 		if (list_empty(&video->req_free)) {
 			spin_unlock_irqrestore(&video->req_lock, flags);
-			return 0;
+			return;
 		}
 		req = list_first_entry(&video->req_free, struct usb_request,
 					list);
@@ -320,21 +497,19 @@ int uvcg_video_pump(struct uvc_video *video)
 		video->encode(req, video, buf);
 
 		/* Queue the USB request */
-		ret = usb_ep_queue(video->ep, req, GFP_ATOMIC);
+		ret = uvcg_video_ep_queue(video, req);
+		spin_unlock_irqrestore(&queue->irqlock, flags);
+
 		if (ret < 0) {
-			printk(KERN_INFO "Failed to queue request (%d)\n", ret);
-			usb_ep_set_halt(video->ep);
-			spin_unlock_irqrestore(&queue->irqlock, flags);
 			uvcg_queue_cancel(queue, 0);
 			break;
 		}
-		spin_unlock_irqrestore(&queue->irqlock, flags);
 	}
 
 	spin_lock_irqsave(&video->req_lock, flags);
 	list_add_tail(&req->list, &video->req_free);
 	spin_unlock_irqrestore(&video->req_lock, flags);
-	return 0;
+	return;
 }
 
 /*
@@ -344,14 +519,24 @@ int uvcg_video_enable(struct uvc_video *video, int enable)
 {
 	unsigned int i;
 	int ret;
+#if defined(CONFIG_SS_GADGET) ||defined(CONFIG_SS_GADGET_MODULE)
+	struct uvc_device *uvc = video_to_uvc(video);
+	struct f_uvc_opts *opts = fi_to_f_uvc_opts(uvc->func.fi);
+#ifdef CONFIG_USB_WEBCAM_UVC_SUPPORT_SG_TABLE
+	struct usb_gadget * gadget = fuvc_to_gadget(uvc->func);
+#endif
+#endif
 
 	if (video->ep == NULL) {
-		printk(KERN_INFO "Video enable failed, device is "
-			"uninitialized.\n");
+		uvcg_info(&video->uvc->func,
+			  "Video enable failed, device is uninitialized.\n");
 		return -ENODEV;
 	}
 
 	if (!enable) {
+		cancel_work_sync(&video->pump);
+		uvcg_queue_cancel(&video->queue, 0);
+
 		for (i = 0; i < UVC_NUM_REQUESTS; ++i)
 			if (video->req[i])
 				usb_ep_dequeue(video->ep, video->req[i]);
@@ -367,29 +552,54 @@ int uvcg_video_enable(struct uvc_video *video, int enable)
 	if ((ret = uvc_video_alloc_requests(video)) < 0)
 		return ret;
 
-	if (video->max_payload_size) {
+#if defined(CONFIG_SS_GADGET) ||defined(CONFIG_SS_GADGET_MODULE)
+	if (opts->bulk_streaming_ep)
+	{
 		video->encode = uvc_video_encode_bulk;
 		video->payload_size = 0;
 	} else
+#endif
+	{
 		video->encode = uvc_video_encode_isoc;
 
-	return uvcg_video_pump(video);
+#ifdef CONFIG_USB_WEBCAM_UVC_SUPPORT_SG_TABLE
+	if (gadget->sg_supported)
+	{
+		video->encode = uvc_video_encode_isoc_sgt;
+	}
+#endif
+	}
+
+	schedule_work(&video->pump);
+
+	return ret;
 }
 
 /*
  * Initialize the UVC video stream.
  */
-int uvcg_video_init(struct uvc_video *video)
+int uvcg_video_init(struct uvc_video *video, struct uvc_device *uvcdev)
 {
+#if defined(CONFIG_SS_GADGET) ||defined(CONFIG_SS_GADGET_MODULE)
+	struct uvc_device *uvc = video_to_uvc(video);
+	struct f_uvc_opts *opts = fi_to_f_uvc_opts(uvc->func.fi);
+#endif
+
 	INIT_LIST_HEAD(&video->req_free);
 	spin_lock_init(&video->req_lock);
+	INIT_WORK(&video->pump, uvcg_video_pump);
 
+	video->uvc = uvcdev;
 	video->fcc = V4L2_PIX_FMT_YUYV;
 	video->bpp = 16;
 	video->width = 320;
 	video->height = 240;
 	video->imagesize = 320 * 240 * 2;
 
+#if defined(CONFIG_SS_GADGET) ||defined(CONFIG_SS_GADGET_MODULE)
+	if (opts->bulk_streaming_ep)
+		video->max_payload_size = video->imagesize;
+#endif
 	/* Initialize the video buffers queue. */
 	uvcg_queue_init(&video->queue, V4L2_BUF_TYPE_VIDEO_OUTPUT,
 			&video->mutex);

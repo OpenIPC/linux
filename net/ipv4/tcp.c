@@ -282,6 +282,10 @@
 #include <asm/unaligned.h>
 #include <net/busy_poll.h>
 
+#ifdef CONFIG_SS_SWTOE_TCP
+#include "mdrv_swtoe.h"
+#endif
+
 int sysctl_tcp_min_tso_segs __read_mostly = 2;
 
 int sysctl_tcp_autocorking __read_mostly = 1;
@@ -326,6 +330,15 @@ EXPORT_SYMBOL(tcp_memory_pressure);
 
 void tcp_enter_memory_pressure(struct sock *sk)
 {
+#if 0 // what is this for?
+#ifdef CONFIG_SS_SWTOE_TCP /// not complete
+        // [TBD] IPC for toe?
+        // if ((sk->ss_swtoe) && (DRV_SWTOE_CNX_INVALID != sk->ss_swtoe_cnx))
+        // {
+        // }
+        or add this in sk->sky_prot->shutdown
+#endif
+#endif
 	if (!tcp_memory_pressure) {
 		NET_INC_STATS(sock_net(sk), LINUX_MIB_TCPMEMORYPRESSURES);
 		tcp_memory_pressure = 1;
@@ -457,6 +470,15 @@ unsigned int tcp_poll(struct file *file, struct socket *sock, poll_table *wait)
 	const struct tcp_sock *tp = tcp_sk(sk);
 	int state;
 
+#if 0 /// seems useless
+#ifdef CONFIG_SS_SWTOE_TCP /// not complete
+        // [TBD] IPC for toe?
+        // if ((sk->ss_swtoe) && (DRV_SWTOE_CNX_INVALID != sk->ss_swtoe_cnx))
+        // {
+        // }
+#endif
+#endif
+
 	sock_rps_record_flow(sk);
 
 	sock_poll_wait(file, sk_sleep(sk), wait);
@@ -553,6 +575,14 @@ int tcp_ioctl(struct sock *sk, int cmd, unsigned long arg)
 	struct tcp_sock *tp = tcp_sk(sk);
 	int answ;
 	bool slow;
+#if 0 /// forget it at this stage
+#ifdef CONFIG_SS_SWTOE_TCP /// not complete
+        // [TBD] IPC for toe?
+        // if ((sk->ss_swtoe) && (DRV_SWTOE_CNX_INVALID != sk->ss_swtoe_cnx))
+        // {
+        // }
+#endif
+#endif
 
 	switch (cmd) {
 	case SIOCINQ:
@@ -702,6 +732,17 @@ static int __tcp_splice_read(struct sock *sk, struct tcp_splice_state *tss)
 		.arg.data = tss,
 		.count	  = tss->len,
 	};
+
+// SWTOE_RX
+#if 0 /// forget it at this stage
+#ifdef CONFIG_SS_SWTOE_TCP /// not complete
+        // [TBD] IPC for toe?
+        // if ((sk->ss_swtoe) && (DRV_SWTOE_CNX_INVALID != sk->ss_swtoe_cnx))
+        // {
+        // }
+        or add this in sk->sky_prot->shutdown
+#endif
+#endif
 
 	return tcp_read_sock(sk, &rd_desc, tcp_splice_data_recv);
 }
@@ -910,6 +951,37 @@ static ssize_t do_tcp_sendpages(struct sock *sk, struct page *page, int offset,
 	if (sk->sk_err || (sk->sk_shutdown & SEND_SHUTDOWN))
 		goto out_err;
 
+#ifdef CONFIG_SS_SWTOE_TCP
+	if (sk->ss_swtoe)
+	{
+		int copy = 0;
+		copied = copy = 0;
+		while (size)
+		{
+			copy = drv_swtoe_tx_send(sk->ss_swtoe_cnx, (void*)page, size, offset, SWTOE_TX_SEND_PAGE);
+			if (!copy)
+			{
+				if (copied)
+				{
+					drv_swtoe_tx_pump(sk->ss_swtoe_cnx);
+				}
+				err = sk_stream_wait_memory(sk, &timeo);
+				if (err != 0)
+				{
+					break;
+				}
+			}
+			size -= copy;
+			offset += copy;
+			copied += copy;
+		}
+		if (copied)
+		{
+			drv_swtoe_tx_pump(sk->ss_swtoe_cnx);
+		}
+		return copied;
+	}
+#endif
 	while (size > 0) {
 		struct sk_buff *skb = tcp_write_queue_tail(sk);
 		int copy, i;
@@ -1082,6 +1154,22 @@ static int tcp_sendmsg_fastopen(struct sock *sk, struct msghdr *msg,
 	struct sockaddr *uaddr = msg->msg_name;
 	int err, flags;
 
+#ifdef CONFIG_SS_SWTOE_TCP_CLIENT
+	if (sk->ss_swtoe)
+	{
+		/*
+		if (drv_swtoe_connect_fast(sk->ss_swtoe_cnx, uaddr, sk->ss_swtoe_blk))
+		{
+			printk("[%s][%d] swtoe connect fail %d\n", __FUNCTION__, __LINE__, sk->ss_swtoe_cnx);
+			return -EINVAL;;
+		}
+		return 0;
+		*/
+		printk("[%s][%d] SWTOE support NO fast open\n", __FUNCTION__, __LINE__);
+		return -EOPNOTSUPP;
+	}
+#endif
+
 	if (!(sysctl_tcp_fastopen & TFO_CLIENT_ENABLE) ||
 	    (uaddr && msg->msg_namelen >= sizeof(uaddr->sa_family) &&
 	     uaddr->sa_family == AF_UNSPEC))
@@ -1175,6 +1263,37 @@ restart:
 	err = -EPIPE;
 	if (sk->sk_err || (sk->sk_shutdown & SEND_SHUTDOWN))
 		goto do_error;
+
+#ifdef CONFIG_SS_SWTOE_TCP
+	if (sk->ss_swtoe)
+	{
+		int copy = 0;
+		copied = copy = 0;
+		while (msg_data_left(msg))
+		{
+			copy = drv_swtoe_tx_send(sk->ss_swtoe_cnx, (void*)&msg->msg_iter, 0, 0, SWTOE_TX_SEND_IOV);
+			if (!copy)
+			{
+				if (copied)
+				{
+					drv_swtoe_tx_pump(sk->ss_swtoe_cnx);
+				}
+				err = sk_stream_wait_memory(sk, &timeo);
+				if (err != 0)
+				{
+					break;
+				}
+			}
+			copied += copy;
+		}
+		if (copied)
+		{
+			drv_swtoe_tx_pump(sk->ss_swtoe_cnx);
+		}
+		release_sock(sk);
+		return copied;
+	}
+#endif
 
 	sg = !!(sk->sk_route_caps & NETIF_F_SG);
 
@@ -1540,6 +1659,16 @@ int tcp_read_sock(struct sock *sk, read_descriptor_t *desc,
 	u32 offset;
 	int copied = 0;
 
+#if 0 /// forget it at this stage
+#ifdef CONFIG_SS_SWTOE_TCP /// not complete
+        // [TBD] IPC for toe?
+        // if ((sk->ss_swtoe) && (DRV_SWTOE_CNX_INVALID != sk->ss_swtoe_cnx))
+        // {
+        // }
+        or add this in sk->sky_prot->shutdown
+#endif
+#endif
+
 	if (sk->sk_state == TCP_LISTEN)
 		return -ENOTCONN;
 	while ((skb = tcp_recv_skb(sk, seq, &offset)) != NULL) {
@@ -1605,9 +1734,178 @@ EXPORT_SYMBOL(tcp_read_sock);
 
 int tcp_peek_len(struct socket *sock)
 {
+#if 0 /// forget it at this stage
+#ifdef CONFIG_SS_SWTOE_TCP /// not complete
+        // [TBD] IPC for toe?
+        // if ((sk->ss_swtoe) && (DRV_SWTOE_CNX_INVALID != sk->ss_swtoe_cnx))
+        // {
+        // }
+#endif
+#endif
 	return tcp_inq(sock->sk);
 }
 EXPORT_SYMBOL(tcp_peek_len);
+
+
+#ifdef CONFIG_SS_SWTOE_TCP
+
+#define _SWTOE_RX_DATA_READY            (!drv_swtoe_rx_data_avail((sk)->ss_swtoe_cnx))
+
+int _swtoe_tcp_wait_data(struct sock *sk, long *timeo)
+{
+	int rc;
+	DEFINE_WAIT(wait);
+
+    if ((!sk->ss_swtoe) || (DRV_SWTOE_CNX_INVALID == sk->ss_swtoe_cnx))
+	{
+		return -1;
+	}
+
+	if (*timeo == 0)
+	{
+		return drv_swtoe_rx_data_avail(sk->ss_swtoe_cnx);
+	}
+/*
+	if (sk->sk_err ||
+	    sock_flag(sk, SOCK_DONE) || (sk->sk_shutdown & RCV_SHUTDOWN))
+		return 0;
+*/
+
+	prepare_to_wait(sk_sleep(sk), &wait, TASK_INTERRUPTIBLE);
+	set_bit(SOCKWQ_ASYNC_WAITDATA, &sk->sk_socket->flags);
+	rc = sk_wait_event(sk, timeo, _SWTOE_RX_DATA_READY);
+	clear_bit(SOCKWQ_ASYNC_WAITDATA, &sk->sk_socket->flags);
+	finish_wait(sk_sleep(sk), &wait);
+
+	return rc;
+}
+
+static int _tcp_recvmsg_swtoe(struct sock *sk, struct msghdr *msg, size_t len, int nonblock,
+		int flags, int *addr_len)
+{
+	int copied = 0;
+	int target;		/* Read at least this many bytes */
+	long timeo;
+	drv_swtoe_rx_data* p_rxq_data = NULL;
+	drv_swtoe_rx_data* p_prev = NULL;
+	char* p_data;
+	int copy;
+
+	timeo = sock_rcvtimeo(sk, nonblock);
+	target = sock_rcvlowat(sk, flags & MSG_WAITALL, len);
+
+	do {
+		if (copied >= target)
+		{
+			break;
+		}
+
+		if (p_rxq_data)
+		{
+			if (p_rxq_data->offset == p_rxq_data->data_size)
+			{
+				if (flags & MSG_PEEK)
+				{
+					p_rxq_data->offset = 0;
+					p_prev = p_rxq_data;
+					p_rxq_data = NULL;
+				}
+				else
+				{
+					drv_swtoe_rx_data_free(sk->ss_swtoe_cnx, p_rxq_data, 1);
+					p_prev = p_rxq_data = NULL;
+				}
+			}
+			else
+			{
+				p_prev = NULL;
+			}
+		}
+		if (!p_rxq_data)
+			drv_swtoe_rx_data_get(sk->ss_swtoe_cnx, p_prev, &p_rxq_data);
+
+		if (p_rxq_data)
+		{
+			copy = p_rxq_data->data_size - p_rxq_data->offset;
+			copy = min_t(size_t, target, copy);
+
+			if (!copy) /// should this happen???
+			{
+				break;
+			}
+
+			if (!(flags & MSG_TRUNC))
+			{
+				int done;
+				p_data = p_rxq_data->data + p_rxq_data->offset;
+				done = copy_to_iter(p_data, copy, &msg->msg_iter);
+				if (done != copy)
+				{
+					panic("[%s][%d] copy_to_iter fail (copy, done) = (%d, %d)\n", __FUNCTION__, __LINE__, copy, done);
+				}
+			}
+			p_rxq_data->offset += copy;
+			len -= copy;
+			copied += copy;
+		}
+
+		if (copied){
+			if (sk->sk_err ||
+			    sk->sk_state == TCP_CLOSE ||
+			    (sk->sk_shutdown & RCV_SHUTDOWN) ||
+			    !timeo ||
+			    signal_pending(current))
+			{
+				break;
+			}
+		} else {
+			if (sock_flag(sk, SOCK_DONE))
+			{
+				break;
+			}
+
+			if (sk->sk_err) {
+				copied = sock_error(sk);
+				break;
+			}
+
+			if (sk->sk_shutdown & RCV_SHUTDOWN)
+			{
+				break;
+			}
+
+			if (sk->sk_state == TCP_CLOSE) {
+				if (!sock_flag(sk, SOCK_DONE)) {
+					/* This occurs when user tries to read
+					 * from never connected socket.
+					 */
+					copied = -ENOTCONN;
+					break;
+				}
+				break;
+			}
+
+			if (!timeo) { /// Richard : Yes && drv_swtoe_rx_data_get has no data
+				copied = -EAGAIN;
+				break;
+			}
+
+			if (signal_pending(current)) {
+				copied = sock_intr_errno(timeo);
+				break;
+			}
+		}
+
+		if ((!p_rxq_data) && (copied < target))
+		{
+			_swtoe_tcp_wait_data(sk, &timeo);
+		}
+	} while (len > 0);
+
+	return copied;
+}
+
+#endif
 
 /*
  *	This routine copies from a sock struct into the user buffer.
@@ -1672,13 +1970,22 @@ int tcp_recvmsg(struct sock *sk, struct msghdr *msg, size_t len, int nonblock,
 		seq = &peek_seq;
 	}
 
+#ifdef CONFIG_SS_SWTOE_TCP
+    if ((sk->ss_swtoe) && (DRV_SWTOE_CNX_INVALID != sk->ss_swtoe_cnx))
+	{
+		copied = _tcp_recvmsg_swtoe(sk, msg, len, nonblock, flags, addr_len);
+		release_sock(sk);
+		return copied;
+	}
+#endif
+
 	target = sock_rcvlowat(sk, flags & MSG_WAITALL, len);
 
 	do {
 		u32 offset;
 
 		/* Are we at urgent data? Stop if we have read anything or have SIGURG pending. */
-		if (tp->urg_data && tp->urg_seq == *seq) {
+		if (tp->urg_data && tp->urg_seq == *seq) { // Richard : do NOT care
 			if (copied)
 				break;
 			if (signal_pending(current)) {
@@ -1717,10 +2024,11 @@ int tcp_recvmsg(struct sock *sk, struct msghdr *msg, size_t len, int nonblock,
 
 		/* Well, if we have backlog, try to process it now yet. */
 
-		if (copied >= target && !sk->sk_backlog.tail)
+		if (copied >= target && !sk->sk_backlog.tail)  /// Richard : ending condition
 			break;
 
 		if (copied) {
+		    /// Richard : Yes
 			if (sk->sk_err ||
 			    sk->sk_state == TCP_CLOSE ||
 			    (sk->sk_shutdown & RCV_SHUTDOWN) ||
@@ -1728,18 +2036,18 @@ int tcp_recvmsg(struct sock *sk, struct msghdr *msg, size_t len, int nonblock,
 			    signal_pending(current))
 				break;
 		} else {
-			if (sock_flag(sk, SOCK_DONE))
+			if (sock_flag(sk, SOCK_DONE)) /// Richard : Yes
 				break;
 
-			if (sk->sk_err) {
+			if (sk->sk_err) { /// Richard : Yes
 				copied = sock_error(sk);
 				break;
 			}
 
-			if (sk->sk_shutdown & RCV_SHUTDOWN)
+			if (sk->sk_shutdown & RCV_SHUTDOWN) /// Richard : Yes
 				break;
 
-			if (sk->sk_state == TCP_CLOSE) {
+			if (sk->sk_state == TCP_CLOSE) { /// Richard : Yes
 				if (!sock_flag(sk, SOCK_DONE)) {
 					/* This occurs when user tries to read
 					 * from never connected socket.
@@ -1750,12 +2058,12 @@ int tcp_recvmsg(struct sock *sk, struct msghdr *msg, size_t len, int nonblock,
 				break;
 			}
 
-			if (!timeo) {
+			if (!timeo) { /// Richard : Yes
 				copied = -EAGAIN;
 				break;
 			}
 
-			if (signal_pending(current)) {
+			if (signal_pending(current)) { /// Richard : Yes
 				copied = sock_intr_errno(timeo);
 				break;
 			}
@@ -1763,7 +2071,7 @@ int tcp_recvmsg(struct sock *sk, struct msghdr *msg, size_t len, int nonblock,
 
 		tcp_cleanup_rbuf(sk, copied);
 
-		if (!sysctl_tcp_low_latency && tp->ucopy.task == user_recv) {
+		if (!sysctl_tcp_low_latency && tp->ucopy.task == user_recv) { /// Richard : NO
 			/* Install new reader */
 			if (!user_recv && !(flags & (MSG_TRUNC | MSG_PEEK))) {
 				user_recv = current;
@@ -1808,12 +2116,12 @@ int tcp_recvmsg(struct sock *sk, struct msghdr *msg, size_t len, int nonblock,
 			/* __ Set realtime policy in scheduler __ */
 		}
 
-		if (copied >= target) {
+		if (copied >= target) { /// Richard : NO
 			/* Do not sleep, just process backlog. */
 			release_sock(sk);
 			lock_sock(sk);
 		} else {
-			sk_wait_data(sk, &timeo, last);
+			sk_wait_data(sk, &timeo, last); /// Richard : Yes
 		}
 
 		if (user_recv) {
@@ -1857,7 +2165,7 @@ do_prequeue:
 			used = len;
 
 		/* Do we have urgent data here? */
-		if (tp->urg_data) {
+		if (tp->urg_data) { /// Richard : NO
 			u32 urg_offset = tp->urg_seq - *seq;
 			if (urg_offset < used) {
 				if (!urg_offset) {
@@ -1874,7 +2182,7 @@ do_prequeue:
 			}
 		}
 
-		if (!(flags & MSG_TRUNC)) {
+		if (!(flags & MSG_TRUNC)) { /// Richard : Yes already
 			err = skb_copy_datagram_msg(skb, offset, msg, used);
 			if (err) {
 				/* Exception. Bailout! */
@@ -2038,6 +2346,18 @@ void tcp_shutdown(struct sock *sk, int how)
 	if (!(how & SEND_SHUTDOWN))
 		return;
 
+	// @FIXME : not a good implementation
+	#ifdef CONFIG_SS_SWTOE_TCP
+	if (sk->ss_swtoe)
+	{
+		drv_swtoe_shutdown(sk->ss_swtoe_cnx);
+		sk->ss_swtoe = 0;
+		sk->ss_swtoe_cnx = DRV_SWTOE_CNX_INVALID;
+		sk->ss_swtoe_blk = 0;
+		return;
+	}
+    #endif
+
 	/* If we've already sent a FIN, or it's a closed state, skip this. */
 	if ((1 << sk->sk_state) &
 	    (TCPF_ESTABLISHED | TCPF_SYN_SENT |
@@ -2071,6 +2391,19 @@ void tcp_close(struct sock *sk, long timeout)
 
 	lock_sock(sk);
 	sk->sk_shutdown = SHUTDOWN_MASK;
+
+	// @FIXME : not a good implementation
+	#ifdef CONFIG_SS_SWTOE_TCP
+	if (sk->ss_swtoe)
+	{
+		drv_swtoe_close(sk->ss_swtoe_cnx);
+		sk_stream_wait_close(sk, timeout);
+		sk->ss_swtoe = 0;
+		sk->ss_swtoe_cnx = DRV_SWTOE_CNX_INVALID;
+		sk->ss_swtoe_blk = 0;
+		goto adjudge_to_death;
+	}
+	#endif
 
 	if (sk->sk_state == TCP_LISTEN) {
 		tcp_set_state(sk, TCP_CLOSE);
@@ -2271,7 +2604,12 @@ int tcp_disconnect(struct sock *sk, int flags)
 		/* The last check adjusts for discrepancy of Linux wrt. RFC
 		 * states
 		 */
+#ifdef CONFIG_SS_SWTOE_TCP
+		if (!sk->ss_swtoe)
+		{
 		tcp_send_active_reset(sk, gfp_any());
+		}
+#endif
 		sk->sk_err = ECONNRESET;
 	} else if (old_state == TCP_SYN_SENT)
 		sk->sk_err = ECONNRESET;
@@ -2321,6 +2659,17 @@ int tcp_disconnect(struct sock *sk, int flags)
 		sk->sk_frag.page = NULL;
 		sk->sk_frag.offset = 0;
 	}
+
+#ifdef CONFIG_SS_SWTOE_TCP
+    if ((sk->ss_swtoe) && (DRV_SWTOE_CNX_INVALID != sk->ss_swtoe_cnx))
+	{
+		if (drv_swtoe_disconnect(sk->ss_swtoe_cnx))
+		{
+			printk("[%s][%d] drv_swtoe_disconnect %d\n", __FUNCTION__, __LINE__, sk->ss_swtoe_cnx);
+			return -EINVAL;;
+		}
+	}
+#endif
 
 	sk->sk_error_report(sk);
 	return err;
@@ -2425,6 +2774,16 @@ static int do_tcp_setsockopt(struct sock *sk, int level,
 	struct net *net = sock_net(sk);
 	int val;
 	int err = 0;
+
+#if 0 /// forget it at this stage
+#ifdef CONFIG_SS_SWTOE_TCP
+        // [TBD] IPC for toe?
+        // if ((sk->ss_swtoe) && (DRV_SWTOE_CNX_INVALID != sk->ss_swtoe_cnx))
+        // {
+        // }
+        or add this in sk->sky_prot->shutdown
+#endif
+#endif
 
 	/* These are data/string values, all the others are ints */
 	switch (optname) {
@@ -2713,6 +3072,16 @@ int tcp_setsockopt(struct sock *sk, int level, int optname, char __user *optval,
 {
 	const struct inet_connection_sock *icsk = inet_csk(sk);
 
+#if 0 /// forget it at this stage
+#ifdef CONFIG_SS_SWTOE_TCP /// not complete
+        // [TBD] IPC for toe?
+        // if ((sk->ss_swtoe) && (DRV_SWTOE_CNX_INVALID != sk->ss_swtoe_cnx))
+        // {
+        // }
+        or add this in sk->sky_prot->shutdown
+#endif
+#endif
+
 	if (level != SOL_TCP)
 		return icsk->icsk_af_ops->setsockopt(sk, level, optname,
 						     optval, optlen);
@@ -2846,6 +3215,16 @@ static int do_tcp_getsockopt(struct sock *sk, int level,
 	struct tcp_sock *tp = tcp_sk(sk);
 	struct net *net = sock_net(sk);
 	int val, len;
+
+#if 0 /// forget it at this stage
+#ifdef CONFIG_SS_SWTOE_TCP /// not complete
+        // [TBD] IPC for toe?
+        // if ((sk->ss_swtoe) && (DRV_SWTOE_CNX_INVALID != sk->ss_swtoe_cnx))
+        // {
+        // }
+        or add this in sk->sky_prot->shutdown
+#endif
+#endif
 
 	if (get_user(len, optlen))
 		return -EFAULT;
@@ -3056,6 +3435,16 @@ int tcp_getsockopt(struct sock *sk, int level, int optname, char __user *optval,
 		   int __user *optlen)
 {
 	struct inet_connection_sock *icsk = inet_csk(sk);
+
+#if 0 /// forget it at this stage
+#ifdef CONFIG_SS_SWTOE_TCP /// not complete
+        // [TBD] IPC for toe?
+        // if ((sk->ss_swtoe) && (DRV_SWTOE_CNX_INVALID != sk->ss_swtoe_cnx))
+        // {
+        // }
+        or add this in sk->sky_prot->shutdown
+#endif
+#endif
 
 	if (level != SOL_TCP)
 		return icsk->icsk_af_ops->getsockopt(sk, level, optname,

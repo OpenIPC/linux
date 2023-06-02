@@ -32,6 +32,7 @@
  * features make this path too inefficient.
  */
 ret_fast_syscall:
+__ret_fast_syscall:
  UNWIND(.fnstart	)
  UNWIND(.cantunwind	)
 	disable_irq_notrace			@ disable interrupts
@@ -57,6 +58,7 @@ fast_work_pending:
  * r0 first to avoid needing to save registers around each C function call.
  */
 ret_fast_syscall:
+__ret_fast_syscall:
  UNWIND(.fnstart	)
  UNWIND(.cantunwind	)
 	str	r0, [sp, #S_R0 + S_OFF]!	@ save returned r0
@@ -224,7 +226,7 @@ local_restart:
 	bne	__sys_trace
 
 	cmp	scno, #NR_syscalls		@ check upper syscall limit
-	badr	lr, ret_fast_syscall		@ return address
+	badr	lr, __ret_fast_syscall		@ return address
 	ldrcc	pc, [tbl, scno, lsl #2]		@ call sys_* routine
 
 	add	r1, sp, #S_OFF
@@ -246,7 +248,7 @@ local_restart:
 9001:
 	sub	lr, lr, #4
 	str	lr, [sp, #S_PC]
-	b	ret_fast_syscall
+	b	__ret_fast_syscall
 #endif
 ENDPROC(vector_swi)
 

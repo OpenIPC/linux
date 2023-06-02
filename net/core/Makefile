@@ -27,3 +27,7 @@ obj-$(CONFIG_LWTUNNEL) += lwtunnel.o
 obj-$(CONFIG_DST_CACHE) += dst_cache.o
 obj-$(CONFIG_HWBM) += hwbm.o
 obj-$(CONFIG_NET_DEVLINK) += devlink.o
+
+ifeq ($(CONFIG_SS_SWTOE), y)
+EXTRA_CFLAGS      +=  -Idrivers/sstar/include
+endif

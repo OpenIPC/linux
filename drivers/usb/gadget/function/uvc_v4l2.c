@@ -23,6 +23,7 @@
 #include <media/v4l2-ioctl.h>
 
 #include "f_uvc.h"
+#include "u_uvc.h"
 #include "uvc.h"
 #include "uvc_queue.h"
 #include "uvc_video.h"
@@ -61,14 +62,22 @@ struct uvc_format
 
 static struct uvc_format uvc_formats[] = {
 	{ 16, V4L2_PIX_FMT_YUYV  },
+	{ 12, V4L2_PIX_FMT_NV12  },
 	{ 0,  V4L2_PIX_FMT_MJPEG },
+	{ 0,  V4L2_PIX_FMT_H264  },
+	{ 0,  V4L2_PIX_FMT_H265  },
 };
 
 static int
 uvc_v4l2_querycap(struct file *file, void *fh, struct v4l2_capability *cap)
 {
 	struct video_device *vdev = video_devdata(file);
+#ifdef CONFIG_SS_GADGET_UVC_MULTI_STREAM
+	struct uvc_streaming *stream = video_get_drvdata(vdev);
+	struct uvc_device *uvc = stream->dev;
+#else
 	struct uvc_device *uvc = video_get_drvdata(vdev);
+#endif
 	struct usb_composite_dev *cdev = uvc->func.config->cdev;
 
 	strlcpy(cap->driver, "g_uvc", sizeof(cap->driver));
@@ -76,8 +85,6 @@ uvc_v4l2_querycap(struct file *file, void *fh, struct v4l2_capability *cap)
 	strlcpy(cap->bus_info, dev_name(&cdev->gadget->dev),
 		sizeof(cap->bus_info));
 
-	cap->device_caps = V4L2_CAP_VIDEO_OUTPUT | V4L2_CAP_STREAMING;
-	cap->capabilities = cap->device_caps | V4L2_CAP_DEVICE_CAPS;
 
 	return 0;
 }
@@ -86,8 +93,13 @@ static int
 uvc_v4l2_get_format(struct file *file, void *fh, struct v4l2_format *fmt)
 {
 	struct video_device *vdev = video_devdata(file);
-	struct uvc_device *uvc = video_get_drvdata(vdev);
-	struct uvc_video *video = &uvc->video;
+#ifdef CONFIG_SS_GADGET_UVC_MULTI_STREAM
+	struct uvc_streaming *stream = video_get_drvdata(vdev);
+	struct uvc_video *video = &stream->video;
+#else
+    struct uvc_device *uvc = video_get_drvdata(vdev);
+    struct uvc_video *video = &uvc->video;
+#endif
 
 	fmt->fmt.pix.pixelformat = video->fcc;
 	fmt->fmt.pix.width = video->width;
@@ -105,8 +117,14 @@ static int
 uvc_v4l2_set_format(struct file *file, void *fh, struct v4l2_format *fmt)
 {
 	struct video_device *vdev = video_devdata(file);
+#ifdef CONFIG_SS_GADGET_UVC_MULTI_STREAM
+	struct uvc_streaming *stream = video_get_drvdata(vdev);
+	struct uvc_device *uvc = stream->dev;
+	struct uvc_video *video = &stream->video;
+#else
 	struct uvc_device *uvc = video_get_drvdata(vdev);
 	struct uvc_video *video = &uvc->video;
+#endif
 	struct uvc_format *format;
 	unsigned int imagesize;
 	unsigned int bpl;
@@ -119,8 +137,8 @@ uvc_v4l2_set_format(struct file *file, void *fh, struct v4l2_format *fmt)
 	}
 
 	if (i == ARRAY_SIZE(uvc_formats)) {
-		printk(KERN_INFO "Unsupported format 0x%08x.\n",
-			fmt->fmt.pix.pixelformat);
+		uvcg_info(&uvc->func, "Unsupported format 0x%08x.\n",
+			  fmt->fmt.pix.pixelformat);
 		return -EINVAL;
 	}
 
@@ -132,6 +150,7 @@ uvc_v4l2_set_format(struct file *file, void *fh, struct v4l2_format *fmt)
 	video->width = fmt->fmt.pix.width;
 	video->height = fmt->fmt.pix.height;
 	video->imagesize = imagesize;
+	video->max_payload_size = imagesize; // for bulk mode
 
 	fmt->fmt.pix.field = V4L2_FIELD_NONE;
 	fmt->fmt.pix.bytesperline = bpl;
@@ -146,8 +165,13 @@ static int
 uvc_v4l2_reqbufs(struct file *file, void *fh, struct v4l2_requestbuffers *b)
 {
 	struct video_device *vdev = video_devdata(file);
+#ifdef CONFIG_SS_GADGET_UVC_MULTI_STREAM
+	struct uvc_streaming *stream = video_get_drvdata(vdev);
+	struct uvc_video *video = &stream->video;
+#else
 	struct uvc_device *uvc = video_get_drvdata(vdev);
 	struct uvc_video *video = &uvc->video;
+#endif
 
 	if (b->type != video->queue.queue.type)
 		return -EINVAL;
@@ -159,8 +183,14 @@ static int
 uvc_v4l2_querybuf(struct file *file, void *fh, struct v4l2_buffer *b)
 {
 	struct video_device *vdev = video_devdata(file);
+#ifdef CONFIG_SS_GADGET_UVC_MULTI_STREAM
+	struct uvc_streaming *stream = video_get_drvdata(vdev);
+	//struct uvc_device *uvc = stream->dev;
+	struct uvc_video *video = &stream->video;
+#else
 	struct uvc_device *uvc = video_get_drvdata(vdev);
 	struct uvc_video *video = &uvc->video;
+#endif
 
 	return uvcg_query_buffer(&video->queue, b);
 }
@@ -169,23 +199,45 @@ static int
 uvc_v4l2_qbuf(struct file *file, void *fh, struct v4l2_buffer *b)
 {
 	struct video_device *vdev = video_devdata(file);
+#ifdef CONFIG_SS_GADGET_UVC_MULTI_STREAM
+	struct uvc_streaming *stream = video_get_drvdata(vdev);
+	//struct uvc_device *uvc = stream->dev;
+	struct uvc_video *video = &stream->video;
+#else
 	struct uvc_device *uvc = video_get_drvdata(vdev);
 	struct uvc_video *video = &uvc->video;
-	int ret;
+#endif
 
+	int ret;
+#if defined(CONFIG_SS_GADGET) ||defined(CONFIG_SS_GADGET_MODULE)
+	/* verify the FrameEnd flags */
+	if (b->reserved == 1)
+		video->queue.bFrameEnd = false;
+	else
+		video->queue.bFrameEnd = true;
+	b->reserved = 0;
+#endif
 	ret = uvcg_queue_buffer(&video->queue, b);
 	if (ret < 0)
 		return ret;
 
-	return uvcg_video_pump(video);
+	schedule_work(&video->pump);
+
+	return ret;
 }
 
 static int
 uvc_v4l2_dqbuf(struct file *file, void *fh, struct v4l2_buffer *b)
 {
 	struct video_device *vdev = video_devdata(file);
+#ifdef CONFIG_SS_GADGET_UVC_MULTI_STREAM
+	struct uvc_streaming *stream = video_get_drvdata(vdev);
+	//struct uvc_device *uvc = stream->dev;
+	struct uvc_video *video = &stream->video;
+#else
 	struct uvc_device *uvc = video_get_drvdata(vdev);
 	struct uvc_video *video = &uvc->video;
+#endif
 
 	return uvcg_dequeue_buffer(&video->queue, b, file->f_flags & O_NONBLOCK);
 }
@@ -194,8 +246,18 @@ static int
 uvc_v4l2_streamon(struct file *file, void *fh, enum v4l2_buf_type type)
 {
 	struct video_device *vdev = video_devdata(file);
+#ifdef CONFIG_SS_GADGET_UVC_MULTI_STREAM
+	struct uvc_streaming *stream = video_get_drvdata(vdev);
+	struct uvc_device *uvc = stream->dev;
+	struct uvc_video *video = &stream->video;
+#else
 	struct uvc_device *uvc = video_get_drvdata(vdev);
 	struct uvc_video *video = &uvc->video;
+#endif
+
+#if defined(CONFIG_SS_GADGET) ||defined(CONFIG_SS_GADGET_MODULE)
+	struct f_uvc_opts *opts = fi_to_f_uvc_opts(uvc->func.fi);
+#endif
 	int ret;
 
 	if (type != video->queue.queue.type)
@@ -206,12 +268,27 @@ uvc_v4l2_streamon(struct file *file, void *fh, enum v4l2_buf_type type)
 	if (ret < 0)
 		return ret;
 
+#if defined(CONFIG_SS_GADGET) ||defined(CONFIG_SS_GADGET_MODULE)
+	if (opts->bulk_streaming_ep)
+	#ifdef CONFIG_SS_GADGET_UVC_MULTI_STREAM
+		stream->state = UVC_STATE_STREAMING;
+	#else
+		uvc->state = UVC_STATE_STREAMING;
+	#endif
+	else
+#endif
+	{
 	/*
 	 * Complete the alternate setting selection setup phase now that
 	 * userspace is ready to provide video frames.
 	 */
-	uvc_function_setup_continue(uvc);
-	uvc->state = UVC_STATE_STREAMING;
+		uvc_function_setup_continue(uvc);
+#ifdef CONFIG_SS_GADGET_UVC_MULTI_STREAM
+		stream->state = UVC_STATE_STREAMING;
+#else
+		uvc->state = UVC_STATE_STREAMING;
+#endif
+	}
 
 	return 0;
 }
@@ -220,8 +297,14 @@ static int
 uvc_v4l2_streamoff(struct file *file, void *fh, enum v4l2_buf_type type)
 {
 	struct video_device *vdev = video_devdata(file);
+#ifdef CONFIG_SS_GADGET_UVC_MULTI_STREAM
+	struct uvc_streaming *stream = video_get_drvdata(vdev);
+	//struct uvc_device *uvc = stream->dev;
+	struct uvc_video *video = &stream->video;
+#else
 	struct uvc_device *uvc = video_get_drvdata(vdev);
 	struct uvc_video *video = &uvc->video;
+#endif
 
 	if (type != video->queue.queue.type)
 		return -EINVAL;
@@ -231,7 +314,7 @@ uvc_v4l2_streamoff(struct file *file, void *fh, enum v4l2_buf_type type)
 
 static int
 uvc_v4l2_subscribe_event(struct v4l2_fh *fh,
-			 const struct v4l2_event_subscription *sub)
+			const struct v4l2_event_subscription *sub)
 {
 	if (sub->type < UVC_EVENT_FIRST || sub->type > UVC_EVENT_LAST)
 		return -EINVAL;
@@ -241,22 +324,26 @@ uvc_v4l2_subscribe_event(struct v4l2_fh *fh,
 
 static int
 uvc_v4l2_unsubscribe_event(struct v4l2_fh *fh,
-			   const struct v4l2_event_subscription *sub)
+			const struct v4l2_event_subscription *sub)
 {
 	return v4l2_event_unsubscribe(fh, sub);
 }
 
 static long
 uvc_v4l2_ioctl_default(struct file *file, void *fh, bool valid_prio,
-		       unsigned int cmd, void *arg)
+			unsigned int cmd, void *arg)
 {
 	struct video_device *vdev = video_devdata(file);
+#ifdef CONFIG_SS_GADGET_UVC_MULTI_STREAM
+	struct uvc_streaming *stream = video_get_drvdata(vdev);
+	struct uvc_device *uvc = stream->dev;
+#else
 	struct uvc_device *uvc = video_get_drvdata(vdev);
+#endif
 
 	switch (cmd) {
 	case UVCIOC_SEND_RESPONSE:
 		return uvc_send_response(uvc, arg);
-
 	default:
 		return -ENOIOCTLCMD;
 	}
@@ -285,7 +372,12 @@ static int
 uvc_v4l2_open(struct file *file)
 {
 	struct video_device *vdev = video_devdata(file);
+#ifdef CONFIG_SS_GADGET_UVC_MULTI_STREAM
+	struct uvc_streaming *stream = video_get_drvdata(vdev);
+	struct uvc_device *uvc = stream->dev;
+#else
 	struct uvc_device *uvc = video_get_drvdata(vdev);
+#endif
 	struct uvc_file_handle *handle;
 
 	handle = kzalloc(sizeof(*handle), GFP_KERNEL);
@@ -295,7 +387,12 @@ uvc_v4l2_open(struct file *file)
 	v4l2_fh_init(&handle->vfh, vdev);
 	v4l2_fh_add(&handle->vfh);
 
+#ifdef CONFIG_SS_GADGET_UVC_MULTI_STREAM
+	handle->device = &stream->video;
+	stream->active = 1;
+#else
 	handle->device = &uvc->video;
+#endif
 	file->private_data = &handle->vfh;
 
 	uvc_function_connect(uvc);
@@ -306,11 +403,19 @@ static int
 uvc_v4l2_release(struct file *file)
 {
 	struct video_device *vdev = video_devdata(file);
-	struct uvc_device *uvc = video_get_drvdata(vdev);
+#ifdef CONFIG_SS_GADGET_UVC_MULTI_STREAM
+	struct uvc_streaming *stream = video_get_drvdata(vdev);
+	struct uvc_device *uvc = stream->dev;
+#else
+    struct uvc_device *uvc = video_get_drvdata(vdev);
+#endif
 	struct uvc_file_handle *handle = to_uvc_file_handle(file->private_data);
 	struct uvc_video *video = handle->device;
 
 	uvc_function_disconnect(uvc);
+#ifdef CONFIG_SS_GADGET_UVC_MULTI_STREAM
+	stream->active = 0;
+#endif
 
 	mutex_lock(&video->mutex);
 	uvcg_video_enable(video, 0);
@@ -329,18 +434,32 @@ static int
 uvc_v4l2_mmap(struct file *file, struct vm_area_struct *vma)
 {
 	struct video_device *vdev = video_devdata(file);
+#ifdef CONFIG_SS_GADGET_UVC_MULTI_STREAM
+	struct uvc_streaming *stream = video_get_drvdata(vdev);
+	//struct uvc_device *uvc = stream->dev;
+
+	return uvcg_queue_mmap(&stream->video.queue, vma);
+#else
 	struct uvc_device *uvc = video_get_drvdata(vdev);
 
 	return uvcg_queue_mmap(&uvc->video.queue, vma);
+#endif
 }
 
 static unsigned int
 uvc_v4l2_poll(struct file *file, poll_table *wait)
 {
 	struct video_device *vdev = video_devdata(file);
+#ifdef CONFIG_SS_GADGET_UVC_MULTI_STREAM
+	struct uvc_streaming *stream = video_get_drvdata(vdev);
+	//struct uvc_device *uvc = stream->dev;
+
+	return uvcg_queue_poll(&stream->video.queue, file, wait);
+#else
 	struct uvc_device *uvc = video_get_drvdata(vdev);
 
 	return uvcg_queue_poll(&uvc->video.queue, file, wait);
+#endif
 }
 
 #ifndef CONFIG_MMU
@@ -349,9 +468,16 @@ static unsigned long uvcg_v4l2_get_unmapped_area(struct file *file,
 		unsigned long flags)
 {
 	struct video_device *vdev = video_devdata(file);
+#ifdef CONFIG_SS_GADGET_UVC_MULTI_STREAM
+	struct uvc_streaming *stream = video_get_drvdata(vdev);
+	//struct uvc_device *uvc = stream->dev;
+
+	return uvcg_queue_get_unmapped_area(&stream->video.queue, pgoff);
+#else
 	struct uvc_device *uvc = video_get_drvdata(vdev);
 
 	return uvcg_queue_get_unmapped_area(&uvc->video.queue, pgoff);
+#endif
 }
 #endif
 

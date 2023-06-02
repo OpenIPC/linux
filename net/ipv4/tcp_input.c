@@ -4084,6 +4084,16 @@ void tcp_fin(struct sock *sk)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
 
+#if 0 /// do nothing if toe is on ????
+#ifdef CONFIG_SS_SWTOE_TCP /// not complete
+        // [TBD] IPC for toe?
+        // if ((sk->ss_swtoe) && (INVALID == sk->ss_swtoe_cnx))
+        // {
+        // }
+        or add this in sk->sky_prot->shutdown
+#endif
+#endif
+
 	inet_csk_schedule_ack(sk);
 
 	sk->sk_shutdown |= RCV_SHUTDOWN;
@@ -5733,6 +5743,17 @@ static int tcp_rcv_synsent_state_process(struct sock *sk, struct sk_buff *skb,
 		 *    (our SYN has been ACKed), change the connection
 		 *    state to ESTABLISHED..."
 		 */
+
+#if 0 /// do nothing if toe is on ????
+#ifdef CONFIG_SS_SWTOE_TCP_CLIENT /// not complete
+        // We are client and complete 3 ways handshaking with server
+        // [TBD] IPC for toe?
+        // if ((sk->ss_swtoe) && (INVALID == sk->ss_swtoe_cnx))
+        // {
+        // }
+        or add this in sk->sky_prot->shutdown
+#endif
+#endif
 
 		tcp_ecn_rcv_synack(tp, th);
 

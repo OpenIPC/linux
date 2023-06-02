@@ -19,6 +19,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <linux/clk.h>
 #include <linux/version.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -48,6 +49,11 @@
 #include "debug.h"
 
 #define DWC3_DEFAULT_AUTOSUSPEND_DELAY	5000 /* ms */
+
+/* module parameters specific whether hibernation is supported */
+static bool hibernation_support = 0;
+module_param(hibernation_support, bool, S_IRUGO|S_IWUSR);
+MODULE_PARM_DESC(hibernation_support, "0(not support), 1(support). default:0");
 
 /**
  * dwc3_get_dr_mode - Validates and sets dr_mode
@@ -151,7 +157,7 @@ static int dwc3_core_soft_reset(struct dwc3 *dwc)
 	 * XHCI driver will reset the host block. If dwc3 was configured for
 	 * host-only mode, then we can return early.
 	 */
-	if (dwc->dr_mode == USB_DR_MODE_HOST)
+	if (dwc->dr_mode == USB_DR_MODE_HOST || dwc->is_hibernated == true)
 		return 0;
 
 	reg = dwc3_readl(dwc->regs, DWC3_DCTL);
@@ -303,6 +309,7 @@ static int dwc3_alloc_event_buffers(struct dwc3 *dwc, unsigned length)
 static int dwc3_event_buffers_setup(struct dwc3 *dwc)
 {
 	struct dwc3_event_buffer	*evt;
+	dma_addr_t miu_addr;
 
 	evt = dwc->ev_buf;
 	dwc3_trace(trace_dwc3_core,
@@ -312,10 +319,11 @@ static int dwc3_event_buffers_setup(struct dwc3 *dwc)
 
 	evt->lpos = 0;
 
+    miu_addr = (dma_addr_t)Chip_Phys_to_MIU(evt->dma);
 	dwc3_writel(dwc->regs, DWC3_GEVNTADRLO(0),
-			lower_32_bits(evt->dma));
+			lower_32_bits(miu_addr));
 	dwc3_writel(dwc->regs, DWC3_GEVNTADRHI(0),
-			upper_32_bits(evt->dma));
+			upper_32_bits(miu_addr));
 	dwc3_writel(dwc->regs, DWC3_GEVNTSIZ(0),
 			DWC3_GEVNTSIZ_SIZE(evt->length));
 	dwc3_writel(dwc->regs, DWC3_GEVNTCOUNT(0), 0);
@@ -340,25 +348,71 @@ static void dwc3_event_buffers_cleanup(struct dwc3 *dwc)
 
 static int dwc3_alloc_scratch_buffers(struct dwc3 *dwc)
 {
+    dma_addr_t  dma_adr;
+    int i;
+
 	if (!dwc->has_hibernation)
 		return 0;
 
 	if (!dwc->nr_scratch)
 		return 0;
 
-	dwc->scratchbuf = kmalloc_array(dwc->nr_scratch,
-			DWC3_SCRATCHBUF_SIZE, GFP_KERNEL);
-	if (!dwc->scratchbuf)
-		return -ENOMEM;
+	if (dwc->scratchpad_array)
+		return 0;
+    dwc->nr_scratch = DWC3_GHWPARAMS4_HIBER_SCRATCHBUFS(dwc->hwparams.hwparams4);
 
-	return 0;
+    if (dwc->nr_scratch) {
+        /* Allocate scratchpad buffer address array */
+        dwc->scratchpad_array = dma_alloc_coherent(NULL,
+                                                   sizeof(*dwc->scratchpad_array),
+                                                   &dwc->scratchpad_array_dma, 
+                                                   GFP_KERNEL);
+        //printk("[%s]scratchpad_array:x%p scratchpad_array_dma:x%x\n", __FUNCTION__, dwc->scratchpad_array, dwc->scratchpad_array_dma);
+        if (!dwc->scratchpad_array)
+            goto err;
+    }
+    else {
+        printk("[%s]failed nr_scratch=0 \n", __FUNCTION__);
+    }
+    /* Allocate scratchpad buffers */
+    for (i = 0; i < dwc->nr_scratch; i++) {
+        dwc->scratchpad[i] = dma_alloc_coherent(NULL,
+                                                DWC3_SCRATCHBUF_SIZE,
+                                                &dma_adr,
+                                                GFP_KERNEL);
+        //printk("\n%d scratchpad:x%p dma_adr:x%x\n\n", i, dwc->scratchpad[i], dma_adr);
+        if (!dwc->scratchpad[i]) {
+            while (--i >= 0) {
+                dma_adr = (dma_addr_t)dwc->scratchpad_array->dma_adr[i];
+                dma_free_coherent(NULL,
+                                  DWC3_SCRATCHBUF_SIZE,
+                                  dwc->scratchpad[i], 
+                                  dma_adr);
+                dwc->scratchpad[i] = NULL;
+            }
+
+            goto err_free;
+        }
+
+        dwc->scratchpad_array->dma_adr[i] = cpu_to_le64((dma_addr_t)Chip_Phys_to_MIU(dma_adr));
+    }
+
+    return 0;
+
+err_free:
+    dma_free_coherent(NULL, 
+                      sizeof(*dwc->scratchpad_array),
+                      dwc->scratchpad_array, 
+                      dwc->scratchpad_array_dma);
+    dwc->scratchpad_array = NULL;
+err:
+    return -ENOMEM;
 }
-
 static int dwc3_setup_scratch_buffers(struct dwc3 *dwc)
 {
-	dma_addr_t scratch_addr;
 	u32 param;
 	int ret;
+	dma_addr_t miu_addr;
 
 	if (!dwc->has_hibernation)
 		return 0;
@@ -367,28 +421,31 @@ static int dwc3_setup_scratch_buffers(struct dwc3 *dwc)
 		return 0;
 
 	 /* should never fall here */
-	if (!WARN_ON(dwc->scratchbuf))
+    if (WARN_ON(!dwc->scratchpad_array->dma_adr[0]))
 		return 0;
 
-	scratch_addr = dma_map_single(dwc->dev, dwc->scratchbuf,
-			dwc->nr_scratch * DWC3_SCRATCHBUF_SIZE,
-			DMA_BIDIRECTIONAL);
-	if (dma_mapping_error(dwc->dev, scratch_addr)) {
-		dev_err(dwc->dev, "failed to map scratch buffer\n");
-		ret = -EFAULT;
-		goto err0;
-	}
-
-	dwc->scratch_addr = scratch_addr;
-
-	param = lower_32_bits(scratch_addr);
+    #if (0)
+    {
+        u32 i;
+        u32 *ptr = (u32 *)(dwc->scratchpad_array);
+        
+        printk("\n[%s]scratchpad:%p scratchpad_array_dma:x%x\n", __FUNCTION__, dwc->scratchpad[0], dwc->scratchpad_array_dma);
+        printk("x%p:x%8x x%8x x%8x x%8x[WARNING BF]\n\n", ptr, ptr[0], ptr[1], ptr[2], ptr[3]);
+        ptr = (dwc->scratchpad[0]);
+        for (i = 0; i<DWC3_SCRATCH_BUF_DP_NUM; i+=4) {
+            printk("x%p:x%8x x%8x x%8x x%8x\n", ptr, ptr[i+0], ptr[i+1], ptr[i+2], ptr[i+3]);
+        }
+    }
+    #endif
+    miu_addr = (dma_addr_t)Chip_Phys_to_MIU(dwc->scratchpad_array_dma);
+    param = lower_32_bits(miu_addr);
 
 	ret = dwc3_send_gadget_generic_command(dwc,
 			DWC3_DGCMD_SET_SCRATCHPAD_ADDR_LO, param);
 	if (ret < 0)
 		goto err1;
 
-	param = upper_32_bits(scratch_addr);
+    param = upper_32_bits(miu_addr);
 
 	ret = dwc3_send_gadget_generic_command(dwc,
 			DWC3_DGCMD_SET_SCRATCHPAD_ADDR_HI, param);
@@ -398,28 +455,41 @@ static int dwc3_setup_scratch_buffers(struct dwc3 *dwc)
 	return 0;
 
 err1:
-	dma_unmap_single(dwc->dev, dwc->scratch_addr, dwc->nr_scratch *
-			DWC3_SCRATCHBUF_SIZE, DMA_BIDIRECTIONAL);
+	dma_unmap_single(dwc->dev,
+                     dwc->scratchpad_array_dma,
+                     dwc->nr_scratch * DWC3_SCRATCHBUF_SIZE, 
+                     DMA_BIDIRECTIONAL);
 
-err0:
 	return ret;
 }
 
 static void dwc3_free_scratch_buffers(struct dwc3 *dwc)
 {
-	if (!dwc->has_hibernation)
-		return;
+    dma_addr_t  dma_adr;
+    int     hiberbufs, i;
 
-	if (!dwc->nr_scratch)
-		return;
+    //if (!dwc3_hiber_enabled(dwc))
+    //    return;
 
-	 /* should never fall here */
-	if (!WARN_ON(dwc->scratchbuf))
-		return;
+    hiberbufs = DWC3_GHWPARAMS4_HIBER_SCRATCHBUFS(dwc->hwparams.hwparams4);
+    for (i = 0; i < hiberbufs; i++) {
+        if (dwc->scratchpad[i] != NULL) {
+            dma_adr = (dma_addr_t)dwc->scratchpad_array->dma_adr[i];
+            dma_free_coherent(NULL, 
+                              DWC3_SCRATCHBUF_SIZE, 
+                              dwc->scratchpad[i],
+                              dma_adr);
+            dwc->scratchpad[i] = NULL;
+        }
+    }
 
-	dma_unmap_single(dwc->dev, dwc->scratch_addr, dwc->nr_scratch *
-			DWC3_SCRATCHBUF_SIZE, DMA_BIDIRECTIONAL);
-	kfree(dwc->scratchbuf);
+    if (dwc->scratchpad_array) {
+        dma_free_coherent(NULL, 
+                          sizeof(*dwc->scratchpad_array),
+                          dwc->scratchpad_array, 
+                          dwc->scratchpad_array_dma);
+        dwc->scratchpad_array = NULL;
+    }
 }
 
 static void dwc3_core_num_eps(struct dwc3 *dwc)
@@ -470,7 +540,7 @@ static int dwc3_phy_setup(struct dwc3 *dwc)
 	 * to '1' after the core initialization is completed.
 	 */
 	if (dwc->revision > DWC3_REVISION_194A)
-		reg |= DWC3_GUSB3PIPECTL_SUSPHY;
+		//reg |= DWC3_GUSB3PIPECTL_SUSPHY;
 
 	if (dwc->u2ss_inp3_quirk)
 		reg |= DWC3_GUSB3PIPECTL_U2SSINP3OK;
@@ -600,7 +670,7 @@ static void dwc3_core_exit(struct dwc3 *dwc)
  *
  * Returns 0 on success otherwise negative errno.
  */
-static int dwc3_core_init(struct dwc3 *dwc)
+int dwc3_core_init(struct dwc3 *dwc)
 {
 	u32			hwparams4 = dwc->hwparams.hwparams4;
 	u32			reg;
@@ -634,18 +704,24 @@ static int dwc3_core_init(struct dwc3 *dwc)
 			dwc->maximum_speed = USB_SPEED_HIGH;
 	}
 
-	/* issue device SoftReset too */
-	ret = dwc3_soft_reset(dwc);
-	if (ret)
-		goto err0;
+    if (!dwc->is_hibernated)
+    {
+    	/* issue device SoftReset too */
+    	ret = dwc3_soft_reset(dwc);
+        if (ret) {
+            goto err0;
+        }
 
-	ret = dwc3_core_soft_reset(dwc);
-	if (ret)
-		goto err0;
+        ret = dwc3_core_soft_reset(dwc);
+        if (ret) {
+            goto err0;
+        }
 
-	ret = dwc3_phy_setup(dwc);
-	if (ret)
-		goto err0;
+        ret = dwc3_phy_setup(dwc);
+        if (ret) {
+            goto err0;
+        }
+    }
 
 	reg = dwc3_readl(dwc->regs, DWC3_GCTL);
 	reg &= ~DWC3_GCTL_SCALEDOWN_MASK;
@@ -680,6 +756,14 @@ static int dwc3_core_init(struct dwc3 *dwc)
 		 * REVISIT Enabling this bit so that host-mode hibernation
 		 * will work. Device-mode hibernation is not yet implemented.
 		 */
+        if (hibernation_support && (!(INREG16(0x1F000000+(0x1524<<9)+(0x28<<2))&0x01))) {
+            dwc->has_hibernation = (dwc->is_hibernated)? true : true;
+        } else {
+            dwc->has_hibernation = false;
+        }
+        ret = dwc3_alloc_scratch_buffers(dwc);
+        if (ret)
+		    goto err5;
 		reg |= DWC3_GCTL_GBLHIBERNATIONEN;
 		break;
 	default:
@@ -717,22 +801,29 @@ static int dwc3_core_init(struct dwc3 *dwc)
 
 	dwc3_core_num_eps(dwc);
 
-	ret = dwc3_setup_scratch_buffers(dwc);
-	if (ret)
-		goto err1;
-
+    if (!dwc->is_hibernated)
+    {
+        ret = dwc3_setup_scratch_buffers(dwc);
+        if (ret)
+            goto err1;
+    }
+    
 	/* Adjust Frame Length */
 	dwc3_frame_length_adjustment(dwc);
 
-	usb_phy_set_suspend(dwc->usb2_phy, 0);
-	usb_phy_set_suspend(dwc->usb3_phy, 0);
-	ret = phy_power_on(dwc->usb2_generic_phy);
-	if (ret < 0)
-		goto err2;
-
-	ret = phy_power_on(dwc->usb3_generic_phy);
-	if (ret < 0)
-		goto err3;
+    if (!dwc->is_hibernated) 
+    {
+        usb_phy_set_suspend(dwc->usb2_phy, 0);
+        usb_phy_set_suspend(dwc->usb3_phy, 0);
+        ret = phy_power_on(dwc->usb2_generic_phy);
+        if (ret < 0) {
+            goto err2;
+        }
+        ret = phy_power_on(dwc->usb3_generic_phy);
+        if (ret < 0) {
+            goto err3;
+        }
+    }
 
 	ret = dwc3_event_buffers_setup(dwc);
 	if (ret) {
@@ -767,7 +858,8 @@ static int dwc3_core_init(struct dwc3 *dwc)
 	}
 
 	return 0;
-
+err5:
+	dwc3_free_scratch_buffers(dwc);
 err4:
 	phy_power_off(dwc->usb3_generic_phy);
 
@@ -926,6 +1018,7 @@ static int dwc3_probe(struct platform_device *pdev)
 	struct device		*dev = &pdev->dev;
 	struct resource		*res;
 	struct dwc3		*dwc;
+	struct clk* clock;
 	u8			lpm_nyet_threshold;
 	u8			tx_de_emphasis;
 	u8			hird_threshold;
@@ -955,7 +1048,7 @@ static int dwc3_probe(struct platform_device *pdev)
 	dwc->xhci_resources[0].flags = res->flags;
 	dwc->xhci_resources[0].name = res->name;
 
-	res->start += DWC3_GLOBALS_REGS_START;
+	//res->start += DWC3_GLOBALS_REGS_START;
 
 	/*
 	 * Request memory region but exclude xHCI regs,
@@ -1044,6 +1137,9 @@ static int dwc3_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, dwc);
 	dwc3_cache_hwparams(dwc);
 
+	clock = of_clk_get_by_name(dev->of_node, "ss_clk");
+	clk_prepare_enable(clock);
+
 	ret = dwc3_core_get_phy(dwc);
 	if (ret)
 		goto err0;
@@ -1077,9 +1173,6 @@ static int dwc3_probe(struct platform_device *pdev)
 	if (ret)
 		goto err3;
 
-	ret = dwc3_alloc_scratch_buffers(dwc);
-	if (ret)
-		goto err3;
 
 	ret = dwc3_core_init(dwc);
 	if (ret) {
@@ -1154,7 +1247,7 @@ err0:
 static int dwc3_remove(struct platform_device *pdev)
 {
 	struct dwc3	*dwc = platform_get_drvdata(pdev);
-	struct resource *res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	//struct resource *res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 
 	pm_runtime_get_sync(&pdev->dev);
 	/*
@@ -1162,7 +1255,7 @@ static int dwc3_remove(struct platform_device *pdev)
 	 * probe is deferred, we don't end up getting error in request the
 	 * memory region the next time probe is called.
 	 */
-	res->start -= DWC3_GLOBALS_REGS_START;
+	//res->start -= DWC3_GLOBALS_REGS_START;
 
 	dwc3_debugfs_exit(dwc);
 	dwc3_core_exit_mode(dwc);
@@ -1333,12 +1426,18 @@ static int dwc3_resume(struct device *dev)
 	struct dwc3	*dwc = dev_get_drvdata(dev);
 	int		ret;
 
-	pinctrl_pm_select_default_state(dev);
+    pinctrl_pm_select_default_state(dev);
 
-	ret = dwc3_resume_common(dwc);
-	if (ret)
-		return ret;
-
+    if (dwc->is_hibernated) {
+        dwc3_gadget_exit_hibernation(dwc);
+    }
+    else
+    {
+        ret = dwc3_resume_common(dwc);
+        if (ret) {
+            return ret;
+        }
+    }
 	pm_runtime_disable(dev);
 	pm_runtime_set_active(dev);
 	pm_runtime_enable(dev);

@@ -498,6 +498,17 @@ int inet_hash(struct sock *sk)
 {
 	int err = 0;
 
+#if 0 /// if toe, return ??
+#ifdef CONFIG_SS_SWTOE_TCP /// not complete
+        // [TBD] IPC for toe?
+        // if ((sk->ss_swtoe) && (INVALID == sk->ss_swtoe_cnx))
+        // {
+        // }
+        or add this in sk->sky_prot->shutdown
+        printk("[%s][%d] newsk = 0x%08x\n", __FUNCTION__, __LINE__, (int)newsk);
+#endif
+#endif
+
 	if (sk->sk_state != TCP_CLOSE) {
 		local_bh_disable();
 		err = __inet_hash(sk, NULL, ipv4_rcv_saddr_equal);
@@ -515,6 +526,16 @@ void inet_unhash(struct sock *sk)
 	bool listener = false;
 	int done;
 
+#if 0 /// if toe, return ??
+#ifdef CONFIG_SS_SWTOE_TCP /// not complete
+        // [TBD] IPC for toe?
+        // if ((sk->ss_swtoe) && (INVALID == sk->ss_swtoe_cnx))
+        // {
+        // }
+        or add this in sk->sky_prot->shutdown
+        printk("[%s][%d] newsk = 0x%08x\n", __FUNCTION__, __LINE__, (int)newsk);
+#endif
+#endif
 	if (sk_unhashed(sk))
 		return;
 

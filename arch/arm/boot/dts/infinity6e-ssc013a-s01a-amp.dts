@@ -1,0 +1,152 @@
+/*
+ * Copyright (c) 2014 MundoReader S.L.
+ * Author: Matthias Brugger <matthias.bgg@gmail.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+ /*
+ * Memory Layout
+ * 0x20000000-0x24000000 64M Kernel
+ * 0x24000000-0x24800000 8M  system
+ * 0x24800000-0x24900000 1M  data
+ * 0x24900000-0x25000000 7M  temp0
+ * 0x25000000-0x28000000 48M temp1
+ */
+/dts-v1/;
+#define __DTS_AMP__
+
+#include "infinity6e.dtsi"
+#include "infinity6e-padmux.dtsi"
+
+/ {
+    model = "INFINITY6E SSC013A-S01A-AMP";
+    compatible = "sstar,infinity6e";
+
+    memory {
+        reg = <0x20000000 0x04000000>;
+    };
+
+    chosen {
+        bootargs = "console=ttyS0,115200n8r root=/dev/ram rdinit=/linuxrc initrd=0x20E00000,0x96000 rootwait=1 LX_MEM=0x5000000 mma_heap=mma_heap_name0,miu=0,sz=0x2000000,mem=80m,maxcpus=1";
+    };
+
+    /*!!IMPORTANT!! The reserved memory must be 1MB aligned*/
+    reserved-memory {
+        #address-cells = <1>;
+        #size-cells = <1>;
+        ranges;
+
+        cma0 {
+            compatible = "shared-dma-pool";
+            reusable;
+            size = <0x0400000>;
+            alignment = <0x1000>;
+            linux,cma-default;
+        };
+    };
+
+    cpus {
+          cpu@0 {
+            	operating-points = <
+                	/* kHz     uV */
+                	1200000  950000
+                	1100000  950000
+                	1000000  900000
+                	900000   900000
+                	800000   900000
+                	600000   900000
+                	400000   900000
+            	>;
+          };
+	};  
+    soc {
+        csi {
+            /* Config lane selection */
+            csi_sr0_lane_select = <2 4 3 1 0>;
+            csi_sr1_lane_select = <2 0 1 3 4>;
+            csi_sr2_lane_select = <0 0 0>;
+            /* Config lane P/N swap */
+            csi_sr0_lane_pn_swap = <1 1 1 1 1>;
+            csi_sr1_lane_pn_swap = <0 0 0 0 0>;
+            csi_sr2_lane_pn_swap = <0 0 0>;
+        };
+
+        vif {
+            /* Config sensor 0 pad mux */
+            vif_sr0_par_mode = <1>;
+            vif_sr0_mipi_mode = <1>;
+            vif_sr0_bt656_mode = <1>;
+            vif_sr0_mclk_mode = <0>;
+            //vif_sr0_rst_mode  = <0>;
+            //vif_sr0_pdn_mode  = <0>;
+            vif_sr0_parallel_rst_mode  = <0>;
+            vif_sr0_parallel_pdn_mode  = <0>;
+            vif_sr0_mipi_rst_mode  = <0>;
+            vif_sr0_mipi_pdn_mode  = <1>;
+            vif_sr0_mipi_ctrl_mode = <1>;
+            //vif_sr0_hvsync_mode  = <0>; /* Not used in I6E */
+            //vif_sr0_pck_mode  = <0>; /* Not used in I6E */
+            /* Config sensor 1 pad mux */
+            vif_sr1_par_mode = <0>;
+            vif_sr1_mipi_mode = <1>;
+            vif_sr1_bt656_mode = <0>;
+            vif_sr1_mipi_ctrl_mode = <1>;
+            vif_sr1_mclk_mode = <0>;
+            vif_sr1_rst_mode  = <0>;
+            /* Config sensor 2 pad mux */
+            vif_sr2_mipi_mode = <0>; /* MIPI sensor only */
+            vif_sr2_mipi_ctrl_mode = <0>;
+            vif_sr2_mclk_mode = <0>;
+            vif_sr2_rst_mode  = <0>;
+        };
+
+        /* Disable linux side I2C1 for RTK */
+        i2c1@1{
+            status = "disabled";
+        };
+
+        /* Disable linux side I2C2 for RTK */
+        i2c2@2{
+            status = "disabled";
+        };
+        
+        i2c0@0{
+            compatible = "sstar,i2c";
+            /*
+             * padmux: 1 -> PAD_I2C0_SCL, PAD_I2C0_SDA
+             *         2 -> PAD_ETH_LED0, PAD_ETH_LED1
+             *         3 -> PAD_GPIO6, PAD_GPIO7
+             *         4 -> PAD_SR1_IO00, PAD_SR1_IO01
+             *         5 -> PAD_GPIO12, PAD_GPIO13
+            */
+            i2c-padmux = <3>;
+        };
+
+        sdmmc {
+            compatible = "sstar,sdmmc";
+            slot-fakecdzs = <0>,<0>,<0>;
+            //BGA-CFG
+            slot-pad-orders = <0>,<1>,<2>;
+            slot-cdzs-gpios = <PAD_SD0_CDZ>,<PAD_SD1_CDZ>,<PAD_UNKNOWN>;
+            slot-sdio-use = <0>,<0>,<0>;
+            slot-removable = <1>,<1>,<1>;
+        };
+    };
+
+    /*!! wait correct info to enable this feature.
+    core_voltage {
+            vid_width = <1>;
+            vid_gpios = <PAD_SAR_GPIO3>;
+            vid_voltages = <900 1000>;  //2b'00 2b'01
+            vid_default = <1>;  //2b'00
+    };*/
+};

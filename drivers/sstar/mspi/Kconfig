@@ -1,0 +1,12 @@
+config SS_MSPI
+    tristate "SStar MSPI driver"
+    default n
+    help
+    Enable support for SPI master driver
+
+config SPI_INT_CALL
+    bool "Support SPI INT READ/WRITE"
+    default n
+    depends on SS_MSPI
+    help
+      Support SPI INT READ/WRITE

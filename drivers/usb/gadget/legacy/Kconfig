@@ -49,13 +49,22 @@ config USB_ZERO_HNPTEST
 	  the "B-Peripheral" role, that device will use HNP to let this
 	  one serve as the USB host instead (in the "B-Host" role).
 
+config USB_BI_DIRECTION
+	tristate "USB BI DIRECTION For DLA"
+	select USB_LIBCOMPOSITE
+	select USB_F_BI_DIRECTION
+	help
+	  Test Sample For Bi Direction
+
 config USB_AUDIO
 	tristate "Audio Gadget"
 	depends on SND
 	select USB_LIBCOMPOSITE
 	select SND_PCM
-	select USB_F_UAC1 if GADGET_UAC1
+	select USB_F_UAC1 if (GADGET_UAC1 && !GADGET_UAC1_LEGACY)
+	select USB_F_UAC1_LEGACY if (GADGET_UAC1 && GADGET_UAC1_LEGACY)
 	select USB_F_UAC2 if !GADGET_UAC1
+	select USB_U_AUDIO if (USB_F_UAC2 || USB_F_UAC1)
 	help
 	  This Gadget Audio driver is compatible with USB Audio Class
 	  specification 2.0. It implements 1 AudioControl interface,
@@ -73,8 +82,15 @@ config USB_AUDIO
 	  dynamically linked module called "g_audio".
 
 config GADGET_UAC1
-	bool "UAC 1.0 (Legacy)"
+	bool "UAC 1.0"
 	depends on USB_AUDIO
+	help
+	  If you instead want older USB Audio Class specification 1.0 support
+	  with similar driver capabilities.
+
+config GADGET_UAC1_LEGACY
+	bool "UAC 1.0 (Legacy)"
+	depends on GADGET_UAC1
 	help
 	  If you instead want older UAC Spec-1.0 driver that also has audio
 	  paths hardwired to the Audio codec chip on-board and doesn't work
@@ -139,22 +155,22 @@ config USB_ETH_RNDIS
 	   is given in comments found in that info file.
 
 config USB_ETH_EEM
-       bool "Ethernet Emulation Model (EEM) support"
-       depends on USB_ETH
+	bool "Ethernet Emulation Model (EEM) support"
+	depends on USB_ETH
 	select USB_LIBCOMPOSITE
 	select USB_F_EEM
-       default n
-       help
-         CDC EEM is a newer USB standard that is somewhat simpler than CDC ECM
-         and therefore can be supported by more hardware.  Technically ECM and
-         EEM are designed for different applications.  The ECM model extends
-         the network interface to the target (e.g. a USB cable modem), and the
-         EEM model is for mobile devices to communicate with hosts using
-         ethernet over USB.  For Linux gadgets, however, the interface with
-         the host is the same (a usbX device), so the differences are minimal.
+	default n
+	help
+	  CDC EEM is a newer USB standard that is somewhat simpler than CDC ECM
+	  and therefore can be supported by more hardware.  Technically ECM and
+	  EEM are designed for different applications.  The ECM model extends
+	  the network interface to the target (e.g. a USB cable modem), and the
+	  EEM model is for mobile devices to communicate with hosts using
+	  ethernet over USB.  For Linux gadgets, however, the interface with
+	  the host is the same (a usbX device), so the differences are minimal.
 
-         If you say "y" here, the Ethernet gadget driver will use the EEM
-         protocol rather than ECM.  If unsure, say "n".
+	  If you say "y" here, the Ethernet gadget driver will use the EEM
+	  protocol rather than ECM.  If unsure, say "n".
 
 config USB_G_NCM
 	tristate "Network Control Model (NCM) support"
@@ -470,10 +486,7 @@ endif
 # or video class gadget drivers), or specific hardware, here.
 config USB_G_WEBCAM
 	tristate "USB Webcam Gadget"
-	depends on VIDEO_DEV
 	select USB_LIBCOMPOSITE
-	select VIDEOBUF2_VMALLOC
-	select USB_F_UVC
 	help
 	  The Webcam Gadget acts as a composite USB Audio and Video Class
 	  device. It provides a userspace API to process UVC control requests
@@ -481,3 +494,63 @@ config USB_G_WEBCAM
 
 	  Say "y" to link the driver statically, or "m" to build a
 	  dynamically linked module called "g_webcam".
+
+config USB_WEBCAM_UVC
+	bool "Include configuration with UVC (Video)"
+	depends on USB_G_WEBCAM && VIDEO_DEV
+	select VIDEOBUF2_VMALLOC
+	select USB_F_UVC
+	default y
+	help
+	  external uvc function for webcam
+
+config MULTI_STREAM_FUNC_NUM
+	int "Include configuration with UVC (Video)"
+	depends on USB_G_WEBCAM && VIDEO_DEV
+	depends on USB_WEBCAM_UVC
+	default 1
+	help
+	  external uvc function for webcam
+
+config USB_WEBCAM_UVC_SUPPORT_SG_TABLE
+	bool "Support Sgtable for webcam uvc"
+	depends on USB_G_WEBCAM && VIDEO_DEV
+	depends on USB_WEBCAM_UVC
+	select VIDEOBUF2_DMA_SG
+	default 0
+	help
+	  Support Sgtable for webcam uvc
+
+config USB_WEBCAM_UAC
+	bool "Include configuration with UAC (Audio)"
+	depends on USB_G_WEBCAM && SND
+	select SND_PCM
+	select USB_F_UAC1 if !USB_WEBCAM_UAC1_LEGACY
+	select USB_F_UAC1_LEGACY if USB_WEBCAM_UAC1_LEGACY
+	select USB_U_AUDIO if !USB_WEBCAM_UAC1_LEGACY
+	help
+	  external uac1 function for webcam
+
+config USB_WEBCAM_UAC1_LEGACY
+	bool "UAC 1.0 (Legacy)"
+	depends on USB_WEBCAM_UAC
+	help
+	  If you instead want older UAC Spec-1.0 driver that also has audio
+	  paths hardwired to the Audio codec chip on-board and doesn't work
+	  without one.
+
+config USB_WEBCAM_RNDIS
+	bool "Include configuration with RNDIS"
+	depends on USB_G_WEBCAM && NET
+	select USB_U_ETHER
+	select USB_F_RNDIS
+	select CRC32
+	help
+	  external rndis function for webcam
+
+config USB_WEBCAM_DFU
+	bool "Include configuration with (DFU)"
+	depends on USB_G_WEBCAM
+	select USB_F_DFU
+	help
+		external dfu function for webcam

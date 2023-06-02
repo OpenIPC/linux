@@ -59,6 +59,7 @@ struct uvc_event
 #include <media/v4l2-fh.h>
 #include <media/v4l2-device.h>
 
+#include "u_uvc.h"
 #include "uvc_queue.h"
 
 #define UVC_TRACE_PROBE				(1 << 0)
@@ -83,20 +84,20 @@ extern unsigned int uvc_gadget_trace_param;
 			printk(KERN_DEBUG "uvcvideo: " msg); \
 	} while (0)
 
-#define uvc_warn_once(dev, warn, msg...) \
-	do { \
-		if (!test_and_set_bit(warn, &dev->warnings)) \
-			printk(KERN_INFO "uvcvideo: " msg); \
-	} while (0)
-
-#define uvc_printk(level, msg...) \
-	printk(level "uvcvideo: " msg)
+#define uvcg_dbg(f, fmt, args...) \
+	dev_dbg(&(f)->config->cdev->gadget->dev, "%s: " fmt, (f)->name, ##args)
+#define uvcg_info(f, fmt, args...) \
+	dev_info(&(f)->config->cdev->gadget->dev, "%s: " fmt, (f)->name, ##args)
+#define uvcg_warn(f, fmt, args...) \
+	dev_warn(&(f)->config->cdev->gadget->dev, "%s: " fmt, (f)->name, ##args)
+#define uvcg_err(f, fmt, args...) \
+	dev_err(&(f)->config->cdev->gadget->dev, "%s: " fmt, (f)->name, ##args)
 
 /* ------------------------------------------------------------------------
  * Driver specific constants
  */
 
-#define UVC_NUM_REQUESTS			4
+#define UVC_NUM_REQUESTS			20
 #define UVC_MAX_REQUEST_SIZE			64
 #define UVC_MAX_EVENTS				4
 
@@ -104,9 +105,11 @@ extern unsigned int uvc_gadget_trace_param;
  * Structures
  */
 
-struct uvc_video
-{
+struct uvc_video {
+	struct uvc_device *uvc;
 	struct usb_ep *ep;
+
+	struct work_struct pump;
 
 	/* Frame parameters */
 	u8 bpp;
@@ -141,6 +144,65 @@ enum uvc_state
 	UVC_STATE_STREAMING,
 };
 
+#ifdef CONFIG_SS_GADGET_UVC_MULTI_STREAM
+struct uvc_device
+{
+	//struct video_device vdev;
+	//struct v4l2_device v4l2_dev;
+	//enum uvc_state state;
+	struct usb_function func;
+	//struct uvc_video video;
+    struct list_head streams;
+    unsigned int nstreams;
+
+	/* Descriptors */
+	struct {
+		const struct uvc_descriptor_header * const *fs_control;
+		const struct uvc_descriptor_header * const *ss_control;
+		const struct uvc_descriptor_header * const *fs_streaming;
+		const struct uvc_descriptor_header * const *hs_streaming;
+		const struct uvc_descriptor_header * const *ss_streaming;
+	} desc;
+
+	unsigned int control_intf;
+	struct usb_ep *control_ep;
+	struct usb_request *control_req;
+	void *control_buf;
+
+	/* Events */
+	unsigned int event_length;
+	unsigned int event_setup_out : 1;
+};
+
+struct uvc_streaming {
+	struct list_head list;
+	struct uvc_device *dev;
+	struct video_device vdev;
+	struct v4l2_device v4l2_dev;
+	struct uvc_video video;
+	int active;
+	enum uvc_state state;
+
+	unsigned char iInterface;
+	unsigned char bTerminalID;
+	unsigned int streaming_intf;
+
+	unsigned int fs_streaming_size;
+	unsigned int hs_streaming_size;
+	unsigned int ss_streaming_size;
+	unsigned int event_setup_out : 1;
+	/* Descriptors */
+	struct {
+		const struct uvc_descriptor_header * const *fs_streaming;
+		const struct uvc_descriptor_header * const *hs_streaming;
+		const struct uvc_descriptor_header * const *ss_streaming;
+	} desc;
+
+	void *fs_streaming_buf;
+	void *hs_streaming_buf;
+	void *ss_streaming_buf;
+};
+#else
 struct uvc_device
 {
 	struct video_device vdev;
@@ -169,7 +231,7 @@ struct uvc_device
 	unsigned int event_length;
 	unsigned int event_setup_out : 1;
 };
-
+#endif
 static inline struct uvc_device *to_uvc(struct usb_function *f)
 {
 	return container_of(f, struct uvc_device, func);
@@ -188,6 +250,56 @@ struct uvc_file_handle
  * Functions
  */
 
+#ifdef CONFIG_USB_WEBCAM_UVC_SUPPORT_SG_TABLE
+static inline struct scatterlist *sg_advance(struct scatterlist *sg, int consumed)
+{
+	while (consumed >= sg->length) {
+		consumed -= sg->length;
+
+		sg = sg_next(sg);
+		if (!sg)
+			break;
+	}
+
+	WARN_ON(!sg && consumed);
+
+	if (!sg)
+		return NULL;
+
+	sg->offset += consumed;
+	sg->length -= consumed;
+
+	if (sg->offset >= PAGE_SIZE) {
+		struct page *page =
+			nth_page(sg_page(sg), sg->offset / PAGE_SIZE);
+		sg_set_page(sg, page, sg->length, sg->offset % PAGE_SIZE);
+	}
+
+	return sg;
+}
+
+static inline int sg_copy(struct scatterlist *sg_from, struct scatterlist *sg_to, int len)
+{
+	while (len > sg_from->length) {
+		len -= sg_from->length;
+
+		sg_set_page(sg_to, sg_page(sg_from),
+				sg_from->length, sg_from->offset);
+
+		sg_to = sg_next(sg_to);
+		sg_from = sg_next(sg_from);
+
+		if (len && (!sg_from || !sg_to))
+			return -ENOMEM;
+	}
+
+	if (len)
+		sg_set_page(sg_to, sg_page(sg_from),
+				len, sg_from->offset);
+	sg_mark_end(sg_to);
+	return 0;
+}
+#endif
 extern void uvc_function_setup_continue(struct uvc_device *uvc);
 extern void uvc_endpoint_stream(struct uvc_device *dev);
 

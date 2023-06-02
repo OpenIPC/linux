@@ -1413,7 +1413,9 @@ static void print_other_cpu_stall(struct rcu_state *rsp, unsigned long gpnum)
 
 	force_quiescent_state(rsp);  /* Kick them all. */
 }
-
+#if defined(CONFIG_MP_IRQ_TRACE)
+#include "../../drivers/sstar/include/ms_msys.h"
+#endif
 static void print_cpu_stall(struct rcu_state *rsp)
 {
 	int cpu;
@@ -1431,6 +1433,12 @@ static void print_cpu_stall(struct rcu_state *rsp)
 	 * See Documentation/RCU/stallwarn.txt for info on how to debug
 	 * RCU CPU stall warnings.
 	 */
+#if defined(CONFIG_MP_IRQ_TRACE)
+    printk("debug:\n");
+    msys_dump_sirq_info();
+    ms_dump_irq_count();
+    msys_dump_irq_info();
+#endif
 	pr_err("INFO: %s self-detected stall on CPU", rsp->name);
 	print_cpu_stall_info_begin();
 	print_cpu_stall_info(rsp, smp_processor_id());

@@ -17,6 +17,7 @@ menuconfig USB_GADGET
 	tristate "USB Gadget Support"
 	select USB_COMMON
 	select NLS
+	select SS_GADGET
 	help
 	   USB is a master/slave protocol, organized with one master
 	   host (such as a PC) controlling up to 127 peripheral devices.
@@ -146,6 +147,9 @@ config USB_LIBCOMPOSITE
 	select CONFIGFS_FS
 	depends on USB_GADGET
 
+config SS_GADGET
+	tristate
+
 config USB_F_ACM
 	tristate
 
@@ -156,6 +160,9 @@ config USB_U_SERIAL
 	tristate
 
 config USB_U_ETHER
+	tristate
+
+config USB_U_AUDIO
 	tristate
 
 config USB_F_SERIAL
@@ -188,7 +195,13 @@ config USB_F_MASS_STORAGE
 config USB_F_FS
 	tristate
 
+config USB_F_BI_DIRECTION
+	tristate
+
 config USB_F_UAC1
+	tristate
+
+config USB_F_UAC1_LEGACY
 	tristate
 
 config USB_F_UAC2
@@ -207,6 +220,9 @@ config USB_F_PRINTER
 	tristate
 
 config USB_F_TCM
+	tristate
+
+config USB_F_DFU
 	tristate
 
 # this first set of drivers all depend on bulk-capable hardware.
@@ -368,12 +384,30 @@ config USB_CONFIGFS_F_UAC1
 	depends on SND
 	select USB_LIBCOMPOSITE
 	select SND_PCM
+	select USB_U_AUDIO
 	select USB_F_UAC1
 	help
 	  This Audio function implements 1 AudioControl interface,
 	  1 AudioStreaming Interface each for USB-OUT and USB-IN.
-	  This driver requires a real Audio codec to be present
-	  on the device.
+	  This driver doesn't expect any real Audio codec to be present
+	  on the device - the audio streams are simply sinked to and
+	  sourced from a virtual ALSA sound card created. The user-space
+	  application may choose to do whatever it wants with the data
+	  received from the USB Host and choose to provide whatever it
+	  wants as audio data to the USB Host.
+
+config USB_CONFIGFS_F_UAC1_LEGACY
+	bool "Audio Class 1.0 (legacy implementation)"
+	depends on USB_CONFIGFS
+	depends on SND
+	select USB_LIBCOMPOSITE
+	select SND_PCM
+	select USB_F_UAC1_LEGACY
+	help
+	  This Audio function implements 1 AudioControl interface,
+	  1 AudioStreaming Interface each for USB-OUT and USB-IN.
+	  This is a legacy driver and requires a real Audio codec
+	  to be present on the device.
 
 config USB_CONFIGFS_F_UAC2
 	bool "Audio Class 2.0"
@@ -381,6 +415,7 @@ config USB_CONFIGFS_F_UAC2
 	depends on SND
 	select USB_LIBCOMPOSITE
 	select SND_PCM
+	select USB_U_AUDIO
 	select USB_F_UAC2
 	help
 	  This Audio function is compatible with USB Audio Class

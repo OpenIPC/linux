@@ -29,9 +29,9 @@ config USB_XHCI_HCD
 if USB_XHCI_HCD
 
 config USB_XHCI_PCI
-       tristate
+       tristate "USB XHCI PCI support"
        depends on PCI
-       default y
+       default n
 
 config USB_XHCI_PLATFORM
 	tristate "Generic xHCI driver for a platform device"
@@ -79,6 +79,14 @@ config USB_XHCI_TEGRA
 	  Say 'Y' to enable the support for the xHCI host controller
 	  found in NVIDIA Tegra124 and later SoCs.
 
+config MSTAR_XUSB_PCIE_PLATFORM
+	bool "Enable Mstar's XHCI/PCIE combo platform"
+	depends on (MSTAR_PCIE || MSTAR_PCIE2)
+	default y
+	---help---
+	  Say 'Y' to turn on support for Mstar xHCI/PCIE combo
+	  platform.
+	  This will enable PCIE functionality on the USB3.0 combo ports.
 endif # USB_XHCI_HCD
 
 config USB_EHCI_HCD
@@ -106,6 +114,9 @@ config USB_EHCI_HCD
 config USB_EHCI_ROOT_HUB_TT
 	bool "Root Hub Transaction Translators"
 	depends on USB_EHCI_HCD
+# mstar_porting_plat >>>
+	default y
+# mstar_porting_plat <<<
 	---help---
 	  Some EHCI chips have vendor-specific extensions to integrate
 	  transaction translators, so that no OHCI or UHCI companion
@@ -135,12 +146,18 @@ config USB_EHCI_TT_NEWSCHED
 
 	  If unsure, say Y.
 
+config USB_EHCI_SUSPEND_PORT
+	bool "Support function to suspend the port"
+	depends on USB_EHCI_HCD
+	---help---
+	  Provide suspend/reset function through
+	  /sys/devices/platform/Mstar-ehci-x.x/port_suspend
 if USB_EHCI_HCD
 
 config USB_EHCI_PCI
-	tristate
+	tristate "EHCI PCI support"
 	depends on PCI
-	default y
+	default n
 
 config USB_EHCI_HCD_PMC_MSP
 	tristate "EHCI support for on-chip PMC MSP71xx USB controller"

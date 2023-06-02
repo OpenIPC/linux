@@ -1,3 +1,4 @@
+
 /*
  * Generic pwmlib implementation
  *
@@ -459,9 +460,10 @@ int pwm_apply_state(struct pwm_device *pwm, struct pwm_state *state)
 {
 	int err;
 
-	if (!pwm || !state || !state->period ||
-	    state->duty_cycle > state->period)
+	if (!pwm || !state || !state->period)
+//	    ||state->duty_cycle > state->period){
 		return -EINVAL;
+//        }
 
 	if (!memcmp(state, &pwm->state, sizeof(*state)))
 		return 0;

@@ -1006,10 +1006,22 @@ static int __init param_sysfs_init(void)
 	module_sysfs_initialized = 1;
 
 	version_sysfs_builtin();
+#ifndef CONFIG_DEFERRED_INIICALLS_PARAM_SYSFS
 	param_sysfs_builtin();
+#endif
 
 	return 0;
 }
 subsys_initcall(param_sysfs_init);
+
+#ifdef CONFIG_DEFERRED_INIICALLS_PARAM_SYSFS
+static int __init do_param_sysfs_builtin(void)
+{
+    param_sysfs_builtin();
+    return 0;
+}
+deferred_module_init(do_param_sysfs_builtin);
+#endif
+
 
 #endif /* CONFIG_SYSFS */

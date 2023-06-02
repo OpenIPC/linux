@@ -51,7 +51,7 @@
 #define USB_GADGET_DELAYED_STATUS       0x7fff	/* Impossibly large value */
 
 /* big enough to hold our biggest descriptor */
-#define USB_COMP_EP0_BUFSIZ	1024
+#define USB_COMP_EP0_BUFSIZ	(1024 * 8)
 
 #define USB_MS_TO_HS_INTERVAL(x)	(ilog2((x * 1000 / 125)) + 1)
 struct usb_configuration;
@@ -246,6 +246,11 @@ int usb_function_activate(struct usb_function *);
 int usb_interface_id(struct usb_configuration *, struct usb_function *);
 
 int config_ep_by_speed(struct usb_gadget *g, struct usb_function *f,
+			struct usb_ep *_ep);
+
+int config_ep_by_endp_desc(struct usb_gadget *g,
+			struct usb_endpoint_descriptor *chosen_desc,
+			struct usb_ss_ep_comp_descriptor *comp_desc,
 			struct usb_ep *_ep);
 
 #define	MAX_CONFIG_INTERFACES		16	/* arbitrary; max 255 */

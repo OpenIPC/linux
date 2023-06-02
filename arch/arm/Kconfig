@@ -227,6 +227,9 @@ config FIQ
 config NEED_RET_TO_USER
 	bool
 
+config MULTIPLATFORM_XIP_CAPABLE
+    bool
+
 config ARCH_MTD_XIP
 	bool
 
@@ -325,11 +328,29 @@ choice
 	default ARM_SINGLE_ARMV7M if !MMU
 	default ARCH_MULTIPLATFORM if MMU
 
+config ARCH_INFINITY2
+       bool "MSTAR I-series family"
+       depends on MMU
+       select ARCH_WANT_OPTIONAL_GPIOLIB
+       select ARM_HAS_SG_CHAIN
+       select AUTO_ZRELADDR
+       select CLKSRC_OF
+       select COMMON_CLK
+       select GENERIC_CLOCKEVENTS
+       select MIGHT_HAVE_PCI
+       select MULTI_IRQ_HANDLER
+       select SPARSE_IRQ
+       select USE_OF
+       select CPU_V7
+       select HAVE_SMP
+       select MIGHT_HAVE_CACHE_L2X0
+
+
 config ARCH_MULTIPLATFORM
 	bool "Allow multiple platforms to be selected"
 	depends on MMU
 	select ARM_HAS_SG_CHAIN
-	select ARM_PATCH_PHYS_VIRT
+	select ARM_PATCH_PHYS_VIRT if !XIP_KERNEL
 	select AUTO_ZRELADDR
 	select CLKSRC_OF
 	select COMMON_CLK
@@ -762,6 +783,8 @@ source "arch/arm/mach-keystone/Kconfig"
 source "arch/arm/mach-ks8695/Kconfig"
 
 source "arch/arm/mach-meson/Kconfig"
+
+source "arch/arm/mach-sstar/Kconfig"
 
 source "arch/arm/mach-moxart/Kconfig"
 
@@ -1738,6 +1761,7 @@ config FORCE_MAX_ZONEORDER
 	int "Maximum zone order"
 	default "12" if SOC_AM33XX
 	default "9" if SA1111 || ARCH_EFM32
+	default "10" if ARCH_SSTAR
 	default "11"
 	help
 	  The kernel memory allocator divides physically contiguous memory
@@ -1988,7 +2012,7 @@ endchoice
 
 config XIP_KERNEL
 	bool "Kernel Execute-In-Place from ROM"
-	depends on !ARM_LPAE && !ARCH_MULTIPLATFORM
+	depends on (!ARM_LPAE && !ARCH_MULTIPLATFORM) || (!ARM_LPAE && MULTIPLATFORM_XIP_CAPABLE)
 	help
 	  Execute-In-Place allows the kernel to run from non-volatile storage
 	  directly addressable by the CPU, such as NOR flash. This saves RAM
@@ -2059,6 +2083,10 @@ config AUTO_ZRELADDR
 	  will be determined at run-time by masking the current IP with
 	  0xf8000000. This assumes the zImage being placed in the first 128MB
 	  from start of memory.
+
+config MEMORY_START_ADDRESS
+        hex "Physical address of the memory starting"
+	depends on ARCH_INFINITY2
 
 config EFI_STUB
 	bool

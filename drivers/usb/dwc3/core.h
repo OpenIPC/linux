@@ -36,11 +36,14 @@
 
 #define DWC3_MSG_MAX	500
 
+#define DWC3_SCRATCH_BUF_DP_NUM 0x0010
+
 /* Global constants */
 #define DWC3_ZLP_BUF_SIZE	1024	/* size of a superspeed bulk */
 #define DWC3_EP0_BOUNCE_SIZE	512
 #define DWC3_ENDPOINTS_NUM	32
 #define DWC3_XHCI_RESOURCES_NUM	2
+#define DWC3_ISOC_MAX_RETRIES	40
 
 #define DWC3_SCRATCHBUF_SIZE	4096	/* each buffer is assumed to be 4KiB */
 #define DWC3_EVENT_BUFFERS_SIZE	4096
@@ -446,6 +449,8 @@
 #define DWC3_DEPCMD_SETTRANSFRESOURCE	(0x02 << 0)
 #define DWC3_DEPCMD_SETEPCONFIG		(0x01 << 0)
 
+#define DWC3_DEPCMD_CMD(x)		((x) & 0xf)
+
 /* The EP number goes 0..31 so ep0 is always out and ep1 is always in */
 #define DWC3_DALEPENA_EP(n)		(1 << n)
 
@@ -536,6 +541,7 @@ struct dwc3_ep {
 #define DWC3_EP_BUSY		(1 << 4)
 #define DWC3_EP_PENDING_REQUEST	(1 << 5)
 #define DWC3_EP_MISSED_ISOC	(1 << 6)
+#define DWC3_EP_TRANSFER_STARTED (1 << 7)
 
 	/* This last one is specific to EP0 */
 #define DWC3_EP0_DIR_IN		(1 << 31)
@@ -833,14 +839,15 @@ struct dwc3_scratchpad_array {
 struct dwc3 {
 	struct usb_ctrlrequest	*ctrl_req;
 	struct dwc3_trb		*ep0_trb;
+	struct dwc3_scratchpad_array *scratchpad_array;
 	void			*ep0_bounce;
 	void			*zlp_buf;
-	void			*scratchbuf;
+	void			*scratchpad[DWC3_MAX_HIBER_SCRATCHBUFS];
 	u8			*setup_buf;
 	dma_addr_t		ctrl_req_addr;
 	dma_addr_t		ep0_trb_addr;
 	dma_addr_t		ep0_bounce_addr;
-	dma_addr_t		scratch_addr;
+    dma_addr_t		scratchpad_array_dma;
 	struct dwc3_request	ep0_usb_req;
 
 	/* device lock */
@@ -974,6 +981,9 @@ struct dwc3 {
 
 	unsigned		tx_de_emphasis_quirk:1;
 	unsigned		tx_de_emphasis:2;
+	unsigned		is_hibernated:1;
+
+	u32			    *saved_regs;
 };
 
 /* -------------------------------------------------------------------------- */
@@ -1154,6 +1164,7 @@ int dwc3_gadget_set_link_state(struct dwc3 *dwc, enum dwc3_link_state state);
 int dwc3_send_gadget_ep_cmd(struct dwc3_ep *dep, unsigned cmd,
 		struct dwc3_gadget_ep_cmd_params *params);
 int dwc3_send_gadget_generic_command(struct dwc3 *dwc, unsigned cmd, u32 param);
+int dwc3_core_init(struct dwc3 *dwc);
 #else
 static inline int dwc3_gadget_init(struct dwc3 *dwc)
 { return 0; }

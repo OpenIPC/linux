@@ -2,6 +2,8 @@
 # Makefile for the linux kernel.
 #
 
+EXTRA_CFLAGS      +=  -Idrivers/sstar/include
+
 CPPFLAGS_vmlinux.lds := -DTEXT_OFFSET=$(TEXT_OFFSET)
 AFLAGS_head.o        := -DTEXT_OFFSET=$(TEXT_OFFSET)
 

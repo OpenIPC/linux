@@ -141,6 +141,10 @@
 #include <net/tcp.h>
 #include <net/busy_poll.h>
 
+#ifdef CONFIG_SS_SWTOE_TCP
+#include "mdrv_swtoe.h"
+#endif
+
 static DEFINE_MUTEX(proto_list_mutex);
 static LIST_HEAD(proto_list);
 
@@ -661,6 +665,10 @@ int sock_setsockopt(struct socket *sock, int level, int optname,
 	struct linger ling;
 	int ret = 0;
 
+#ifdef CONFIG_SS_SWTOE_TCP  /// not complete
+        // [TBD] IPC for toe?
+#endif
+
 	/*
 	 *	Options without arguments
 	 */
@@ -1001,6 +1009,13 @@ set_rcvbuf:
 		if (val == 1)
 			dst_negative_advice(sk);
 		break;
+/*
+#ifdef CONFIG_SS_SWTOE_TCP  /// todo
+	case SO_SS_SWTOE:
+		sk->ss_swtoe = 1;
+		break;
+#endif
+*/
 	default:
 		ret = -ENOPROTOOPT;
 		break;
@@ -2476,6 +2491,13 @@ void sock_init_data(struct socket *sock, struct sock *sk)
 	sk->sk_max_pacing_rate = ~0U;
 	sk->sk_pacing_rate = ~0U;
 	sk->sk_incoming_cpu = -1;
+
+#ifdef CONFIG_SS_SWTOE_TCP /// done
+	sk->ss_swtoe = 0;
+	sk->ss_swtoe_cnx = DRV_SWTOE_CNX_INVALID;
+	sk->ss_swtoe_blk = 1;
+#endif
+
 	/*
 	 * Before updating sk_refcnt, we must commit prior changes to memory
 	 * (Documentation/RCU/rculist_nulls.txt for details)

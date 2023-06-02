@@ -26,6 +26,10 @@
 #include <net/tcp.h>
 #include <net/sock_reuseport.h>
 
+#ifdef CONFIG_SS_SWTOE_TCP
+#include "mdrv_swtoe.h"
+#endif
+
 #ifdef INET_CSK_DEBUG
 const char inet_csk_timer_bug_msg[] = "inet_csk BUG: unknown timer value\n";
 EXPORT_SYMBOL(inet_csk_timer_bug_msg);
@@ -105,6 +109,13 @@ int inet_csk_get_port(struct sock *sk, unsigned short snum)
 	struct inet_bind_bucket *tb;
 	kuid_t uid = sock_i_uid(sk);
 	u32 remaining, offset;
+
+#ifdef CONFIG_SS_SWTOE_TCP_SERVER /// not complete
+        // [TBD] IPC for toe?
+        // if ((sk->ss_swtoe) && (INVALID == sk->ss_swtoe_cnx))
+        // {
+        // }
+#endif
 
 	if (port) {
 have_port:
@@ -292,6 +303,221 @@ static int inet_csk_wait_for_connect(struct sock *sk, long timeo)
 	return err;
 }
 
+#ifdef CONFIG_SS_SWTOE_TCP_SERVER
+// struct sock* tcp_create_openreq_child(const struct sock *sk, drv_swtoe_lstn_data* lstn_data)
+// +
+// struct sock *tcp_v4_syn_recv_sock(const struct sock *sk, struct sk_buff *skb,
+struct sock* _swtoe_create_sock(const struct sock *sk, drv_swtoe_lstn_data* lstn_data)
+{
+	struct request_sock *req = inet_reqsk(sk);
+	struct sock *newsk = inet_csk_clone_lock(sk, req, GFP_ATOMIC);
+
+	// if (!newsk)
+		// return NULL;
+
+	if (newsk) {
+		const struct inet_request_sock *ireq = inet_rsk(req);
+		struct tcp_request_sock *treq = tcp_rsk(req);
+		struct inet_connection_sock *newicsk = inet_csk(newsk);
+		struct tcp_sock *newtp = tcp_sk(newsk);
+		struct inet_sock *newinet;
+
+		/* Now setup tcp_sock */
+		newtp->pred_flags = 0;
+
+		newtp->rcv_wup = newtp->copied_seq =
+		newtp->rcv_nxt = treq->rcv_isn + 1;
+		newtp->segs_in = 1;
+
+		newtp->snd_sml = newtp->snd_una =
+		newtp->snd_nxt = newtp->snd_up = treq->snt_isn + 1;
+
+		tcp_prequeue_init(newtp);
+		INIT_LIST_HEAD(&newtp->tsq_node);
+
+		tcp_init_wl(newtp, treq->rcv_isn);
+
+		newtp->srtt_us = 0;
+		newtp->mdev_us = jiffies_to_usecs(TCP_TIMEOUT_INIT);
+		minmax_reset(&newtp->rtt_min, tcp_time_stamp, ~0U);
+		newicsk->icsk_rto = TCP_TIMEOUT_INIT;
+		newicsk->icsk_ack.lrcvtime = tcp_time_stamp;
+
+		newtp->packets_out = 0;
+		newtp->retrans_out = 0;
+		newtp->sacked_out = 0;
+		newtp->fackets_out = 0;
+		newtp->snd_ssthresh = TCP_INFINITE_SSTHRESH;
+		tcp_enable_early_retrans(newtp);
+		newtp->tlp_high_seq = 0;
+		newtp->lsndtime = treq->snt_synack.stamp_jiffies;
+		newsk->sk_txhash = treq->txhash;
+		newtp->last_oow_ack_time = 0;
+		newtp->total_retrans = req->num_retrans;
+
+		/* So many TCP implementations out there (incorrectly) count the
+		 * initial SYN frame in their delayed-ACK and congestion control
+		 * algorithms that we must have the following bandaid to talk
+		 * efficiently to them.  -DaveM
+		 */
+		newtp->snd_cwnd = TCP_INIT_CWND;
+		newtp->snd_cwnd_cnt = 0;
+
+		/* There's a bubble in the pipe until at least the first ACK. */
+		newtp->app_limited = ~0U;
+
+		tcp_init_xmit_timers(newsk);
+		newtp->write_seq = newtp->pushed_seq = treq->snt_isn + 1;
+
+		newtp->rx_opt.saw_tstamp = 0;
+
+		newtp->rx_opt.dsack = 0;
+		newtp->rx_opt.num_sacks = 0;
+
+		newtp->urg_data = 0;
+
+		if (sock_flag(newsk, SOCK_KEEPOPEN))
+			inet_csk_reset_keepalive_timer(newsk,
+						       keepalive_time_when(newtp));
+
+		newtp->rx_opt.tstamp_ok = ireq->tstamp_ok;
+		if ((newtp->rx_opt.sack_ok = ireq->sack_ok) != 0) {
+			if (sysctl_tcp_fack)
+				tcp_enable_fack(newtp);
+		}
+		newtp->window_clamp = req->rsk_window_clamp;
+		newtp->rcv_ssthresh = req->rsk_rcv_wnd;
+		newtp->rcv_wnd = req->rsk_rcv_wnd;
+		newtp->rx_opt.wscale_ok = ireq->wscale_ok;
+		if (newtp->rx_opt.wscale_ok) {
+			newtp->rx_opt.snd_wscale = ireq->snd_wscale;
+			newtp->rx_opt.rcv_wscale = ireq->rcv_wscale;
+		} else {
+			newtp->rx_opt.snd_wscale = newtp->rx_opt.rcv_wscale = 0;
+			newtp->window_clamp = min(newtp->window_clamp, 65535U);
+		}
+#if 0
+		newtp->snd_wnd = (ntohs(tcp_hdr(skb)->window) <<
+				  newtp->rx_opt.snd_wscale);
+#else
+		newtp->snd_wnd = 0;
+#endif
+		newtp->max_window = newtp->snd_wnd;
+
+		if (newtp->rx_opt.tstamp_ok) {
+			newtp->rx_opt.ts_recent = req->ts_recent;
+			newtp->rx_opt.ts_recent_stamp = get_seconds();
+			newtp->tcp_header_len = sizeof(struct tcphdr) + TCPOLEN_TSTAMP_ALIGNED;
+		} else {
+			newtp->rx_opt.ts_recent_stamp = 0;
+			newtp->tcp_header_len = sizeof(struct tcphdr);
+		}
+		newtp->tsoffset = 0;
+#ifdef CONFIG_TCP_MD5SIG
+		newtp->md5sig_info = NULL;	/*XXX*/
+		if (newtp->af_specific->md5_lookup(sk, newsk))
+			newtp->tcp_header_len += TCPOLEN_MD5SIG_ALIGNED;
+#endif
+/*
+		if (skb->len >= TCP_MSS_DEFAULT + newtp->tcp_header_len)
+			newicsk->icsk_ack.last_seg_size = skb->len - newtp->tcp_header_len;
+*/
+		newtp->rx_opt.mss_clamp = req->mss;
+
+		newtp->ecn_flags = inet_rsk(req)->ecn_ok ? TCP_ECN_OK : 0; // tcp_ecn_openreq_child(newtp, req);
+
+		newtp->fastopen_req = NULL;
+		newtp->fastopen_rsk = NULL;
+		newtp->syn_data_acked = 0;
+		newtp->rack.mstamp.v64 = 0;
+		newtp->rack.advanced = 0;
+
+		__TCP_INC_STATS(sock_net(sk), TCP_MIB_PASSIVEOPENS);
+
+		newsk->sk_gso_type = SKB_GSO_TCPV4;
+		// inet_sk_rx_dst_set(newsk, skb);
+
+		newtp		      = tcp_sk(newsk);
+		newinet		      = inet_sk(newsk);
+		// ireq		      = inet_rsk(req);
+		sk_daddr_set(newsk, lstn_data->daddr); // sk_daddr_set(newsk, ireq->ir_rmt_addr);
+		sk_rcv_saddr_set(newsk, lstn_data->saddr); // sk_rcv_saddr_set(newsk, ireq->ir_loc_addr);
+		// newsk->sk_bound_dev_if = ireq->ir_iif;
+		newinet->inet_saddr   = lstn_data->saddr; // newinet->inet_saddr   = ireq->ir_loc_addr;
+		// inet_opt	      = rcu_dereference(ireq->ireq_opt);
+		// RCU_INIT_POINTER(newinet->inet_opt, inet_opt);
+		// newinet->mc_index     = inet_iif(skb);
+		// newinet->mc_ttl	      = ip_hdr(skb)->ttl;
+		// newinet->rcv_tos      = ip_hdr(skb)->tos;
+		inet_csk(newsk)->icsk_ext_hdr_len = 0;
+		// if (inet_opt)
+			// inet_csk(newsk)->icsk_ext_hdr_len = inet_opt->opt.optlen;
+		// newinet->inet_id = newtp->write_seq ^ jiffies;
+
+#if 0
+	if (!dst) {
+		dst = inet_csk_route_child_sock(sk, newsk, req);
+		if (!dst)
+			goto put_and_exit;
+	} else {
+		/* syncookie case : see end of cookie_v4_check() */
+	}
+	sk_setup_caps(newsk, dst);
+
+	tcp_ca_openreq_child(newsk, dst);
+
+	tcp_sync_mss(newsk, dst_mtu(dst));
+	newtp->advmss = dst_metric_advmss(dst);
+	if (tcp_sk(sk)->rx_opt.user_mss &&
+	    tcp_sk(sk)->rx_opt.user_mss < newtp->advmss)
+		newtp->advmss = tcp_sk(sk)->rx_opt.user_mss;
+#endif
+
+		tcp_initialize_rcv_mss(newsk);
+
+#if 0
+#ifdef CONFIG_TCP_MD5SIG
+	/* Copy over the MD5 key from the original socket */
+	key = tcp_md5_do_lookup(sk, (union tcp_md5_addr *)&newinet->inet_daddr,
+				AF_INET);
+	if (key) {
+		/*
+		 * We're using one, so create a matching key
+		 * on the newsk structure. If we fail to get
+		 * memory, then we end up not copying the key
+		 * across. Shucks.
+		 */
+		tcp_md5_do_add(newsk, (union tcp_md5_addr *)&newinet->inet_daddr,
+			       AF_INET, key->key, key->keylen, GFP_ATOMIC);
+		sk_nocaps_add(newsk, NETIF_F_GSO_MASK);
+	}
+#endif
+#endif
+
+#if 1
+		__inet_inherit_port(sk, newsk);
+#else
+	if (__inet_inherit_port(sk, newsk) < 0)
+		goto put_and_exit;
+#endif
+	// *own_req = inet_ehash_nolisten(newsk, req_to_sk(req_unhash));
+#if 0
+	if (likely(*own_req)) {
+		tcp_move_syn(newtp, req);
+		ireq->ireq_opt = NULL;
+	} else {
+		newinet->inet_opt = NULL;
+	}
+#endif
+	}
+	return newsk;
+}
+EXPORT_SYMBOL(_swtoe_create_sock);
+
+extern int _inet_swtoe_cb(int cnx, int reason, void* reason_data, void* cb_data);
+
+#endif
+
 /*
  * This will accept the next outstanding connection.
  */
@@ -327,6 +553,12 @@ struct sock *inet_csk_accept(struct sock *sk, int flags, int *err)
 	}
 	req = reqsk_queue_remove(queue, sk);
 	newsk = req->sk;
+#ifdef CONFIG_SS_SWTOE_TCP_SERVER
+	if (sk->ss_swtoe)
+	{
+		drv_swtoe_acpt(sk->ss_swtoe_cnx, newsk->ss_swtoe_cnx);
+	}
+#endif
 
 	if (sk->sk_protocol == IPPROTO_TCP &&
 	    tcp_rsk(req)->tfo_listener) {
@@ -345,8 +577,15 @@ struct sock *inet_csk_accept(struct sock *sk, int flags, int *err)
 	}
 out:
 	release_sock(sk);
+#ifdef CONFIG_SS_SWTOE_TCP_SERVER
+	if (req)
+	{
+		(sk->ss_swtoe) ? kfree(req) : reqsk_put(req);
+	}
+#else
 	if (req)
 		reqsk_put(req);
+#endif
 	return newsk;
 out_err:
 	newsk = NULL;
@@ -750,16 +989,25 @@ int inet_csk_listen_start(struct sock *sk, int backlog)
 	 * after validation is complete.
 	 */
 	sk_state_store(sk, TCP_LISTEN);
+#ifdef CONFIG_SS_SWTOE_TCP_SERVER /// not complete
+	if (sk->ss_swtoe)
+	{
+		if (drv_swtoe_lstn_start(sk->ss_swtoe_cnx, backlog))
+		{
+			printk("[%s][%d] drv_swtoe_listen fail (sk, cnx, backlog) = (0x%08x, %d, %d)\n", __FUNCTION__, __LINE__, (int)sk, sk->ss_swtoe_cnx, backlog);
+			sk->sk_state = TCP_CLOSE;
+			return err;
+		}
+		return 0;
+	}
+#endif
 	if (!sk->sk_prot->get_port(sk, inet->inet_num)) {
 		inet->inet_sport = htons(inet->inet_num);
-
 		sk_dst_reset(sk);
 		err = sk->sk_prot->hash(sk);
-
 		if (likely(!err))
 			return 0;
 	}
-
 	sk->sk_state = TCP_CLOSE;
 	return err;
 }
@@ -840,6 +1088,14 @@ void inet_csk_listen_stop(struct sock *sk)
 	struct inet_connection_sock *icsk = inet_csk(sk);
 	struct request_sock_queue *queue = &icsk->icsk_accept_queue;
 	struct request_sock *next, *req;
+
+#ifdef CONFIG_SS_SWTOE_TCP_SERVER
+	if (sk->ss_swtoe)
+	{
+		drv_swtoe_lstn_stop(sk->ss_swtoe_cnx);
+		drv_swtoe_lstn_clr(sk->ss_swtoe_cnx);
+	}
+#endif
 
 	/* Following specs, it would be better either to send FIN
 	 * (and enter FIN-WAIT-1, it is normal close)

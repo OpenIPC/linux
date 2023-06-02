@@ -22,6 +22,10 @@
 #include <media/videobuf2-v4l2.h>
 #include <media/videobuf2-memops.h>
 
+#if defined(CONFIG_SS_GADGET) || defined(CONFIG_SS_GADGET_MODULE)
+extern int userptr_mode_use_mi_buf;
+#endif
+
 /**
  * vb2_create_framevec() - map virtual addresses to pfns
  * @start:	Virtual user address where we start mapping
@@ -57,10 +61,17 @@ struct frame_vector *vb2_create_framevec(unsigned long start,
 	if (ret < 0)
 		goto out_destroy;
 	/* We accept only complete set of PFNs */
+#if defined(CONFIG_SS_GADGET) || defined(CONFIG_SS_GADGET_MODULE)
+	if (!userptr_mode_use_mi_buf)
+	{
+#endif
 	if (ret != nr) {
 		ret = -EFAULT;
 		goto out_release;
 	}
+#if defined(CONFIG_SS_GADGET) || defined(CONFIG_SS_GADGET_MODULE)
+	}
+#endif
 	return vec;
 out_release:
 	put_vaddr_frames(vec);

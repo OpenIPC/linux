@@ -121,6 +121,9 @@
 #endif
 #include <net/l3mdev.h>
 
+#ifdef CONFIG_SS_SWTOE_TCP
+#include "mdrv_swtoe.h"
+#endif
 
 /* The inetsw table contains everything that inet_create needs to
  * build a new socket.
@@ -223,7 +226,6 @@ int inet_listen(struct socket *sock, int backlog)
 			fastopen_queue_tune(sk, backlog);
 			tcp_fastopen_init_key_once(true);
 		}
-
 		err = inet_csk_listen_start(sk, backlog);
 		if (err)
 			goto out;
@@ -236,6 +238,107 @@ out:
 	return err;
 }
 EXPORT_SYMBOL(inet_listen);
+
+#ifdef CONFIG_SS_SWTOE_TCP
+extern struct sock* _swtoe_create_sock(const struct sock *sk, drv_swtoe_lstn_data* lstn_data);
+int _inet_swtoe_cb(int cnx, int reason, void* reason_data, void* cb_data);
+
+static int _inet_swtoe_cnx_ok(struct socket* sock, int reason, drv_swtoe_glue_cnx_data* p_cnx_data)
+{
+	struct sock* sk = sock->sk;
+	struct inet_sock* inet = inet_sk(sk);
+
+	inet->inet_daddr = p_cnx_data->daddr;
+	inet->inet_dport = p_cnx_data->dport;
+	inet->inet_saddr = p_cnx_data->saddr;
+	inet->inet_sport = p_cnx_data->sport;
+	/// what is inet_rcv_saddr for?
+	inet->inet_rcv_saddr = p_cnx_data->saddr;
+
+/*
+	printk("[%s][%d] (daddr, dport) = (0x%08x, 0x%04x, %d)\n", __FUNCTION__, __LINE__, inet->inet_daddr, inet->inet_dport, inet->inet_dport);
+	printk("[%s][%d] (saddr, sport) = (0x%08x, 0x%04x, %d)\n", __FUNCTION__, __LINE__, inet->inet_saddr, inet->inet_sport, inet->inet_sport);
+	printk("[%s][%d] (saddr) = (0x%08x)\n", __FUNCTION__, __LINE__, inet->inet_rcv_saddr);
+	printk("[%s][%d] sk_state = %d\n", __FUNCTION__, __LINE__, sk->sk_state);
+*/
+	if (!sock_flag(sk, SOCK_DEAD))
+	{
+		tcp_set_state(sk, TCP_ESTABLISHED);
+		// printk("[%s][%d] sk_state = %d\n", __FUNCTION__, __LINE__, sk->sk_state);
+		sk->sk_state_change(sk);
+		sk_wake_async(sk, SOCK_WAKE_IO, POLL_OUT);
+	}
+	return 0;
+}
+
+static int _inet_swtoe_cnx_lstn(struct socket* sock)
+{
+	struct sock* sk = sock->sk;
+	drv_swtoe_lstn_data lstn_data;
+	int ncnx;
+	struct sock *newsk;
+
+	drv_swtoe_lstn_remove(sk->ss_swtoe_cnx, &lstn_data);
+	newsk = _swtoe_create_sock(sk, &lstn_data);
+
+	if (drv_swtoe_clone(sk->ss_swtoe_cnx, &ncnx, &lstn_data))
+	{
+		printk("[%s][%d] clone connection fail. cnx = %d\n", __FUNCTION__, __LINE__, sk->ss_swtoe_cnx);
+	}
+	else
+	{
+		struct request_sock *req;
+
+		newsk->ss_swtoe = 1;
+		newsk->ss_swtoe_cnx = ncnx;
+		drv_swtoe_glue_req(newsk->ss_swtoe_cnx, _inet_swtoe_cb, (void*)newsk);
+		req = kmalloc(sizeof(struct request_sock), GFP_KERNEL);
+		inet_csk_reqsk_queue_add(sk, req, newsk);
+	}
+	return 0;
+}
+
+int _inet_swtoe_cb(int cnx, int reason, void* reason_data, void* cb_data)
+{
+	struct socket* sock = (struct socket*)cb_data;
+	struct sock* sk = sock->sk;
+
+	if (!sk->ss_swtoe)
+	{
+        return -1;
+	}
+	if ((SOCK_STREAM != sock->type) || (IPPROTO_TCP != sk->sk_protocol))
+	{
+        return -1;
+	}
+	switch (reason)
+	{
+	case DRV_SWTOE_GLUE_RCOM:
+		sk->sk_data_ready(sk);
+		break;
+	case DRV_SWTOE_GLUE_LSTN_RESP:
+		_inet_swtoe_cnx_lstn(sock);
+		sk->sk_data_ready(sk);
+		break;
+	case DRV_SWTOE_GLUE_CNX_OK:
+		_inet_swtoe_cnx_ok(sock, reason, (drv_swtoe_glue_cnx_data*)reason_data);
+		break;
+	case DRV_SWTOE_GLUE_CNX_FAIL:
+		// how to do it
+		break;
+	case DRV_SWTOE_GLUE_CLS_RESP:
+		tcp_set_state(sk, TCP_CLOSE);
+		sk->ss_swtoe = 0;
+		sk->ss_swtoe_cnx = DRV_SWTOE_CNX_INVALID;
+		sk->ss_swtoe_blk = 0;
+		break;
+	default:
+		break;
+	}
+	return 0;
+}
+EXPORT_SYMBOL(_inet_swtoe_cb);
+#endif
 
 /*
  *	Create an inet socket.
@@ -377,6 +480,25 @@ lookup_protocol:
 		if (err)
 			sk_common_release(sk);
 	}
+#ifdef CONFIG_SS_SWTOE_TCP  /// not complete due to not CB, should be queue
+	if ((SOCK_STREAM == sock->type) && (IPPROTO_TCP == protocol))
+	{
+		int cnx_id;
+		if (0 == drv_swtoe_create(DRV_SWTOE_PROT_TCP, &cnx_id))
+		{
+			sk->ss_swtoe_cnx = cnx_id;
+			sk->ss_swtoe = 1;
+			drv_swtoe_glue_req(sk->ss_swtoe_cnx, _inet_swtoe_cb, (void*)sock); /// todo : how to deal with CB?
+		}
+		else
+		{
+			err = -ENOSR;
+			printk("[%s][%d] create ss_swtoe_cnx fail\n", __FUNCTION__, __LINE__);
+			goto out;
+		}
+	}
+#endif
+	
 out:
 	return err;
 out_rcu_unlock:
@@ -418,6 +540,58 @@ int inet_release(struct socket *sock)
 }
 EXPORT_SYMBOL(inet_release);
 
+
+#ifdef CONFIG_SS_SWTOE_TCP_SERVER
+#if 1
+static long inet_bind_wait(struct sock *sk)
+{
+	DEFINE_WAIT_FUNC(wait, woken_wake_function);
+	long timeo = HZ/2;
+
+	add_wait_queue(sk_sleep(sk), &wait);
+
+	while (0 < drv_swtoe_bind_status(sk->ss_swtoe_cnx))
+	{
+		timeo = wait_woken(&wait, TASK_INTERRUPTIBLE, timeo);
+		if (signal_pending(current) || !timeo)
+			break;
+	}
+	remove_wait_queue(sk_sleep(sk), &wait);
+	return timeo;
+}
+#else
+static int inet_bind_wait(struct sock *sk)
+{
+	DEFINE_WAIT(wait);
+	int err;
+	long timeo = HZ; // MAX_SCHEDULE_TIMEOUT;
+
+	for (;;) {
+		prepare_to_wait(sk_sleep(sk), &wait, TASK_INTERRUPTIBLE);
+		if (0 < drv_swtoe_bind_status(sk->ss_swtoe_cnx))
+		{
+			timeo = schedule_timeout(timeo);
+		}
+		sched_annotate_sleep();
+		err = 0;
+		if (!drv_swtoe_bind_status(sk->ss_swtoe_cnx))
+		{
+			break;
+		}
+		err = -EINVAL;
+		err = sock_intr_errno(timeo);
+		if (signal_pending(current))
+			break;
+		err = -EAGAIN;
+		if (!timeo)
+			break;
+	}
+	finish_wait(sk_sleep(sk), &wait);
+	return err;
+}
+#endif
+#endif
+
 int inet_bind(struct socket *sock, struct sockaddr *uaddr, int addr_len)
 {
 	struct sockaddr_in *addr = (struct sockaddr_in *)uaddr;
@@ -447,6 +621,19 @@ int inet_bind(struct socket *sock, struct sockaddr *uaddr, int addr_len)
 		    addr->sin_addr.s_addr != htonl(INADDR_ANY))
 			goto out;
 	}
+
+#ifdef CONFIG_SS_SWTOE_TCP_SERVER
+	if (sk->ss_swtoe)
+	{
+		if (drv_swtoe_bind(sk->ss_swtoe_cnx, uaddr))
+		{
+			printk("[%s][%d] swtoe bind IPC fail %d\n", __FUNCTION__, __LINE__, sk->ss_swtoe_cnx);
+			return -EINVAL;
+		}
+		inet_bind_wait(sk);
+		return (drv_swtoe_bind_status(sk->ss_swtoe_cnx)) ? -EINVAL : 0;
+	}
+#endif
 
 	tb_id = l3mdev_fib_table_by_index(net, sk->sk_bound_dev_if) ? : tb_id;
 	chk_addr_ret = inet_addr_type_table(net, addr->sin_addr.s_addr, tb_id);
@@ -590,7 +777,12 @@ int __inet_stream_connect(struct socket *sock, struct sockaddr *uaddr,
 		err = -EISCONN;
 		if (sk->sk_state != TCP_CLOSE)
 			goto out;
-
+#ifdef CONFIG_SS_SWTOE_TCP_CLIENT
+		if (sk->ss_swtoe)
+		{
+			sk->ss_swtoe_blk = (flags & O_NONBLOCK)? 0 : 1;
+		}
+#endif
 		err = sk->sk_prot->connect(sk, uaddr, addr_len);
 		if (err < 0)
 			goto out;
@@ -606,6 +798,19 @@ int __inet_stream_connect(struct socket *sock, struct sockaddr *uaddr,
 	}
 
 	timeo = sock_sndtimeo(sk, flags & O_NONBLOCK);
+
+#if 0 /// todo : unnecessary at this first stage, but do it later
+#ifdef CONFIG_SS_SWTOE_TCP_CLIENT
+	if (sk->ss_swtoe)
+	{
+		if (drv_swtoe_connect_timeo(sk->ss_swtoe_cnx, timeo))
+		{
+			printk("[%s][%d] drv_swtoe_connect_timeo fail\n", __FUNCTION__, __LINE__);
+			goto out;
+		}
+	}
+#endif
+#endif
 
 	if ((1 << sk->sk_state) & (TCPF_SYN_SENT | TCPF_SYN_RECV)) {
 		int writebias = (sk->sk_protocol == IPPROTO_TCP) &&
@@ -700,6 +905,12 @@ int inet_getname(struct socket *sock, struct sockaddr *uaddr,
 	DECLARE_SOCKADDR(struct sockaddr_in *, sin, uaddr);
 
 	sin->sin_family = AF_INET;
+
+/*
+should do nothing if below state/variables are correct
+#ifdef CONFIG_SS_SWTOE_TCP  /// not complete
+#endif
+*/
 	if (peer) {
 		if (!inet->inet_dport ||
 		    (((1 << sk->sk_state) & (TCPF_CLOSE | TCPF_SYN_SENT)) &&

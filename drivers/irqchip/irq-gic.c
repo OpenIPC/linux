@@ -50,6 +50,10 @@
 
 #include "irq-gic-common.h"
 
+#ifdef CONFIG_SS_AMP
+#include "drv_dualos.h"
+#endif
+
 #ifdef CONFIG_ARM64
 #include <asm/cpufeature.h>
 
@@ -328,6 +332,9 @@ static int gic_set_affinity(struct irq_data *d, const struct cpumask *mask_val,
 	unsigned int cpu, shift = (gic_irq(d) % 4) * 8;
 	u32 val, mask, bit;
 	unsigned long flags;
+#ifdef CONFIG_SS_GIC_SET_MULTI_CPUS
+	struct irq_desc *desc = irq_to_desc(d->irq);
+#endif
 
 	if (!force)
 		cpu = cpumask_any_and(mask_val, cpu_online_mask);
@@ -341,6 +348,13 @@ static int gic_set_affinity(struct irq_data *d, const struct cpumask *mask_val,
 	mask = 0xff << shift;
 	bit = gic_cpu_map[cpu] << shift;
 	val = readl_relaxed(reg) & ~mask;
+#ifdef CONFIG_SS_GIC_SET_MULTI_CPUS
+	if (desc && desc->affinity_hint) {
+		struct cpumask mask_hint;
+		if (cpumask_and(&mask_hint, desc->affinity_hint, mask_val))
+			val |= (*cpumask_bits(&mask_hint) << shift) & mask;
+	}
+#endif
 	writel_relaxed(val | bit, reg);
 	gic_unlock_irqrestore(flags);
 
@@ -348,16 +362,24 @@ static int gic_set_affinity(struct irq_data *d, const struct cpumask *mask_val,
 }
 #endif
 
+#if defined(CONFIG_MP_IRQ_TRACE)
+extern void ms_records_irq_count(int);
+#endif
+
 static void __exception_irq_entry gic_handle_irq(struct pt_regs *regs)
 {
 	u32 irqstat, irqnr;
 	struct gic_chip_data *gic = &gic_data[0];
 	void __iomem *cpu_base = gic_data_cpu_base(gic);
+        
 
 	do {
 		irqstat = readl_relaxed(cpu_base + GIC_CPU_INTACK);
 		irqnr = irqstat & GICC_IAR_INT_ID_MASK;
-
+        
+#if defined(CONFIG_MP_IRQ_TRACE)
+             ms_records_irq_count(irqnr);
+#endif
 		if (likely(irqnr > 15 && irqnr < 1020)) {
 			if (static_key_true(&supports_deactivate))
 				writel_relaxed(irqstat, cpu_base + GIC_CPU_EOI);
@@ -378,6 +400,41 @@ static void __exception_irq_entry gic_handle_irq(struct pt_regs *regs)
 			 */
 			smp_rmb();
 			handle_IPI(irqnr, regs);
+#elif	defined(CONFIG_LH_RTOS)
+			{
+				void handle_rsq(int);
+				irq_enter();
+				handle_rsq(irqnr);
+				irq_exit();
+			}
+#elif   defined(CONFIG_SS_AMP)
+            {
+                extern void handle_interos_call_req(void);
+                extern void handle_interos_call_resp(void);
+#if ENABLE_NBLK_CALL
+                extern void handle_interos_nblk_call_req(void);
+#endif
+
+                switch (irqnr) {
+                case IPI_NR_RTOS_2_LINUX_CALL_REQ:
+                    irq_enter();
+                    handle_interos_call_req();
+                    irq_exit();
+                    break;
+                case IPI_NR_LINUX_2_RTOS_CALL_RESP:
+                    irq_enter();
+                    handle_interos_call_resp();
+                    irq_exit();
+                    break;
+#if ENABLE_NBLK_CALL
+                case IPI_NR_RTOS_2_LINUX_NBLK_CALL_REQ:
+                    irq_enter();
+                    handle_interos_nblk_call_req();
+                    irq_exit();
+                    break;
+#endif
+                }
+            }
 #endif
 			continue;
 		}

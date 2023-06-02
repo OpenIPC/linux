@@ -32,6 +32,12 @@
 static int debug;
 module_param(debug, int, 0644);
 
+#if defined(CONFIG_SS_GADGET) || defined(CONFIG_SS_GADGET_MODULE)
+int userptr_mode_use_mi_buf = 0;
+module_param_named(use_mi_buf, userptr_mode_use_mi_buf, int, 0644);
+EXPORT_SYMBOL(userptr_mode_use_mi_buf);
+#endif
+
 #define dprintk(level, fmt, arg...)					      \
 	do {								      \
 		if (debug >= level)					      \
@@ -1578,6 +1584,21 @@ static void __vb2_dqbuf(struct vb2_buffer *vb)
 			call_void_memop(vb, unmap_dmabuf, vb->planes[i].mem_priv);
 			vb->planes[i].dbuf_mapped = 0;
 		}
+
+#if defined(CONFIG_SS_GADGET) || defined(CONFIG_SS_GADGET_MODULE)
+    /* Should umap before user put buf to mi sys */
+	if (userptr_mode_use_mi_buf && q->memory == VB2_MEMORY_USERPTR)
+		for (i = 0; i < vb->num_planes; ++i) {
+			if (vb->planes[i].mem_priv) {
+				call_void_memop(vb, put_userptr, vb->planes[i].mem_priv);
+			}
+			vb->planes[i].mem_priv = NULL;
+			vb->planes[i].bytesused = 0;
+			vb->planes[i].length = 0;
+			vb->planes[i].m.userptr = 0;
+			vb->planes[i].data_offset = 0;
+		}
+#endif
 }
 
 int vb2_core_dqbuf(struct vb2_queue *q, unsigned int *pindex, void *pb,
@@ -2028,6 +2049,7 @@ unsigned int vb2_core_poll(struct vb2_queue *q, struct file *file,
 	if (q->is_output && !(req_events & (POLLOUT | POLLWRNORM)))
 		return 0;
 
+	poll_wait(file, &q->done_wq, wait);
 	/*
 	 * Start file I/O emulator only if streaming API has not been used yet.
 	 */
@@ -2080,7 +2102,6 @@ unsigned int vb2_core_poll(struct vb2_queue *q, struct file *file,
 		if (q->last_buffer_dequeued)
 			return POLLIN | POLLRDNORM;
 
-		poll_wait(file, &q->done_wq, wait);
 	}
 
 	/*

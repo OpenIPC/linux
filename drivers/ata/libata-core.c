@@ -78,6 +78,8 @@
 
 #include "libata.h"
 #include "libata-transport.h"
+#include "ahci.h"
+#include <linux/gpio.h>
 
 /* debounce timing parameters in msecs { interval, duration, timeout } */
 const unsigned long sata_deb_timing_normal[]		= {   5,  100, 2000 };
@@ -176,6 +178,44 @@ MODULE_DESCRIPTION("Library module for ATA devices");
 MODULE_LICENSE("GPL");
 MODULE_VERSION(DRV_VERSION);
 
+
+#ifdef CONFIG_ARCH_INFINITY2M
+
+#define SATA_GHC_0                  0x1A2800
+#define SATA_GHC_0_PHY_ANA          0x152700
+#define REG_SATA_PHYA_REG_50        (SATA_GHC_0_PHY_ANA + (0x50<<1))
+#define SSTAR_SATA_PHY_OFFSET       ((SATA_GHC_0-SATA_GHC_0_PHY_ANA )<<1)
+#define REG_SATA_OFFSET_PHYA_REG_50 (0x50<<2)
+
+int ahci_port_phy_fsm_reset(struct ata_link *link)
+{
+    u16 u16Temp =0;
+    struct ata_host	 *host = link->ap->host;
+    struct ahci_host_priv *hpriv = host->private_data;
+
+    uintptr_t mmio = (uintptr_t)hpriv->mmio;
+
+    if((hpriv->phy_mode == 0) || (hpriv->phy_mode == 1))
+    {
+        //printk("%s , mmio = 0x%p \n", __func__ , hpriv->mmio  );
+
+        //*** Bank 0x1527 h0050 bit15 => 0x0
+        u16Temp = readw((volatile void *)(mmio -  SSTAR_SATA_PHY_OFFSET    + REG_SATA_OFFSET_PHYA_REG_50 ) );
+        u16Temp = u16Temp & ( ~(0x01<<15));
+        writew(u16Temp, (volatile void *)(mmio -  SSTAR_SATA_PHY_OFFSET    + REG_SATA_OFFSET_PHYA_REG_50 ) );
+
+        ndelay(1000);
+
+        //*** Bank 0x1527 h0050 bit15 => 0x1
+        u16Temp = readw((volatile void *)(mmio -  SSTAR_SATA_PHY_OFFSET    + REG_SATA_OFFSET_PHYA_REG_50 ) );
+        u16Temp = u16Temp | (0x01<<15);
+        writew(u16Temp, (volatile void *)(mmio -  SSTAR_SATA_PHY_OFFSET    + REG_SATA_OFFSET_PHYA_REG_50 )  );
+    }
+
+    return 0;
+}
+
+#endif
 
 static bool ata_sstatus_online(u32 sstatus)
 {
@@ -3943,6 +3983,8 @@ int ata_std_prereset(struct ata_link *link, unsigned long deadline)
  *	RETURNS:
  *	0 on success, -errno otherwise.
  */
+
+#ifndef  CONFIG_ARCH_INFINITY2M
 int sata_link_hardreset(struct ata_link *link, const unsigned long *timing,
 			unsigned long deadline,
 			bool *online, int (*check_ready)(struct ata_link *))
@@ -4030,6 +4072,127 @@ int sata_link_hardreset(struct ata_link *link, const unsigned long *timing,
 	DPRINTK("EXIT, rc=%d\n", rc);
 	return rc;
 }
+
+#else
+int sata_link_hardreset(struct ata_link *link, const unsigned long *timing,
+			unsigned long deadline,
+			bool *online, int (*check_ready)(struct ata_link *))
+{
+	u32 scontrol;
+	int rc;
+        struct ata_host	 *host = link->ap->host;
+        struct ahci_host_priv *hpriv = host->private_data;
+        int resetAgain = 1;
+
+DO_AGAIN:
+
+	DPRINTK("ENTER\n");
+
+	if (online)
+		*online = false;
+
+        //printk("%s , hpriv->bFirstOOB = %d \n", __func__ , hpriv->bFirstOOB );
+
+	if (sata_set_spd_needed(link)) {
+		/* SATA spec says nothing about how to reconfigure
+		 * spd.  To be on the safe side, turn off phy during
+		 * reconfiguration.  This works for at least ICH7 AHCI
+		 * and Sil3124.
+		 */
+		if ((rc = sata_scr_read(link, SCR_CONTROL, &scontrol)))
+			goto out;
+
+		scontrol = (scontrol & 0x0f0) | 0x304;
+
+		if ((rc = sata_scr_write(link, SCR_CONTROL, scontrol)))
+			goto out;
+
+		sata_set_spd(link);
+            //printk("%s , sata_set_spd \n", __func__ );
+	}
+
+
+#ifdef  CONFIG_ARCH_INFINITY2M
+    if(ata_is_host_link(link) && ((hpriv->bFirstOOB == 0) || (hpriv->phy_mode > 0)) )
+    {
+        ahci_port_phy_fsm_reset(link);
+    }
+#endif
+
+    if( (0 == hpriv->bFirstOOB) || (hpriv->phy_mode > 0))
+    {
+        //printk("%s , 2nd OOB \n", __func__ );
+    	/* issue phy wake/reset */
+    	if ((rc = sata_scr_read(link, SCR_CONTROL, &scontrol)))
+    		goto out;
+
+    	scontrol = (scontrol & 0x0f0) | 0x301;
+
+    	if ((rc = sata_scr_write_flush(link, SCR_CONTROL, scontrol)))
+    		goto out;
+    }
+    else if(hpriv->phy_mode == 0)
+    {
+        hpriv->bFirstOOB = 0 ;
+    }
+
+	/* Couldn't find anything in SATA I/II specs, but AHCI-1.1
+	 * 10.4.2 says at least 1 ms.
+	 */
+	ata_msleep(link->ap, 1);
+
+	/* bring link back */
+	rc = sata_link_resume(link, timing, deadline);
+	if (rc)
+		goto out;
+	/* if link is offline nothing more to do */
+	if (ata_phys_link_offline(link))
+		goto out;
+
+	/* Link is online.  From this point, -ENODEV too is an error. */
+	if (online)
+		*online = true;
+
+	if (sata_pmp_supported(link->ap) && ata_is_host_link(link)) {
+		/* If PMP is supported, we have to do follow-up SRST.
+		 * Some PMPs don't send D2H Reg FIS after hardreset if
+		 * the first port is empty.  Wait only for
+		 * ATA_TMOUT_PMP_SRST_WAIT.
+		 */
+		if (check_ready) {
+			unsigned long pmp_deadline;
+
+			pmp_deadline = ata_deadline(jiffies,
+						    ATA_TMOUT_PMP_SRST_WAIT);
+			if (time_after(pmp_deadline, deadline))
+				pmp_deadline = deadline;
+			ata_wait_ready(link, pmp_deadline, check_ready);
+		}
+		rc = -EAGAIN;
+		goto out;
+	}
+
+	rc = 0;
+	if (check_ready)
+		rc = ata_wait_ready(link, deadline, check_ready);
+ out:
+	if (rc && rc != -EAGAIN) {
+		/* online is set iff link is online && reset succeeded */
+		if (online)
+			*online = false;
+		ata_link_err(link, "COMRESET failed (errno=%d)\n", rc);
+	}
+	DPRINTK("EXIT, rc=%d\n", rc);
+
+    if(rc==0 && resetAgain > 0)
+    {
+        resetAgain--;
+        goto DO_AGAIN;
+    }
+	return rc;
+}
+#endif
+
 
 /**
  *	sata_std_hardreset - COMRESET w/o waiting or classification

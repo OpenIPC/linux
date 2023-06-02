@@ -45,6 +45,9 @@
 
 #include "usb.h"
 
+#ifdef CONFIG_MP_USB_MSTAR
+#include "usb_common_sstar.h"
+#endif
 
 const char *usbcore_name = "usbcore";
 
@@ -362,9 +365,11 @@ static const struct dev_pm_ops usb_device_pm_ops = {
 	.thaw =		usb_dev_thaw,
 	.poweroff =	usb_dev_poweroff,
 	.restore =	usb_dev_restore,
+#if (MP_USB_MSTAR==0)
 	.runtime_suspend =	usb_runtime_suspend,
 	.runtime_resume =	usb_runtime_resume,
 	.runtime_idle =		usb_runtime_idle,
+#endif
 };
 
 #endif	/* CONFIG_PM */

@@ -29,6 +29,7 @@
 /* A.3. Video Interface Protocol Codes */
 #define UVC_PC_PROTOCOL_UNDEFINED			0x00
 #define UVC_PC_PROTOCOL_15				0x01
+#define USB_VIDEO_CLASS_VERSION				0x100
 
 /* A.5. Video Class-Specific VC Interface Descriptor Subtypes */
 #define UVC_VC_DESCRIPTOR_UNDEFINED			0x00
@@ -54,6 +55,10 @@
 #define UVC_VS_FORMAT_FRAME_BASED			0x10
 #define UVC_VS_FRAME_FRAME_BASED			0x11
 #define UVC_VS_FORMAT_STREAM_BASED			0x12
+#if (USB_VIDEO_CLASS_VERSION==0x150)
+#define UVC_VS_FORMAT_H264				0x13
+#define UVC_VS_FRAME_H264				0x14
+#endif
 
 /* A.7. Video Class-Specific Endpoint Descriptor Subtypes */
 #define UVC_EP_UNDEFINED				0x00
@@ -291,6 +296,20 @@ struct UVC_SELECTOR_UNIT_DESCRIPTOR(n) {		\
 } __attribute__ ((packed))
 
 /* 3.7.2.5. Processing Unit Descriptor */
+#if (USB_VIDEO_CLASS_VERSION==0x150)
+struct uvc_processing_unit_descriptor {
+	__u8  bLength;
+	__u8  bDescriptorType;
+	__u8  bDescriptorSubType;
+	__u8  bUnitID;
+	__u8  bSourceID;
+	__u16 wMaxMultiplier;
+	__u8  bControlSize;
+	__u8  bmControls[3];
+	__u8  iProcessing;
+	__u8  bmVideoStandards;
+} __attribute__((__packed__));
+#else
 struct uvc_processing_unit_descriptor {
 	__u8  bLength;
 	__u8  bDescriptorType;
@@ -302,8 +321,13 @@ struct uvc_processing_unit_descriptor {
 	__u8  bmControls[2];
 	__u8  iProcessing;
 } __attribute__((__packed__));
+#endif
 
+#if (USB_VIDEO_CLASS_VERSION==0x150)
+#define UVC_DT_PROCESSING_UNIT_SIZE(n)			(10+(n))
+#else
 #define UVC_DT_PROCESSING_UNIT_SIZE(n)			(9+(n))
+#endif
 
 /* 3.7.2.6. Extension Unit Descriptor */
 struct uvc_extension_unit_descriptor {
@@ -565,5 +589,149 @@ struct UVC_FRAME_MJPEG(n) {				\
 	__u32 dwFrameInterval[n];			\
 } __attribute__ ((packed))
 
-#endif /* __LINUX_USB_VIDEO_H */
+#if (USB_VIDEO_CLASS_VERSION==0x150)
+/* H264 Payload - 3.1.1. H264 Video Format Descriptor */
+struct uvc_format_h264 {
+	__u8  bLength;
+	__u8  bDescriptorType;
+	__u8  bDescriptorSubType;
+	__u8  bFormatIndex;
+	__u8  bNumFrameDescriptors;
+	__u8  bDefaultFrameIndex;
+	__u8  bMaxCodecConfigDelay;
+	__u8  bmSupportedSliceModes;
+	__u8  bmSupportedSyncFrameTypes;
+	__u8  bResolutionScaling;
+	__u8  Reserved1;
+	__u8  bmSupportedRateControlModes;
+	__u16 wMaxMBperSecOneResNoScalability;
+	__u16 wMaxMBperSecTwoResNoScalability;
+	__u16 wMaxMBperSecThreeResNoScalability;
+	__u16 wMaxMBperSecFourResNoScalability;
+	__u16 wMaxMBperSecOneResTemporalScalability;
+	__u16 wMaxMBperSecTwoResTemporalScalability;
+	__u16 wMaxMBperSecThreeResTemporalScalability;
+	__u16 wMaxMBperSecFourResTemporalScalability;
+	__u16 wMaxMBperSecOneResTemporalQualityScalability;
+	__u16 wMaxMBperSecTwoResTemporalQualityScalability;
+	__u16 wMaxMBperSecThreeResTemporalQualityScalability;
+	__u16 wMaxMBperSecFourResTemporalQualityScalability;
+	__u16 wMaxMBperSecOneResTemporalSpatialScalability;
+	__u16 wMaxMBperSecTwoResTemporalSpatialScalability;
+	__u16 wMaxMBperSecThreeResTemporalSpatialScalability;
+	__u16 wMaxMBperSecFourResTemporalSpatialScalability;
+	__u16 wMaxMBperSecOneResFullScalability;
+	__u16 wMaxMBperSecTwoResFullScalability;
+	__u16 wMaxMBperSecThreeResFullScalability;
+	__u16 wMaxMBperSecFourResFullScalability;
+} __attribute__((__packed__));
 
+#define UVC_DT_FORMAT_H264_SIZE		52
+
+/* H264 Payload - 3.1.2. H264 Video Frame Descriptor */
+struct uvc_frame_h264 {
+	__u8  bLength;
+	__u8  bDescriptorType;
+	__u8  bDescriptorSubType;
+	__u8  bFrameIndex;
+	__u16 wWidth;
+	__u16 wHeight;
+	__u16 wSARwidth;
+	__u16 wSARheight;
+	__u16 wProfile;
+	__u8  bLevelIDC;
+	__u16 wConstrainedToolset;
+	__u32 bmSupportedUsages;
+	__u16 bmCapabilities;
+	__u32 bmSVCCapabilities;
+	__u32 bmMVCCapabilities;
+	__u32 dwMinBitRate;
+	__u32 dwMaxBitRate;
+	__u32 dwDefaultFrameInterval;
+	__u8  bNumFrameIntervals;
+	__u32 dwFrameInterval[];
+} __attribute__((__packed__));
+
+#define UVC_DT_FRAME_H264_SIZE(n)			(44+4*(n))
+
+#define UVC_FRAME_H264(n) \
+	uvc_frame_h264_##n
+
+#define DECLARE_UVC_FRAME_H264(n)			\
+struct UVC_FRAME_H264(n) {				\
+	__u8  bLength;					\
+	__u8  bDescriptorType;				\
+	__u8  bDescriptorSubType;			\
+	__u8  bFrameIndex;				\
+	__u16 wWidth;					\
+	__u16 wHeight;					\
+	__u16 wSARwidth;				\
+	__u16 wSARheight;				\
+	__u16 wProfile;					\
+	__u8  bLevelIDC;				\
+	__u16 wConstrainedToolset;			\
+	__u32 bmSupportedUsages;			\
+	__u16 bmCapabilities;				\
+	__u32 bmSVCCapabilities;			\
+	__u32 bmMVCCapabilities;			\
+	__u32 dwMinBitRate;				\
+	__u32 dwMaxBitRate;				\
+	__u32 dwDefaultFrameInterval;			\
+	__u8  bNumFrameIntervals;			\
+	__u32 dwFrameInterval[n];			\
+} __attribute__ ((packed))
+#endif
+
+struct uvc_format_framebase{
+	__u8  bLength;
+	__u8  bDescriptorType;
+	__u8  bDescriptorSubType;
+	__u8  bFormatIndex;
+	__u8  bNumFrameDescriptors;
+	__u8  guidFormat[16];
+	__u8  bBitsPerPixel;
+	__u8  bDefaultFrameIndex;
+	__u8  bAspectRatioX;
+	__u8  bAspectRatioY;
+	__u8  bmInterfaceFlags;
+	__u8  bCopyProtect;
+	__u8  bVariableSize;
+} __attribute__((__packed__));
+#define UVC_DT_FORMAT_FRAMEBASE_SIZE            28
+struct uvc_frame_framebase {
+	__u8  bLength;
+	__u8  bDescriptorType;
+	__u8  bDescriptorSubType;
+	__u8  bFrameIndex;
+	__u8  bmCapabilities;
+	__u16 wWidth;
+	__u16 wHeight;
+	__u32 dwMinBitRate;
+	__u32 dwMaxBitRate;
+	__u32 dwDefaultFrameInterval;
+	__u8  bFrameIntervalType;
+	__u32 dwBytesPerLine;
+	__u32 dwFrameInterval[];
+} __attribute__((__packed__));
+
+#define UVC_DT_FRAME_FRAMEBASE_SIZE(n)		(26+4*(n))
+
+#define UVC_FRAME_FRAMEBASE(n) \
+	uvc_frame_framebase_##n
+#define DECLARE_UVC_FRAME_FRAMEBASE(n)      \
+struct UVC_FRAME_FRAMEBASE(n) {         \
+	__u8  bLength;                  \
+	__u8  bDescriptorType;              \
+	__u8  bDescriptorSubType;           \
+	__u8  bFrameIndex;              \
+	__u8  bmCapabilities;               \
+	__u16 wWidth;                   \
+	__u16 wHeight;                  \
+	__u32 dwMinBitRate;             \
+	__u32 dwMaxBitRate;             \
+	__u32 dwDefaultFrameInterval;           \
+	__u8  bFrameIntervalType;           \
+	__u32 dwBytesPerLine;               \
+	__u32 dwFrameInterval[n];           \
+} __attribute__ ((packed))
+#endif /* __LINUX_USB_VIDEO_H */

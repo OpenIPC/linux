@@ -92,4 +92,8 @@
 
 #define SO_CNX_ADVICE		53
 
+#ifdef CONFIG_SS_SWTOE_TCP
+#define SO_SS_SWTOE  		54
+#endif
+
 #endif /* __ASM_GENERIC_SOCKET_H */

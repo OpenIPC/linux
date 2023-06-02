@@ -287,7 +287,12 @@ static int __init irq_sysfs_init(void)
 
 	return 0;
 }
+
+#ifdef DEFERRED_INIICALLS_MORE_SYSFS
+deferred_module_init(irq_sysfs_init);
+#else
 postcore_initcall(irq_sysfs_init);
+#endif
 
 #else /* !CONFIG_SYSFS */
 

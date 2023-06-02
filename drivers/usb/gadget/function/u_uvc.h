@@ -19,15 +19,45 @@
 #include <linux/usb/composite.h>
 #include <linux/usb/video.h>
 
+#ifndef CONFIG_MULTI_STREAM_FUNC_NUM
+#define CONFIG_MULTI_STREAM_FUNC_NUM 1
+#endif
+
+#define MAX_STREAM_SUPPORT 4
+#define DEFAULT_STREAM_NAME "UVC Camera"
+#define MULTI_STREAM_NUM CONFIG_MULTI_STREAM_FUNC_NUM
+
+#if (MULTI_STREAM_NUM>1)
+#define CONFIG_SS_GADGET_UVC_MULTI_STREAM
+#endif
+
 #define fi_to_f_uvc_opts(f)	container_of(f, struct f_uvc_opts, func_inst)
+#define fuvc_to_gadget(f)   (f.config->cdev->gadget)
+#ifdef CONFIG_SS_GADGET_UVC_MULTI_STREAM
+#define video_to_stream(f)     container_of(f, struct uvc_streaming, video)
+#define video_to_uvc(f)      (video_to_stream(f))->dev
+#else
+#define video_to_uvc(f)     container_of(f, struct uvc_device, video)
+#endif
 
 struct f_uvc_opts {
 	struct usb_function_instance			func_inst;
 	unsigned int					uvc_gadget_trace_param;
+#ifdef CONFIG_SS_GADGET_UVC_MULTI_STREAM
+	unsigned int					streaming_interval[MAX_STREAM_SUPPORT];
+	unsigned int					streaming_maxpacket[MAX_STREAM_SUPPORT];
+	unsigned int					streaming_maxburst[MAX_STREAM_SUPPORT];
+	const char *					streaming_name[MAX_STREAM_SUPPORT];
+#else
 	unsigned int					streaming_interval;
 	unsigned int					streaming_maxpacket;
 	unsigned int					streaming_maxburst;
+	const char *					streaming_name;
+#endif
 
+#if defined(CONFIG_SS_GADGET) || defined(CONFIG_SS_GADGET_MODULE)
+	bool						bulk_streaming_ep;
+#endif
 	/*
 	 * Control descriptors array pointers for full-/high-speed and
 	 * super-speed. They point by default to the uvc_fs_control_cls and
