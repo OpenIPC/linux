@@ -32,8 +32,31 @@
 
 #include "power.h"
 
+
 const char *pm_labels[] = { "mem", "standby", "freeze", NULL };
 const char *pm_states[PM_SUSPEND_MAX];
+
+#ifdef CONFIG_SS_PROFILING_TIME
+extern void recode_timestamp_init(void);
+extern void recode_timestamp(int mark, const char* name);
+#endif
+
+#ifdef CONFIG_MP_USB_STR_PATCH
+typedef enum
+{
+    E_STR_NONE,
+    E_STR_IN_SUSPEND,
+    E_STR_IN_RESUME
+}EN_STR_STATUS;
+
+static EN_STR_STATUS enStrStatus=E_STR_NONE;
+
+bool is_suspending(void)
+{
+    return (enStrStatus == E_STR_IN_SUSPEND);
+}
+EXPORT_SYMBOL_GPL(is_suspending);
+#endif
 
 unsigned int pm_suspend_global_flags;
 EXPORT_SYMBOL_GPL(pm_suspend_global_flags);
@@ -382,27 +405,40 @@ static int suspend_enter(suspend_state_t state, bool *wakeup)
 		} else if (*wakeup) {
 			error = -EBUSY;
 		}
+#ifdef CONFIG_MP_USB_STR_PATCH
+		enStrStatus=E_STR_IN_RESUME;
+#endif
+		recode_timestamp_init();
+		recode_timestamp(__LINE__, "resume+");
 		syscore_resume();
 	}
 
+	recode_timestamp(__LINE__, "en_irqs+");
 	arch_suspend_enable_irqs();
 	BUG_ON(irqs_disabled());
 
  Enable_cpus:
+	recode_timestamp(__LINE__, "en_cpus+");
 	enable_nonboot_cpus();
 
  Platform_wake:
+	recode_timestamp(__LINE__, "plat_noirq+");
 	platform_resume_noirq(state);
+	recode_timestamp(__LINE__, "dpm_noirq+");
+	pr_info("PM: dpm_noirq\n");
 	dpm_resume_noirq(PMSG_RESUME);
 
  Platform_early_resume:
+	recode_timestamp(__LINE__, "plat_early+");
 	platform_resume_early(state);
 
  Devices_early_resume:
+	recode_timestamp(__LINE__, "dev_early+");
 	dpm_resume_early(PMSG_RESUME);
 
  Platform_finish:
 	platform_resume_finish(state);
+	recode_timestamp(__LINE__, "plat_finish-");
 	return error;
 }
 
@@ -438,14 +474,19 @@ int suspend_devices_and_enter(suspend_state_t state)
 	} while (!error && !wakeup && platform_suspend_again(state));
 
  Resume_devices:
+	recode_timestamp(__LINE__, "resume_end+");
 	suspend_test_start();
+	pr_info("PM: dpm_resume_end\n");
 	dpm_resume_end(PMSG_RESUME);
 	suspend_test_finish("resume devices");
+	recode_timestamp(__LINE__, "resume_end-");
 	trace_suspend_resume(TPS("resume_console"), state, true);
 	resume_console();
 	trace_suspend_resume(TPS("resume_console"), state, false);
+	recode_timestamp(__LINE__, "console-");
 
  Close:
+	recode_timestamp(__LINE__, "plat_end+");
 	platform_resume_end(state);
 	return error;
 
@@ -492,6 +533,9 @@ static int enter_state(suspend_state_t state)
 	}
 	if (!mutex_trylock(&pm_mutex))
 		return -EBUSY;
+#ifdef CONFIG_MP_USB_STR_PATCH
+        enStrStatus=E_STR_IN_SUSPEND;
+#endif
 
 	if (state == PM_SUSPEND_FREEZE)
 		freeze_begin();
@@ -523,6 +567,9 @@ static int enter_state(suspend_state_t state)
 	pr_debug("PM: Finishing wakeup.\n");
 	suspend_finish();
  Unlock:
+#ifdef CONFIG_MP_USB_STR_PATCH
+        enStrStatus=E_STR_NONE;
+#endif
 	mutex_unlock(&pm_mutex);
 	return error;
 }

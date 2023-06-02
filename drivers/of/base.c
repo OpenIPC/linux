@@ -219,6 +219,43 @@ void __init of_core_init(void)
 		proc_symlink("device-tree", NULL, "/sys/firmware/devicetree/base");
 }
 
+#ifdef CONFIG_DEFERRED_CREATE_DTS_SYSNODE
+#include <linux/of_platform.h>
+struct device **deferred_dts_node_dev =0;
+int deferred_dts_node_dev_cnt=0;
+
+static int __init deferred_of_core_init(void)
+{
+	struct device_node *np;
+    struct device *dev;
+    int error;
+    int i;
+
+    of_core_init();
+
+    //Create symlinks for device_add_class_symlinks()
+    for(i=0 ; i<deferred_dts_node_dev_cnt; i++)
+    {
+        dev = deferred_dts_node_dev[i];
+        if(dev)
+            np = dev_of_node(dev);
+        printk(KERN_DEBUG "%2d:create symlinks  %s\n", i, np->full_name);
+
+        if (np) {
+            error = sysfs_create_link(&dev->kobj, &np->kobj,"of_node");
+            if (error)
+                dev_warn(dev, "Error %d creating of_node link\n",error);
+            /* An error here doesn't warrant bringing down the device */
+        }
+
+    }
+    kfree(deferred_dts_node_dev);
+
+    return 0;
+}
+deferred_module_init(deferred_of_core_init);
+#endif
+
 static struct property *__of_find_property(const struct device_node *np,
 					   const char *name, int *lenp)
 {

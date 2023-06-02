@@ -248,9 +248,9 @@ DECLARE_EVENT_CLASS(dwc3_log_trb,
 		__entry->size = trb->size;
 		__entry->ctrl = trb->ctrl;
 	),
-	TP_printk("%s: %d/%d trb %p buf %08x%08x size %d ctrl %08x (%c%c%c%c:%c%c:%s)",
+	TP_printk("%s: %d/%d trb %08x buf %08x%08x size %d ctrl %08x (%c%c%c%c:%c%c:%s)",
 		__get_str(name), __entry->queued, __entry->allocated,
-		__entry->trb, __entry->bph, __entry->bpl,
+		(u32)Chip_Phys_to_MIU(virt_to_phys(__entry->trb)), __entry->bph, __entry->bpl,
 		__entry->size, __entry->ctrl,
 		__entry->ctrl & DWC3_TRB_CTRL_HWO ? 'H' : 'h',
 		__entry->ctrl & DWC3_TRB_CTRL_LST ? 'L' : 'l',

@@ -569,7 +569,8 @@ void ip6_datagram_recv_common_ctl(struct sock *sk, struct msghdr *msg,
 				 struct sk_buff *skb)
 {
 	struct ipv6_pinfo *np = inet6_sk(sk);
-	bool is_ipv6 = skb->protocol == htons(ETH_P_IPV6);
+	static bool is_ipv6;
+	is_ipv6 = skb->protocol == htons(ETH_P_IPV6);
 
 	if (np->rxopt.bits.rxinfo) {
 		struct in6_pktinfo src_info;

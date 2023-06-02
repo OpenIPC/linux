@@ -66,6 +66,10 @@
  * maintained at http://www.draisberghof.de/usb_modeswitch/
  */
 
+#ifndef MP_USB_MSTAR
+#include <usb_patch_mstar.h>
+#endif
+
 #if !defined(CONFIG_USB_STORAGE_SDDR09) && \
 		!defined(CONFIG_USB_STORAGE_SDDR09_MODULE)
 #define NO_SDDR09
@@ -662,6 +666,14 @@ UNUSUAL_DEV(  0x054c, 0x0010, 0x0106, 0x0450,
 		"DSC-S30/S70/S75/505V/F505/F707/F717/P8",
 		USB_SC_SCSI, USB_PR_DEVICE, NULL,
 		US_FL_SINGLE_LUN | US_FL_NOT_LOCKABLE | US_FL_NO_WP_DETECT ),
+
+#if defined(CONfIG_MP_USB_MSTAR)
+UNUSUAL_DEV(  0x14cd, 0x6116, 0x0000, 0x9999,
+		"SAMSUNG ",
+		"HM250HI ",
+		USB_SC_SCSI, USB_PR_BULK, NULL,
+		US_FL_NO_WP_DETECT),
+#endif /* CONfIG_MP_USB_MSTAR */
 
 /*
  * Submitted by Lars Jacob <jacob.lars@googlemail.com>
@@ -2355,6 +2367,27 @@ UNUSUAL_DEV( 0xed10, 0x7636, 0x0001, 0x0001,
 		"TGE",
 		"Digital MP3 Audio Player",
 		USB_SC_DEVICE, USB_PR_DEVICE, NULL, US_FL_NOT_LOCKABLE ),
+
+#if (MP_USB_MSTAR==1)
+/*Colin, 090317, for Transcend 16GB JF V85, wrong residual*/
+UNUSUAL_DEV(  0x058F, 0x6387, 0x0000, 0x9999,
+		"JetFlash",
+		"Mass Storage Device",
+		USB_SC_SCSI, USB_PR_BULK, NULL,
+		US_FL_IGNORE_RESIDUE ),
+
+UNUSUAL_DEV(  0x0dd8, 0x1414, 0x0100, 0x0100,
+		"Netac",
+		"USB Flash Disk",
+		USB_SC_SCSI, USB_PR_BULK, NULL,
+		US_FL_MAX_SECTORS_64 ),
+
+UNUSUAL_DEV(  0x05e3, 0x0731, 0x0000, 0x9999,
+		"EAGET",
+		"H500",
+		USB_SC_SCSI, USB_PR_BULK, NULL,
+		US_FL_FIX_INQUIRY),
+#endif
 
 /* Unusual uas devices */
 #if IS_ENABLED(CONFIG_USB_UAS)

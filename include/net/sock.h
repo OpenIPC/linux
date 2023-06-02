@@ -40,6 +40,16 @@
 #ifndef _SOCK_H
 #define _SOCK_H
 
+// turn on/off TOE
+#ifdef CONFIG_SS_SWTOE
+#define CONFIG_SS_SWTOE_TCP
+#endif
+
+#ifdef CONFIG_SS_SWTOE_TCP
+#define CONFIG_SS_SWTOE_TCP_SERVER
+#define CONFIG_SS_SWTOE_TCP_CLIENT
+#endif
+
 #include <linux/hardirq.h>
 #include <linux/kernel.h>
 #include <linux/list.h>
@@ -448,6 +458,13 @@ struct sock {
 	void                    (*sk_destruct)(struct sock *sk);
 	struct sock_reuseport __rcu	*sk_reuseport_cb;
 	struct rcu_head		sk_rcu;
+
+#ifdef CONFIG_SS_SWTOE_TCP
+	u16			ss_swtoe : 1;
+	u16			ss_swtoe_cnx : 11;
+	u16			ss_swtoe_blk : 1;
+	u16			reserved : 3;
+#endif
 };
 
 #define __sk_user_data(sk) ((*((void __rcu **)&(sk)->sk_user_data)))

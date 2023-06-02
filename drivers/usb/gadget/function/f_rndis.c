@@ -29,6 +29,10 @@
 #include "rndis.h"
 #include "configfs.h"
 
+static unsigned int bulk_maxpacket = 0;
+module_param_named(maxpacket, bulk_maxpacket, uint, S_IRUGO|S_IWUSR);
+MODULE_PARM_DESC(maxpacket, "1 - 64 (FS), 1 - 512 (HS), 1 - 1024 (SS)");
+
 /*
  * This function is an RNDIS Ethernet port -- a Microsoft protocol that's
  * been promoted instead of the standard CDC Ethernet.  The published RNDIS
@@ -479,6 +483,12 @@ rndis_setup(struct usb_function *f, const struct usb_ctrlrequest *ctrl)
 	 */
 	switch ((ctrl->bRequestType << 8) | ctrl->bRequest) {
 
+#ifdef CONFIG_USB_WEBCAM_RNDIS // ss patch
+	case ((USB_DIR_OUT | USB_TYPE_CLASS | USB_RECIP_INTERFACE) << 8)
+			| USB_CDC_SET_ETHERNET_PACKET_FILTER:
+		value = 0;
+		break;
+#endif
 	/* RNDIS uses the CDC command encapsulation mechanism to implement
 	 * an RPC scheme, with much getting/setting of attributes by OID.
 	 */
@@ -740,6 +750,11 @@ rndis_bind(struct usb_configuration *c, struct usb_function *f)
 
 	status = -ENODEV;
 
+	if (bulk_maxpacket)
+	{
+		fs_in_desc.wMaxPacketSize = bulk_maxpacket;
+		fs_out_desc.wMaxPacketSize = bulk_maxpacket;
+	}
 	/* allocate instance-specific endpoints */
 	ep = usb_ep_autoconfig(cdev->gadget, &fs_in_desc);
 	if (!ep)
@@ -777,9 +792,21 @@ rndis_bind(struct usb_configuration *c, struct usb_function *f)
 	 * hardware is dual speed, all bulk-capable endpoints work at
 	 * both speeds
 	 */
+	if (hs_in_desc.wMaxPacketSize > rndis->port.in_ep->maxpacket_limit)
+		hs_in_desc.wMaxPacketSize = rndis->port.in_ep->maxpacket_limit;
+
+	if (hs_out_desc.wMaxPacketSize > rndis->port.out_ep->maxpacket_limit)
+		hs_out_desc.wMaxPacketSize = rndis->port.out_ep->maxpacket_limit;
+
 	hs_in_desc.bEndpointAddress = fs_in_desc.bEndpointAddress;
 	hs_out_desc.bEndpointAddress = fs_out_desc.bEndpointAddress;
 	hs_notify_desc.bEndpointAddress = fs_notify_desc.bEndpointAddress;
+
+	if (ss_in_desc.wMaxPacketSize > rndis->port.in_ep->maxpacket_limit)
+		ss_in_desc.wMaxPacketSize = rndis->port.in_ep->maxpacket_limit;
+
+	if (ss_out_desc.wMaxPacketSize > rndis->port.out_ep->maxpacket_limit)
+		ss_out_desc.wMaxPacketSize = rndis->port.out_ep->maxpacket_limit;
 
 	ss_in_desc.bEndpointAddress = fs_in_desc.bEndpointAddress;
 	ss_out_desc.bEndpointAddress = fs_out_desc.bEndpointAddress;

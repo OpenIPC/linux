@@ -16,4 +16,5 @@
  */
 
 #define CREATE_TRACE_POINTS
+#include "../drivers/sstar/include/ms_platform.h"
 #include "trace.h"

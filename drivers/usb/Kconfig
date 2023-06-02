@@ -37,6 +37,10 @@ menuconfig USB_SUPPORT
 
 if USB_SUPPORT
 
+config MP_USB_MSTAR
+	bool "Sstar Host patches"
+    depends on ARCH_CEDRIC || ARCH_INFINITY || ARCH_INFINITY3 || ARCH_INFINITY5 || ARCH_INFINITY6 || ARCH_INFINITY2M || ARCH_INFINITY6E || ARCH_INFINITY6B0 || ARCH_INFINITY2
+	default y
 config USB_COMMON
 	tristate
 

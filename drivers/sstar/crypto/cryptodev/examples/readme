@@ -1,0 +1,8 @@
+${CROSS_COMPILE}gcc -static aes.c -o aes -I.. 
+${CROSS_COMPILE}strip aes
+${CROSS_COMPILE}gcc -static sha.c -o sha -I.. 
+${CROSS_COMPILE}strip sha
+${CROSS_COMPILE}gcc -static sha-copy.c -o sha-copy -I.. 
+${CROSS_COMPILE}strip sha-copy
+${CROSS_COMPILE}gcc -static aes-sstar-unique.c -o aes-sstar-unique -I.. 
+${CROSS_COMPILE}strip aes-sstar-unique

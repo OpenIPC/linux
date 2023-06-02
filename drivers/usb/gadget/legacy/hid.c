@@ -1,14 +1,10 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
  * hid.c -- HID Composite driver
  *
  * Based on multi.c
  *
  * Copyright (C) 2010 Fabien Chouteau <fabien.chouteau@barco.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
  */
 
 
@@ -23,6 +19,168 @@
 #define DRIVER_VERSION		"2010/03/16"
 
 #include "u_hid.h"
+
+
+static char *hid_mode = "";
+module_param(hid_mode, charp, S_IRUGO|S_IWUSR);
+MODULE_PARM_DESC(hid_mode, "you can choose: key, mouse, composite");
+
+
+/****************************** User define ******************************/
+
+static struct hidg_func_descriptor hidg_composite_pdata[] = {
+	[0] = {
+		.subclass		= 0,
+		.protocol		= 1,
+		.report_length		= 8,
+		.report_desc_length	= 63,
+		.report_desc		= {
+			0x05, 0x01,	/* USAGE_PAGE (Generic Desktop)	          */
+			0x09, 0x06,	/* USAGE (Keyboard)                       */
+			0xa1, 0x01,	/* COLLECTION (Application)               */
+			0x05, 0x07,	/*   USAGE_PAGE (Keyboard)                */
+			0x19, 0xe0,	/*   USAGE_MINIMUM (Keyboard LeftControl) */
+			0x29, 0xe7,	/*   USAGE_MAXIMUM (Keyboard Right GUI)   */
+			0x15, 0x00,	/*   LOGICAL_MINIMUM (0)                  */
+			0x25, 0x01,	/*   LOGICAL_MAXIMUM (1)                  */
+			0x75, 0x01,	/*   REPORT_SIZE (1)                      */
+			0x95, 0x08,	/*   REPORT_COUNT (8)                     */
+			0x81, 0x02,	/*   INPUT (Data,Var,Abs)                 */
+			0x95, 0x01,	/*   REPORT_COUNT (1)                     */
+			0x75, 0x08,	/*   REPORT_SIZE (8)                      */
+			0x81, 0x03,	/*   INPUT (Cnst,Var,Abs)                 */
+			0x95, 0x05,	/*   REPORT_COUNT (5)                     */
+			0x75, 0x01,	/*   REPORT_SIZE (1)                      */
+			0x05, 0x08,	/*   USAGE_PAGE (LEDs)                    */
+			0x19, 0x01,	/*   USAGE_MINIMUM (Num Lock)             */
+			0x29, 0x05,	/*   USAGE_MAXIMUM (Kana)                 */
+			0x91, 0x02,	/*   OUTPUT (Data,Var,Abs)                */
+			0x95, 0x01,	/*   REPORT_COUNT (1)                     */
+			0x75, 0x03,	/*   REPORT_SIZE (3)                      */
+			0x91, 0x03,	/*   OUTPUT (Cnst,Var,Abs)                */
+			0x95, 0x06,	/*   REPORT_COUNT (6)                     */
+			0x75, 0x08,	/*   REPORT_SIZE (8)                      */
+			0x15, 0x00,	/*   LOGICAL_MINIMUM (0)                  */
+			0x25, 0x65,	/*   LOGICAL_MAXIMUM (101)                */
+			0x05, 0x07,	/*   USAGE_PAGE (Keyboard)                */
+			0x19, 0x00,	/*   USAGE_MINIMUM (Reserved)             */
+			0x29, 0x65,	/*   USAGE_MAXIMUM (Keyboard Application) */
+			0x81, 0x00,	/*   INPUT (Data,Ary,Abs)                 */
+			0xc0		/* END_COLLECTION                         */
+		}
+	},
+
+	[1] = {
+		.subclass		= 0,
+		.protocol		= 2,
+		.report_length		= 4,
+		.report_desc_length	= 46,
+		.report_desc		= {
+			0x05,0x01,	/*Usage Page (Generic Desktop Controls)*/
+			0x09,0x02,	/*Usage (Mouse)*/
+			0xa1,0x01,	/*Collction (Application)*/
+			0x09,0x01,	/*Usage (pointer)*/
+			0xa1,0x00,	/*Collction (Physical)*/
+			0x05,0x09,	/*Usage Page (Button)*/
+			0x19,0x01,	/*Usage Minimum(1)*/
+			0x29,0x03,	/*Usage Maximum(3) */
+			0x15,0x00,	/*Logical Minimum(1)*/
+			0x25,0x01,	/*Logical Maximum(1)*/
+			0x95,0x08,	/*Report Count(5)  */
+			0x75,0x01,	/*Report Size(1)*/
+			0x81,0x02,	/*Input(Data,Variable,Absolute,BitFiled)*/
+			0x05,0x01,	/*Usage Page (Generic Desktop Controls)*/
+			0x09,0x30,	/*Usage(x)*/
+			0x09,0x31,	/*Usage(y)*/
+			0x09,0x38,	/*Usage(Wheel)*/
+			0x15,0x81,	/*Logical Minimum(-127)*/
+			0x25,0x7f,	/*Logical Maximum(127)*/
+			0x75,0x08,	/*Report Size(8)*/
+			0x95,0x03,	/*Report Count(2)  */
+			0x81,0x06,	/*Input(Data,Variable,Relative,BitFiled)*/
+			0xc0,	/*End Collection*/
+			0xc0	/*End Collection*/
+		}
+	},
+};
+
+static struct hidg_func_descriptor hidg_key_pdata[] = {
+	[0] = {
+		.subclass		= 0,
+		.protocol		= 1,
+		.report_length		= 8,
+		.report_desc_length	= 63,
+		.report_desc		= {
+			0x05, 0x01,	/* USAGE_PAGE (Generic Desktop)	          */
+			0x09, 0x06,	/* USAGE (Keyboard)                       */
+			0xa1, 0x01,	/* COLLECTION (Application)               */
+			0x05, 0x07,	/*   USAGE_PAGE (Keyboard)                */
+			0x19, 0xe0,	/*   USAGE_MINIMUM (Keyboard LeftControl) */
+			0x29, 0xe7,	/*   USAGE_MAXIMUM (Keyboard Right GUI)   */
+			0x15, 0x00,	/*   LOGICAL_MINIMUM (0)                  */
+			0x25, 0x01,	/*   LOGICAL_MAXIMUM (1)                  */
+			0x75, 0x01,	/*   REPORT_SIZE (1)                      */
+			0x95, 0x08,	/*   REPORT_COUNT (8)                     */
+			0x81, 0x02,	/*   INPUT (Data,Var,Abs)                 */
+			0x95, 0x01,	/*   REPORT_COUNT (1)                     */
+			0x75, 0x08,	/*   REPORT_SIZE (8)                      */
+			0x81, 0x03,	/*   INPUT (Cnst,Var,Abs)                 */
+			0x95, 0x05,	/*   REPORT_COUNT (5)                     */
+			0x75, 0x01,	/*   REPORT_SIZE (1)                      */
+			0x05, 0x08,	/*   USAGE_PAGE (LEDs)                    */
+			0x19, 0x01,	/*   USAGE_MINIMUM (Num Lock)             */
+			0x29, 0x05,	/*   USAGE_MAXIMUM (Kana)                 */
+			0x91, 0x02,	/*   OUTPUT (Data,Var,Abs)                */
+			0x95, 0x01,	/*   REPORT_COUNT (1)                     */
+			0x75, 0x03,	/*   REPORT_SIZE (3)                      */
+			0x91, 0x03,	/*   OUTPUT (Cnst,Var,Abs)                */
+			0x95, 0x06,	/*   REPORT_COUNT (6)                     */
+			0x75, 0x08,	/*   REPORT_SIZE (8)                      */
+			0x15, 0x00,	/*   LOGICAL_MINIMUM (0)                  */
+			0x25, 0x65,	/*   LOGICAL_MAXIMUM (101)                */
+			0x05, 0x07,	/*   USAGE_PAGE (Keyboard)                */
+			0x19, 0x00,	/*   USAGE_MINIMUM (Reserved)             */
+			0x29, 0x65,	/*   USAGE_MAXIMUM (Keyboard Application) */
+			0x81, 0x00,	/*   INPUT (Data,Ary,Abs)                 */
+			0xc0		/* END_COLLECTION                         */
+		}
+	},
+};
+
+static struct hidg_func_descriptor hidg_mouse_pdata[] = {
+	[0] = {
+		.subclass		= 0,
+		.protocol		= 2,
+		.report_length		= 4,
+		.report_desc_length	= 46,
+		.report_desc		= {
+			0x05,0x01,	/*Usage Page (Generic Desktop Controls)*/
+			0x09,0x02,	/*Usage (Mouse)*/
+			0xa1,0x01,	/*Collction (Application)*/
+			0x09,0x01,	/*Usage (pointer)*/
+			0xa1,0x00,	/*Collction (Physical)*/
+			0x05,0x09,	/*Usage Page (Button)*/
+			0x19,0x01,	/*Usage Minimum(1)*/
+			0x29,0x03,	/*Usage Maximum(3) */
+			0x15,0x00,	/*Logical Minimum(1)*/
+			0x25,0x01,	/*Logical Maximum(1)*/
+			0x95,0x08,	/*Report Count(5)  */
+			0x75,0x01,	/*Report Size(1)*/
+			0x81,0x02,	/*Input(Data,Variable,Absolute,BitFiled)*/
+			0x05,0x01,	/*Usage Page (Generic Desktop Controls)*/
+			0x09,0x30,	/*Usage(x)*/
+			0x09,0x31,	/*Usage(y)*/
+			0x09,0x38,	/*Usage(Wheel)*/
+			0x15,0x81,	/*Logical Minimum(-127)*/
+			0x25,0x7f,	/*Logical Maximum(127)*/
+			0x75,0x08,	/*Report Size(8)*/
+			0x95,0x03,	/*Report Count(2)  */
+			0x81,0x06,	/*Input(Data,Variable,Relative,BitFiled)*/
+			0xc0,	/*End Collection*/
+			0xc0	/*End Collection*/
+		}
+	},
+};
 
 /*-------------------------------------------------------------------------*/
 
@@ -87,8 +245,6 @@ static struct usb_gadget_strings *dev_strings[] = {
 	NULL,
 };
 
-
-
 /****************************** Configurations ******************************/
 
 static int do_config(struct usb_configuration *c)
@@ -127,7 +283,7 @@ static struct usb_configuration config_driver = {
 	.label			= "HID Gadget",
 	.bConfigurationValue	= 1,
 	/* .iConfiguration = DYNAMIC */
-	.bmAttributes		= USB_CONFIG_ATT_SELFPOWER,
+	.bmAttributes		= USB_CONFIG_ATT_SELFPOWER | USB_CONFIG_ATT_WAKEUP ,
 };
 
 /****************************** Gadget Bind ******************************/
@@ -159,7 +315,6 @@ static int hid_bind(struct usb_composite_dev *cdev)
 		hid_opts->report_desc_length = n->func->report_desc_length;
 		hid_opts->report_desc = n->func->report_desc;
 	}
-
 
 	/* Allocate string descriptor numbers ... note that string
 	 * contents can be overridden by the composite_dev glue.
@@ -221,6 +376,8 @@ static int hid_unbind(struct usb_composite_dev *cdev)
 
 static int hidg_plat_driver_probe(struct platform_device *pdev)
 {
+	int i, interface_num;
+
 	struct hidg_func_descriptor *func = dev_get_platdata(&pdev->dev);
 	struct hidg_func_node *entry;
 
@@ -229,12 +386,25 @@ static int hidg_plat_driver_probe(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
-	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+	if(strcmp(hid_mode, "key")==0 || strcmp(hid_mode, "mouse")==0)
+	{
+		interface_num = 1;
+	}
+
+	if(strcmp(hid_mode, "composite")==0)
+	{
+		interface_num = 2;
+	}
+
+	entry = kzalloc(interface_num * sizeof(*entry), GFP_KERNEL);
 	if (!entry)
 		return -ENOMEM;
 
-	entry->func = func;
-	list_add_tail(&entry->node, &hidg_func_list);
+	for(i=0; i<interface_num; i++)
+	{
+		entry[i].func = &func[i];
+		list_add_tail(&entry[i].node, &hidg_func_list);
+	}
 
 	return 0;
 }
@@ -254,7 +424,6 @@ static int hidg_plat_driver_remove(struct platform_device *pdev)
 
 /****************************** Some noise ******************************/
 
-
 static struct usb_composite_driver hidg_driver = {
 	.name		= "g_hid",
 	.dev		= &device_desc,
@@ -271,6 +440,29 @@ static struct platform_driver hidg_plat_driver = {
 	},
 };
 
+struct platform_device hidg_composite_device = {
+    .name           = "hidg",
+    .id             = 0,
+    .num_resources  = 0,
+    .resource       = 0,
+    .dev.platform_data = hidg_composite_pdata,
+};
+
+struct platform_device hidg_key_device = {
+    .name           = "hidg",
+    .id             = 0,
+    .num_resources  = 0,
+    .resource       = 0,
+    .dev.platform_data = hidg_key_pdata,
+};
+
+struct platform_device hidg_mouse_device = {
+    .name           = "hidg",
+    .id             = 0,
+    .num_resources  = 0,
+    .resource       = 0,
+    .dev.platform_data = hidg_mouse_pdata,
+};
 
 MODULE_DESCRIPTION(DRIVER_DESC);
 MODULE_AUTHOR("Fabien Chouteau, Peter Korsgaard");
@@ -279,6 +471,30 @@ MODULE_LICENSE("GPL");
 static int __init hidg_init(void)
 {
 	int status;
+
+	if(strcmp(hid_mode, "composite")==0)
+	{
+		status = platform_device_register(&hidg_composite_device);
+		if (status < 0){
+			return status;
+		}
+	}
+
+	if(strcmp(hid_mode, "key")==0)
+	{
+		status = platform_device_register(&hidg_key_device);
+		if (status < 0){
+			return status;
+		}
+	}
+
+	if(strcmp(hid_mode, "mouse")==0)
+	{
+		status = platform_device_register(&hidg_mouse_device);
+		if (status < 0){
+			return status;
+		}
+	}
 
 	status = platform_driver_probe(&hidg_plat_driver,
 				hidg_plat_driver_probe);
@@ -297,5 +513,24 @@ static void __exit hidg_cleanup(void)
 {
 	usb_composite_unregister(&hidg_driver);
 	platform_driver_unregister(&hidg_plat_driver);
+	platform_device_unregister(&hidg_composite_device);
+
+	if(strcmp(hid_mode, "composite")==0)
+	{
+		platform_device_unregister(&hidg_composite_device);
+	}
+
+	if(strcmp(hid_mode, "key")==0)
+	{
+		platform_device_unregister(&hidg_key_device);
+	}
+
+	if(strcmp(hid_mode, "mouse")==0)
+	{
+		platform_device_unregister(&hidg_mouse_device);
+	}
+
 }
 module_exit(hidg_cleanup);
+
+

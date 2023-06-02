@@ -94,7 +94,9 @@ struct usb_request {
 	void			*buf;
 	unsigned		length;
 	dma_addr_t		dma;
-
+#ifdef CONFIG_USB_WEBCAM_UVC_SUPPORT_SG_TABLE
+	struct sg_table		sgt;
+#endif
 	struct scatterlist	*sg;
 	unsigned		num_sgs;
 	unsigned		num_mapped_sgs;
@@ -111,6 +113,8 @@ struct usb_request {
 
 	int			status;
 	unsigned		actual;
+
+	unsigned		last_req:1;
 };
 
 /*-------------------------------------------------------------------------*/

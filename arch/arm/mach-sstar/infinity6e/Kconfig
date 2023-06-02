@@ -1,0 +1,35 @@
+config ARCH_INFINITY6E
+    bool "SoC iNfinity6E (ARCH_MULTI_V7)" if ARCH_MULTI_V7
+    select SOC_BUS
+    select ARM_GIC
+    select VFP
+    select VFPv3
+    select WIRELESS_EXT if WIRELESS && NET
+    select WEXT_PRIV    if WIRELESS && NET
+    help
+      Support for iNfinity6E SoC
+
+config SS_PROFILING_TIME
+    bool "Record timestamp in sram"
+    default y
+
+config SS_MIU_ARBITRATION
+    bool "SigmaStar MIU arbitration"
+    default y
+
+config SS_LOWPWR_STR
+    bool "SigmaStar STR (Suspend-to-RAM) in low-power state"
+    default y
+	depends on PM_SLEEP
+    help
+      Support STR (Suspend-to-RAM) in low-power state.
+      In that state, chip top is kept alive and most engines' clock are gated.
+      Also, part of ananlog blocks are powered off to saving more power.
+
+config SS_USB_LOWPWR_SUSPEND
+    bool "Support USB suspend to low power STR, and wake up by USB resume"
+    default y if USB_DWC3_GADGET
+	depends on SS_LOWPWR_STR
+    help
+      Support USB suspend to low-power mode STR (Suspend-to-RAM).
+      In that state, system can wake up in detecting USB resume signal.

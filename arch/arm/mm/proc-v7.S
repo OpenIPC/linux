@@ -270,10 +270,16 @@ __v7_cr7mp_setup:
 	mov	r10, #(1 << 0)			@ Cache/TLB ops broadcasting
 	b	1f
 __v7_ca7mp_setup:
+#ifdef CONFIG_ARCH_SSTAR
+	mrc	p15, 0, r12, c1, c0, 1
+	orr	r12, r12, #(1 << 6)    @ Enable SMP
+	mcr	p15, 0, r12, c1, c0, 1
+#endif
 __v7_ca12mp_setup:
 __v7_ca15mp_setup:
 __v7_b15mp_setup:
 __v7_ca17mp_setup:
+
 	mov	r10, #0
 1:	adr	r0, __v7_setup_stack_ptr
 	ldr	r12, [r0]

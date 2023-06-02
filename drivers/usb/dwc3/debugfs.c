@@ -282,6 +282,30 @@ static const struct debugfs_reg32 dwc3_regs[] = {
 	dump_register(OSTS),
 };
 
+static int dwc3_regdump_show(struct seq_file *s, void *unused)
+{
+	struct dwc3	*dwc = s->private;
+	u32			n;
+
+	for(n = 0; n < dwc->regset->nregs; n++) {
+		seq_printf(s, "%s = 0x%08x\n", dwc3_regs[n].name, dwc3_readl(dwc->regs, dwc3_regs[n].offset));
+	}
+
+	return 0;
+}
+
+static int dwc3_regdump_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, dwc3_regdump_show, inode->i_private);
+}
+
+static const struct file_operations dwc3_regdump_fops = {
+	.open			= dwc3_regdump_open,
+	.read			= seq_read,
+	.llseek			= seq_lseek,
+	.release		= single_release,
+};
+
 static int dwc3_mode_show(struct seq_file *s, void *unused)
 {
 	struct dwc3		*dwc = s->private;
@@ -720,16 +744,28 @@ static int dwc3_ep_trb_ring_show(struct seq_file *s, void *unused)
 	unsigned long		flags;
 	int			i;
 
-	spin_lock_irqsave(&dwc->lock, flags);
-	if (dep->number <= 1) {
-		seq_printf(s, "--\n");
-		goto out;
-	}
-
 	seq_printf(s, "enqueue pointer %d\n", dep->trb_enqueue);
 	seq_printf(s, "dequeue pointer %d\n", dep->trb_dequeue);
 	seq_printf(s, "\n--------------------------------------------------\n\n");
 	seq_printf(s, "buffer_addr,size,type,ioc,isp_imi,csp,chn,lst,hwo\n");
+
+	spin_lock_irqsave(&dwc->lock, flags);
+	if (dep->number <= 1) {
+		for (i = 0; i < 2; i++) {
+			struct dwc3_trb *trb = &dwc->ep0_trb[i];
+
+			seq_printf(s, "%08x%08x,%d,%s,%d,%d,%d,%d,%d,%d\n",
+				trb->bph, trb->bpl, trb->size,
+				dwc3_trb_type_string(trb),
+				!!(trb->ctrl & DWC3_TRB_CTRL_IOC),
+				!!(trb->ctrl & DWC3_TRB_CTRL_ISP_IMI),
+				!!(trb->ctrl & DWC3_TRB_CTRL_CSP),
+				!!(trb->ctrl & DWC3_TRB_CTRL_CHN),
+				!!(trb->ctrl & DWC3_TRB_CTRL_LST),
+				!!(trb->ctrl & DWC3_TRB_CTRL_HWO));
+		}
+		goto out;
+	}
 
 	for (i = 0; i < DWC3_TRB_NUM; i++) {
 		struct dwc3_trb *trb = &dep->trb_pool[i];
@@ -843,6 +879,99 @@ static void dwc3_debugfs_create_endpoint_dirs(struct dwc3 *dwc,
 	}
 }
 
+#if DWC3_DEBUGFS_DBGDUMP
+static int dwc3_dbgdump_show(struct seq_file *s, void *unused)
+{
+	struct dwc3		*dwc = s->private;
+	unsigned long	flags;
+	u32				i, data[3][16], bmu;
+
+	spin_lock_irqsave(&dwc->lock, flags);
+	for (i = 0; i < 16; i++) {
+		dwc3_writel(dwc->regs, DWC3_GDBGLSPMUX, i << 4);
+		data[0][i] = dwc3_readl(dwc->regs, DWC3_GDBGLSP);
+	}
+	for (i = 0; i < 16; i++) {
+		dwc3_writel(dwc->regs, DWC3_GDBGLSPMUX, i);
+		data[1][i] = dwc3_readl(dwc->regs, DWC3_GDBGEPINFO0);
+		data[2][i] = dwc3_readl(dwc->regs, DWC3_GDBGEPINFO1);
+	}
+	bmu = dwc3_readl(dwc->regs, DWC3_GDBGBMU);
+    spin_unlock_irqrestore(&dwc->lock, flags);
+
+	for (i = 0; i < 16; i++) {
+		seq_printf(s, "lsp: %08x\n", data[0][i]);
+	}
+	for (i = 0; i < 16; i++) {
+		seq_printf(s, "ep: %08x  %08x\n", data[1][i], data[2][i]);
+	}
+	seq_printf(s, "bmu: %08x\n", bmu);
+
+	return 0;
+}
+
+static int dwc3_dbgdump_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, dwc3_dbgdump_show, inode->i_private);
+}
+
+static const struct file_operations dwc3_dbgdump_fops = {
+	.open			= dwc3_dbgdump_open,
+	.read			= seq_read,
+	.llseek			= seq_lseek,
+	.release		= single_release,
+};
+#endif
+
+#if DWC3_DEBUGFS_EVENTS
+static int dwc3_events_show(struct seq_file *s, void *unused)
+{
+	struct dwc3		*dwc = s->private;
+	unsigned long		flags;
+	int					i = 0;
+	union dwc3_event	event;
+	struct dwc3_event_buffer *evt = dwc->ev_buf;
+
+	spin_lock_irqsave(&dwc->lock, flags);
+	seq_printf(s, "================= dump events ==============\n");
+
+	for(i = 0; i < DWC3_EVENT_BUFFERS_SIZE; i+=4) {
+		event.raw = *(u32 *)(evt->cache + i);
+		if (event.raw & 0x1) {
+			seq_printf(s, "D_%X_%X\t\t", (event.raw&0x1F00)>>8, (event.raw&0x1FF0000)>>16);
+		}
+		else {
+			seq_printf(s, "E_%X_%X_%X_%X\t", (event.raw&0x3E)>>1, (event.raw&0x3C0)>>6,
+											(event.raw&0xF000)>>12, (event.raw&0xFFFF0000)>>16);
+		}
+		if (i != evt->lpos) {
+			seq_printf(s, "\n");
+		}
+		else {
+			seq_printf(s, "<- lpos\n");
+		}
+	}
+
+	seq_printf(s, "============================================\n");
+	spin_unlock_irqrestore(&dwc->lock, flags);
+
+	return 0;
+}
+
+static int dwc3_events_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, dwc3_events_show, inode->i_private);
+}
+
+static const struct file_operations dwc3_events_fops = {
+	.open			= dwc3_events_open,
+	.read			= seq_read,
+	.llseek			= seq_lseek,
+	.release		= single_release,
+};
+
+#endif
+
 void dwc3_debugfs_init(struct dwc3 *dwc)
 {
 	struct dentry		*root;
@@ -866,7 +995,7 @@ void dwc3_debugfs_init(struct dwc3 *dwc)
 	dwc->regset->nregs = ARRAY_SIZE(dwc3_regs);
 	dwc->regset->base = dwc->regs - DWC3_GLOBALS_REGS_START;
 
-	file = debugfs_create_regset32("regdump", S_IRUGO, root, dwc->regset);
+	file = debugfs_create_file("regdump", S_IRUGO, root, dwc, &dwc3_regdump_fops);
 	if (!file)
 		dev_dbg(dwc->dev, "Can't create debugfs regdump\n");
 
@@ -890,6 +1019,21 @@ void dwc3_debugfs_init(struct dwc3 *dwc)
 			dev_dbg(dwc->dev, "Can't create debugfs link_state\n");
 
 		dwc3_debugfs_create_endpoint_dirs(dwc, root);
+	}
+
+	if (IS_ENABLED(CONFIG_USB_DWC3_GADGET)) {
+#if DWC3_DEBUGFS_DBGDUMP
+		file = debugfs_create_file("dbgdump", S_IRUGO, root,
+				dwc, &dwc3_dbgdump_fops);
+		if (!file)
+			dev_dbg(dwc->dev, "Can't create debugfs dbgdump\n");
+#endif
+#if DWC3_DEBUGFS_EVENTS
+		file = debugfs_create_file("events", S_IRUGO, root,
+				dwc, &dwc3_events_fops);
+		if (!file)
+			dev_dbg(dwc->dev, "Can't create debugfs events\n");
+#endif
 	}
 }
 

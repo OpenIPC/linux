@@ -800,6 +800,18 @@ void tcp_release_cb(struct sock *sk)
 	struct tcp_sock *tp = tcp_sk(sk);
 	unsigned long flags, nflags;
 
+#if 0 /// do not know what it is. forget it at this stage
+#ifdef CONFIG_SS_SWTOE_TCP  /// not complete
+        // what's this? should be empty?
+        // We are client and complete 3 ways handshaking with server
+        // [TBD] IPC for toe?
+        // if ((sk->ss_swtoe) && (INVALID == sk->ss_swtoe_cnx))
+        // {
+        // }
+        // or add this in sk->sky_prot->shutdown
+#endif
+#endif
+
 	/* perform an atomic operation only if at least one flag is set */
 	do {
 		flags = tp->tsq_flags;
@@ -1343,8 +1355,8 @@ static inline int __tcp_mtu_to_mss(struct sock *sk, int pmtu)
 	mss_now -= icsk->icsk_ext_hdr_len;
 
 	/* Then reserve room for full set of TCP options and 8 bytes of data */
-	if (mss_now < 48)
-		mss_now = 48;
+	if (mss_now < TCP_MIN_SND_MSS)
+		mss_now = TCP_MIN_SND_MSS;
 	return mss_now;
 }
 
@@ -2927,6 +2939,17 @@ void tcp_send_fin(struct sock *sk)
 {
 	struct sk_buff *skb, *tskb = tcp_write_queue_tail(sk);
 	struct tcp_sock *tp = tcp_sk(sk);
+
+#if 0 /// do nothing or assert if toe is on ????
+#ifdef CONFIG_SS_SWTOE_TCP  /// not complete
+        // We are client and complete 3 ways handshaking with server
+        // [TBD] IPC for toe?
+        // if ((sk->ss_swtoe) && (INVALID == sk->ss_swtoe_cnx))
+        // {
+        // }
+        or add this in sk->sky_prot->shutdown
+#endif
+#endif
 
 	/* Optimization, tack on the FIN if we have one skb in write queue and
 	 * this skb was not yet sent, or we are under memory pressure.

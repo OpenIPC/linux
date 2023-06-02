@@ -8,6 +8,7 @@ ccflags-y			+= -I$(srctree)/drivers/usb/gadget/function/
 
 g_zero-y			:= zero.o
 g_audio-y			:= audio.o
+g_bi_direction-y		:= bi_direction.o
 g_ether-y			:= ether.o
 g_serial-y			:= serial.o
 g_midi-y			:= gmidi.o
@@ -26,6 +27,7 @@ g_tcm_usb_gadget-y		:= tcm_usb_gadget.o
 
 obj-$(CONFIG_USB_ZERO)		+= g_zero.o
 obj-$(CONFIG_USB_AUDIO)		+= g_audio.o
+obj-$(CONFIG_USB_BI_DIRECTION)		+= g_bi_direction.o
 obj-$(CONFIG_USB_ETH)		+= g_ether.o
 obj-$(CONFIG_USB_GADGETFS)	+= gadgetfs.o
 obj-$(CONFIG_USB_FUNCTIONFS)	+= g_ffs.o

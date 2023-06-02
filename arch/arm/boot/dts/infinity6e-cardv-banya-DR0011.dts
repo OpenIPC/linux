@@ -1,0 +1,255 @@
+/*
+ * Copyright (c) 2014 MundoReader S.L.
+ * Author: Matthias Brugger <matthias.bgg@gmail.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+ /*
+ * Memory Layout
+ * 0x20000000-0x24000000 64M Kernel
+ * 0x24000000-0x24800000 8M  system
+ * 0x24800000-0x24900000 1M  data
+ * 0x24900000-0x25000000 7M  temp0
+ * 0x25000000-0x28000000 48M temp1
+ */
+/dts-v1/;
+
+#include "infinity6e.dtsi"
+#include "infinity6e-padmux.dtsi"
+
+/ {
+    model = "INFINITY6E BANYA-DR0011";
+    compatible = "sstar,infinity6e";
+
+    memory {
+        reg = <0x20000000 0x06000000>;
+    };
+
+    chosen {
+        bootargs = "console=ttyS0,38400n8r androidboot.console=ttyS0 root=/dev/mtdblock0 init=/linuxrc LX_MEM=0x3ee0000 mma_heap=mma_heap_name0,miu=0,sz=0x2000000 mma_memblock_remove=1";
+    };
+
+    /*!!IMPORTANT!! The reserved memory must be 1MB aligned*/
+    /*
+    reserved-memory {
+        #address-cells = <1>;
+        #size-cells = <1>;
+        ranges;
+
+        cma0 {
+            compatible = "shared-dma-pool";
+            reusable;
+            size = <0x04000000>;
+            alignment = <0x1000>;
+            linux,cma-default;
+        };
+    };
+    */
+    cpus {
+          cpu@0 {
+            	operating-points = <
+                	/* kHz     uV */
+                	1200000  950000
+                	1100000  950000
+                	1000000  900000
+                	900000   900000
+                	800000   900000
+                	600000   900000
+                	400000   900000
+            	>;
+          };
+	};       
+    soc {
+        /* mipi0 4lane setting */
+        csi {
+            /* Config lane selection */
+            csi_sr0_lane_select = <2 4 3 1 0>;
+            csi_sr1_lane_select = <2 0 1 3 4>;
+            csi_sr2_lane_select = <0 0 0>;
+            /* Config lane P/N swap */
+            csi_sr0_lane_pn_swap = <0 1 1 1 1>;
+            csi_sr1_lane_pn_swap = <0 0 0 0 0>;
+            csi_sr2_lane_pn_swap = <0 0 0>;
+        };
+
+        /* mipi0 4lane setting */
+        vif {
+            /* Config sensor 0 pad mux */
+            vif_sr0_par_mode = <2>;
+            vif_sr0_mipi_mode = <1>;
+            vif_sr0_bt656_mode = <1>;
+            vif_sr0_mclk_mode = <0>;
+            //vif_sr0_rst_mode  = <0>;
+            //vif_sr0_pdn_mode  = <0>;
+            vif_sr0_parallel_rst_mode  = <0>;
+            vif_sr0_parallel_pdn_mode  = <0>;
+            vif_sr0_mipi_rst_mode  = <0>;
+            vif_sr0_mipi_pdn_mode  = <0>;
+            vif_sr0_mipi_ctrl_mode = <1>;
+            //vif_sr0_hvsync_mode  = <0>; /* Not used in I6E */
+            //vif_sr0_pck_mode  = <0>; /* Not used in I6E */
+            /* Config sensor 1 pad mux */
+            vif_sr1_par_mode = <0>;
+            vif_sr1_mipi_mode = <2>;
+            vif_sr1_bt656_mode = <0>;
+            vif_sr1_mipi_ctrl_mode = <0>;
+            vif_sr1_mclk_mode = <2>;
+            vif_sr1_rst_mode  = <2>;
+            /* Config sensor 2 pad mux */
+            vif_sr2_mipi_mode = <0>; /* MIPI sensor only */
+            vif_sr2_mipi_ctrl_mode = <0>;
+            vif_sr2_mclk_mode = <0>;
+            vif_sr2_rst_mode  = <0>;
+        };
+
+        sensorif: sensorif {
+            compatible = "sstar,sensorif";
+            status = "ok";
+            sensorif_grp0_i2c = <1>;
+            sensorif_grp1_i2c = <0>;
+            sensorif_grp2_i2c = <1>;
+        };
+
+        iopower {
+            pm_sar_atop_vddp1 = <0>; /* 0: 1.8V 1: 3.3V */
+            pm_sar_atop_pmspi = <0>; /* 0: 1.8V 1: 3.3V */
+            status = "disabled";
+        };
+
+        i2c0@0{
+            compatible = "sstar,i2c";
+            /*
+             * padmux: 1 -> PAD_I2C0_SCL, PAD_I2C0_SDA
+             *         2 -> PAD_ETH_LED0, PAD_ETH_LED1
+             *         3 -> PAD_GPIO6, PAD_GPIO7
+             *         4 -> PAD_SR1_IO00, PAD_SR1_IO01
+             *         5 -> PAD_GPIO12, PAD_GPIO13
+            */
+            i2c-padmux = <2>;
+        };
+
+        i2c1@1{
+            compatible = "sstar,i2c";
+            /*
+             * padmux: 1 -> PAD_SR0_IO18, PAD_SR0_IO19
+             *         2 -> PAD_GPIO0, PAD_GPIO1
+             *         3 -> PAD_SR0_IO18, PAD_SR0_IO19
+            */
+            i2c-padmux = <1>;
+        };
+
+        i2c2@2{
+            compatible = "sstar,i2c";
+            i2c-speed = <2>;
+            /*
+             * padmux: 1 -> PAD_SR1_IO18, PAD_SR1_IO19
+             *         2 -> PAD_PWM0, PAD_PWM1
+             *         3 -> PAD_ETH_LED0, PAD_ETH_LED1
+             *         4 -> PAD_PM_I2CM_SCL, PAD_PM_I2CM_SDA
+             *         5 -> PAD_PM_GPIO0, PAD_PM_GPIO1
+            */
+            i2c-padmux = <4>;
+            Injoinic@30 {
+                compatible = "Injoinic,ip6303";
+                reg = <0x30>;
+                //interrupts = <1>;
+                //interrupt-parent = <&intcmux4>;
+                pmu_irq_gpio = <PAD_FUART_CTS>;
+                DC1_VSET = <1000>;/* corepower */
+                DC2_VSET = <1500>;/* ddram3  */
+                DC3_VSET = <3300>;/* VDD_3V3   */
+                LDO2_VSET = <1250>;/* AHD1V2   */
+                LDO3_VSET = <3300>;/* AHD3V3   */
+                LDO4_VSET = <1200>;/* unused   */
+                LDO5_VSET = <1800>;/* VDD_1V8   */
+                //interrupt-controller;
+                //#interrupt-cells = <1>;
+                //maxim,tsc-irq = <0>;
+            };
+        };
+
+        sound {
+            compatible = "sstar,audio";
+            amp-gpio = <PAD_PM_GPIO4  1>;
+        };
+
+        sdmmc {
+            compatible = "sstar,sdmmc";
+            slot-fakecdzs = <0>,<1>,<0>;
+            slot-pad-orders = <0>,<2>,<2>;
+            slot-sdio-use = <0>,<1>,<0>;
+	        slot-removable = <1>,<1>,<1>;
+        };
+
+        sar: sar {
+            compatible = "sstar,infinity-sar";
+            reg = <0x1F002800 0x200>;
+            #io-channel-cells = <1>;
+            status = "ok";
+        };
+
+        /*
+        adc0: adc@4003b000 {
+        compatible = "fsl,vf610-adc";
+        reg = <0x4003b000 0x1000>;
+        interrupts = <53 IRQ_TYPE_LEVEL_HIGH>;
+        clocks = <&clks VF610_CLK_ADC0>;
+        clock-names = "adc";
+        #io-channel-cells = <1>;
+        status = "disabled";
+        fsl,adck-max-frequency = <30000000>, <40000000>,<20000000>;
+        };
+        */
+
+        #include <dt-bindings/input/input.h>
+        adc-keys {
+            compatible = "adc-keys";
+            //io-channels = <&sar 0>;
+	    io-channels = <0>;
+            io-channel-names = "buttons";
+            poll-interval=<100>;
+            keyup-threshold-microvolt = <1024000>;
+
+            button-up {
+                label = "Volume Up";
+                linux,code = <KEY_VOLUMEUP>;
+                press-threshold-microvolt = <512000>;
+            };
+
+            button-down {
+                label = "Volume Down";
+                linux,code = <KEY_VOLUMEDOWN>;
+                press-threshold-microvolt = <870000>;
+            };
+
+            button-enter {
+                label = "Enter";
+                linux,code = <KEY_ENTER>;
+                press-threshold-microvolt = <960000>;
+            };
+	    button-menu {
+	    	label = "Menu";
+	    	linux,code = <KEY_MENU>;
+	    	press-threshold-microvolt = <990000>;
+	    };
+        };
+    };
+};
+
+&clks {
+    #include <../../../../drivers/sstar/include/infinity6e/reg_clks.h>
+    CLK_odclk: CLK_odclk {
+        #clock-cells = <0>;
+        compatible = "sstar,composite-clock";
+        auto-enable = <1>;
+    };
+};

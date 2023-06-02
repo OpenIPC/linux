@@ -122,6 +122,36 @@ static void dump_eraseblock(int ebnum)
 		}
 }
 
+#ifdef CONFIG_MTD_SS_TESTS
+static ktime_t start, finish;
+//static int goodebcnt;
+static inline void start_timing(void)
+{
+    start = ktime_get();
+}
+
+static inline void stop_timing(void)
+{
+    finish = ktime_get();
+}
+
+static long calc_speed(void)
+{
+    uint64_t k;
+    long ms;
+
+    ms = ktime_ms_delta(finish, start);
+    if (ms == 0)
+        return 0;
+//    k = (uint64_t)goodebcnt * (mtd->erasesize / 1024) * 1000;
+    k = (uint64_t)ebcnt * (mtd->erasesize);
+//pr_info("goodebcnt:%d\n", ebcnt);
+//pr_info("erase size:%d\n", mtd->erasesize);
+    do_div(k, ms);
+    return k;
+}
+#endif
+
 static int __init mtd_readtest_init(void)
 {
 	uint64_t tmp;
@@ -179,6 +209,10 @@ static int __init mtd_readtest_init(void)
 
 	/* Read all eraseblocks 1 page at a time */
 	pr_info("testing page read\n");
+#ifdef CONFIG_MTD_SS_TESTS
+    start_timing();
+#endif
+
 	for (i = 0; i < ebcnt; ++i) {
 		int ret;
 
@@ -202,6 +236,14 @@ static int __init mtd_readtest_init(void)
 		pr_info("finished with errors\n");
 	else
 		pr_info("finished\n");
+#ifdef CONFIG_MTD_SS_TESTS
+	{
+	    long speed;
+	    stop_timing();
+	    speed = calc_speed();
+	    pr_info("read speed is %ld KB/s\n", speed);
+    }
+#endif
 
 out:
 

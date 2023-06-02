@@ -84,6 +84,10 @@
 #include <crypto/hash.h>
 #include <linux/scatterlist.h>
 
+#ifdef CONFIG_SS_SWTOE_TCP
+#include "mdrv_swtoe.h"
+#endif
+
 int sysctl_tcp_tw_reuse __read_mostly;
 int sysctl_tcp_low_latency __read_mostly;
 
@@ -153,6 +157,21 @@ int tcp_v4_connect(struct sock *sk, struct sockaddr *uaddr, int addr_len)
 
 	if (usin->sin_family != AF_INET)
 		return -EAFNOSUPPORT;
+
+#ifdef CONFIG_SS_SWTOE_TCP_CLIENT
+	if (sk->ss_swtoe)
+	{
+		if (drv_swtoe_connect(sk->ss_swtoe_cnx, uaddr, sk->ss_swtoe_blk))
+		{
+			printk("[%s][%d] swtoe connect fail %d\n", __FUNCTION__, __LINE__, sk->ss_swtoe_cnx);
+			return -EINVAL;;
+		}
+		// tcp_set_state(sk, TCP_SYN_SENT);
+		sk_state_store(sk, TCP_SYN_SENT);
+		sk->sk_gso_type = SKB_GSO_TCPV4;
+		return 0;
+	}
+#endif // #ifdef CONFIG_SS_SWTOE_TCP_CLIENT
 
 	nexthop = daddr = usin->sin_addr.s_addr;
 	inet_opt = rcu_dereference_protected(inet->inet_opt,
@@ -1351,6 +1370,17 @@ struct sock *tcp_v4_syn_recv_sock(const struct sock *sk, struct sk_buff *skb,
 	} else {
 		newinet->inet_opt = NULL;
 	}
+#if 0 /// do nothing or assert if toe is on ????
+#ifdef CONFIG_SS_SWTOE_TCP_SERVER /// not complete  /// todo. should be done by callback
+        // We are server and complete 3 ways handshaking with client
+        // [TBD] IPC for toe?
+        // if ((sk->ss_swtoe) && (INVALID == sk->ss_swtoe_cnx))
+        // {
+        // }
+        or add this in sk->sky_prot->shutdown
+#endif
+#endif
+
 	return newsk;
 
 exit_overflow:
@@ -1390,6 +1420,18 @@ static struct sock *tcp_v4_cookie_check(struct sock *sk, struct sk_buff *skb)
 int tcp_v4_do_rcv(struct sock *sk, struct sk_buff *skb)
 {
 	struct sock *rsk;
+
+#if 0 /// do nothing or assert if toe is on ????
+#ifdef CONFIG_SS_SWTOE_TCP  /// not complete
+        should be empty
+        // We are client and complete 3 ways handshaking with server
+        // [TBD] IPC for toe?
+        // if ((sk->ss_swtoe) && (INVALID == sk->ss_swtoe_cnx))
+        // {
+        // }
+        or add this in sk->sky_prot->shutdown
+#endif
+#endif
 
 	if (sk->sk_state == TCP_ESTABLISHED) { /* Fast path */
 		struct dst_entry *dst = sk->sk_rx_dst;
@@ -1858,6 +1900,17 @@ static int tcp_v4_init_sock(struct sock *sk)
 void tcp_v4_destroy_sock(struct sock *sk)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
+
+#if 0 /// forget it at this stage
+#ifdef CONFIG_SS_SWTOE_TCP  /// not complete
+        // We are client and complete 3 ways handshaking with server
+        // [TBD] IPC for toe?
+        // if ((sk->ss_swtoe) && (INVALID == sk->ss_swtoe_cnx))
+        // {
+        // }
+        or add this in sk->sky_prot->shutdown
+#endif
+#endif
 
 	tcp_clear_xmit_timers(sk);
 

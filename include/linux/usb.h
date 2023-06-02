@@ -7,6 +7,9 @@
 #define USB_MAJOR			180
 #define USB_DEVICE_MAJOR		189
 
+#if defined(CONFIG_MP_USB_MSTAR)
+#define HOTPLUG                 //tony add for hotplug
+#endif
 
 #ifdef __KERNEL__
 
@@ -336,11 +339,11 @@ struct usb_host_bos {
 };
 
 int __usb_get_extra_descriptor(char *buffer, unsigned size,
-	unsigned char type, void **ptr);
+	unsigned char type, void **ptr, size_t min);
 #define usb_get_extra_descriptor(ifpoint, type, ptr) \
 				__usb_get_extra_descriptor((ifpoint)->extra, \
 				(ifpoint)->extralen, \
-				type, (void **)ptr)
+				type, (void **)ptr, sizeof(**(ptr)))
 
 /* ----------------------------------------------------------------------- */
 
@@ -544,6 +547,9 @@ struct usb3_lpm_parameters {
  */
 struct usb_device {
 	int		devnum;
+#if defined(CONFIG_MP_USB_MSTAR) && defined(HOTPLUG)
+	int		devnum1;  //tony for hotplug check
+#endif
 	char		devpath[16];
 	u32		route;
 	enum usb_device_state	state;

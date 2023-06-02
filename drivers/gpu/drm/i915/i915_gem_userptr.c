@@ -654,6 +654,14 @@ i915_gem_userptr_get_pages(struct drm_i915_gem_object *obj)
 			return -ENOMEM;
 		}
 
+		/*
+		 * Using __get_user_pages_fast() with a read-only
+		 * access is questionable. A read-only page may be
+		 * COW-broken, and then this might end up giving
+		 * the wrong side of the COW..
+		 *
+		 * We may or may not care.
+		 */
 		pinned = __get_user_pages_fast(obj->userptr.ptr, num_pages,
 					       !obj->userptr.read_only, pvec);
 	}

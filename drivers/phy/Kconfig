@@ -490,4 +490,16 @@ config PHY_NS2_PCIE
 	help
 	  Enable this to support the Broadcom Northstar2 PCIe PHY.
 	  If unsure, say N.
+
+config PHY_SSTAR_INFINITY6E
+	tristate "Sigmastar USB PHY Driver"
+	depends on ARCH_INFINITY6E
+	select GENERIC_PHY
+	default ARCH_INFINITY6E
+	help
+	  Enable this to support Sigmastar USB PHY driver for Sigmastar
+	  SoC. This driver will do the PHY initialization and shutdown.
+	  The PHY driver will be used by Sigmastar USB3.0 driver.
+
+	  To compile this driver as a module, choose M here.
 endmenu

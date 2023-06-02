@@ -561,7 +561,6 @@ static int mmc_sdio_init_card(struct mmc_host *host, u32 ocr,
 	/* to query card if 1.8V signalling is supported */
 	if (mmc_host_uhs(host))
 		ocr |= R4_18V_PRESENT;
-
 try_again:
 	if (!retries) {
 		pr_warn("%s: Skipping voltage switch\n", mmc_hostname(host));

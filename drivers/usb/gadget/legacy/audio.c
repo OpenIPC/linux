@@ -53,8 +53,40 @@ static int c_ssize = UAC2_DEF_CSSIZE;
 module_param(c_ssize, uint, S_IRUGO);
 MODULE_PARM_DESC(c_ssize, "Capture Sample Size(bytes)");
 #else
+#ifndef CONFIG_GADGET_UAC1_LEGACY
 #include "u_uac1.h"
 
+/* Playback(USB-IN) Default Stereo - Fl/Fr */
+static int p_chmask = UAC1_DEF_PCHMASK;
+module_param(p_chmask, uint, S_IRUGO);
+MODULE_PARM_DESC(p_chmask, "Playback Channel Mask");
+
+/* Playback Default 48 KHz */
+static int p_srate = UAC1_DEF_PSRATE;
+module_param(p_srate, uint, S_IRUGO);
+MODULE_PARM_DESC(p_srate, "Playback Sampling Rate");
+
+/* Playback Default 16bits/sample */
+static int p_ssize = UAC1_DEF_PSSIZE;
+module_param(p_ssize, uint, S_IRUGO);
+MODULE_PARM_DESC(p_ssize, "Playback Sample Size(bytes)");
+
+/* Capture(USB-OUT) Default Stereo - Fl/Fr */
+static int c_chmask = UAC1_DEF_CCHMASK;
+module_param(c_chmask, uint, S_IRUGO);
+MODULE_PARM_DESC(c_chmask, "Capture Channel Mask");
+
+/* Capture Default 48 KHz */
+static int c_srate = UAC1_DEF_CSRATE;
+module_param(c_srate, uint, S_IRUGO);
+MODULE_PARM_DESC(c_srate, "Capture Sampling Rate");
+
+/* Capture Default 16bits/sample */
+static int c_ssize = UAC1_DEF_CSSIZE;
+module_param(c_ssize, uint, S_IRUGO);
+MODULE_PARM_DESC(c_ssize, "Capture Sample Size(bytes)");
+#else /* CONFIG_GADGET_UAC1_LEGACY */
+#include "u_uac1_legacy.h"
 static char *fn_play = FILE_PCM_PLAYBACK;
 module_param(fn_play, charp, S_IRUGO);
 MODULE_PARM_DESC(fn_play, "Playback PCM device file name");
@@ -67,17 +99,53 @@ static char *fn_cntl = FILE_CONTROL;
 module_param(fn_cntl, charp, S_IRUGO);
 MODULE_PARM_DESC(fn_cntl, "Control device file name");
 
-static int req_buf_size = UAC1_OUT_EP_MAX_PACKET_SIZE;
-module_param(req_buf_size, int, S_IRUGO);
-MODULE_PARM_DESC(req_buf_size, "ISO OUT endpoint request buffer size");
+static int playback_channel_count = UAC1_PLAYBACK_CHANNEL_COUNT;
+module_param(playback_channel_count, int, S_IRUGO|S_IWUSR);
+MODULE_PARM_DESC(playback_channel_count, "Speaker Channel Counts");
 
-static int req_count = UAC1_REQ_COUNT;
-module_param(req_count, int, S_IRUGO);
-MODULE_PARM_DESC(req_count, "ISO OUT endpoint request count");
+static int capture_channel_count = UAC1_CAPTURE_CHANNEL_COUNT;
+module_param(capture_channel_count, int, S_IRUGO|S_IWUSR);
+MODULE_PARM_DESC(capture_channel_count, "Microphone Channel Counts");
 
-static int audio_buf_size = UAC1_AUDIO_BUF_SIZE;
-module_param(audio_buf_size, int, S_IRUGO);
-MODULE_PARM_DESC(audio_buf_size, "Audio buffer size");
+static int playback_sample_rate = UAC1_PLAYBACK_SAMPLE_RATE;
+module_param(playback_sample_rate, int, S_IRUGO|S_IWUSR);
+MODULE_PARM_DESC(playback_sample_rate, "Speaker Sample Rate");
+
+static int capture_sample_rate = UAC1_CAPTURE_SAMPLE_RATE;
+module_param(capture_sample_rate, int, S_IRUGO|S_IWUSR);
+MODULE_PARM_DESC(capture_sample_rate, "Microphone Sample Rate");
+
+static int out_req_buf_size = UAC1_OUT_EP_MAX_PACKET_SIZE;
+module_param(out_req_buf_size, int, S_IRUGO);
+MODULE_PARM_DESC(out_req_buf_size, "ISO OUT endpoint request buffer size");
+
+static int out_req_count = UAC1_OUT_REQ_COUNT;
+module_param(out_req_count, int, S_IRUGO);
+MODULE_PARM_DESC(out_req_count, "ISO OUT endpoint request count");
+
+static int audio_playback_buf_size = UAC1_AUDIO_PLAYBACK_BUF_SIZE;
+module_param(audio_playback_buf_size, int, S_IRUGO);
+MODULE_PARM_DESC(audio_playback_buf_size, "Audio playback buffer size");
+
+#if defined(CONFIG_SS_GADGET) ||defined(CONFIG_SS_GADGET_MODULE)
+static int in_req_buf_size = UAC1_IN_EP_MAX_PACKET_SIZE;
+module_param(in_req_buf_size, int, S_IRUGO);
+MODULE_PARM_DESC(in_req_buf_size, "ISO IN endpoint request buffer size");
+
+static int in_req_count = UAC1_IN_REQ_COUNT;
+module_param(in_req_count, int, S_IRUGO);
+MODULE_PARM_DESC(in_req_count, "ISO IN endpoint request count");
+
+static int audio_capture_buf_size = UAC1_AUDIO_CAPTURE_BUF_SIZE;
+module_param(audio_capture_buf_size, int, S_IRUGO);
+MODULE_PARM_DESC(audio_capture_buf_size, "Audio capture buffer size");
+
+static int audio_play_mode = 3;
+module_param(audio_play_mode, int, S_IRUGO);
+MODULE_PARM_DESC(audio_play_mode, "Audio Play Mode, 0: Disable UAC Function, "
+				      "1: Speaker Only, 2: Microphone Only, 3: Speaker & Microphone");
+#endif
+#endif
 #endif
 
 /* string IDs are assigned dynamically */
@@ -125,7 +193,7 @@ static struct usb_device_descriptor device_desc = {
 
 	/* .bcdUSB = DYNAMIC */
 
-#ifdef CONFIG_GADGET_UAC1
+#ifdef CONFIG_GADGET_UAC1_LEGACY
 	.bDeviceClass =		USB_CLASS_PER_INTERFACE,
 	.bDeviceSubClass =	0,
 	.bDeviceProtocol =	0,
@@ -207,7 +275,11 @@ static int audio_bind(struct usb_composite_dev *cdev)
 #ifndef CONFIG_GADGET_UAC1
 	struct f_uac2_opts	*uac2_opts;
 #else
+#ifndef CONFIG_GADGET_UAC1_LEGACY
 	struct f_uac1_opts	*uac1_opts;
+#else
+	struct f_uac1_legacy_opts	*uac1_opts;
+#endif
 #endif
 	int			status;
 
@@ -216,7 +288,11 @@ static int audio_bind(struct usb_composite_dev *cdev)
 	if (IS_ERR(fi_uac2))
 		return PTR_ERR(fi_uac2);
 #else
+#ifndef CONFIG_GADGET_UAC1_LEGACY
 	fi_uac1 = usb_get_function_instance("uac1");
+#else
+	fi_uac1 = usb_get_function_instance("uac1_legacy");
+#endif
 	if (IS_ERR(fi_uac1))
 		return PTR_ERR(fi_uac1);
 #endif
@@ -229,14 +305,37 @@ static int audio_bind(struct usb_composite_dev *cdev)
 	uac2_opts->c_chmask = c_chmask;
 	uac2_opts->c_srate = c_srate;
 	uac2_opts->c_ssize = c_ssize;
+	uac2_opts->req_number = UAC2_DEF_REQ_NUM;
 #else
+#ifndef CONFIG_GADGET_UAC1_LEGACY
 	uac1_opts = container_of(fi_uac1, struct f_uac1_opts, func_inst);
+	uac1_opts->p_chmask = p_chmask;
+	uac1_opts->p_srate = p_srate;
+	uac1_opts->p_ssize = p_ssize;
+	uac1_opts->c_chmask = c_chmask;
+	uac1_opts->c_srate = c_srate;
+	uac1_opts->c_ssize = c_ssize;
+	uac1_opts->req_number = UAC1_DEF_REQ_NUM;
+#else /* CONFIG_GADGET_UAC1_LEGACY */
+	uac1_opts = container_of(fi_uac1, struct f_uac1_legacy_opts, func_inst);
 	uac1_opts->fn_play = fn_play;
 	uac1_opts->fn_cap = fn_cap;
 	uac1_opts->fn_cntl = fn_cntl;
-	uac1_opts->req_buf_size = req_buf_size;
-	uac1_opts->req_count = req_count;
-	uac1_opts->audio_buf_size = audio_buf_size;
+	uac1_opts->playback_channel_count = playback_channel_count;
+	uac1_opts->playback_sample_rate = playback_sample_rate;
+	uac1_opts->capture_channel_count = capture_channel_count;
+	uac1_opts->capture_sample_rate = capture_sample_rate;
+	uac1_opts->out_req_buf_size = out_req_buf_size;
+	uac1_opts->out_req_count = out_req_count;
+	uac1_opts->audio_playback_buf_size = audio_playback_buf_size;
+
+#if defined(CONFIG_SS_GADGET) ||defined(CONFIG_SS_GADGET_MODULE)
+	uac1_opts->in_req_buf_size = in_req_buf_size;
+	uac1_opts->in_req_count = in_req_count;
+	uac1_opts->audio_capture_buf_size = audio_capture_buf_size;
+	uac1_opts->audio_play_mode = audio_play_mode;
+#endif
+#endif
 #endif
 
 	status = usb_string_ids_tab(cdev, strings_dev);

@@ -34,13 +34,34 @@
 
 #include <linux/phy/phy.h>
 
+/*
+ * Schedule EP0 stages handling in a dedicated thread
+ * Part of EP0 stages will be handled in the gap of isoc IN transfer
+ */
+#define DWC3_EP0_SCHEDULING
+#ifdef DWC3_EP0_SCHEDULING
+/* Enable monitor isoc xfer activation */
+#define DWC3_ISOC_MONITOR
+#include <linux/completion.h>
+#include <linux/kthread.h>
+#ifdef DWC3_ISOC_MONITOR
+#include <linux/workqueue.h>
+#endif
+#endif
+/* Give high priority to dwc3 irq thread */
+#define DWC3_IRQ_THREAD_HP
+/* Enable kernel log for tracing ep0 flow */
+//#define DWC3_TRACE_EP0
 #define DWC3_MSG_MAX	500
+
+#define DWC3_SCRATCH_BUF_DP_NUM 0x0010
 
 /* Global constants */
 #define DWC3_ZLP_BUF_SIZE	1024	/* size of a superspeed bulk */
 #define DWC3_EP0_BOUNCE_SIZE	512
 #define DWC3_ENDPOINTS_NUM	32
 #define DWC3_XHCI_RESOURCES_NUM	2
+#define DWC3_ISOC_MAX_RETRIES	40
 
 #define DWC3_SCRATCHBUF_SIZE	4096	/* each buffer is assumed to be 4KiB */
 #define DWC3_EVENT_BUFFERS_SIZE	4096
@@ -63,6 +84,7 @@
 #define DWC3_DEVICE_EVENT_OVERFLOW		11
 
 #define DWC3_GEVNTCOUNT_MASK	0xfffc
+#define DWC3_GEVNTCOUNT_EHB	BIT(31)
 #define DWC3_GSNPSID_MASK	0xffff0000
 #define DWC3_GSNPSREV_MASK	0xffff
 
@@ -103,6 +125,11 @@
 #define DWC3_GHWPARAMS7		0xc15c
 #define DWC3_GDBGFIFOSPACE	0xc160
 #define DWC3_GDBGLTSSM		0xc164
+#define DWC3_GDBGBMU		0xc16c
+#define DWC3_GDBGLSPMUX		0xc170
+#define DWC3_GDBGLSP		0xc174
+#define DWC3_GDBGEPINFO0	0xc178
+#define DWC3_GDBGEPINFO1	0xc17c
 #define DWC3_GPRTBIMAP_HS0	0xc180
 #define DWC3_GPRTBIMAP_HS1	0xc184
 #define DWC3_GPRTBIMAP_FS0	0xc188
@@ -145,6 +172,10 @@
 #define DWC3_DEPCMDPAR0		0x08
 #define DWC3_DEPCMD		0x0c
 
+#define DWC3_DEV_IMOD(n)	(0xca00 + ((n) * 0x4))
+#define DWC3_DEV_IMODC(n)	((n & 0xffff) << 16)
+#define DWC3_DEV_IMODI(n)	(n & 0xffff)
+
 /* OTG Registers */
 #define DWC3_OCFG		0xcc00
 #define DWC3_OCTL		0xcc04
@@ -159,13 +190,15 @@
 #define DWC3_GDBGFIFOSPACE_TYPE(n)	(((n) << 5) & 0x1e0)
 #define DWC3_GDBGFIFOSPACE_SPACE_AVAILABLE(n) (((n) >> 16) & 0xffff)
 
-#define DWC3_TXFIFOQ		1
-#define DWC3_RXFIFOQ		3
-#define DWC3_TXREQQ		5
-#define DWC3_RXREQQ		7
-#define DWC3_RXINFOQ		9
-#define DWC3_DESCFETCHQ		13
-#define DWC3_EVENTQ		15
+#define DWC3_TXFIFOQ		0
+#define DWC3_RXFIFOQ		1
+#define DWC3_TXREQQ		2
+#define DWC3_RXREQQ		3
+#define DWC3_RXINFOQ		4
+#define DWC3_PSTATQ		5
+#define DWC3_DESCFETCHQ		6
+#define DWC3_EVENTQ		7
+#define DWC3_AUXEVENTQ		8
 
 /* Global RX Threshold Configuration Register */
 #define DWC3_GRXTHRCFG_MAXRXBURSTSIZE(n) (((n) & 0x1f) << 19)
@@ -223,6 +256,7 @@
 #define DWC3_GUSB3PIPECTL_PHYSOFTRST	(1 << 31)
 #define DWC3_GUSB3PIPECTL_U2SSINP3OK	(1 << 29)
 #define DWC3_GUSB3PIPECTL_DISRXDETINP3	(1 << 28)
+#define DWC3_GUSB3PIPECTL_UX_EXIT_PX	(1 << 27)
 #define DWC3_GUSB3PIPECTL_REQP1P2P3	(1 << 24)
 #define DWC3_GUSB3PIPECTL_DEP1P2P3(n)	((n) << 19)
 #define DWC3_GUSB3PIPECTL_DEP1P2P3_MASK	DWC3_GUSB3PIPECTL_DEP1P2P3(7)
@@ -235,6 +269,8 @@
 #define DWC3_GUSB3PIPECTL_TX_DEEPH(n)	((n) << 1)
 
 /* Global TX Fifo Size Register */
+#define DWC31_GTXFIFOSIZ_TXFRAMNUM	BIT(15)		/* DWC_usb31 only */
+#define DWC31_GTXFIFOSIZ_TXFDEF(n)	((n) & 0x7fff)	/* DWC_usb31 only */
 #define DWC3_GTXFIFOSIZ_TXFDEF(n)	((n) & 0xffff)
 #define DWC3_GTXFIFOSIZ_TXFSTADDR(n)	((n) & 0xffff0000)
 
@@ -446,6 +482,8 @@
 #define DWC3_DEPCMD_SETTRANSFRESOURCE	(0x02 << 0)
 #define DWC3_DEPCMD_SETEPCONFIG		(0x01 << 0)
 
+#define DWC3_DEPCMD_CMD(x)		((x) & 0xf)
+
 /* The EP number goes 0..31 so ep0 is always out and ep1 is always in */
 #define DWC3_DALEPENA_EP(n)		(1 << n)
 
@@ -461,6 +499,7 @@ struct dwc3_trb;
 /**
  * struct dwc3_event_buffer - Software event buffer representation
  * @buf: _THE_ buffer
+ * @cache: The buffer cache used in the threaded interrupt
  * @length: size of this buffer
  * @lpos: event offset
  * @count: cache of last read event count register
@@ -470,6 +509,7 @@ struct dwc3_trb;
  */
 struct dwc3_event_buffer {
 	void			*buf;
+	void			*cache;
 	unsigned		length;
 	unsigned int		lpos;
 	unsigned int		count;
@@ -536,6 +576,7 @@ struct dwc3_ep {
 #define DWC3_EP_BUSY		(1 << 4)
 #define DWC3_EP_PENDING_REQUEST	(1 << 5)
 #define DWC3_EP_MISSED_ISOC	(1 << 6)
+#define DWC3_EP_TRANSFER_STARTED (1 << 7)
 
 	/* This last one is specific to EP0 */
 #define DWC3_EP0_DIR_IN		(1 << 31)
@@ -557,6 +598,7 @@ struct dwc3_ep {
 	u8			resource_index;
 	u32			allocated_requests;
 	u32			queued_requests;
+	u32			pending_requests;
 	u32			interval;
 
 	char			name[20];
@@ -833,14 +875,15 @@ struct dwc3_scratchpad_array {
 struct dwc3 {
 	struct usb_ctrlrequest	*ctrl_req;
 	struct dwc3_trb		*ep0_trb;
+	struct dwc3_scratchpad_array *scratchpad_array;
 	void			*ep0_bounce;
 	void			*zlp_buf;
-	void			*scratchbuf;
+	void			*scratchpad[DWC3_MAX_HIBER_SCRATCHBUFS];
 	u8			*setup_buf;
 	dma_addr_t		ctrl_req_addr;
 	dma_addr_t		ep0_trb_addr;
 	dma_addr_t		ep0_bounce_addr;
-	dma_addr_t		scratch_addr;
+    dma_addr_t		scratchpad_array_dma;
 	struct dwc3_request	ep0_usb_req;
 
 	/* device lock */
@@ -873,6 +916,9 @@ struct dwc3 {
 
 	u32			fladj;
 	u32			irq_gadget;
+#ifdef DWC3_IRQ_THREAD_HP
+	u32			irq_thread_hp;
+#endif
 	u32			nr_scratch;
 	u32			u1u2;
 	u32			maximum_speed;
@@ -914,6 +960,7 @@ struct dwc3 {
  */
 #define DWC3_REVISION_IS_DWC31		0x80000000
 #define DWC3_USB31_REVISION_110A	(0x3131302a | DWC3_REVISION_IS_DWC31)
+#define DWC3_USB31_REVISION_120A	(0x3132302a | DWC3_REVISION_IS_DWC31)
 
 	enum dwc3_ep0_next	ep0_next_event;
 	enum dwc3_ep0_state	ep0state;
@@ -935,6 +982,8 @@ struct dwc3 {
 	struct dwc3_hwparams	hwparams;
 	struct dentry		*root;
 	struct debugfs_regset32	*regset;
+#define DWC3_DEBUGFS_DBGDUMP	0
+#define DWC3_DEBUGFS_EVENTS		0
 
 	u8			test_mode;
 	u8			test_mode_nr;
@@ -945,6 +994,11 @@ struct dwc3 {
 
 	unsigned		connected:1;
 	unsigned		delayed_status:1;
+#ifdef DWC3_EP0_SCHEDULING
+	unsigned		ep0_wait_setup_recv:1;
+	unsigned		ep0_schedule_indicator:1;
+	unsigned		ep0_scheduled:1;
+#endif
 	unsigned		ep0_bounced:1;
 	unsigned		ep0_expect_in:1;
 	unsigned		has_hibernation:1;
@@ -974,6 +1028,23 @@ struct dwc3 {
 
 	unsigned		tx_de_emphasis_quirk:1;
 	unsigned		tx_de_emphasis:2;
+	unsigned		is_hibernated:1;
+
+	u32				*saved_regs;
+	u16				imod_interval;
+
+#ifdef DWC3_EP0_SCHEDULING
+	/* ep0 thread */
+	struct task_struct	*ep0_evt_task;
+	struct completion	ep0_comp;
+#ifdef DWC3_ISOC_MONITOR
+	struct workqueue_struct	*isoc_in_wq;    // workq to monitor the activation of isoc in xfer
+	struct delayed_work	isoc_in_monitor;
+	u8				isoc_in_ep_activated;   // xfer state of isoc_in ep
+#endif
+	u8				isoc_in_ep;             // isoc_in ep we care
+	u8				isoc_in_ep_stopxfer;    // isoc_in ep needs to be end xfer
+#endif
 };
 
 /* -------------------------------------------------------------------------- */
@@ -1129,6 +1200,12 @@ struct dwc3_gadget_ep_cmd_params {
 void dwc3_set_mode(struct dwc3 *dwc, u32 mode);
 u32 dwc3_core_fifo_space(struct dwc3_ep *dep, u8 type);
 
+/* check whether we are on the DWC_usb3 core */
+static inline bool dwc3_is_usb3(struct dwc3 *dwc)
+{
+	return !(dwc->revision & DWC3_REVISION_IS_DWC31);
+}
+
 /* check whether we are on the DWC_usb31 core */
 static inline bool dwc3_is_usb31(struct dwc3 *dwc)
 {
@@ -1154,6 +1231,7 @@ int dwc3_gadget_set_link_state(struct dwc3 *dwc, enum dwc3_link_state state);
 int dwc3_send_gadget_ep_cmd(struct dwc3_ep *dep, unsigned cmd,
 		struct dwc3_gadget_ep_cmd_params *params);
 int dwc3_send_gadget_generic_command(struct dwc3 *dwc, unsigned cmd, u32 param);
+int dwc3_core_init(struct dwc3 *dwc);
 #else
 static inline int dwc3_gadget_init(struct dwc3 *dwc)
 { return 0; }

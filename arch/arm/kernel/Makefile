@@ -2,6 +2,8 @@
 # Makefile for the linux kernel.
 #
 
+EXTRA_CFLAGS      +=  -Idrivers/sstar/include
+
 CPPFLAGS_vmlinux.lds := -DTEXT_OFFSET=$(TEXT_OFFSET)
 AFLAGS_head.o        := -DTEXT_OFFSET=$(TEXT_OFFSET)
 
@@ -19,6 +21,9 @@ obj-y		:= elf.o entry-common.o irq.o opcodes.o \
 		   process.o ptrace.o reboot.o return_address.o \
 		   setup.o signal.o sigreturn_codes.o \
 		   stacktrace.o sys_arm.o time.o traps.o
+
+KASAN_SANITIZE_stacktrace.o := n
+KASAN_SANITIZE_traps.o := n
 
 obj-$(CONFIG_ATAGS)		+= atags_parse.o
 obj-$(CONFIG_ATAGS_PROC)	+= atags_proc.o

@@ -10,6 +10,7 @@ struct vm_struct;
 
 #ifdef CONFIG_KASAN
 
+#define KASAN_SHADOW_INIT 0
 #define KASAN_SHADOW_SCALE_SHIFT 3
 
 #include <asm/kasan.h>
@@ -49,7 +50,7 @@ void kasan_unpoison_stack_above_sp_to(const void *watermark);
 void kasan_alloc_pages(struct page *page, unsigned int order);
 void kasan_free_pages(struct page *page, unsigned int order);
 
-void kasan_cache_create(struct kmem_cache *cache, size_t *size,
+void kasan_cache_create(struct kmem_cache *cache, unsigned int *size,
 			unsigned long *flags);
 void kasan_cache_shrink(struct kmem_cache *cache);
 void kasan_cache_destroy(struct kmem_cache *cache);
@@ -95,7 +96,7 @@ static inline void kasan_alloc_pages(struct page *page, unsigned int order) {}
 static inline void kasan_free_pages(struct page *page, unsigned int order) {}
 
 static inline void kasan_cache_create(struct kmem_cache *cache,
-				      size_t *size,
+				      unsigned int *size,
 				      unsigned long *flags) {}
 static inline void kasan_cache_shrink(struct kmem_cache *cache) {}
 static inline void kasan_cache_destroy(struct kmem_cache *cache) {}

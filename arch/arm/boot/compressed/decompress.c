@@ -46,8 +46,13 @@ extern char * strstr(const char * s1, const char *s2);
 #endif
 
 #ifdef CONFIG_KERNEL_XZ
+#ifndef memmove
 #define memmove memmove
+#endif
+
+#ifndef memcpy
 #define memcpy memcpy
+#endif
 #include "../../../../lib/decompress_unxz.c"
 #endif
 

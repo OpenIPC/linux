@@ -1,3 +1,5 @@
+EXTRA_CFLAGS      +=  -Idrivers/sstar/include
+
 obj-$(CONFIG_IRQCHIP)			+= irqchip.o
 
 obj-$(CONFIG_ALPINE_MSI)		+= irq-alpine-msi.o

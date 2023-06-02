@@ -179,6 +179,20 @@ static int ip101a_g_config_init(struct phy_device *phydev)
 	c = phy_read(phydev, IP10XX_SPEC_CTRL_STATUS);
 	c |= IP101A_G_APS_ON;
 
+#if (defined (CONFIG_ARCH_INFINITY6E) || defined (CONFIG_ARCH_INFINITY6B0))
+    if(1)
+    {
+        int saved_page;
+
+        printk("[PHY] Increased Tx CLK driving for daughter board... %s ## %d \n", __func__, __LINE__);
+        saved_page = phy_read(phydev, 20);
+
+        phy_write(phydev, 20, 4);
+        phy_write(phydev, 22, 0xa000);
+        phy_write(phydev, 20, saved_page);
+    }
+#endif
+
 	return phy_write(phydev, IP10XX_SPEC_CTRL_STATUS, c);
 }
 

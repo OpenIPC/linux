@@ -34,6 +34,7 @@
 #include "debug.h"
 #include "gadget.h"
 #include "io.h"
+#include "../drivers/sstar/include/ms_platform.h"
 
 static void __dwc3_ep0_do_control_status(struct dwc3 *dwc, struct dwc3_ep *dep);
 static void __dwc3_ep0_do_control_data(struct dwc3 *dwc,
@@ -55,11 +56,39 @@ static const char *dwc3_ep0_state_string(enum dwc3_ep0_state state)
 	}
 }
 
+#ifdef DWC3_TRACE_EP0
+static const char *dwc3_ep0_trb_type_string(u32 type)
+{
+	 switch (type)
+	 {
+		case DWC3_TRBCTL_NORMAL:
+			return "normal";
+		case DWC3_TRBCTL_CONTROL_SETUP:
+			return "setup";
+		case DWC3_TRBCTL_CONTROL_STATUS2:
+			return "status2";
+		case DWC3_TRBCTL_CONTROL_STATUS3:
+			return "status3";
+		case DWC3_TRBCTL_CONTROL_DATA:
+			return "data";
+		case DWC3_TRBCTL_ISOCHRONOUS_FIRST:
+			return "isoc-first";
+		case DWC3_TRBCTL_ISOCHRONOUS:
+			return "isoc";
+		case DWC3_TRBCTL_LINK_TRB:
+			return "link";
+		default:
+			return "UNKNOWN";
+	}
+}
+#endif
+
 static void dwc3_ep0_prepare_one_trb(struct dwc3 *dwc, u8 epnum,
 		dma_addr_t buf_dma, u32 len, u32 type, bool chain)
 {
 	struct dwc3_trb			*trb;
 	struct dwc3_ep			*dep;
+	dma_addr_t              miu_addr;
 
 	dep = dwc->eps[epnum];
 
@@ -68,8 +97,9 @@ static void dwc3_ep0_prepare_one_trb(struct dwc3 *dwc, u8 epnum,
 	if (chain)
 		dep->trb_enqueue++;
 
-	trb->bpl = lower_32_bits(buf_dma);
-	trb->bph = upper_32_bits(buf_dma);
+    miu_addr = (dma_addr_t)Chip_Phys_to_MIU(buf_dma);
+	trb->bpl = lower_32_bits(miu_addr);
+	trb->bph = upper_32_bits(miu_addr);
 	trb->size = len;
 	trb->ctrl = type;
 
@@ -83,6 +113,19 @@ static void dwc3_ep0_prepare_one_trb(struct dwc3 *dwc, u8 epnum,
 				| DWC3_TRB_CTRL_LST);
 
 	trace_dwc3_prepare_trb(dep, trb);
+#ifdef DWC3_TRACE_EP0
+	printk(KERN_DEBUG "ep0_prepare_trb: %d/%d trb %p buf %08x%08x size %d ctrl %08x (%c%c%c%c:%c%c:%s)",
+		dep->queued_requests, dep->allocated_requests,
+		trb, trb->bph, trb->bpl,
+		trb->size, trb->ctrl,
+		trb->ctrl & DWC3_TRB_CTRL_HWO ? 'H' : 'h',
+		trb->ctrl & DWC3_TRB_CTRL_LST ? 'L' : 'l',
+		trb->ctrl & DWC3_TRB_CTRL_CHN ? 'C' : 'c',
+		trb->ctrl & DWC3_TRB_CTRL_CSP ? 'S' : 's',
+		trb->ctrl & DWC3_TRB_CTRL_ISP_IMI ? 'S' : 's',
+		trb->ctrl & DWC3_TRB_CTRL_IOC ? 'C' : 'c',
+		dwc3_ep0_trb_type_string(trb->ctrl & 0x3f0));
+#endif
 }
 
 static int dwc3_ep0_start_trans(struct dwc3 *dwc, u8 epnum)
@@ -90,21 +133,30 @@ static int dwc3_ep0_start_trans(struct dwc3 *dwc, u8 epnum)
 	struct dwc3_gadget_ep_cmd_params params;
 	struct dwc3_ep			*dep;
 	int				ret;
+	dma_addr_t      miu_addr;
 
 	dep = dwc->eps[epnum];
 	if (dep->flags & DWC3_EP_BUSY) {
 		dwc3_trace(trace_dwc3_ep0, "%s still busy", dep->name);
+#ifdef DWC3_TRACE_EP0
+		printk(KERN_DEBUG "\t =%s still busy", dep->name);
+#endif
 		return 0;
 	}
 
 	memset(&params, 0, sizeof(params));
-	params.param0 = upper_32_bits(dwc->ep0_trb_addr);
-	params.param1 = lower_32_bits(dwc->ep0_trb_addr);
+	Chip_Flush_MIU_Pipe();
+	miu_addr = (dma_addr_t)Chip_Phys_to_MIU(dwc->ep0_trb_addr);
+	params.param0 = upper_32_bits(miu_addr);
+	params.param1 = lower_32_bits(miu_addr);
 
 	ret = dwc3_send_gadget_ep_cmd(dep, DWC3_DEPCMD_STARTTRANSFER, &params);
 	if (ret < 0) {
 		dwc3_trace(trace_dwc3_ep0, "%s STARTTRANSFER failed",
 				dep->name);
+#ifdef DWC3_TRACE_EP0
+		printk(KERN_DEBUG "\t =%s STARTTRANSFER failed", dep->name);
+#endif
 		return ret;
 	}
 
@@ -138,7 +190,7 @@ static int __dwc3_gadget_ep0_queue(struct dwc3_ep *dep,
 	if (dep->flags & DWC3_EP_PENDING_REQUEST) {
 		unsigned	direction;
 
-		direction = !!(dep->flags & DWC3_EP0_DIR_IN);
+		direction = dwc->ep0_expect_in;
 
 		if (dwc->ep0state != EP0_DATA_PHASE) {
 			dev_WARN(dwc->dev, "Unexpected pending request\n");
@@ -147,8 +199,7 @@ static int __dwc3_gadget_ep0_queue(struct dwc3_ep *dep,
 
 		__dwc3_ep0_do_control_data(dwc, dwc->eps[direction], req);
 
-		dep->flags &= ~(DWC3_EP_PENDING_REQUEST |
-				DWC3_EP0_DIR_IN);
+		dep->flags &= ~DWC3_EP_PENDING_REQUEST;
 
 		return 0;
 	}
@@ -164,11 +215,26 @@ static int __dwc3_gadget_ep0_queue(struct dwc3_ep *dep,
 		dwc->delayed_status = false;
 		usb_gadget_set_state(&dwc->gadget, USB_STATE_CONFIGURED);
 
-		if (dwc->ep0state == EP0_STATUS_PHASE)
+		if (dwc->ep0state == EP0_STATUS_PHASE) {
+#ifdef DWC3_EP0_SCHEDULING
+			// indicator flag hints that schedule contol status by ep0 thread is needed
+			if (dwc->ep0_schedule_indicator) {
+				dwc->ep0_scheduled = true;
+				return 0;
+			}
+			else {
+				dwc->ep0_scheduled = false;
+			}
+#endif
 			__dwc3_ep0_do_control_status(dwc, dwc->eps[direction]);
-		else
+		}
+		else {
 			dwc3_trace(trace_dwc3_ep0,
 					"too early for delayed status");
+#ifdef DWC3_TRACE_EP0
+			printk(KERN_DEBUG "\t =too early for delayed status");
+#endif
+		}
 
 		return 0;
 	}
@@ -209,11 +275,19 @@ static int __dwc3_gadget_ep0_queue(struct dwc3_ep *dep,
 		unsigned        direction;
 
 		direction = dwc->ep0_expect_in;
+#ifdef DWC3_EP0_SCHEDULING
+		// indicator flag hints that schedule IN contol data by ep0 thread is needed
+		if (dwc->ep0_schedule_indicator) {
+			dwc->ep0_scheduled = true;
+			return 0;
+		}
+		else {
+			dwc->ep0_scheduled = false;
+		}
+#endif
 		dwc->ep0state = EP0_DATA_PHASE;
 
 		__dwc3_ep0_do_control_data(dwc, dwc->eps[direction], req);
-
-		dep->flags &= ~DWC3_EP0_DIR_IN;
 	}
 
 	return 0;
@@ -235,6 +309,9 @@ int dwc3_gadget_ep0_queue(struct usb_ep *ep, struct usb_request *request,
 		dwc3_trace(trace_dwc3_ep0,
 				"trying to queue request %p to disabled %s",
 				request, dep->name);
+#ifdef DWC3_TRACE_EP0
+		printk(KERN_DEBUG "\t =trying to queue request %p to disabled %s", request, dep->name);
+#endif
 		ret = -ESHUTDOWN;
 		goto out;
 	}
@@ -249,6 +326,18 @@ int dwc3_gadget_ep0_queue(struct usb_ep *ep, struct usb_request *request,
 			"queueing request %p to %s length %d state '%s'",
 			request, dep->name, request->length,
 			dwc3_ep0_state_string(dwc->ep0state));
+#ifdef DWC3_TRACE_EP0
+	{
+		unsigned	direction;
+		if (dwc->ep0state == EP0_SETUP_PHASE && dwc->three_stage_setup)
+			direction = dwc->ep0_expect_in;
+		else
+			direction = !dwc->ep0_expect_in;
+		printk(KERN_DEBUG "queueing request %p to %s length %d state '%s'",
+			request, dwc->eps[direction]->name, request->length,
+			dwc3_ep0_state_string(dwc->ep0state));
+	}
+#endif
 
 	ret = __dwc3_gadget_ep0_queue(dep, req);
 
@@ -433,10 +522,10 @@ static int dwc3_ep0_handle_feature(struct dwc3 *dwc,
 				return -EINVAL;
 
 			reg = dwc3_readl(dwc->regs, DWC3_DCTL);
-			if (set)
-				reg |= DWC3_DCTL_INITU1ENA;
-			else
-				reg &= ~DWC3_DCTL_INITU1ENA;
+			//if (set)
+				//reg |= DWC3_DCTL_INITU1ENA;
+			//else
+				//reg &= ~DWC3_DCTL_INITU1ENA;
 			dwc3_writel(dwc->regs, DWC3_DCTL, reg);
 			break;
 
@@ -448,10 +537,10 @@ static int dwc3_ep0_handle_feature(struct dwc3 *dwc,
 				return -EINVAL;
 
 			reg = dwc3_readl(dwc->regs, DWC3_DCTL);
-			if (set)
-				reg |= DWC3_DCTL_INITU2ENA;
-			else
-				reg &= ~DWC3_DCTL_INITU2ENA;
+			//if (set)
+				//reg |= DWC3_DCTL_INITU2ENA;
+			//else
+				//reg &= ~DWC3_DCTL_INITU2ENA;
 			dwc3_writel(dwc->regs, DWC3_DCTL, reg);
 			break;
 
@@ -595,7 +684,7 @@ static int dwc3_ep0_set_config(struct dwc3 *dwc, struct usb_ctrlrequest *ctrl)
 			 * nothing is pending from application.
 			 */
 			reg = dwc3_readl(dwc->regs, DWC3_DCTL);
-			reg |= (DWC3_DCTL_ACCEPTU1ENA | DWC3_DCTL_ACCEPTU2ENA);
+			//reg |= (DWC3_DCTL_ACCEPTU1ENA | DWC3_DCTL_ACCEPTU2ENA);
 			dwc3_writel(dwc->regs, DWC3_DCTL, reg);
 		}
 		break;
@@ -768,6 +857,13 @@ static void dwc3_ep0_inspect_setup(struct dwc3 *dwc,
 
 	trace_dwc3_ctrl_req(ctrl);
 
+#ifdef DWC3_EP0_SCHEDULING
+	if (dwc->ep0_wait_setup_recv) {
+		complete(&dwc->ep0_comp);
+		dwc->ep0_wait_setup_recv = false;
+	}
+#endif
+
 	len = le16_to_cpu(ctrl->wLength);
 	if (!len) {
 		dwc->three_stage_setup = false;
@@ -816,6 +912,19 @@ static void dwc3_ep0_complete_data(struct dwc3 *dwc,
 	trb = dwc->ep0_trb;
 
 	trace_dwc3_complete_trb(ep0, trb);
+#ifdef DWC3_TRACE_EP0
+	printk(KERN_DEBUG "ep0_complete_trb: %d/%d trb %p buf %08x%08x size %d ctrl %08x (%c%c%c%c:%c%c:%s)",
+		ep0->queued_requests, ep0->allocated_requests,
+		trb, trb->bph, trb->bpl,
+		trb->size, trb->ctrl,
+		trb->ctrl & DWC3_TRB_CTRL_HWO ? 'H' : 'h',
+		trb->ctrl & DWC3_TRB_CTRL_LST ? 'L' : 'l',
+		trb->ctrl & DWC3_TRB_CTRL_CHN ? 'C' : 'c',
+		trb->ctrl & DWC3_TRB_CTRL_CSP ? 'S' : 's',
+		trb->ctrl & DWC3_TRB_CTRL_ISP_IMI ? 'S' : 's',
+		trb->ctrl & DWC3_TRB_CTRL_IOC ? 'C' : 'c',
+		dwc3_ep0_trb_type_string(trb->ctrl & 0x3f0));
+#endif
 
 	r = next_request(&ep0->pending_list);
 	if (!r)
@@ -826,7 +935,9 @@ static void dwc3_ep0_complete_data(struct dwc3 *dwc,
 		dwc->setup_packet_pending = true;
 
 		dwc3_trace(trace_dwc3_ep0, "Setup Pending received");
-
+#ifdef DWC3_TRACE_EP0
+		printk(KERN_DEBUG "\t =Setup Pending received");
+#endif
 		if (r)
 			dwc3_gadget_giveback(ep0, r, -ECONNRESET);
 
@@ -904,6 +1015,19 @@ static void dwc3_ep0_complete_status(struct dwc3 *dwc,
 	trb = dwc->ep0_trb;
 
 	trace_dwc3_complete_trb(dep, trb);
+#ifdef DWC3_TRACE_EP0
+	printk(KERN_DEBUG "ep0_complete_trb: %d/%d trb %p buf %08x%08x size %d ctrl %08x (%c%c%c%c:%c%c:%s)",
+		dep->queued_requests, dep->allocated_requests,
+		trb, trb->bph, trb->bpl,
+		trb->size, trb->ctrl,
+		trb->ctrl & DWC3_TRB_CTRL_HWO ? 'H' : 'h',
+		trb->ctrl & DWC3_TRB_CTRL_LST ? 'L' : 'l',
+		trb->ctrl & DWC3_TRB_CTRL_CHN ? 'C' : 'c',
+		trb->ctrl & DWC3_TRB_CTRL_CSP ? 'S' : 's',
+		trb->ctrl & DWC3_TRB_CTRL_ISP_IMI ? 'S' : 's',
+		trb->ctrl & DWC3_TRB_CTRL_IOC ? 'C' : 'c',
+		dwc3_ep0_trb_type_string(trb->ctrl & 0x3f0));
+#endif
 
 	if (!list_empty(&dep->pending_list)) {
 		r = next_request(&dep->pending_list);
@@ -927,10 +1051,18 @@ static void dwc3_ep0_complete_status(struct dwc3 *dwc,
 	if (status == DWC3_TRBSTS_SETUP_PENDING) {
 		dwc->setup_packet_pending = true;
 		dwc3_trace(trace_dwc3_ep0, "Setup Pending received");
+#ifdef DWC3_TRACE_EP0
+		printk(KERN_DEBUG "\t =Setup Pending received");
+#endif
 	}
 
 	dwc->ep0state = EP0_SETUP_PHASE;
 	dwc3_ep0_out_start(dwc);
+#ifdef DWC3_EP0_SCHEDULING
+	if (dwc->ep0_scheduled) {
+		complete(&dwc->ep0_comp); // ep0 xfer was scheduled & wait completion, wakeup up ep0 thread here
+	}
+#endif
 }
 
 static void dwc3_ep0_xfer_complete(struct dwc3 *dwc,
@@ -951,6 +1083,11 @@ static void dwc3_ep0_xfer_complete(struct dwc3 *dwc,
 	case EP0_DATA_PHASE:
 		dwc3_trace(trace_dwc3_ep0, "Data Phase");
 		dwc3_ep0_complete_data(dwc, event);
+#ifdef DWC3_EP0_SCHEDULING
+		if (dwc->ep0_scheduled) {
+			complete(&dwc->ep0_comp); // ep0 xfer was scheduled & wait completion, wakeup up ep0 thread here
+		}
+#endif
 		break;
 
 	case EP0_STATUS_PHASE:
@@ -983,6 +1120,9 @@ static void __dwc3_ep0_do_control_data(struct dwc3 *dwc,
 				dep->number);
 		if (ret) {
 			dwc3_trace(trace_dwc3_ep0, "failed to map request");
+#ifdef DWC3_TRACE_EP0
+			printk(KERN_DEBUG "\t =failed to map request");
+#endif
 			return;
 		}
 
@@ -1012,6 +1152,9 @@ static void __dwc3_ep0_do_control_data(struct dwc3 *dwc,
 				dep->number);
 		if (ret) {
 			dwc3_trace(trace_dwc3_ep0, "failed to map request");
+#ifdef DWC3_TRACE_EP0
+			printk(KERN_DEBUG "\t =failed to map request");
+#endif
 			return;
 		}
 
@@ -1047,6 +1190,16 @@ static void dwc3_ep0_do_control_status(struct dwc3 *dwc,
 {
 	struct dwc3_ep		*dep = dwc->eps[event->endpoint_number];
 
+#ifdef DWC3_EP0_SCHEDULING
+	// indicator flag hints that schedule contol status by ep0 thread is needed
+	if (dwc->ep0_schedule_indicator) {
+		dwc->ep0_scheduled = true;
+		return;
+	}
+	else {
+		dwc->ep0_scheduled = false;
+	}
+#endif
 	__dwc3_ep0_do_control_status(dwc, dep);
 }
 
@@ -1089,6 +1242,13 @@ static void dwc3_ep0_xfernotready(struct dwc3 *dwc,
 
 			dwc3_trace(trace_dwc3_ep0,
 					"Wrong direction for Data phase");
+#ifdef DWC3_TRACE_EP0
+			printk(KERN_DEBUG "\t =Wrong direction for Data phase %d %d", dwc->ep0_expect_in, event->endpoint_number);
+			printk(KERN_DEBUG "bRequestType %02x bRequest %02x wValue %04x wIndex %04x wLength %d",
+				dwc->ctrl_req->bRequestType, dwc->ctrl_req->bRequest,
+				dwc->ctrl_req->wValue, dwc->ctrl_req->wIndex,
+				dwc->ctrl_req->wLength);
+#endif
 			dwc3_ep0_end_control_data(dwc, dep);
 			dwc3_ep0_stall_and_restart(dwc);
 			return;
@@ -1106,7 +1266,13 @@ static void dwc3_ep0_xfernotready(struct dwc3 *dwc,
 
 		if (dwc->delayed_status) {
 			WARN_ON_ONCE(event->endpoint_number != 1);
+#ifdef DWC3_EP0_SCHEDULING
+			dwc->ep0_scheduled = false;
+#endif
 			dwc3_trace(trace_dwc3_ep0, "Delayed Status");
+#ifdef DWC3_TRACE_EP0
+			printk(KERN_DEBUG "\t =Delayed Status");
+#endif
 			return;
 		}
 
@@ -1120,6 +1286,10 @@ void dwc3_ep0_interrupt(struct dwc3 *dwc,
 	dwc3_trace(trace_dwc3_ep0, "%s: state '%s'",
 			dwc3_ep_event_string(event),
 			dwc3_ep0_state_string(dwc->ep0state));
+#ifdef DWC3_TRACE_EP0
+	printk(KERN_DEBUG "%s %s %x", dwc3_ep_event_string(event),
+			dwc3_ep0_state_string(dwc->ep0state), event->status);
+#endif
 
 	switch (event->endpoint_event) {
 	case DWC3_DEPEVT_XFERCOMPLETE:
@@ -1137,3 +1307,99 @@ void dwc3_ep0_interrupt(struct dwc3 *dwc,
 		break;
 	}
 }
+
+#ifdef DWC3_EP0_SCHEDULING
+extern void dwc3_stop_active_transfer(struct dwc3 *dwc, u32 epnum, bool force);
+
+int dwc3_ep0_thread(void *arg)
+{
+	struct dwc3 *dwc = (struct dwc3 *)arg;
+	unsigned long	flags, completed;
+	struct dwc3_ep	*ep0, *dep;
+
+	while(!kthread_should_stop())
+	{
+		wait_for_completion(&dwc->ep0_comp);
+		ep0 = dwc->eps[0];
+
+		if (!dwc->ep0_scheduled)
+			goto do_endxfer;
+
+		spin_lock_irqsave(&dwc->lock, flags);
+		if ((dwc->ep0state == EP0_SETUP_PHASE) && !list_empty(&ep0->pending_list) && dwc->three_stage_setup)
+		{
+			dwc->ep0state = EP0_DATA_PHASE;
+			if (dwc->ep0_expect_in)
+				dep = dwc->eps[1];
+			else
+				dep = dwc->eps[0];
+			__dwc3_ep0_do_control_data(dwc, dep, next_request(&ep0->pending_list));
+			spin_unlock_irqrestore(&dwc->lock, flags);
+			wait_for_completion(&dwc->ep0_comp);
+		}
+		else if (dwc->ep0state == EP0_STATUS_PHASE && dwc->ep0_next_event == DWC3_EP0_NRDY_STATUS)
+		{
+			if (dwc->ep0_expect_in)
+				dep = dwc->eps[0];
+			else
+				dep = dwc->eps[1];
+			__dwc3_ep0_do_control_status(dwc, dep);
+			spin_unlock_irqrestore(&dwc->lock, flags);
+			wait_for_completion(&dwc->ep0_comp);
+		}
+		else {
+			spin_unlock_irqrestore(&dwc->lock, flags);
+		}
+		spin_lock_irqsave(&dwc->lock, flags);
+		if (!dwc->ep0_schedule_indicator) // no need to schedule ep0 xfer, let's handle ep0 in irq thread
+			dwc->ep0_scheduled = false;
+		spin_unlock_irqrestore(&dwc->lock, flags);
+
+do_endxfer:
+		if (dwc->isoc_in_ep_stopxfer) {
+			u32 ep_num = 0;
+
+			spin_lock_irqsave(&dwc->lock, flags);
+			if (dwc->ep0state == EP0_SETUP_PHASE && dwc->ep0_next_event == DWC3_EP0_COMPLETE) {
+				u32 reg = dwc3_readl(dwc->regs, DWC3_DSTS);
+				if (!(reg & DWC3_DSTS_RXFIFOEMPTY)) { // RxFIFO is not empty, wait till setup xfer completed
+#ifdef DWC3_TRACE_EP0
+					printk(KERN_DEBUG"@Rx");
+#endif
+					dwc->ep0_wait_setup_recv = true;
+					spin_unlock_irqrestore(&dwc->lock, flags);
+					completed = wait_for_completion_timeout(&dwc->ep0_comp, __msecs_to_jiffies(10));
+					if (!completed)
+						dwc->ep0_wait_setup_recv = false;
+#ifdef DWC3_TRACE_EP0
+					printk(KERN_DEBUG"^Rx%ld", completed);
+#endif
+				}
+				else {
+					spin_unlock_irqrestore(&dwc->lock, flags);
+				}
+			}
+			else {
+				spin_unlock_irqrestore(&dwc->lock, flags);
+			}
+
+			spin_lock_irqsave(&dwc->lock, flags);
+			ep_num = dwc->isoc_in_ep_stopxfer;
+			dep = dwc->eps[ep_num];
+			dwc3_stop_active_transfer(dwc, ep_num, true);
+			dep->flags = DWC3_EP_ENABLED;
+			dwc->isoc_in_ep_stopxfer = 0;
+			if (dep->pending_requests || dep->queued_requests) {
+				dwc->ep0_schedule_indicator = true;
+#ifdef DWC3_ISOC_MONITOR
+				dwc->isoc_in_ep_activated = false;
+				// 35ms delayed work to monitor whether isoc xfer keeps in progressing
+				mod_delayed_work(dwc->isoc_in_wq, &dwc->isoc_in_monitor, __msecs_to_jiffies(35));
+#endif
+			}
+			spin_unlock_irqrestore(&dwc->lock, flags);
+		}
+	}
+	return 0;
+}
+#endif

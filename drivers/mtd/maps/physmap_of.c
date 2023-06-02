@@ -287,7 +287,18 @@ static int of_flash_probe(struct platform_device *dev)
 							 &info->list[i].map);
 		}
 		mtd_list[i] = info->list[i].mtd;
-
+#ifdef CONFIG_MSTAR_DRIVERS
+        {
+            int erasesieze=0;
+            if(!of_property_read_u32(dp, "erase-size", &erasesieze))
+            {
+                mtd_list[i]->erasesize = erasesieze;
+                printk( "[Physmap] %s search erase-size 0x%x on DTS\n", info->list[i].map.name, erasesieze );
+            }else{
+                printk( "[Physmap] %s not search erase-size on DTS, default is 0x%x\n",info->list[i].map.name, mtd_list[i]->erasesize );
+            }
+        }
+#endif
 		err = -ENXIO;
 		if (!info->list[i].mtd) {
 			dev_err(&dev->dev, "do_map_probe() failed\n");

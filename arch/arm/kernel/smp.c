@@ -51,6 +51,10 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/ipi.h>
 
+#ifdef CONFIG_LH_RTOS
+#include "drv_dualos.h"
+#endif
+
 /*
  * as from 2.5, kernels no longer have an init_tasks structure
  * so we need some other way of telling a new secondary core
@@ -78,6 +82,10 @@ enum ipi_msg_type {
 	 * not be usable by the kernel. Please keep the above limited
 	 * to at most 8 entries.
 	 */
+#ifdef CONFIG_LH_RTOS
+    IPI_RTOS_2_LINUX_NBLK_CALL_REQ = IPI_NR_RTOS_2_LINUX_NBLK_CALL_REQ,
+    IPI_REROUTE_SMC = IPI_NR_REROUTE_SMC,
+#endif
 };
 
 static DECLARE_COMPLETION(cpu_running);
@@ -650,6 +658,38 @@ void handle_IPI(int ipinr, struct pt_regs *regs)
 		irq_exit();
 		printk_nmi_exit();
 		break;
+
+#ifdef CONFIG_LH_RTOS
+    /* 8/9/10 are compatible for old MI ack */
+    case 8:
+    case 9:
+    case 10:
+    {
+        void handle_rsq(int);
+        irq_enter();
+        handle_rsq(ipinr);
+        irq_exit();
+        break;
+    }
+
+#if ENABLE_NBLK_CALL
+    case IPI_RTOS_2_LINUX_NBLK_CALL_REQ:
+    {
+        irq_enter();
+        handle_interos_nblk_call_req();
+        irq_exit();
+        break;
+    }
+#endif
+
+    case IPI_REROUTE_SMC:
+    {
+        irq_enter();
+        handle_reroute_smc();
+        irq_exit();
+        break;
+    }
+#endif
 
 	default:
 		pr_crit("CPU%u: Unknown IPI message 0x%x\n",

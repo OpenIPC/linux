@@ -62,6 +62,7 @@
 #include <asm/unwind.h>
 #include <asm/memblock.h>
 #include <asm/virt.h>
+#include <asm/kasan.h>
 
 #include "atags.h"
 
@@ -1058,6 +1059,7 @@ void __init hyp_mode_check(void)
 #endif
 }
 
+void __init prom_meminit(void);
 void __init setup_arch(char **cmdline_p)
 {
 	const struct machine_desc *mdesc;
@@ -1086,7 +1088,9 @@ void __init setup_arch(char **cmdline_p)
 	early_ioremap_init();
 
 	parse_early_param();
-
+#ifdef CONFIG_ARCH_SSTAR
+	prom_meminit();
+#endif
 #ifdef CONFIG_MMU
 	early_paging_init(mdesc);
 #endif
@@ -1105,6 +1109,7 @@ void __init setup_arch(char **cmdline_p)
 	early_ioremap_reset();
 
 	paging_init(mdesc);
+	kasan_init();
 	request_standard_resources(mdesc);
 
 	if (mdesc->restart)
@@ -1211,10 +1216,13 @@ static const char *hwcap2_str[] = {
 	NULL
 };
 
+extern unsigned int get_cpufreq_testout(void);
+
 static int c_show(struct seq_file *m, void *v)
 {
 	int i, j;
 	u32 cpuid;
+	u32 cpu_mhz;
 
 	for_each_online_cpu(i) {
 		/*
@@ -1226,6 +1234,10 @@ static int c_show(struct seq_file *m, void *v)
 		cpuid = is_smp() ? per_cpu(cpu_data, i).cpuid : read_cpuid_id();
 		seq_printf(m, "model name\t: %s rev %d (%s)\n",
 			   cpu_name, cpuid & 15, elf_platform);
+
+        cpu_mhz =  get_cpufreq_testout();
+        seq_printf(m, "cpu MHz\t\t: %d.%03d\n",
+               cpu_mhz/1000000, (cpu_mhz/1000)%1000);
 
 #if defined(CONFIG_SMP)
 		seq_printf(m, "BogoMIPS\t: %lu.%02lu\n",

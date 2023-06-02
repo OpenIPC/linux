@@ -1,0 +1,17 @@
+config CAM_CLK
+	boolean "CamClk driver driver"
+	default n
+	help
+	
+config CAM_CLK_SYSFS
+    boolean "CamClk support for sysfs"
+    depends on CAM_CLK
+
+config CAMCLK_AUTOENABLE
+    boolean "CamClk support for auto enable all clk"
+    depends on CAM_CLK
+    
+config CAM_CLK_PROFILING
+    boolean "CamClk support for initial profiling"
+    depends on CAM_CLK
+    depends on SS_PROFILING_TIME

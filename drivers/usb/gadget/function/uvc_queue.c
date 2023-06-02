@@ -21,8 +21,12 @@
 #include <linux/wait.h>
 
 #include <media/v4l2-common.h>
-#include <media/videobuf2-vmalloc.h>
 
+#ifdef CONFIG_USB_WEBCAM_UVC_SUPPORT_SG_TABLE
+#include <media/videobuf2-dma-sg.h>
+#else
+#include <media/videobuf2-vmalloc.h>
+#endif
 #include "uvc.h"
 
 /* ------------------------------------------------------------------------
@@ -54,7 +58,9 @@ static int uvc_queue_setup(struct vb2_queue *vq,
 	*nplanes = 1;
 
 	sizes[0] = video->imagesize;
-
+#ifdef CONFIG_USB_WEBCAM_UVC_SUPPORT_SG_TABLE
+	alloc_devs[0] = &video->uvc->func.config->cdev->gadget->dev;
+#endif
 	return 0;
 }
 
@@ -63,6 +69,12 @@ static int uvc_buffer_prepare(struct vb2_buffer *vb)
 	struct uvc_video_queue *queue = vb2_get_drv_priv(vb->vb2_queue);
 	struct vb2_v4l2_buffer *vbuf = to_vb2_v4l2_buffer(vb);
 	struct uvc_buffer *buf = container_of(vbuf, struct uvc_buffer, buf);
+#ifdef CONFIG_USB_WEBCAM_UVC_SUPPORT_SG_TABLE
+	struct uvc_video *video = container_of(queue, struct uvc_video, queue);
+	struct uvc_device *uvc = video_to_uvc(video);
+	struct usb_gadget * gadget = fuvc_to_gadget(uvc->func);
+	struct sg_table *sgt;
+#endif
 
 	if (vb->type == V4L2_BUF_TYPE_VIDEO_OUTPUT &&
 	    vb2_get_plane_payload(vb, 0) > vb2_plane_size(vb, 0)) {
@@ -81,6 +93,18 @@ static int uvc_buffer_prepare(struct vb2_buffer *vb)
 	else
 		buf->bytesused = vb2_get_plane_payload(vb, 0);
 
+#ifdef CONFIG_USB_WEBCAM_UVC_SUPPORT_SG_TABLE
+	if (gadget->sg_supported)
+	{
+		sgt = vb2_plane_cookie(vb, 0);
+		sg_alloc_table(&buf->sgt, sgt->nents, GFP_KERNEL);
+		sg_init_table(buf->sgt.sgl, sgt->nents);
+		if (sg_copy(sgt->sgl, buf->sgt.sgl, buf->bytesused))
+		{
+			printk("%s sg copy error\n", __func__);
+		}
+	}
+#endif
 	return 0;
 }
 
@@ -89,10 +113,18 @@ static void uvc_buffer_queue(struct vb2_buffer *vb)
 	struct uvc_video_queue *queue = vb2_get_drv_priv(vb->vb2_queue);
 	struct vb2_v4l2_buffer *vbuf = to_vb2_v4l2_buffer(vb);
 	struct uvc_buffer *buf = container_of(vbuf, struct uvc_buffer, buf);
+#ifdef CONFIG_USB_WEBCAM_UVC_SUPPORT_SG_TABLE
+	struct uvc_video *video = container_of(queue, struct uvc_video, queue);
+	struct uvc_device *uvc = video_to_uvc(video);
+	struct usb_gadget * gadget = fuvc_to_gadget(uvc->func);
+#endif
 	unsigned long flags;
 
 	spin_lock_irqsave(&queue->irqlock, flags);
 
+#if defined(CONFIG_SS_GADGET) ||defined(CONFIG_SS_GADGET_MODULE)
+	buf->bFrameEnd = queue->bFrameEnd;
+#endif
 	if (likely(!(queue->flags & UVC_QUEUE_DISCONNECTED))) {
 		list_add_tail(&buf->queue, &queue->irqqueue);
 	} else {
@@ -100,6 +132,12 @@ static void uvc_buffer_queue(struct vb2_buffer *vb)
 		 * directly. The next QBUF call will fail with -ENODEV.
 		 */
 		buf->state = UVC_BUF_STATE_ERROR;
+#ifdef CONFIG_USB_WEBCAM_UVC_SUPPORT_SG_TABLE
+		if (gadget->sg_supported)
+		{
+			sg_free_table(&buf->sgt);
+		}
+#endif
 		vb2_buffer_done(vb, VB2_BUF_STATE_ERROR);
 	}
 
@@ -125,7 +163,11 @@ int uvcg_queue_init(struct uvc_video_queue *queue, enum v4l2_buf_type type,
 	queue->queue.buf_struct_size = sizeof(struct uvc_buffer);
 	queue->queue.ops = &uvc_queue_qops;
 	queue->queue.lock = lock;
+#ifdef CONFIG_USB_WEBCAM_UVC_SUPPORT_SG_TABLE
+	queue->queue.mem_ops = &vb2_dma_sg_memops;
+#else
 	queue->queue.mem_ops = &vb2_vmalloc_memops;
+#endif
 	queue->queue.timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC
 				     | V4L2_BUF_FLAG_TSTAMP_SRC_EOF;
 	ret = vb2_queue_init(&queue->queue);
@@ -236,6 +278,11 @@ unsigned long uvcg_queue_get_unmapped_area(struct uvc_video_queue *queue,
 void uvcg_queue_cancel(struct uvc_video_queue *queue, int disconnect)
 {
 	struct uvc_buffer *buf;
+#ifdef CONFIG_USB_WEBCAM_UVC_SUPPORT_SG_TABLE
+	struct uvc_video *video = container_of(queue, struct uvc_video, queue);
+	struct uvc_device *uvc = video_to_uvc(video);
+	struct usb_gadget * gadget = fuvc_to_gadget(uvc->func);
+#endif
 	unsigned long flags;
 
 	spin_lock_irqsave(&queue->irqlock, flags);
@@ -244,6 +291,12 @@ void uvcg_queue_cancel(struct uvc_video_queue *queue, int disconnect)
 				       queue);
 		list_del(&buf->queue);
 		buf->state = UVC_BUF_STATE_ERROR;
+#ifdef CONFIG_USB_WEBCAM_UVC_SUPPORT_SG_TABLE
+		if (gadget->sg_supported)
+		{
+			sg_free_table(&buf->sgt);
+		}
+#endif
 		vb2_buffer_done(&buf->buf.vb2_buf, VB2_BUF_STATE_ERROR);
 	}
 	/* This must be protected by the irqlock spinlock to avoid race
@@ -276,6 +329,11 @@ void uvcg_queue_cancel(struct uvc_video_queue *queue, int disconnect)
  */
 int uvcg_queue_enable(struct uvc_video_queue *queue, int enable)
 {
+#ifdef CONFIG_USB_WEBCAM_UVC_SUPPORT_SG_TABLE
+	struct uvc_video *video = container_of(queue, struct uvc_video, queue);
+	struct uvc_device *uvc = video_to_uvc(video);
+	struct usb_gadget * gadget = fuvc_to_gadget(uvc->func);
+#endif
 	unsigned long flags;
 	int ret = 0;
 
@@ -286,6 +344,12 @@ int uvcg_queue_enable(struct uvc_video_queue *queue, int enable)
 
 		queue->sequence = 0;
 		queue->buf_used = 0;
+#ifdef CONFIG_USB_WEBCAM_UVC_SUPPORT_SG_TABLE
+		if (gadget->sg_supported)
+		{
+			queue->cur_sg = NULL;
+		}
+#endif
 	} else {
 		ret = vb2_streamoff(&queue->queue, queue->queue.type);
 		if (ret < 0)
@@ -307,10 +371,47 @@ int uvcg_queue_enable(struct uvc_video_queue *queue, int enable)
 	return ret;
 }
 
+#ifdef CONFIG_USB_WEBCAM_UVC_SUPPORT_SG_TABLE
+void uvcg_complete_sg(struct uvc_video_queue *queue)
+{
+	struct uvc_buffer *buf = NULL;
+
+	list_for_each_entry(buf, &queue->irqqueue, queue)
+	{
+		if (buf->state == UVC_BUF_STATE_DONE)
+		{
+			uvcg_queue_next_buffer(queue, buf);
+			return;
+		}
+	}
+}
+
+struct uvc_buffer *uvcg_prepare_sg(struct uvc_video_queue *queue)
+{
+	struct uvc_buffer *buf = NULL;
+
+	list_for_each_entry(buf, &queue->irqqueue, queue)
+	{
+		if (buf->state != UVC_BUF_STATE_DONE)
+		{
+			return buf;
+		}
+	}
+
+	queue->flags |= UVC_QUEUE_PAUSED;
+	return NULL;
+}
+#endif
+
 /* called with &queue_irqlock held.. */
 struct uvc_buffer *uvcg_queue_next_buffer(struct uvc_video_queue *queue,
 					  struct uvc_buffer *buf)
 {
+#ifdef CONFIG_USB_WEBCAM_UVC_SUPPORT_SG_TABLE
+	struct uvc_video *video = container_of(queue, struct uvc_video, queue);
+	struct uvc_device *uvc = video_to_uvc(video);
+	struct usb_gadget * gadget = fuvc_to_gadget(uvc->func);
+#endif
 	struct uvc_buffer *nextbuf;
 
 	if ((queue->flags & UVC_QUEUE_DROP_INCOMPLETE) &&
@@ -332,6 +433,12 @@ struct uvc_buffer *uvcg_queue_next_buffer(struct uvc_video_queue *queue,
 	buf->buf.vb2_buf.timestamp = ktime_get_ns();
 
 	vb2_set_plane_payload(&buf->buf.vb2_buf, 0, buf->bytesused);
+#ifdef CONFIG_USB_WEBCAM_UVC_SUPPORT_SG_TABLE
+	if (gadget->sg_supported)
+	{
+		sg_free_table(&buf->sgt);
+	}
+#endif
 	vb2_buffer_done(&buf->buf.vb2_buf, VB2_BUF_STATE_DONE);
 
 	return nextbuf;
