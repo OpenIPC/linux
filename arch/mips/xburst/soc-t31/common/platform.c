@@ -1032,6 +1032,16 @@ static void get_isp_priv_mem(unsigned int *phyaddr, unsigned int *size)
 	*size = ispmem_size;
 }
 
+int disable_gmac = 0;
+EXPORT_SYMBOL(disable_gmac);
+
+static int __init extras_parse(char *str)
+{
+	disable_gmac = 1;
+	return 0;
+}
+__setup("nogmac", extras_parse);
+
 #ifndef CONFIG_PROC_FS
 #error NOT config procfs
 #endif

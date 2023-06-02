@@ -85,6 +85,7 @@ int __init gpio_ss_recheck(void);
 #endif
 extern int __init gpio_customized_init(void);
 extern void __enable_irq(struct irq_desc *desc, unsigned int irq, bool resume);
+extern int disable_gmac;
 
 struct jzgpio_state {
 	unsigned int pxint;
@@ -970,6 +971,15 @@ int __init setup_gpio_pins(void)
 		} else if (g->port < 0) {
 			/* Wrong defines end */
 			break;
+		}
+
+		if (!strcmp(g->name,"gmac_pb") && disable_gmac){
+			pr_info("Skipping GMAC GPIO setup\n");
+			continue;
+		}
+		if (!strcmp(g->name,"msc1-pB") && !disable_gmac){
+			pr_info("Skipping MSC1_PB GPIO setup\n");
+			continue;
 		}
 
 		jz = &jz_gpio_chips[g->port];
