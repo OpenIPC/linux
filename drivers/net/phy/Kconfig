@@ -5,6 +5,7 @@
 menuconfig PHYLIB
 	tristate "PHY Device support and infrastructure"
 	depends on NETDEVICES
+	select NET_ETHTOOL
 	help
 	  Ethernet controllers are usually attached to PHY
 	  devices.  This option provides infrastructure for
@@ -148,6 +149,10 @@ config MDIO_XGENE
 	  APM X-Gene SoC's.
 
 comment "MII PHY device drivers"
+
+config SUNXI_EPHY
+	tristate "Drivers for Allwinnertech EPHY"
+	depends on MFD_ACX00
 
 config AMD_PHY
 	tristate "AMD PHYs"

@@ -57,6 +57,13 @@ struct inet_frag_queue {
 	struct hlist_node	list_evictor;
 };
 
+#ifdef CONFIG_BASE_SMALL
+#define INETFRAGS_HASHSZ	16
+#define INETFRAGS_MAXDEPTH	32
+
+#define INETFRAGS_EVICT_BUCKETS   8
+#define INETFRAGS_EVICT_MAX	  16
+#else
 #define INETFRAGS_HASHSZ	1024
 
 /* averaged:
@@ -65,6 +72,11 @@ struct inet_frag_queue {
  *	       struct frag_queue))
  */
 #define INETFRAGS_MAXDEPTH	128
+
+#define INETFRAGS_EVICT_BUCKETS   128
+#define INETFRAGS_EVICT_MAX	  512
+
+#endif
 
 struct inet_frag_bucket {
 	struct hlist_head	chain;

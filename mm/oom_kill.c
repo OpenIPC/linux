@@ -33,6 +33,7 @@
 #include <linux/security.h>
 #include <linux/ptrace.h>
 #include <linux/freezer.h>
+#include <linux/kmsg_dump.h>
 #include <linux/ftrace.h>
 #include <linux/ratelimit.h>
 #include <linux/kthread.h>
@@ -947,6 +948,7 @@ static void oom_kill_process(struct oom_control *oc, const char *message)
 
 	mmdrop(mm);
 	put_task_struct(victim);
+	kmsg_dump(KMSG_DUMP_OOM);
 }
 #undef K
 

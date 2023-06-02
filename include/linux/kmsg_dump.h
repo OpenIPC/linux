@@ -22,6 +22,7 @@
  */
 enum kmsg_dump_reason {
 	KMSG_DUMP_UNDEF,
+	KMSG_DUMP_OOM,
 	KMSG_DUMP_PANIC,
 	KMSG_DUMP_OOPS,
 	KMSG_DUMP_EMERG,

@@ -959,6 +959,19 @@ static inline int pci_write_config_dword(const struct pci_dev *dev, int where,
 	return pci_bus_write_config_dword(dev->bus, dev->devfn, where, val);
 }
 
+#ifdef CONFIG_ARCH_SUN50IW6
+struct pci_page {
+	unsigned long offset;
+	void __iomem *mem_base;
+};
+
+struct pci_page sunxi_pcie_bus_cutpage_config(struct pci_dev *dev, int barnum, u32 bar_base, unsigned long offset);
+struct pci_page sunxi_pcie_device_cutpage_config(u32 bar_base, unsigned long offset);
+int sunxi_pcie_cutpage_base(u32 bar_base);
+unsigned long sunxi_pcie_cutpage_spin_lock(void);
+void sunxi_pcie_cutpage_spin_unlock(unsigned long flags);
+#endif
+
 int pcie_capability_read_word(struct pci_dev *dev, int pos, u16 *val);
 int pcie_capability_read_dword(struct pci_dev *dev, int pos, u32 *val);
 int pcie_capability_write_word(struct pci_dev *dev, int pos, u16 val);

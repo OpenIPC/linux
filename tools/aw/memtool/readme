@@ -1,0 +1,7 @@
+Usage : memtool [option]\n"
+	option: -k     : show kernel space mem used;
+			-u     : show user space mem used;
+			-a     : show mem used of kernel sapce and user space;
+			-p pid : show process mem and get detail mem msg for this process;
+			-p all : show all process mem and get detail mem msg, equal to '-u';
+			-v     : print vesion info;

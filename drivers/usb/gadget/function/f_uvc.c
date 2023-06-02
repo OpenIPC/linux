@@ -290,6 +290,9 @@ uvc_function_set_alt(struct usb_function *f, unsigned interface, unsigned alt)
 	struct usb_composite_dev *cdev = f->config->cdev;
 	struct v4l2_event v4l2_event;
 	struct uvc_event *uvc_event = (void *)&v4l2_event.u.data;
+#if IS_ENABLED(CONFIG_USB_SUNXI_UDC0)
+	static unsigned ep_enable_flag;
+#endif
 	int ret;
 
 	INFO(cdev, "uvc_function_set_alt(%u, %u)\n", interface, alt);
@@ -332,8 +335,15 @@ uvc_function_set_alt(struct usb_function *f, unsigned interface, unsigned alt)
 		if (uvc->state != UVC_STATE_STREAMING)
 			return 0;
 
+#if IS_ENABLED(CONFIG_USB_SUNXI_UDC0)
+		if (uvc->video.ep) {
+			usb_ep_disable(uvc->video.ep);
+			ep_enable_flag = 0;
+		}
+#else
 		if (uvc->video.ep)
 			usb_ep_disable(uvc->video.ep);
+#endif
 
 		memset(&v4l2_event, 0, sizeof(v4l2_event));
 		v4l2_event.type = UVC_EVENT_STREAMOFF;
@@ -350,13 +360,24 @@ uvc_function_set_alt(struct usb_function *f, unsigned interface, unsigned alt)
 			return -EINVAL;
 
 		INFO(cdev, "reset UVC\n");
-		usb_ep_disable(uvc->video.ep);
+#if IS_ENABLED(CONFIG_USB_SUNXI_UDC0)
+		if (ep_enable_flag == 1) {
+			usb_ep_disable(uvc->video.ep);
+			ep_enable_flag = 0;
+		}
+#endif
 
 		ret = config_ep_by_speed(f->config->cdev->gadget,
 				&(uvc->func), uvc->video.ep);
 		if (ret)
 			return ret;
+#if IS_ENABLED(CONFIG_USB_SUNXI_UDC0)
+		ret = usb_ep_enable(uvc->video.ep);
+		if (ret == 0)
+			ep_enable_flag = 1;
+#else
 		usb_ep_enable(uvc->video.ep);
+#endif
 
 		memset(&v4l2_event, 0, sizeof(v4l2_event));
 		v4l2_event.type = UVC_EVENT_STREAMON;
@@ -925,7 +946,9 @@ static struct usb_function *uvc_alloc(struct usb_function_instance *fi)
 	uvc->func.disable = uvc_function_disable;
 	uvc->func.setup = uvc_function_setup;
 	uvc->func.free_func = uvc_free;
+#if !IS_ENABLED(CONFIG_USB_SUNXI_UDC0)
 	uvc->func.bind_deactivated = true;
+#endif
 
 	return &uvc->func;
 }

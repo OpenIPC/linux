@@ -191,6 +191,17 @@ void squashfs_cache_put(struct squashfs_cache_entry *entry)
 	entry->refcount--;
 	if (entry->refcount == 0) {
 		cache->unused++;
+
+		/*
+		 * If error of this entry is occured, we need to
+		 * mark it to SQUASHFS_INVALID_BLK, and clear the
+		 * error variable.
+		 */
+		if (entry->error) {
+			entry->error = 0;
+			entry->block = SQUASHFS_INVALID_BLK;
+		}
+
 		/*
 		 * If there's any processes waiting for a block to become
 		 * available, wake one up.

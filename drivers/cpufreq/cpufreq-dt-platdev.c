@@ -25,6 +25,7 @@ static const struct of_device_id machines[] __initconst = {
 	{ .compatible = "allwinner,sun8i-a33", },
 	{ .compatible = "allwinner,sun8i-a83t", },
 	{ .compatible = "allwinner,sun8i-h3", },
+	{ .compatible = "allwinner,sun8iw19p1", },
 
 	{ .compatible = "hisilicon,hi6220", },
 

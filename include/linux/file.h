@@ -85,5 +85,6 @@ extern void fd_install(unsigned int fd, struct file *file);
 
 extern void flush_delayed_fput(void);
 extern void __fput_sync(struct file *);
+int get_unused_fd_flags2(unsigned flags);
 
 #endif /* __LINUX_FILE_H */

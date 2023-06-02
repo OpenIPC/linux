@@ -1880,6 +1880,10 @@ free_interfaces:
 	}
 	kfree(new_interfaces);
 
+#if defined(CONFIG_ARCH_SUN50IW6)
+	msleep(20);
+#endif
+
 	ret = usb_control_msg(dev, usb_sndctrlpipe(dev, 0),
 			      USB_REQ_SET_CONFIGURATION, 0, configuration, 0,
 			      NULL, 0, USB_CTRL_SET_TIMEOUT);

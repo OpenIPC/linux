@@ -25,9 +25,6 @@
 #include <net/inet_frag.h>
 #include <net/inet_ecn.h>
 
-#define INETFRAGS_EVICT_BUCKETS   128
-#define INETFRAGS_EVICT_MAX	  512
-
 /* don't rebuild inetfrag table with new secret more often than this */
 #define INETFRAGS_MIN_REBUILD_INTERVAL (5 * HZ)
 

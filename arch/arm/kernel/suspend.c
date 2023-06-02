@@ -56,6 +56,14 @@ void __cpu_suspend_save(u32 *ptr, u32 ptrsz, u32 sp, u32 *save_ptr)
 {
 	u32 *ctx = ptr;
 
+	/*
+	 * ptr is the pointer of stack
+	 */
+#if IS_ENABLED(CONFIG_VMAP_STACK)
+	if (is_vmalloc_addr(ptr))
+		*save_ptr = page_to_phys(vmalloc_to_page(ptr)) + offset_in_page(ptr);
+	else
+#endif
 	*save_ptr = virt_to_phys(ptr);
 
 	/* This must correspond to the LDM in cpu_resume() assembly */

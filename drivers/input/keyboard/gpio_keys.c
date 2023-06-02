@@ -33,6 +33,10 @@
 #include <linux/of_irq.h>
 #include <linux/spinlock.h>
 
+#ifdef CONFIG_ARCH_SUNXI
+#include <linux/sunxi-gpio.h>
+#endif
+
 struct gpio_button_data {
 	const struct gpio_keys_button *button;
 	struct input_dev *input;
@@ -502,7 +506,7 @@ static int gpio_keys_setup_key(struct platform_device *pdev,
 		bdata->gpiod = gpio_to_desc(button->gpio);
 		if (!bdata->gpiod)
 			return -EINVAL;
-
+#if 0
 		if (button->debounce_interval) {
 			error = gpiod_set_debounce(bdata->gpiod,
 					button->debounce_interval * 1000);
@@ -511,6 +515,9 @@ static int gpio_keys_setup_key(struct platform_device *pdev,
 				bdata->software_debounce =
 						button->debounce_interval;
 		}
+#else
+		bdata->software_debounce = button->debounce_interval;
+#endif
 
 		if (button->irq) {
 			bdata->irq = button->irq;
@@ -664,11 +671,15 @@ gpio_keys_get_devtree_pdata(struct device *dev)
 
 	i = 0;
 	for_each_available_child_of_node(node, pp) {
+#ifdef CONFIG_ARCH_SUNXI
+		struct gpio_config flags;
+#else
 		enum of_gpio_flags flags;
+#endif
 
 		button = &pdata->buttons[i++];
 
-		button->gpio = of_get_gpio_flags(pp, 0, &flags);
+		button->gpio = of_get_gpio_flags(pp, 0, (enum of_gpio_flags *)&flags);
 		if (button->gpio < 0) {
 			error = button->gpio;
 			if (error != -ENOENT) {
@@ -679,7 +690,11 @@ gpio_keys_get_devtree_pdata(struct device *dev)
 				return ERR_PTR(error);
 			}
 		} else {
+#ifdef CONFIG_ARCH_SUNXI
+			button->active_low = flags.data & OF_GPIO_ACTIVE_LOW;
+#else
 			button->active_low = flags & OF_GPIO_ACTIVE_LOW;
+#endif
 		}
 
 		button->irq = irq_of_parse_and_map(pp, 0);

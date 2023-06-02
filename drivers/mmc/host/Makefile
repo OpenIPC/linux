@@ -54,7 +54,13 @@ obj-$(CONFIG_MMC_VUB300)	+= vub300.o
 obj-$(CONFIG_MMC_USHC)		+= ushc.o
 obj-$(CONFIG_MMC_WMT)		+= wmt-sdmmc.o
 obj-$(CONFIG_MMC_MOXART)	+= moxart-mmc.o
-obj-$(CONFIG_MMC_SUNXI)		+= sunxi-mmc.o
+obj-$(CONFIG_MMC_SUNXI)		+= sunxi_mmc_host.o
+sunxi_mmc_host-y		:=sunxi-mmc.o sunxi-mmc-debug.o sunxi-mmc-export.o sunxi-mmc-v4p1x.o sunxi-mmc-v4p00x.o sunxi-mmc-v4p10x.o sunxi-mmc-v4p5x.o sunxi-mmc-panic.o \
+				sunxi-mmc-sun50iw1p1-2.o sunxi-mmc-sun50iw1p1-1.o sunxi-mmc-sun50iw1p1-0.o \
+				sunxi-smhc.o sunxi-mmc-v5px.o \
+				sunxi-mmc-v5p3x.o
+
+
 obj-$(CONFIG_MMC_USDHI6ROL0)	+= usdhi6rol0.o
 obj-$(CONFIG_MMC_TOSHIBA_PCI)	+= toshsd.o
 

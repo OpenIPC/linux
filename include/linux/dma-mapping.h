@@ -606,6 +606,8 @@ static inline void arch_setup_dma_ops(struct device *dev, u64 dma_base,
 				      u64 size, const struct iommu_ops *iommu,
 				      bool coherent) { }
 #endif
+extern bool do_iommu_attach(struct device *dev, const struct iommu_ops *ops,
+			   u64 dma_base, u64 size);
 
 #ifndef arch_teardown_dma_ops
 static inline void arch_teardown_dma_ops(struct device *dev) { }

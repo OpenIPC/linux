@@ -17,6 +17,7 @@
 
 #include <linux/bug.h>
 #include <linux/atomic.h>
+#include <linux/refcount.h>
 #include <linux/kernel.h>
 #include <linux/mutex.h>
 

@@ -16,6 +16,7 @@
 #include <linux/sched.h>
 #include <linux/device.h>
 #include <linux/fault-inject.h>
+#include <linux/blkdev.h>
 
 #include <linux/mmc/core.h>
 #include <linux/mmc/card.h>
@@ -214,6 +215,11 @@ struct mmc_pwrseq;
 struct mmc_supply {
 	struct regulator *vmmc;		/* Card power supply */
 	struct regulator *vqmmc;	/* Optional Vccq supply */
+	struct regulator *vdmmc;	/* Optional card detect pin supply */
+	struct regulator *vdmmc33sw;	/* SD card PMU control*/
+	struct regulator *vdmmc18sw;
+	struct regulator *vqmmc33sw;	/* SD card PMU control*/
+	struct regulator *vqmmc18sw;
 };
 
 struct mmc_host {
@@ -289,6 +295,7 @@ struct mmc_host {
 
 #define MMC_CAP2_BOOTPART_NOACC	(1 << 0)	/* Boot partition no access */
 #define MMC_CAP2_FULL_PWR_CYCLE	(1 << 2)	/* Can do full power cycle */
+#define MMC_CAP2_CACHE_CTRL	(1 << 1)	/* Allow cache control */
 #define MMC_CAP2_HS200_1_8V_SDR	(1 << 5)        /* can support */
 #define MMC_CAP2_HS200_1_2V_SDR	(1 << 6)        /* can support */
 #define MMC_CAP2_HS200		(MMC_CAP2_HS200_1_8V_SDR | \
@@ -312,6 +319,11 @@ struct mmc_host {
 #define MMC_CAP2_HS400_ES	(1 << 20)	/* Host supports enhanced strobe */
 #define MMC_CAP2_NO_SD		(1 << 21)	/* Do not send SD commands during initialization */
 #define MMC_CAP2_NO_MMC		(1 << 22)	/* Do not send (e)MMC commands during initialization */
+
+#define MMC_SUNXI_CAP3_DAT3_DET	(1 << 0)
+#define MMC_SUNXI_CAP3_CD_USED_24M	(1 << 1)
+	u32		sunxi_caps3;
+
 
 	mmc_pm_flag_t		pm_caps;	/* supported pm features */
 
@@ -397,6 +409,21 @@ struct mmc_host {
 	int			dsr_req;	/* DSR value is valid */
 	u32			dsr;	/* optional driver stage (DSR) value */
 
+#ifdef CONFIG_MMC_EMBEDDED_SDIO
+	struct {
+		struct sdio_cis			*cis;
+		struct sdio_cccr		*cccr;
+		struct sdio_embedded_func	*funcs;
+		int				num_funcs;
+	} embedded_sdio_data;
+#endif
+
+#ifdef CONFIG_BLOCK
+	int			latency_hist_enabled;
+	struct io_latency_state io_lat_read;
+	struct io_latency_state io_lat_write;
+#endif
+
 	unsigned long		private[0] ____cacheline_aligned;
 };
 
@@ -405,6 +432,14 @@ int mmc_add_host(struct mmc_host *);
 void mmc_remove_host(struct mmc_host *);
 void mmc_free_host(struct mmc_host *);
 int mmc_of_parse(struct mmc_host *host);
+
+#ifdef CONFIG_MMC_EMBEDDED_SDIO
+extern void mmc_set_embedded_sdio_data(struct mmc_host *host,
+				       struct sdio_cis *cis,
+				       struct sdio_cccr *cccr,
+				       struct sdio_embedded_func *funcs,
+				       int num_funcs);
+#endif
 
 static inline void *mmc_priv(struct mmc_host *host)
 {

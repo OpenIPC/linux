@@ -34,4 +34,11 @@ obj-y += rc/
 
 obj-y += common/ platform/ pci/ usb/ mmc/ firewire/ spi/
 obj-$(CONFIG_VIDEO_DEV) += radio/
+obj-y += cedar-ve/
+obj-y += cedar-vp9/
+obj-$(CONFIG_AW_TSC)    += tsc/
 
+#
+# NNA drivers
+#
+obj-$(CONFIG_SUNXI_NNA) += sunxi_nna/

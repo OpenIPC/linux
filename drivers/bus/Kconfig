@@ -141,6 +141,13 @@ config SUNXI_RSB
 	  with various RSB based devices, such as AXP223, AXP8XX PMICs,
 	  and AC100/AC200 ICs.
 
+config SUNXI_MBUS
+	bool "SUNXI MBUS driver support"
+	depends on ARCH_SUNXI
+	select HWMON
+	help
+	  Driver supporting the mbus for sunxi platforms.
+
 config TEGRA_ACONNECT
 	tristate "Tegra ACONNECT Bus Driver"
 	depends on ARCH_TEGRA_210_SOC

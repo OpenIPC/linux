@@ -1,0 +1,13 @@
+/*
+ * Allwinner Technology CO., Ltd. sunivw1p1 evb board.
+ * Modified by czy
+ * evb board support.
+ */
+
+/dts-v1/;
+#include "sun8iw8p1.dtsi"
+
+/ {
+
+
+};

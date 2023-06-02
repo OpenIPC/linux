@@ -1,0 +1,8 @@
+config SUNXI_PANICPART
+	bool "sunxi panic partition"
+	select PSTORE
+	select PSTORE_BLK
+	select PSTORE_BLKOOPS
+	help
+	  This enable sunxi panic operations for blkoops.
+	  If you want blkoops to record panic log, say Y, otherwise, say N.

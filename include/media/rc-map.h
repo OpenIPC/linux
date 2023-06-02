@@ -138,6 +138,9 @@ struct rc_map {
 	enum rc_type		rc_type;
 	const char		*name;
 	spinlock_t		lock;
+#ifdef CONFIG_SUNXI_KEYMAPPING_SUPPORT
+	void			*mapping;
+#endif
 };
 
 /**
@@ -287,6 +290,7 @@ struct rc_map *rc_map_get(const char *name);
 #define RC_MAP_WINFAST                   "rc-winfast"
 #define RC_MAP_WINFAST_USBII_DELUXE      "rc-winfast-usbii-deluxe"
 #define RC_MAP_SU3000                    "rc-su3000"
+#define RC_MAP_AW_NEC                    "rc-aw-nec"
 
 /*
  * Please, do not just append newer Remote Controller names at the end.

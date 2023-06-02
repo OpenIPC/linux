@@ -124,8 +124,8 @@ static ssize_t ir_lirc_transmit_ir(struct file *file, const char __user *buf,
 	if (n < sizeof(unsigned) || n % sizeof(unsigned))
 		return -EINVAL;
 
-	count = n / sizeof(unsigned);
-	if (count > LIRCBUF_SIZE || count % 2 == 0)
+	count = n / sizeof(unsigned int);
+	if (count > LIRCBUF_SIZE || count % 2 != 0)
 		return -EINVAL;
 
 	txbuf = memdup_user(buf, n);
@@ -144,12 +144,13 @@ static ssize_t ir_lirc_transmit_ir(struct file *file, const char __user *buf,
 	}
 
 	for (i = 0; i < count; i++) {
-		if (txbuf[i] > IR_MAX_DURATION / 1000 - duration || !txbuf[i]) {
+		if (LIRC_VALUE(txbuf[i]) > IR_MAX_DURATION / 1000 - duration ||
+		!txbuf[i]) {
 			ret = -EINVAL;
 			goto out;
 		}
 
-		duration += txbuf[i];
+		duration += LIRC_VALUE(txbuf[i]);
 	}
 
 	ret = dev->tx_ir(dev, txbuf, count);
@@ -157,7 +158,7 @@ static ssize_t ir_lirc_transmit_ir(struct file *file, const char __user *buf,
 		goto out;
 
 	for (duration = i = 0; i < ret; i++)
-		duration += txbuf[i];
+		duration += LIRC_VALUE(txbuf[i]);
 
 	ret *= sizeof(unsigned int);
 
@@ -395,6 +396,8 @@ static int ir_lirc_register(struct rc_dev *dev)
 	drv->dev = &dev->dev;
 	drv->rdev = dev;
 	drv->owner = THIS_MODULE;
+	drv->chunk_size = 4;
+	drv->buffer_size = 64;
 
 	drv->minor = lirc_register_driver(drv);
 	if (drv->minor < 0) {

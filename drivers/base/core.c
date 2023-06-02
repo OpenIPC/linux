@@ -430,6 +430,7 @@ static ssize_t online_show(struct device *dev, struct device_attribute *attr,
 	bool val;
 
 	device_lock(dev);
+	dev->offline = !(!!cpu_online(dev->id));
 	val = !dev->offline;
 	device_unlock(dev);
 	return sprintf(buf, "%u\n", val);
@@ -448,6 +449,8 @@ static ssize_t online_store(struct device *dev, struct device_attribute *attr,
 	ret = lock_device_hotplug_sysfs();
 	if (ret)
 		return ret;
+
+	dev->offline = !(!!cpu_online(dev->id));
 
 	ret = val ? device_online(dev) : device_offline(dev);
 	unlock_device_hotplug();

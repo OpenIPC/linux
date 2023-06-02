@@ -244,7 +244,11 @@ static struct sk_buff **fou_gro_receive(struct sock *sk,
 	NAPI_GRO_CB(skb)->is_fou = 1;
 
 	rcu_read_lock();
+#if IS_ENABLED(CONFIG_INET) && IS_ENABLED(CONFIG_IPV6)
 	offloads = NAPI_GRO_CB(skb)->is_ipv6 ? inet6_offloads : inet_offloads;
+#else
+	offloads = inet_offloads;
+#endif
 	ops = rcu_dereference(offloads[proto]);
 	if (!ops || !ops->callbacks.gro_receive)
 		goto out_unlock;
@@ -266,7 +270,11 @@ static int fou_gro_complete(struct sock *sk, struct sk_buff *skb,
 	const struct net_offload **offloads;
 
 	rcu_read_lock();
+#if IS_ENABLED(CONFIG_INET) && IS_ENABLED(CONFIG_IPV6)
 	offloads = NAPI_GRO_CB(skb)->is_ipv6 ? inet6_offloads : inet_offloads;
+#else
+	offloads = inet_offloads;
+#endif
 	ops = rcu_dereference(offloads[proto]);
 	if (WARN_ON(!ops || !ops->callbacks.gro_complete))
 		goto out_unlock;
@@ -436,7 +444,11 @@ next_proto:
 	NAPI_GRO_CB(skb)->is_fou = 1;
 
 	rcu_read_lock();
+#if IS_ENABLED(CONFIG_INET) && IS_ENABLED(CONFIG_IPV6)
 	offloads = NAPI_GRO_CB(skb)->is_ipv6 ? inet6_offloads : inet_offloads;
+#else
+	offloads = inet_offloads;
+#endif
 	ops = rcu_dereference(offloads[proto]);
 	if (WARN_ON_ONCE(!ops || !ops->callbacks.gro_receive))
 		goto out_unlock;
@@ -484,7 +496,11 @@ static int gue_gro_complete(struct sock *sk, struct sk_buff *skb, int nhoff)
 	}
 
 	rcu_read_lock();
+#if IS_ENABLED(CONFIG_INET) && IS_ENABLED(CONFIG_IPV6)
 	offloads = NAPI_GRO_CB(skb)->is_ipv6 ? inet6_offloads : inet_offloads;
+#else
+	offloads = inet_offloads;
+#endif
 	ops = rcu_dereference(offloads[proto]);
 	if (WARN_ON(!ops || !ops->callbacks.gro_complete))
 		goto out_unlock;

@@ -18,6 +18,11 @@
 #include <linux/module.h>
 #include <linux/cdev.h>
 
+#ifdef CONFIG_ARCH_SUNXI
+#include <linux/sunxi-gpio.h>
+#endif
+
+
 enum of_gpio_flags;
 enum gpiod_flags;
 enum gpio_lookup_flags;

@@ -1255,6 +1255,11 @@ MODULE_LICENSE ("GPL");
 #define PLATFORM_DRIVER		ohci_hcd_tilegx_driver
 #endif
 
+#if IS_ENABLED(CONFIG_USB_SUNXI_HCI)
+#include "ohci_sunxi.c"
+#define PLATFORM_DRIVER		sunxi_ohci_hcd_driver
+#endif
+
 static int __init ohci_hcd_mod_init(void)
 {
 	int retval = 0;

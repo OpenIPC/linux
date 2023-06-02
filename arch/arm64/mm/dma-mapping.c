@@ -174,7 +174,7 @@ static void *__dma_alloc(struct device *dev, size_t size,
 	/* create a coherent mapping */
 	page = virt_to_page(ptr);
 	coherent_ptr = dma_common_contiguous_remap(page, size, VM_USERMAP,
-						   prot, NULL);
+						   prot, __builtin_return_address(0));
 	if (!coherent_ptr)
 		goto no_map;
 
@@ -237,8 +237,7 @@ static int __swiotlb_map_sg_attrs(struct device *dev, struct scatterlist *sgl,
 	ret = swiotlb_map_sg_attrs(dev, sgl, nelems, dir, attrs);
 	if (!is_device_dma_coherent(dev))
 		for_each_sg(sgl, sg, ret, i)
-			__dma_map_area(phys_to_virt(dma_to_phys(dev, sg->dma_address)),
-				       sg->length, dir);
+			__dma_map_area(phys_to_virt(sg_phys(sg)), sg->length, dir);
 
 	return ret;
 }
@@ -253,8 +252,7 @@ static void __swiotlb_unmap_sg_attrs(struct device *dev,
 
 	if (!is_device_dma_coherent(dev))
 		for_each_sg(sgl, sg, nelems, i)
-			__dma_unmap_area(phys_to_virt(dma_to_phys(dev, sg->dma_address)),
-					 sg->length, dir);
+			__dma_unmap_area(phys_to_virt(sg_phys(sg)), sg->length, dir);
 	swiotlb_unmap_sg_attrs(dev, sgl, nelems, dir, attrs);
 }
 
@@ -285,8 +283,7 @@ static void __swiotlb_sync_sg_for_cpu(struct device *dev,
 
 	if (!is_device_dma_coherent(dev))
 		for_each_sg(sgl, sg, nelems, i)
-			__dma_unmap_area(phys_to_virt(dma_to_phys(dev, sg->dma_address)),
-					 sg->length, dir);
+			__dma_unmap_area(phys_to_virt(sg_phys(sg)), sg->length, dir);
 	swiotlb_sync_sg_for_cpu(dev, sgl, nelems, dir);
 }
 
@@ -300,8 +297,7 @@ static void __swiotlb_sync_sg_for_device(struct device *dev,
 	swiotlb_sync_sg_for_device(dev, sgl, nelems, dir);
 	if (!is_device_dma_coherent(dev))
 		for_each_sg(sgl, sg, nelems, i)
-			__dma_map_area(phys_to_virt(dma_to_phys(dev, sg->dma_address)),
-				       sg->length, dir);
+			__dma_map_area(phys_to_virt(sg_phys(sg)), sg->length, dir);
 }
 
 static int __swiotlb_mmap(struct device *dev,
@@ -826,7 +822,7 @@ struct iommu_dma_notifier_data {
 static LIST_HEAD(iommu_dma_masters);
 static DEFINE_MUTEX(iommu_dma_notifier_lock);
 
-static bool do_iommu_attach(struct device *dev, const struct iommu_ops *ops,
+bool do_iommu_attach(struct device *dev, const struct iommu_ops *ops,
 			   u64 dma_base, u64 size)
 {
 	struct iommu_domain *domain = iommu_get_domain_for_dev(dev);
@@ -978,3 +974,4 @@ void arch_setup_dma_ops(struct device *dev, u64 dma_base, u64 size,
 	dev->archdata.dma_coherent = coherent;
 	__iommu_setup_dma_ops(dev, dma_base, size, iommu);
 }
+EXPORT_SYMBOL(__dma_flush_range);

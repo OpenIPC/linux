@@ -3280,9 +3280,16 @@ struct gpio_desc *fwnode_get_named_gpiod(struct fwnode_handle *fwnode,
 
 	if (is_of_node(fwnode)) {
 		enum of_gpio_flags flags;
-
+#ifndef CONFIG_ARCH_SUNXI
 		desc = of_get_named_gpiod_flags(to_of_node(fwnode), propname, 0,
 						&flags);
+#else
+		struct gpio_config gpio_flags;
+
+		desc = of_get_named_gpiod_flags(to_of_node(fwnode), propname, 0,
+						(enum of_gpio_flags *)&gpio_flags);
+		flags = gpio_flags.data;
+#endif
 		if (!IS_ERR(desc)) {
 			active_low = flags & OF_GPIO_ACTIVE_LOW;
 			single_ended = flags & OF_GPIO_SINGLE_ENDED;

@@ -68,8 +68,12 @@ config OF_IRQ
 	depends on !SPARC && IRQ_DOMAIN
 
 config OF_NET
+	bool "Device Tree of Networking(phy, mac-address, etc.)"
 	depends on NETDEVICES
-	def_bool y
+	default y
+	---help---
+	  This option can select Net interface for device drivers, such as
+	  mac-address, phy-mode.
 
 config OF_MDIO
 	def_tristate PHYLIB

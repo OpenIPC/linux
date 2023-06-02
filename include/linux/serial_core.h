@@ -66,6 +66,7 @@ struct uart_ops {
 	void		(*set_ldisc)(struct uart_port *, struct ktermios *);
 	void		(*pm)(struct uart_port *, unsigned int state,
 			      unsigned int oldstate);
+	void		(*wake_peer)(struct uart_port *);
 
 	/*
 	 * Return a string describing the type of the port
@@ -427,7 +428,7 @@ int uart_resume_port(struct uart_driver *reg, struct uart_port *port);
 static inline int uart_tx_stopped(struct uart_port *port)
 {
 	struct tty_struct *tty = port->state->port.tty;
-	if ((tty && tty->stopped) || port->hw_stopped)
+	if ((!tty) || port->hw_stopped)
 		return 1;
 	return 0;
 }

@@ -35,5 +35,8 @@ obj-$(CONFIG_IR_IGORPLUGUSB) += igorplugusb.o
 obj-$(CONFIG_IR_IGUANA) += iguanair.o
 obj-$(CONFIG_IR_TTUSBIR) += ttusbir.o
 obj-$(CONFIG_RC_ST) += st_rc.o
-obj-$(CONFIG_IR_SUNXI) += sunxi-cir.o
+obj-$(CONFIG_IR_SUNXI) += sunxi-ir-rx.o
+obj-$(CONFIG_IR_SUNXI_GPIO) += sunxi-gpio-ir.o
 obj-$(CONFIG_IR_IMG) += img-ir/
+sunxi-ir-rx-objs :=  rc-sunxi-keymaps.o sunxi-ir-dev.o
+# sunxi-cir.o

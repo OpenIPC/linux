@@ -569,6 +569,11 @@ f_audio_setup(struct usb_function *f, const struct usb_ctrlrequest *ctrl)
 	return value;
 }
 
+static int f_audio_get_alt(struct usb_function *f, unsigned intf)
+{
+	return;
+}
+
 static int f_audio_set_alt(struct usb_function *f, unsigned intf, unsigned alt)
 {
 	struct f_audio		*audio = func_to_audio(f);
@@ -789,7 +794,7 @@ static ssize_t f_uac1_opts_##name##_show(struct config_item *item,	\
 	int result;							\
 									\
 	mutex_lock(&opts->lock);					\
-	result = sprintf(page, "%u\n", opts->name);			\
+	result = sprintf(page, "%d\n", opts->name);			\
 	mutex_unlock(&opts->lock);					\
 									\
 	return result;							\
@@ -966,6 +971,7 @@ static struct usb_function *f_audio_alloc(struct usb_function_instance *fi)
 	audio->card.func.bind = f_audio_bind;
 	audio->card.func.unbind = f_audio_unbind;
 	audio->card.func.set_alt = f_audio_set_alt;
+	audio->card.func.get_alt = f_audio_get_alt;
 	audio->card.func.setup = f_audio_setup;
 	audio->card.func.disable = f_audio_disable;
 	audio->card.func.free_func = f_audio_free;

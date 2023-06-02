@@ -422,6 +422,7 @@ struct snd_pcm_runtime {
 	/* -- OSS things -- */
 	struct snd_pcm_oss_runtime oss;
 #endif
+	unsigned int xrun_cnt;
 };
 
 struct snd_pcm_group {		/* keep linked substreams */

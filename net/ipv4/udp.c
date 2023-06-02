@@ -1018,7 +1018,8 @@ int udp_sendmsg(struct sock *sk, struct msghdr *msg, size_t len)
 		flowi4_init_output(fl4, ipc.oif, sk->sk_mark, tos,
 				   RT_SCOPE_UNIVERSE, sk->sk_protocol,
 				   flow_flags,
-				   faddr, saddr, dport, inet->inet_sport);
+				   faddr, saddr, dport, inet->inet_sport,
+				   sk->sk_uid);
 
 		security_sk_classify_flow(sk, flowi4_to_flowi(fl4));
 		rt = ip_route_output_flow(net, fl4, sk);
@@ -2459,7 +2460,12 @@ void udp4_proc_exit(void)
 }
 #endif /* CONFIG_PROC_FS */
 
+#ifdef CONFIG_BASE_SMALL
+static __initdata unsigned long uhash_entries = 16;
+#else
 static __initdata unsigned long uhash_entries;
+#endif
+
 static int __init set_uhash_entries(char *str)
 {
 	ssize_t ret;

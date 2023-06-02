@@ -592,6 +592,13 @@ config TILE_SROM
 	  how to partition a single ROM for multiple purposes.
 
 source "drivers/char/xillybus/Kconfig"
+source "drivers/char/sunxi-scr/Kconfig"
+source "drivers/char/sunxi-sysinfo/Kconfig"
+source "drivers/char/dump_reg/Kconfig"
+source "drivers/char/timer_test/Kconfig"
+source "drivers/char/sunxi_tr/Kconfig"
+source "drivers/char/sunxi-di/Kconfig"
+source "drivers/char/sunxi_g2d/Kconfig"
 
 endmenu
 

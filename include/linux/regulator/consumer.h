@@ -262,6 +262,19 @@ void devm_regulator_unregister_notifier(struct regulator *regulator,
 void *regulator_get_drvdata(struct regulator *regulator);
 void regulator_set_drvdata(struct regulator *regulator, void *data);
 
+#if defined(CONFIG_AW_AXP)
+extern int axp_get_ldo_name(const char *supply_name, char *ldo_name);
+extern int axp_get_enable_id_count(const char *ldo_name);
+extern int axp_get_enable_id(const char *ldo_name, u32 count, char *enable_id);
+extern int axp_check_enable_id(const char *ldo_name, const char *enalbe_id);
+extern int axp_check_ldo_alwayson(const char *ldo_name);
+extern int axp_set_ldo_alwayson(const char *ldo_name, u32 value);
+extern int axp_regulator_dump(void);
+extern unsigned int axp_regulator_debug;
+extern int axp_mem_save(void);
+extern void axp_mem_restore(void);
+#endif
+
 #else
 
 /*

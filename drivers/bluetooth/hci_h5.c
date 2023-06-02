@@ -413,8 +413,10 @@ static int h5_rx_3wire_hdr(struct hci_uart *hu, unsigned char c)
 	}
 
 	if (H5_HDR_RELIABLE(hdr) && H5_HDR_SEQ(hdr) != h5->tx_ack) {
+/*
 		BT_ERR("Out-of-order packet arrived (%u != %u)",
 		       H5_HDR_SEQ(hdr), h5->tx_ack);
+ */
 		h5_reset_rx(h5);
 		return 0;
 	}

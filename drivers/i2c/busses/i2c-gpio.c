@@ -88,11 +88,13 @@ static int i2c_gpio_getscl(void *data)
 static int of_i2c_gpio_get_pins(struct device_node *np,
 				unsigned int *sda_pin, unsigned int *scl_pin)
 {
-	if (of_gpio_count(np) < 2)
-		return -ENODEV;
-
-	*sda_pin = of_get_gpio(np, 0);
-	*scl_pin = of_get_gpio(np, 1);
+	if (of_gpio_count(np) < 2) {
+		*sda_pin = of_get_named_gpio_flags(np, "i2c-gpio,sda", 0, NULL);
+		*scl_pin = of_get_named_gpio_flags(np, "i2c-gpio,scl", 0, NULL);
+	} else {
+		*sda_pin = of_get_gpio(np, 0);
+		*scl_pin = of_get_gpio(np, 1);
+	}
 
 	if (*sda_pin == -EPROBE_DEFER || *scl_pin == -EPROBE_DEFER)
 		return -EPROBE_DEFER;
@@ -225,6 +227,7 @@ static int i2c_gpio_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
+
 	platform_set_drvdata(pdev, priv);
 
 	dev_info(&pdev->dev, "using pins %u (SDA) and %u (SCL%s)\n",
@@ -269,7 +272,6 @@ static struct platform_driver i2c_gpio_driver = {
 static int __init i2c_gpio_init(void)
 {
 	int ret;
-
 	ret = platform_driver_register(&i2c_gpio_driver);
 	if (ret)
 		printk(KERN_ERR "i2c-gpio: probe failed: %d\n", ret);

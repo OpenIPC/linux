@@ -1,5 +1,10 @@
+ifneq ($(CONFIG_ARCH_SUN8IW19),)
+snd-soc-core-objs := soc-core.o soc-dapm.o soc-cache.o soc-utils.o
+snd-soc-core-objs += soc-pcm.o soc-io.o soc-ops.o
+else
 snd-soc-core-objs := soc-core.o soc-dapm.o soc-jack.o soc-cache.o soc-utils.o
 snd-soc-core-objs += soc-pcm.o soc-io.o soc-devres.o soc-ops.o
+endif
 snd-soc-core-$(CONFIG_SND_SOC_COMPRESS) += soc-compress.o
 
 ifneq ($(CONFIG_SND_SOC_TOPOLOGY),)

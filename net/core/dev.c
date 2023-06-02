@@ -7636,6 +7636,7 @@ struct netdev_queue *dev_ingress_queue_create(struct net_device *dev)
 	return queue;
 }
 
+#ifdef CONFIG_NET_ETHTOOL
 static const struct ethtool_ops default_ethtool_ops;
 
 void netdev_set_default_ethtool_ops(struct net_device *dev,
@@ -7645,6 +7646,7 @@ void netdev_set_default_ethtool_ops(struct net_device *dev,
 		dev->ethtool_ops = ops;
 }
 EXPORT_SYMBOL_GPL(netdev_set_default_ethtool_ops);
+#endif
 
 void netdev_freemem(struct net_device *dev)
 {
@@ -7758,8 +7760,10 @@ struct net_device *alloc_netdev_mqs(int sizeof_priv, const char *name,
 	strcpy(dev->name, name);
 	dev->name_assign_type = name_assign_type;
 	dev->group = INIT_NETDEV_GROUP;
+#ifdef CONFIG_NET_ETHTOOL
 	if (!dev->ethtool_ops)
 		dev->ethtool_ops = &default_ethtool_ops;
+#endif
 
 	nf_hook_ingress_init(dev);
 

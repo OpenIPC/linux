@@ -4,6 +4,14 @@ menu "Rpmsg drivers"
 config RPMSG
 	tristate
 
+config SUNXI_MSGBOX
+	tristate "allwinnertech msgbox"
+	select RPMSG
+	help
+	  Say y here to enable support for the allwinnertech providing
+	  communication channels to remote processors in allwinnertech
+	  platforms.
+
 config RPMSG_QCOM_SMD
 	tristate "Qualcomm Shared Memory Driver (SMD)"
 	depends on QCOM_SMEM

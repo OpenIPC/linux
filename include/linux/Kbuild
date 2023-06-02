@@ -1,0 +1,6 @@
+header-y += if_pppolac.h
+header-y += if_pppopns.h
+header-y += g2d_driver.h
+header-y += ion_uapi.h
+header-y += sunxi_ion_uapi.h
+header-y += cedar_ve_uapi.h

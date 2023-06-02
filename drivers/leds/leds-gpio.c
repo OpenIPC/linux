@@ -42,9 +42,9 @@ static void gpio_led_set(struct led_classdev *led_cdev,
 	int level;
 
 	if (value == LED_OFF)
-		level = 0;
-	else
 		level = 1;
+	else
+		level = 0;
 
 	if (led_dat->blinking) {
 		led_dat->platform_gpio_blink_set(led_dat->gpiod, level,
@@ -135,7 +135,7 @@ static int create_gpio_led(const struct gpio_led *template,
 	if (template->panic_indicator)
 		led_dat->cdev.flags |= LED_PANIC_INDICATOR;
 
-	ret = gpiod_direction_output(led_dat->gpiod, state);
+	ret = gpiod_direction_output(led_dat->gpiod, !state);
 	if (ret < 0)
 		return ret;
 

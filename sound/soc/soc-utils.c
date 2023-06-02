@@ -60,13 +60,16 @@ EXPORT_SYMBOL_GPL(snd_soc_params_to_bclk);
 
 static const struct snd_pcm_hardware dummy_dma_hardware = {
 	/* Random values to keep userspace happy when checking constraints */
+	.formats		= 0xffffffff,
 	.info			= SNDRV_PCM_INFO_INTERLEAVED |
 				  SNDRV_PCM_INFO_BLOCK_TRANSFER,
-	.buffer_bytes_max	= 128*1024,
-	.period_bytes_min	= PAGE_SIZE,
-	.period_bytes_max	= PAGE_SIZE*2,
+	.channels_min       = 1,
+	.channels_max       = 16,
+	.buffer_bytes_max	= 1024*1024,
+	.period_bytes_min	= 256,
+	.period_bytes_max	= 256*1024,
 	.periods_min		= 2,
-	.periods_max		= 128,
+	.periods_max		= 32,
 };
 
 static int dummy_dma_open(struct snd_pcm_substream *substream)
@@ -91,7 +94,7 @@ static struct snd_soc_platform_driver dummy_platform = {
 
 static struct snd_soc_codec_driver dummy_codec;
 
-#define STUB_RATES	SNDRV_PCM_RATE_8000_192000
+#define STUB_RATES	(SNDRV_PCM_RATE_8000_192000 | SNDRV_PCM_RATE_KNOT)
 #define STUB_FORMATS	(SNDRV_PCM_FMTBIT_S8 | \
 			SNDRV_PCM_FMTBIT_U8 | \
 			SNDRV_PCM_FMTBIT_S16_LE | \

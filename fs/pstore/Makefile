@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0
 #
 # Makefile for the linux pstorefs routines.
 #
@@ -11,3 +12,8 @@ pstore-$(CONFIG_PSTORE_PMSG)	+= pmsg.o
 
 ramoops-objs += ram.o ram_core.o
 obj-$(CONFIG_PSTORE_RAM)	+= ramoops.o
+
+obj-$(CONFIG_PSTORE_BLK) += pstore_blk.o
+pstore_blk-y += blkzone.o
+
+obj-$(CONFIG_PSTORE_BLKOOPS) += blkoops.o

@@ -99,6 +99,12 @@ EXPORT_SYMBOL_GPL(ehci_cf_port_reset_rwsem);
 #define HUB_DEBOUNCE_STEP	  25
 #define HUB_DEBOUNCE_STABLE	 100
 
+/* To indicate whether we are in super standby. */
+#if defined(CONFIG_PM) && IS_ENABLED(CONFIG_USB_SUNXI_HCI)
+atomic_t g_sunxi_usb_super_standby = ATOMIC_INIT(0);
+EXPORT_SYMBOL_GPL(g_sunxi_usb_super_standby);
+#endif
+
 static void hub_release(struct kref *kref);
 static int usb_reset_and_verify_device(struct usb_device *udev);
 static int hub_port_disable(struct usb_hub *hub, int port1, int set_state);
@@ -3474,7 +3480,15 @@ int usb_port_resume(struct usb_device *udev, pm_message_t msg)
 		}
 	}
 
+	/* FIXME: wait_for_connected() takes about 3 seconds
+	 * during resume in the worst condition. So we try to skip
+	 * waiting when we are in super standby.
+	 */
+#if IS_ENABLED(CONFIG_USB_SUNXI_HCI)
+	if (udev->persist_enabled && !atomic_read(&g_sunxi_usb_super_standby))
+#else
 	if (udev->persist_enabled)
+#endif
 		status = wait_for_connected(udev, hub, &port1, &portchange,
 				&portstatus);
 

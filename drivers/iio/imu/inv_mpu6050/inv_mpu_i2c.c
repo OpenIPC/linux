@@ -17,6 +17,7 @@
 #include <linux/i2c.h>
 #include <linux/iio/iio.h>
 #include <linux/module.h>
+#include <linux/gpio/consumer.h>
 #include "inv_mpu_iio.h"
 
 static const struct regmap_config inv_mpu_regmap_config = {
@@ -119,6 +120,9 @@ static int inv_mpu_probe(struct i2c_client *client,
 		return PTR_ERR(regmap);
 	}
 
+	if (!client->irq)
+		client->irq = gpiod_to_irq(devm_gpiod_get_optional(&client->dev, "int", GPIOD_IN));
+
 	result = inv_mpu_core_probe(regmap, client->irq, name,
 				    NULL, chip_type);
 	if (result < 0)
@@ -133,6 +137,7 @@ static int inv_mpu_probe(struct i2c_client *client,
 		result = -ENOMEM;
 		goto out_unreg_device;
 	}
+
 	st->muxc->priv = dev_get_drvdata(&client->dev);
 	result = i2c_mux_add_adapter(st->muxc, 0, 0, 0);
 	if (result)
@@ -168,6 +173,7 @@ static int inv_mpu_remove(struct i2c_client *client)
  */
 static const struct i2c_device_id inv_mpu_id[] = {
 	{"mpu6050", INV_MPU6050},
+	{"mpu6050a", INV_MPU6050A},
 	{"mpu6500", INV_MPU6500},
 	{"mpu9150", INV_MPU9150},
 	{"icm20608", INV_ICM20608},

@@ -1801,15 +1801,19 @@ static int __init init_mtd(void)
 
 	proc_mtd = proc_create("mtd", 0, NULL, &mtd_proc_ops);
 
+#if IS_ENABLED(CONFIG_MTD_CHAR)
 	ret = init_mtdchar();
 	if (ret)
 		goto out_procfs;
+#endif
 
 	return 0;
 
+#if IS_ENABLED(CONFIG_MTD_CHAR)
 out_procfs:
 	if (proc_mtd)
 		remove_proc_entry("mtd", NULL);
+#endif
 err_bdi:
 	class_unregister(&mtd_class);
 err_reg:
@@ -1819,7 +1823,10 @@ err_reg:
 
 static void __exit cleanup_mtd(void)
 {
+
+#if IS_ENABLED(CONFIG_MTD_CHAR)
 	cleanup_mtdchar();
+#endif
 	if (proc_mtd)
 		remove_proc_entry("mtd", NULL);
 	class_unregister(&mtd_class);
