@@ -1159,6 +1159,9 @@ static const struct flash_info spi_nor_ids[] = {
 	{ "by25q128as", INFO(0x684018, 0, 64 * 1024, 256,
 		SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ,
 		FLASH_DEFAULT_CLOCK_FREQ)},
+	{ "by25q64as", INFO(0x684017, 0, 64 * 1024, 128,
+		SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ,
+		FLASH_DEFAULT_CLOCK_FREQ)},
 	{ },
 };
 
