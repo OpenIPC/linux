@@ -185,12 +185,14 @@ uvc_video_complete(struct usb_ep *ep, struct usb_request *req)
 	spin_lock_irqsave(&video->queue.irqlock, flags);
 	buf = uvc_queue_head(&video->queue);
 	if (buf == NULL) {
-		spin_unlock_irqrestore(&video->queue.irqlock, flags);
-		goto requeue;
+		//spin_unlock_irqrestore(&video->queue.irqlock, flags);
+		req->length = 0;
+		goto tran_zero;
 	}
 
 	video->encode(req, video, buf);
 
+tran_zero:
 	if ((ret = usb_ep_queue(ep, req, GFP_ATOMIC)) < 0) {
 		printk(KERN_INFO "Failed to queue request (%d).\n", ret);
 		usb_ep_set_halt(ep);

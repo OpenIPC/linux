@@ -1,0 +1,8 @@
+config MTD_XMSFC
+	tristate "xm spi flash controller device  driver"
+	depends on  ARCH_XM530 || ARCH_XM580
+	default y if  ARCH_XM530 || ARCH_XM580
+	help
+		xm spi flash controller device  driver
+
+

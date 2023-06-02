@@ -240,7 +240,7 @@ static ssize_t gadget_dev_desc_UDC_store(struct gadget_info *gi,
 		const char *page, size_t len)
 {
 	char *name;
-	int ret;
+	int ret = -1;
 
 	name = kstrdup(page, GFP_KERNEL);
 	if (!name)
@@ -259,10 +259,15 @@ static ssize_t gadget_dev_desc_UDC_store(struct gadget_info *gi,
 			ret = -EBUSY;
 			goto err;
 		}
+#if 0
 		ret = udc_attach_driver(name, &gi->composite.gadget_driver);
 		if (ret)
 			goto err;
 		gi->udc_name = name;
+#else
+		goto err;
+#endif
+
 	}
 	mutex_unlock(&gi->lock);
 	return len;

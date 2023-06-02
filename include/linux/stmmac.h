@@ -20,8 +20,8 @@
   The full GNU General Public License is included in this distribution in
   the file called "COPYING".
 
-  Author: Giuseppe Cavallaro <peppe.cavallaro@st.com>
-*******************************************************************************/
+Author: Giuseppe Cavallaro <peppe.cavallaro@st.com>
+ *******************************************************************************/
 
 #ifndef __STMMAC_PLATFORM_DATA
 #define __STMMAC_PLATFORM_DATA
@@ -70,47 +70,34 @@
 #define DMA_AXI_BLEN_128	(1 << 6)
 #define DMA_AXI_BLEN_256	(1 << 7)
 #define DMA_AXI_BLEN_ALL (DMA_AXI_BLEN_4 | DMA_AXI_BLEN_8 | DMA_AXI_BLEN_16 \
-			| DMA_AXI_BLEN_32 | DMA_AXI_BLEN_64 \
-			| DMA_AXI_BLEN_128 | DMA_AXI_BLEN_256)
+        | DMA_AXI_BLEN_32 | DMA_AXI_BLEN_64 \
+        | DMA_AXI_BLEN_128 | DMA_AXI_BLEN_256)
 
 /* Platfrom data for platform device structure's platform_data field */
-
-struct stmmac_mdio_bus_data {
-	int (*phy_reset)(void *priv);
-	unsigned int phy_mask;
-	int *irqs;
-	int probed_phy_irq;
+struct plat_stmmacenet_data {      
+    int bus_id;
+    int pbl;
+    int clk_csr;
+    int has_gmac;
+    int enh_desc;
+    int tx_coe;
+    int bugged_jumbo;
+    int pmt; 
+    void (*fix_mac_speed)(void *priv, unsigned int speed);
+    void (*bus_setup)(void __iomem *ioaddr);
+    int (*init)(struct platform_device *pdev);
+    void (*exit)(struct platform_device *pdev);
+    void *custom_cfg;
+    void *bsp_priv;
 };
 
-struct stmmac_dma_cfg {
-	int pbl;
-	int fixed_burst;
-	int mixed_burst;
-	int burst_len;
+struct plat_stmmacphy_data {
+    int bus_id;
+    int phy_addr;
+    unsigned int phy_mask;
+    int interface;
+    int (*phy_reset)(void *priv);
+    void *priv;
 };
 
-struct plat_stmmacenet_data {
-	char *phy_bus_name;
-	int bus_id;
-	int phy_addr;
-	int interface;
-	struct stmmac_mdio_bus_data *mdio_bus_data;
-	struct stmmac_dma_cfg *dma_cfg;
-	int clk_csr;
-	int has_gmac;
-	int enh_desc;
-	int tx_coe;
-	int rx_coe;
-	int bugged_jumbo;
-	int pmt;
-	int force_sf_dma_mode;
-	int riwt_off;
-	void (*fix_mac_speed)(void *priv, unsigned int speed);
-	void (*bus_setup)(void __iomem *ioaddr);
-	int (*init)(struct platform_device *pdev);
-	void (*exit)(struct platform_device *pdev);
-	void *custom_cfg;
-	void *custom_data;
-	void *bsp_priv;
-};
 #endif

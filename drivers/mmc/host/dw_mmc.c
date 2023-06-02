@@ -285,7 +285,7 @@ static void dw_mci_start_command(struct dw_mci *host,
 	mci_writel(host, CMDARG, cmd->arg);
 	wmb();
 
-	mci_writel(host, CMD, cmd_flags | SDMMC_CMD_START);
+	mci_writel(host, CMD, cmd_flags | SDMMC_CMD_START | 1 << 29);
 }
 
 static void send_stop_cmd(struct dw_mci *host, struct mmc_data *data)
@@ -611,7 +611,7 @@ static void mci_send_cmd(struct dw_mci_slot *slot, u32 cmd, u32 arg)
 
 	mci_writel(host, CMDARG, arg);
 	wmb();
-	mci_writel(host, CMD, SDMMC_CMD_START | cmd);
+	mci_writel(host, CMD, SDMMC_CMD_START | cmd | 1 << 29);
 
 	while (time_before(jiffies, timeout)) {
 		cmd_status = mci_readl(host, CMD);
@@ -639,6 +639,7 @@ static void dw_mci_setup_bus(struct dw_mci_slot *slot, bool force_clkinit)
 			div += 1;
 
 		div = (host->bus_hz != slot->clock) ? DIV_ROUND_UP(div, 2) : 0;
+        
 
 		dev_info(&slot->mmc->class_dev,
 			 "Bus speed (slot %d) = %dHz (slot req %dHz, actual %dHZ"
@@ -798,6 +799,10 @@ static void dw_mci_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		regs |= ((0x1 << slot->id) << 16);
 	else
 		regs &= ~((0x1 << slot->id) << 16);
+
+    if (ios->timing == MMC_TIMING_MMC_HS200) {
+        mci_writel(slot->host, UHS_REG_EXT, 0x1000000);
+    }
 
 	mci_writel(slot->host, UHS_REG, regs);
 
@@ -1917,7 +1922,8 @@ static int dw_mci_init_slot(struct dw_mci *host, unsigned int id)
 	if (host->pdata->get_ocr)
 		mmc->ocr_avail = host->pdata->get_ocr(id);
 	else
-		mmc->ocr_avail = MMC_VDD_32_33 | MMC_VDD_33_34;
+		//mmc->ocr_avail = MMC_VDD_32_33 | MMC_VDD_33_34;
+		mmc->ocr_avail = MMC_VDD_165_195;
 
 	/*
 	 * Start with slot power disabled, it will be enabled when a card
@@ -2298,7 +2304,8 @@ int dw_mci_probe(struct dw_mci *host)
 		fifo_size = host->pdata->fifo_depth;
 	}
 	host->fifo_depth = fifo_size;
-	host->fifoth_val = ((0x2 << 28) | ((fifo_size/2 - 1) << 16) |
+	//host->fifoth_val = ((0x2 << 28) | ((fifo_size/2 - 1) << 16) |
+	host->fifoth_val = ((0x2 << 28) | ((fifo_size/8/2 - 1) << 16) |
 			((fifo_size/2) << 0));
 	mci_writel(host, FIFOTH, host->fifoth_val);
 

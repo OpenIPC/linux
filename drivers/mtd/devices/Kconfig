@@ -279,4 +279,6 @@ config MTD_DOCPROBE_55AA
 	  LinuxBIOS or if you need to recover a DiskOnChip Millennium on which
 	  you have managed to wipe the first block.
 
+source "drivers/mtd/devices/xmsfc/Kconfig"
+
 endmenu

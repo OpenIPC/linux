@@ -33,7 +33,7 @@ unsigned int uvc_gadget_trace_param;
 /*-------------------------------------------------------------------------*/
 
 /* module parameters specific to the Video streaming endpoint */
-static unsigned int streaming_interval = 1;
+static unsigned int streaming_interval = 2;
 module_param(streaming_interval, uint, S_IRUGO|S_IWUSR);
 MODULE_PARM_DESC(streaming_interval, "1 - 16");
 
@@ -55,7 +55,7 @@ MODULE_PARM_DESC(streaming_maxburst, "0 - 15 (ss only)");
 #define UVC_STRING_STREAMING_IDX		1
 
 static struct usb_string uvc_en_us_strings[] = {
-	[UVC_STRING_CONTROL_IDX].s = "UVC Camera",
+	[UVC_STRING_CONTROL_IDX].s = "XM Camera",
 	[UVC_STRING_STREAMING_IDX].s = "Video Streaming",
 	{  }
 };
@@ -616,6 +616,7 @@ uvc_function_bind(struct usb_configuration *c, struct usb_function *f)
 		max_packet_mult = 3;
 		max_packet_size = streaming_maxpacket / 3;
 	}
+	INFO(cdev, "streaming_interval=%u, streaming_maxpacket=%u streaming_maxburst=%u\n", streaming_interval, streaming_maxpacket, streaming_maxburst);
 
 	uvc_fs_streaming_ep.wMaxPacketSize = min(streaming_maxpacket, 1023U);
 	uvc_fs_streaming_ep.bInterval = streaming_interval;
@@ -655,19 +656,25 @@ uvc_function_bind(struct usb_configuration *c, struct usb_function *f)
 	uvc->video.ep = ep;
 	ep->driver_data = uvc;
 
+	//printk("ep address %d\n", uvc->video.ep->address);
+
 	uvc_fs_streaming_ep.bEndpointAddress = uvc->video.ep->address;
 	uvc_hs_streaming_ep.bEndpointAddress = uvc->video.ep->address;
 	uvc_ss_streaming_ep.bEndpointAddress = uvc->video.ep->address;
 
 	/* Allocate interface IDs. */
-	if ((ret = usb_interface_id(c, f)) < 0)
+	if ((ret = usb_interface_id(c, f)) < 0) {
+		//INFO(cdev, "usb_interface_id err\n");
 		goto error;
+	}
 	uvc_iad.bFirstInterface = ret;
 	uvc_control_intf.bInterfaceNumber = ret;
 	uvc->control_intf = ret;
 
-	if ((ret = usb_interface_id(c, f)) < 0)
+	if ((ret = usb_interface_id(c, f)) < 0) {
+		//INFO(cdev, "2 usb_interface_id err\n");
 		goto error;
+	}
 	uvc_streaming_intf_alt0.bInterfaceNumber = ret;
 	uvc_streaming_intf_alt1.bInterfaceNumber = ret;
 	uvc->streaming_intf = ret;
@@ -683,6 +690,7 @@ uvc_function_bind(struct usb_configuration *c, struct usb_function *f)
 	uvc->control_req = usb_ep_alloc_request(cdev->gadget->ep0, GFP_KERNEL);
 	uvc->control_buf = kmalloc(UVC_MAX_REQUEST_SIZE, GFP_KERNEL);
 	if (uvc->control_req == NULL || uvc->control_buf == NULL) {
+		INFO(cdev, "ENOMEM\n");
 		ret = -ENOMEM;
 		goto error;
 	}
@@ -694,13 +702,17 @@ uvc_function_bind(struct usb_configuration *c, struct usb_function *f)
 	/* Avoid letting this gadget enumerate until the userspace server is
 	 * active.
 	 */
-	if ((ret = usb_function_deactivate(f)) < 0)
+	if ((ret = usb_function_deactivate(f)) < 0) {
+		INFO(cdev, "usb_function_deactivate err\n");
 		goto error;
+	}
 
 	/* Initialise video. */
 	ret = uvc_video_init(&uvc->video);
-	if (ret < 0)
+	if (ret < 0) {
+		INFO(cdev, "uvc_video_init err\n");
 		goto error;
+	}
 
 	/* Register a V4L2 device. */
 	ret = uvc_register_video(uvc);
@@ -708,6 +720,7 @@ uvc_function_bind(struct usb_configuration *c, struct usb_function *f)
 		printk(KERN_INFO "Unable to register video device\n");
 		goto error;
 	}
+
 
 	return 0;
 

@@ -1370,7 +1370,7 @@ int vb2_qbuf(struct vb2_queue *q, struct v4l2_buffer *b)
 	/* Fill buffer information for the userspace */
 	__fill_v4l2_buffer(vb, b);
 
-	dprintk(1, "qbuf of buffer %d succeeded\n", vb->v4l2_buf.index);
+	//dprintk(1, "qbuf of buffer %d succeeded\n", vb->v4l2_buf.index);
 unlock:
 	if (mmap_sem)
 		up_read(mmap_sem);
@@ -1588,8 +1588,8 @@ int vb2_dqbuf(struct vb2_queue *q, struct v4l2_buffer *b, bool nonblocking)
 	/* go back to dequeued state */
 	__vb2_dqbuf(vb);
 
-	dprintk(1, "dqbuf of buffer %d, with state %d\n",
-			vb->v4l2_buf.index, vb->state);
+	//dprintk(1, "dqbuf of buffer %d, with state %d\n",
+	//		vb->v4l2_buf.index, vb->state);
 
 	return 0;
 }
@@ -1985,12 +1985,15 @@ unsigned int vb2_poll(struct vb2_queue *q, struct file *file, poll_table *wait)
 			res = POLLPRI;
 		else if (req_events & POLLPRI)
 			poll_wait(file, &fh->wait, wait);
+
 	}
 
-	if (!V4L2_TYPE_IS_OUTPUT(q->type) && !(req_events & (POLLIN | POLLRDNORM)))
+	if (!V4L2_TYPE_IS_OUTPUT(q->type) && !(req_events & (POLLIN | POLLRDNORM))) {
 		return res;
-	if (V4L2_TYPE_IS_OUTPUT(q->type) && !(req_events & (POLLOUT | POLLWRNORM)))
+	}
+	if (V4L2_TYPE_IS_OUTPUT(q->type) && !(req_events & (POLLOUT | POLLWRNORM))) {
 		return res;
+	}
 
 	/*
 	 * Start file I/O emulator only if streaming API has not been used yet.
@@ -1998,13 +2001,15 @@ unsigned int vb2_poll(struct vb2_queue *q, struct file *file, poll_table *wait)
 	if (q->num_buffers == 0 && q->fileio == NULL) {
 		if (!V4L2_TYPE_IS_OUTPUT(q->type) && (q->io_modes & VB2_READ) &&
 				(req_events & (POLLIN | POLLRDNORM))) {
-			if (__vb2_init_fileio(q, 1))
+			if (__vb2_init_fileio(q, 1)) {
 				return res | POLLERR;
+			}
 		}
 		if (V4L2_TYPE_IS_OUTPUT(q->type) && (q->io_modes & VB2_WRITE) &&
 				(req_events & (POLLOUT | POLLWRNORM))) {
-			if (__vb2_init_fileio(q, 0))
+			if (__vb2_init_fileio(q, 0)) {
 				return res | POLLERR;
+			}
 			/*
 			 * Write to OUTPUT queue can be done immediately.
 			 */
@@ -2015,15 +2020,17 @@ unsigned int vb2_poll(struct vb2_queue *q, struct file *file, poll_table *wait)
 	/*
 	 * There is nothing to wait for if the queue isn't streaming.
 	 */
-	if (!vb2_is_streaming(q))
-		return res | POLLERR;
+	if (!vb2_is_streaming(q)) {
+		return res /* | POLLERR */;
+	}
 	/*
 	 * For compatibility with vb1: if QBUF hasn't been called yet, then
 	 * return POLLERR as well. This only affects capture queues, output
 	 * queues will always initialize waiting_for_buffers to false.
 	 */
-	if (q->waiting_for_buffers)
+	if (q->waiting_for_buffers) {
 		return res | POLLERR;
+	}
 
 	if (list_empty(&q->done_list))
 		poll_wait(file, &q->done_wq, wait);
@@ -2043,6 +2050,7 @@ unsigned int vb2_poll(struct vb2_queue *q, struct file *file, poll_table *wait)
 				res | POLLOUT | POLLWRNORM :
 				res | POLLIN | POLLRDNORM;
 	}
+
 	return res;
 }
 EXPORT_SYMBOL_GPL(vb2_poll);

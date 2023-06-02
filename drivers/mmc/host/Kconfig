@@ -4,6 +4,23 @@
 
 comment "MMC/SD/SDIO Host Controller Drivers"
 
+config MMC_ARASAN
+	tristate "Arasan MMC/SD/SDIO host driver"
+	help
+	  This selects the Arasan MMC/SD/SDIO host controller integrated
+	  in the xm platform.
+
+config MMC_WIFI
+	tristate "WIFI"
+	help
+	  This selects the WIFI integrated
+	  in the xm platform.
+config MMC_SD
+	tristate "SD-CARD"
+	help
+	  This selects the SD-CARD integrated
+	  in the xm platform.
+
 config MMC_ARMMMCI
 	tristate "ARM AMBA Multimedia Card Interface support"
 	depends on ARM_AMBA
@@ -546,6 +563,13 @@ config MMC_DW_PLTFM
 	  If you have a controller with this interface, say Y or M here.
 
 	  If unsure, say Y.
+
+config MMC_DW_XM
+	tristate "dw mmc xm hardware "
+	depends on MMC_DW
+	default y
+	help
+	  This selects support for xm hardware.
 
 config MMC_DW_EXYNOS
 	tristate "Exynos specific extensions for Synopsys DW Memory Card Interface"

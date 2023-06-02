@@ -1,0 +1,22 @@
+#ifndef __XM_IRQS_H__
+#define __XM_IRQS_H__
+
+#define IRQ_LOCALTIMER      (29)  
+#define XM530_GIC_IRQ_START	(32)
+
+#define INTNR_TIMER_0       (XM530_GIC_IRQ_START + 4)    /* 36 */
+#define INTNR_TIMER_1       (XM530_GIC_IRQ_START + 4)
+#define INTNR_TIMER_2       (XM530_GIC_IRQ_START + 5)    /* 37 */
+#define INTNR_TIMER_3       (XM530_GIC_IRQ_START + 5)
+#define UART0_IRQ		(XM530_GIC_IRQ_START + 0)
+#define UART1_IRQ		(XM530_GIC_IRQ_START + 1)
+#define UART2_IRQ		(XM530_GIC_IRQ_START + 2)
+#define DMAC_IRQ		(XM530_GIC_IRQ_START + 10)
+#define GMAC_IRQ		(XM530_GIC_IRQ_START + 3)
+
+#define SDIO0_IRQ		(XM530_GIC_IRQ_START + 41)
+#define SDIO1_IRQ		(XM530_GIC_IRQ_START + 42)
+
+#define NR_IRQS			(XM530_GIC_IRQ_START + 64)
+
+#endif

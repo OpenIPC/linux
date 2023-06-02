@@ -2,6 +2,9 @@
 # Makefile for MMC/SD host controller drivers
 #
 
+obj-$(CONFIG_MMC_ARASAN)	+= arasan.o
+obj-$(CONFIG_MMC_WIFI)		+= sdio1_wifi.o
+obj-$(CONFIG_MMC_SD)		+= sdio0_sd.o
 obj-$(CONFIG_MMC_ARMMMCI)	+= mmci.o
 obj-$(CONFIG_MMC_PXA)		+= pxamci.o
 obj-$(CONFIG_MMC_MXC)		+= mxcmmc.o
@@ -40,6 +43,7 @@ obj-$(CONFIG_MMC_CB710)		+= cb710-mmc.o
 obj-$(CONFIG_MMC_VIA_SDMMC)	+= via-sdmmc.o
 obj-$(CONFIG_SDH_BFIN)		+= bfin_sdh.o
 obj-$(CONFIG_MMC_DW)		+= dw_mmc.o
+obj-$(CONFIG_MMC_DW_XM)		+= dw_mmc_xm_device.o
 obj-$(CONFIG_MMC_DW_PLTFM)	+= dw_mmc-pltfm.o
 obj-$(CONFIG_MMC_DW_EXYNOS)	+= dw_mmc-exynos.o
 obj-$(CONFIG_MMC_DW_PCI)	+= dw_mmc-pci.o

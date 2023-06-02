@@ -865,6 +865,29 @@ config ARCH_OMAP1
 	help
 	  Support for older TI OMAP1 (omap7xx, omap15xx or omap16xx)
 
+config ARCH_XM530
+	bool "XM 530"
+	select ARM_AMBA
+	select HAVE_CLK
+	select CLKDEV_LOOKUP
+	select HAVE_SCHED_CLOCK
+	select GENERIC_TIME
+	select GENERIC_CLOCKEVENTS
+	select ARCH_HAS_CPUFREQ
+	select MIGHT_HAVE_PCI
+	select HAVE_SMP
+	select HAVE_ARM_SCU
+	select MIGHT_HAVE_CACHE_L2X0
+	select NEED_MACH_IO_H
+	select NEED_MACH_MEMORY_H
+	select ARCH_HAS_CPUFREQ
+	select HAVE_ARM_TWD if LOCAL_TIMERS
+	select USB_ARCH_HAS_OHCI
+	select USB_ARCH_HAS_EHCI
+	select USB_ARCH_HAS_XHCI
+	help 
+		This enables support for XM xm530 platform.
+
 endchoice
 
 menu "Multiple platform selection"
@@ -1028,6 +1051,8 @@ source "arch/arm/mach-vt8500/Kconfig"
 source "arch/arm/mach-w90x900/Kconfig"
 
 source "arch/arm/mach-zynq/Kconfig"
+
+source "arch/arm/mach-xm530/Kconfig"
 
 # Definitions to make life easier
 config ARCH_ACORN

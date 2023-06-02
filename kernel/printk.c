@@ -45,6 +45,7 @@
 #include <linux/poll.h>
 #include <linux/irq_work.h>
 #include <linux/utsname.h>
+#include <asm/setup.h>
 
 #include <asm/uaccess.h>
 
@@ -1784,11 +1785,22 @@ static int __add_preferred_console(char *name, int idx, char *options,
 /*
  * Set up a list of consoles.  Called from init/main.c
  */
+extern struct tag_xminfo xminfo;
 static int __init console_setup(char *str)
 {
 	char buf[sizeof(console_cmdline[0].name) + 4]; /* 4 for index */
 	char *s, *options, *brl_options = NULL;
 	int idx;
+
+	if (xminfo.xmuart == 1)
+	{    
+		strcpy(buf, "null");
+		idx = 0; 
+		options = NULL;
+		__add_preferred_console(buf, idx, options, brl_options);
+		console_set_on_cmdline = 1; 
+		return 1;
+	}    
 
 #ifdef CONFIG_A11Y_BRAILLE_CONSOLE
 	if (!memcmp(str, "brl,", 4)) {

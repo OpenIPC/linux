@@ -469,6 +469,47 @@ static void __init mm_init(void)
 	vmalloc_init();
 }
 
+extern struct tag_xminfo xminfo; 
+static int xminfo_show(struct seq_file *file, void *iter)
+{
+	seq_printf(file, "entry:     vpn        ppn     asid  size valid wired\n");
+	seq_printf(file, "######XMINFO######\n");
+	seq_printf(file, "DATE:%s\n", __DATE__);
+	seq_printf(file, "HWID:%s\n",  xminfo.hwid);
+	seq_printf(file, "ethaddr:%s\n", xminfo.ethaddr);
+	seq_printf(file, "xmauto:%d\n",  xminfo.xmauto);
+	seq_printf(file, "xmuart:%d\n",  xminfo.xmuart);
+	seq_printf(file, "ID:%s\n",  xminfo.p_id);
+	seq_printf(file, "##################\n");
+	return 0;
+}
+static int xminfo_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, xminfo_show, inode->i_private);
+}
+
+static const struct file_operations xminfo_fops = { 
+	.owner		= THIS_MODULE,
+	.open		= xminfo_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= single_release,
+};
+
+
+static int __init  proc_xminfo_create(void)
+{
+	struct proc_dir_entry *p;
+	proc_mkdir("xm", NULL);
+	p = proc_create_data("xm/xminfo", 0400, NULL, &xminfo_fops, NULL); 
+	if (NULL == p){
+		printk("create xminfo proc failed\n");
+		return -1; 
+	}   
+	return 0;
+}
+
+
 asmlinkage void __init start_kernel(void)
 {
 	char * command_line;
@@ -624,6 +665,7 @@ asmlinkage void __init start_kernel(void)
 	page_writeback_init();
 #ifdef CONFIG_PROC_FS
 	proc_root_init();
+	proc_xminfo_create();
 #endif
 	cgroup_init();
 	cpuset_init();
@@ -844,6 +886,7 @@ static int __ref kernel_init(void *unused)
 		pr_err("Failed to execute %s.  Attempting defaults...\n",
 			execute_command);
 	}
+
 	if (!run_init_process("/sbin/init") ||
 	    !run_init_process("/etc/init") ||
 	    !run_init_process("/bin/init") ||

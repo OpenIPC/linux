@@ -260,10 +260,10 @@ int usb_function_deactivate(struct usb_function *function)
 
 	spin_lock_irqsave(&cdev->lock, flags);
 
-	if (cdev->deactivations == 0)
+	if (cdev->deactivations == 0) {
 		status = usb_gadget_disconnect(cdev->gadget);
-	if (status == 0)
 		cdev->deactivations++;
+	}
 
 	spin_unlock_irqrestore(&cdev->lock, flags);
 	return status;

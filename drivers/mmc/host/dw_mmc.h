@@ -53,6 +53,7 @@
 #define SDMMC_IDINTEN		0x090
 #define SDMMC_DSCADDR		0x094
 #define SDMMC_BUFADDR		0x098
+#define SDMMC_UHS_REG_EXT   0x108
 #define SDMMC_DATA(x)		(x)
 
 /*
