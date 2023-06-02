@@ -35,7 +35,7 @@
 };
 
 &uart1 {
-	status = "disabled";
+	status = "okay";
 };
 
 &uart2 {
@@ -130,6 +130,12 @@
 
 &mmc1 {
 	status = "okay";
+};
+
+&usbdrd3_0 {
+	hidwc3@0x100e0000 {
+		dr_mode = "host";
+	};
 };
 
 &gpio_chip0 {
