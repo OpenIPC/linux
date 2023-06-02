@@ -1,0 +1,7 @@
+{
+	"jsontype": "module_publish",
+	"publish_src": [
+		"audext_emu_drv.c",
+		"audext_emu_main.c"	
+	]
+}

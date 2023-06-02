@@ -206,6 +206,12 @@ struct task_group;
 /* Task command name length: */
 #define TASK_COMM_LEN			16
 
+/*
+ * TASK is a pointer to the task whose backtrace we want to see (or NULL for current
+ * task), SP is the stack pointer of the first frame that should be shown in the back
+ * trace (or NULL if the entire call-chain of the task should be shown).
+ */
+extern void show_stack(struct task_struct *task, unsigned long *sp);
 extern void scheduler_tick(void);
 
 #define	MAX_SCHEDULE_TIMEOUT		LONG_MAX

@@ -83,6 +83,9 @@ struct pwm_device {
 
 	struct pwm_args args;
 	struct pwm_state state;
+#if IS_ENABLED(CONFIG_PWM_NA51055)
+	unsigned int        cycle;
+#endif
 };
 
 /**
@@ -275,6 +278,11 @@ struct pwm_ops {
 #ifdef CONFIG_DEBUG_FS
 	void (*dbg_show)(struct pwm_chip *chip, struct seq_file *s);
 #endif
+
+#if IS_ENABLED(CONFIG_PWM_NA51055)
+	void    (*reload) (struct pwm_chip *chip, struct pwm_device *pwm);
+	int     (*set_cycle) (struct pwm_chip *chip, struct pwm_device *pwm, int cycle);
+#endif
 	struct module *owner;
 };
 
@@ -424,6 +432,12 @@ static inline void pwm_disable(struct pwm_device *pwm)
 	pwm_apply_state(pwm, &state);
 }
 
+#if IS_ENABLED(CONFIG_PWM_NA51055)
+void pwm_reload(struct pwm_device *pwm);
+
+int pwm_cycle(struct pwm_device *pwm, int cycle);
+#endif
+
 /* PWM provider APIs */
 int pwm_capture(struct pwm_device *pwm, struct pwm_capture *result,
 		unsigned long timeout);
@@ -562,6 +576,17 @@ static inline struct pwm_device *devm_of_pwm_get(struct device *dev,
 static inline void devm_pwm_put(struct device *dev, struct pwm_device *pwm)
 {
 }
+
+#if IS_ENABLED(CONFIG_PWM_NA51055)
+static inline void pwm_reload(struct pwm_device *pwm)
+{
+}
+
+static inline int pwm_cycle(struct pwm_device *pwm, int cycle)
+{
+	return -EINVAL;
+}
+#endif
 #endif
 
 static inline void pwm_apply_args(struct pwm_device *pwm)

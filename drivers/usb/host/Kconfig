@@ -150,7 +150,38 @@ config USB_EHCI_TT_NEWSCHED
 
 	  If unsure, say Y.
 
+if NVT_IVOT_PLAT_NA51055 || NVT_IVOT_PLAT_NA51089
+config USB_NVTIVOT_HCD
+	bool
+	depends on USB_EHCI_HCD_NVTIVOT || USB_XHCI_HCD
+	default y
+endif
+
+if NVT_IVOT_PLAT_NA51068
+config USB_NVTIVOT_HCD
+	bool
+	depends on USB_EHCI_HCD_NVTIVOT || USB_XHCI_HCD
+	default y
+endif
+
 if USB_EHCI_HCD
+if NVT_IVOT_PLAT_NA51055 || NVT_IVOT_PLAT_NA51089
+config USB_EHCI_HCD_NVTIVOT
+	bool "NVTIM EHCI support"
+	depends on USB_EHCI_HCD
+	default y
+	---help---
+		Support for Novatek IM on-chip EHCI USB controller
+endif
+
+if NVT_IVOT_PLAT_NA51068
+config USB_EHCI_HCD_NVTIVOT
+	bool "NVTIM EHCI support"
+	depends on USB_EHCI_HCD
+	default y
+	---help---
+		Support for Novatek IM on-chip EHCI USB controller
+endif
 
 config USB_EHCI_PCI
 	tristate

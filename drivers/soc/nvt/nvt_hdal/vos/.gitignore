@@ -1,0 +1,14 @@
+hdal
+*.o
+*.o.cmd
+*.ko.cmd
+*.mod.c
+*.ko
+modules.order
+.tmp_versions
+output
+.nvt_finish
+Module.symvers
+vos
+*.a
+*.so

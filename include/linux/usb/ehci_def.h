@@ -113,7 +113,7 @@ struct ehci_regs {
 	u32		frame_list;	/* points to periodic list */
 	/* ASYNCLISTADDR: offset 0x18 */
 	u32		async_next;	/* address of next async queue head */
-
+#ifndef CONFIG_USB_NVTIVOT_HCD
 	u32		reserved1[2];
 
 	/* TXFILLTUNING: offset 0x24 */
@@ -121,13 +121,24 @@ struct ehci_regs {
 #define TXFIFO_DEFAULT	(8<<16)		/* FIFO burst threshold 8 */
 
 	u32		reserved2[6];
+#else
+	/* CONFIGFLAG: offset 0x40 */
+	u32		reserved1[1];
+	/* PORTSC: offset 0x44 */
+	u32		port_status[0]; /* up to N_PORTS */
+	u32		txfill_tuning;	/* TX FIFO Tuning register */
+#define TXFIFO_DEFAULT	(8<<16)		/* FIFO burst threshold 8 */
+#endif
 
+#ifndef CONFIG_USB_NVTIVOT_HCD
 	/* CONFIGFLAG: offset 0x40 */
 	u32		configured_flag;
 #define FLAG_CF		(1<<0)		/* true: we'll support "high speed" */
 
 	/* PORTSC: offset 0x44 */
 	u32		port_status[0];	/* up to N_PORTS */
+#endif
+
 /* EHCI 1.1 addendum */
 #define PORTSC_SUSPEND_STS_ACK 0
 #define PORTSC_SUSPEND_STS_NYET 1

@@ -1,0 +1,13 @@
+config IR_NVT_BK
+	tristate "Novatek IR remote receiver for BK platform"
+	depends on RC_CORE
+	depends on ARCH_NVT_IVOT_V7 && (NVT_IVOT_PLAT_NA51068 || NVT_IVOT_PLAT_NA51068_CA53)
+	---help---
+	   Say Y if you want to use Novatek IR remote receiver
+
+config IR_NVT_FR
+	tristate "Novatek IR remote receiver for FR platform"
+	depends on RC_CORE
+	depends on ARCH_NVT_IVOT_V7 && !(NVT_IVOT_PLAT_NA51068 || NVT_IVOT_PLAT_NA51068_CA53)
+	---help---
+	   Say Y if you want to use Novatek IR remote receiver

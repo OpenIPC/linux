@@ -176,6 +176,10 @@ static int of_platform_serial_setup(struct platform_device *ofdev,
 	if (of_property_read_bool(np, "no-loopback-test"))
 		port->flags |= UPF_SKIP_TEST;
 
+	port->hw_flowctrl = 0;
+	if (of_property_read_u32(np, "hw_flowctrl", &prop) == 0)
+		port->hw_flowctrl = prop;
+
 	port->dev = &ofdev->dev;
 
 	switch (type) {
@@ -241,7 +245,7 @@ static int of_platform_serial_probe(struct platform_device *ofdev)
 	    (tx_threshold < port8250.port.fifosize))
 		port8250.tx_loadsz = port8250.port.fifosize - tx_threshold;
 
-	if (of_property_read_bool(ofdev->dev.of_node, "auto-flow-control"))
+	if (of_property_read_bool(ofdev->dev.of_node, "auto-flow-control") || port8250.port.hw_flowctrl)
 		port8250.capabilities |= UART_CAP_AFE;
 
 	if (of_property_read_u32(ofdev->dev.of_node,

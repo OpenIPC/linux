@@ -1,0 +1,78 @@
+&mtr_cfg {
+	mtr_an41908 {
+		spi_cfg {
+			type = <0>;                  /* 0:SPI / 1:I2C / 2:GPIO */
+			chnel = <1>;                 /* spi0 ~ spi3 */
+			mode = <3>;                  /* 0 ~ 3 */
+			packet_bit = <24>;           /* 8 / 16 / 24 / 32 */
+			braud_rate = <4000000>;      /* unit: Hz */
+			data_order = <1>;            /* 0:MSB / 1:LSB */
+			cs_polarity = <1>;           /* 0:active low / 1:active high */
+			packet_dly = <0>;
+		};
+
+		i2c_cfg {
+			id = <0>;                    /* I2C_ID_1 */
+			addr = <0x18>;
+		};
+
+		spi_gpio_cfg {
+			cs = <44>;                   /* C_GPIO:+0 / P_GPIO:+32 / S_GPIO:+64 */
+			clk = <45>;
+			tx = <46>;
+			rx = <47>;
+		};
+
+		pwm_cfg {
+			mode = <1>;                  /* 0:pwm / 1:micro-step / 0xFFFFFFFF:null */
+			focus_freq = <1400>;
+			zoom_freq = <1000>;
+			focus_port_sel = <2>;        /* PWM0 ~ PWM11 */
+			zoom_port_sel = <3>;         /* PWM0 ~ PWM11 */
+		};
+
+		gpio_cfg {
+			rst_pin = <0>;               /* C_GPIO:+0 / P_GPIO:+32 / S_GPIO:+64 */
+			pwdn_pin = <0>;
+			fz_vd_pin = <37>;
+			is_vd_pin = <0>;
+			focus_sts_pin = <0>;
+			zoom_sts_pin = <0>;
+			ircut_0_pin = <32>;
+			ircut_1_pin = <33>;
+			ext_0_pin = <0>;
+			ext_1_pin = <0>;
+			ext_2_pin = <0>;
+			ext_3_pin = <0>;
+		};
+
+		lens_param {
+			wide_focal = <2800>;         /* unit: um */
+			tele_focal = <12000>;
+			focus_pos_dir = <1>;         /* 0 or 1 */
+			zoom_pos_dir = <1>;
+			focus_init_ofst = <25>;
+			zoom_init_ofst = <10>;
+			focus_dis_max = <1350>;
+			zoom_dis_max = <700>;
+			focus_move_spd = <80>;       /* 20 ~ 100 */
+			zoom_move_spd = <60>;
+			focus_backlash = <13>;
+			zoom_backlash = <13>;
+			focus_dly_time = <31>;       /* unit: msec */
+			zoom_dly_time = <62>;
+			fz_tab0 = <0 0 260>;
+			fz_tab1 = <0 0 260>;
+			fz_tab2 = <0 0 260>;
+			fz_tab3 = <0 0 260>;
+			fz_tab4 = <0 0 260>;
+			fz_tab5 = <0 0 260>;
+			fz_tab6 = <0 0 260>;
+			fz_tab7 = <0 0 260>;
+			fz_tab8 = <0 0 260>;
+			fz_tab9 = <0 0 260>;
+			fz_tab10 = <0 0 260>;
+		};
+	};
+};
+

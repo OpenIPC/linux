@@ -106,6 +106,16 @@ config USB_FUSB300
 	help
 	   Faraday usb device controller FUSB300 driver
 
+config USB_FOTG211_UDC
+	depends on HAS_DMA
+	tristate "NOVATEK NT98560 USB Peripheral Controller"
+	help
+	   Novatek USB2.0 controller which can be configured as
+	   high speed or full speed USB device.
+
+	   Say "y" to link the driver statically, or "m" to build a
+	   dynamically linked module called "fotg211_udc".	   
+	   
 config USB_FOTG210_UDC
 	depends on HAS_DMA
 	tristate "Faraday FOTG210 USB Peripheral Controller"
@@ -116,6 +126,17 @@ config USB_FOTG210_UDC
 
 	   Say "y" to link the driver statically, or "m" to build a
 	   dynamically linked module called "fotg210_udc".
+
+config USB_FOTG200_UDC
+	depends on HAS_DMA
+	tristate "Novatek FOTG200 USB Peripheral Controller"
+	help
+	   Novatek USB2.0 OTG controller which can be configured as
+	   high speed or full speed USB device. This driver supppors
+	   Bulk Transfer so far.
+
+	   Say "y" to link the driver statically, or "m" to build a
+	   dynamically linked module called "fotg200_udc".
 
 config USB_GR_UDC
        tristate "Aeroflex Gaisler GRUSBDC USB Peripheral Controller Driver"

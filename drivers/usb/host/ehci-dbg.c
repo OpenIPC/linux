@@ -12,7 +12,8 @@
  * (host controller _Structural_ parameters)
  * see EHCI spec, Table 2-4 for each value
  */
-static void dbg_hcs_params(struct ehci_hcd *ehci, char *label)
+#ifndef CONFIG_USB_EHCI_HCD_NVTIVOT
+static void dbg_hcs_params (struct ehci_hcd *ehci, char *label)
 {
 	u32	params = ehci_readl(ehci, &ehci->caps->hcs_params);
 
@@ -42,12 +43,16 @@ static void dbg_hcs_params(struct ehci_hcd *ehci, char *label)
 		ehci_dbg(ehci, "%s portroute %s\n", label, buf);
 	}
 }
+#else
+static inline void dbg_hcs_params (struct ehci_hcd *ehci, char *label) {}
+#endif
 
 /*
  * check the values in the HCCPARAMS register
  * (host controller _Capability_ parameters)
  * see EHCI Spec, Table 2-5 for each value
- */
+ * */
+#ifndef CONFIG_USB_EHCI_HCD_NVTIVOT
 static void dbg_hcc_params(struct ehci_hcd *ehci, char *label)
 {
 	u32	params = ehci_readl(ehci, &ehci->caps->hcc_params);
@@ -75,6 +80,9 @@ static void dbg_hcc_params(struct ehci_hcd *ehci, char *label)
 				" 32 periodic list" : "");
 	}
 }
+#else
+static inline void dbg_hcc_params (struct ehci_hcd *ehci, char *label) {}
+#endif
 
 static void __maybe_unused
 dbg_qtd(const char *label, struct ehci_hcd *ehci, struct ehci_qtd *qtd)

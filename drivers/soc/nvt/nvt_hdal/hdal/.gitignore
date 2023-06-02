@@ -1,0 +1,15 @@
+vendor/alg
+drivers/k_driver/source/rtos_na51055/protected
+drivers/k_driver/include/plat
+*.o
+*.o.cmd
+*.ko.cmd
+*.ko
+*.mod.c
+modules.order
+.tmp_versions
+*.sym
+Module.symvers
+*.a
+*.so
+/include

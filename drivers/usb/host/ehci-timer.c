@@ -104,9 +104,13 @@ static void ehci_poll_ASS(struct ehci_hcd *ehci)
 	actual = ehci_readl(ehci, &ehci->regs->status) & STS_ASS;
 
 	if (want != actual) {
-
+#ifdef CONFIG_USB_NVTIVOT_HCD
+		/* Poll again later, but give up after about 20 ms */
+		if (ehci->ASS_poll_count++ < 20) {
+#else
 		/* Poll again later, but give up after about 2-4 ms */
 		if (ehci->ASS_poll_count++ < 2) {
+#endif
 			ehci_enable_event(ehci, EHCI_HRTIMER_POLL_ASS, true);
 			return;
 		}
@@ -148,7 +152,7 @@ static void ehci_poll_PSS(struct ehci_hcd *ehci)
 
 	want = (ehci->command & CMD_PSE) ? STS_PSS : 0;
 	actual = ehci_readl(ehci, &ehci->regs->status) & STS_PSS;
-
+#ifndef CONFIG_USB_NVTIVOT_HCD
 	if (want != actual) {
 
 		/* Poll again later, but give up after about 2-4 ms */
@@ -159,6 +163,19 @@ static void ehci_poll_PSS(struct ehci_hcd *ehci)
 		ehci_dbg(ehci, "Waited too long for the periodic schedule status (%x/%x), giving up\n",
 				want, actual);
 	}
+#else
+	if (want != actual) {
+
+		/* Poll again later */
+		if (ehci->PSS_poll_count++ < 10)
+			ehci_enable_event(ehci, EHCI_HRTIMER_POLL_PSS, true);
+		return;
+	}
+
+	if (ehci->PSS_poll_count >= 10)
+		ehci_dbg(ehci, "PSS poll count reached %d\n",
+				ehci->PSS_poll_count);
+#endif
 	ehci->PSS_poll_count = 0;
 
 	/* The status is up-to-date; restart or stop the schedule as needed */
@@ -199,7 +216,9 @@ static void ehci_handle_controller_death(struct ehci_hcd *ehci)
 
 	/* Clean up the mess */
 	ehci->rh_state = EHCI_RH_HALTED;
+#ifndef CONFIG_USB_NVTIVOT_HCD
 	ehci_writel(ehci, 0, &ehci->regs->configured_flag);
+#endif
 	ehci_writel(ehci, 0, &ehci->regs->intr_enable);
 	ehci_work(ehci);
 	end_unlink_async(ehci);

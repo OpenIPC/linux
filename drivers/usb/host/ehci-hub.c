@@ -16,6 +16,13 @@
 /*-------------------------------------------------------------------------*/
 #include <linux/usb/otg.h>
 
+#ifdef CONFIG_USB_NVTIVOT_HCD
+#ifdef CONFIG_MACH_NVT_NA51000
+#include "na51000.h"
+#include <linux/usb/nvt_usb_phy.h>
+#endif
+#endif
+
 #define	PORT_WAKE_BITS	(PORT_WKOC_E|PORT_WKDISC_E|PORT_WKCONN_E)
 
 #ifdef	CONFIG_PM
@@ -679,6 +686,16 @@ ehci_hub_status_data (struct usb_hcd *hcd, char *buf)
 			    buf [1] |= 1 << (i - 7);
 			status = STS_PCD;
 		}
+#ifdef CONFIG_USB_NVTIVOT_HCD
+		if ((temp & mask) == 0 && test_bit(i+1, &hcd->porcd)
+				&& status != STS_PCD){
+			if (i < 7)
+				buf[0] |= 1 << (i + 1);
+			else
+				buf[1] |= 1 << (i - 7);
+			status = STS_PCD;
+		}
+#endif
 	}
 
 	/* If a resume is in progress, make sure it can finish */
@@ -1080,8 +1097,13 @@ int ehci_hub_control(
 			/* REVISIT:  some hardware needs 550+ usec to clear
 			 * this bit; seems too long to spin routinely...
 			 */
+#ifdef CONFIG_USB_NVTIVOT_HCD
+			retval = ehci_handshake(ehci, status_reg,
+					PORT_RESET, 0, 3000);
+#else
 			retval = ehci_handshake(ehci, status_reg,
 					PORT_RESET, 0, 1000);
+#endif
 			if (retval != 0) {
 				ehci_err (ehci, "port %d reset error %d\n",
 					wIndex + 1, retval);
@@ -1112,11 +1134,16 @@ int ehci_hub_control(
 		if (temp & PORT_CONNECT) {
 			status |= USB_PORT_STAT_CONNECTION;
 			// status may be from integrated TT
+#ifdef CONFIG_USB_NVTIVOT_HCD
+			status |= ehci_port_speed(ehci, ehci_readl(ehci,
+				(__u32 __iomem *) ((hcd->regs)+0x80)));
+#else
 			if (ehci->has_hostpc) {
 				temp1 = ehci_readl(ehci, hostpc_reg);
 				status |= ehci_port_speed(ehci, temp1);
 			} else
 				status |= ehci_port_speed(ehci, temp);
+#endif
 		}
 		if (temp & PORT_PE)
 			status |= USB_PORT_STAT_ENABLE;
@@ -1132,12 +1159,17 @@ int ehci_hub_control(
 				set_bit(wIndex, &ehci->port_c_suspend);
 			usb_hcd_end_port_resume(&hcd->self, wIndex);
 		}
-
+#ifdef CONFIG_USB_NVTIVOT_HCD
+		if (temp & PORT_OC && !ignore_oc)
+#else
 		if (temp & PORT_OC)
+#endif
 			status |= USB_PORT_STAT_OVERCURRENT;
 		if (temp & PORT_RESET)
 			status |= USB_PORT_STAT_RESET;
+#if !defined(CONFIG_USB_NVT_COMPAT) || !defined(CONFIG_USB_NVT_EHCI_HCD)
 		if (temp & PORT_POWER)
+#endif
 			status |= USB_PORT_STAT_POWER;
 		if (test_bit(wIndex, &ehci->port_c_suspend))
 			status |= USB_PORT_STAT_C_SUSPEND << 16;
@@ -1221,6 +1253,10 @@ int ehci_hub_control(
 		case USB_PORT_FEAT_RESET:
 			if (temp & (PORT_SUSPEND|PORT_RESUME))
 				goto error;
+#ifdef CONFIG_USB_EHCI_HCD_NVTIVOT
+			if (!(temp & PORT_CONNECT))
+				goto disconnect;
+#endif
 			/* line status bits may report this as low speed,
 			 * which can be fine if this root hub has a
 			 * transaction translator built in.
@@ -1305,6 +1341,10 @@ int ehci_hub_control(
 error:
 		/* "stall" on error */
 		retval = -EPIPE;
+#ifdef CONFIG_USB_EHCI_HCD_NVTIVOT
+disconnect:
+		retval = -ENOTCONN;
+#endif
 	}
 error_exit:
 	spin_unlock_irqrestore (&ehci->lock, flags);

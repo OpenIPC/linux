@@ -1,0 +1,69 @@
+MODULE_NAME = nvt_sif
+# DIRs
+VOS_DRIVER_DIR = $(NVT_VOS_DIR)/drivers
+KDRV_DIR = $(NVT_HDAL_DIR)/drivers/k_driver
+CURR_DRIVER_DIR = $(KDRV_DIR)
+RTOS_OUTPUT_DIR = $(CURR_DRIVER_DIR)/output
+# INCs
+VOS_INC_PATH = $(VOS_DRIVER_DIR)/include
+KDRV_INC_PATH = $(KDRV_DIR)/include
+CURR_DRIVER_INC_PATH = $(CURR_DRIVER_DIR)/include
+# INC FLAGs
+EXTRA_INCLUDE += -I$(VOS_INC_PATH) -I$(KDRV_INC_PATH) -I$(CURR_DRIVER_INC_PATH)
+.PHONY: modules modules_install clean
+###############################################################################
+# Linux Makefile                                                              #
+###############################################################################
+ifeq ($(NVT_PRJCFG_CFG),Linux)
+C_CFLAGS  += -D__LINUX -Werror
+
+EXTRA_CFLAGS += $(C_CFLAGS) $(EXTRA_INCLUDE) -Wno-date-time  -I$(src)/include -DDEBUG
+KBUILD_EXTRA_SYMBOLS = $(shell find $(VOS_DRIVER_DIR) -name Module.symvers) $(shell find $(KDRV_DIR) -name Module.symvers)
+
+obj-m += $(MODULE_NAME).o
+$(MODULE_NAME)-objs := sif_main.o sif_proc.o sif_drv.o sif_api.o sif.o
+
+ifeq ($(KERNELRELEASE),)
+PWD := $(shell pwd)
+KERVER ?= $(NVT_LINUX_VER)
+KDIR ?= $(KERNELDIR)
+MDIR ?= $(KERNELDIR)/_install_modules/lib/modules/$(KERVER)/hdal
+MODPATH := $(shell echo $(PWD) | awk -F'source/' '{print $$NF}';)
+MODNAME := $(shell echo $(obj-m:.o=.ko))
+
+modules:
+	@$(MAKE) -C $(KDIR) M=$(PWD) modules
+
+modules_install:
+	@if [ -z $(NVT_MOD_INSTALL) ]; then \
+		rm -f $(MDIR)/$(MODPATH)/$(MODNAME); \
+		install -m644 -b -D $(MODNAME) ${MDIR}/$(MODPATH)/$(MODNAME); \
+		cd $(KDIR)/_install_modules/lib/modules/$(KERVER)/; depmod -b $(KDIR)/_install_modules/ -a $(KERVER); \
+	else \
+		mkdir -p $(NVT_MOD_INSTALL)/lib/modules/$(KERVER); \
+		install -m644 -b -D $(MODNAME) $(NVT_MOD_INSTALL)/lib/modules/$(KERVER)/hdal/$(MODPATH)/$(MODNAME); \
+	fi
+
+clean:
+	@SRC="`find . -name  "*.c" ! -name "*.mod.c"`"; \
+	if [ "$$SRC" ]; then \
+		rm -rf .tmp_versions Module.symvers modules.order `find . -type f -name "*.mod.c" -o -name ".*.cmd" -o -name "*.o" -o -name "*.ko" -o -name "modules.order" -o -name *~`; \
+	else \
+		rm -rf .tmp_versions Module.symvers modules.order $(MODULE_NAME).o $(MODULE_NAME).mod.o `find . -type f -name "*.mod.c" -o -name ".*.cmd" -o -name "*.ko" -o -name "modules.order" -o -name *~`; \
+	fi
+endif
+
+###############################################################################
+# rtos Makefile                                                               #
+###############################################################################
+else ifeq ($(NVT_PRJCFG_CFG),rtos)
+modules:
+	@echo "nothing to be done for '$(MODULE_NAME)'"
+
+clean:
+	@echo "nothing to be done for '$(MODULE_NAME)'"
+
+modules_install:
+	@echo "nothing to be done for '$(MODULE_NAME)'"
+endif
+

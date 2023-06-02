@@ -12,11 +12,17 @@
 
 usage() {
 	echo "Usage: $0 [--save-scmversion] [srctree]" >&2
+	echo "       $0 [--show-nvtver]" >&2
 	exit 1
 }
 
 scm_only=false
 srctree=.
+if test "$1" = "--show-nvtver"; then
+	head=`git rev-parse --verify --short HEAD 2>/dev/null`
+	echo $head
+	exit 1
+fi
 if test "$1" = "--save-scmversion"; then
 	scm_only=true
 	shift

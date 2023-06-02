@@ -942,4 +942,10 @@ config XILINX_XADC
 	  The driver can also be build as a module. If so, the module will be called
 	  xilinx-xadc.
 
+config NVT_ADC
+	tristate "Novatek ADC support"
+	depends on (NVT_IVOT_PLAT_NA51055 || NVT_IVOT_PLAT_NA51089) && NVT_OTP_SUPPORT
+	help
+	  Say yes here to enable Novatek adc module
+
 endmenu

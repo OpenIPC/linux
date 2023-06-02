@@ -1,0 +1,10 @@
+{
+	"jsontype": "module_publish",
+	"publish_src": [
+		"dsi_api.c",
+		"dsi_drv.c",
+		"dsi_main.c",
+		"dsi_proc.c",
+		"dsi_platform.c"
+	]
+}

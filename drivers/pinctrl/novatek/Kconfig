@@ -1,0 +1,11 @@
+config PINCTRL_NA51089
+	bool "Novatek NA51089 pin control"
+	depends on NVT_IVOT_PLAT_NA51089
+
+config PINCTRL_NA51068
+	bool "Novatek NA51068 pin control"
+	depends on NVT_IVOT_PLAT_NA51068 || NVT_IVOT_PLAT_NA51068_CA53
+
+config PINCTRL_NA51055
+	bool "Novatek NA51055 pin control"
+	depends on NVT_IVOT_PLAT_NA51055

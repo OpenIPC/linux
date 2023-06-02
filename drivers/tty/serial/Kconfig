@@ -1528,6 +1528,27 @@ config SERIAL_OWL_CONSOLE
 	  Say 'Y' here if you wish to use Actions Semiconductor S500/S900 UART
 	  as the system console.
 
+config SERIAL_NVT
+	tristate "NVT serial port support"
+	select SERIAL_CORE
+	help
+	  Generic UART driver for Novatek.
+
+config SERIAL_NVT_CONSOLE
+	bool "Console on NVT serial port"
+	depends on SERIAL_NVT=y
+	select SERIAL_CORE_CONSOLE
+	select SERIAL_EARLYCON
+	help
+	  Use NVT serial port as console.
+
+config SERIAL_NVT_DMA
+	bool "DMA support for NVT serial port"
+	depends on SERIAL_NVT=y && !(NVT_IVOT_PLAT_NA51068 || NVT_IVOT_PLAT_NA51068_CA53)
+	help
+	  DMA support for NVT serial port (excluding console).
+	  It can be used with NVT_FR platforms such as NA51055/NA51084.
+
 endmenu
 
 config SERIAL_MCTRL_GPIO

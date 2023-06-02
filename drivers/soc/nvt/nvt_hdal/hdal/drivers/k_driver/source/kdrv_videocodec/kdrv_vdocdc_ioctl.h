@@ -1,0 +1,30 @@
+#ifndef __KDRV_VDOCDC_IOCTL_H_
+#define __KDRV_VDOCDC_IOCTL_H_
+
+#include <kwrap/ioctl.h>
+
+
+#define VENC_IOC_COMMON		'E'
+
+typedef struct _VENC_CH_INFO_{
+	int drv_ver;
+	int emode_ver;
+	int num;
+	int id[16];
+} VENC_CH_INFO;
+
+typedef enum _VENC_IOC_NUM_{
+	VENC_ITEM_GET_CH_INFO,
+	VENC_ITEM_SET_CH,
+	VENC_ITEM_RD_CFG,
+	VENC_ITEM_WT_CFG,
+	VENC_ITEM_END
+} VENC_IOC_NUM;
+
+#define VENC_IOC_GET_CH_INFO		_VOS_IOWR(VENC_IOC_COMMON, VENC_ITEM_GET_CH_INFO,	VENC_CH_INFO)
+#define VENC_IOC_SET_ENC_ID		_VOS_IOWR(VENC_IOC_COMMON, VENC_ITEM_SET_CH,		unsigned int)
+#define VENC_IOC_RD_CFG			_VOS_IOWR(VENC_IOC_COMMON, VENC_ITEM_RD_CFG,		char *)
+#define VENC_IOC_WT_CFG			_VOS_IOWR(VENC_IOC_COMMON, VENC_ITEM_WT_CFG,		char *)
+
+#endif	// __KDRV_VDOCDC_IOCTL_H_
+

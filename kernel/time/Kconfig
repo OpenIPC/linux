@@ -123,7 +123,7 @@ config NO_HZ
 
 config HIGH_RES_TIMERS
 	bool "High Resolution Timer Support"
-	depends on !ARCH_USES_GETTIMEOFFSET && GENERIC_CLOCKEVENTS
+	depends on !ARCH_USES_GETTIMEOFFSET && GENERIC_CLOCKEVENTS && NOVATEK_TIMER
 	select TICK_ONESHOT
 	help
 	  This option enables high resolution timer support. If your

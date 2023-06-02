@@ -1,0 +1,166 @@
+#ifndef __USB2DEV_IOCTL_CMD_H_
+#define __USB2DEV_IOCTL_CMD_H_
+
+#include <linux/ioctl.h>
+#include "kwrap/type.h"
+#include "usb2dev.h"
+
+/*
+	USB Definitions
+*/
+
+#define _ENUM_DUMMY4WORD(name)   E_##name = 0x10000000
+
+
+/*
+	USB IOC data struct
+*/
+#define USB_DESC_MAX_SIZE	2048
+
+typedef struct reg_info {
+	unsigned int ui_addr;
+	unsigned int ui_value;
+} REG_INFO;
+
+typedef struct {
+	UINT16			ui_length;
+	UINT8			desc_data[USB_DESC_MAX_SIZE];
+} USB2DEV_DESC;
+
+typedef struct {
+	USB_ENP_CONFIG epcfg[15];
+} USB2DEV_EPCFG;
+
+typedef struct {
+	UINT16 ui_length;
+	UINT8  *p_data;
+} USB2DEV_CX_RET_DATA;
+
+
+//USB_EVENT
+typedef enum {
+	USB2DEV_EVT_TYPE_USBEVENT_CB,			// event
+	USB2DEV_EVT_TYPE_SUSPEND_CB,			// none
+	USB2DEV_EVT_TYPE_OPEN_NEEDED_FIFO_CB,	// none
+
+	USB2DEV_EVT_TYPE_CHARGING_CB,			// event
+	USB2DEV_EVT_TYPE_CX_VENDOR,				// event / device_request
+	USB2DEV_EVT_TYPE_CX_CLASS,				// device_request
+	USB2DEV_EVT_TYPE_SET_INTF_CB,			// event / device_request
+	USB2DEV_EVT_TYPE_RQDONE_CB,
+	USB2DEV_EVT_TYPE_STDUNKNOWN_CB,
+
+	ENUM_DUMMY4WORD(USB2DEV_EVT_TYPE)
+}USB2DEV_EVT_TYPE;
+
+typedef struct {
+	USB2DEV_EVT_TYPE	evt_type;
+	UINT32				event;
+	UINT8 				device_request[8];
+} USB2DEV_EVENT;
+
+typedef struct {
+	USB_EP 			epn;
+	USB_EPCFG_ID	cfgid;
+	UINT32			cfg_value;
+} USB2DEV_SETEPCFG;
+
+typedef struct {
+	USB_CONFIG_ID	cfgid;
+	UINT32			cfg_value;
+} USB2DEV_SETCFG;
+
+typedef struct {
+	USB_EP 			epn;
+	UINT8			*buffer;
+	UINT32			*dma_length;
+	UINT32			timeout_ms;
+} USB2DEV_DATA_RW;
+
+
+
+
+
+//============================================================================
+// IOCTL command
+//============================================================================
+#define USB2DEV_IOC_COMMON_TYPE 'U'
+
+/* REG_INFO */
+#define USB2DEV_IOC_READ_REG                _IOR(USB2DEV_IOC_COMMON_TYPE,  1,  void*)
+#define USB2DEV_IOC_WRITE_REG               _IOW(USB2DEV_IOC_COMMON_TYPE,  2,  void*)
+
+/* No Data */
+#define USB2DEV_IOC_OPEN                     _IO(USB2DEV_IOC_COMMON_TYPE,  3)
+#define USB2DEV_IOC_CLOSE                    _IO(USB2DEV_IOC_COMMON_TYPE,  4)
+
+/*
+	Management Information: USB_MNG
+*/
+
+/* USB2DEV_DESC */
+#define USB2DEV_IOC_SET_DEVICE_DESC			_IOW(USB2DEV_IOC_COMMON_TYPE,  5,  void*)
+#define USB2DEV_IOC_SET_CFG_HS_DESC			_IOW(USB2DEV_IOC_COMMON_TYPE,  6,  void*)
+#define USB2DEV_IOC_SET_CFG_FS_DESC			_IOW(USB2DEV_IOC_COMMON_TYPE,  7,  void*)
+#define USB2DEV_IOC_SET_CFG_HS_OTHER_DESC	_IOW(USB2DEV_IOC_COMMON_TYPE,  8,  void*)
+#define USB2DEV_IOC_SET_CFG_FS_OTHER_DESC	_IOW(USB2DEV_IOC_COMMON_TYPE,  9,  void*)
+#define USB2DEV_IOC_SET_STRING0_DESC	 	_IOW(USB2DEV_IOC_COMMON_TYPE, 10,  void*)
+#define USB2DEV_IOC_SET_STRING1_DESC	 	_IOW(USB2DEV_IOC_COMMON_TYPE, 11,  void*)
+#define USB2DEV_IOC_SET_STRING2_DESC	 	_IOW(USB2DEV_IOC_COMMON_TYPE, 12,  void*)
+#define USB2DEV_IOC_SET_STRING3_DESC	 	_IOW(USB2DEV_IOC_COMMON_TYPE, 13,  void*)
+#define USB2DEV_IOC_SET_STRING4_DESC	 	_IOW(USB2DEV_IOC_COMMON_TYPE, 14,  void*)
+#define USB2DEV_IOC_SET_STRING5_DESC	 	_IOW(USB2DEV_IOC_COMMON_TYPE, 15,  void*)
+#define USB2DEV_IOC_SET_STRING6_DESC	 	_IOW(USB2DEV_IOC_COMMON_TYPE, 16,  void*)
+#define USB2DEV_IOC_SET_STRING7_DESC	 	_IOW(USB2DEV_IOC_COMMON_TYPE, 17,  void*)
+#define USB2DEV_IOC_SET_DEV_QUALI_DESC		_IOW(USB2DEV_IOC_COMMON_TYPE, 18,  void*)
+
+/* USB2DEV_EPCFG */
+#define USB2DEV_IOC_SET_EPCFG_HS	 		_IOW(USB2DEV_IOC_COMMON_TYPE, 19,  void*)
+#define USB2DEV_IOC_SET_EPCFG_FS	 		_IOW(USB2DEV_IOC_COMMON_TYPE, 20,  void*)
+
+/* UINT32 */
+#define USB2DEV_IOC_SET_CFG_NUMBER	 		_IOW(USB2DEV_IOC_COMMON_TYPE, 21,  void*)
+#define USB2DEV_IOC_SET_STRING_NUMBER	 	_IOW(USB2DEV_IOC_COMMON_TYPE, 22,  void*)
+#define USB2DEV_IOC_SET_UNMASK_EPINT		_IOW(USB2DEV_IOC_COMMON_TYPE, 23,  void*)
+#define USB2DEV_IOC_SET_MASK_EPINT			_IOW(USB2DEV_IOC_COMMON_TYPE, 24,  void*)
+#define USB2DEV_IOC_GET_CONTROL_STATE		_IOR(USB2DEV_IOC_COMMON_TYPE, 25,  void*)
+#define USB2DEV_IOC_ABORT_EP				_IOW(USB2DEV_IOC_COMMON_TYPE, 35,  void*)
+#define USB2DEV_IOC_GET_BYTECNT				_IOR(USB2DEV_IOC_COMMON_TYPE, 36,  void*)
+#define USB2DEV_IOC_STALL_EP				_IOW(USB2DEV_IOC_COMMON_TYPE, 37,  void*)
+#define USB2DEV_IOC_TX0_BYTE				_IOW(USB2DEV_IOC_COMMON_TYPE, 38,  void*)
+#define USB2DEV_IOC_CHK_EPBUSY				_IOR(USB2DEV_IOC_COMMON_TYPE, 39,  void*)
+#define USB2DEV_IOC_CLEAR_EPFIFO			_IOW(USB2DEV_IOC_COMMON_TYPE, 40,  void*)
+#define USB2DEV_IOC_GET_SOF					_IOR(USB2DEV_IOC_COMMON_TYPE, 41,  void*)
+#define USB2DEV_IOC_STATE_CHG				_IOR(USB2DEV_IOC_COMMON_TYPE, 42,  void*)
+#define USB2DEV_IOC_CHK_CHARGER				_IOR(USB2DEV_IOC_COMMON_TYPE, 43,  void*)
+#define USB2DEV_IOC_IS_HIGHSPEED			_IOR(USB2DEV_IOC_COMMON_TYPE, 44,  void*)
+#define USB2DEV_IOC_CHK_CXOUT				_IOR(USB2DEV_IOC_COMMON_TYPE, 45,  void*)
+
+/* USB2DEV_EVENT */
+#define USB2DEV_IOC_GET_EVENT				_IOR(USB2DEV_IOC_COMMON_TYPE, 26,  void*)
+
+/* No Data */
+#define USB2DEV_IOC_SET_EVENT_DONE			_IO(USB2DEV_IOC_COMMON_TYPE,  27)
+#define USB2DEV_IOC_SET_CX_DONE   			_IO(USB2DEV_IOC_COMMON_TYPE,  29)
+
+
+/* USB2DEV_CX_RET_DATA */
+#define USB2DEV_IOC_CX_RET_DATA   			_IOW(USB2DEV_IOC_COMMON_TYPE, 28,  void*)
+
+/* USB2DEV_SETEPCFG */
+#define USB2DEV_IOC_SET_EPCFG   			_IOW(USB2DEV_IOC_COMMON_TYPE, 30,  void*)
+
+/* USB2DEV_SETCFG */
+#define USB2DEV_IOC_SET_CFG   				_IOW(USB2DEV_IOC_COMMON_TYPE, 45,  void*)
+
+/* USB2DEV_DATA_RW */
+#define USB2DEV_IOC_SET_EP_R   				_IOWR(USB2DEV_IOC_COMMON_TYPE, 31,  void*)
+#define USB2DEV_IOC_SET_EP_W   				_IOWR(USB2DEV_IOC_COMMON_TYPE, 32,  void*)
+#define USB2DEV_IOC_READ_EP   				_IOWR(USB2DEV_IOC_COMMON_TYPE, 33,  void*)
+#define USB2DEV_IOC_WRITE_EP   				_IOWR(USB2DEV_IOC_COMMON_TYPE, 34,  void*)
+#define USB2DEV_IOC_SET_EP_RQ   			_IOWR(USB2DEV_IOC_COMMON_TYPE, 46,  void*)
+#define USB2DEV_IOC_READ_EP_TMOT   			_IOWR(USB2DEV_IOC_COMMON_TYPE, 47,  void*)
+#define USB2DEV_IOC_WRITE_EP_TMOT   		_IOWR(USB2DEV_IOC_COMMON_TYPE, 48,  void*)
+
+
+#endif

@@ -1,0 +1,31 @@
+{
+	"jsontype": "module_publish",
+	"publish_src": [
+		"kdrv_videoprocess_main.c",
+		"kdrv_vpe_if/kdrv_vpe_if_export.c",
+		"kdrv_ipp/kdrv_ipp_main.c",
+		"kdrv_ipp/kdrv_ipp_proc.c",
+		"kdrv_ipp/kdrv_ipp_export.c",
+		"kdrv_ipp/kdrv_ipp_platform.c",
+		"kdrv_ife/kdrv_ife_main.c",
+		"kdrv_ife/kdrv_ife_proc.c",
+		"kdrv_ife/kdrv_ife_platform.c",
+		"kdrv_ife/eng/ife_eng_platform.c",
+		"kdrv_dce/kdrv_dce_main.c",
+		"kdrv_dce/kdrv_dce_proc.c",
+		"kdrv_dce/kdrv_dce_platform.c",
+		"kdrv_dce/eng/dce_eng_platform.c",
+		"kdrv_ipe/kdrv_ipe_main.c",
+		"kdrv_ipe/kdrv_ipe_proc.c",
+		"kdrv_ipe/kdrv_ipe_platform.c",
+		"kdrv_ipe/eng/ipe_eng_platform.c",
+		"kdrv_ime/kdrv_ime_main.c",
+		"kdrv_ime/kdrv_ime_proc.c",
+		"kdrv_ime/kdrv_ime_platform.c",
+		"kdrv_ime/eng/ime_eng_platform.c",
+		"kdrv_ife2/kdrv_ife2_main.c",
+		"kdrv_ife2/kdrv_ife2_proc.c",
+		"kdrv_ife2/kdrv_ife2_platform.c",
+		"kdrv_ife2/eng/ife2_eng_platform.c"
+	]
+}

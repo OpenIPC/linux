@@ -99,6 +99,11 @@ qh_update (struct ehci_hcd *ehci, struct ehci_qh *qh, struct ehci_qtd *qtd)
 	}
 
 	hw->hw_token &= cpu_to_hc32(ehci, QTD_TOGGLE | QTD_STS_PING);
+#if defined(CONFIG_USB_EHCI_HCD_NVTIVOT)
+	READ_ONCE(hw->hw_token);
+	/* make sure qh is updated */
+	wmb();
+#endif
 }
 
 /* if it weren't for a common silicon quirk (writing the dummy into the qh
@@ -282,6 +287,9 @@ qh_completions (struct ehci_hcd *ehci, struct ehci_qh *qh)
 	int			last_status;
 	int			stopped;
 	u8			state;
+#if defined(CONFIG_USB_EHCI_HCD_NVTIVOT)
+	const __le32        halt = HALT_BIT(ehci);
+#endif
 	struct ehci_qh_hw	*hw = qh->hw;
 
 	/* completions (or tasks on other cpus) must never clobber HALT
@@ -298,6 +306,10 @@ qh_completions (struct ehci_hcd *ehci, struct ehci_qh *qh)
 	qh->qh_state = QH_STATE_COMPLETING;
 	stopped = (state == QH_STATE_IDLE);
 
+#if defined(CONFIG_USB_EHCI_HCD_NVTIVOT)
+	if (test_bit(1, &(ehci_to_hcd(ehci)->porcd2)))
+		stopped = 1;
+#endif
  rescan:
 	last = NULL;
 	last_status = -EINPROGRESS;
@@ -333,6 +345,21 @@ qh_completions (struct ehci_hcd *ehci, struct ehci_qh *qh)
 		/* hardware copies qtd out of qh overlay */
 		rmb ();
 		token = hc32_to_cpu(ehci, qtd->hw_token);
+
+#if defined(CONFIG_USB_EHCI_HCD_NVTIVOT)
+		#define USB_VENDOR_ID_FUHLEN		0x1A81
+		#define USB_DEVICE_ID_FUHLEN_MK650	0x1004
+
+		// Fix USB 2.0 port + High Speed Hub (UNITEK Y-3098B) + Low Speed Mouse/Keyboard (Fuhlen MK650) issue
+		// QTD_STS_STS bit in Token must be cleared
+		if (((token & QTD_STS_ACTIVE) == 0) &&
+		    (usb_pipetype(urb->pipe) == PIPE_INTERRUPT) &&
+		    (le16_to_cpu(urb->dev->descriptor.idVendor)  == USB_VENDOR_ID_FUHLEN) &&
+		    (le16_to_cpu(urb->dev->descriptor.idProduct) == USB_DEVICE_ID_FUHLEN_MK650)) {
+			// Clear the QTD_STS_STS bit in Token
+			hw->hw_token = cpu_to_hc32(ehci, token & ~QTD_STS_STS);
+		}
+#endif
 
 		/* always clean up qtds the hc de-activated */
  retry_xacterr:
@@ -378,6 +405,9 @@ qh_completions (struct ehci_hcd *ehci, struct ehci_qh *qh)
 					wmb();
 					hw->hw_token = cpu_to_hc32(ehci,
 							token);
+#if defined(CONFIG_USB_EHCI_HCD_NVTIVOT)
+					READ_ONCE(hw->hw_token);
+#endif
 					goto retry_xacterr;
 				}
 				stopped = 1;
@@ -397,6 +427,9 @@ qh_completions (struct ehci_hcd *ehci, struct ehci_qh *qh)
 						& EHCI_LIST_END(ehci))) {
 				stopped = 1;
 				qh->unlink_reason |= QH_UNLINK_SHORT_READ;
+#if defined(CONFIG_USB_EHCI_HCD_NVTIVOT)
+				goto halt;
+#endif
 			}
 
 		/* stop scanning when we reach qtds the hc is using */
@@ -407,7 +440,10 @@ qh_completions (struct ehci_hcd *ehci, struct ehci_qh *qh)
 		/* scan the whole queue for unlinks whenever it stops */
 		} else {
 			stopped = 1;
-
+#if defined(CONFIG_USB_EHCI_HCD_NVTIVOT)
+			if (test_bit(1, &(ehci_to_hcd(ehci)->porcd2)))
+				last_status = -ENOTCONN;
+#endif
 			/* cancel everything if we halt, suspend, etc */
 			if (ehci->rh_state < EHCI_RH_RUNNING) {
 				last_status = -ESHUTDOWN;
@@ -441,6 +477,20 @@ qh_completions (struct ehci_hcd *ehci, struct ehci_qh *qh)
 				 */
 				ehci_clear_tt_buffer(ehci, qh, urb, token);
 			}
+
+#if defined(CONFIG_USB_EHCI_HCD_NVTIVOT)
+			/* force halt for unlinked or blocked qh, so we'll
+			 * patch the qh later and so that completions can't
+			 * activate it while we "know" it's stopped.
+			 */
+			if ((halt & hw->hw_token) == 0) {
+halt:
+				hw->hw_token |= halt;
+				/* make sure qh is updated */
+				wmb();
+				READ_ONCE(hw->hw_token);
+			}
+#endif
 		}
 
 		/* unless we already know the urb's status, collect qtd status
@@ -485,6 +535,12 @@ qh_completions (struct ehci_hcd *ehci, struct ehci_qh *qh)
 			last = list_entry (qtd->qtd_list.prev,
 					struct ehci_qtd, qtd_list);
 			last->hw_next = qtd->hw_next;
+#if defined(CONFIG_USB_EHCI_HCD_NVTIVOT)
+			/*
+			 * Using wmb() which though a barrier will do a write-buffer flush
+			 */
+			wmb();
+#endif
 		}
 
 		/* remove qtd; it's recycled after possible urb completion */
@@ -645,6 +701,10 @@ qh_urb_transaction (
 
 		this_qtd_len = qtd_fill(ehci, qtd, buf, this_sg_len, token,
 				maxpacket);
+#if defined(CONFIG_USB_EHCI_HCD_NVTIVOT) && defined(CONFIG_NVT_MTK_WIFI_DONGLE_WK)
+		if (usb_pipein (urb->pipe))
+			qtd->hw_token |= cpu_to_hc32(ehci, QTD_IOC);
+#endif
 		this_sg_len -= this_qtd_len;
 		len -= this_qtd_len;
 		buf += this_qtd_len;
@@ -715,6 +775,10 @@ qh_urb_transaction (
 
 			/* never any data in such packets */
 			qtd_fill(ehci, qtd, 0, 0, token, 0);
+#if defined(CONFIG_USB_EHCI_HCD_NVTIVOT) && defined(CONFIG_NVT_MTK_WIFI_DONGLE_WK)
+			if (usb_pipein (urb->pipe))
+				qtd->hw_token |= cpu_to_hc32(ehci, QTD_IOC);
+#endif
 		}
 	}
 
@@ -932,6 +996,10 @@ done:
 	hw = qh->hw;
 	hw->hw_info1 = cpu_to_hc32(ehci, info1);
 	hw->hw_info2 = cpu_to_hc32(ehci, info2);
+#if defined(CONFIG_USB_EHCI_HCD_NVTIVOT)
+	/* make sure qh is updated */
+	wmb();
+#endif
 	qh->is_out = !is_input;
 	usb_settoggle (urb->dev, usb_pipeendpoint (urb->pipe), !is_input, 1);
 	return qh;
@@ -978,6 +1046,13 @@ static void qh_link_async (struct ehci_hcd *ehci, struct ehci_qh *qh)
 
 	WARN_ON(qh->qh_state != QH_STATE_IDLE);
 
+#if defined(CONFIG_USB_EHCI_HCD_NVTIVOT)
+	if ((qh->ps.udev->parent->devpath[0] == '0')
+	&& unlikely(le16_to_cpu(qh->ps.udev->descriptor.idVendor) == 0x04e8)
+	&& unlikely(le16_to_cpu(qh->ps.udev->descriptor.idProduct) == 0x5014)) {
+		udelay(1);
+	}
+#endif
 	/* clear halt and/or toggle; and maybe recover from silicon quirk */
 	qh_refresh(ehci, qh);
 
@@ -986,6 +1061,12 @@ static void qh_link_async (struct ehci_hcd *ehci, struct ehci_qh *qh)
 	qh->qh_next = head->qh_next;
 	qh->hw->hw_next = head->hw->hw_next;
 	wmb ();
+
+#if defined(CONFIG_USB_EHCI_HCD_NVTIVOT)
+	READ_ONCE(qh->hw->hw_next);
+	/* make sure qh is updated */
+	wmb();
+#endif
 
 	head->qh_next.qh = qh;
 	head->hw->hw_next = dma;
@@ -1055,6 +1136,11 @@ static struct ehci_qh *qh_append_tds (
 			 */
 			token = qtd->hw_token;
 			qtd->hw_token = HALT_BIT(ehci);
+#if defined(CONFIG_USB_EHCI_HCD_NVTIVOT)
+			READ_ONCE(qtd->hw_token);
+			/* make sure qh is updated */
+			wmb();
+#endif
 
 			dummy = qh->dummy;
 
@@ -1077,6 +1163,9 @@ static struct ehci_qh *qh_append_tds (
 
 			/* let the hc process these next qtds */
 			wmb ();
+#if defined(CONFIG_USB_EHCI_HCD_NVTIVOT)
+			READ_ONCE(qtd->hw_next);
+#endif
 			dummy->hw_token = token;
 
 			urb->hcpriv = qh;
@@ -1119,6 +1208,13 @@ submit_async (
 		rc = -ESHUTDOWN;
 		goto done;
 	}
+#if defined(CONFIG_USB_NVTIVOT_HCD)
+	if (unlikely(test_bit(HCD_FLAG_NRY,
+		&ehci_to_hcd(ehci)->flags))) {
+		rc = -ENODEV;
+		goto done;
+	}
+#endif
 	rc = usb_hcd_link_urb_to_ep(ehci_to_hcd(ehci), urb);
 	if (unlikely(rc))
 		goto done;

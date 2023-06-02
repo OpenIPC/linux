@@ -384,6 +384,19 @@ config HW_RANDOM_CAVIUM
 
          If unsure, say Y.
 
+config HW_RANDOM_NVT
+	tristate "Novatek True Random Number Generator support"
+	depends on HW_RANDOM && NVT_IVOT_PLAT_NA51055
+	default HW_RANDOM
+	---help---
+	  This driver provides kernel-side support for the Random Number
+	  Generator hardware found on Novatek SoCs.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called nvt_rng.
+
+	  If unsure, say Y.	  
+	 
 config HW_RANDOM_MTK
 	tristate "Mediatek Random Number Generator support"
 	depends on HW_RANDOM

@@ -1,0 +1,41 @@
+#
+# Synopsys network device configuration
+#
+
+config NOVATEK_DWC_ETH_QOS_NA51055
+	tristate "Novatek DWC Ethernet QOS support"
+	depends on NVT_IVOT_PLAT_NA51055 && NET_VENDOR_NOVATEK
+        select PHYLIB
+        select CRC32
+        select MII
+        select INET_LRO
+        depends on HAS_DMA
+        ---help---
+          This driver supports the DWC Ethernet QoS
+
+config TX_DESC
+	int
+	prompt "Tx Descriptor Number (minimum: 32)"
+	default 256
+	range 32 256
+	depends on NOVATEK_DWC_ETH_QOS_NA51055
+	
+config RX_DESC
+	int
+	prompt "Rx Descriptor Number (minimum: 32)"
+	default 256
+	range 32 256
+	depends on NOVATEK_DWC_ETH_QOS_NA51055
+
+config NVT_MDIO_NA51055
+        tristate "Novatek NA51055 Ethernet MDIO driver"
+        depends on NVT_IVOT_PLAT_NA51055
+	select NVT_MDIO_NA51055_CFG
+        help
+          Support mdio driver on Novatek NA51055.
+
+config NVT_MDIO_NA51055_CFG
+	bool
+	prompt "MDIO DRIVER CONFIG"
+	depends on NVT_MDIO_NA51055
+	default n

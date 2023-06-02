@@ -261,6 +261,7 @@ struct uart_port {
 	struct attribute_group	*attr_group;		/* port specific attributes */
 	const struct attribute_group **tty_groups;	/* all attributes (serial core use only) */
 	struct serial_rs485     rs485;
+	unsigned int		hw_flowctrl;		/* NVT hardware flow contol */
 	void			*private_data;		/* generic platform data pointer */
 };
 

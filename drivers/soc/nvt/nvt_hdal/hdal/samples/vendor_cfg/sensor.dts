@@ -1,0 +1,35 @@
+/*
+ * Novatek Ltd. NA51055 BSP part of dts
+ *
+ * Cortex-A9
+ *
+ */
+
+/dts-v1/;
+
+/ {
+	sensor_ssenif {
+		ssenif@0 {
+			if_type                 = <0x05>;                           /* HD_COMMON_VIDEO_IN_MIPI_CSI */
+			sensor_pinmux           = <0x220>;
+			serial_if_pinmux        = <0x301>;
+			cmd_if_pinmux           = <0x10>;
+			clk_lane_sel            = <0x00>;                           /* HD_VIDEOCAP_SEN_CLANE_SEL_CSI0_USE_C0 */
+			sen_2_serial_pin_map    = <0x00000000 0x00000001 0xFFFFFFFF 0xFFFFFFFF 0xFFFFFFFF 0xFFFFFFFF 0xFFFFFFFF 0xFFFFFFFF>;
+			senout_pxlfmt           = <0x410c0000>;                     /* HD_VIDEO_PXLFMT_RAW12 */
+			capout_pxlfmt           = <0x410c0000>;                     /* HD_VIDEO_PXLFMT_RAW12 */
+		};
+		ssenif@1 {
+		};
+	};
+	sensor {
+		/* label for sensor_cfg */
+		sen_cfg: sen_cfg {
+		};
+	};
+};
+
+/* Note: put include files in the tail since label should be declared first. */
+#include <dt-bindings/gpio/nvt-gpio.h>
+#include "imx290_cfg.dtsi"
+

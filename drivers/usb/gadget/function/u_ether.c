@@ -217,7 +217,11 @@ rx_submit(struct eth_dev *dev, struct usb_request *req, gfp_t gfp_flags)
 		size = max_t(size_t, size, dev->port_usb->fixed_out_len);
 	spin_unlock_irqrestore(&dev->lock, flags);
 
+#if defined(CONFIG_NVT_IVOT_PLAT_NA51055)
+	skb = __netdev_alloc_skb(dev->net, size, gfp_flags);
+#else
 	skb = __netdev_alloc_skb(dev->net, size + NET_IP_ALIGN, gfp_flags);
+#endif
 	if (skb == NULL) {
 		DBG(dev, "no rx skb\n");
 		goto enomem;
@@ -559,6 +563,12 @@ static netdev_tx_t eth_start_xmit(struct sk_buff *skb,
 	}
 
 	length = skb->len;
+#if defined(CONFIG_NVT_IVOT_PLAT_NA51055)
+	if ((int)skb->data & 0x2) {
+		skb_push(skb, 2);
+		memmove(skb->data, skb->data+2, length);
+	}
+#endif
 	req->buf = skb->data;
 	req->context = skb;
 	req->complete = tx_complete;

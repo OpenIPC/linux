@@ -172,7 +172,7 @@ static int ftgpio_gpio_probe(struct platform_device *pdev)
 	g->dev = dev;
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	g->base = devm_ioremap_resource(dev, res);
+	g->base = ioremap_nocache(res->start, resource_size(res));
 	if (IS_ERR(g->base))
 		return PTR_ERR(g->base);
 

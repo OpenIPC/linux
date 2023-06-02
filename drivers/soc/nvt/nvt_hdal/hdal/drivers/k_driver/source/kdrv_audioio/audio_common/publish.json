@@ -1,0 +1,11 @@
+{
+	"jsontype": "module_publish",
+	"publish_src": [
+		"audio_api.c",
+		"audio_drv.c",
+		"audio_export.c",
+		"audio_main.c",
+		"audio_platform.c",
+		"audio_proc.c"
+	]
+}

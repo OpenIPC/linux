@@ -65,3 +65,4 @@ obj-$(CONFIG_ARCH_VT8500)	+= vt8500/
 obj-y				+= mediatek/
 obj-$(CONFIG_PINCTRL_ZX)	+= zte/
 obj-y				+= cirrus/
+obj-$(CONFIG_PLAT_NOVATEK)	+= novatek/

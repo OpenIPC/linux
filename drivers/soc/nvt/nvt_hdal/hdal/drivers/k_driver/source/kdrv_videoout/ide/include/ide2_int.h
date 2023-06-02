@@ -1,0 +1,610 @@
+/*
+    Header file for Display private library
+
+    Header file for Display private library
+
+    @file       ide_int.h
+    @ingroup    mIDrvDisp_IDE
+    @note       Nothing.
+
+    Copyright   Novatek Microelectronics Corp. 2009.  All rights reserved.
+*/
+
+#ifndef _IDE_INT_H
+#define _IDE_INT_H
+
+#include "ide_platform.h"
+
+/*
+    @addtogroup mIDrvDisp_IDE
+*/
+//@{
+
+#define IOADDR_TV_REG_OFS       0x124
+
+#define IDEDEFAULT_EN_INT (IDE_V1BWF_IRQEN|IDE_V2BWF_IRQEN|IDE_OSD1BWF_IRQEN|IDE_V1_LINE_START_ERROR_IRQEN|IDE_V2_LINE_START_ERROR_IRQEN|IDE_O1_LINE_START_ERROR_IRQEN)
+//#define IDEDEFAULT_EN_INT 0
+
+#define IDE_CMLCOMPARE 0
+
+#if 1
+
+#define ide_chk_min(val, min)   \
+	do { \
+		if ((val) < (min)) { \
+			DBG_ERR("value %x smaller than minmun %x\r\n", val, min); \
+		} \
+	} while (0)
+
+#define ide_chk_max(val, max)   \
+	do { \
+		if ((val) > (max)) { \
+			DBG_ERR("value %x larger than maximum %x\r\n", val, max); \
+		} \
+	} while (0)
+
+
+#define ide_chk_range(val, min, max)    \
+	do { \
+		ide_chk_min(val, min); \
+		ide_chk_max(val, max); \
+	} while (0)
+
+#else
+
+#define ide_chk_min(val, min)           do { } while (0)
+#define ide_chk_max(val, max)           do { } while (0)
+#define ide_chk_range(val, min, max)    do { } while (0)
+
+#endif
+
+// Define default value for trimming
+#define TVDAC_TRIM_DEFAULT        57
+#define TVDAC_TRIM_MASK           0x7F
+#define TVDAC_TRIM_MIN            35
+#define TVDAC_TRIM_MAX            70
+
+/*
+    Line comparative directive
+
+    @note For
+*/
+typedef enum {
+	IDE_LINE_COMPARATIVE_GTLT,   ///< compare with > and <
+	IDE_LINE_COMPARATIVE_GTLE,   ///< compare with > and <=
+	IDE_LINE_COMPARATIVE_GELT,   ///< compare with >= and <
+	IDE_LINE_COMPARATIVE_GELE,   ///< compare with >= and <=
+
+} IDE_LINE_COMPARATIVE;
+
+
+typedef struct struct_point {
+	struct struct_point *p_cw;   // next point in clockwise
+	struct struct_point *p_ccw;  // next point in counter clockwise
+	struct struct_point *p_next;
+	struct struct_point *p_prev;
+	INT32 x;
+	INT32 y;
+} STRUCT_POINT;
+
+// Palette Control
+void idec_set_pal0_rw(IDE_ID id, BOOL b_sel);
+//void idec_set_pal1_rw(IDE_ID id, BOOL b_sel);
+
+BOOL idec_get_pal0_rw(IDE_ID id);
+//BOOL idec_get_pal_rw(IDE_ID id);
+
+extern void idec_set_reg(UINT32 id, UINT32 offset, REGVALUE value);
+extern REGVALUE idec_get_reg(UINT32 id, UINT32 offset);
+extern IDE_LINE_COMPARATIVE g_ide_line_comparative;
+
+// Register default value
+#define IDE_0000_REG_DEFAULT        0x00534180
+#define IDE_0004_REG_DEFAULT        0x00000000
+#define IDE_0008_REG_DEFAULT        0x00000000
+#define IDE_000C_REG_DEFAULT        0x00000000
+
+#define IDE_0010_REG_DEFAULT        0x00000000
+#define IDE_0014_REG_DEFAULT        0x00000000
+#define IDE_0018_REG_DEFAULT        0x00000000
+#define IDE_001C_REG_DEFAULT        0x00000000
+
+#define IDE_0020_REG_DEFAULT        0x00000000
+#define IDE_0024_REG_DEFAULT        0x00000000
+#define IDE_0028_REG_DEFAULT        0x00F00140
+#define IDE_002C_REG_DEFAULT        0x00000000
+
+#define IDE_0030_REG_DEFAULT        0x00000000
+#define IDE_0034_REG_DEFAULT        0x00000000
+#define IDE_0038_REG_DEFAULT        0x00000000
+#define IDE_003C_REG_DEFAULT        0x00000000
+
+#define IDE_0040_REG_DEFAULT        0x00000000
+#define IDE_0044_REG_DEFAULT        0x00000000
+#define IDE_0048_REG_DEFAULT        0x00000000
+#define IDE_004C_REG_DEFAULT        0x00000000
+
+#define IDE_0050_REG_DEFAULT        0x00000000
+#define IDE_0054_REG_DEFAULT        0x00F00140
+#define IDE_0058_REG_DEFAULT        0x00000000
+#define IDE_005C_REG_DEFAULT        0x00000000
+
+#define IDE_0060_REG_DEFAULT        0x00F00140
+#define IDE_0064_REG_DEFAULT        0x00000000
+#define IDE_0068_REG_DEFAULT        0x00000000
+#define IDE_006C_REG_DEFAULT        0x00000000
+
+#define IDE_0070_REG_DEFAULT        0x00000000
+#define IDE_0074_REG_DEFAULT        0x00000000
+#define IDE_0078_REG_DEFAULT        0x00000000
+#define IDE_007C_REG_DEFAULT        0x00000000
+
+#define IDE_0080_REG_DEFAULT        0x00000000
+#define IDE_0084_REG_DEFAULT        0x00808080
+#define IDE_0088_REG_DEFAULT        0x00000000
+#define IDE_008C_REG_DEFAULT        0x00000000
+
+#define IDE_0090_REG_DEFAULT        0x00EF013F
+#define IDE_0094_REG_DEFAULT        0x00000000
+#define IDE_0098_REG_DEFAULT        0x00000000
+#define IDE_009C_REG_DEFAULT        0x00000000
+
+#define IDE_00A0_REG_DEFAULT        0x00000000
+#define IDE_00A4_REG_DEFAULT        0x00020000
+#define IDE_00A8_REG_DEFAULT        0x90EF013F
+#define IDE_00AC_REG_DEFAULT        0x00000000
+
+#define IDE_00B0_REG_DEFAULT        0x00020000
+#define IDE_00B4_REG_DEFAULT        0x90EF013F
+#define IDE_00B8_REG_DEFAULT        0x00000000
+#define IDE_00BC_REG_DEFAULT        0x00808000
+
+#define IDE_00C0_REG_DEFAULT        0x00000400
+#define IDE_00C4_REG_DEFAULT        0x00000000
+#define IDE_00C8_REG_DEFAULT        0x00000000
+#define IDE_00CC_REG_DEFAULT        0x00617000
+
+#define IDE_00D0_REG_DEFAULT        0x0061612A
+#define IDE_00D4_REG_DEFAULT        0x00105000
+#define IDE_00D8_REG_DEFAULT        0x00104015
+#define IDE_00DC_REG_DEFAULT        0x00104015
+
+#define IDE_00E0_REG_DEFAULT        0x00140001
+#define IDE_00E4_REG_DEFAULT        0x011B0108
+#define IDE_00E8_REG_DEFAULT        0x010A0004
+#define IDE_00EC_REG_DEFAULT        0x00000000
+
+#define IDE_00F0_REG_DEFAULT        0x00092A05
+#define IDE_00F4_REG_DEFAULT        0x00000002
+#define IDE_00F8_REG_DEFAULT        0x00000000
+#define IDE_00FC_REG_DEFAULT        0x00000000
+
+#define IDE_0100_REG_DEFAULT        0x00000000
+#define IDE_0104_REG_DEFAULT        0x00000000
+#define IDE_0108_REG_DEFAULT        0x00000000
+#define IDE_010C_REG_DEFAULT        0x00000000
+
+#define IDE_0110_REG_DEFAULT        0x00000000
+#define IDE_0114_REG_DEFAULT        0x00000000
+#define IDE_0118_REG_DEFAULT        0x00000000
+#define IDE_011C_REG_DEFAULT        0x00000000
+
+#define IDE_0120_REG_DEFAULT        0x00000000
+#define IDE_0124_REG_DEFAULT        0x00000000
+#define IDE_0128_REG_DEFAULT        0x00000000
+#define IDE_012C_REG_DEFAULT        0x00160919
+
+#define IDE_0130_REG_DEFAULT        0x00000000
+#define IDE_0134_REG_DEFAULT        0x00000000
+#define IDE_0138_REG_DEFAULT        0x00000000
+#define IDE_013C_REG_DEFAULT        0x00000000
+
+#define IDE_0140_REG_DEFAULT        0x00000000
+#define IDE_0144_REG_DEFAULT        0x00000000
+#define IDE_0148_REG_DEFAULT        0x0001FE01
+#define IDE_014C_REG_DEFAULT        0x0001FE01
+
+#define IDE_0150_REG_DEFAULT        0x0001FE01
+#define IDE_0154_REG_DEFAULT        0x00000000
+#define IDE_0158_REG_DEFAULT        0x2B1D4D15
+#define IDE_015C_REG_DEFAULT        0x2B1D4D15
+
+#define IDE_0160_REG_DEFAULT        0x00000100
+#define IDE_0164_REG_DEFAULT        0x01000166
+#define IDE_0168_REG_DEFAULT        0x0F4A0FA8
+#define IDE_016C_REG_DEFAULT        0x01C50100
+
+#define IDE_0170_REG_DEFAULT        0x00000000
+#define IDE_0174_REG_DEFAULT        0x03018000
+#define IDE_0178_REG_DEFAULT        0x00000000
+#define IDE_017C_REG_DEFAULT        0xFF00FF00
+
+#define IDE_0180_REG_DEFAULT        0x0000FF00
+#define IDE_0184_REG_DEFAULT        0xDB773092
+#define IDE_0188_REG_DEFAULT        0x00000000
+#define IDE_018C_REG_DEFAULT        0x00000000
+
+#define IDE_0190_REG_DEFAULT        0x008080FF
+#define IDE_0194_REG_DEFAULT        0x00808000
+#define IDE_0198_REG_DEFAULT        0x00808000
+#define IDE_019C_REG_DEFAULT        0x008080FF
+
+#define IDE_01A0_REG_DEFAULT        0x00000000
+#define IDE_01A4_REG_DEFAULT        0x008080FF
+#define IDE_01A8_REG_DEFAULT        0x00808000
+#define IDE_01AC_REG_DEFAULT        0x00808000
+
+#define IDE_01B0_REG_DEFAULT        0x008080FF
+#define IDE_01B4_REG_DEFAULT        0x00000000
+#define IDE_01B8_REG_DEFAULT        0x00000000
+#define IDE_01BC_REG_DEFAULT        0x00000000
+
+#define IDE_01C0_REG_DEFAULT        0xFF00FF00
+#define IDE_01C4_REG_DEFAULT        0x0000FF00
+#define IDE_01C8_REG_DEFAULT        0x00000000
+#define IDE_01CC_REG_DEFAULT        0x00000000
+
+#define IDE_01D0_REG_DEFAULT        0x00000010
+#define IDE_01D4_REG_DEFAULT        0x00000000
+#define IDE_01D8_REG_DEFAULT        0x00000000
+#define IDE_01DC_REG_DEFAULT        0x00000000
+
+#define IDE_01E0_REG_DEFAULT        0x00000000
+#define IDE_01E4_REG_DEFAULT        0x00000000
+#define IDE_01E8_REG_DEFAULT        0x00000000
+#define IDE_01EC_REG_DEFAULT        0x00000000
+
+#define IDE_01F0_REG_DEFAULT        0x00000000
+#define IDE_01F4_REG_DEFAULT        0x00000000
+#define IDE_01F8_REG_DEFAULT        0x00000000
+#define IDE_01FC_REG_DEFAULT        0x00000000
+
+//0x200 ~ 0x5FC are palette area0
+//0x600 ~ 0x9FC are palette area1
+
+#define IDE_0A00_REG_DEFAULT        0x18100800
+#define IDE_0A04_REG_DEFAULT        0x38302820
+#define IDE_0A08_REG_DEFAULT        0x58504840
+#define IDE_0A0C_REG_DEFAULT        0x78706860
+
+#define IDE_0A10_REG_DEFAULT        0x98908880
+#define IDE_0A14_REG_DEFAULT        0xB8B0A8A0
+#define IDE_0A18_REG_DEFAULT        0xD8D0C8C0
+#define IDE_0A1C_REG_DEFAULT        0xF8F0E8E0
+
+#define IDE_0A20_REG_DEFAULT        0x000000FF
+#define IDE_0A24_REG_DEFAULT        0x18100800
+#define IDE_0A28_REG_DEFAULT        0x38302820
+#define IDE_0A2C_REG_DEFAULT        0x58504840
+
+#define IDE_0A30_REG_DEFAULT        0x78706860
+#define IDE_0A34_REG_DEFAULT        0x98908880
+#define IDE_0A38_REG_DEFAULT        0xB8B0A8A0
+#define IDE_0A3C_REG_DEFAULT        0xD8D0C8C0
+
+#define IDE_0A40_REG_DEFAULT        0xF8F0E8E0
+#define IDE_0A44_REG_DEFAULT        0x000000FF
+#define IDE_0A48_REG_DEFAULT        0x18100800
+#define IDE_0A4C_REG_DEFAULT        0x38302820
+
+#define IDE_0A50_REG_DEFAULT        0x58504840
+#define IDE_0A54_REG_DEFAULT        0x78706860
+#define IDE_0A58_REG_DEFAULT        0x98908880
+#define IDE_0A5C_REG_DEFAULT        0xB8B0A8A0
+
+#define IDE_0A60_REG_DEFAULT        0xD8D0C8C0
+#define IDE_0A64_REG_DEFAULT        0xF8F0E8E0
+#define IDE_0A68_REG_DEFAULT        0x000000FF
+#define IDE_0A6C_REG_DEFAULT        0x80808080
+
+#define IDE_0A70_REG_DEFAULT        0x80808080
+#define IDE_0A74_REG_DEFAULT        0x80808080
+#define IDE_0A78_REG_DEFAULT        0x80808080
+#define IDE_0A7C_REG_DEFAULT        0x80808080
+
+#define IDE_0A80_REG_DEFAULT        0x80808080
+#define IDE_0A84_REG_DEFAULT        0x00000000
+#define IDE_0A88_REG_DEFAULT        0x00000000
+#define IDE_0A8C_REG_DEFAULT        0x00000000
+
+#define IDE_0A90_REG_DEFAULT        0x00000000
+#define IDE_0A94_REG_DEFAULT        0x00000000
+#define IDE_0A98_REG_DEFAULT        0x00000000
+#define IDE_0A9C_REG_DEFAULT        0x00000000
+
+#define IDE_0AA0_REG_DEFAULT        0x00000000
+#define IDE_0AA4_REG_DEFAULT        0x00000000
+#define IDE_0AA8_REG_DEFAULT        0x00000000
+#define IDE_0AAC_REG_DEFAULT        0x00000000
+
+#define IDE_0AB0_REG_DEFAULT        0x00000000
+#define IDE_0AB4_REG_DEFAULT        0x00000000
+#define IDE_0AB8_REG_DEFAULT        0x00000000
+#define IDE_0ABC_REG_DEFAULT        0x00000000
+
+#define IDE_0AC0_REG_DEFAULT        0x00008080
+#define IDE_0AC4_REG_DEFAULT        0x00808000
+#define IDE_0AC8_REG_DEFAULT        0x00000000
+#define IDE_0ACC_REG_DEFAULT        0x00000000
+
+#define IDE_0AD0_REG_DEFAULT        0x00000000
+#define IDE_0AD4_REG_DEFAULT        0x00000000
+#define IDE_0AD8_REG_DEFAULT        0x00000000
+#define IDE_0ADC_REG_DEFAULT        0x00808000
+
+#define IDE_0AE0_REG_DEFAULT        0x00000000
+#define IDE_0AE4_REG_DEFAULT        0x00000000
+#define IDE_0AE8_REG_DEFAULT        0x00808000
+#define IDE_0AEC_REG_DEFAULT        0x00000000
+
+#define IDE_0AF0_REG_DEFAULT        0x00000000
+#define IDE_0AF4_REG_DEFAULT        0x00808000
+#define IDE_0AF8_REG_DEFAULT        0x00000000
+#define IDE_0AFC_REG_DEFAULT        0x00000000
+
+#define IDE_0B00_REG_DEFAULT        0x00808000
+#define IDE_0B04_REG_DEFAULT        0x00000000
+#define IDE_0B08_REG_DEFAULT        0x00000000
+#define IDE_0B0C_REG_DEFAULT        0x00808000
+
+#define IDE_0B10_REG_DEFAULT        0x00000000
+#define IDE_0B14_REG_DEFAULT        0x00000000
+#define IDE_0B18_REG_DEFAULT        0x00808000
+#define IDE_0B1C_REG_DEFAULT        0x00000000
+
+#define IDE_0B20_REG_DEFAULT        0x00000000
+#define IDE_0B24_REG_DEFAULT        0x00808000
+#define IDE_0B28_REG_DEFAULT        0x00000000
+#define IDE_0B2C_REG_DEFAULT        0x00000000
+
+#define IDE_0B30_REG_DEFAULT        0x00808000
+#define IDE_0B34_REG_DEFAULT        0x00000000
+#define IDE_0B38_REG_DEFAULT        0x00000000
+#define IDE_0B3C_REG_DEFAULT        0x00808000
+
+#define IDE_0B40_REG_DEFAULT        0x00000000
+#define IDE_0B44_REG_DEFAULT        0x00000000
+#define IDE_0B48_REG_DEFAULT        0x00808000
+#define IDE_0B4C_REG_DEFAULT        0x00000000
+
+#define IDE_0B50_REG_DEFAULT        0x00000000
+#define IDE_0B54_REG_DEFAULT        0x00808000
+#define IDE_0B58_REG_DEFAULT        0x00000000
+#define IDE_0B5C_REG_DEFAULT        0x00000000
+
+#define IDE_0B60_REG_DEFAULT        0x00808000
+#define IDE_0B64_REG_DEFAULT        0x00000000
+#define IDE_0B68_REG_DEFAULT        0x00000000
+#define IDE_0B6C_REG_DEFAULT        0x00808000
+
+#define IDE_0B70_REG_DEFAULT        0x00000000
+#define IDE_0B74_REG_DEFAULT        0x00000000
+#define IDE_0B78_REG_DEFAULT        0x00808000
+#define IDE_0B7C_REG_DEFAULT        0x00000000
+
+#define IDE_0B80_REG_DEFAULT        0x00000000
+#define IDE_0B84_REG_DEFAULT        0x00808000
+#define IDE_0B88_REG_DEFAULT        0x00000000
+#define IDE_0B8C_REG_DEFAULT        0x00000000
+
+#define IDE_0B90_REG_DEFAULT        0x00808000
+#define IDE_0B94_REG_DEFAULT        0x00000000
+#define IDE_0B98_REG_DEFAULT        0x00000000
+#define IDE_0B9C_REG_DEFAULT        0x00000000
+
+#define IDE_0BA0_REG_DEFAULT        0x00000000
+#define IDE_0BA4_REG_DEFAULT        0x00000000
+#define IDE_0BA8_REG_DEFAULT        0x00000000
+#define IDE_0BAC_REG_DEFAULT        0x00000000
+
+#define IDE_0BB0_REG_DEFAULT        0x00000000
+#define IDE_0BB4_REG_DEFAULT        0x00000000
+#define IDE_0BB8_REG_DEFAULT        0x00000000
+#define IDE_0BBC_REG_DEFAULT        0x00000000
+
+#define IDE_0BC0_REG_DEFAULT        0x00000000
+#define IDE_0BC4_REG_DEFAULT        0x00000000
+#define IDE_0BC8_REG_DEFAULT        0x00000000
+#define IDE_0BCC_REG_DEFAULT        0x00000000
+
+#define IDE_0BD0_REG_DEFAULT        0x00000000
+#define IDE_0BD4_REG_DEFAULT        0x00000000
+#define IDE_0BD8_REG_DEFAULT        0x00000000
+#define IDE_0BDC_REG_DEFAULT        0x00000000
+
+#define IDE_0BE0_REG_DEFAULT        0x00000000
+#define IDE_0BE4_REG_DEFAULT        0x00000000
+#define IDE_0BE8_REG_DEFAULT        0x00000000
+#define IDE_0BEC_REG_DEFAULT        0x00000000
+
+#define IDE_0BF0_REG_DEFAULT        0x00000000
+#define IDE_0BF4_REG_DEFAULT        0x00000000
+#define IDE_0BF8_REG_DEFAULT        0x00000000
+#define IDE_0BFC_REG_DEFAULT        0x00000000
+
+#define IDE_0C00_REG_DEFAULT        0x00000000
+#define IDE_0C04_REG_DEFAULT        0x00000000
+#define IDE_0C08_REG_DEFAULT        0x00000000
+#define IDE_0C0C_REG_DEFAULT        0x00000000
+
+#define IDE_0C10_REG_DEFAULT        0x00000000
+#define IDE_0C14_REG_DEFAULT        0x00000000
+#define IDE_0C18_REG_DEFAULT        0x00000000
+#define IDE_0C1C_REG_DEFAULT        0x00000000
+
+#define IDE_0C20_REG_DEFAULT        0x00000000
+#define IDE_0C24_REG_DEFAULT        0x00000000
+#define IDE_0C28_REG_DEFAULT        0x00000000
+#define IDE_0C2C_REG_DEFAULT        0x00000000
+
+#define IDE_0C30_REG_DEFAULT        0x00000000
+#define IDE_0C34_REG_DEFAULT        0x00000000
+#define IDE_0C38_REG_DEFAULT        0x00000000
+#define IDE_0C3C_REG_DEFAULT        0x00000000
+
+#define IDE_0C40_REG_DEFAULT        0x00000000
+#define IDE_0C44_REG_DEFAULT        0x00000000
+#define IDE_0C48_REG_DEFAULT        0x00000000
+#define IDE_0C4C_REG_DEFAULT        0x00000000
+
+#define IDE_0C50_REG_DEFAULT        0x00000000
+#define IDE_0C54_REG_DEFAULT        0x00000000
+#define IDE_0C58_REG_DEFAULT        0x00000000
+#define IDE_0C5C_REG_DEFAULT        0x00000000
+
+#define IDE_0C60_REG_DEFAULT        0x00000000
+#define IDE_0C64_REG_DEFAULT        0x00000000
+#define IDE_0C68_REG_DEFAULT        0x00000000
+#define IDE_0C6C_REG_DEFAULT        0x00000000
+
+#define IDE_0C70_REG_DEFAULT        0x00000000
+#define IDE_0C74_REG_DEFAULT        0x00000000
+#define IDE_0C78_REG_DEFAULT        0x00000000
+#define IDE_0C7C_REG_DEFAULT        0x00000000
+
+#define IDE_0C80_REG_DEFAULT        0x00000000
+#define IDE_0C84_REG_DEFAULT        0x00000000
+#define IDE_0C88_REG_DEFAULT        0x00000000
+#define IDE_0C8C_REG_DEFAULT        0x00000000
+
+#define IDE_0C90_REG_DEFAULT        0x00000000
+#define IDE_0C94_REG_DEFAULT        0x00000000
+#define IDE_0C98_REG_DEFAULT        0x00000000
+#define IDE_0C9C_REG_DEFAULT        0x00000000
+
+#define IDE_0CA0_REG_DEFAULT        0x00000000
+#define IDE_0CA4_REG_DEFAULT        0x00000000
+#define IDE_0CA8_REG_DEFAULT        0x00000000
+#define IDE_0CAC_REG_DEFAULT        0x00000000
+
+#define IDE_0CB0_REG_DEFAULT        0x00000000
+#define IDE_0CB4_REG_DEFAULT        0x00000000
+#define IDE_0CB8_REG_DEFAULT        0x00000000
+#define IDE_0CBC_REG_DEFAULT        0x00000000
+
+#define IDE_0CC0_REG_DEFAULT        0x00000000
+#define IDE_0CC4_REG_DEFAULT        0x00000000
+#define IDE_0CC8_REG_DEFAULT        0x00000000
+#define IDE_0CCC_REG_DEFAULT        0x00000000
+
+#define IDE_0CD0_REG_DEFAULT        0x00000000
+#define IDE_0CD4_REG_DEFAULT        0x00000000
+#define IDE_0CD8_REG_DEFAULT        0x00000000
+#define IDE_0CDC_REG_DEFAULT        0x00000000
+
+#define IDE_0CE0_REG_DEFAULT        0x00000000
+#define IDE_0CE4_REG_DEFAULT        0x00000000
+#define IDE_0CE8_REG_DEFAULT        0x00000000
+#define IDE_0CEC_REG_DEFAULT        0x00000000
+
+#define IDE_0CF0_REG_DEFAULT        0x00000000
+#define IDE_0CE4_REG_DEFAULT        0x00000000
+#define IDE_0CE8_REG_DEFAULT        0x00000000
+#define IDE_0CEC_REG_DEFAULT        0x00000000
+
+#define IDE_0D00_REG_DEFAULT        0x00000000
+#define IDE_0D04_REG_DEFAULT        0x00000000
+#define IDE_0D08_REG_DEFAULT        0x00000000
+#define IDE_0D0C_REG_DEFAULT        0x00000000
+
+#define IDE_0D10_REG_DEFAULT        0x00000000
+#define IDE_0D14_REG_DEFAULT        0x00000000
+#define IDE_0D18_REG_DEFAULT        0x00000000
+#define IDE_0D1C_REG_DEFAULT        0x00000000
+
+#define IDE_0D20_REG_DEFAULT        0x00000000
+#define IDE_0D24_REG_DEFAULT        0x00000000
+#define IDE_0D28_REG_DEFAULT        0x00000000
+#define IDE_0D2C_REG_DEFAULT        0x00000000
+
+#define IDE_0D30_REG_DEFAULT        0x00000000
+#define IDE_0D34_REG_DEFAULT        0x00000000
+#define IDE_0D38_REG_DEFAULT        0x00000000
+#define IDE_0D3C_REG_DEFAULT        0x00000000
+
+#define IDE_0D40_REG_DEFAULT        0x00000000
+#define IDE_0D44_REG_DEFAULT        0x00000000
+#define IDE_0D48_REG_DEFAULT        0x00000000
+#define IDE_0D4C_REG_DEFAULT        0x00000000
+
+#define IDE_0D50_REG_DEFAULT        0x00000000
+#define IDE_0D54_REG_DEFAULT        0x00000000
+#define IDE_0D58_REG_DEFAULT        0x00000000
+#define IDE_0D5C_REG_DEFAULT        0x00000000
+
+#define IDE_0D60_REG_DEFAULT        0x00000000
+#define IDE_0D64_REG_DEFAULT        0x00000000
+#define IDE_0D68_REG_DEFAULT        0x00000000
+#define IDE_0D6C_REG_DEFAULT        0x00000000
+
+#define IDE_0D70_REG_DEFAULT        0x00000000
+#define IDE_0D74_REG_DEFAULT        0x00000000
+#define IDE_0D78_REG_DEFAULT        0x00000000
+#define IDE_0D7C_REG_DEFAULT        0x00000000
+
+#define IDE_0D80_REG_DEFAULT        0x00000000
+#define IDE_0D84_REG_DEFAULT        0x00000000
+#define IDE_0D88_REG_DEFAULT        0x00000000
+#define IDE_0D8C_REG_DEFAULT        0x00000000
+
+#define IDE_0D90_REG_DEFAULT        0x00000000
+#define IDE_0D94_REG_DEFAULT        0x00000000
+#define IDE_0D98_REG_DEFAULT        0x00000000
+#define IDE_0D9C_REG_DEFAULT        0x00000000
+
+#define IDE_0DA0_REG_DEFAULT        0x00000000
+#define IDE_0DA4_REG_DEFAULT        0x00000000
+#define IDE_0DA8_REG_DEFAULT        0x00000000
+#define IDE_0DAC_REG_DEFAULT        0x00000000
+
+#define IDE_0DB0_REG_DEFAULT        0x00000000
+#define IDE_0DB4_REG_DEFAULT        0x00000000
+#define IDE_0DB8_REG_DEFAULT        0x00000000
+#define IDE_0DBC_REG_DEFAULT        0x00000000
+
+#define IDE_0DC0_REG_DEFAULT        0x00000000
+#define IDE_0DC4_REG_DEFAULT        0x00000000
+#define IDE_0DC8_REG_DEFAULT        0x00000000
+#define IDE_0DCC_REG_DEFAULT        0x00000000
+
+#define IDE_0DD0_REG_DEFAULT        0x00000000
+#define IDE_0DD4_REG_DEFAULT        0x00000000
+#define IDE_0DD8_REG_DEFAULT        0x00000000
+#define IDE_0DDC_REG_DEFAULT        0x00000000
+
+#define IDE_0DE0_REG_DEFAULT        0x00000000
+#define IDE_0DE4_REG_DEFAULT        0x00000000
+#define IDE_0DE8_REG_DEFAULT        0x00000000
+#define IDE_0DEC_REG_DEFAULT        0x00000000
+
+#define IDE_0DF0_REG_DEFAULT        0x00000000
+#define IDE_0DF4_REG_DEFAULT        0x00000000
+#define IDE_0DF8_REG_DEFAULT        0x00000000
+#define IDE_0DFC_REG_DEFAULT        0x00000000
+
+
+/*
+    ide register default value0x
+
+    ide register default value.
+*/
+typedef struct {
+	UINT32  ui_offset;
+	UINT32  ui_value;
+} IDE_REG_DEFAULT;
+//@}
+
+/*
+	Request list element
+
+*/
+typedef struct _IDE_REQ_LIST_NODE {
+	KDRV_CALLBACK_FUNC	callback;
+
+	KDRV_VDDO_EVENT_CB_INFO cb_info;
+
+	//struct list_head	list;
+} IDE_REQ_LIST_NODE;
+
+
+#endif //_IDE_INT_H

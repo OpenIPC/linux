@@ -38,6 +38,11 @@
 #include <linux/pm_runtime.h>
 #include <linux/idr.h>
 #include <linux/debugfs.h>
+#ifdef CONFIG_MMC_NVT_EMMC_INFO
+#include <linux/proc_fs.h>
+#include <linux/of.h>
+#include <mach/nvt_ivot_emmc.h>
+#endif
 
 #include <linux/mmc/ioctl.h>
 #include <linux/mmc/card.h>
@@ -2871,11 +2876,206 @@ static void mmc_blk_remove_debugfs(struct mmc_card *card,
 }
 
 #endif /* CONFIG_DEBUG_FS */
+#ifdef CONFIG_MMC_NVT_EMMC_INFO
+extern struct proc_dir_entry   *nvt_info_dir_root;
+struct nvt_ivot_emmc_total_partitions* nvt_ivot_emmc_parts;
+EXPORT_SYMBOL(nvt_ivot_emmc_parts);
+
+static int nvt_emmc_show(struct seq_file *m, void *v)
+{
+	int i = 0;
+
+	seq_printf(m, "EMMC partition info: \n");
+	seq_printf(m, "part_name\t\t\tcard id\t\t\tstart_sector\t\tnum_sector\t\tpart_num\t\t\n");
+	seq_printf(m, "=================================================================================================================\n");
+
+	for (i = 0; i < nvt_ivot_emmc_parts->nr_parts; i++)
+	{
+		if (strncmp("mbr", nvt_ivot_emmc_parts->part_info[i].name, 3) != 0) {
+			seq_printf(m, "%-20s\t\t%-20s\t%-5lld\t\t\t%-10lld\t\t%-10s\t\t\n", nvt_ivot_emmc_parts->part_info[i].name,
+											nvt_ivot_emmc_parts->part_info[i].card_id,
+											nvt_ivot_emmc_parts->part_info[i].start/2,
+											nvt_ivot_emmc_parts->part_info[i].num/2,
+											nvt_ivot_emmc_parts->part_info[i].disk_name);
+		}
+	}
+	return 0;
+}
+
+static int nvt_emmc_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, nvt_emmc_show, NULL);
+}
+
+static const struct file_operations nvt_emmc_fops = {
+	.open = nvt_emmc_open,
+	.read = seq_read,
+};
+
+static struct nvt_ivot_emmc_total_partitions* nvt_ivot_emmc_part_parsing(struct mmc_host *host)
+{
+	struct device_node *np;
+	struct device_node *ofpart_node;
+	unsigned int nr_parts = 0;
+	const char *partname;
+	struct device_node *pp;
+	struct nvt_ivot_emmc_total_partitions* parts = NULL;
+	struct proc_dir_entry *entry = NULL;
+	int i = 0;
+	bool isMBR = false;
+
+	for_each_of_allnodes_from(host->parent->of_node, np) {
+		if (strncmp("partition_", of_node_full_name(np), 10) == 0) {
+			nr_parts++;
+		} else {
+			break;
+		}
+	}
+
+	parts = kzalloc(sizeof(struct nvt_ivot_emmc_total_partitions), GFP_KERNEL);
+	if (!parts) {
+		pr_err("%s: Without enough memory %d\n", __func__, __LINE__);
+		return NULL;
+	}
+
+	parts->part_info = kcalloc(nr_parts, sizeof(struct nvt_ivot_emmc_partition), GFP_KERNEL);
+	if (!parts->part_info) {
+		pr_err("%s: Without enough memory %d\n", __func__, __LINE__);
+		kfree(parts);
+		return NULL;
+	}
+
+	for_each_of_allnodes_from(host->parent->of_node, pp) {
+		if (strncmp("partition_mbr", of_node_full_name(pp), 13) == 0) {
+			isMBR = true;
+			break;
+		}
+	}
+
+	if (isMBR == false) {
+		/* Set rootfs to first partition */
+		for_each_of_allnodes_from(host->parent->of_node, pp) {
+			const __be32 *reg;
+			int len;
+			int a_cells, s_cells;
+
+			if (strncmp("partition_rootfs", of_node_full_name(pp), 16) == 0) {
+				reg = of_get_property(pp, "reg", &len);
+				if (!reg) {
+					pr_err("%s: ofpart partition %pOF (%pOF) missing reg property.\n",
+							mmc_hostname(host), pp,
+							ofpart_node);
+					goto ofpart_fail;
+				}
+
+				a_cells = of_n_addr_cells(pp);
+				s_cells = of_n_size_cells(pp);
+				if (len / 4 != a_cells + s_cells) {
+					pr_err("%s: ofpart partition %pOF (%pOF) error parsing reg property.\n",
+							mmc_hostname(host), pp,
+							ofpart_node);
+					goto ofpart_fail;
+				}
+
+				parts->part_info[i].start = of_read_number(reg, a_cells)/512;
+				parts->part_info[i].num = of_read_number(reg + a_cells, s_cells)/512;
+				parts->part_info[i].of_node = pp;
+
+				if (of_get_property(pp, "active", &len))
+					parts->part_info[i].active = true;
+				else
+					parts->part_info[i].active = false;
+
+				partname = of_get_property(pp, "label", &len);
+				if (!partname)
+					partname = of_get_property(pp, "name", &len);
+				parts->part_info[i].name = partname;
+
+				i++;
+
+			} else if (strncmp("partition_", of_node_full_name(pp), 10) == 0) {
+				continue;
+			} else {
+				break;
+			}
+		}
+	}
+	parts->nr_parts = nr_parts;
+	for_each_of_allnodes_from(host->parent->of_node, pp) {
+		const __be32 *reg;
+		int len;
+		int a_cells, s_cells;
+
+		if (strncmp("partition_", of_node_full_name(pp), 10) == 0) {
+			reg = of_get_property(pp, "reg", &len);
+			if (!reg) {
+				pr_err("%s: ofpart partition %pOF (%pOF) missing reg property.\n",
+							mmc_hostname(host), pp,
+							ofpart_node);
+				goto ofpart_fail;
+			}
+
+			a_cells = of_n_addr_cells(pp);
+			s_cells = of_n_size_cells(pp);
+			if (len / 4 != a_cells + s_cells) {
+					pr_err("%s: ofpart partition %pOF (%pOF) error parsing reg property.\n",
+							mmc_hostname(host), pp,
+							ofpart_node);
+					goto ofpart_fail;
+			}
+
+			parts->part_info[i].start = of_read_number(reg, a_cells)/512;
+			parts->part_info[i].num = of_read_number(reg + a_cells, s_cells)/512;
+			parts->part_info[i].of_node = pp;
+
+			if (of_get_property(pp, "active", &len))
+				parts->part_info[i].active = true;
+			else
+				parts->part_info[i].active = false;
+
+			partname = of_get_property(pp, "label", &len);
+			if (!partname)
+					partname = of_get_property(pp, "name", &len);
+			parts->part_info[i].name = partname;
+
+			i++;
+		} else {
+			break;
+		}
+	}
+
+#if 0
+	for (i=0; i<parts->nr_parts; i++)
+	{
+		pr_info("%lld %lld %d\n", parts->part_info[i].start, parts->part_info[i].num, parts->part_info[i].active);
+	}
+#endif
+
+	entry = proc_create("emmc", 0664, nvt_info_dir_root, &nvt_emmc_fops);
+	if (!entry) {
+		pr_err("%s: Without enough memory %d\n", __func__, __LINE__);
+		return NULL;
+	}
+
+	return parts;
+
+ofpart_fail:
+	of_node_put(pp);
+	kfree(parts->part_info);
+	kfree(parts);
+	return NULL;
+}
+#endif /* CONFIG_MMC_NVT_EMMC_INFO */
 
 static int mmc_blk_probe(struct mmc_card *card)
 {
 	struct mmc_blk_data *md, *part_md;
 	char cap_str[10];
+#ifdef CONFIG_MMC_NVT_EMMC_INFO
+	struct hd_struct *hd;
+	struct disk_part_tbl *ptbl;
+	int i, partno = 0;
+#endif /* CONFIG_MMC_NVT_EMMC_INFO */
 
 	/*
 	 * Check that the card supports the command class(es) we need.
@@ -2907,8 +3107,75 @@ static int mmc_blk_probe(struct mmc_card *card)
 
 	dev_set_drvdata(&card->dev, md);
 
+	/*
+	 * Create nvt info for emmc
+	 * probe -> nvt_ivot_emmc_part_parsing (nvt_ivot_emmc_parts will be filled by FDT)
+	 * -> mmc_add_disk (rescan partition and nvt_ivot_emmc_parts will be filled by MBR)
+	 */
+#ifdef CONFIG_MMC_NVT_EMMC_INFO
+	if (mmc_card_mmc(card)) {
+		nvt_ivot_emmc_parts = nvt_ivot_emmc_part_parsing(card->host);
+		if (nvt_ivot_emmc_parts == NULL)
+			pr_err("mmcblk: We can't register emmc device info\n");
+	}
+#endif /* CONFIG_MMC_NVT_EMMC_INFO */
+
+
 	if (mmc_add_disk(md))
 		goto out;
+
+#ifdef CONFIG_MMC_NVT_EMMC_INFO
+	if (mmc_card_mmc(card)) {
+		/* Get partition num size */
+		ptbl = rcu_dereference_protected(md->disk->part_tbl, 1);
+		if (ptbl != NULL) {
+			if (ptbl->len < 0 || ptbl->len == 0) {
+				pr_err("%s: the emmc device can't find any partition table inside\n", __func__);
+				nvt_ivot_emmc_parts = NULL;
+			}
+			else {
+				partno = ptbl->len;
+			}
+		} else {
+			pr_err("%s: partition table is NULL\n", __func__);
+			nvt_ivot_emmc_parts = NULL;
+		}
+		if (nvt_ivot_emmc_parts != NULL) {
+			//pr_info("EMMC native partitions %d \n", nvt_ivot_emmc_parts->nr_parts);
+			if (nvt_ivot_emmc_parts->nr_parts < 0) {
+				pr_err("EMMC native partitions can't be added\n");
+			} else {
+				for (i = 0 ; i < nvt_ivot_emmc_parts->nr_parts; i++)
+				{
+					if(partno != 1) { // There is MBR on emmc
+						if (nvt_ivot_emmc_parts->part_info[i].active == true)
+							break;
+					}
+					/* Add native partition (Only raw partitions are needed to create block device nodes) */
+					hd = add_partition(md->disk, partno+i, nvt_ivot_emmc_parts->part_info[i].start, nvt_ivot_emmc_parts->part_info[i].num,
+								ADDPART_FLAG_NONE, NULL);
+					/* Recording partition number */
+					nvt_ivot_emmc_parts->part_info[i].partno = hd->partno;
+					strcpy(nvt_ivot_emmc_parts->part_info[i].card_id, mmc_card_id(card));
+					sprintf(nvt_ivot_emmc_parts->part_info[i].disk_name, "%sp%d", md->disk->disk_name, hd->partno);
+					pr_info("%s: Add emmc raw partition name:%-15s sector:%lld@%-10lld /dev/%s\n", __func__, 
+													nvt_ivot_emmc_parts->part_info[i].name,
+													nvt_ivot_emmc_parts->part_info[i].num,
+													nvt_ivot_emmc_parts->part_info[i].start,
+													nvt_ivot_emmc_parts->part_info[i].disk_name);
+					if (IS_ERR(hd)) {
+						printk(KERN_ERR " %s: could not be added: %llx@%llx error: %ld\n",
+										__func__, nvt_ivot_emmc_parts->part_info[i].num,
+										nvt_ivot_emmc_parts->part_info[i].start, -PTR_ERR(hd));
+						break;
+					}
+				}
+			}
+		}
+		else
+			pr_err("mmcblk: We can't register emmc device info\n");
+	}
+#endif /* CONFIG_MMC_NVT_EMMC_INFO */
 
 	list_for_each_entry(part_md, &md->part, part) {
 		if (mmc_add_disk(part_md))

@@ -741,6 +741,19 @@ config I2C_NOMADIK
 	  I2C interface from ST-Ericsson's Nomadik and Ux500 architectures,
 	  as well as the STA2X11 PCIe I/O HUB.
 
+config I2C_NA51055
+	tristate "Novatek NA51055 I2C Driver"
+	depends on NVT_IVOT_PLAT_NA51055 || NVT_IVOT_PLAT_NA51089
+	help
+	  Say Y here to include support for I2C controller in the
+	  Novatek NA51055 based System-on-Chip devices.
+
+config I2C_NVT_FTI2C010
+	bool "NVT FTIIC010 I2C Controller"
+	depends on NVT_IVOT_PLAT_NA51068
+	help
+	If you say yes to this open, NVT FTIIC010 contoller will be included.
+
 config I2C_OCORES
 	tristate "OpenCores I2C Controller"
 	help

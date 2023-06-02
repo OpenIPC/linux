@@ -1,0 +1,75 @@
+config CRYPTO_DEV_NVT_IVOT_NA51055_CRYPTO
+	tristate "Novatek NA51055 crypto hardware engine"
+	depends on NVT_IVOT_PLAT_NA51055 && TEE=n && OPTEE=n
+	select CRYPTO_AES
+	select CRYPTO_DES
+	select CRYPTO_CBC
+	select CRYPTO_ECB
+	select CRYPTO_CFB
+	select CRYPTO_OFB
+	select CRYPTO_CTR
+	select CRYPTO_CCM
+	select CRYPTO_GCM
+	select CRYPTO_ALGAPI
+	select CRYPTO_BLKCIPHER
+	help
+	  Novatek NA51055 processors have crypto engine accelerator.
+	  Select this if you want to use the crypto engine for AES/DES/3DES
+	  algorithms.
+
+config CRYPTO_DEV_NVT_IVOT_NA51055_HASH
+	tristate "Novatek NA51055 hash hardware engine"
+	depends on NVT_IVOT_PLAT_NA51055 && TEE=n && OPTEE=n
+	select CRYPTO_HASH
+	select CRYPTO_SHA1
+	select CRYPTO_SHA256
+	select CRYPTO_HMAC
+	help
+	  Novatek NA51055 processors have hash engine accelerator.
+	  Select this if you want to use the hash engine for SHA1/SHA256 algorithms.
+
+config CRYPTO_DEV_NVT_IVOT_NA51055_RSA
+	tristate "Novatek NA51055 rsa hardware engine"
+	depends on NVT_IVOT_PLAT_NA51055 && TEE=n && OPTEE=n
+	select CRYPTO_RSA
+	help
+	  Novatek NA51055 processors have rsa engine accelerator.
+	  Select this if you want to use the rsa engine.
+
+config CRYPTO_DEV_NVT_IVOT_NA51089_CRYPTO
+	tristate "Novatek NA51089 crypto hardware engine"
+	depends on NVT_IVOT_PLAT_NA51089 && TEE=n && OPTEE=n
+	select CRYPTO_AES
+	select CRYPTO_DES
+	select CRYPTO_CBC
+	select CRYPTO_ECB
+	select CRYPTO_CFB
+	select CRYPTO_OFB
+	select CRYPTO_CTR
+	select CRYPTO_CCM
+	select CRYPTO_GCM
+	select CRYPTO_ALGAPI
+	select CRYPTO_BLKCIPHER
+	help
+	  Novatek NA51089 processors have crypto engine accelerator.
+	  Select this if you want to use the crypto engine for AES/DES/3DES
+	  algorithms.
+
+config CRYPTO_DEV_NVT_IVOT_NA51089_HASH
+	tristate "Novatek NA51089 hash hardware engine"
+	depends on NVT_IVOT_PLAT_NA51089 && TEE=n && OPTEE=n
+	select CRYPTO_HASH
+	select CRYPTO_SHA1
+	select CRYPTO_SHA256
+	select CRYPTO_HMAC
+	help
+	  Novatek NA51089 processors have hash engine accelerator.
+	  Select this if you want to use the hash engine for SHA1/SHA256 algorithms.
+
+config CRYPTO_DEV_NVT_IVOT_NA51089_RSA
+	tristate "Novatek NA51089 rsa hardware engine"
+	depends on NVT_IVOT_PLAT_NA51089 && TEE=n && OPTEE=n
+	select CRYPTO_RSA
+	help
+	  Novatek NA51089 processors have rsa engine accelerator.
+	  Select this if you want to use the rsa engine.

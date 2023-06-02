@@ -43,6 +43,7 @@ struct plat_serial8250_port {
 	void		(*pm)(struct uart_port *, unsigned int state,
 			      unsigned old);
 	void		(*handle_break)(struct uart_port *);
+	unsigned int	hw_flowctrl;	/* NVT hardware flowcontol */
 };
 
 /*
@@ -114,6 +115,7 @@ struct uart_8250_port {
 						 *   if no_console_suspend
 						 */
 	unsigned char		probe;
+	u32			iir;
 #define UART_PROBE_RSA	(1 << 0)
 
 	/*

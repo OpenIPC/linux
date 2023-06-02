@@ -14,6 +14,9 @@
 
 #include <linux/types.h>
 #include <linux/mmc/sdio.h>
+#ifdef CONFIG_ARCH_NVT_IVOT_V7
+#include <linux/mmc/mmc.h>
+#endif
 
 struct mmc_host;
 struct mmc_card;
@@ -34,9 +37,15 @@ static inline bool sdio_is_io_busy(u32 opcode, u32 arg)
 
 	addr = (arg >> 9) & 0x1FFFF;
 
+#ifdef CONFIG_ARCH_NVT_IVOT_V7
+	return (opcode == SD_IO_RW_EXTENDED || opcode == MMC_SEND_STATUS ||
+		(opcode == SD_IO_RW_DIRECT &&
+		!(addr == SDIO_CCCR_ABORT || addr == SDIO_CCCR_SUSPEND)));
+#else
 	return (opcode == SD_IO_RW_EXTENDED ||
 		(opcode == SD_IO_RW_DIRECT &&
 		!(addr == SDIO_CCCR_ABORT || addr == SDIO_CCCR_SUSPEND)));
+#endif
 }
 
 #endif

@@ -1237,6 +1237,33 @@ config RTC_DRV_OPAL
 	  This driver can also be built as a module. If so, the module
 	  will be called rtc-opal.
 
+config RTC_DRV_NA51055
+	tristate "Novatek NA51055 RTC driver"
+	depends on (NVT_IVOT_PLAT_NA51055 || NVT_IVOT_PLAT_NA51089)
+	help
+	 If you say yes here you get support for the RTC on the Novatek NA51055.
+
+config RTC_NVT_PWBC_SDT_USER
+	bool
+	prompt "PWBC shutdown timer controlled by user"
+	default n
+	depends on RTC_DRV_NA51055
+	help
+	  If you want clear shutdown timer by yourself, select y.
+	  Else RTC driver will clear it in ISR.
+
+config DRTC_DRV_NA51055
+	tristate "Novatek NA51055 DRTC driver"
+	depends on (NVT_IVOT_PLAT_NA51055 || NVT_IVOT_PLAT_NA51089)
+	help
+	 If you say yes here you get support for the DRTC on the Novatek NA51055.
+
+config RTC_DRV_NA51068
+	tristate "Novatek NA51068 RTC driver"
+	depends on NVT_IVOT_PLAT_NA51068
+	help
+	  If you say yes here you get support for the RTC on the Novatek NA51068.
+
 config RTC_DRV_ZYNQMP
 	tristate "Xilinx Zynq Ultrascale+ MPSoC RTC"
 	depends on OF

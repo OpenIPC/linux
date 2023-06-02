@@ -195,6 +195,17 @@ ENTRY(v7_flush_kern_cache_all)
 	ret	lr
 ENDPROC(v7_flush_kern_cache_all)
 
+#ifdef CONFIG_NVT_CACHE_FLUSH_ALL_L2_CACHE
+ENTRY(v7_flush_d_cache_all_if)
+ ARM(	stmfd	sp!, {r4-r5, r7, r9-r11, lr}	)
+ THUMB(	stmfd	sp!, {r4-r7, r9-r11, lr}	)
+	bl	v7_flush_dcache_all
+ ARM(	ldmfd	sp!, {r4-r5, r7, r9-r11, lr}	)
+ THUMB(	ldmfd	sp!, {r4-r7, r9-r11, lr}	)
+	ret	lr
+ENDPROC(v7_flush_d_cache_all_if)
+#endif
+
  /*
  *     v7_flush_kern_cache_louis(void)
  *

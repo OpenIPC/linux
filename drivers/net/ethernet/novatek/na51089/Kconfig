@@ -1,0 +1,29 @@
+#
+# Synopsys network device configuration
+#
+
+config NOVATEK_DWC_ETH_QOS_NA51089
+	tristate "Novatek DWC Ethernet QOS support"
+	depends on NVT_IVOT_PLAT_NA51089 && NET_VENDOR_NOVATEK
+        select PHYLIB
+        select CRC32
+        select MII
+        select INET_LRO
+        depends on HAS_DMA
+        ---help---
+          This driver supports the DWC Ethernet QoS
+
+config TX_DESC
+	int
+	prompt "Tx Descriptor Number (minimum: 64)"
+	default 256
+	range 64 256
+	depends on NOVATEK_DWC_ETH_QOS_NA51089
+	
+config RX_DESC
+	int
+	prompt "Rx Descriptor Number (minimum: 64)"
+	default 256
+	range 64 256
+	depends on NOVATEK_DWC_ETH_QOS_NA51089
+

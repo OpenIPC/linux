@@ -1,0 +1,11 @@
+{
+	"jsontype": "module_publish",
+	"publish_src": [
+		"display_obj_main.c",
+		"display_obj_proc.c",
+		"display_obj_drv.c",
+		"display_obj_api.c",
+		"display_obj_platform.c",
+		"kdrv_vdoout.c"
+	]
+}

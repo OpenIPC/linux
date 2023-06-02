@@ -1,0 +1,11 @@
+config COMMON_CLK_NA51089
+	bool "Clock driver for Novatek NA51089"
+	depends on NVT_IVOT_PLAT_NA51089
+
+config COMMON_CLK_NA51068
+	bool "Clock driver for Novatek NA51068"
+	depends on NVT_IVOT_PLAT_NA51068 || NVT_IVOT_PLAT_NA51068_CA53
+
+config COMMON_CLK_NA51055
+	bool "Clock driver for Novatek NA51055"
+	depends on NVT_IVOT_PLAT_NA51055

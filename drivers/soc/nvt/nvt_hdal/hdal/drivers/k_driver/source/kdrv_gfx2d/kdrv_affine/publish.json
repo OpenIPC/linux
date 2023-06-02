@@ -1,0 +1,10 @@
+{
+	"jsontype": "module_publish",
+	"publish_src": [
+		"affine_api.c",
+                "affine_drv.c",
+                "affine_main.c",
+                "affine_proc.c",
+                "affine_platform.c"
+	]
+}

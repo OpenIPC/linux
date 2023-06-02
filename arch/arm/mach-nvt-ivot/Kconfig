@@ -1,0 +1,59 @@
+menu "Novatek Video Processing Platform Common Features"
+config NVT_INFO
+	bool "NVT IVOT info for time measurement/memory hotplug...etc functions."
+	depends on ARCH_NVT_IVOT_V7
+	default y
+	help
+	  Support NVT multi-functions such as boot time measurement/memory hotplug...etc.
+	  We provide a tool can be used to measure booting time.
+	  e.g.
+		$ cat /proc/nvt_info/bootts
+		$ cat /proc/nvt_info/memperf
+
+config NVT_CACHE_FLUSH_ALL_FOR_HDAL
+	bool "Enable flush/clean all L2 cache operation for HDAL"
+	depends on ARCH_NVT_IVOT_V7 && NVT_CACHE_FLUSH_ALL_L2_CACHE
+	default y
+	help
+		Use flush/clean all of L2 cache instead of flush/clean range when flush/clean DRAM size over the order of L2 cache size.
+
+config NVT_CACHE_FLUSH_ALL_THRESHOLD
+	int "The threshold of flush all of L2 cache for HDAL"
+	depends on NVT_CACHE_FLUSH_ALL_FOR_HDAL
+	default 1
+	help
+		Set a threshold to judgment whether execute flush/clean all L2 cache instead of flush/clean range.
+		The threshold is an order of L2 cache size. When flush/clean range over the threshold then All of L2 cache are flushed/cleaned
+
+config NVT_CACHE_FLUSH_ALL_L2_CACHE
+	bool "Enable flush/clean all L2 cache operation"
+	depends on ARCH_NVT_IVOT_V7
+	depends on CACHE_L2X0
+	default y
+	help
+		When flush/clean DRAM size over the order of L2 cache size use flush/clean all of L2 cache instead of flush/clean range.
+
+config NVT_CACHE_FLUSH_ALL_L2_THRESHOLD
+	int "The threshold of flush all L2 cache"
+	depends on NVT_CACHE_FLUSH_ALL_L2_CACHE
+	default 1
+	help
+		Set a threshold to judgment whether execute flush/clean all L2 cache instead of flush/clean range.
+		The threshold is an order of L2 cache size.  When flush/clean range over the threshold then all of L2 cache are flushed/cleaned
+
+config NVT_CACHE_INVALIDATE_ALL_FOR_HDAL
+	bool "Enable invalidate all L2 cache operation"
+	depends on ARCH_NVT_IVOT_V7 && NVT_CACHE_FLUSH_ALL_L2_CACHE
+	default n
+	help
+		When invalidate DRAM size over L2 cache size use flush all cache instead of invalidate range.
+
+config NVT_CACHE_INVALIDATE_ALL_THRESHOLD
+	int "The threshold of invalidate all L2 cache"
+	depends on NVT_CACHE_INVALIDATE_ALL_FOR_HDAL
+	default 2
+	help
+		Set a threshold to judgment whether execute flush all L2 cache instead of invalidate range.
+		The threshold is an order of L2 cache size. When flush range over the threshold then L2 cache are flushed and invalidated
+
+endmenu

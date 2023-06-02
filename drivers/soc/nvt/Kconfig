@@ -1,0 +1,43 @@
+#
+# MediaTek SoC drivers
+#
+menu "NovaTek SoC drivers"
+	depends on ARCH_NVT_IVOT_V7
+
+config NVT_OTP_SUPPORT
+	bool "NVT OTP(one time programmable) support"
+	depends on ARCH_NVT_IVOT_V7
+	default y
+	help
+	  This option will configure the NVT OTP(one time programmable) function which can be used call OTP api.
+
+config NVT_HDAL_BUILD_IN
+	bool "Novatek IVOT HDAL for Media device drivers support"
+	depends on ARCH_NVT_IVOT_V7
+	select NVT_VOS_KWRAP
+	select NVT_HDAL_KDRV_BUILTIN
+	default n
+	help
+	  Enable this option will let a part of your hdal driver link to uImage
+	  You could select which module want to link in the submenu.
+
+config NVT_PROFILER
+	bool "Novatek Profilers"
+	depends on PLAT_NOVATEK
+	depends on ARM || ARM64
+	depends on FTRACE
+	select KPROBES
+	select KRETPROBES
+	select EVENT_TRACING
+	default n
+
+config NVT_PERF_MEASURE
+        bool "Enable nvt_perf driver for ivot Linux kernel performance measurement"
+        depends on ARCH_NVT_IVOT_V7 || ARCH_NVT_IVOT_V8
+        default n
+        help
+                Enable nvt_perf driver for ivot Linux kernel performance measurement
+
+source "drivers/soc/nvt/nvt_hdal/Kconfig"
+
+endmenu

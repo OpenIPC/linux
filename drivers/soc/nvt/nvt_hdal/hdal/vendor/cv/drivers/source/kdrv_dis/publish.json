@@ -1,0 +1,11 @@
+{
+	"jsontype": "module_publish",
+	"publish_src": [
+		 "dis_main.c",
+		 "dis_drv.c",
+		 "dis_proc.c",
+		 "dis_api.c",
+		 "eth_api.c",
+		 "dis_platform.c"
+	]
+}

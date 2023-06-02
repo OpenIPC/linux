@@ -1,0 +1,40 @@
+menu "Novatek HDAL Drivers"
+
+config NVT_DMA_MONITOR
+	bool "NVT dma channel monitor"
+	depends on ARCH_NVT_IVOT_V7	
+	default y
+	help
+	  This option will configure dma channel monitor for debug.
+	  
+config NVT_SMALL_HDAL
+	bool "NVT small HDAL"
+	depends on ARCH_NVT_IVOT_V7	
+	default n
+	help
+	  This option will configure fewer HDAL paths.		   
+
+if NVT_HDAL_BUILD_IN
+config NVT_VOS_KWRAP
+	bool "Novatek vos basic handling API"
+	default y
+	depends on NVT_HDAL_BUILD_IN
+	help
+	  Novatek VOS api to provide basic multi-OS interface.
+
+config NVT_HDAL_KDRV_BUILTIN
+	bool "Novatek hdal k-driver built-in part"
+	default y
+	depends on NVT_HDAL_BUILD_IN
+	help
+	  Novatek hdal k-driver's built-in
+
+config NVT_FAST_ISP_FLOW
+	bool "NVT fast boot isp flow"
+	depends on NVT_HDAL_BUILD_IN	
+	default y
+	help
+	  This option will configure fast boot isp table and flow.
+endif
+
+endmenu

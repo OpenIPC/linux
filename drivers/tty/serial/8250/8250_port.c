@@ -40,6 +40,8 @@
 
 #include "8250.h"
 
+#include "plat/nvt_serial.h"
+
 /*
  * These are definitions for the Exar XR17V35X and XR17(C|D)15X
  */
@@ -1398,11 +1400,31 @@ static void autoconfig_irq(struct uart_8250_port *up)
 	irqs = probe_irq_on();
 	serial8250_out_MCR(up, 0);
 	udelay(10);
-	if (port->flags & UPF_FOURPORT) {
-		serial8250_out_MCR(up, UART_MCR_DTR | UART_MCR_RTS);
+	if (port->hw_flowctrl) {
+#ifdef NVT_BK
+		if (port->flags & UPF_FOURPORT) {
+			serial8250_out_MCR(up, UART_MCR_DTR);
+			serial_out(up, UART_IER, serial_in(up, UART_IER) | UART_MCR_AFC);
+		} else {
+			serial8250_out_MCR(up,
+				UART_MCR_DTR | UART_MCR_OUT2);
+			serial_out(up, UART_IER, serial_in(up, UART_IER) | UART_MCR_AFC);
+		}
+#else
+		if (port->flags & UPF_FOURPORT) {
+			serial8250_out_MCR(up, UART_MCR_DTR | UART_MCR_AFC);
+		} else {
+			serial8250_out_MCR(up,
+				UART_MCR_DTR | UART_MCR_AFC | UART_MCR_OUT2);
+		}
+#endif
 	} else {
-		serial8250_out_MCR(up,
-			UART_MCR_DTR | UART_MCR_RTS | UART_MCR_OUT2);
+		if (port->flags & UPF_FOURPORT) {
+			serial8250_out_MCR(up, UART_MCR_DTR | UART_MCR_RTS);
+		} else {
+			serial8250_out_MCR(up,
+				UART_MCR_DTR | UART_MCR_RTS | UART_MCR_OUT2);
+		}
 	}
 	serial_out(up, UART_IER, 0x0f);	/* enable all intrs */
 	serial_in(up, UART_LSR);
@@ -1770,6 +1792,7 @@ void serial8250_tx_chars(struct uart_8250_port *up)
 	struct uart_port *port = &up->port;
 	struct circ_buf *xmit = &port->state->xmit;
 	int count;
+	struct tty_struct *tty = port->state->port.tty;
 
 	if (port->x_char) {
 		serial_out(up, UART_TX, port->x_char);
@@ -1778,6 +1801,11 @@ void serial8250_tx_chars(struct uart_8250_port *up)
 		return;
 	}
 	if (uart_tx_stopped(port)) {
+		if(tty->hw_stopped) {
+			if (port->hw_flowctrl)
+				tty->hw_stopped = 0;
+		}
+
 		serial8250_stop_tx(port);
 		return;
 	}
@@ -1891,7 +1919,8 @@ static int serial8250_default_handle_irq(struct uart_port *port)
 
 	serial8250_rpm_get(up);
 
-	iir = serial_port_in(port, UART_IIR);
+	/*iir = serial_port_in(port, UART_IIR);*/
+	iir = up->iir;
 	ret = serial8250_handle_irq(port, iir);
 
 	serial8250_rpm_put(up);
@@ -1975,10 +2004,22 @@ void serial8250_do_set_mctrl(struct uart_port *port, unsigned int mctrl)
 	struct uart_8250_port *up = up_to_u8250p(port);
 	unsigned char mcr = 0;
 
-	if (mctrl & TIOCM_RTS)
-		mcr |= UART_MCR_RTS;
-	if (mctrl & TIOCM_DTR)
-		mcr |= UART_MCR_DTR;
+	if (port->hw_flowctrl) {
+#ifdef NVT_BK
+		serial_out(up, UART_IER, serial_in(up, UART_IER) | UART_MCR_AFC);
+#else
+		if (mctrl & TIOCM_RTS)
+			mcr |= UART_MCR_AFC;
+		if (mctrl & TIOCM_DTR)
+			mcr |= UART_MCR_AFC;
+#endif
+	} else {
+		if (mctrl & TIOCM_RTS)
+			mcr |= UART_MCR_RTS;
+		if (mctrl & TIOCM_DTR)
+			mcr |= UART_MCR_DTR;
+	}
+
 	if (mctrl & TIOCM_OUT1)
 		mcr |= UART_MCR_OUT1;
 	if (mctrl & TIOCM_OUT2)
@@ -2677,10 +2718,24 @@ serial8250_do_set_termios(struct uart_port *port, struct ktermios *termios,
 	 * deasserted when the receive FIFO contains more characters than
 	 * the trigger, or the MCR RTS bit is cleared.
 	 */
-	if (up->capabilities & UART_CAP_AFE) {
-		up->mcr &= ~UART_MCR_AFE;
-		if (termios->c_cflag & CRTSCTS)
-			up->mcr |= UART_MCR_AFE;
+	if (port->hw_flowctrl) {
+		if (up->capabilities & UART_CAP_AFE) {
+#ifdef NVT_BK
+			up->ier &= ~UART_MCR_AFC;
+			if (termios->c_cflag & CRTSCTS)
+				up->ier |= UART_MCR_AFC;;
+#else
+			up->mcr &= ~UART_MCR_AFC;
+			if (termios->c_cflag & CRTSCTS)
+				up->mcr |= UART_MCR_AFC;
+#endif
+		}
+	} else {
+		if (up->capabilities & UART_CAP_AFE) {
+			up->mcr &= ~UART_MCR_AFE;
+			if (termios->c_cflag & CRTSCTS)
+				up->mcr |= UART_MCR_AFE;
+		}
 	}
 
 	/*
@@ -3218,7 +3273,16 @@ static void serial8250_console_restore(struct uart_8250_port *up)
 
 	serial8250_set_divisor(port, baud, quot, frac);
 	serial_port_out(port, UART_LCR, up->lcr);
-	serial8250_out_MCR(up, UART_MCR_DTR | UART_MCR_RTS);
+	if (port->hw_flowctrl) {
+#ifdef NVT_BK
+		serial8250_out_MCR(up, UART_MCR_DTR);
+		serial_out(up, UART_IER, serial_in(up, UART_IER) | UART_MCR_AFC);
+#else
+		serial8250_out_MCR(up, UART_MCR_DTR | UART_MCR_AFC);
+#endif
+	} else {
+		serial8250_out_MCR(up, UART_MCR_DTR | UART_MCR_RTS);
+	}
 }
 
 /*

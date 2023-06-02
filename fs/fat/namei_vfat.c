@@ -792,6 +792,9 @@ static int vfat_rmdir(struct inode *dir, struct dentry *dentry)
 {
 	struct inode *inode = d_inode(dentry);
 	struct super_block *sb = dir->i_sb;
+#if FSLINUX_IOCTL_ENABLE
+	struct msdos_sb_info *sbi = MSDOS_SB(sb);
+#endif
 	struct fat_slot_info sinfo;
 	int err;
 
@@ -807,6 +810,16 @@ static int vfat_rmdir(struct inode *dir, struct dentry *dentry)
 	err = fat_remove_entries(dir, &sinfo);	/* and releases bh */
 	if (err)
 		goto out;
+
+#if FSLINUX_IOCTL_ENABLE
+	if (FAT_IS_DELAY_SYNC(sbi, inode)) {
+		sbi->delay_sync.is_delay_sync = 0;
+		sbi->delay_sync.dir_inode = NULL;
+		(void)fat_sync_inode(dir);
+		sync_mapping_buffers(MSDOS_SB(inode->i_sb)->fat_inode->i_mapping);
+	}
+#endif
+
 	drop_nlink(dir);
 
 	clear_nlink(inode);

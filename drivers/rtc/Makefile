@@ -175,4 +175,6 @@ obj-$(CONFIG_RTC_DRV_WM8350)	+= rtc-wm8350.o
 obj-$(CONFIG_RTC_DRV_X1205)	+= rtc-x1205.o
 obj-$(CONFIG_RTC_DRV_XGENE)	+= rtc-xgene.o
 obj-$(CONFIG_RTC_DRV_ZYNQMP)	+= rtc-zynqmp.o
-obj-$(CONFIG_RTC_DRV_GOLDFISH)	+= rtc-goldfish.o
+obj-$(CONFIG_DRTC_DRV_NA51055)	+= rtc-na51055-drtc.o
+obj-$(CONFIG_RTC_DRV_NA51055)	+= rtc-na51055.o
+obj-$(CONFIG_RTC_DRV_NA51068)	+= rtc-na51068.o

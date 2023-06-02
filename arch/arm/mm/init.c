@@ -543,10 +543,15 @@ void __init mem_init(void)
 #ifdef CONFIG_MODULES
 			"    modules : 0x%08lx - 0x%08lx   (%4ld MB)\n"
 #endif
-			"      .text : 0x%p" " - 0x%p" "   (%4td kB)\n"
-			"      .init : 0x%p" " - 0x%p" "   (%4td kB)\n"
-			"      .data : 0x%p" " - 0x%p" "   (%4td kB)\n"
-			"       .bss : 0x%p" " - 0x%p" "   (%4td kB)\n",
+
+#ifdef CONFIG_KASAN
+			"    kasan   : 0x%08lx - 0x%08lx   (%4ld MB)\n"
+			"    kasanoff: 0x%08lx                      \n"
+#endif
+			"      .text : 0x%px" " - 0x%px" "   (%4td kB)\n"
+			"      .init : 0x%px" " - 0x%px" "   (%4td kB)\n"
+			"      .data : 0x%px" " - 0x%px" "   (%4td kB)\n"
+			"       .bss : 0x%px" " - 0x%px" "   (%4td kB)\n",
 
 			MLK(VECTORS_BASE, VECTORS_BASE + PAGE_SIZE),
 #ifdef CONFIG_HAVE_TCM
@@ -563,7 +568,10 @@ void __init mem_init(void)
 #ifdef CONFIG_MODULES
 			MLM(MODULES_VADDR, MODULES_END),
 #endif
-
+#ifdef CONFIG_KASAN
+			MLM(KASAN_SHADOW_START, KASAN_SHADOW_END),
+			KASAN_SHADOW_OFFSET,
+#endif
 			MLK_ROUNDUP(_text, _etext),
 			MLK_ROUNDUP(__init_begin, __init_end),
 			MLK_ROUNDUP(_sdata, _edata),
@@ -587,6 +595,74 @@ void __init mem_init(void)
 	BUG_ON(PKMAP_BASE + LAST_PKMAP * PAGE_SIZE	> PAGE_OFFSET);
 #endif
 }
+
+#ifdef CONFIG_MEMORY_HOTPLUG
+int arch_add_memory(int nid, u64 start, u64 size, struct vmem_altmap *altmap, bool want_memblock)
+{
+	//pg_data_t *pgdat;
+	//struct zone *zone;
+	unsigned long start_pfn = start >> PAGE_SHIFT;
+	//unsigned long pfn=0;
+	unsigned long nr_pages = size >> PAGE_SHIFT;
+	int ret =0;
+	memblock_mark_nomap(start, size);
+
+	//pgdat = NODE_DATA(nid);
+
+#ifdef CONFIG_HIGHMEM
+	if (size) 
+	{
+		//zone = pgdat->node_zones +
+		//	zone_for_memory(nid, start, size, ZONE_HIGHMEM, for_device);
+
+		//ret = __add_pages(nid, zone, start_pfn, nr_pages);
+		ret = __add_pages(nid, start_pfn, nr_pages, altmap, want_memblock);
+		#if 0
+			/* online_page_range is called later and expects pages reserved */
+			for (pfn = start_pfn; pfn < start_pfn + nr_pages; pfn++) {
+				printk(">>>charlie SetPageReserved %x\n",pfn_to_page(pfn));
+				SetPageReserved(pfn_to_page(pfn));
+			}
+		#endif
+
+	}
+#else
+	if (size) 
+	{
+		//	zone = pgdat->node_zones +
+		//		zone_for_memory(nid, start, size, ZONE_NORMAL, for_device);
+		//	ret = __add_pages(nid, zone, start_pfn, nr_pages);
+		ret = __add_pages(nid, start_pfn, nr_pages, altmap, want_memblock);
+	}
+#endif
+
+	memblock_clear_nomap(start, size);
+
+	if (ret)
+		printk("%s: Problem encountered in __add_pages() as ret=%d\n",
+		__func__,  ret);
+
+	return ret;
+}
+#ifdef CONFIG_MEMORY_HOTREMOVE
+int arch_remove_memory(u64 start, u64 size, struct vmem_altmap *altmap)
+{
+	unsigned long start_pfn = start >> PAGE_SHIFT;
+	unsigned long nr_pages = size >> PAGE_SHIFT;
+	struct zone *zone;
+	int ret =0;
+
+	zone = page_zone(pfn_to_page(start_pfn));
+	ret = __remove_pages(zone, start_pfn, nr_pages, altmap);
+	if (ret)
+		pr_warn("%s: Problem encountered in __remove_pages() as"
+			" ret=%d\n", __func__,  ret);
+	return ret;
+}
+#endif
+#endif
+
+
 
 #ifdef CONFIG_STRICT_KERNEL_RWX
 struct section_perm {

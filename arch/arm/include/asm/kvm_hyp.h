@@ -86,6 +86,7 @@
 #define HTPIDR		__ACCESS_CP15(c13, 4, c0, 2)
 #define CNTKCTL		__ACCESS_CP15(c14, 0, c1, 0)
 #define CNTV_CTL	__ACCESS_CP15(c14, 0, c3, 1)
+#define CNTP_CTL	__ACCESS_CP15(c14, 0, c2, 1)
 #define CNTHCTL		__ACCESS_CP15(c14, 4, c1, 0)
 
 #define VFP_FPEXC	__ACCESS_VFP(FPEXC)

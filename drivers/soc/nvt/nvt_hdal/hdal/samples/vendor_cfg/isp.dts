@@ -1,0 +1,10 @@
+/*
+ * Novatek Ltd. NA51055 BSP part of dts
+ *
+ * Cortex-A9
+ *
+ */
+
+/dts-v1/;
+#include "isp.dtsi"  /* sensor */
+

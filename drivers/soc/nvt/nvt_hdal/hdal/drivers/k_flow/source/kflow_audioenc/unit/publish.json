@@ -1,0 +1,8 @@
+{
+	"jsontype": "module_publish",
+	"publish_src": [
+		"linux/isf_audenc_drv.c",
+		"linux/isf_audenc_main.c",
+		"linux/isf_audenc_proc.c"
+	]
+}

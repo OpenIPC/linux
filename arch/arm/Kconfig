@@ -53,6 +53,7 @@ config ARM
 	select HAVE_ARCH_BITREVERSE if (CPU_32v7M || CPU_32v7) && !CPU_32v6
 	select HAVE_ARCH_JUMP_LABEL if !XIP_KERNEL && !CPU_ENDIAN_BE32 && MMU
 	select HAVE_ARCH_KGDB if !CPU_ENDIAN_BE32 && MMU
+	select HAVE_ARCH_KASAN if MMU
 	select HAVE_ARCH_MMAP_RND_BITS if MMU
 	select HAVE_ARCH_SECCOMP_FILTER if (AEABI && !OABI_COMPAT)
 	select HAVE_ARCH_THREAD_STRUCT_WHITELIST
@@ -638,6 +639,24 @@ config ARCH_OMAP1
 	help
 	  Support for older TI OMAP1 (omap7xx, omap15xx or omap16xx)
 
+config ARCH_NVT_IVOT_V7
+	bool "Novatek Video Processing Platform"
+	depends on MMU
+	select ARCH_FLATMEM_ENABLE
+	select ARCH_SPARSEMEM_ENABLE
+	select ARCH_HAS_HOLES_MEMORYMODEL
+	select ARM_GIC
+	select GPIOLIB
+	select CPU_V7
+	select HAVE_SMP
+	select NEED_MACH_MEMORY_H
+	select GENERIC_CLOCKEVENTS
+	select PLAT_NOVATEK
+	select MIGHT_HAVE_CACHE_L2X0
+	select USE_OF
+	help
+	  Support for Novatek's Video Processing Platform.
+
 endchoice
 
 menu "Multiple platform selection"
@@ -853,6 +872,9 @@ source "arch/arm/mach-zx/Kconfig"
 
 source "arch/arm/mach-zynq/Kconfig"
 
+source "arch/arm/mach-nvt-ivot/Kconfig"
+source "arch/arm/plat-novatek/Kconfig"
+
 # ARMv7-M architecture
 config ARCH_EFM32
 	bool "Energy Micro efm32"
@@ -908,6 +930,9 @@ config PLAT_PXA
 	bool
 
 config PLAT_VERSATILE
+	bool
+
+config PLAT_NOVATEK
 	bool
 
 source "arch/arm/firmware/Kconfig"
@@ -1449,6 +1474,17 @@ config HOTPLUG_CPU
 	help
 	  Say Y here to experiment with turning CPUs off and on.  CPUs
 	  can be controlled through /sys/devices/system/cpu.
+
+config ARCH_ENABLE_MEMORY_HOTPLUG
+	def_bool y if SPARSEMEM
+
+config ARCH_ENABLE_MEMORY_HOTREMOVE
+	def_bool y if SPARSEMEM
+
+config ARCH_MEMORY_PROBE
+	def_bool y
+	depends on MEMORY_HOTPLUG
+
 
 config ARM_PSCI
 	bool "Support for the ARM Power State Coordination Interface (PSCI)"

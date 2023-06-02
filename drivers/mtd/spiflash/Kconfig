@@ -1,0 +1,69 @@
+config MTD_SPINAND
+	tristate "SPINAND Device Support for Micron/winbond"
+	depends on MTD_NAND
+	help
+	  This enables support for accessing Micron/winbond SPI NAND flash
+	  devices.
+	  If you have Micron/winbond SPI NAND chip say yes.
+
+	  If unsure, say no here.
+
+config MTD_SPINAND_HWECC
+	bool "Use SPINAND Hardware ECC"
+	depends on MTD_SPINAND
+	help
+	  Hardware ECC.
+	  Enables Hardware ECC support for SPI NAND.
+
+config FLASH_ONLY_DUAL
+	bool "Only Support spi-nand dual mode"
+	depends on MTD_SPINAND
+	help
+	  Dual mode supports.
+	  Force flash operations under dual mode.
+
+config MTD_SPINOR
+	tristate "SPINOR Device Support"
+	depends on (MTD) && (!MTD_SPINAND)
+	help
+	  This enables support for accessing SPI NOR flash
+	  devices.
+	  If you have SPI NOR chip say yes.
+
+	  If unsure, say no here.
+
+config MTD_SPI020NAND
+	tristate "SPI020 NAND Device Support"
+	depends on (MTD_NAND && NVT_IVOT_PLAT_NA51068)
+	help
+	  This enables support for accessing SPI NAND flash
+	  devices.
+	  If you have SPI NAND chip say yes.
+
+	  If unsure, say no here.
+
+config MTD_SPI020NOR
+	tristate "SPI020 NOR Device Support"
+	depends on (MTD && NVT_IVOT_PLAT_NA51068)
+	help
+	  This enables support for accessing SPI NOR flash
+	  devices.
+	  If you have SPI NOR chip say yes.
+
+	  If unsure, say no here.
+
+config FLASH_ONLY_DUAL
+	bool "Only Support spi-nor dual mode"
+	depends on MTD_SPINOR
+	help
+	  Dual mode supports.
+	  Force flash operations under dual mode.
+
+config MTD_EXTERNAL_FLASH_TABLE
+	tristate "Using external flash table"
+	depends on MTD_SPINOR
+	help
+	  This enables support for using external flash table
+	  If you have requrired external table say yes.
+
+	  If unsure, say no here.

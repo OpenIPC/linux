@@ -1,0 +1,21 @@
+{
+	"jsontype": "module_publish",
+	"publish_src": [
+		"linux/debug.c",
+		"linux/rtos_os_cpu.c",
+		"linux/rtos_os_dev.c",
+		"linux/rtos_os_file.c",
+		"linux/rtos_os_flag.c",
+		"linux/rtos_os_init.c",
+		"linux/rtos_os_mem.c",
+		"linux/rtos_os_perf.c",
+		"linux/rtos_os_proc.c",
+		"linux/rtos_os_sem.c",
+		"linux/rtos_os_spinlock.c",
+		"linux/rtos_os_task.c",
+		"linux/rtos_os_util.c",
+		"linux/sscanf.c",
+		"linux/test_vos.c",
+		"linux/vos_ioctl.c"
+	]
+}

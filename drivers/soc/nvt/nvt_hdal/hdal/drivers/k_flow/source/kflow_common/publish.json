@@ -1,0 +1,21 @@
+{
+	"jsontype": "module_publish",
+	"publish_src": [
+		"kflow_common_main.c",
+		"fastboot/fastboot_fdt.c",
+		"fastboot/fastboot_main.c",
+		"fastboot/fastboot_proc.c",
+		"nvtmpp/nvtmpp_main.c",
+		"nvtmpp/nvtmpp_export.c",
+		"nvtmpp/nvtmpp_ioctl.c",
+		"nvtmpp/nvtmpp_proc.c",
+		"nvtmpp/nvtmpp_platform.c",
+		"isf_flow/linux/isf_flow_drv.c",
+		"isf_flow/linux/isf_flow_main.c",
+		"isf_flow/linux/isf_flow_proc.c",
+		"isf_flow/linux/isf_flow_debug_log.c",
+		"isf_flow/rtos/isf_flow_drv.c",
+		"isf_flow/rtos/isf_flow_debug_log.c",
+		"gximage/gximage_open.c"
+	]
+}

@@ -260,6 +260,13 @@ config ARM_TANGO_CPUFREQ
 	depends on CPUFREQ_DT && ARCH_TANGO
 	default y
 
+config ARM_NVT_CPUFREQ
+	tristate "Novatek CPUFreq support"
+	depends on PLAT_NOVATEK
+	default n
+	help
+	  This adds the CPUFreq driver support for Novatek NA51055 SOCs.
+
 config ARM_TEGRA20_CPUFREQ
 	tristate "Tegra20 CPUFreq support"
 	depends on ARCH_TEGRA

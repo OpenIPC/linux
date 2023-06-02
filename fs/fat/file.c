@@ -61,9 +61,16 @@ static int fat_ioctl_set_attributes(struct file *file, u32 __user *user_attr)
 		(is_dir ? ATTR_DIR : 0);
 	oldattr = fat_make_attrs(inode);
 
+#if FSLINUX_IOCTL_ENABLE
+	/* Remove the ATTR_CTIME setting to preserve
+	 * ctime information.
+	 */
+	ia.ia_valid = ATTR_MODE;
+#else
 	/* Equivalent to a chmod() */
 	ia.ia_valid = ATTR_MODE | ATTR_CTIME;
 	ia.ia_ctime = current_time(inode);
+#endif
 	if (is_dir)
 		ia.ia_mode = fat_make_mode(sbi, attr, S_IRWXUGO);
 	else {
@@ -295,12 +302,25 @@ static long fat_fallocate(struct file *file, int mode,
 		nr_cluster = (mm_bytes + (sbi->cluster_size - 1)) >>
 			sbi->cluster_bits;
 
+#if FSLINUX_FALLOC_ENABLE
+		/* Start the allocation.We are not zeroing out the clusters */
+		while (nr_cluster-- > 0) {
+			err = fat_add_cluster(inode);
+			if (err)
+				goto error;
+			/* Update the allocated size */
+			inode->i_size += sbi->cluster_size;
+		}
+		/* Store the allocated size in the file entry of MS-DOS file system */
+		MSDOS_I(inode)->mmu_private = inode->i_size;
+#else
 		/* Start the allocation.We are not zeroing out the clusters */
 		while (nr_cluster-- > 0) {
 			err = fat_add_cluster(inode);
 			if (err)
 				goto error;
 		}
+#endif
 	} else {
 		if ((offset + len) <= i_size_read(inode))
 			goto error;

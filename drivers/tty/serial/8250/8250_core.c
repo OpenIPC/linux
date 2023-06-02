@@ -109,6 +109,7 @@ static irqreturn_t serial8250_interrupt(int irq, void *dev_id)
 	struct irq_info *i = dev_id;
 	struct list_head *l, *end = NULL;
 	int pass_counter = 0, handled = 0;
+	u32 err_handle = 0;
 
 	pr_debug("%s(%d): start\n", __func__, irq);
 
@@ -122,6 +123,8 @@ static irqreturn_t serial8250_interrupt(int irq, void *dev_id)
 		up = list_entry(l, struct uart_8250_port, list);
 		port = &up->port;
 
+		up->iir = serial_in(up, UART_IIR);
+
 		if (port->handle_irq(port)) {
 			handled = 1;
 			end = NULL;
@@ -131,10 +134,17 @@ static irqreturn_t serial8250_interrupt(int irq, void *dev_id)
 		l = l->next;
 
 		if (l == i->head && pass_counter++ > PASS_LIMIT) {
-			/* If we hit this, we're dead. */
-			printk_ratelimited(KERN_ERR
-				"serial8250: too much work for irq%d\n", irq);
-			break;
+			if ((up->iir & 0xF) == 0xC) {
+				err_handle = serial_port_in(port, UART_RX);
+				/* Recovery from reception timeout */
+				printk_ratelimited(KERN_ERR
+					"serial8250:Reception timeout recover iir 0x%x rx 0x%x\n",up->iir, err_handle);
+			} else {
+				/* If we hit this, we're dead. */
+				printk_ratelimited(KERN_ERR
+					"serial8250: too much work for irq%d iir 0x%x rx 0x%x\n", irq, up->iir, err_handle);
+				break;
+			}
 		}
 	} while (l != end);
 
@@ -269,6 +279,7 @@ static void serial8250_timeout(struct timer_list *t)
 static void serial8250_backup_timeout(struct timer_list *t)
 {
 	struct uart_8250_port *up = from_timer(up, t, timer);
+	struct uart_port *port = &up->port;
 	unsigned int iir, ier = 0, lsr;
 	unsigned long flags;
 
@@ -309,8 +320,12 @@ static void serial8250_backup_timeout(struct timer_list *t)
 	spin_unlock_irqrestore(&up->port.lock, flags);
 
 	/* Standard timer interval plus 0.2s to keep the port running */
-	mod_timer(&up->timer,
-		jiffies + uart_poll_timeout(&up->port) + HZ / 5);
+	if (port->hw_flowctrl) {
+		mod_timer(&up->timer, jiffies);
+	} else {
+		mod_timer(&up->timer,
+			jiffies + uart_poll_timeout(&up->port) + HZ / 5);
+	}
 }
 
 static int univ8250_setup_irq(struct uart_8250_port *up)
@@ -730,6 +745,7 @@ int __init early_serial_setup(struct uart_port *port)
 	p->private_data = port->private_data;
 	p->type		= port->type;
 	p->line		= port->line;
+	p->hw_flowctrl	= port->hw_flowctrl;
 
 	serial8250_set_defaults(up_to_u8250p(p));
 
@@ -831,6 +847,7 @@ static int serial8250_probe(struct platform_device *dev)
 		uart.port.pm		= p->pm;
 		uart.port.dev		= &dev->dev;
 		uart.port.irqflags	|= irqflag;
+		uart.port.hw_flowctrl	= p->hw_flowctrl;
 		ret = serial8250_register_8250_port(&uart);
 		if (ret < 0) {
 			dev_err(&dev->dev, "unable to register port at index %d "
@@ -1009,6 +1026,7 @@ int serial8250_register_8250_port(struct uart_8250_port *up)
 		uart->port.rs485_config	= up->port.rs485_config;
 		uart->port.rs485	= up->port.rs485;
 		uart->dma		= up->dma;
+		uart->port.hw_flowctrl	= up->port.hw_flowctrl;
 
 		/* Take tx_loadsz from fifosize if it wasn't set separately */
 		if (uart->port.fifosize && !uart->tx_loadsz)

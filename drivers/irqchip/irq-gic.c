@@ -447,8 +447,15 @@ static u8 gic_get_cpumask(struct gic_chip_data *gic)
 			break;
 	}
 
+#if defined(CONFIG_ARCH_NVT_IVOT_V7)
+	/*
+	 * The number of real cpus may be 1 or 2,
+	 * just skip the mask check
+	 */
+#else
 	if (!mask && num_possible_cpus() > 1)
 		pr_crit("GIC CPU mask not found - kernel will fail to boot.\n");
+#endif
 
 	return mask;
 }

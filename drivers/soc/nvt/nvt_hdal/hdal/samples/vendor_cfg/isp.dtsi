@@ -1,0 +1,24 @@
+/ {
+	isp {
+		/* label for sensor_cfg, ae, awb, iq table */
+		sen_cfg: sen_cfg {
+		};
+		ae: ae {
+		};
+		awb: awb {
+		};
+		iq: iq {
+		};
+	};
+};
+
+/* Note: put include files in the tail since label should be declared first. */
+#include "imx290_ae_0.dtsi"
+#include "imx290_awb_0.dtsi"
+#include "imx290_iq_0.dtsi"
+#include "imx290_iq_0_cap.dtsi"
+#include "imx290_iq_dpc_0.dtsi"
+#include "imx290_iq_ldc_0.dtsi"
+#include "imx290_iq_shading_0.dtsi"
+
+

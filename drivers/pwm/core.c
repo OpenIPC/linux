@@ -977,6 +977,44 @@ void devm_pwm_put(struct device *dev, struct pwm_device *pwm)
 }
 EXPORT_SYMBOL_GPL(devm_pwm_put);
 
+#if IS_ENABLED(CONFIG_PWM_NA51055)
+/**
+ * pwm_reload() - reload a PWM config in free run mode
+ * @pwm: PWM device
+ */
+void pwm_reload(struct pwm_device *pwm)
+{
+    struct pwm_state state;
+
+    pwm_get_state(pwm, &state);
+	if ((pwm->cycle == 0) && (state.enabled))
+		return pwm->chip->ops->reload(pwm->chip, pwm);
+}
+EXPORT_SYMBOL_GPL(pwm_reload);
+
+/**
+ * pwm_cycle() - config PWM cycle
+ * @pwm: PWM device
+ * @cycle: cycles to generate
+ */
+int pwm_cycle(struct pwm_device *pwm, int cycle)
+{
+	int err;
+
+	if (!pwm)
+		return -EINVAL;
+
+	err = pwm->chip->ops->set_cycle(pwm->chip, pwm, cycle);
+	if (err)
+		return err;
+
+	pwm->cycle = cycle;
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(pwm_cycle);
+#endif
+
 #ifdef CONFIG_DEBUG_FS
 static void pwm_dbg_show(struct pwm_chip *chip, struct seq_file *s)
 {

@@ -2336,6 +2336,29 @@ config FB_SM712
 	  called sm712fb. If you want to compile it as a module, say M
 	  here and read <file:Documentation/kbuild/modules.txt>.
 
+config NVT_FB_FR
+	tristate "Novatek Frontend series framebuffer support"
+	depends on FB && ARCH_NVT_IVOT_V7 && ( NVT_IVOT_PLAT_NA51055 || NVT_IVOT_PLAT_NA51089)
+	select FB_CFB_FILLRECT
+	select FB_CFB_COPYAREA
+	select FB_CFB_IMAGEBLIT
+	help
+	Choose this option if you want to use Novatek frondend integrate engine as
+	a framebuffer device
+	
+config NVT_FB_DEBUG
+	bool "Enable debug messages for nvt_fb"
+	depends on NVT_FB_FR
+	help
+	Choose this option if you want to turn on debugging messages. 
+	Note that you can set/unset at run time through sysfs
+
+config NVT_FB_FORCE_INIT
+	bool "Force init fb driver when insert fb driver"
+	depends on NVT_FB_FR
+	help
+	Force init fb driver when insert fb driver
+	
 source "drivers/video/fbdev/omap/Kconfig"
 source "drivers/video/fbdev/omap2/Kconfig"
 source "drivers/video/fbdev/mmp/Kconfig"

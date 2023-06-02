@@ -149,6 +149,18 @@ config MMC_SDHCI_OF_AT91
 	help
 	  This selects the Atmel SDMMC driver
 
+config MMC_NVT_IVOT_SDC 
+	tristate "MMC_NVT_IVOT_SDC Secure Digital Host Controller Interface support"	
+	depends on MMC_SDHCI_PLTFM
+	depends on NVT_IVOT_PLAT_NA51068_CA53 || NVT_IVOT_PLAT_NA51068 || PLATFORM_NA51039 || PLATFORM_GM8296
+	help
+	  This selects the novatek ivot sdc controller.
+
+	  If you have a novatek ivot sdc SD Host Controller, say Y or M here. You
+	  also need to enable an appropriate bus interface.
+
+	  If unsure, say N.
+
 config MMC_SDHCI_OF_ESDHC
 	tristate "SDHCI OF support for the Freescale eSDHC controller"
 	depends on MMC_SDHCI_PLTFM
@@ -517,6 +529,15 @@ config MMC_DAVINCI
           This selects the TI DAVINCI Multimedia card Interface.
           If you have an DAVINCI board with a Multimedia Card slot,
           say Y or M here.  If unsure, say N.
+
+config MMC_NA51055
+	tristate "Novatek NA51055 Multimedia Card Interface support"
+	depends on NVT_IVOT_PLAT_NA51055 || NVT_IVOT_PLAT_NA51089
+	help
+	  This selects the Novatek NA51055 Multimedia card Interface.
+	  If you have an NA51055 board with a Multimedia Card slot,
+	  say Y or M here.If unsure, say N.
+	  (M:module, Y:build in, N: unsure)
 
 config MMC_GOLDFISH
 	tristate "goldfish qemu Multimedia Card Interface support"

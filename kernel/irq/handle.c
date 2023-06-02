@@ -134,6 +134,14 @@ void __irq_wake_thread(struct irq_desc *desc, struct irqaction *action)
 	wake_up_process(action->thread);
 }
 
+#ifdef CONFIG_NVT_PROFILER
+irqreturn_t noinline __irq_action_handler(struct irq_desc *desc,
+					  struct irqaction *action)
+{
+	return action->handler(desc->irq_data.irq, action->dev_id);
+}
+#endif
+
 irqreturn_t __handle_irq_event_percpu(struct irq_desc *desc, unsigned int *flags)
 {
 	irqreturn_t retval = IRQ_NONE;
@@ -146,7 +154,12 @@ irqreturn_t __handle_irq_event_percpu(struct irq_desc *desc, unsigned int *flags
 		irqreturn_t res;
 
 		trace_irq_handler_entry(irq, action);
+#ifdef CONFIG_NVT_PROFILER
+		/* Make it an independent function so kprobe works */
+		res = __irq_action_handler(desc, action);
+#else
 		res = action->handler(irq, action->dev_id);
+#endif
 		trace_irq_handler_exit(irq, action, res);
 
 		if (WARN_ONCE(!irqs_disabled(),"irq %u handler %pF enabled interrupts\n",

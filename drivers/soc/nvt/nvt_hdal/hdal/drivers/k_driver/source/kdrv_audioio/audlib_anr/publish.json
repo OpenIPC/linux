@@ -1,0 +1,8 @@
+{
+	"jsontype": "module_publish",
+	"publish_src": [
+		"audlib_anr_drv.c",
+		"audlib_anr_main.c",
+		"audlib_anr_export.c"
+	]
+}

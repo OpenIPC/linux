@@ -366,6 +366,23 @@ out:
 	data->critical_sequence = max_sequence;
 	data->preempt_timestamp = ftrace_now(cpu);
 	__trace_function(tr, CALLER_ADDR0, parent_ip, flags, pc);
+
+#ifdef CONFIG_NVT_PROFILER
+	if (likely(!is_tracing_stopped()) && tracing_thresh &&
+	    (delta > tracing_thresh)) {
+		struct trace_buffer *buf = &tr->max_buffer;
+		struct trace_array_cpu *data = per_cpu_ptr(buf->data, cpu);
+		char start[KSYM_SYMBOL_LEN];
+		char end[KSYM_SYMBOL_LEN];
+
+		kallsyms_lookup(data->critical_start, NULL, NULL, NULL, start);
+		kallsyms_lookup(data->critical_end, NULL, NULL, NULL, end);
+
+		pr_crit("NVT IRQs-off: %llu ns, %s: %s -> %s\n",
+			delta, data->comm, start, end);
+		dump_stack();
+	}
+#endif
 }
 
 static inline void

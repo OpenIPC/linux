@@ -98,6 +98,12 @@ struct usb_hcd {
 	 */
 	const struct hc_driver	*driver;	/* hw-specific hooks */
 
+#if defined(CONFIG_USB_NVTIVOT_HCD)
+	unsigned long porcd;
+	unsigned long porcd2;
+	unsigned long modem_dongle;
+	unsigned long nvt_flag;
+#endif
 	/*
 	 * OTG and some Host controllers need software interaction with phys;
 	 * other external phys should be software-transparent
@@ -118,6 +124,9 @@ struct usb_hcd {
 #define HCD_FLAG_DEAD			6	/* controller has died? */
 #define HCD_FLAG_INTF_AUTHORIZED	7	/* authorize interfaces? */
 #define HCD_FLAG_DEV_AUTHORIZED		8	/* authorize devices? */
+#if defined(CONFIG_USB_NVTIVOT_HCD)
+#define HCD_FLAG_NRY			9
+#endif
 
 	/* The flags can be tested using these macros; they are likely to
 	 * be slightly faster than test_bit().
@@ -393,6 +402,11 @@ struct hc_driver {
 		 * address is set
 		 */
 	int	(*update_device)(struct usb_hcd *, struct usb_device *);
+#if defined(CONFIG_USB_NVTIVOT_HCD)
+	void	(*port_nc)(struct usb_hcd *);
+	void	(*port_nc2)(struct usb_hcd *);
+	int	(*port_nc3)(struct usb_hcd *);
+#endif
 	int	(*set_usb2_hw_lpm)(struct usb_hcd *, struct usb_device *, int);
 	/* USB 3.0 Link Power Management */
 		/* Returns the USB3 hub-encoded value for the U1/U2 timeout. */

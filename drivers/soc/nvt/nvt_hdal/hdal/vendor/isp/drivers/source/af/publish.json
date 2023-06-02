@@ -1,0 +1,9 @@
+{
+	"jsontype": "module_publish",
+	"publish_src": [
+		"af_main.c",
+		"af_proc.c",
+		"af_version.c",
+		"af_param/af_param_default.c"
+	]
+}

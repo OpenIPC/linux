@@ -249,6 +249,7 @@ void show_stack(struct task_struct *tsk, unsigned long *sp)
 	barrier();
 }
 
+EXPORT_SYMBOL(show_stack);
 #ifdef CONFIG_PREEMPT
 #define S_PREEMPT " PREEMPT"
 #else

@@ -1,0 +1,10 @@
+{
+	"jsontype": "module_publish",
+	"publish_src": [
+               "nmediarec_vdoenc/nmediarec_vdoenc_export.c",
+               "nmediarec_vdoenc/nmediarec_vdoenc_platform.c",
+               "linux/isf_vdoenc_main.c",
+               "linux/isf_vdoenc_proc.c",
+               "linux/isf_vdoenc_drv.c"
+	]
+}

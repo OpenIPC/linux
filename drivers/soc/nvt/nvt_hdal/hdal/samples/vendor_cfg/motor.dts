@@ -1,0 +1,20 @@
+/*
+ * Novatek Ltd. NA51055 BSP part of dts
+ *
+ * Cortex-A9
+ *
+ */
+
+/dts-v1/;
+
+/ {
+	motor {
+		/* label for motor_cfg */
+		mtr_cfg: mtr_cfg {
+		};
+	};
+};
+
+/* Note: put include files in the tail since label should be declared first. */
+#include "mtr_an41908.dtsi"
+

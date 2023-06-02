@@ -105,6 +105,16 @@ struct irq_desc {
 	int			parent_irq;
 	struct module		*owner;
 	const char		*name;
+#ifdef CONFIG_NVT_PROFILER
+	s64			last_duration;
+	s64			max_duration;
+	ktime_t			last_stamp;
+	u64			last_sum;
+	u64			last_count;
+	ktime_t			start_stamp;
+	u64			cur_sum;
+	u64			cur_count;
+#endif
 } ____cacheline_internodealigned_in_smp;
 
 #ifdef CONFIG_SPARSE_IRQ

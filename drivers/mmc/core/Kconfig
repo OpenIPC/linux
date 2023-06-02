@@ -80,3 +80,11 @@ config MMC_TEST
 	  This driver is only of interest to those developing or
 	  testing a host driver. Most people should say N here.
 
+config MMC_NVT_EMMC_INFO
+	bool "NVT IVOT EMMC info parsing"
+	depends on ARCH_NVT_IVOT_V7 && NVT_INFO
+	default n
+	help
+	  It can provide you the detail info about the emmc partition table.
+	  You could get info through the following instruction
+	  $ cat /proc/nvt_info/emmc

@@ -223,11 +223,66 @@ static ssize_t capture_show(struct device *child,
 	return sprintf(buf, "%u %u\n", result.period, result.duty_cycle);
 }
 
+#if IS_ENABLED(CONFIG_PWM_NA51055)
+static ssize_t cycle_show(struct device *child,
+				   struct device_attribute *attr,
+				   char *buf)
+{
+	const struct pwm_device *pwm = child_to_pwm_device(child);
+
+	return sprintf(buf, "%u\n", pwm->cycle);
+}
+
+static ssize_t cycle_store(struct device *child,
+				    struct device_attribute *attr,
+				    const char *buf, size_t size)
+{
+	struct pwm_device *pwm = child_to_pwm_device(child);
+	unsigned int val;
+	int ret;
+
+	ret = kstrtouint(buf, 0, &val);
+	if (ret)
+		return ret;
+
+	ret = pwm_cycle(pwm, val);
+
+	return ret ? : size;
+}
+
+static ssize_t reload_store(struct device *child,
+				struct device_attribute *attr,
+				const char *buf, size_t size)
+{
+	struct pwm_device *pwm = child_to_pwm_device(child);
+	int val, ret;
+
+	ret = kstrtoint(buf, 0, &val);
+	if (ret)
+		return ret;
+
+	switch (val) {
+	case 1:
+		pwm_reload(pwm);
+		break;
+	default:
+		ret = -EINVAL;
+		break;
+	}
+
+	return ret ? : size;
+}
+#endif
+
 static DEVICE_ATTR_RW(period);
 static DEVICE_ATTR_RW(duty_cycle);
 static DEVICE_ATTR_RW(enable);
 static DEVICE_ATTR_RW(polarity);
 static DEVICE_ATTR_RO(capture);
+#if IS_ENABLED(CONFIG_PWM_NA51055)
+static DEVICE_ATTR_RW(cycle);
+static DEVICE_ATTR_WO(reload);
+#endif
 
 static struct attribute *pwm_attrs[] = {
 	&dev_attr_period.attr,
@@ -235,6 +290,10 @@ static struct attribute *pwm_attrs[] = {
 	&dev_attr_enable.attr,
 	&dev_attr_polarity.attr,
 	&dev_attr_capture.attr,
+#if IS_ENABLED(CONFIG_PWM_NA51055)
+	&dev_attr_cycle.attr,
+	&dev_attr_reload.attr,
+#endif
 	NULL
 };
 ATTRIBUTE_GROUPS(pwm);

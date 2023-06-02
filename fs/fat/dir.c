@@ -757,6 +757,168 @@ efault:									   \
 
 FAT_IOCTL_FILLDIR_FUNC(fat_ioctl_filldir, __fat_dirent)
 
+#if FSLINUX_IOCTL_ENABLE
+/* duplicate from __fat_readdir and modify */
+static int __fat_ioctl_readdir(struct inode *inode, struct file *file,
+			 struct dir_context *ctx, int short_only,
+			 struct fat_ioctl_filldir_callback *both)
+{
+	struct super_block *sb = inode->i_sb;
+	struct msdos_sb_info *sbi = MSDOS_SB(sb);
+	struct buffer_head *bh;
+	struct msdos_dir_entry *de;
+	unsigned char nr_slots;
+	wchar_t *unicode = NULL;
+	unsigned char bufname[FAT_MAX_SHORT_SIZE];
+	int isvfat = sbi->options.isvfat;
+	const char *fill_name = NULL;
+	int fake_offset = 0;
+	loff_t cpos;
+	int short_len = 0, fill_len = 0;
+	int ret = 0;
+
+	mutex_lock(&sbi->s_lock);
+
+	cpos = ctx->pos;
+	/* Fake . and .. for the root directory. */
+	if (inode->i_ino == MSDOS_ROOT_INO) {
+		if (!dir_emit_dots(file, ctx))
+			goto out;
+		if (ctx->pos == 2) {
+			fake_offset = 1;
+			cpos = 0;
+		}
+	}
+	if (cpos & (sizeof(struct msdos_dir_entry) - 1)) {
+		ret = -ENOENT;
+		goto out;
+	}
+
+	bh = NULL;
+get_new:
+	if (fat_get_entry(inode, &cpos, &bh, &de) == -1)
+		goto end_of_dir;
+parse_record:
+	nr_slots = 0;
+	/*
+	 * Check for long filename entry, but if short_only, we don't
+	 * need to parse long filename.
+	 */
+	if (isvfat && !short_only) {
+		if (de->name[0] == DELETED_FLAG)
+			goto record_end;
+		if (de->attr != ATTR_EXT && (de->attr & ATTR_VOLUME))
+			goto record_end;
+		if (de->attr != ATTR_EXT && IS_FREE(de->name))
+			goto record_end;
+	} else {
+		if ((de->attr & ATTR_VOLUME) || IS_FREE(de->name))
+			goto record_end;
+	}
+
+	if (isvfat && de->attr == ATTR_EXT) {
+		int status = fat_parse_long(inode, &cpos, &bh, &de,
+					    &unicode, &nr_slots);
+		if (status < 0) {
+			bh = NULL;
+			ret = status;
+			goto end_of_dir;
+		} else if (status == PARSE_INVALID)
+			goto record_end;
+		else if (status == PARSE_NOT_LONGNAME)
+			goto parse_record;
+		else if (status == PARSE_EOF)
+			goto end_of_dir;
+
+		if (nr_slots) {
+			void *longname = unicode + FAT_MAX_UNI_CHARS;
+			int size = PATH_MAX - FAT_MAX_UNI_SIZE;
+			int len = fat_uni_to_x8(sb, unicode, longname, size);
+
+			fill_name = longname;
+			fill_len = len;
+			/* !both && !short_only, so we don't need shortname. */
+			if (!both)
+				goto start_filldir;
+
+			short_len = fat_parse_short(sb, de, bufname,
+						    sbi->options.dotsOK);
+			if (short_len == 0)
+				goto record_end;
+			/* hack for fat_ioctl_filldir() */
+			both->longname = fill_name;
+			both->long_len = fill_len;
+			both->shortname = bufname;
+			both->short_len = short_len;
+			fill_name = NULL;
+			fill_len = 0;
+			goto start_filldir;
+		}
+	}
+
+	short_len = fat_parse_short(sb, de, bufname, sbi->options.dotsOK);
+	if (short_len == 0)
+		goto record_end;
+
+	fill_name = bufname;
+	fill_len = short_len;
+
+start_filldir:
+	ctx->pos = cpos - (nr_slots + 1) * sizeof(struct msdos_dir_entry);
+	if (fake_offset && ctx->pos < 2)
+		ctx->pos = 2;
+
+	if (!memcmp(de->name, MSDOS_DOT, MSDOS_NAME)) {
+		if (!dir_emit_dot(file, ctx))
+			goto fill_failed;
+	} else if (!memcmp(de->name, MSDOS_DOTDOT, MSDOS_NAME)) {
+		if (!dir_emit_dotdot(file, ctx))
+			goto fill_failed;
+	} else {
+		unsigned long inum;
+		loff_t i_pos = fat_make_i_pos(sb, bh, de);
+		struct inode *tmp = fat_iget(sb, i_pos);
+		if (tmp) {
+			inum = tmp->i_ino;
+			iput(tmp);
+		} else
+			inum = iunique(sb, MSDOS_ROOT_INO);
+		if (!dir_emit(ctx, fill_name, fill_len, inum,
+			    (de->attr & ATTR_DIR) ? DT_DIR : DT_REG))
+			goto fill_failed;
+	}
+
+	if (!short_only && !both) {
+		/* copy entry data for VFAT_IOCTL_READDIR_MSDOS */
+		struct fat_ioctl_filldir_callback *buf =
+			container_of(ctx, struct fat_ioctl_filldir_callback, ctx);
+		struct __fat_dirent __user *d1 = buf->dirent;
+		struct __fat_dirent __user *d2 = d1 + 1;
+		if (copy_to_user(d2->d_name, de, sizeof(struct msdos_dir_entry)))
+			goto fill_failed;
+	}
+
+record_end:
+	fake_offset = 0;
+	ctx->pos = cpos;
+	goto get_new;
+
+end_of_dir:
+	if (fake_offset && cpos < 2)
+		ctx->pos = 2;
+	else
+		ctx->pos = cpos;
+fill_failed:
+	brelse(bh);
+	if (unicode)
+		__putname(unicode);
+out:
+	mutex_unlock(&sbi->s_lock);
+
+	return ret;
+}
+#endif /* FSLINUX_IOCTL_ENABLE */
+
 static int fat_ioctl_readdir(struct inode *inode, struct file *file,
 			     void __user *dirent, filldir_t filldir,
 			     int short_only, int both)
@@ -773,8 +935,13 @@ static int fat_ioctl_readdir(struct inode *inode, struct file *file,
 	buf.ctx.pos = file->f_pos;
 	ret = -ENOENT;
 	if (!IS_DEADDIR(inode)) {
+#if FSLINUX_IOCTL_ENABLE
+		ret = __fat_ioctl_readdir(inode, file, &buf.ctx,
+				    short_only, both ? &buf : NULL);
+#else
 		ret = __fat_readdir(inode, file, &buf.ctx,
 				    short_only, both ? &buf : NULL);
+#endif
 		file->f_pos = buf.ctx.pos;
 	}
 	inode_unlock_shared(inode);
@@ -782,6 +949,28 @@ static int fat_ioctl_readdir(struct inode *inode, struct file *file,
 		ret = buf.result;
 	return ret;
 }
+
+#if FSLINUX_IOCTL_ENABLE
+static int fat_ioctl_set_delay_sync(struct inode *dir, unsigned long arg)
+{
+	struct super_block *sb = dir->i_sb;
+	struct msdos_sb_info *sbi = MSDOS_SB(sb);
+
+	inode_lock_shared(dir);
+
+	if (arg) {
+		sbi->delay_sync.is_delay_sync = 1;
+		sbi->delay_sync.dir_inode = dir;
+	} else {
+		sbi->delay_sync.is_delay_sync = 0;
+		sbi->delay_sync.dir_inode = NULL;
+	}
+
+	inode_unlock_shared(dir);
+
+	return 0;
+}
+#endif /* FSLINUX_IOCTL_ENABLE */
 
 static long fat_dir_ioctl(struct file *filp, unsigned int cmd,
 			  unsigned long arg)
@@ -799,6 +988,14 @@ static long fat_dir_ioctl(struct file *filp, unsigned int cmd,
 		short_only = 0;
 		both = 1;
 		break;
+#if FSLINUX_IOCTL_ENABLE
+	case VFAT_IOCTL_READDIR_MSDOS:
+		short_only = 0;
+		both = 0;
+		break;
+	case VFAT_IOCTL_SET_DELAY_SYNC:
+		return fat_ioctl_set_delay_sync(inode, arg);
+#endif
 	default:
 		return fat_generic_ioctl(filp, cmd, arg);
 	}
@@ -997,6 +1194,9 @@ int fat_scan_logstart(struct inode *dir, int i_logstart,
 static int __fat_remove_entries(struct inode *dir, loff_t pos, int nr_slots)
 {
 	struct super_block *sb = dir->i_sb;
+#if FSLINUX_IOCTL_ENABLE
+	struct msdos_sb_info *sbi = MSDOS_SB(sb);
+#endif
 	struct buffer_head *bh;
 	struct msdos_dir_entry *de, *endp;
 	int err = 0, orig_slots;
@@ -1016,7 +1216,11 @@ static int __fat_remove_entries(struct inode *dir, loff_t pos, int nr_slots)
 			nr_slots--;
 		}
 		mark_buffer_dirty_inode(bh, dir);
+#if FSLINUX_IOCTL_ENABLE
+		if (!FAT_IS_DELAY_SYNC(sbi, dir) && IS_DIRSYNC(dir))
+#else
 		if (IS_DIRSYNC(dir))
+#endif
 			err = sync_dirty_buffer(bh);
 		brelse(bh);
 		if (err)
@@ -1032,6 +1236,9 @@ static int __fat_remove_entries(struct inode *dir, loff_t pos, int nr_slots)
 int fat_remove_entries(struct inode *dir, struct fat_slot_info *sinfo)
 {
 	struct super_block *sb = dir->i_sb;
+#if FSLINUX_IOCTL_ENABLE
+	struct msdos_sb_info *sbi = MSDOS_SB(sb);
+#endif
 	struct msdos_dir_entry *de;
 	struct buffer_head *bh;
 	int err = 0, nr_slots;
@@ -1051,7 +1258,11 @@ int fat_remove_entries(struct inode *dir, struct fat_slot_info *sinfo)
 		nr_slots--;
 	}
 	mark_buffer_dirty_inode(bh, dir);
+#if FSLINUX_IOCTL_ENABLE
+	if (!FAT_IS_DELAY_SYNC(sbi, dir) && IS_DIRSYNC(dir))
+#else
 	if (IS_DIRSYNC(dir))
+#endif
 		err = sync_dirty_buffer(bh);
 	brelse(bh);
 	if (err)
@@ -1072,7 +1283,11 @@ int fat_remove_entries(struct inode *dir, struct fat_slot_info *sinfo)
 	}
 
 	dir->i_mtime = dir->i_atime = current_time(dir);
+#if FSLINUX_IOCTL_ENABLE
+	if (!FAT_IS_DELAY_SYNC(sbi, dir) && IS_DIRSYNC(dir))
+#else
 	if (IS_DIRSYNC(dir))
+#endif
 		(void)fat_sync_inode(dir);
 	else
 		mark_inode_dirty(dir);

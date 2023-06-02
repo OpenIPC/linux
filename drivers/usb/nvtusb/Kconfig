@@ -1,0 +1,11 @@
+#
+# USB Monitor configuration
+#
+
+config USB_NVTUSB
+	tristate "NVT USB Test program V2"
+	default n
+	help
+	  NOVATEK USB test program. V2.0
+
+	  If unsure, say Y, if allowed, otherwise M.

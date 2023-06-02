@@ -1,0 +1,33 @@
+{
+	"jsontype": "module_publish",
+	"publish_src": [
+		"kdrv_videocapture_main.c",
+		"kdrv_sie/kdrv_sie_export.c",
+		"kdrv_sie/kdrv_sie_main.c",
+		"kdrv_sie/kdrv_sie_proc.c",
+		"ssenif/senphy/senphy_api.c",
+		"ssenif/senphy/senphy_drv.c",
+		"ssenif/senphy/senphy_main.c",
+		"ssenif/senphy/senphy_proc.c",
+		"ssenif/lvds/lvds_api.c",
+		"ssenif/lvds/lvds_drv.c",
+		"ssenif/lvds/lvds_main.c",
+		"ssenif/lvds/lvds_proc.c",
+		"ssenif/hal/kdrv_ssenif.c",
+		"ssenif/hal/ssenif_api.c",
+		"ssenif/hal/ssenif_drv.c",
+		"ssenif/hal/ssenif_main.c",
+		"ssenif/hal/ssenif_proc.c",
+		"ssenif/csi/csi_api.c",
+		"ssenif/csi/csi_drv.c",
+		"ssenif/csi/csi_main.c",
+		"ssenif/csi/csi_proc.c",
+		"ssenif/csi/csi_platform.c",
+		"kdrv_tge/eng/tge_platform.c",
+		"kdrv_tge/kdrv_tge_api.c",
+		"kdrv_tge/kdrv_tge_drv.c",
+		"kdrv_tge/kdrv_tge_export.c",
+		"kdrv_tge/kdrv_tge_main.c",
+		"kdrv_tge/kdrv_tge_proc.c"
+		]
+}

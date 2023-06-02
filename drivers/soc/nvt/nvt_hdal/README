@@ -1,0 +1,11 @@
+/**
+    HDAL built-in readme
+    Copyright   Novatek Microelectronics Corp. 2019.  All rights reserved.
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License version 2 as
+    published by the Free Software Foundation.
+*/
+
+The HDAL source code is put in the path: sdk/code/hdal.
+Our default setting is the kernel module, you can select which module wants to build as built-in to accelerate boot speed.

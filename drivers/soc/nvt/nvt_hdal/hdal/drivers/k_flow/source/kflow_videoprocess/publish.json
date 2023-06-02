@@ -1,0 +1,24 @@
+{
+	"jsontype": "module_publish",
+	"publish_src": [
+		"kflow_videoprocess_main.c",
+		"ctl_ipp/ctl_ipp_main.c",
+		"ctl_ipp/ctl_ipp_drv.c",
+		"ctl_ipp/ctl_ipp_proc.c",
+		"ctl_ipp/ctl_ipp_platform.c",
+		"ctl_ipp/ctl_ipp_export.c",
+		"ctl_vpe/ctl_vpe_main.c",
+		"ctl_vpe/ctl_vpe_drv.c",
+		"ctl_vpe/ctl_vpe_proc.c",
+		"ctl_vpe/ctl_vpe_export.c",
+		"ctl_ise/ctl_ise_main.c",
+		"ctl_ise/ctl_ise_drv.c",
+		"ctl_ise/ctl_ise_proc.c",
+		"ctl_ise/ctl_ise_export.c",
+		"unit/linux/isf_vdoprc_drv.c",
+		"unit/linux/isf_vdoprc_main.c",
+		"unit/linux/isf_vdoprc_proc.c",
+		"unit/rtos/isf_vdoprc_drv.c",
+		"unit/rtos/isf_vdoprc_proc.c"
+	]
+}

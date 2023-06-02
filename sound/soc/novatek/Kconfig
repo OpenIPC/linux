@@ -1,0 +1,8 @@
+config SND_SOC_NVT
+	tristate "NOVATEK Audio SoundCard support"
+	help
+	 This option enables NOVATEK SoundCard support on NVT platform.
+config SND_SOC_XMOS
+	tristate "XMOS Audio SoundCard support"
+	help
+		This option enables XMOS SoundCard support on NVT platform.

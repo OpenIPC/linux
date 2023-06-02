@@ -24,6 +24,15 @@
 #define FAT_NFS_STALE_RW	1      /* NFS RW support, can cause ESTALE */
 #define FAT_NFS_NOSTALE_RO	2      /* NFS RO support, no ESTALE issue */
 
+#if FSLINUX_IOCTL_ENABLE
+typedef struct {
+	unsigned long is_delay_sync;
+	struct inode *dir_inode;
+} FAT_DELAY_SYNC;
+
+#define FAT_IS_DELAY_SYNC(sbi, node) (sbi->delay_sync.is_delay_sync && node == sbi->delay_sync.dir_inode)
+#endif /* FSLINUX_IOCTL_ENABLE */
+
 struct fat_mount_options {
 	kuid_t fs_uid;
 	kgid_t fs_gid;
@@ -102,6 +111,9 @@ struct msdos_sb_info {
 
 	unsigned int dirty;           /* fs state before mount */
 	struct rcu_head rcu;
+#if FSLINUX_IOCTL_ENABLE
+	FAT_DELAY_SYNC delay_sync;
+#endif
 };
 
 #define FAT_CACHE_VALID	0	/* special case for valid cache */

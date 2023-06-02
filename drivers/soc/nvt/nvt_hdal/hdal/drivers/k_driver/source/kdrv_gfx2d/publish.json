@@ -1,0 +1,21 @@
+{
+	"jsontype": "module_publish",
+	"publish_src": [
+		"kdrv_gfx2d_main.c",
+		"kdrv_affine/affine_api.c",
+		"kdrv_affine/affine_drv.c",
+		"kdrv_affine/affine_main.c",
+		"kdrv_affine/affine_proc.c",
+		"kdrv_affine/affine_platform.c",
+		"kdrv_grph/graphic_api.c",
+		"kdrv_grph/graphic_drv.c",
+		"kdrv_grph/graphic_main.c",
+		"kdrv_grph/graphic_proc.c",
+		"kdrv_grph/grph_platform.c",
+		"kdrv_ise/kdrv_ise_main.c",
+		"kdrv_ise/kdrv_ise_drv.c",
+		"kdrv_ise/kdrv_ise_proc.c",
+		"kdrv_ise/kdrv_ise_platform.c",
+		"kdrv_ise/kdrv_ise_export.c"
+	]
+}

@@ -1,0 +1,13 @@
+{
+	"jsontype": "module_publish",
+	"publish_src": [
+		 "ai_main.c",
+		 "ai_drv.c",
+		 "ai_proc.c",
+		 "ai_ioctl.c",
+		 "kdrv_ai_config.c",
+		 "cnn/cnn_platform.c",
+		 "nue/nue_platform.c",
+		 "nue2/nue2_platform.c"
+	]
+}

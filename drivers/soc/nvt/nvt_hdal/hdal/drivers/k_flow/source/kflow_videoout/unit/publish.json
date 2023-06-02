@@ -1,0 +1,9 @@
+{
+	"jsontype": "module_publish",
+	"publish_src": [
+               "isf_vdoout_platform.c",
+               "linux/isf_vdoout_main.c",
+               "linux/isf_vdoout_proc.c",
+               "linux/isf_vdoout_drv.c"
+	]
+}

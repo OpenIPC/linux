@@ -1,0 +1,17 @@
+#
+# Synopsys network device configuration
+#
+
+config NET_VENDOR_NOVATEK
+	bool "Novatek devices"
+	default y
+	---help---
+	  If you have a network (Ethernet) device belonging to this class, say Y.
+
+	  Note that the answer to this question doesn't directly affect the
+	  kernel: saying N will just cause the configurator to skip all
+	  the questions about Novatek devices. If you say Y, you will be asked
+	  for your specific device in the following questions.
+
+source "drivers/net/ethernet/novatek/na51055/Kconfig"
+source "drivers/net/ethernet/novatek/na51089/Kconfig"

@@ -1,0 +1,111 @@
+MODULE_NAME = kflow_ctl_ise
+VOS_DRIVER_DIR = $(NVT_VOS_DIR)/drivers
+KDRV_DIR=$(NVT_HDAL_DIR)/drivers/k_driver
+KFLOW_DIR=$(NVT_HDAL_DIR)/drivers/k_flow
+CURR_DRIVER_DIR = $(KFLOW_DIR)
+RTOS_OUTPUT_DIR = $(CURR_DRIVER_DIR)/output
+EXTRA_INCLUDE += \
+	-I$(VOS_DRIVER_DIR)/include \
+	-I$(KDRV_DIR)/include \
+	-I$(KDRV_DIR)/include/comm \
+	-I$(KFLOW_DIR)/include \
+	-I$(CURR_DRIVER_DIR)/source/kflow_videoprocess/ctl_ise/include \
+
+.PHONY: modules modules_install clean
+###############################################################################
+# Linux Makefile                                                              #
+###############################################################################
+ifeq ($(NVT_PRJCFG_CFG),Linux)
+C_CFLAGS  += -D_ARCH_ARM_=1 -D_ARCH_MIPS_=0 -D_ARCH_=$(_ARCH_ARM_)
+C_CFLAGS  += -D__LINUX -Werror
+EXTRA_CFLAGS += $(C_CFLAGS) $(EXTRA_INCLUDE) -Wno-date-time -D__SOC_680_PLATFORM__ -DDEBUG -D_GROUP_KO_ -Wno-missing-braces
+KBUILD_EXTRA_SYMBOLS = $(shell find $(NVT_HDAL_DIR)/drivers -name Module.symvers)
+ccflags-y  := $(EXTRA_CFLAGS)
+
+obj-m += $(MODULE_NAME).o
+$(MODULE_NAME)-objs := \
+	ctl_ise_main.o \
+	ctl_ise_proc.o \
+	ctl_ise_drv.o \
+	ctl_ise_api.o \
+	ise_flow/ctl_ise_isp.o \
+	ise_flow/ctl_ise_int.o \
+	ise_flow/ctl_ise.o \
+
+ifeq ($(KERNELRELEASE),)
+PWD := $(shell pwd)
+KERVER ?= $(NVT_LINUX_VER)
+KDIR ?= $(KERNELDIR)
+MDIR ?= $(KERNELDIR)/_install_modules/lib/modules/$(KERVER)/hdal
+MODPATH := $(shell echo $(PWD) | awk -F'linux-driver/' '{print $$NF}')
+MODNAME := $(shell echo $(obj-m:.o=.ko))
+
+modules:
+	$(MAKE) -C $(KDIR) M=$(PWD) $(NVT_KGCOV) modules
+
+modules_install:
+	@if [ -z $(NVT_MOD_INSTALL) ]; then \
+		rm -f $(MDIR)/$(MODPATH)/$(MODNAME); \
+		install -m644 -b -D $(MODNAME) ${MDIR}/$(MODPATH)/$(MODNAME); \
+		cd $(KDIR)/_install_modules/lib/modules/$(KERVER)/; depmod -b $(KDIR)/_install_modules/ -a $(KERVER); \
+	else \
+		mkdir -p $(NVT_MOD_INSTALL)/lib/modules/$(KERVER); \
+		install -m644 -b -D $(MODNAME) $(NVT_MOD_INSTALL)/lib/modules/$(KERVER)/hdal/$(MODPATH)/$(MODNAME); \
+	fi
+
+clean:
+	@rm -rf $(MODULE_NAME).* .$(MODULE_NAME).* Module.symvers modules.order .tmp_versions
+	@rm -f `find . -type f -name ".*.cmd" -o -name ".*.d"`
+	@for n in $($(MODULE_NAME)-objs:.o=); do \
+		if [ -f $$n.c ]; then \
+			rm -f $$n.o; \
+		fi \
+	done
+
+codesize:
+	@$(OBJDUMP) -t $(MODULE_NAME).o > $(MODULE_NAME).sym && \
+	$(BUILD_DIR)/nvt-tools/nvt-ld-op -j $(MODULE_NAME).sym
+
+endif
+
+###############################################################################
+# rtos Makefile                                                               #
+###############################################################################
+else ifeq ($(NVT_PRJCFG_CFG),rtos)
+OUTPUT_NAME = lib$(MODULE_NAME).a
+C_CFLAGS = $(PLATFORM_CFLAGS) $(EXTRA_INCLUDE) -DDEBUG
+
+SRC = \
+
+copy = if [ ! -z "$(1)" -a "$(1)" != " " ]; then cp -avf $(1) $(2); fi
+
+OBJ = $(SRC:.c=.o)
+
+ifeq ("$(wildcard *.c */*.c */*/*.c)","")
+modules:
+	@echo "nothing to be done for '$(MODULE_NAME)'"
+
+clean:
+	@echo "nothing to be done for '$(MODULE_NAME)'"
+else
+modules : $(OUTPUT_NAME)
+
+
+%.o:%.c
+	@echo Compiling $<
+	@$(CC) $(C_CFLAGS) -c $< -o $@
+
+$(OUTPUT_NAME): $(OBJ)
+	@echo Creating library $* ...
+	@$(AR) rcsD $(OUTPUT_NAME) $(OBJ)
+	@$(BUILD_DIR)/nvt-tools/nvt-ld-op --arc-sha1 $@
+
+clean:
+	@rm -f $(OBJ) *.a *.so*
+endif
+
+modules_install:
+	@mkdir -p $(RTOS_OUTPUT_DIR)
+	@cp -avf *.a $(RTOS_OUTPUT_DIR)
+
+endif

@@ -1,0 +1,12 @@
+{
+	"jsontype": "module_publish",
+	"publish_src": [
+		"tse_api.c",
+		"tse_drv.c",
+		"tse_export.c",
+		"tse_ioctl.c",
+		"tse_main.c",
+		"tse_platform.c",
+		"tse_proc.c"
+	]
+}

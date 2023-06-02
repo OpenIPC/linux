@@ -1,0 +1,8 @@
+{
+	"jsontype": "module_publish",
+	"publish_src": [
+		"linux/isf_audout_drv.c",
+		"linux/isf_audout_main.c",
+		"linux/isf_audout_proc.c"
+	]
+}

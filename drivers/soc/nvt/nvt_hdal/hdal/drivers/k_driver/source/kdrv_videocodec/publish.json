@@ -1,0 +1,11 @@
+{
+	"jsontype": "module_publish",
+	"publish_src": [
+		"kdrv_vdocdc_thread.c",
+		"kdrv_vdocdc_proc.c",
+		"kdrv_vdocdc_ioctl.c",
+		"kdrv_vdocdc_main.c",
+		"kdrv_vdocdc_emode.c",
+		"kdrv_vdocdc_export.c"
+	]
+}

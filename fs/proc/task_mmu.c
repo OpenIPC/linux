@@ -27,6 +27,13 @@
 
 #define SEQ_PUT_DEC(str, val) \
 		seq_put_decimal_ull_width(m, str, (val) << (PAGE_SHIFT-10), 8)
+
+#if defined(CONFIG_ARCH_NVT_IVOT_V7)
+#ifdef CONFIG_ARM_PTDUMP_DEBUGFS
+extern int fmem_ptdump_v2p(unsigned long va, struct mm_struct *mm, phys_addr_t *ret_pa);
+#endif //#ifdef CONFIG_ARM_PTDUMP_DEBUGFS
+#endif
+
 void task_mem(struct seq_file *m, struct mm_struct *mm)
 {
 	unsigned long text, lib, swap, anon, file, shmem;
@@ -357,6 +364,30 @@ done:
 		seq_pad(m, ' ');
 		seq_puts(m, name);
 	}
+
+#if defined(CONFIG_ARCH_NVT_IVOT_V7)
+#ifdef CONFIG_ARM_PTDUMP_DEBUGFS
+	{
+		phys_addr_t start_pa = 0, end_pa = 0;
+
+		if (!name && !file) {
+			//if no name is printed, print [anon] to be parsed by busybox:pmap
+			seq_pad(m, ' ');
+			seq_puts(m, "[anon]");
+		}
+
+		if (0 == fmem_ptdump_v2p(start, mm, &start_pa)) {
+			end_pa = start_pa + (end - start);
+		} else {
+			//can not convert to physical address
+			start_pa = end_pa = (phys_addr_t)-1;
+		}
+		seq_put_hex_ll(m, "  pa:", (unsigned long)start_pa, 8); //add pa info
+		seq_put_hex_ll(m, "~", (unsigned long)end_pa, 8); //add pa info
+	}
+#endif //#ifdef CONFIG_ARM_PTDUMP_DEBUGFS
+#endif //#if defined(CONFIG_ARCH_NVT_IVOT_V7)
+
 	seq_putc(m, '\n');
 }
 

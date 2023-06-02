@@ -102,13 +102,28 @@ struct __fat_dirent {
 /*
  * ioctl commands
  */
+#if defined(CONFIG_ARCH_NVT_IVOT_V7)
+#ifndef FSLINUX_IOCTL_ENABLE
+#define FSLINUX_IOCTL_ENABLE 1
+#endif
+#ifndef FSLINUX_FALLOC_ENABLE
+#define FSLINUX_FALLOC_ENABLE 1
+#endif
+#endif
+
 #define VFAT_IOCTL_READDIR_BOTH		_IOR('r', 1, struct __fat_dirent[2])
 #define VFAT_IOCTL_READDIR_SHORT	_IOR('r', 2, struct __fat_dirent[2])
+#if defined(CONFIG_ARCH_NVT_IVOT_V7)
+#define VFAT_IOCTL_READDIR_MSDOS	_IOR('r', 3, struct __fat_dirent[2])
+#endif
 /* <linux/videotext.h> has used 0x72 ('r') in collision, so skip a few */
 #define FAT_IOCTL_GET_ATTRIBUTES	_IOR('r', 0x10, __u32)
 #define FAT_IOCTL_SET_ATTRIBUTES	_IOW('r', 0x11, __u32)
 /*Android kernel has used 0x12, so we use 0x13*/
 #define FAT_IOCTL_GET_VOLUME_ID		_IOR('r', 0x13, __u32)
+#if defined(CONFIG_ARCH_NVT_IVOT_V7)
+#define VFAT_IOCTL_SET_DELAY_SYNC   _IOR('r', 0x18, __u32)
+#endif
 
 struct fat_boot_sector {
 	__u8	ignored[3];	/* Boot strap short or near jump */

@@ -1,0 +1,10 @@
+{
+	"jsontype": "module_publish",
+	"publish_src": [
+		"ae_dbg.c",
+		"ae_main.c",
+		"ae_proc.c",
+		"ae_version.c",
+		"ae_param/ae_param_default.c"
+	]
+}

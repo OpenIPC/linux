@@ -23,6 +23,13 @@
 #include <asm/pgtable.h>
 #include <asm/ptdump.h>
 
+#if defined(CONFIG_ARCH_NVT_IVOT_V7)
+#include <linux/sched/signal.h>
+#include <asm/uaccess.h>
+extern int fmem_ptdump_v2p(unsigned long va, struct mm_struct *mm, phys_addr_t *ret_pa);
+extern rwlock_t tasklist_lock;
+#endif
+
 static struct addr_marker address_markers[] = {
 	{ MODULES_VADDR,	"Modules" },
 	{ PAGE_OFFSET,		"Kernel Mapping" },
@@ -274,8 +281,27 @@ static void note_page(struct pg_state *st, unsigned long addr,
 
 		if (st->current_prot) {
 			note_prot_wx(st, addr);
+
+#if defined(CONFIG_ARCH_NVT_IVOT_V7)
+			{
+			phys_addr_t phyaddr_start;
+			phys_addr_t phyaddr_end;
+
+			if (0 == fmem_ptdump_v2p(st->start_address, NULL, &phyaddr_start)) {
+				phyaddr_end = phyaddr_start + (addr - st->start_address);
+			} else {
+				phyaddr_end = phyaddr_start = (phys_addr_t)-1;
+			}
+
+			pt_dump_seq_printf(st->seq, "0x%08lx-0x%08lx  pa:0x%08lx-0x%08lx   ",
+				st->start_address, addr,
+				(unsigned long)phyaddr_start, (unsigned long)phyaddr_end);
+			}
+#else
 			pt_dump_seq_printf(st->seq, "0x%08lx-0x%08lx   ",
 				   st->start_address, addr);
+
+#endif
 
 			delta = (addr - st->start_address) >> 10;
 			while (!(delta & 1023) && unit[1]) {
@@ -447,8 +473,97 @@ void ptdump_check_wx(void)
 		pr_info("Checked W+X mappings: passed, no W+X pages found\n");
 }
 
+#if defined(CONFIG_ARCH_NVT_IVOT_V7)
+//printk(KERN_CONT "") seems to have a upper bound about 1024 bytes,
+//so we cut lines by ourselves before cut by Linux to preserve the format
+static void ptdump_pr_cont(char *mod_path, int strlen)
+{
+	char *p_head, *p_end, *p_linefeed;
+
+	p_head = &mod_path[0];
+	p_end = &mod_path[0] + strlen;
+
+	while (p_head < p_end) {
+		p_linefeed = strchr(p_head, '\n');
+		if (p_linefeed) {
+			*p_linefeed = '\0';
+			printk(KERN_CONT "%s\n", p_head);
+			p_head = p_linefeed + 1;
+		} else {
+			printk(KERN_CONT "%s", p_head);
+			break;
+		}
+	}
+}
+
+static void ptdump_cat_path(const char *path)
+{
+	struct file* p_file = NULL;
+	mm_segment_t org_fs;
+	int read_bytes = -1;
+	int ret;
+	char buf[256] = {0};
+
+	org_fs = get_fs();
+	set_fs(get_ds());
+
+	p_file = filp_open(path, O_RDONLY, 666);
+	if(IS_ERR(p_file)) {
+		printk("ptdump_cat_path [%s] failed\r\n", path);
+		goto ptdump_dump_maps_end;
+	}
+
+	do {
+		read_bytes = vfs_read(p_file, buf, (size_t)(sizeof(buf)-1), &p_file->f_pos);
+		if (read_bytes > 0) {
+			buf[read_bytes] = '\0';
+			ptdump_pr_cont(buf, read_bytes);
+		}
+	} while (read_bytes > 0);
+
+	ret = filp_close(p_file, NULL);
+
+ptdump_dump_maps_end:
+	set_fs(org_fs);
+}
+
+static int ptdump_panic_handler(struct notifier_block *self, unsigned long val, void *data)
+{
+	char path_maps[64] = {0};
+	struct task_struct *p, *t;
+
+	read_lock(&tasklist_lock);
+
+	printk("===[ Kernel Space ]===\n");
+	ptdump_cat_path("/sys/kernel/debug/kernel_page_tables");
+
+	printk("===[ User Space ]===\n");
+	for_each_process_thread(p, t) {
+		if (p->flags & PF_KTHREAD || is_global_init(p))
+			continue;
+
+		snprintf(path_maps, sizeof(path_maps)-1, "/proc/%d/maps", t->pid);
+		printk("%s %s\n", path_maps, p->comm);
+		ptdump_cat_path(path_maps);
+	}
+
+	read_unlock(&tasklist_lock);
+
+	return NOTIFY_DONE;
+}
+
+static struct notifier_block ptdump_panic_notifier_block = {
+    .notifier_call = ptdump_panic_handler,
+};
+#endif //#if defined(CONFIG_ARCH_NVT_IVOT_V7)
+
 static int ptdump_init(void)
 {
+#if defined(CONFIG_ARCH_NVT_IVOT_V7)
+	if (0 != atomic_notifier_chain_register(&panic_notifier_list, &ptdump_panic_notifier_block)) {
+		pr_warn("ptdump_init reg panic FAILED\n");
+	}
+#endif
 	ptdump_initialize();
 	return ptdump_debugfs_register(&kernel_ptdump_info,
 					"kernel_page_tables");

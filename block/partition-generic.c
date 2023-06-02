@@ -19,12 +19,19 @@
 #include <linux/genhd.h>
 #include <linux/blktrace_api.h>
 
+#ifdef CONFIG_MMC_NVT_EMMC_INFO
+#include <mach/nvt_ivot_emmc.h>
+#endif /* CONFIG_MMC_NVT_EMMC_INFO */
+
 #include "partitions/check.h"
 
 #ifdef CONFIG_BLK_DEV_MD
 extern void md_autodetect_dev(dev_t dev);
 #endif
- 
+
+#ifdef CONFIG_MMC_NVT_EMMC_INFO
+extern struct nvt_ivot_emmc_total_partitions* nvt_ivot_emmc_parts;
+#endif /* CONFIG_MMC_NVT_EMMC_INFO */
 /*
  * disk_name() is used by partition check code and the genhd driver.
  * It formats the devicename of the indicated disk into
@@ -518,6 +525,10 @@ int rescan_partitions(struct gendisk *disk, struct block_device *bdev)
 	struct parsed_partitions *state = NULL;
 	struct hd_struct *part;
 	int p, highest, res;
+#ifdef CONFIG_MMC_NVT_EMMC_INFO
+	int i = 0;
+#endif /* CONFIG_MMC_NVT_EMMC_INFO */
+
 rescan:
 	if (state && !IS_ERR(state)) {
 		free_partitions(state);
@@ -634,6 +645,23 @@ rescan:
 			       disk->disk_name, p, -PTR_ERR(part));
 			continue;
 		}
+
+		#ifdef CONFIG_MMC_NVT_EMMC_INFO
+		if (nvt_ivot_emmc_parts != NULL) {
+			for (i = 0 ; i < nvt_ivot_emmc_parts->nr_parts; i++)
+			{
+				/* Partition size is 0 in last partition of the storage.dtsi; it means that the last partition will extend to maximum size */
+				if (nvt_ivot_emmc_parts->part_info[i].start == from && 
+					(nvt_ivot_emmc_parts->part_info[i].num == size || nvt_ivot_emmc_parts->part_info[i].num == 0)) {
+					sprintf(nvt_ivot_emmc_parts->part_info[i].disk_name, "%sp%d", disk->disk_name, part->partno);
+					/* Initial value is configured with dts, we replace this with real mbr info */
+					nvt_ivot_emmc_parts->part_info[i].num = size;
+					break;
+				}
+			}
+		}
+		#endif /* CONFIG_MMC_NVT_EMMC_INFO */
+
 #ifdef CONFIG_BLK_DEV_MD
 		if (state->parts[p].flags & ADDPART_FLAG_RAID)
 			md_autodetect_dev(part_to_dev(part)->devt);

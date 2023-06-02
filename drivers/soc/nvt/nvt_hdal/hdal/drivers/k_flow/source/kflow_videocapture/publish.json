@@ -1,0 +1,21 @@
+{
+	"jsontype": "module_publish",
+	"publish_src": [
+		"kflow_videocapture_main.c",
+		"ctl_sie/ctl_sie_drv.c",
+		"ctl_sie/ctl_sie_export.c",
+		"ctl_sie/ctl_sie_main.c",
+		"ctl_sie/ctl_sie_proc.c",
+		"ctl_sen/ctl_sen_api.c",
+		"ctl_sen/ctl_sen_config.c",
+		"ctl_sen/ctl_sen_drv.c",
+		"ctl_sen/ctl_sen_main.c",
+		"ctl_sen/ctl_sen_proc.c",
+		"ctl_sen/lib/sen_utility/sen_utility_clk.c",
+		"unit/linux/isf_vdocap_drv.c",
+		"unit/linux/isf_vdocap_main.c",
+		"unit/linux/isf_vdocap_proc.c",
+		"unit/rtos/isf_vdocap_drv.c",
+		"unit/rtos/isf_vdocap_proc.c"
+	]
+}

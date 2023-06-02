@@ -1,0 +1,10 @@
+{
+	"jsontype": "module_publish",
+	"publish_src": [
+		"awb_dbg.c",
+		"awb_main.c",
+		"awb_proc.c",
+		"awb_version.c",
+		"awb_param/awb_param_default.c"
+	]
+}

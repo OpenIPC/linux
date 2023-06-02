@@ -11,6 +11,8 @@
 #define FOTG210_MAX_NUM_EP	5 /* ep0...ep4 */
 #define FOTG210_MAX_FIFO_NUM	4 /* fifo0...fifo4 */
 
+#define FOTG210_OTGCTRLSTS	0x80
+
 /* Global Mask of HC/OTG/DEV interrupt Register(0xC4) */
 #define FOTG210_GMIR		0xC4
 #define GMIR_INT_POLARITY	0x8 /*Active High*/
@@ -46,6 +48,9 @@
 
 /* Cx configuration and FIFO Empty Status register(0x120) */
 #define FOTG210_DCFESR		0x120
+#define DCFESR_CX_DATAPORT_EN	(1 << 31)
+#define DCFESR_CX_FNT_OUT	(0x7F << 24)
+#define DCFESR_CX_FNT_IN	(0x7F << 16)
 #define DCFESR_FIFO_EMPTY(fifo)	(1 << 8 << (fifo))
 #define DCFESR_CX_EMP		(1 << 5)
 #define DCFESR_CX_CLR		(1 << 3)
@@ -55,6 +60,9 @@
 
 /* Device IDLE Counter Register(0x124) */
 #define FOTG210_DICR		0x124
+
+/* CX Data Port Register(0x128) */
+#define FOTG210_CXDATAPORT		0x128
 
 /* Device Mask of Interrupt Group Register (0x130) */
 #define FOTG210_DMIGR		0x130
@@ -149,6 +157,7 @@
 #define INOUTEPMPSR_MPS(mps)	((mps) & 0x2FF)
 #define INOUTEPMPSR_STL_EP	(1 << 11)
 #define INOUTEPMPSR_RESET_TSEQ	(1 << 12)
+#define INOUTEPMPSR_TX0BYTE_IEP	(1 << 15)
 
 /* Device OUT Endpoint x MaxPacketSize Register(0x180+4*(x-1)) */
 #define FOTG210_OUTEPMPSR(ep)	(0x180 + 4 * ((ep) - 1))
@@ -158,7 +167,7 @@
 #define EPMAP_FIFONO(ep, dir)		\
 	((((ep) - 1) << ((ep) - 1) * 8) << ((dir) ? 0 : 4))
 #define EPMAP_FIFONOMSK(ep, dir)	\
-	((3 << ((ep) - 1) * 8) << ((dir) ? 0 : 4))
+	((0xF << ((ep) - 1) * 8) << ((dir) ? 0 : 4))
 
 /* Device FIFO Map Register (0x1A8) */
 #define FOTG210_FIFOMAP		0x1A8
@@ -196,10 +205,11 @@
 
 /* Device DMA Controller Parameter setting 1 Register (0x1C8) */
 #define FOTG210_DMACPSR1	0x1C8
-#define DMACPSR1_DMA_LEN(len)	(((len) & 0xFFFF) << 8)
+#define DMACPSR1_DMA_LEN(len)	(((len) & 0x7FFFFF) << 8)
 #define DMACPSR1_DMA_ABORT	(1 << 3)
 #define DMACPSR1_DMA_TYPE(dir_in)	(((dir_in) ? 1 : 0) << 1)
 #define DMACPSR1_DMA_START	(1 << 0)
+#define DMACPSR1_DEVSUSPEND	(1 << 31)
 
 /* Device DMA Controller Parameter setting 2 Register (0x1CC) */
 #define FOTG210_DMACPSR2	0x1CC
@@ -244,6 +254,7 @@ struct fotg210_udc {
 	u8			ep0_dir;	/* 0/0x80  out/in */
 
 	u8			reenum;		/* if re-enumeration */
+	struct tasklet_struct      *t1;
 };
 
 #define gadget_to_fotg210(g)	container_of((g), struct fotg210_udc, gadget)

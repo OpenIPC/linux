@@ -436,6 +436,13 @@ config XILINX_GMII2RGMII
 	  the Reduced Gigabit Media Independent Interface(RGMII) between
 	  Ethernet physical media devices and the Gigabit Ethernet controller.
 
+config NVT_PHY_NA51055
+        tristate "Novatek NA51055 Ethernet Phy driver"
+        depends on NVT_IVOT_PLAT_NA51055 || NVT_IVOT_PLAT_NA51089
+	default m
+        help
+          Support embedded ethernet phy on Novatek NA51055 & NA51089.
+
 endif # PHYLIB
 
 config MICREL_KS8995MA

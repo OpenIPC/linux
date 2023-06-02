@@ -157,6 +157,7 @@ config ETHOC
 	---help---
 	  Say Y here if you want to use the OpenCores 10/100 Mbps Ethernet MAC.
 
+source "drivers/net/ethernet/novatek/Kconfig"
 source "drivers/net/ethernet/packetengines/Kconfig"
 source "drivers/net/ethernet/pasemi/Kconfig"
 source "drivers/net/ethernet/qlogic/Kconfig"

@@ -1,0 +1,10 @@
+{
+	"jsontype": "module_publish",
+	"publish_src": [
+		 "ive_main.c",
+		 "ive_drv.c",
+		 "ive_proc.c",
+		 "ive_api.c",
+		 "ive_platform.c"
+	]
+}

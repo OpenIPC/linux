@@ -1,0 +1,144 @@
+MODULE_NAME = ctl_sen
+# DIRs
+VOS_DRIVER_DIR = $(NVT_VOS_DIR)/drivers
+KDRV_DIR = $(NVT_HDAL_DIR)/drivers/k_driver
+KFLOW_DIR = $(NVT_HDAL_DIR)/drivers/k_flow
+CURR_DRIVER_DIR = $(KFLOW_DIR)
+RTOS_OUTPUT_DIR = $(CURR_DRIVER_DIR)/output
+KFLOW_CTL_SEN_DIR = $(CURR_DRIVER_DIR)/source/kflow_videocapture/ctl_sen
+# INCs
+VOS_INC_PATH = $(VOS_DRIVER_DIR)/include
+KDRV_INC_PATH = $(KDRV_DIR)/include
+KFLOW_INC_PATH = $(KFLOW_DIR)/include
+CURR_DRIVER_INC_PATH = $(CURR_DRIVER_DIR)/include
+CTL_SEN_COM_INC_PATH = $(KFLOW_CTL_SEN_DIR)/include
+CTL_SEN_LIB_INC_PATH = $(KFLOW_CTL_SEN_DIR)/lib
+CTL_SEN_LIB_CTL_INC_PATH = $(KFLOW_CTL_SEN_DIR)/lib/sen_ctrl
+CTL_SEN_LIB_CMD_INC_PATH = $(KFLOW_CTL_SEN_DIR)/lib/sen_ctrl_cmdif
+CTL_SEN_LIB_CDR_INC_PATH = $(KFLOW_CTL_SEN_DIR)/lib/sen_ctrl_drv
+CTL_SEN_LIB_CIF_INC_PATH = $(KFLOW_CTL_SEN_DIR)/lib/sen_ctrl_if
+CTL_SEN_LIB_DBG_INC_PATH = $(KFLOW_CTL_SEN_DIR)/lib/sen_dbg
+CTL_SEN_LIB_MID_INC_PATH = $(KFLOW_CTL_SEN_DIR)/lib/sen_middle
+CTL_SEN_LIB_UTI_INC_PATH = $(KFLOW_CTL_SEN_DIR)/lib/sen_utility
+# INC FLAGs
+EXTRA_INCLUDE += -I$(VOS_INC_PATH) -I$(KDRV_INC_PATH) -I$(KFLOW_INC_PATH) -I$(CURR_DRIVER_INC_PATH) -I$(CTL_SEN_COM_INC_PATH) -I$(CTL_SEN_LIB_INC_PATH)
+EXTRA_INCLUDE += -I$(CTL_SEN_LIB_CTL_INC_PATH) -I$(CTL_SEN_LIB_CMD_INC_PATH) -I$(CTL_SEN_LIB_CDR_INC_PATH) -I$(CTL_SEN_LIB_CIF_INC_PATH) -I$(CTL_SEN_LIB_DBG_INC_PATH) -I$(CTL_SEN_LIB_MID_INC_PATH) -I$(CTL_SEN_LIB_UTI_INC_PATH)
+.PHONY: modules modules_install clean
+###############################################################################
+# Linux Makefile                                                              #
+###############################################################################
+ifeq ($(NVT_PRJCFG_CFG),Linux)
+C_CFLAGS  += -D__LINUX -Werror
+EXTRA_CFLAGS += $(C_CFLAGS) $(EXTRA_INCLUDE) -Wno-date-time  -I$(src)/include -DDEBUG
+KBUILD_EXTRA_SYMBOLS = $(shell find $(VOS_DRIVER_DIR) -name Module.symvers) $(shell find $(KDRV_DIR) -name Module.symvers) $(shell find $(KFLOW_DIR) -name Module.symvers)
+
+obj-m += $(MODULE_NAME).o
+$(MODULE_NAME)-objs := \
+	ctl_sen_main.o \
+	ctl_sen_proc.o \
+	ctl_sen_drv.o \
+	ctl_sen_api.o \
+	ctl_sen_config.o \
+	lib/ctl_sen.o \
+	lib/sen_ctrl/sen_ctrl.o \
+	lib/sen_ctrl_cmdif/sen_ctrl_cmdif.o \
+	lib/sen_ctrl_cmdif/sen_ctrl_cmdif_vx1.o \
+	lib/sen_ctrl_if/sen_ctrl_if.o \
+	lib/sen_ctrl_if/sen_ctrl_if_csi.o \
+	lib/sen_ctrl_if/sen_ctrl_if_lvds.o \
+	lib/sen_ctrl_if/sen_ctrl_if_slvsec.o \
+	lib/sen_ctrl_if/sen_ctrl_if_tge.o \
+	lib/sen_ctrl_drv/sen_ctrl_drv.o \
+	lib/sen_middle/sen_middle.o \
+	lib/sen_utility/sen_utility.o \
+	lib/sen_utility/sen_id_map.o \
+	lib/sen_dbg/sen_dbg_infor.o
+
+ifeq ($(KERNELRELEASE),)
+PWD := $(shell pwd)
+KERVER ?= $(NVT_LINUX_VER)
+KDIR ?= $(KERNELDIR)
+MDIR ?= $(KERNELDIR)/_install_modules/lib/modules/$(KERVER)/hdal
+MODPATH := $(shell echo $(PWD) | awk -F'source/' '{print $$NF}';)
+MODNAME := $(shell echo $(obj-m:.o=.ko))
+
+modules:
+	@$(MAKE) -C $(KDIR) M=$(PWD) modules
+
+modules_install:
+	@if [ -z $(NVT_MOD_INSTALL) ]; then \
+		rm -f $(MDIR)/$(MODPATH)/$(MODNAME); \
+		install -m644 -b -D $(MODNAME) ${MDIR}/$(MODPATH)/$(MODNAME); \
+		cd $(KDIR)/_install_modules/lib/modules/$(KERVER)/; depmod -b $(KDIR)/_install_modules/ -a $(KERVER); \
+	else \
+		mkdir -p $(NVT_MOD_INSTALL)/lib/modules/$(KERVER); \
+		install -m644 -b -D $(MODNAME) $(NVT_MOD_INSTALL)/lib/modules/$(KERVER)/hdal/$(MODPATH)/$(MODNAME); \
+	fi
+
+clean:
+	@SRC="`find . -name  "*.c" ! -name "*.mod.c"`"; \
+	if [ "$$SRC" ]; then \
+		rm -rf .tmp_versions Module.symvers modules.order `find . -type f -name "*.mod.c" -o -name ".*.cmd" -o -name "*.o" -o -name "*.ko" -o -name "modules.order" -o -name *~`; \
+	else \
+		rm -rf .tmp_versions Module.symvers modules.order $(MODULE_NAME).o $(MODULE_NAME).mod.o `find . -type f -name "*.mod.c" -o -name ".*.cmd" -o -name "*.ko" -o -name "modules.order" -o -name *~`; \
+	fi
+endif
+
+###############################################################################
+# rtos Makefile                                                               #
+###############################################################################
+else ifeq ($(NVT_PRJCFG_CFG),rtos)
+OUTPUT_NAME = lib$(MODULE_NAME).a
+C_CFLAGS = $(PLATFORM_CFLAGS) $(EXTRA_INCLUDE)
+
+SRC = \
+	ctl_sen_config.c \
+	ctl_sen_api.c \
+	lib/ctl_sen.c \
+	lib/sen_ctrl/sen_ctrl.c \
+	lib/sen_ctrl_cmdif/sen_ctrl_cmdif.c \
+	lib/sen_ctrl_cmdif/sen_ctrl_cmdif_vx1.c \
+	lib/sen_ctrl_drv/sen_ctrl_drv.c \
+	lib/sen_ctrl_if/sen_ctrl_if.c \
+	lib/sen_ctrl_if/sen_ctrl_if_csi.c \
+	lib/sen_ctrl_if/sen_ctrl_if_lvds.c \
+	lib/sen_ctrl_if/sen_ctrl_if_slvsec.c \
+	lib/sen_ctrl_if/sen_ctrl_if_tge.c \
+	lib/sen_dbg/sen_dbg_infor.c \
+	lib/sen_middle/sen_middle.c \
+	lib/sen_utility/sen_id_map.c \
+	lib/sen_utility/sen_utility.c \
+
+
+
+copy = if [ ! -z "$(1)" -a "$(1)" != " " ]; then cp -avf $(1) $(2); fi
+
+OBJ = $(SRC:.c=.o)
+
+ifeq ("$(wildcard *.c */*.c */*/*.c)","")
+modules:
+	@echo "nothing to be done for '$(OUTPUT_NAME)'"
+clean:
+	@echo "nothing to be done for '$(OUTPUT_NAME)'"
+else
+modules : $(OUTPUT_NAME)
+
+%.o:%.c
+	@echo Compiling $<
+	@$(CC) $(C_CFLAGS) -c $< -o $@
+
+$(OUTPUT_NAME): $(OBJ)
+	@echo Creating library $* ...
+	@$(AR) rcsD $(OUTPUT_NAME) $(OBJ)
+	@$(BUILD_DIR)/nvt-tools/nvt-ld-op --arc-sha1 $@
+
+clean:
+	@rm -f $(OBJ) *.o *.a *.so*
+endif
+
+modules_install:
+	@mkdir -p $(RTOS_OUTPUT_DIR)
+	@cp -avf *.a $(RTOS_OUTPUT_DIR)
+
+endif
+

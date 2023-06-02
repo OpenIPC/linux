@@ -1,0 +1,8 @@
+{
+	"jsontype": "module_publish",
+	"publish_src": [
+		"kdrv_audioio_drv.c",
+		"kdrv_audioio_main.c",
+		"kdrv_audioio_export.c"
+	]
+}

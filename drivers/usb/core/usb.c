@@ -40,6 +40,8 @@
 #include <linux/workqueue.h>
 #include <linux/debugfs.h>
 #include <linux/usb/of.h>
+#include <linux/proc_fs.h>
+#include <scsi/scsi_host.h>
 
 #include <asm/io.h>
 #include <linux/scatterlist.h>
@@ -54,6 +56,10 @@ const char *usbcore_name = "usbcore";
 static bool nousb;	/* Disable USB when built into kernel image */
 
 module_param(nousb, bool, 0444);
+
+#if defined(CONFIG_USB_NVTIVOT_HCD)
+int mask_connect = 0;
+#endif
 
 /*
  * for external read access to <nousb>
@@ -1181,6 +1187,89 @@ static void usb_debugfs_cleanup(void)
 	debugfs_remove_recursive(usb_debug_root);
 }
 
+#if defined(CONFIG_USB_NVTIVOT_HCD)
+static struct proc_dir_entry *nvt_usbcore_proc_root	= NULL;
+static struct proc_dir_entry *nvt_usbcore_proc_mc   = NULL;
+
+static int nvt_usbcore_mc_show(struct seq_file *sfile, void *v)
+{
+	seq_printf(sfile, "mask_connect %d\n", mask_connect);
+    return 0;
+}
+
+static int nvt_usbcore_mc_open(struct inode *inode, struct file *file) {
+	return single_open(file, nvt_usbcore_mc_show, PDE_DATA(inode));
+}
+
+
+
+static ssize_t nvt_usbcore_mc_write(struct file *file, const char __user *buffer,
+                                                        size_t count, loff_t *ppos)
+{
+    unsigned int value_in;
+    char value_str[32] = {'\0'};
+
+    if(copy_from_user(value_str, buffer, count))
+        return -EFAULT;
+
+    value_str[count] = '\0';
+    sscanf(value_str, "%x\n", &value_in);
+	//printk("mask_connect %d\n", value_in);
+	mask_connect = value_in;
+
+    return count;
+}
+
+
+static struct file_operations nvt_usbcore_mc_ops = {
+	.owner  = THIS_MODULE,
+	.open   = nvt_usbcore_mc_open,
+	.write  = nvt_usbcore_mc_write,
+	.read   = seq_read,
+	.llseek = seq_lseek,
+	.release= single_release,
+};
+
+int nvt_usbcore_proc_init(void) {
+	const char name[16] = "nvt_usbcore";
+	struct proc_dir_entry *root;
+	int ret = 0;
+
+	root = proc_mkdir(name, NULL);
+	 if (!root) {
+	 	ret = -ENOMEM;
+		goto end;
+	}
+
+	nvt_usbcore_proc_root = root;
+
+	nvt_usbcore_proc_mc = proc_create("mask_connect", S_IRUGO|S_IXUGO, nvt_usbcore_proc_root, &nvt_usbcore_mc_ops);
+	if (!nvt_usbcore_proc_mc) {
+		printk("create proc node 'nvt_sata_reset_trigger' failed!\n");
+		ret = -EINVAL;
+		goto err1;
+	}
+
+	return ret;
+
+err1:
+	proc_remove(nvt_usbcore_proc_root);
+
+end:
+	return ret;
+
+}
+
+void nvt_usbcore_proc_exit(void) {
+
+	if (nvt_usbcore_proc_root) {
+		proc_remove(nvt_usbcore_proc_root);
+		nvt_usbcore_proc_root = NULL;
+	}
+}
+
+#endif
+
 /*
  * Init
  */
@@ -1194,6 +1283,10 @@ static int __init usb_init(void)
 	usb_init_pool_max();
 
 	usb_debugfs_init();
+
+	#if defined(CONFIG_USB_NVTIVOT_HCD)
+	nvt_usbcore_proc_init();
+	#endif
 
 	usb_acpi_register();
 	retval = bus_register(&usb_bus_type);
@@ -1244,6 +1337,10 @@ static void __exit usb_exit(void)
 	/* This will matter if shutdown/reboot does exitcalls. */
 	if (usb_disabled())
 		return;
+
+	#if defined(CONFIG_USB_NVTIVOT_HCD)
+	nvt_usbcore_proc_exit();
+	#endif
 
 	usb_release_quirk_list();
 	usb_deregister_device_driver(&usb_generic_driver);

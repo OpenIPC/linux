@@ -1,0 +1,8 @@
+{
+	"jsontype": "module_publish",
+	"publish_src": [
+		"audlib_adpcm_drv.c",
+		"audlib_adpcm_main.c",
+		"audlib_apdcm_export.c"
+	]
+}

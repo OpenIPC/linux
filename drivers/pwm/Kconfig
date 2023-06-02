@@ -510,4 +510,13 @@ config PWM_ZX
 	  To compile this driver as a module, choose M here: the module
 	  will be called pwm-zx.
 
+config PWM_NA51055
+	tristate "Novatek NA51055 PWM support"
+	depends on NVT_IVOT_PLAT_NA51055 || NVT_IVOT_PLAT_NA51089
+	help
+	  Generic PWM framework driver for 520 / 528 / 560.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called pwm-na51055.
+	  
 endif

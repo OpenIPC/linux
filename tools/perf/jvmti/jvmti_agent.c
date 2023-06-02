@@ -44,12 +44,12 @@
 
 static char jit_path[PATH_MAX];
 static void *marker_addr;
-
+#if !defined(_GNU_SOURCE) || !defined(__GLIBC__) || __GLIBC__ < 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ < 30)
 static inline pid_t gettid(void)
 {
 	return (pid_t)syscall(__NR_gettid);
 }
-
+#endif
 static int get_e_machine(struct jitheader *hdr)
 {
 	ssize_t sret;

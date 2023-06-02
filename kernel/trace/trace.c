@@ -1137,6 +1137,18 @@ static int __init set_tracing_thresh(char *str)
 }
 __setup("tracing_thresh=", set_tracing_thresh);
 
+#ifdef CONFIG_NVT_PROFILER
+int __init nprofile_irqsoff_enable(char *str)
+{
+	if (strcmp(str, "off") != 0) {
+		set_cmdline_ftrace("irqsoff");
+		set_trace_boot_options("nofunction-trace");
+		set_tracing_thresh(str);
+	}
+	return 1;
+}
+#endif
+
 unsigned long nsecs_to_usecs(unsigned long nsecs)
 {
 	return nsecs / 1000;

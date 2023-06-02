@@ -1,0 +1,1023 @@
+/*
+ *  driver/rtc/rtc-na51055.c
+ *
+ *  Author:     howard_chang@novatek.com.tw
+ *  Created:	Feb 26, 2019
+ *  Copyright:	Novatek Inc.
+ *
+ */
+
+
+#include <linux/module.h>
+#include <linux/rtc.h>
+#include <linux/platform_device.h>
+#include <linux/interrupt.h>
+#include <linux/irq.h>
+#include <linux/io.h>
+#include <linux/slab.h>
+#include <mach/nvt-io.h>
+#include <plat/rtc_reg.h>
+#include <plat/rtc_int.h>
+#include <plat/hardware.h>
+#include <linux/clk.h>
+#include <linux/workqueue.h>
+#include <linux/delay.h>
+#include <linux/semaphore.h>
+#include <linux/proc_fs.h>
+#include <linux/of.h>
+
+#define DRV_VERSION		"1.11.000"
+
+#ifdef CONFIG_RTC_NVT_PWBC_SDT_USER
+#define RTC_PWBC_SDT_ISR_DISABLE	1
+#else
+#define RTC_PWBC_SDT_ISR_DISABLE	0
+#endif
+
+static struct completion cset_completion;
+static struct semaphore rtc_sem;
+
+static unsigned int _REGIOBASE;
+static int is_power_lost;
+
+#define loc_cpu() down(&rtc_sem);
+#define unl_cpu() up(&rtc_sem);
+
+void rtc_wait_pwr_alarm_done(void);
+void rtc_trigger_cset(void);
+
+static const unsigned short rtc_ydays[2][13] = {
+	/* Normal years */
+	{ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 },
+	/* Leap years */
+	{ 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366 }
+};
+
+struct nvt_rtc_priv {
+	struct rtc_device *rtc;
+	struct proc_dir_entry *pproc_pwbc;
+	struct proc_dir_entry *pproc_data;
+	struct delayed_work cset_work;
+};
+
+static void rtc_setreg(uint32_t offset, REGVALUE value)
+{
+	nvt_writel(value, _REGIOBASE + offset);
+}
+
+static REGVALUE rtc_getreg(uint32_t offset)
+{
+	return nvt_readl(_REGIOBASE + offset);
+}
+
+static void nvt_rtc_add_one_sec(u32* sec, u32* min, u32* hour, u32* days)
+{
+	if (*sec == 59) {
+		if (*min == 59) {
+			*hour += 1;
+			*min = 0;
+			*sec = 0;
+		} else {
+			*min += 1;
+			*sec = 0;
+		}
+	} else {
+		*sec += 1;
+	}
+
+	if (*hour > 23) {
+		*hour = 0;
+		*days += 1;
+	}
+}
+
+void nvt_rtc_power_control(int reboot_sec)
+{
+	union RTC_PWBC_REG pwbc_reg;
+	union RTC_CTRL_REG ctrl_reg;
+
+	if (reboot_sec) {
+		union RTC_TIMER_REG timer_reg;
+		union RTC_DAYKEY_REG daykey_reg;
+		union RTC_PWRALM_REG pwralm_reg;
+		union RTC_OSCAN_REG oscan_reg;
+		int i;
+		u32 sec, min, hour, days;
+
+		timer_reg.reg = rtc_getreg(RTC_TIMER_REG_OFS);
+		daykey_reg.reg = rtc_getreg(RTC_DAYKEY_REG_OFS);
+
+		sec = timer_reg.bit.sec;
+		min = timer_reg.bit.min;
+		hour = timer_reg.bit.hour;
+		days = daykey_reg.bit.day;
+
+		for (i = 0;i < reboot_sec; i++)
+			nvt_rtc_add_one_sec(&sec, &min, &hour, &days);
+
+		wait_for_completion(&cset_completion);
+
+		ctrl_reg.reg = rtc_getreg(RTC_CTRL_REG_OFS);
+		ctrl_reg.bit.cset = 0;
+		ctrl_reg.bit.pwralarmtime_sel = 1;
+		ctrl_reg.bit.pwralarmday_sel = 1;
+		ctrl_reg.bit.alarm_inten = 1;
+		rtc_setreg(RTC_CTRL_REG_OFS, ctrl_reg.reg);
+
+		pwralm_reg.bit.sec = sec;
+		pwralm_reg.bit.min = min;
+		pwralm_reg.bit.hour = hour;
+		pwralm_reg.bit.day = days & 0x1F;
+		rtc_setreg(RTC_PWRALM_REG_OFS, pwralm_reg.reg);
+
+		/*Set OSC analog parameter*/
+		oscan_reg.reg = rtc_getreg(RTC_OSCAN_REG_OFS);
+		oscan_reg.bit.osc_analogcfg = RTC_INT_OSC_ANALOG_CFG;
+		rtc_setreg(RTC_OSCAN_REG_OFS, oscan_reg.reg);
+
+		rtc_trigger_cset();
+
+		rtc_wait_pwr_alarm_done();
+
+		pwbc_reg.reg = rtc_getreg(RTC_PWBC_REG_OFS);
+		pwbc_reg.bit.pwralarm_en = 1;
+		rtc_setreg(RTC_PWBC_REG_OFS, pwbc_reg.reg);
+	} else {
+		pwbc_reg.reg = rtc_getreg(RTC_PWBC_REG_OFS);
+		pwbc_reg.bit.pwralarm_dis = 1;
+		rtc_setreg(RTC_PWBC_REG_OFS, pwbc_reg.reg);
+	}
+
+	loc_cpu();
+
+	wait_for_completion(&cset_completion);
+
+	rtc_wait_pwr_alarm_done();
+
+	pwbc_reg.reg = 0x0;
+	pwbc_reg.bit.reset_sdt_timer = 1;
+	rtc_setreg(RTC_PWBC_REG_OFS, pwbc_reg.reg);
+
+	pwbc_reg.reg = 0x0;
+	pwbc_reg.bit.pwr_off = 1;
+	rtc_setreg(RTC_PWBC_REG_OFS, pwbc_reg.reg);
+
+	printk("%s: If not power off, plz check 32K crystal or pad PWR_EN\r\n", __func__);
+}
+
+
+/*
+//add by Y_S WU 2014.5.22  CTS default time
+static struct rtc_time default_tm = {
+	.tm_year = (2014 - 1900), // year 2014
+	.tm_mon =  1,             // month 2
+	.tm_mday = 5,             // day 5
+	.tm_hour = 12,
+	.tm_min = 0,
+	.tm_sec = 0
+};
+*/
+
+static void rtc_cset_work(struct work_struct *work)
+{
+	complete(&cset_completion);
+}
+
+static irqreturn_t rtc_update_handler(int irq, void *data)
+{
+	union RTC_STATUS_REG status_reg;
+	union RTC_PWBC_REG pwbc_reg;
+	union RTC_PWBCSTS_REG pwbcsts_reg;
+	struct nvt_rtc_priv *priv = (struct nvt_rtc_priv*)data;
+
+	status_reg.reg = rtc_getreg(RTC_STATUS_REG_OFS);
+
+	if (status_reg.bit.alarm_sts || status_reg.bit.cset_sts) {
+		rtc_setreg(RTC_STATUS_REG_OFS, status_reg.reg);
+
+		/*CSET done*/
+		if (status_reg.bit.cset_sts) {
+			schedule_delayed_work(&priv->cset_work, msecs_to_jiffies(8));
+		}
+	}
+
+	pwbcsts_reg.reg = rtc_getreg(RTC_PWBCSTS_REG_OFS);
+	pwbc_reg.reg = rtc_getreg(RTC_PWBC_REG_OFS);
+
+	pwbcsts_reg.reg &= pwbc_reg.reg;
+	if (pwbcsts_reg.reg) {
+		rtc_setreg(RTC_PWBCSTS_REG_OFS, pwbcsts_reg.reg);
+
+		if (pwbcsts_reg.bit.pwr_sw1_sts) {
+			// reset shutdown timer to prevent SW1 shutdown system
+			if (pwbc_reg.bit.reset_sdt_timer == 0) {
+				pwbc_reg.bit.reset_sdt_timer = 1;
+				rtc_setreg(RTC_PWBC_REG_OFS, pwbc_reg.reg);
+			}
+		}
+	}
+
+	return IRQ_HANDLED;
+}
+
+void rtc_trigger_cset(void)
+{
+	union RTC_STATUS_REG status_reg;
+	union RTC_CTRL_REG ctrl_reg;
+
+	/*Wait for RTC SRST done*/
+	do {
+		status_reg.reg = rtc_getreg(RTC_STATUS_REG_OFS);
+	} while (status_reg.bit.srst_sts == 1);
+
+	/*Wait for RTC is ready for next CSET*/
+	do {
+		ctrl_reg.reg = rtc_getreg(RTC_CTRL_REG_OFS);
+	} while (ctrl_reg.bit.cset == 1);
+
+	/*Trigger CSET*/
+	ctrl_reg.reg = rtc_getreg(RTC_CTRL_REG_OFS);
+	ctrl_reg.bit.cset = 1;
+	ctrl_reg.bit.cset_inten = 1;
+	rtc_setreg(RTC_CTRL_REG_OFS, ctrl_reg.reg);
+}
+
+void rtc_wait_pwr_alarm_done(void)
+{
+	union RTC_PWBC_REG pwbc_reg;
+	do
+	{
+		pwbc_reg.reg = rtc_getreg(RTC_PWBC_REG_OFS);
+	} while ((pwbc_reg.bit.pwralarm_en == 1) || \
+			(pwbc_reg.bit.pwralarm_dis == 1));
+}
+
+#ifdef CONFIG_RTC_INTF_DEV
+
+static int nvt_rtc_ioctl(struct device *dev, unsigned int cmd, \
+	unsigned long arg)
+{
+/*
+	switch(cmd) {
+		case RTC_AIE_ON:
+			pr_info("RTC_AIE_ON\n");
+			break;
+		case RTC_AIE_OFF:
+			pr_info("RTC_AIE_OFF\n");
+			break;
+		case RTC_UIE_ON:
+			pr_info("RTC_UIE_ON\n");
+			break;
+		case RTC_UIE_OFF:
+			pr_info("RTC_UIE_OFF\n");
+			break;
+		case RTC_WIE_ON:
+			pr_info("RTC_WIE_ON\n");
+			break;
+		case RTC_WIE_OFF:
+			pr_info("RTC_WIE_OFF\n");
+			break;
+		case RTC_ALM_SET:
+			pr_info("RTC_ALM_SET\n");
+			break;
+		case RTC_ALM_READ:
+			pr_info("RTC_ALM_READ\n");
+			break;
+		case RTC_RD_TIME:
+			pr_info("RTC_RD_TIME\n");
+			break;
+		case RTC_SET_TIME:
+			pr_info("RTC_SET_TIME\n");
+			break;
+		case RTC_IRQP_READ:
+			pr_info("RTC_IRQP_READ\n");
+			break;
+		case RTC_IRQP_SET:
+			pr_info("RTC_IRQP_SET\n");
+			break;
+		case RTC_EPOCH_READ:
+			pr_info("RTC_EPOCH_READ\n");
+			break;
+		case RTC_EPOCH_SET:
+			pr_info("RTC_EPOCH_SET\n");
+			break;
+		case RTC_WKALM_SET:
+			pr_info("RTC_WKALM_SET\n");
+			break;
+		case RTC_WKALM_RD:
+			pr_info("RTC_WKALM_RD\n");
+			break;
+		case RTC_PLL_SET:
+			pr_info("RTC_PLL_SET\n");
+			break;
+		case RTC_PLL_GET:
+			pr_info("RTC_PLL_GET\n");
+			break;
+		default:
+			pr_info("unknown rtc ioctl :0X%X\n",cmd);
+	}
+*/
+	return 0;
+}
+
+#else
+#define nvt_rtc_ioctl    NULL
+#endif
+
+#ifdef CONFIG_PROC_FS
+
+static int nvt_rtc_proc(struct device *dev, struct seq_file *seq)
+{
+	return 0;
+}
+
+#else
+#define nvt_rtc_proc     NULL
+#endif
+
+static int nvt_rtc_reset(struct device *dev)
+{
+	ulong timeout;
+	union RTC_STATUS_REG status_reg;
+	union RTC_CTRL_REG ctrl_reg;
+
+	// Wait for previous SRST done
+	do {
+		status_reg.reg = rtc_getreg(RTC_STATUS_REG_OFS);
+	} while (status_reg.bit.srst_sts);
+
+	// Wait for RTC is ready for next CSET
+	do {
+		ctrl_reg.reg = rtc_getreg(RTC_CTRL_REG_OFS);
+	} while (ctrl_reg.bit.cset);
+
+	// Do software reset
+	ctrl_reg.reg = 0;
+	ctrl_reg.bit.srst = 1;
+	rtc_setreg(RTC_CTRL_REG_OFS, ctrl_reg.reg);
+
+	// Wait for RTC SRST finished, RTC can do other operations except SRST
+	timeout = jiffies + msecs_to_jiffies(1000);
+	do {
+		ctrl_reg.reg = rtc_getreg(RTC_CTRL_REG_OFS);
+
+		if (time_after_eq(jiffies, timeout)) {
+			dev_err(dev, "RTC s/w reset timeout, plz check RTC 32K osc or PWR_SW\n");
+			return -ETXTBSY;
+		}
+	} while(ctrl_reg.bit.srst);
+
+	return 0;
+}
+
+static int nvt_rtc_chk_power(struct device *dev)
+{
+	int ret = 0;
+	int year_looper;
+	uint32_t days = 0;
+	union RTC_DAYKEY_REG daykey_reg;
+	union RTC_CTRL_REG ctrl_reg;
+	union RTC_OSCAN_REG oscan_reg;
+	const int RESET_YEAR = 1970 - 1900;
+	const int RESET_MON = 0;
+
+	for (year_looper = 0; year_looper < RESET_YEAR; year_looper++)
+		days += rtc_ydays[is_leap_year(year_looper + 1900)][12];
+
+	days += rtc_ydays[is_leap_year(year_looper + 1900)][RESET_MON];
+
+	daykey_reg.reg = rtc_getreg(RTC_DAYKEY_REG_OFS);
+	if (daykey_reg.bit.key & RTC_INT_KEY_POR) {
+		is_power_lost = 1;
+		printk("%s: RTC power lost detected\r\n", __func__);
+		ret = nvt_rtc_reset(dev);
+		if (ret) return ret;
+	} else {
+		oscan_reg.reg = rtc_getreg(RTC_OSCAN_REG_OFS);
+		if (oscan_reg.bit.osc_analogcfg == RTC_INT_OSC_ANALOG_CFG) {
+			return 0;
+		}
+		is_power_lost = 1;
+		printk("%s: RTC ANA not expected 0x%x\r\n", __func__, oscan_reg.bit.osc_analogcfg);
+		ret = nvt_rtc_reset(dev);
+		if (ret) return ret;
+	}
+
+	loc_cpu();
+
+	/*wait for cset done*/
+	wait_for_completion(&cset_completion);
+
+	ctrl_reg.reg = rtc_getreg(RTC_CTRL_REG_OFS);
+	ctrl_reg.bit.cset = 0;
+	ctrl_reg.bit.key_sel = 1;
+	ctrl_reg.bit.pwralarmday_sel = 1;
+	ctrl_reg.bit.day_sel = 1;
+	rtc_setreg(RTC_CTRL_REG_OFS, ctrl_reg.reg);
+
+	daykey_reg.reg = rtc_getreg(RTC_DAYKEY_REG_OFS);
+	daykey_reg.bit.key = RTC_INT_KEY;
+	rtc_setreg(RTC_DAYKEY_REG_OFS, daykey_reg.reg);
+
+	/*Set OSC analog parameter*/
+	oscan_reg.reg = rtc_getreg(RTC_OSCAN_REG_OFS);
+	oscan_reg.bit.osc_analogcfg = RTC_INT_OSC_ANALOG_CFG;
+	rtc_setreg(RTC_OSCAN_REG_OFS, oscan_reg.reg);
+
+	/*Set default year*/
+	daykey_reg.reg = rtc_getreg(RTC_DAYKEY_REG_OFS);
+	daykey_reg.bit.day = days;
+	rtc_setreg(RTC_DAYKEY_REG_OFS, daykey_reg.reg);
+
+	rtc_trigger_cset();
+
+	unl_cpu();
+
+	return ret;
+}
+
+static int nvt_rtc_read_time(struct device *dev, struct rtc_time *tm)
+{
+	uint32_t days, months, years, month_days;
+	union RTC_TIMER_REG timer_reg;
+	union RTC_DAYKEY_REG daykey_reg;
+
+	loc_cpu();
+	/*wait for cset done*/
+	wait_for_completion(&cset_completion);
+	complete(&cset_completion);
+	unl_cpu();
+
+	timer_reg.reg = rtc_getreg(RTC_TIMER_REG_OFS);
+	daykey_reg.reg = rtc_getreg(RTC_DAYKEY_REG_OFS);
+	days = daykey_reg.bit.day;
+
+	for (years = 0; days >= rtc_ydays[is_leap_year(years + 1900)][12]; \
+	years++) {
+		days -= rtc_ydays[is_leap_year(years + 1900)][12];
+	}
+
+	for (months = 1; months < 13; months++) {
+		if (days <= rtc_ydays[is_leap_year(years + 1900)][months]) {
+			days -= rtc_ydays[is_leap_year(years + 1900)][months-1];
+			months--;
+			break;
+		}
+	}
+
+	month_days = rtc_ydays[is_leap_year(years + 1900)][months+1] - \
+		rtc_ydays[is_leap_year(years + 1900)][months];
+
+	if (days == month_days) {
+		months++;
+		days = 1;
+	} else
+		days++; /*Align linux time format*/
+
+	tm->tm_sec  = timer_reg.bit.sec;
+	tm->tm_min  = timer_reg.bit.min;
+	tm->tm_hour = timer_reg.bit.hour;
+	tm->tm_mday = days;
+	tm->tm_mon  = months;
+	tm->tm_year = years;
+
+	pr_debug("after read time: sec = %d, min = %d, hour = %d, mday = %d," \
+	"mon = %d, year = %d, wday = %d, yday = %d," \
+	"\n", tm->tm_sec, tm->tm_min, tm->tm_hour, tm->tm_mday, \
+	tm->tm_mon, tm->tm_year, tm->tm_wday, tm->tm_yday);
+
+	return rtc_valid_tm(tm);
+}
+
+static int nvt_rtc_set_time(struct device *dev, struct rtc_time *tm)
+{
+	int year_looper, ret;
+	uint32_t days = 0;
+	union RTC_TIMER_REG timer_reg;
+	union RTC_DAYKEY_REG daykey_reg;
+	union RTC_CTRL_REG ctrl_reg;
+
+	pr_debug("kernel set time: sec = %d, min = %d, hour = %d, mday = %d," \
+	"mon = %d, year = %d, wday = %d, yday = %d," \
+	"\n", tm->tm_sec, tm->tm_min, tm->tm_hour, tm->tm_mday, \
+	tm->tm_mon, tm->tm_year, tm->tm_wday, tm->tm_yday);
+
+	ret = rtc_valid_tm(tm);
+	if (ret < 0)
+		return ret;
+
+	for (year_looper = 0; year_looper < tm->tm_year; year_looper++)
+		days += rtc_ydays[is_leap_year(year_looper + 1900)][12];
+
+	days += rtc_ydays[is_leap_year(year_looper + 1900)][tm->tm_mon];
+	tm->tm_mday--; /*subtract the day which is not ended*/
+	days += tm->tm_mday;
+
+	loc_cpu();
+
+	/*wait for cset done*/
+	wait_for_completion(&cset_completion);
+
+	ctrl_reg.reg = rtc_getreg(RTC_CTRL_REG_OFS);
+	ctrl_reg.bit.cset = 0;
+	ctrl_reg.bit.day_sel = 1;
+	ctrl_reg.bit.time_sel = 1;
+	rtc_setreg(RTC_CTRL_REG_OFS, ctrl_reg.reg);
+
+	timer_reg.reg = 0;
+	timer_reg.bit.sec = tm->tm_sec;
+	timer_reg.bit.min = tm->tm_min;
+	timer_reg.bit.hour = tm->tm_hour;
+	rtc_setreg(RTC_TIMER_REG_OFS, timer_reg.reg);
+
+	daykey_reg.reg = rtc_getreg(RTC_DAYKEY_REG_OFS);
+	daykey_reg.bit.day = days;
+	rtc_setreg(RTC_DAYKEY_REG_OFS, daykey_reg.reg);
+
+	rtc_trigger_cset();
+
+	unl_cpu();
+
+	return ret;
+}
+
+static int nvt_rtc_read_alarm(struct device *dev, struct rtc_wkalrm *alrm)
+{
+	struct rtc_time *tm = &alrm->time;
+	uint32_t days, alarm_days, months, years, month_days;
+	union RTC_PWRALM_REG pwralarm_reg;
+	union RTC_DAYKEY_REG daykey_reg;
+
+	loc_cpu();
+	/*wait for cset done*/
+	wait_for_completion(&cset_completion);
+	complete(&cset_completion);
+	unl_cpu();
+
+	pwralarm_reg.reg = rtc_getreg(RTC_PWRALM_REG_OFS);
+	daykey_reg.reg = rtc_getreg(RTC_DAYKEY_REG_OFS);
+
+	alarm_days = pwralarm_reg.bit.day;
+	days = daykey_reg.bit.day;
+
+	if ((days & RTC_INT_MAX_PWRALARM_DAY) > alarm_days) {
+		days = ((days & ~RTC_INT_MAX_PWRALARM_DAY) | alarm_days) \
+			+ (1 << RTC_INT_PRWALARM_DAY_SHIFT);
+	} else
+		days = ((days & ~RTC_INT_MAX_PWRALARM_DAY) | alarm_days);
+
+	for (years = 0; days >= rtc_ydays[is_leap_year(years + 1900)][12]; \
+	years++) {
+		days -= rtc_ydays[is_leap_year(years + 1900)][12];
+	}
+
+	for (months = 1; months < 13; months++) {
+		if (days <= rtc_ydays[is_leap_year(years + 1900)][months]) {
+			days -= rtc_ydays[is_leap_year(years + 1900)][months-1];
+			months--;
+			break;
+		}
+	}
+
+	month_days = rtc_ydays[is_leap_year(years + 1900)][months+1] - \
+		rtc_ydays[is_leap_year(years + 1900)][months];
+
+	if (days == month_days) {
+		months++;
+		days = 1;
+	} else
+		days++; /*Align linux time format*/
+
+	tm->tm_sec  = pwralarm_reg.bit.sec;
+	tm->tm_min  = pwralarm_reg.bit.min;
+	tm->tm_hour = pwralarm_reg.bit.hour;
+	tm->tm_mday = days;
+	tm->tm_mon  = months;
+	tm->tm_year = years;
+
+	pr_debug("read alarm time: sec = %d, min = %d, hour = %d, mday = %d," \
+	"mon = %d, year = %d, wday = %d, yday = %d," \
+	"\n", tm->tm_sec, tm->tm_min, tm->tm_hour, tm->tm_mday, \
+	tm->tm_mon, tm->tm_year, tm->tm_wday, tm->tm_yday);
+
+	return rtc_valid_tm(tm);
+}
+
+static int nvt_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
+{
+	struct rtc_time *tm = &alrm->time;
+	int year_looper, ret;
+	uint32_t current_days = 0, alarm_days = 0;
+	union RTC_DAYKEY_REG daykey_reg;
+	union RTC_CTRL_REG ctrl_reg;
+	union RTC_PWRALM_REG pwralarm_reg;
+	union RTC_PWBC_REG pwbc_reg;
+	union RTC_OSCAN_REG oscan_reg;
+
+	daykey_reg.reg = rtc_getreg(RTC_DAYKEY_REG_OFS);
+	current_days = daykey_reg.bit.day;
+
+	pr_debug("set alarm time: sec = %d, min = %d, hour = %d, mday = %d," \
+	"mon = %d, year = %d, wday = %d, yday = %d," \
+	"\n", tm->tm_sec, tm->tm_min, tm->tm_hour, tm->tm_mday, \
+	tm->tm_mon, tm->tm_year, tm->tm_wday, tm->tm_yday);
+
+	ret = rtc_valid_tm(tm);
+	if (ret < 0)
+		return ret;
+
+	for (year_looper = 0; year_looper < tm->tm_year; year_looper++)
+		alarm_days += rtc_ydays[is_leap_year(year_looper + 1900)][12];
+
+	alarm_days += rtc_ydays[is_leap_year(year_looper + 1900)][tm->tm_mon];
+	tm->tm_mday--; /*subtract the day which is not ended*/
+	alarm_days += tm->tm_mday;
+
+	/*Check date parameter for maximum register setting*/
+	if ((alarm_days < current_days) || ((alarm_days - current_days) > \
+	RTC_INT_MAX_PWRALARM_DAY)) {
+		pr_err("Invalid parameter!\n");
+		return E_PAR;
+	}
+
+	wait_for_completion(&cset_completion);
+
+	ctrl_reg.reg = rtc_getreg(RTC_CTRL_REG_OFS);
+	ctrl_reg.bit.cset = 0;
+	ctrl_reg.bit.pwralarmtime_sel = 1;
+	ctrl_reg.bit.pwralarmday_sel = 1;
+	ctrl_reg.bit.alarm_inten = 1;
+	rtc_setreg(RTC_CTRL_REG_OFS, ctrl_reg.reg);
+
+	pwralarm_reg.reg = 0;
+	pwralarm_reg.bit.sec = tm->tm_sec;
+	pwralarm_reg.bit.min = tm->tm_min;
+	pwralarm_reg.bit.hour = tm->tm_hour;
+	pwralarm_reg.bit.day = alarm_days;
+	rtc_setreg(RTC_PWRALM_REG_OFS, pwralarm_reg.reg);
+
+	/*Set OSC analog parameter*/
+	oscan_reg.reg = rtc_getreg(RTC_OSCAN_REG_OFS);
+	oscan_reg.bit.osc_analogcfg = RTC_INT_OSC_ANALOG_CFG;
+	rtc_setreg(RTC_OSCAN_REG_OFS, oscan_reg.reg);
+
+	rtc_trigger_cset();
+
+	rtc_wait_pwr_alarm_done();
+
+	pwbc_reg.reg = rtc_getreg(RTC_PWBC_REG_OFS);
+	pwbc_reg.bit.pwralarm_en = 1;
+	rtc_setreg(RTC_PWBC_REG_OFS, pwbc_reg.reg);
+
+	return ret;
+}
+
+static int pwbc_init(void)
+{
+#if (RTC_PWBC_SDT_ISR_DISABLE == 0)
+	union RTC_PWBC_REG pwbc_ctrl_reg;
+
+	pwbc_ctrl_reg.reg = rtc_getreg(RTC_PWBC_REG_OFS);
+	pwbc_ctrl_reg.bit.pwr_sw1_inten = 1;
+	rtc_setreg(RTC_PWBC_REG_OFS, pwbc_ctrl_reg.reg);
+#endif
+	return 0;
+}
+
+/*
+	PWBC related
+*/
+static int pwbc_proc_show(struct seq_file *seq, void *v)
+{
+	union RTC_PWBCSTS_REG pwbcsts_reg;
+
+	pwbcsts_reg.reg = rtc_getreg(RTC_PWBCSTS_REG_OFS);
+	seq_printf(seq, "power switch 1 value %d\n", pwbcsts_reg.bit.pwr_sw1_pin);
+	seq_printf(seq, "power switch 2 value %d\n", pwbcsts_reg.bit.pwr_sw2_pin);
+	seq_printf(seq, "power switch 3 value %d\n", pwbcsts_reg.bit.pwr_sw3_pin);
+	seq_printf(seq, "power switch 4 value %d\n", pwbcsts_reg.bit.pwr_sw4_pin);
+	seq_printf(seq, "power on source ");
+	if (pwbcsts_reg.bit.pwronsrc_sw1) {
+		seq_printf(seq, "SW1\r\n");
+	} else if (pwbcsts_reg.bit.pwronsrc_sw2) {
+		seq_printf(seq, "SW2\r\n");
+	} else if (pwbcsts_reg.bit.pwronsrc_sw3) {
+		seq_printf(seq, "SW3\r\n");
+	} else if (pwbcsts_reg.bit.pwronsrc_sw4) {
+		seq_printf(seq, "SW4\r\n");
+	} else {
+		seq_printf(seq, "None\r\n");
+	}
+	seq_printf(seq, "Power lost: %s\r\n", (is_power_lost?"Yes":"No"));
+	return 0;
+}
+
+static int pwbc_proc_open(struct inode *inode, struct file *file)
+{
+        return single_open(file, pwbc_proc_show, NULL);
+}
+
+#define PWBC_MAX_CMD_LENGTH 30
+static ssize_t pwbc_proc_cmd_write(struct file *file, const char __user *buf,
+		size_t size, loff_t *off)
+{
+	int val;
+	int len = size;
+	char cmd_line[PWBC_MAX_CMD_LENGTH];
+	char *cmdstr = cmd_line;
+	const char delimiters[] = {' ', 0x0A, 0x0D, '\0'};
+	char *p_arg;
+	union RTC_PWBC_REG pwbc_reg;
+
+	// check command length
+	if (len > (PWBC_MAX_CMD_LENGTH - 1)) {
+		printk("%s: Command length %d is too long\n", __func__, len);
+		return -EINVAL;
+	}
+
+	// copy command string from user space
+	if (copy_from_user(cmd_line, buf, len)) {
+		return -EINVAL;
+	}
+
+	if (len == 0)
+		cmd_line[0] = '\0';
+	else
+		cmd_line[len - 1] = '\0';
+
+	
+	p_arg = strsep(&cmdstr, delimiters);
+	sscanf(p_arg, "%x", &val);
+
+	loc_cpu();
+
+	pwbc_reg.reg = rtc_getreg(RTC_PWBC_REG_OFS);
+	// reset shutdown timer to prevent SW1 shutdown system
+	if (pwbc_reg.bit.reset_sdt_timer == 0) {
+		pwbc_reg.bit.reset_sdt_timer = 1;
+		rtc_setreg(RTC_PWBC_REG_OFS, pwbc_reg.reg);
+	}
+
+        unl_cpu();
+
+	return size;
+}
+
+static struct file_operations proc_pwbc_fops = {
+        .owner   = THIS_MODULE,
+        .open    = pwbc_proc_open,
+        .read    = seq_read,
+        .llseek  = seq_lseek,
+        .release = single_release,
+	.write	 = pwbc_proc_cmd_write,
+};
+
+static const struct rtc_class_ops nvt_rtc_ops = {
+	.ioctl		= nvt_rtc_ioctl,
+	.proc		= nvt_rtc_proc,
+	.read_time	= nvt_rtc_read_time,
+	.set_time	= nvt_rtc_set_time,
+	.read_alarm	= nvt_rtc_read_alarm,
+	.set_alarm	= nvt_rtc_set_alarm,
+};
+
+/*
+	User data related
+*/
+static int data_proc_show(struct seq_file *seq, void *v)
+{
+	union RTC_DATA_REG data_reg;
+
+	loc_cpu();
+	/*wait for cset done*/
+	wait_for_completion(&cset_completion);
+	complete(&cset_completion);
+	unl_cpu();
+
+	data_reg.reg = rtc_getreg(RTC_DATA_REG_OFS);
+	seq_printf(seq, "0x%x\n", data_reg.bit.data0);
+	return 0;
+}
+
+static int data_proc_open(struct inode *inode, struct file *file)
+{
+        return single_open(file, data_proc_show, NULL);
+}
+
+#define MAX_CMD_LENGTH 30
+static ssize_t data_proc_cmd_write(struct file *file, const char __user *buf,
+		size_t size, loff_t *off)
+{
+	int val;
+	int len = size;
+	char cmd_line[MAX_CMD_LENGTH];
+	char *cmdstr = cmd_line;
+	const char delimiters[] = {' ', 0x0A, 0x0D, '\0'};
+	char *p_arg;
+	union RTC_CTRL_REG ctrl_reg;
+	union RTC_DATA_REG data_reg;
+
+	// check command length
+	if (len > (MAX_CMD_LENGTH - 1)) {
+		printk("%s: Command length %d is too long\n", __func__, len);
+		return -EINVAL;
+	}
+
+	// copy command string from user space
+	if (copy_from_user(cmd_line, buf, len)) {
+		return -EINVAL;
+	}
+
+	if (len == 0)
+		cmd_line[0] = '\0';
+	else
+		cmd_line[len - 1] = '\0';
+
+	
+	p_arg = strsep(&cmdstr, delimiters);
+	sscanf(p_arg, "%x", &val);
+
+	loc_cpu();
+
+        /*wait for cset done*/
+        wait_for_completion(&cset_completion);
+
+        ctrl_reg.reg = rtc_getreg(RTC_CTRL_REG_OFS);
+        ctrl_reg.bit.cset = 0;
+        ctrl_reg.bit.data0_sel = 1;
+        rtc_setreg(RTC_CTRL_REG_OFS, ctrl_reg.reg);
+
+	data_reg.reg = rtc_getreg(RTC_DATA_REG_OFS);
+	data_reg.bit.data0 = val;
+        rtc_setreg(RTC_DATA_REG_OFS, data_reg.reg);
+
+        rtc_trigger_cset();
+
+        unl_cpu();
+
+	return size;
+}
+
+static struct file_operations proc_data_fops = {
+        .owner   = THIS_MODULE,
+        .open    = data_proc_open,
+        .read    = seq_read,
+        .llseek  = seq_lseek,
+        .release = single_release,
+	.write	 = data_proc_cmd_write,
+};
+
+static int nvt_rtc_probe(struct platform_device *pdev)
+{
+	struct rtc_device *rtc;
+	struct nvt_rtc_priv *priv;
+	struct resource *memres = NULL;
+	struct proc_dir_entry *pentry = NULL;
+	int ret = 0, irq = 0;
+
+	/* setup resource */
+	memres = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	if (unlikely(!memres)) {
+		dev_err(&pdev->dev, "failed to get resource\n");
+		return -ENXIO;
+	}
+
+	_REGIOBASE = (u32)  devm_ioremap_resource(&pdev->dev, memres);;
+	if (unlikely(_REGIOBASE == 0)) {
+		dev_err(&pdev->dev, "failed to get io memory\n");
+		goto out;
+	}
+
+	priv = kzalloc(sizeof(struct nvt_rtc_priv), GFP_KERNEL);
+	if (!priv)
+		return -ENOMEM;
+
+	INIT_DELAYED_WORK(&priv->cset_work, rtc_cset_work);
+
+	is_power_lost = 0;
+
+	platform_set_drvdata(pdev, priv);
+
+	device_init_wakeup(&pdev->dev, 1);
+
+	pwbc_init();
+
+	/*Set default HW configuration*/
+	/*Define what data type will be used, RCW_DEF or manual define*/
+
+	irq = platform_get_irq(pdev, 0);
+	if (irq < 0) {
+		dev_err(&pdev->dev, "No IRQ resource!\n");
+		goto out;
+	}
+
+	ret = devm_request_irq(&pdev->dev, irq, rtc_update_handler, 0, pdev->name,
+			priv);
+	if (ret < 0) {
+		dev_err(&pdev->dev, "Failed to request IRQ: #%d: %d\n", irq, ret);
+		return ret;
+	}
+
+	init_completion(&cset_completion);
+	sema_init(&rtc_sem, 1);
+	complete(&cset_completion);
+
+	nvt_rtc_chk_power(&pdev->dev);
+
+	pentry = proc_create("pwbc", S_IRUGO | S_IXUGO, NULL, &proc_pwbc_fops);
+        if (pentry == NULL) {
+                dev_err(&pdev->dev, "failed to create pwbc proc!\n");
+                ret = -EINVAL;
+                goto out;
+        }
+	priv->pproc_pwbc = pentry;
+
+	pentry = proc_create("rtc_data", S_IRUGO | S_IXUGO, NULL, &proc_data_fops);
+        if (pentry == NULL) {
+                dev_err(&pdev->dev, "failed to create data proc!\n");
+                ret = -EINVAL;
+                goto out_proc_pwbc;
+        }
+	priv->pproc_data = pentry;
+
+	rtc = rtc_device_register("nvt_rtc", &pdev->dev,
+				  &nvt_rtc_ops, THIS_MODULE);
+
+	if (IS_ERR(rtc)) {
+		ret = PTR_ERR(rtc);
+		goto out_proc_data;
+	}
+	priv->rtc = rtc;
+
+	return 0;
+
+out_proc_data:
+	if (priv->pproc_data) {
+		proc_remove(priv->pproc_data);
+	}
+out_proc_pwbc:
+	if (priv->pproc_pwbc) {
+		proc_remove(priv->pproc_pwbc);
+	}
+out:
+	if (priv->rtc)
+		rtc_device_unregister(priv->rtc);
+
+	kfree(priv);
+	return ret;
+}
+
+static int nvt_rtc_remove(struct platform_device *pdev)
+{
+	struct nvt_rtc_priv *priv = platform_get_drvdata(pdev);
+
+	if (priv->pproc_data) {
+		proc_remove(priv->pproc_data);
+	}
+	if (priv->pproc_pwbc) {
+		proc_remove(priv->pproc_pwbc);
+	}
+	rtc_device_unregister(priv->rtc);
+	kfree(priv);
+	return 0;
+}
+
+#ifdef CONFIG_OF
+static const struct of_device_id nvt_rtc_of_dt_ids[] = {
+    { .compatible = "nvt,nvt_rtc", },
+    {},
+};
+#endif
+
+static struct platform_driver nvt_rtc_platform_driver = {
+	.driver		= {
+		.name	= "nvt_rtc",
+		.owner	= THIS_MODULE,
+#ifdef CONFIG_OF
+		.of_match_table = nvt_rtc_of_dt_ids,
+#endif
+	},
+	.probe		= nvt_rtc_probe,
+	.remove		= nvt_rtc_remove,
+};
+
+static int __init nvt_rtc_init(void)
+{
+	int ret;
+	ret = platform_driver_register(&nvt_rtc_platform_driver);
+	return ret;
+}
+
+static void __exit nvt_rtc_exit(void)
+{
+	platform_driver_unregister(&nvt_rtc_platform_driver);
+}
+
+MODULE_AUTHOR("Novatek");
+MODULE_DESCRIPTION("nvt RTC driver");
+MODULE_LICENSE("GPL");
+MODULE_VERSION(DRV_VERSION);
+MODULE_ALIAS("platform:rtc-nvt");
+
+module_init(nvt_rtc_init);
+module_exit(nvt_rtc_exit);

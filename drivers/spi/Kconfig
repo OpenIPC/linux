@@ -749,6 +749,20 @@ config SPI_ZYNQMP_GQSPI
 	help
 	  Enables Xilinx GQSPI controller driver for Zynq UltraScale+ MPSoC.
 
+config SPI_NA51055
+	tristate "Novatek SPI controller"
+	depends on NVT_IVOT_PLAT_NA51055 || NVT_IVOT_PLAT_NA51089
+	help
+	  SPI driver for Novatek ARM SoCs
+	  
+if SPI_NA51055
+config NVT_SPI_DMA_BUSY_WAIT
+	bool "|---> SPI DMA use busy waiting"
+	depends on NVT_IVOT_PLAT_NA51055 || NVT_IVOT_PLAT_NA51089
+	---help---
+	   Say Y if you want use SPI dma busy waiting
+endif #SPI_NA51055
+
 #
 # Add new SPI master controllers in alphabetical order above this line
 #

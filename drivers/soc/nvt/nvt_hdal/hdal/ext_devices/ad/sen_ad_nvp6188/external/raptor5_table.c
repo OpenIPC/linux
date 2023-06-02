@@ -1,0 +1,14036 @@
+
+/* ----------------------------------------------------------------------------------
+ * 1. Header file include -----------------------------------------------------------
+ * --------------------------------------------------------------------------------*/
+#include "raptor5_common.h"
+#include "raptor5_table.h"
+
+/* ----------------------------------------------------------------------------------
+ * 2. Define ------------------------------------------------------------------------
+ * --------------------------------------------------------------------------------*/
+
+
+/* ----------------------------------------------------------------------------------
+ * 3. Define variable ---------------------------------------------------------------
+ * --------------------------------------------------------------------------------*/
+
+
+/* ----------------------------------------------------------------------------------
+ * 4. External variable & function --------------------------------------------------
+ * --------------------------------------------------------------------------------*/
+
+/* ----------------------------------------------------------------------------------
+ * 5. Function prototype ------------------------------------------------------------
+ * --------------------------------------------------------------------------------*/
+NC_VIDEO_FMT_INIT_TABLE_S video_fmt_setting_value_def[ NC_VIVO_CH_FORMATDEF_MAX ] =
+{
+	[ NC_VIVO_CH_FORMATDEF_UNKNOWN ] = {
+		.name = "NC_VIVO_CH_FORMATDEF_UNKNOWN",
+
+		.width  = 0,
+		.height = 0,
+		.fmt_fps 	    = FMT_FPS_UNKNOWN,
+		.fmt_standard   = FMT_STD_UNKNOWN,
+		.fmt_resolution = FMT_RESOL_UNKNOWN,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std = 0,
+
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x00,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x00,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x00,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x00,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x00,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x00,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x00,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x00,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x00,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x00,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x00,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x00,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x00,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0x00,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x00,
+
+		/* Added ********************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness = 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x00,
+		.nc_table_fmt_std_0x1c_n_stb_time 		= 0x00,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x00,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x00,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x00,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0x00,
+		.nc_table_fmt_std_5x1b_comb_th_a 	  = 0x00,
+		.nc_table_fmt_std_5x1f_y_c_gain 	  = 0x00,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x00,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x00,
+		.nc_table_fmt_std_5x50_none_ 		  = 0x00,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x00,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x00,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x00,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x00,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x00,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x00,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	   = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x00,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x00,
+		.nc_table_arb_20x0d_ch_merge	   = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq = 0,
+
+		.nc_table_eq_distance_value = { 0x00,  },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x00, },
+		.nc_table_eq_base_5x58_band_sel  = { 0x00, },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x00, },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0x00, },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x00, },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x00, },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0x00, },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x00, },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0x00, },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x00, },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x00, },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0x00, },
+
+		.nc_table_eq_color_0x10_contrast 	   = { 0x00, },
+		.nc_table_eq_color_0x18_h_peaking 	   = { 0x00, },
+		.nc_table_eq_color_0x21_c_filter 	   = { 0x00, },
+		.nc_table_eq_color_0x40_hue 		   = { 0x00, },
+		.nc_table_eq_color_0x44_u_gain 		   = { 0x00, },
+		.nc_table_eq_color_0x48_v_gain 		   = { 0x00, },
+		.nc_table_eq_color_0x4c_u_offset 	   = { 0x00, },
+		.nc_table_eq_color_0x50_v_offset 	   = { 0x00, },
+		.nc_table_eq_color_5x20_black_level    = { 0x00, },
+		.nc_table_eq_color_5x27_acc_ref 	   = { 0x00, },
+		.nc_table_eq_color_5x28_cti_delay 	   = { 0x00, },
+		.nc_table_eq_color_5x2b_sub_saturation = { 0x00, },
+		.nc_table_eq_color_5xd5_c_option 	   = { 0x00, },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x00, },
+	},
+
+	[ SD_H720_NT ] = {
+		.name = "SD_H720_NT",
+
+		.width  = 720,
+		.height = 480,
+		.fmt_fps 	   = FMT_NT,
+		.fmt_standard   = FMT_SD,
+		.fmt_resolution = FMT_H720,
+
+		/* Video Table *********************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x80,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x00,
+
+		.nc_table_fmt_std_clock_1x84_vadc     = 0x00,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x40,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x00,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x00,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x00,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x00,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 	 = 0x10,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 	 = 0x10,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 	 = 0xe0,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 	 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0xc3,
+
+		/* Added ************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0xa0,
+		.nc_table_fmt_std_color_0x0c_brightness = 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time 		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x01,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x80,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x80,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a 	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain 	  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2    = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x10,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	   = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x01,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x68,
+		.nc_table_arb_20x0d_ch_merge	   = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x00, },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, },
+
+		.nc_table_eq_color_0x10_contrast 		= { 0x90, },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x08, },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x00, },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x00, },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x00, },
+		.nc_table_eq_color_0x50_v_offset 		= { 0x00, },
+		.nc_table_eq_color_5x20_black_level 	= { 0x90, },
+		.nc_table_eq_color_5x27_acc_ref 	   	= { 0x57, },
+		.nc_table_eq_color_5x28_cti_delay 	   	= { 0x80, },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xc0, },
+		.nc_table_eq_color_5xd5_c_option 	   	= { 0x80, },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, },
+	},
+
+	[ SD_H720_PAL ] = {
+		.name = "SD_H720_PAL",
+
+		.width  = 720,
+		.height = 576,
+		.fmt_fps        = FMT_PAL,
+		.fmt_standard   = FMT_SD,
+		.fmt_resolution = FMT_H720,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x90,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x00,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x02,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x40,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x00,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x00,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x00,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x00,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 	 = 0x10,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 	 = 0x10,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 	 = 0xc0,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 	 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x80,
+
+		/* Added ************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0xa0,
+		.nc_table_fmt_std_color_0x0c_brightness = 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time 		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x01,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x80,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x80,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a 	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain 	  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x10,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	   = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x01,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x68,
+		.nc_table_arb_20x0d_ch_merge	   = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x00, },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, },
+
+		.nc_table_eq_color_0x10_contrast 		= { 0x90, },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x08, },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, },
+		.nc_table_eq_color_0x40_hue			 	= { 0x00, },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x00, },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x00, },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x00, },
+		.nc_table_eq_color_0x50_v_offset 		= { 0x00, },
+		.nc_table_eq_color_5x20_black_level 	= { 0x90, },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xc0, },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, },
+	},
+
+	[ SD_H960_NT ] = {
+		.name = "SD_H960_NT",
+
+		.width  = 960,
+		.height = 480,
+		.fmt_fps 	   = FMT_NT,
+		.fmt_standard   = FMT_SD,
+		.fmt_resolution = FMT_H960,
+
+		/* Video Table *********************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x00,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x00,
+
+		.nc_table_fmt_std_clock_1x84_vadc     = 0x06,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0xa6,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x00,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x00,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x00,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x00,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 	 = 0x10,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 	 = 0x10,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 	 = 0xe0,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 	 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x81,
+
+		/* Added ************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0xa0,
+		.nc_table_fmt_std_color_0x0c_brightness = 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time 		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x01,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0xbc,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x88,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a 	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain 	  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x10,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	   = 0x00, // 0x02
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x01,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0xe0,
+		.nc_table_arb_20x0d_ch_merge	   = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x00, },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, },
+
+		.nc_table_eq_color_0x10_contrast 		= { 0x90, },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x08, },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x00, },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x00, },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x00, },
+		.nc_table_eq_color_0x50_v_offset 		= { 0x00, },
+		.nc_table_eq_color_5x20_black_level 	= { 0x90, },
+		.nc_table_eq_color_5x27_acc_ref 	   	= { 0x57, },
+		.nc_table_eq_color_5x28_cti_delay 	   	= { 0x80, },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xc0, },
+		.nc_table_eq_color_5xd5_c_option 	   	= { 0x80, },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, },
+	},
+
+	[ SD_H960_PAL ] = {
+		.name = "SD_H960_PAL",
+
+		.width  = 960,
+		.height = 576,
+		.fmt_fps        = FMT_PAL,
+		.fmt_standard   = FMT_SD,
+		.fmt_resolution = FMT_H960,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x10,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x00,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x06,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0xa6,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 	 = 0x10,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 	 = 0x10,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 	 = 0xc0,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 	 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xcc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x80,
+
+		/* Added ************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0xdd,
+		.nc_table_fmt_std_color_0x0c_brightness = 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time 		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x01,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x80,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x88,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a 	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain 	  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay       = 0x10,
+		.nc_table_fmt_std_0xa4_y_c_delay2    = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val   = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point   = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	   = 0x00, // 0x02
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x01,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0xe0,
+		.nc_table_arb_20x0d_ch_merge	   = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x00, },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, },
+
+		.nc_table_eq_color_0x10_contrast 		= { 0x90, },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x08, },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, },
+		.nc_table_eq_color_0x40_hue			 	= { 0x00, },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x00, },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x00, },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x00, },
+		.nc_table_eq_color_0x50_v_offset 		= { 0x00, },
+		.nc_table_eq_color_5x20_black_level 	= { 0x90, },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xc0, },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, },
+	},
+
+	[ SD_SH720_NT ] = {
+		.name = "SD_SH720_NT",
+
+		.width  = 720,
+		.height = 480,
+		.fmt_fps 	   = FMT_NT,
+		.fmt_standard   = FMT_SD,
+		.fmt_resolution = FMT_SH720,
+
+		/* Video Table *********************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x60,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x00,
+
+		.nc_table_fmt_std_clock_1x84_vadc     = 0x00,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x40,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x00,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x00,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x00,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x00,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 	 = 0x10,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 	 = 0x10,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 	 = 0xe0,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 	 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0xc3,
+
+		/* Added ************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0xa0,
+		.nc_table_fmt_std_color_0x0c_brightness = 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time 		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x01,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x80,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x80,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a 	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain 	  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x10,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val   = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point   = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	   = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x01,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x68,
+		.nc_table_arb_20x0d_ch_merge	   = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x00, },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, },
+
+		.nc_table_eq_color_0x10_contrast 		= { 0x90, },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x08, },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x00, },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x00, },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x00, },
+		.nc_table_eq_color_0x50_v_offset 		= { 0x00, },
+		.nc_table_eq_color_5x20_black_level 	= { 0x90, },
+		.nc_table_eq_color_5x27_acc_ref 	   	= { 0x57, },
+		.nc_table_eq_color_5x28_cti_delay 	   	= { 0x80, },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xc0, },
+		.nc_table_eq_color_5xd5_c_option 	   	= { 0x80, },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, },
+	},
+
+	[ SD_SH720_PAL ] = {
+		.name = "SD_SH720_PAL",
+
+		.width  = 720,
+		.height = 576,
+		.fmt_fps        = FMT_PAL,
+		.fmt_standard   = FMT_SD,
+		.fmt_resolution = FMT_SH720,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x70,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x00,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x02,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x40,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x00,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x00,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x00,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x00,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 	 = 0x10,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 	 = 0x10,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 	 = 0xc0,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 	 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x80,
+
+		/* Added ************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0xa0,
+		.nc_table_fmt_std_color_0x0c_brightness = 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time 		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x01,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x80,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x80,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a 	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain 	  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x10,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	   = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x01,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x68,
+		.nc_table_arb_20x0d_ch_merge	   = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x00, },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, },
+
+		.nc_table_eq_color_0x10_contrast 		= { 0x90, },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x08, },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, },
+		.nc_table_eq_color_0x40_hue			 	= { 0x00, },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x00, },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x00, },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x00, },
+		.nc_table_eq_color_0x50_v_offset 		= { 0x00, },
+		.nc_table_eq_color_5x20_black_level 	= { 0x90, },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xc0, },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, },
+	},
+
+	[ SD_H1280_NT ] = {
+		.name = "SD_H1280_NT",
+
+		.width  = 1280,
+		.height = 480,
+		.fmt_fps 	   = FMT_NT,
+		.fmt_standard   = FMT_SD,
+		.fmt_resolution = FMT_H1280,
+
+		/* Video Table *********************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x20,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x00,
+
+		.nc_table_fmt_std_clock_1x84_vadc     = 0x02,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x40,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x00,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x00,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x00,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x00,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 	 = 0x10,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 	 = 0x10,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 	 = 0xe0,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 	 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0xc3,
+
+		/* Added ************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0xa0,
+		.nc_table_fmt_std_color_0x0c_brightness = 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time 		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x01,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x80,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x00,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a 	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain 	  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x10,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	   = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x02,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x80,
+		.nc_table_arb_20x0d_ch_merge	   = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x00, },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, },
+
+		.nc_table_eq_color_0x10_contrast 		= { 0x90, },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x08, },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x00, },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x00, },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x00, },
+		.nc_table_eq_color_0x50_v_offset 		= { 0x00, },
+		.nc_table_eq_color_5x20_black_level 	= { 0x90, },
+		.nc_table_eq_color_5x27_acc_ref 	   	= { 0x57, },
+		.nc_table_eq_color_5x28_cti_delay 	   	= { 0x80, },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xc0, },
+		.nc_table_eq_color_5xd5_c_option 	   	= { 0x80, },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, },
+	},
+
+	[ SD_H1280_PAL ] = {
+		.name = "SD_H1280_PAL",
+
+		.width  = 1280,
+		.height = 576,
+		.fmt_fps        = FMT_PAL,
+		.fmt_standard   = FMT_SD,
+		.fmt_resolution = FMT_H1280,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0xf0,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x00,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x02,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x40,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x00,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x00,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x00,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x00,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 	 = 0x10,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 	 = 0x10,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 	 = 0xc0,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 	 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x80,
+
+		/* Added ************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0xa0,
+		.nc_table_fmt_std_color_0x0c_brightness = 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time 		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x01,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x80,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x00,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a 	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain 	  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x10,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	   = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x02,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x80,
+		.nc_table_arb_20x0d_ch_merge	   = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x00, },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, },
+
+		.nc_table_eq_color_0x10_contrast 		= { 0x90, },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x08, },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, },
+		.nc_table_eq_color_0x40_hue			 	= { 0x00, },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x00, },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x00, },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x00, },
+		.nc_table_eq_color_0x50_v_offset 		= { 0x00, },
+		.nc_table_eq_color_5x20_black_level 	= { 0x90, },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xc0, },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, },
+	},
+
+	[ SD_H1440_NT ] = {
+		.name = "SD_H1440_NT",
+
+		.width  = 1440,
+		.height = 480,
+		.fmt_fps 	   = FMT_NT,
+		.fmt_standard   = FMT_SD,
+		.fmt_resolution = FMT_H1440,
+
+		/* Video Table *********************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x40,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x00,
+
+		.nc_table_fmt_std_clock_1x84_vadc     = 0x02,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x40,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x00,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x00,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x00,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x00,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 	 = 0x10,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 	 = 0x10,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 	 = 0xe0,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 	 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0xc3,
+
+		/* Added ************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0xa0,
+		.nc_table_fmt_std_color_0x0c_brightness = 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time 		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x01,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x80,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a 	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain 	  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x10,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	   = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x02,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0xd0,
+		.nc_table_arb_20x0d_ch_merge	   = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x00, },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, },
+
+		.nc_table_eq_color_0x10_contrast 		= { 0x90, },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x08, },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x00, },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x00, },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x00, },
+		.nc_table_eq_color_0x50_v_offset 		= { 0x00, },
+		.nc_table_eq_color_5x20_black_level 	= { 0x90, },
+		.nc_table_eq_color_5x27_acc_ref 	   	= { 0x57, },
+		.nc_table_eq_color_5x28_cti_delay 	   	= { 0x80, },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xc0, },
+		.nc_table_eq_color_5xd5_c_option 	   	= { 0x80, },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, },
+	},
+
+	[ SD_H1440_PAL ] = {
+		.name = "SD_H1440_PAL",
+
+		.width  = 1440,
+		.height = 576,
+		.fmt_fps        = FMT_PAL,
+		.fmt_standard   = FMT_SD,
+		.fmt_resolution = FMT_H1440,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0xf0,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x00,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x02,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x40,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x00,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x00,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x00,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x00,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 	 = 0x10,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 	 = 0x10,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 	 = 0xc0,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 	 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x80,
+
+		/* Added ************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0xa0,
+		.nc_table_fmt_std_color_0x0c_brightness = 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time 		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x01,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x80,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a 	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain 	  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x10,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	   = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x02,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0xd0,
+		.nc_table_arb_20x0d_ch_merge	   = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x00, },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, },
+
+		.nc_table_eq_color_0x10_contrast 		= { 0x90, },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x08, },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, },
+		.nc_table_eq_color_0x40_hue			 	= { 0x00, },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x00, },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x00, },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x00, },
+		.nc_table_eq_color_0x50_v_offset 		= { 0x00, },
+		.nc_table_eq_color_5x20_black_level 	= { 0x90, },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xc0, },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, },
+	},
+
+	[ SD_H960_EX_NT ] = {
+		.name = "SD_H960_EX_NT",
+
+		.width  = 1920,
+		.height = 480,
+		.fmt_fps 	   = FMT_NT,
+		.fmt_standard   = FMT_SD,
+		.fmt_resolution = FMT_H960_EX,
+
+		/* Video Table *********************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0xa0,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x00,
+
+		.nc_table_fmt_std_clock_1x84_vadc     = 0x02,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x40,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x00,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x00,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x00,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x00,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 	 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 	 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 	 = 0xe0,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 	 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x81,
+
+		/* Added ************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0xa0,
+		.nc_table_fmt_std_color_0x0c_brightness = 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time 		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0xbc,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a 	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain 	  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x10,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	   = 0x01,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x01,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0xe0,
+		.nc_table_arb_20x0d_ch_merge	   = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x00, },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, },
+
+		.nc_table_eq_color_0x10_contrast 		= { 0x90, },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x08, },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x00, },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x00, },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x00, },
+		.nc_table_eq_color_0x50_v_offset 		= { 0x00, },
+		.nc_table_eq_color_5x20_black_level 	= { 0x90, },
+		.nc_table_eq_color_5x27_acc_ref 	   	= { 0x57, },
+		.nc_table_eq_color_5x28_cti_delay 	   	= { 0x80, },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xc0, },
+		.nc_table_eq_color_5xd5_c_option 	   	= { 0x80, },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, },
+	},
+
+	[ SD_H960_EX_PAL ] = {
+		.name = "SD_H960_EX_PAL",
+
+		.width  = 1920,
+		.height = 576,
+		.fmt_fps        = FMT_PAL,
+		.fmt_standard   = FMT_SD,
+		.fmt_resolution = FMT_H960_EX,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0xd0,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x00,
+
+		.nc_table_fmt_std_clock_1x84_vadc     = 0x06,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x46,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x00,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x00,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x00,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x00,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 	 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 	 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 	 = 0xe0,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 	 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x80,
+
+		/* Added ************************/
+		.nc_table_fmt_std_0x08_video_format = 0xdd,
+		.nc_table_fmt_std_color_0x0c_brightness = 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time 		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0xbc,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a 	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain 	  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x10,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	   = 0x01,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x03,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0xc0,
+		.nc_table_arb_20x0d_ch_merge	   = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x00, },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, },
+
+		.nc_table_eq_color_0x10_contrast 		= { 0x90, },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x08, },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x00, },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x00, },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x00, },
+		.nc_table_eq_color_0x50_v_offset 		= { 0x00, },
+		.nc_table_eq_color_5x20_black_level 	= { 0x90, },
+		.nc_table_eq_color_5x27_acc_ref 	   	= { 0x57, },
+		.nc_table_eq_color_5x28_cti_delay 	   	= { 0x80, },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xc0, },
+		.nc_table_eq_color_5xd5_c_option 	   	= { 0x80, },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, },
+	},
+
+	[ SD_H960_2EX_NT ] = {
+		.name = "SD_H960_2EX_NT",
+
+		.width  = 3840,
+		.height = 480,
+		.fmt_fps 	   = FMT_NT,
+		.fmt_standard   = FMT_SD,
+		.fmt_resolution = FMT_H960_2EX,
+
+		/* Video Table *********************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0xc0,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x00,
+
+		.nc_table_fmt_std_clock_1x84_vadc     = 0x06,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x46,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x08,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x00,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x00,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x00,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x00,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 	 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 	 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 	 = 0xe0,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 	 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xcc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x81,
+
+		/* Added ************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0xa0,
+		.nc_table_fmt_std_color_0x0c_brightness = 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time 		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0xbc,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a 	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain 	  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x10,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x07,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	   = 0x02,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x01,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0xe0,
+		.nc_table_arb_20x0d_ch_merge	   = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x00,  },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, },
+
+		.nc_table_eq_color_0x10_contrast 		= { 0x90, },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x08, },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x00, },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x00, },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x00, },
+		.nc_table_eq_color_0x50_v_offset 		= { 0x00, },
+		.nc_table_eq_color_5x20_black_level 	= { 0x90, },
+		.nc_table_eq_color_5x27_acc_ref 	   	= { 0x57, },
+		.nc_table_eq_color_5x28_cti_delay 	   	= { 0x80, },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xc0, },
+		.nc_table_eq_color_5xd5_c_option 	   	= { 0x80, },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x82, },
+	},
+
+	[ SD_H960_2EX_PAL ] = {
+		.name = "SD_H960_2EX_PAL",
+
+		.width  = 1920,
+		.height = 576,
+		.fmt_fps        = FMT_PAL,
+		.fmt_standard   = FMT_SD,
+		.fmt_resolution = FMT_H960_2EX,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0xd0,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x00,
+
+		.nc_table_fmt_std_clock_1x84_vadc     = 0x06,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x46,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x10,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x03,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x00,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x00,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x00,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x00,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 	 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 	 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 	 = 0xe0,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 	 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xcc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x80,
+
+		/* Added ************************/
+		.nc_table_fmt_std_0x08_video_format = 0xdd,
+		.nc_table_fmt_std_color_0x0c_brightness = 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time 		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0xbc,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a 	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain 	  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x10,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x07,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	   = 0x02,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x01,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0xe0,
+		.nc_table_arb_20x0d_ch_merge	   = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x00, },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, },
+
+		.nc_table_eq_color_0x10_contrast 		= { 0x90, },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x08, },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x00, },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x00, },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x00, },
+		.nc_table_eq_color_0x50_v_offset 		= { 0x00, },
+		.nc_table_eq_color_5x20_black_level 	= { 0x90, },
+		.nc_table_eq_color_5x27_acc_ref 	   	= { 0x57, },
+		.nc_table_eq_color_5x28_cti_delay 	   	= { 0x80, },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xc0, },
+		.nc_table_eq_color_5xd5_c_option 	   	= { 0x80, },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, },
+	},
+
+	[ SD_H960_2EX_Btype_NT ] = {
+		.name = "SD_H960_2EX_Btype_NT",
+
+		.width  = 1920,
+		.height = 480,
+		.fmt_fps        = FMT_NT,
+		.fmt_standard   = FMT_SD,
+		.fmt_resolution = FMT_H960_Btype_2EX,
+
+		/* Video Table *********************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0xe0,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x00,
+
+		.nc_table_fmt_std_clock_1x84_vadc     = 0x02,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x40,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x20,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x00,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x00,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x00,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x00,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 	 = 0x10,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 	 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 	 = 0xe0,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 	 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xcc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x81,
+
+		/* Added ************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0xa0,
+		.nc_table_fmt_std_color_0x0c_brightness = 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time 		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x01,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0xbc,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a 	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain 	  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x10,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	   = 0x01,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x03,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0xc0,
+		.nc_table_arb_20x0d_ch_merge	   = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x00, },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, },
+
+		.nc_table_eq_color_0x10_contrast 		= { 0x90, },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x08, },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x00, },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x00, },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x00, },
+		.nc_table_eq_color_0x50_v_offset 		= { 0x00, },
+		.nc_table_eq_color_5x20_black_level 	= { 0x90, },
+		.nc_table_eq_color_5x27_acc_ref 	   	= { 0x57, },
+		.nc_table_eq_color_5x28_cti_delay 	   	= { 0x80, },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xc0, },
+		.nc_table_eq_color_5xd5_c_option 	   	= { 0x80, },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x90, },
+	},
+
+	[ SD_H960_2EX_Btype_PAL ] = {
+		.name = "SD_H960_2EX_Btype_PAL",
+
+		.width  = 1920,
+		.height = 576,
+		.fmt_fps        = FMT_PAL,
+		.fmt_standard   = FMT_SD,
+		.fmt_resolution = FMT_H960_Btype_2EX,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0xf0,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x00,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x02,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x40,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x20,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x00,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x00,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x00,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x00,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 	 = 0x10,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 	 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 	 = 0xc0,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 	 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xcc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0xa0,
+
+		/* Added ************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0xa0,
+		.nc_table_fmt_std_color_0x0c_brightness = 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time 		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x01,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0xbe,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a 	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain 	  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x10,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  	= 0x01,
+		.nc_table_arb_20x13_rd_packet_15_8 	= 0x03,
+		.nc_table_arb_20x12_rd_packet_7_0  	= 0xc0,
+		.nc_table_arb_20x0d_ch_merge		= 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x00, },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, },
+
+		.nc_table_eq_color_0x10_contrast 		= { 0x90, },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x08, },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, },
+		.nc_table_eq_color_0x40_hue			 	= { 0x00, },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x00, },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x00, },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x00, },
+		.nc_table_eq_color_0x50_v_offset 		= { 0x00, },
+		.nc_table_eq_color_5x20_black_level 	= { 0x90, },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xc0, },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, },
+	},
+
+	/************************************************************************
+	 * AHD
+	 ************************************************************************/
+	[ AHD_720P_25P ] = {
+		.name = "AHD_720P_25P",
+
+		.width 	= 1280,
+		.height = 720,
+		.fmt_fps 		= FMT_25P,
+		.fmt_standard 	= FMT_AHD,
+		.fmt_resolution = FMT_720P,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x07,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x00,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x0a,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x0a,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b  	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x05,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 	 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 	 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 	 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 	 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x01,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x80,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x00,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f ,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x12,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x11,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x01,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0xe0,
+		.nc_table_arb_20x0d_ch_merge		  = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 1,
+
+		.nc_table_aoc_12x01_audio_mode 			= { 0x00, 0x00 },
+		.nc_table_aoc_12x02_aoc_clk_mode 		= { 0x00, 0x00 },
+		.nc_table_aoc_12x18_aoc_16k_mode 		= { 0x00, 0x10 },
+
+		.nc_table_aoc_12x07_aoc_start_line_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x08_aoc_start_line_low 	= { 0x11, 0x11 },
+		.nc_table_aoc_12x09_aoc_cat_whd 		= { 0x03, 0x03 },
+
+		.nc_table_aoc_12x11_aoc_saa_value 		= { 0x0f, 0x1e },
+		.nc_table_aoc_12x12_aoc_data_value_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x13_aoc_data_value_low 	= { 0x50, 0xa0 },
+		.nc_table_aoc_12x14_aoc_base_unit 		= { 0x17, 0x0b },
+		.nc_table_aoc_12x15_aoc_catch_point 	= { 0x0e, 0x18 },
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x8eab70, 0x8adae0, 0x870a50, 0x8339c0, 0x7ea5e0, 0x793416, 0x756950, 0x733e40, 0, 0, 0 },
+		/** .nc_table_eq_distance_value = { 0x8BD6A1, 0x88C4A9, 0x84A758, 0x80B824, 0x7DA0BE, 0x3CE953, 0, 0, 0, 0, 0 }, */
+										//      0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_base_5x01_bypass    = { 0x62, 0x62, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x77, 0x67, 0x57, 0x47, 0x47, 0x27, 0x17, 0x17 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x78, 0x7a, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x86, 0x88, 0x8d, 0x8e, 0x94, 0x93, 0x94, 0x93, 0x8d, 0x8d },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2 },
+
+		.nc_table_eq_color_0x10_contrast       = { 0x84, 0x84, 0x84, 0x84, 0x84, 0x7e, 0x78, 0x74, 0x74, 0x74, 0x74 },
+		.nc_table_eq_color_0x18_h_peaking      = { 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x4f, 0x4f },
+		.nc_table_eq_color_0x21_c_filter       = { 0x82, 0x82, 0x82, 0x82, 0x92, 0x92, 0x92, 0x92, 0x92, 0x92, 0x92 },
+		.nc_table_eq_color_0x40_hue            = { 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe },
+		.nc_table_eq_color_0x44_u_gain         = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 },
+		.nc_table_eq_color_0x48_v_gain         = { 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8 },
+		.nc_table_eq_color_0x4c_u_offset       = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level    = { 0x84, 0x84, 0x84, 0x84, 0x84, 0x86, 0x86, 0x8c, 0x8c, 0x90, 0x90 },
+		.nc_table_eq_color_5x27_acc_ref 	   = { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x47, 0x47 },
+		.nc_table_eq_color_5x28_cti_delay 	   = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x90, 0x90 },
+		.nc_table_eq_color_5x2b_sub_saturation = { 0xb0, 0xab, 0xb0, 0xb0, 0xa4, 0xa0, 0xa0, 0xa0, 0xa0, 0x90, 0x90 },
+		.nc_table_eq_color_5xd5_c_option 	   = { 0x80, 0x80, 0x80, 0x80, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80 },
+	},
+
+	[ AHD_720P_30P ] = {
+		.name = "AHD_720P_30P",
+
+		.width 	= 1280,
+		.height = 720,
+		.fmt_fps 		= FMT_30P,
+		.fmt_standard 	= FMT_AHD,
+		.fmt_resolution = FMT_720P,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd 	= 0x06,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x00,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x0a,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x0a,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x05,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 	 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 	 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 	 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 	 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x01,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x00,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f ,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x12,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x11,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x01,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0xe0,
+		.nc_table_arb_20x0d_ch_merge		  = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 1,
+
+		.nc_table_aoc_12x01_audio_mode 			= { 0x03, 0x03 },
+		.nc_table_aoc_12x02_aoc_clk_mode 		= { 0x00, 0x00 },
+		.nc_table_aoc_12x18_aoc_16k_mode 		= { 0x00, 0x10 },
+
+		.nc_table_aoc_12x07_aoc_start_line_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x08_aoc_start_line_low 	= { 0x12, 0x12 },
+		.nc_table_aoc_12x09_aoc_cat_whd 		= { 0x03, 0x03 },
+
+		.nc_table_aoc_12x11_aoc_saa_value 		= { 0x0f, 0x1e },
+		.nc_table_aoc_12x12_aoc_data_value_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x13_aoc_data_value_low 	= { 0x50, 0xa0 },
+		.nc_table_aoc_12x14_aoc_base_unit 		= { 0x17, 0x0b },
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x8c3a70, 0x87cda0, 0x84e770, 0x80efd0, 0x7be6c0, 0x76ea9f, 0x7334c9, 0x7032f0, 0x373b08, 0, 0 },
+		/** .nc_table_eq_distance_value = { 0x8AF1B5, 0x883500, 0x849230, 0x803BC1, 0x7C2F51, 0x3C1489, 0, 0, 0, 0, 0 }, */
+										 //     0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_base_5x01_bypass 	 = { 0x62, 0x62, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x77, 0x67, 0x57, 0x47, 0x47, 0x27, 0x17, 0x17 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x78, 0x7a, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x86, 0x88, 0x8d, 0x8e, 0x94, 0x93, 0x94, 0x93, 0x8d, 0x8d },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+									   //     0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2 },
+											   //     0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_color_0x10_contrast 	   = { 0x88, 0x88, 0x88, 0x88, 0x88, 0x7e, 0x78, 0x78, 0x74, 0x74, 0x74 },
+		.nc_table_eq_color_0x18_h_peaking 	   = { 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x4f, 0x4f },
+		.nc_table_eq_color_0x21_c_filter 	   = { 0x82, 0x82, 0x82, 0x82, 0x92, 0x92, 0x92, 0x92, 0x92, 0x92, 0x92 },
+		.nc_table_eq_color_0x40_hue 		   = { 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe },
+		.nc_table_eq_color_0x44_u_gain 		   = { 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0 },
+		.nc_table_eq_color_0x48_v_gain    	   = { 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10 },
+		.nc_table_eq_color_0x4c_u_offset 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset       = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level    = { 0x84, 0x84, 0x84, 0x84, 0x84, 0x86, 0x86, 0x8c, 0x8c, 0x90, 0x90 },
+		.nc_table_eq_color_5x27_acc_ref        = { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x47, 0x47 },
+		.nc_table_eq_color_5x28_cti_delay      = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x90, 0x90 },
+		.nc_table_eq_color_5x2b_sub_saturation = { 0xb0, 0xab, 0xb0, 0xb0, 0xa4, 0xa0, 0xa0, 0xa0, 0xa0, 0x90, 0x90 },
+		.nc_table_eq_color_5xd5_c_option 	   = { 0x80, 0x80, 0x80, 0x80, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80 },
+	},
+
+
+	[ AHD_720P_25P_EX ] = {
+		.name = "AHD_720P_25P_EX",
+
+		.width 	= 2560,
+		.height = 720,
+		.fmt_fps 		= FMT_25P,
+		.fmt_standard 	= FMT_AHD,
+		.fmt_resolution = FMT_720P_EX,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd 	= 0x0b,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x00,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x02,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x40,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x05,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 	 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 	 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 	 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 	 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path  	 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x01,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x80,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x12,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x11,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x01,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x02,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x80,
+		.nc_table_arb_20x0d_ch_merge		  = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 1,
+
+		.nc_table_aoc_12x01_audio_mode 			= { 0x00, 0x00 },
+		.nc_table_aoc_12x02_aoc_clk_mode 		= { 0x00, 0x00 },
+		.nc_table_aoc_12x18_aoc_16k_mode 		= { 0x00, 0x10 },
+
+		.nc_table_aoc_12x07_aoc_start_line_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x08_aoc_start_line_low 	= { 0x11, 0x11 },
+		.nc_table_aoc_12x09_aoc_cat_whd 		= { 0x03, 0x03 },
+
+		.nc_table_aoc_12x11_aoc_saa_value 		= { 0x0f, 0x1e },
+		.nc_table_aoc_12x12_aoc_data_value_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x13_aoc_data_value_low 	= { 0x50, 0xa0 },
+		.nc_table_aoc_12x14_aoc_base_unit 		= { 0x17, 0x0b },
+		.nc_table_aoc_12x15_aoc_catch_point 	= { 0x0e, 0x18 },
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x8eab70, 0x8adae0, 0x870a50, 0x8339c0, 0x7ea5e0, 0x793416, 0x756950, 0x733e40, 0, 0, 0 },
+		/** .nc_table_eq_distance_value = { 0x8BD6A1, 0x88C4A9, 0x84A758, 0x80B824, 0x7DA0BE, 0x3CE953, 0, 0, 0, 0, 0 }, */
+										//      0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_base_5x01_bypass    = { 0x62, 0x62, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x77, 0x67, 0x57, 0x47, 0x47, 0x27, 0x17, 0x17 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x78, 0x7a, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x86, 0x88, 0x8d, 0x8e, 0x94, 0x93, 0x94, 0x93, 0x8d, 0x8d },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2 },
+
+		.nc_table_eq_color_0x10_contrast       = { 0x84, 0x84, 0x84, 0x84, 0x84, 0x7e, 0x78, 0x74, 0x74, 0x74, 0x74 },
+		.nc_table_eq_color_0x18_h_peaking      = { 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x4f, 0x4f },
+		.nc_table_eq_color_0x21_c_filter       = { 0x82, 0x82, 0x82, 0x82, 0x92, 0x92, 0x92, 0x92, 0x92, 0x92, 0x92 },
+		.nc_table_eq_color_0x40_hue            = { 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe },
+		.nc_table_eq_color_0x44_u_gain         = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 },
+		.nc_table_eq_color_0x48_v_gain         = { 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8 },
+		.nc_table_eq_color_0x4c_u_offset       = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level    = { 0x84, 0x84, 0x84, 0x84, 0x84, 0x86, 0x86, 0x8c, 0x8c, 0x90, 0x90 },
+		.nc_table_eq_color_5x27_acc_ref 	   = { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x47, 0x47 },
+		.nc_table_eq_color_5x28_cti_delay 	   = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x90, 0x90 },
+		.nc_table_eq_color_5x2b_sub_saturation = { 0xb0, 0xab, 0xb0, 0xb0, 0xa4, 0xa0, 0xa0, 0xa0, 0xa0, 0x90, 0x90 },
+		.nc_table_eq_color_5xd5_c_option 	   = { 0x80, 0x80, 0x80, 0x80, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80 },
+	},
+
+	[ AHD_720P_30P_EX ] = {
+		.name = "AHD_720P_30P_EX",
+
+		.width 	= 2560,
+		.height = 720,
+		.fmt_fps 		= FMT_30P,
+		.fmt_standard 	= FMT_AHD,
+		.fmt_resolution = FMT_720P_EX,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd 	= 0x0a,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x00,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x02,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x40,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x05,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 	 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 	 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 	 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 	 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x01,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x12,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x11,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x01,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x02,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x80,
+		.nc_table_arb_20x0d_ch_merge		  = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 1,
+
+		.nc_table_aoc_12x01_audio_mode 			= { 0x03, 0x03 },
+		.nc_table_aoc_12x02_aoc_clk_mode 		= { 0x00, 0x00 },
+		.nc_table_aoc_12x18_aoc_16k_mode 		= { 0x00, 0x10 },
+
+		.nc_table_aoc_12x07_aoc_start_line_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x08_aoc_start_line_low 	= { 0x12, 0x12 },
+		.nc_table_aoc_12x09_aoc_cat_whd 		= { 0x03, 0x03 },
+
+		.nc_table_aoc_12x11_aoc_saa_value 		= { 0x0f, 0x1e },
+		.nc_table_aoc_12x12_aoc_data_value_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x13_aoc_data_value_low 	= { 0x50, 0xa0 },
+		.nc_table_aoc_12x14_aoc_base_unit 		= { 0x17, 0x0b },
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x8c3a70, 0x87cda0, 0x84e770, 0x80efd0, 0x7be6c0, 0x76ea9f, 0x7334c9, 0x7032f0, 0x373b08, 0, 0 },
+		/** .nc_table_eq_distance_value = { 0x8AF1B5, 0x883500, 0x849230, 0x803BC1, 0x7C2F51, 0x3C1489, 0, 0, 0, 0, 0 }, */
+										 //     0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_base_5x01_bypass 	 = { 0x62, 0x62, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x77, 0x67, 0x57, 0x47, 0x47, 0x27, 0x17, 0x17 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x78, 0x7a, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x86, 0x88, 0x8d, 0x8e, 0x94, 0x93, 0x94, 0x93, 0x8d, 0x8d },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+									   //     0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2 },
+											   //     0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_color_0x10_contrast 	   = { 0x88, 0x88, 0x88, 0x88, 0x88, 0x7e, 0x78, 0x78, 0x74, 0x74, 0x74 },
+		.nc_table_eq_color_0x18_h_peaking 	   = { 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x4f, 0x4f },
+		.nc_table_eq_color_0x21_c_filter 	   = { 0x82, 0x82, 0x82, 0x82, 0x92, 0x92, 0x92, 0x92, 0x92, 0x92, 0x92 },
+		.nc_table_eq_color_0x40_hue 		   = { 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe },
+		.nc_table_eq_color_0x44_u_gain 		   = { 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0 },
+		.nc_table_eq_color_0x48_v_gain    	   = { 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10 },
+		.nc_table_eq_color_0x4c_u_offset 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset       = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level    = { 0x84, 0x84, 0x84, 0x84, 0x84, 0x86, 0x86, 0x8c, 0x8c, 0x90, 0x90 },
+		.nc_table_eq_color_5x27_acc_ref        = { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x47, 0x47 },
+		.nc_table_eq_color_5x28_cti_delay      = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x90, 0x90 },
+		.nc_table_eq_color_5x2b_sub_saturation = { 0xb0, 0xab, 0xb0, 0xb0, 0xa4, 0xa0, 0xa0, 0xa0, 0xa0, 0x90, 0x90 },
+		.nc_table_eq_color_5xd5_c_option 	   = { 0x80, 0x80, 0x80, 0x80, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80 },
+	},
+
+	[ AHD_720P_12_5P_EX_Btype ] = {
+		.name = "AHD_720P_12_5P_EX_Btype",
+
+		.width 	= 1280,
+		.height = 720,
+		.fmt_fps 		= FMT_12_5P,
+		.fmt_standard 	= FMT_AHD,
+		.fmt_resolution = FMT_720P_Btype_EX,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x0d,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x00,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x0a,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x4a,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x05,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x00,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x00,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x00,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x00,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 	 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 	 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 	 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 	 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x01,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f ,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x12,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x11,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x02,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x02,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x80,
+		.nc_table_arb_20x0d_ch_merge		  = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 1,
+
+		.nc_table_aoc_12x01_audio_mode 			= { 0x00, 0x00 },
+		.nc_table_aoc_12x02_aoc_clk_mode 		= { 0x00, 0x00 },
+		.nc_table_aoc_12x18_aoc_16k_mode 		= { 0x00, 0x10 },
+
+		.nc_table_aoc_12x07_aoc_start_line_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x08_aoc_start_line_low 	= { 0x11, 0x11 },
+		.nc_table_aoc_12x09_aoc_cat_whd 		= { 0x03, 0x03 },
+
+		.nc_table_aoc_12x11_aoc_saa_value 		= { 0x0f, 0x1e },
+		.nc_table_aoc_12x12_aoc_data_value_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x13_aoc_data_value_low 	= { 0x50, 0xa0 },
+		.nc_table_aoc_12x14_aoc_base_unit 		= { 0x17, 0x0b },
+		.nc_table_aoc_12x15_aoc_catch_point 	= { 0x0e, 0x18 },
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x8eab70, 0x8adae0, 0x870a50, 0x8339c0, 0x7ea5e0, 0x793416, 0x756950, 0x733e40, 0, 0, 0 },
+		/** .nc_table_eq_distance_value = { 0x8BD6A1, 0x88C4A9, 0x84A758, 0x80B824, 0x7DA0BE, 0x3CE953, 0, 0, 0, 0, 0 }, */
+										//      0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_base_5x01_bypass    = { 0x62, 0x62, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x77, 0x67, 0x57, 0x47, 0x47, 0x27, 0x17, 0x17 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x78, 0x7a, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x86, 0x88, 0x8d, 0x8e, 0x94, 0x93, 0x94, 0x93, 0x8d, 0x8d },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2 },
+												//    0,    1,    2,    3,    4,    5,    6,    7,    8
+		.nc_table_eq_color_0x10_contrast       = { 0x85, 0x88, 0x86, 0x88, 0x88, 0x7d, 0x78, 0x74, 0x74, 0x74, 0x74 },
+		.nc_table_eq_color_0x18_h_peaking      = { 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x4f, 0x4f },
+		.nc_table_eq_color_0x21_c_filter       = { 0x82, 0x82, 0x82, 0x82, 0x92, 0x92, 0x92, 0x92, 0x92, 0x92, 0x92 },
+		.nc_table_eq_color_0x40_hue            = { 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe },
+		.nc_table_eq_color_0x44_u_gain         = { 0xb4, 0xb6, 0xb6, 0xb7, 0xbe, 0xba, 0xb6, 0xb6, 0xb6, 0xc0, 0xc0 },
+		.nc_table_eq_color_0x48_v_gain         = { 0x00, 0x00, 0x00, 0xf8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10 },
+		.nc_table_eq_color_0x4c_u_offset       = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level    = { 0x84, 0x84, 0x84, 0x84, 0x84, 0x86, 0x86, 0x8c, 0x8c, 0x90, 0x90 },
+		.nc_table_eq_color_5x27_acc_ref 	   = { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x47, 0x47 },
+		.nc_table_eq_color_5x28_cti_delay 	   = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x90, 0x90 },
+		.nc_table_eq_color_5x2b_sub_saturation = { 0xb0, 0xab, 0xb0, 0xb0, 0xa4, 0xa0, 0xa0, 0xa0, 0xa0, 0x90, 0x90 },
+		.nc_table_eq_color_5xd5_c_option 	   = { 0x80, 0x80, 0x80, 0x80, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80 },
+	},
+
+	[ AHD_720P_15P_EX_Btype ] = {
+		.name = "AHD_720P_15P_EX_Btype",
+
+		.width 	= 1280,
+		.height = 720,
+		.fmt_fps 		= FMT_15P,
+		.fmt_standard 	= FMT_AHD,
+		.fmt_resolution = FMT_720P_Btype_EX,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd 	= 0x0c,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x00,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x0a,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x4a,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x05,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x00,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x00,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x00,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x00,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 	 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 	 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 	 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 	 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x01,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f ,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x12,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x11,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	   = 0x02,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x02,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x80,
+		.nc_table_arb_20x0d_ch_merge	   = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 1,
+
+		.nc_table_aoc_12x01_audio_mode 			= { 0x03, 0x03 },
+		.nc_table_aoc_12x02_aoc_clk_mode 		= { 0x00, 0x00 },
+		.nc_table_aoc_12x18_aoc_16k_mode 		= { 0x00, 0x10 },
+
+		.nc_table_aoc_12x07_aoc_start_line_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x08_aoc_start_line_low 	= { 0x12, 0x12 },
+		.nc_table_aoc_12x09_aoc_cat_whd 		= { 0x03, 0x03 },
+
+		.nc_table_aoc_12x11_aoc_saa_value 		= { 0x0f, 0x1e },
+		.nc_table_aoc_12x12_aoc_data_value_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x13_aoc_data_value_low 	= { 0x50, 0xa0 },
+		.nc_table_aoc_12x14_aoc_base_unit 		= { 0x17, 0x0b },
+		.nc_table_aoc_12x15_aoc_catch_point 	= { 0x0e, 0x18 },
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x8c3a70, 0x87cda0, 0x84e770, 0x80efd0, 0x7be6c0, 0x76ea9f, 0x7334c9, 0x7032f0, 0x373b08, 0, 0 },
+		/** .nc_table_eq_distance_value = { 0x8AF1B5, 0x883500, 0x849230, 0x803BC1, 0x7C2F51, 0x3C1489, 0, 0, 0, 0, 0 }, */
+										 //     0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_base_5x01_bypass 	 = { 0x62, 0x62, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x77, 0x67, 0x57, 0x47, 0x47, 0x27, 0x17, 0x17 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x78, 0x7a, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x86, 0x88, 0x8d, 0x8e, 0x94, 0x93, 0x94, 0x93, 0x8d, 0x8d },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+									   //     0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2 },
+											   //     0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_color_0x10_contrast 	   = { 0x8c, 0x8b, 0x8c, 0x8c, 0x8c, 0x82, 0x78, 0x78, 0x74, 0x74, 0x74 },
+		.nc_table_eq_color_0x18_h_peaking 	   = { 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x4f, 0x4f },
+		.nc_table_eq_color_0x21_c_filter 	   = { 0x82, 0x82, 0x82, 0x82, 0x92, 0x92, 0x92, 0x92, 0x92, 0x92, 0x92 },
+		.nc_table_eq_color_0x40_hue 		   = { 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe },
+		.nc_table_eq_color_0x44_u_gain 		   = { 0xbb, 0xb8, 0xb8, 0xbc, 0xb9, 0xb5, 0xb8, 0xb8, 0xb8, 0xb8, 0xb0 },
+		.nc_table_eq_color_0x48_v_gain    	   = { 0x10, 0x10, 0x10, 0x10, 0x00, 0x00, 0x10, 0x10, 0x10, 0x10, 0x10 },
+		.nc_table_eq_color_0x4c_u_offset 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset       = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level    = { 0x84, 0x84, 0x84, 0x84, 0x84, 0x86, 0x86, 0x8c, 0x8c, 0x90, 0x90 },
+		.nc_table_eq_color_5x27_acc_ref        = { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x47, 0x47 },
+		.nc_table_eq_color_5x28_cti_delay      = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x90, 0x90 },
+		.nc_table_eq_color_5x2b_sub_saturation = { 0xb0, 0xab, 0xb0, 0xb0, 0xa4, 0xa0, 0xa0, 0xa0, 0xa0, 0x90, 0x90 },
+		.nc_table_eq_color_5xd5_c_option 	   = { 0x80, 0x80, 0x80, 0x80, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80 },
+	},
+
+	[ AHD_720P_25P_EX_Btype ] = {
+		.name = "AHD_720P_25P_EX_Btype",
+
+		.width 	= 2560,
+		.height = 720,
+		.fmt_fps 		= FMT_25P,
+		.fmt_standard 	= FMT_AHD,
+		.fmt_resolution = FMT_720P_Btype_EX,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x0d,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x00,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x02,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x40,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x05,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x12,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0xeb,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x1c,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 	 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 	 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 	 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 	 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x01,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f ,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x12,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x11,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x01,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x02,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x80,
+		.nc_table_arb_20x0d_ch_merge		  = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 1,
+
+		.nc_table_aoc_12x01_audio_mode 			= { 0x00, 0x00 },
+		.nc_table_aoc_12x02_aoc_clk_mode 		= { 0x00, 0x00 },
+		.nc_table_aoc_12x18_aoc_16k_mode 		= { 0x00, 0x10 },
+
+		.nc_table_aoc_12x07_aoc_start_line_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x08_aoc_start_line_low 	= { 0x11, 0x11 },
+		.nc_table_aoc_12x09_aoc_cat_whd 		= { 0x03, 0x03 },
+
+		.nc_table_aoc_12x11_aoc_saa_value 		= { 0x0f, 0x1e },
+		.nc_table_aoc_12x12_aoc_data_value_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x13_aoc_data_value_low 	= { 0x50, 0xa0 },
+		.nc_table_aoc_12x14_aoc_base_unit 		= { 0x17, 0x0b },
+		.nc_table_aoc_12x15_aoc_catch_point 	= { 0x0e, 0x18 },
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x8eab70, 0x8adae0, 0x870a50, 0x8339c0, 0x7ea5e0, 0x793416, 0x756950, 0x733e40, 0, 0, 0 },
+		/** .nc_table_eq_distance_value = { 0x8BD6A1, 0x88C4A9, 0x84A758, 0x80B824, 0x7DA0BE, 0x3CE953, 0, 0, 0, 0, 0 }, */
+										//      0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_base_5x01_bypass    = { 0x62, 0x62, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x77, 0x67, 0x57, 0x47, 0x47, 0x27, 0x17, 0x17 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x78, 0x7a, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x86, 0x88, 0x8d, 0x8e, 0x94, 0x93, 0x94, 0x93, 0x8d, 0x8d },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2 },
+												//    0,    1,    2,    3,    4,    5,    6,    7,    8
+		.nc_table_eq_color_0x10_contrast       = { 0x85, 0x88, 0x86, 0x88, 0x88, 0x7d, 0x78, 0x74, 0x74, 0x74, 0x74 },
+		.nc_table_eq_color_0x18_h_peaking      = { 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x4f, 0x4f },
+		.nc_table_eq_color_0x21_c_filter       = { 0x82, 0x82, 0x82, 0x82, 0x92, 0x92, 0x92, 0x92, 0x92, 0x92, 0x92 },
+		.nc_table_eq_color_0x40_hue            = { 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe },
+		.nc_table_eq_color_0x44_u_gain         = { 0xb4, 0xb6, 0xb6, 0xb7, 0xbe, 0xba, 0xb6, 0xb6, 0xb6, 0xc0, 0xc0 },
+		.nc_table_eq_color_0x48_v_gain         = { 0x00, 0x00, 0x00, 0xf8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10 },
+		.nc_table_eq_color_0x4c_u_offset       = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level    = { 0x84, 0x84, 0x84, 0x84, 0x84, 0x86, 0x86, 0x8c, 0x8c, 0x90, 0x90 },
+		.nc_table_eq_color_5x27_acc_ref 	   = { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x47, 0x47 },
+		.nc_table_eq_color_5x28_cti_delay 	   = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x90, 0x90 },
+		.nc_table_eq_color_5x2b_sub_saturation = { 0xb0, 0xab, 0xb0, 0xb0, 0xa4, 0xa0, 0xa0, 0xa0, 0xa0, 0x90, 0x90 },
+		.nc_table_eq_color_5xd5_c_option 	   = { 0x80, 0x80, 0x80, 0x80, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80 },
+	},
+
+	[ AHD_720P_30P_EX_Btype ] = {
+		.name = "AHD_720P_30P_EX_Btype",
+
+		.width 	= 2560,
+		.height = 720,
+		.fmt_fps 		= FMT_30P,
+		.fmt_standard 	= FMT_AHD,
+		.fmt_resolution = FMT_720P_Btype_EX,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd 	= 0x0c,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x00,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x02,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x40,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x05,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x12,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0xeb,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x1c,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 	 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 	 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 	 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 	 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x01,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f ,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x12,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x11,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	   = 0x01,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x02,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x80,
+		.nc_table_arb_20x0d_ch_merge	   = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 1,
+
+		.nc_table_aoc_12x01_audio_mode 			= { 0x03, 0x03 },
+		.nc_table_aoc_12x02_aoc_clk_mode 		= { 0x00, 0x00 },
+		.nc_table_aoc_12x18_aoc_16k_mode 		= { 0x00, 0x10 },
+
+		.nc_table_aoc_12x07_aoc_start_line_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x08_aoc_start_line_low 	= { 0x12, 0x12 },
+		.nc_table_aoc_12x09_aoc_cat_whd 		= { 0x03, 0x03 },
+
+		.nc_table_aoc_12x11_aoc_saa_value 		= { 0x0f, 0x1e },
+		.nc_table_aoc_12x12_aoc_data_value_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x13_aoc_data_value_low 	= { 0x50, 0xa0 },
+		.nc_table_aoc_12x14_aoc_base_unit 		= { 0x17, 0x0b },
+		.nc_table_aoc_12x15_aoc_catch_point 	= { 0x0e, 0x18 },
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x8c3a70, 0x87cda0, 0x84e770, 0x80efd0, 0x7be6c0, 0x76ea9f, 0x7334c9, 0x7032f0, 0x373b08, 0, 0 },
+		/** .nc_table_eq_distance_value = { 0x8AF1B5, 0x883500, 0x849230, 0x803BC1, 0x7C2F51, 0x3C1489, 0, 0, 0, 0, 0 }, */
+										 //     0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_base_5x01_bypass 	 = { 0x62, 0x62, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x77, 0x67, 0x57, 0x47, 0x47, 0x27, 0x17, 0x17 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x78, 0x7a, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x86, 0x88, 0x8d, 0x8e, 0x94, 0x93, 0x94, 0x93, 0x8d, 0x8d },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+									   //     0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2 },
+											   //     0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_color_0x10_contrast 	   = { 0x8c, 0x8b, 0x8c, 0x8c, 0x8c, 0x82, 0x78, 0x78, 0x74, 0x74, 0x74 },
+		.nc_table_eq_color_0x18_h_peaking 	   = { 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x4f, 0x4f },
+		.nc_table_eq_color_0x21_c_filter 	   = { 0x82, 0x82, 0x82, 0x82, 0x92, 0x92, 0x92, 0x92, 0x92, 0x92, 0x92 },
+		.nc_table_eq_color_0x40_hue 		   = { 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe },
+		.nc_table_eq_color_0x44_u_gain 		   = { 0xbb, 0xb8, 0xb8, 0xbc, 0xb9, 0xb5, 0xb8, 0xb8, 0xb8, 0xb8, 0xb0 },
+		.nc_table_eq_color_0x48_v_gain    	   = { 0x10, 0x10, 0x10, 0x10, 0x00, 0x00, 0x10, 0x10, 0x10, 0x10, 0x10 },
+		.nc_table_eq_color_0x4c_u_offset 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset       = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level    = { 0x84, 0x84, 0x84, 0x84, 0x84, 0x86, 0x86, 0x8c, 0x8c, 0x90, 0x90 },
+		.nc_table_eq_color_5x27_acc_ref        = { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x47, 0x47 },
+		.nc_table_eq_color_5x28_cti_delay      = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x90, 0x90 },
+		.nc_table_eq_color_5x2b_sub_saturation = { 0xb0, 0xab, 0xb0, 0xb0, 0xa4, 0xa0, 0xa0, 0xa0, 0xa0, 0x90, 0x90 },
+		.nc_table_eq_color_5xd5_c_option 	   = { 0x80, 0x80, 0x80, 0x80, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80 },
+	},
+
+	[ AHD_720P_50P ] = {
+		.name = "AHD_720P_50P",
+
+		.width 	= 1280,
+		.height = 720,
+		.fmt_fps 		= FMT_50P,
+		.fmt_standard 	= FMT_AHD,
+		.fmt_resolution = FMT_720P,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd 	= 0x05,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x00,
+
+		.nc_table_fmt_std_clock_1x84_vadc	  = 0x02,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x40,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x05,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 	 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 	 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 	 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 	 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x01,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x80,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x00,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x10,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point   = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x02,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x80,
+		.nc_table_arb_20x0d_ch_merge		  = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x8f23e4, 0x8bc71b, 0x88b447, 0x85d75a, 0x821cdc, 0x3fe13b, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_base_5x01_bypass    = { 0x62, 0x62, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x77, 0x67, 0x57, 0x47, 0x47, 0x47, 0x47, 0x47 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x78, 0x7a, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f },
+		.nc_table_eq_base_ax3d_deq_on    = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x86, 0x87, 0x93, 0x8e, 0x8e, 0x93, 0x93, 0x93, 0x93, 0x93 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x86, 0x87, 0x93, 0x8e, 0x8e, 0x93, 0x93, 0x93, 0x93, 0x93 },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2 },
+
+		.nc_table_eq_color_0x10_contrast 	   = { 0x88, 0x88, 0x78, 0x88, 0x88, 0x7e, 0x78, 0x78, 0x74, 0x74, 0x74 },
+		.nc_table_eq_color_0x18_h_peaking 	   = { 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x4f, 0x4f },
+		.nc_table_eq_color_0x21_c_filter 	   = { 0x82, 0x82, 0x82, 0x82, 0x92, 0x92, 0x92, 0x92, 0x92, 0x92, 0x92 },
+		.nc_table_eq_color_0x40_hue 		   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x44_u_gain         = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x48_v_gain         = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x4c_u_offset       = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset       = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level    = { 0x84, 0x84, 0x84, 0x84, 0x84, 0x86, 0x86, 0x8c, 0x8c, 0x90, 0x90 },
+		.nc_table_eq_color_5x27_acc_ref        = { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x47, 0x47 },
+		.nc_table_eq_color_5x28_cti_delay 	   = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x90, 0x90 },
+		.nc_table_eq_color_5x2b_sub_saturation = { 0xa8, 0xab, 0xb0, 0xb0, 0xa4, 0xa0, 0xa0, 0xa0, 0xa0, 0x90, 0x90 },
+		.nc_table_eq_color_5xd5_c_option       = { 0x80, 0x80, 0x80, 0x80, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 },
+		.nc_table_eq_timing_0x58_h_delay_a     = { 0xa0, 0xa0, 0x9e, 0x9b, 0x99, 0x99, 0x9b, 0x98, 0x98, 0x98, 0x98 },
+	},
+
+	[ AHD_720P_60P ] = {
+		.name = "AHD_720P_60P",
+
+		.width 	= 1280,
+		.height = 720,
+		.fmt_fps 		= FMT_60P,
+		.fmt_standard 	= FMT_AHD,
+		.fmt_resolution = FMT_720P,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x04,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x00,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x02,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x40,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x05,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 	 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 	 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 	 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 	 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x01,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x80,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x00,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f ,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x10,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x02,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x80,
+		.nc_table_arb_20x0d_ch_merge		  = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x8c9768, 0x8947f1, 0x867be1, 0x8e9248, 0x7ed392, 0x3cf779, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x62, 0x62, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x77, 0x67, 0x57, 0x47, 0x47, 0x27, 0x17, 0x17 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x78, 0x7a, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x86, 0x87, 0x93, 0x8e, 0x8e, 0x93, 0x93, 0x93, 0x8d, 0x8d },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 	0xAC, 0xAC, 0xAC, 0xAC, 0xAC },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 	0x78, 0x78, 0x78, 0x78, 0x78 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 	0x17, 0x17, 0x17, 0x17, 0x17 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2 },
+
+		.nc_table_eq_color_0x10_contrast 	   = { 0x88, 0x88, 0x78, 0x88, 0x88, 0x7e, 0x78, 0x78, 0x74, 0x74, 0x74 },
+		.nc_table_eq_color_0x18_h_peaking 	   = { 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x4f, 0x4f },
+		.nc_table_eq_color_0x21_c_filter 	   = { 0x82, 0x82, 0x82, 0x82, 0x92, 0x92, 0x92, 0x92, 0x92, 0x92, 0x92 },
+		.nc_table_eq_color_0x40_hue 		   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x44_u_gain 		   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x48_v_gain 		   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x4c_u_offset 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level    = { 0x84, 0x84, 0x84, 0x84, 0x84, 0x86, 0x86, 0x8c, 0x8c, 0x90, 0x90 },
+		.nc_table_eq_color_5x27_acc_ref 	   = { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x47, 0x47 },
+		.nc_table_eq_color_5x28_cti_delay 	   = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x90, 0x90 },
+		.nc_table_eq_color_5x2b_sub_saturation = { 0xa8, 0xab, 0xb0, 0xb0, 0xa4, 0xa0, 0xa0, 0xa0, 0xa0, 0x90, 0x90 },
+		.nc_table_eq_color_5xd5_c_option 	   = { 0x80, 0x80, 0x80, 0x80, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0xa0, 0xa0, 0x9e, 0x9b, 0x99, 0x99, 0x9b, 0x98, 0x98, 0x98, 0x98 },
+	},
+
+	[ AHD_960P_25P ] = {
+		.name = "AHD_960P_25P",
+
+		.width 	= 1280,
+		.height = 960,
+		.fmt_fps 		= FMT_25P,
+		.fmt_standard 	= FMT_AHD,
+		.fmt_resolution = FMT_960P,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x07,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x0b,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x02,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x40,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b     = 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x05,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x28,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness = 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time 		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x80,
+		.nc_table_fmt_std_0x30_y_delay 		 	= 0x12,
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f ,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	   = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x02,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x80,
+		.nc_table_arb_20x0d_ch_merge	   = 0x00,
+
+			/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+			/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x8f23e4, 0x8bc71b, 0x88b447, 0x85d75a, 0x821cdc, 0x3fe13b, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x62, 0x62, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x77, 0x67, 0x57, 0x47, 0x47, 0x47, 0x47, 0x47 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x78, 0x7a, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x86, 0x87, 0x93, 0x8e, 0x8e, 0x93, 0x93, 0x93, 0x93, 0x93 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x86, 0x87, 0x93, 0x8e, 0x8e, 0x93, 0x93, 0x93, 0x93, 0x93 },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2 },
+
+		.nc_table_eq_color_0x10_contrast 	   = { 0x88, 0x88, 0x78, 0x88, 0x88, 0x7e, 0x78, 0x78, 0x74, 0x74, 0x74 },
+		.nc_table_eq_color_0x18_h_peaking 	   = { 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x4f, 0x4f },
+		.nc_table_eq_color_0x21_c_filter 	   = { 0x82, 0x82, 0x82, 0x82, 0x92, 0x92, 0x92, 0x92, 0x92, 0x92, 0x92 },
+		.nc_table_eq_color_0x40_hue 		   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x44_u_gain 		   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x48_v_gain 		   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x4c_u_offset 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level    = { 0x84, 0x84, 0x84, 0x84, 0x84, 0x86, 0x86, 0x8c, 0x8c, 0x90, 0x90 },
+		.nc_table_eq_color_5x27_acc_ref 	   = { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x47, 0x47 },
+		.nc_table_eq_color_5x28_cti_delay 	   = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x90, 0x90 },
+		.nc_table_eq_color_5x2b_sub_saturation = { 0xa8, 0xab, 0xb0, 0xb0, 0xa4, 0xa0, 0xa0, 0xa0, 0xa0, 0x90, 0x90 },
+		.nc_table_eq_color_5xd5_c_option 	   = { 0x80, 0x80, 0x80, 0x80, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40 },
+	},
+
+	[ AHD_960P_30P ] = {
+		.name = "AHD_960P_30P",
+
+		.width 	= 1280,
+		.height = 960,
+		.fmt_fps 		= FMT_30P,
+		.fmt_standard 	= FMT_AHD,
+		.fmt_resolution = FMT_960P,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd 	= 0x06,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x0b,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x02,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x40,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b     = 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x05,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x28,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness = 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time 		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x80,
+		.nc_table_fmt_std_0x30_y_delay 		 	= 0x12,
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f ,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x02,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x80,
+		.nc_table_arb_20x0d_ch_merge		  = 0x00,
+
+			/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+			/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x8c9768, 0x8947f1, 0x867be1, 0x8e9248, 0x7ed392, 0x3cf779, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x62, 0x62, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x77, 0x67, 0x57, 0x47, 0x47, 0x27, 0x17, 0x17 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x78, 0x7a, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x86, 0x87, 0x93, 0x8e, 0x8e, 0x93, 0x93, 0x93, 0x8d, 0x8d },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 	0xAC, 0xAC, 0xAC, 0xAC, 0xAC },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 	0x78, 0x78, 0x78, 0x78, 0x78 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 	0x17, 0x17, 0x17, 0x17, 0x17 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2 },
+
+		.nc_table_eq_color_0x10_contrast 	   = { 0x88, 0x88, 0x78, 0x88, 0x88, 0x7e, 0x78, 0x78, 0x74, 0x74, 0x74 },
+		.nc_table_eq_color_0x18_h_peaking 	   = { 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x4f, 0x4f },
+		.nc_table_eq_color_0x21_c_filter 	   = { 0x82, 0x82, 0x82, 0x82, 0x92, 0x92, 0x92, 0x92, 0x92, 0x92, 0x92 },
+		.nc_table_eq_color_0x40_hue 		   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x44_u_gain 		   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x48_v_gain 		   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x4c_u_offset 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level    = { 0x84, 0x84, 0x84, 0x84, 0x84, 0x86, 0x86, 0x8c, 0x8c, 0x90, 0x90 },
+		.nc_table_eq_color_5x27_acc_ref 	   = { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x47, 0x47 },
+		.nc_table_eq_color_5x28_cti_delay 	   = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x90, 0x90 },
+		.nc_table_eq_color_5x2b_sub_saturation = { 0xa8, 0xab, 0xb0, 0xb0, 0xa4, 0xa0, 0xa0, 0xa0, 0xa0, 0x90, 0x90 },
+		.nc_table_eq_color_5xd5_c_option 	   = { 0x80, 0x80, 0x80, 0x80, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x48, 0x48, 0x48, 0x48, 0x48, 0x48, 0x48, 0x48, 0x48, 0x48, 0x48 },
+	},
+
+	[ AHD_960P_50P ] = {
+		.name = "AHD_960P_50P",
+
+		.width 	= 1280,
+		.height = 960,
+		.fmt_fps 		= FMT_50P,
+		.fmt_standard 	= FMT_AHD,
+		.fmt_resolution = FMT_960P,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd 	= 0x05,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x0b,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x02,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x40,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x05,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 	 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 	 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 	 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 	 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x21,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x80,
+		.nc_table_fmt_std_0x30_y_delay 		 	= 0x12,
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f ,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	   = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x02,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x80,
+		.nc_table_arb_20x0d_ch_merge	   = 0x01,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x8f23e4, 0x8bc71b, 0x88b447, 0x85d75a, 0x821cdc, 0x3fe13b, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x62, 0x62, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x77, 0x67, 0x57, 0x47, 0x47, 0x47, 0x47, 0x47 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x78, 0x7a, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x86, 0x87, 0x93, 0x8e, 0x8e, 0x93, 0x93, 0x93, 0x93, 0x93 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x86, 0x87, 0x93, 0x8e, 0x8e, 0x93, 0x93, 0x93, 0x93, 0x93 },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2 },
+
+		.nc_table_eq_color_0x10_contrast 	   = { 0x88, 0x88, 0x78, 0x88, 0x88, 0x7e, 0x78, 0x78, 0x74, 0x74, 0x74 },
+		.nc_table_eq_color_0x18_h_peaking 	   = { 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x4f, 0x4f },
+		.nc_table_eq_color_0x21_c_filter 	   = { 0x82, 0x82, 0x82, 0x82, 0x92, 0x92, 0x92, 0x92, 0x92, 0x92, 0x92 },
+		.nc_table_eq_color_0x40_hue 		   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x44_u_gain 		   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x48_v_gain 		   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x4c_u_offset 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level    = { 0x84, 0x84, 0x84, 0x84, 0x84, 0x86, 0x86, 0x8c, 0x8c, 0x90, 0x90 },
+		.nc_table_eq_color_5x27_acc_ref 	   = { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x47, 0x47 },
+		.nc_table_eq_color_5x28_cti_delay 	   = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x90, 0x90 },
+		.nc_table_eq_color_5x2b_sub_saturation = { 0xa8, 0xab, 0xb0, 0xb0, 0xa4, 0xa0, 0xa0, 0xa0, 0xa0, 0x90, 0x90 },
+		.nc_table_eq_color_5xd5_c_option 	   = { 0x80, 0x80, 0x80, 0x80, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0xa0, 0xa0, 0x9e, 0x9b, 0x99, 0x99, 0x9b, 0x98, 0x98, 0x98, 0x98 },
+	},
+
+	[ AHD_960P_60P ] = {
+		.name = "AHD_960P_60P",
+
+		.width 	= 1280,
+		.height = 960,
+		.fmt_fps 		= FMT_60P,
+		.fmt_standard 	= FMT_AHD,
+		.fmt_resolution = FMT_960P,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x04,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x0b,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x02,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x40,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x05,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 	 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 	 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 	 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 	 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x21,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x80,
+		.nc_table_fmt_std_0x30_y_delay 		 	= 0x12,
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0 = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8 = 0x6f ,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x02,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x80,
+		.nc_table_arb_20x0d_ch_merge		  = 0x01,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x8c9768, 0x8947f1, 0x867be1, 0x8e9248, 0x7ed392, 0x3cf779, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x62, 0x62, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x77, 0x67, 0x57, 0x47, 0x47, 0x27, 0x17, 0x17 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x78, 0x7a, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x86, 0x87, 0x93, 0x8e, 0x8e, 0x93, 0x93, 0x93, 0x8d, 0x8d },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 	0xAC, 0xAC, 0xAC, 0xAC, 0xAC },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 	0x78, 0x78, 0x78, 0x78, 0x78 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 	0x17, 0x17, 0x17, 0x17, 0x17 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2 },
+
+		.nc_table_eq_color_0x10_contrast 	   = { 0x88, 0x88, 0x78, 0x88, 0x88, 0x7e, 0x78, 0x78, 0x74, 0x74, 0x74 },
+		.nc_table_eq_color_0x18_h_peaking 	   = { 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x4f, 0x4f },
+		.nc_table_eq_color_0x21_c_filter 	   = { 0x82, 0x82, 0x82, 0x82, 0x92, 0x92, 0x92, 0x92, 0x92, 0x92, 0x92 },
+		.nc_table_eq_color_0x40_hue 		   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x44_u_gain 		   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x48_v_gain 		   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x4c_u_offset 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level    = { 0x84, 0x84, 0x84, 0x84, 0x84, 0x86, 0x86, 0x8c, 0x8c, 0x90, 0x90 },
+		.nc_table_eq_color_5x27_acc_ref 	   = { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x47, 0x47 },
+		.nc_table_eq_color_5x28_cti_delay 	   = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x90, 0x90 },
+		.nc_table_eq_color_5x2b_sub_saturation = { 0xa8, 0xab, 0xb0, 0xb0, 0xa4, 0xa0, 0xa0, 0xa0, 0xa0, 0x90, 0x90 },
+		.nc_table_eq_color_5xd5_c_option 	   = { 0x80, 0x80, 0x80, 0x80, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0xa0, 0xa0, 0x9e, 0x9b, 0x99, 0x99, 0x9b, 0x98, 0x98, 0x98, 0x98 },
+	},
+
+
+
+	[ AHD_1080P_12_5P ] = {
+		.name = "AHD_1080P_12_5P",
+
+		.width 	= 1920,
+		.height = 1080,
+		.fmt_fps 		= FMT_12_5P,
+		.fmt_standard 	= FMT_AHD,
+		.fmt_resolution = FMT_1080P,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd 	= 0x03,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x00,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x0a,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x4a,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x10,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x00,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x00,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x00,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x00,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 	= 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x01,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x03,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain 	  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x41,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f ,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x17,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x11,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	   = 0x01,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x03,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0xc0,
+		.nc_table_arb_20x0d_ch_merge	   = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 1,
+
+		.nc_table_aoc_12x01_audio_mode 		  	= { 0x00, 0x00 },
+		.nc_table_aoc_12x02_aoc_clk_mode 	  	= { 0x00, 0x00 },
+		.nc_table_aoc_12x18_aoc_16k_mode 	  	= { 0x00, 0x10 },
+
+		.nc_table_aoc_12x07_aoc_start_line_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x08_aoc_start_line_low 	= { 0x12, 0x12 },
+		.nc_table_aoc_12x09_aoc_cat_whd 		= { 0x03, 0x03 },
+
+		.nc_table_aoc_12x11_aoc_saa_value 		= { 0x0a, 0x14 },
+		.nc_table_aoc_12x12_aoc_data_value_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x13_aoc_data_value_low 	= { 0x50, 0xa0 },
+		.nc_table_aoc_12x14_aoc_base_unit 		= { 0x13, 0x09 },
+		.nc_table_aoc_12x15_aoc_catch_point 	= { 0x08, 0x12 },
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x8e5d50, 0x8b9e30, 0x8890f0, 0x84e770, 0x827670, 0x100000, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		/** .nc_table_eq_distance_value = { 0x8f84a2, 0x8b92ab, 0x88d29c, 0x84adc4, 0x819870, 0x4064ae, 0x00, 0x00, 0x00, 0x00, 0x00 }, */
+
+		.nc_table_eq_base_5x01_bypass    = { 0x62, 0x62, 0x22, 0x22, 0x22, 0x22, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x77, 0x67, 0x57, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x78, 0x7a, 0x7f, 0x7f, 0x7f, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_ax3d_deq_on    = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x92, 0x88, 0x89, 0x8e, 0x94, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0x00, 0x00, 0x00, 0x00, 0x00 },
+											   //      0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_color_0x10_contrast 		= { 0x80, 0x87, 0x8a, 0x8a, 0x8a, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, 0x82, 0x82, 0x82, 0x92, 0x92, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x44_u_gain 			= { 0xb1, 0xb1, 0xb1, 0xb1, 0xb4, 0xba, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x48_v_gain 			= { 0xf0, 0xf0, 0xf0, 0xe0, 0xe0, 0xe0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level 	= { 0x80, 0x84, 0x84, 0x84, 0x84, 0x86, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xc0, 0xc0, 0xb8, 0xb8, 0xb0, 0xb0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, 0x80, 0x80, 0x80, 0x90, 0x90, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x00, 0x00, 0x00, 0x00 },
+	},
+
+	[ AHD_1080P_15P ] = {
+		.name = "AHD_1080P_15P",
+
+		.width 	= 1920,
+		.height = 1080,
+		.fmt_fps 	= FMT_15P,
+		.fmt_standard 	= FMT_AHD,
+		.fmt_resolution = FMT_1080P,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd 	= 0x02,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x00,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x0a,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x4a,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b     = 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x10,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay   = 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x00,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x00,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x00,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x00,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x01,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness = 0x03,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time 		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a 	  = 0x41,
+		.nc_table_fmt_std_5x1f_y_c_gain 	  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x41,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x17,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x11,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x01,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x03,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0xc0,
+		.nc_table_arb_20x0d_ch_merge	  = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 1,
+
+		.nc_table_aoc_12x01_audio_mode 			= { 0x03, 0x03 },
+		.nc_table_aoc_12x02_aoc_clk_mode 		= { 0x00, 0x00 },
+		.nc_table_aoc_12x18_aoc_16k_mode 		= { 0x00, 0x10 },
+
+		.nc_table_aoc_12x07_aoc_start_line_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x08_aoc_start_line_low 	= { 0x12, 0x12 },
+		.nc_table_aoc_12x09_aoc_cat_whd 		= { 0x03, 0x03 },
+
+		.nc_table_aoc_12x11_aoc_saa_value 		= { 0x0a, 0x14 },
+		.nc_table_aoc_12x12_aoc_data_value_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x13_aoc_data_value_low 	= { 0x50, 0xa0 },
+		.nc_table_aoc_12x14_aoc_base_unit 		= { 0x13, 0x09 },
+		.nc_table_aoc_12x15_aoc_catch_point 	= { 0x08, 0x12 },
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x8b5010, 0x88b800, 0x84c060, 0x80a1b0, 0x7de290, 0x100000, 0x00, 0x00, 0x00, 0x00, 0x00 },
+//		.nc_table_eq_distance_value = { 0x156BA6, 0x155BA6, 0x154BA6, 0x153BA6, 0x152BA6, 0x151BA6, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		/** .nc_table_eq_distance_value = { 0x8a6d75, 0x8610c2, 0x820426, 0x7e0598, 0x7b437b, 0x3cad80, 0x00, 0x00, 0x00, 0x00, 0x00 }, */
+
+										//      0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_base_5x01_bypass 	 = { 0x62, 0x22, 0x22, 0x22, 0x22, 0x22, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x77, 0x57, 0x57, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x7b, 0x7f, 0x7f, 0x7f, 0x7f, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x91, 0x87, 0x89, 0x93, 0x94, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+									  //      0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0x00, 0x00, 0x00, 0x00, 0x00 },
+											   //      0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_color_0x10_contrast 		= { 0x81, 0x86, 0x88, 0x8b, 0x8e, 0x83, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, 0x82, 0x82, 0x82, 0x92, 0x92, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x44_u_gain 			= { 0xa3, 0xa2, 0xa3, 0xab, 0xa3, 0xb0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x48_v_gain 			= { 0xd8, 0xe0, 0xd8, 0xe6, 0xd8, 0xde, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level 	= { 0x80, 0x84, 0x84, 0x84, 0x84, 0x86, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xc0, 0xc0, 0xb8, 0xb8, 0xb0, 0xb0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, 0x80, 0x80, 0x80, 0x90, 0x90, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80 },
+	},
+
+
+
+
+	[ AHD_1080P_25P ] = {
+		.name = "AHD_1080P_25P",
+
+		.width 	= 1920,
+		.height = 1080,
+		.fmt_fps 		= FMT_25P,
+		.fmt_standard 	= FMT_AHD,
+		.fmt_resolution = FMT_1080P,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd 	= 0x03,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x00,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x02,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x40,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x00,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x00,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x00,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x00,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 	= 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x01,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x03,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain 	  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x41,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f ,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x17,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x11,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	   = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x03,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0xc0,
+		.nc_table_arb_20x0d_ch_merge	   = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 1,
+
+		.nc_table_aoc_12x01_audio_mode 		  	= { 0x00, 0x00 },
+		.nc_table_aoc_12x02_aoc_clk_mode 	  	= { 0x00, 0x00 },
+		.nc_table_aoc_12x18_aoc_16k_mode 	  	= { 0x00, 0x10 },
+
+		.nc_table_aoc_12x07_aoc_start_line_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x08_aoc_start_line_low 	= { 0x12, 0x12 },
+		.nc_table_aoc_12x09_aoc_cat_whd 		= { 0x03, 0x03 },
+
+		.nc_table_aoc_12x11_aoc_saa_value 		= { 0x0a, 0x14 },
+		.nc_table_aoc_12x12_aoc_data_value_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x13_aoc_data_value_low 	= { 0x50, 0xa0 },
+		.nc_table_aoc_12x14_aoc_base_unit 		= { 0x13, 0x09 },
+		.nc_table_aoc_12x15_aoc_catch_point 	= { 0x08, 0x12 },
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x8e5d50, 0x8b9e30, 0x8890f0, 0x84e770, 0x827670, 0x100000, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		/** .nc_table_eq_distance_value = { 0x8f84a2, 0x8b92ab, 0x88d29c, 0x84adc4, 0x819870, 0x4064ae, 0x00, 0x00, 0x00, 0x00, 0x00 }, */
+
+		.nc_table_eq_base_5x01_bypass    = { 0x62, 0x62, 0x22, 0x22, 0x22, 0x22, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x77, 0x67, 0x57, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x78, 0x7a, 0x7f, 0x7f, 0x7f, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_ax3d_deq_on    = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x92, 0x88, 0x89, 0x8e, 0x94, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0x00, 0x00, 0x00, 0x00, 0x00 },
+											   //      0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_color_0x10_contrast 		= { 0x80, 0x87, 0x8a, 0x8a, 0x8a, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, 0x82, 0x82, 0x82, 0x92, 0x92, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x44_u_gain 			= { 0xb1, 0xb1, 0xb1, 0xb1, 0xb4, 0xba, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x48_v_gain 			= { 0xf0, 0xf0, 0xf0, 0xe0, 0xe0, 0xe0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level 	= { 0x80, 0x84, 0x84, 0x84, 0x84, 0x86, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xc0, 0xc0, 0xb8, 0xb8, 0xb0, 0xb0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, 0x80, 0x80, 0x80, 0x90, 0x90, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88 },
+	},
+
+	[ AHD_1080P_30P ] = {
+		.name = "AHD_1080P_30P",
+
+		.width 	= 1920,
+		.height = 1080,
+		.fmt_fps 	= FMT_30P,
+		.fmt_standard 	= FMT_AHD,
+		.fmt_resolution = FMT_1080P,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd 	= 0x02,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x00,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x80,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x40,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b     = 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay   = 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x00,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x00,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x00,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x00,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x01,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness = 0x03,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time 		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a 	  = 0x41,
+		.nc_table_fmt_std_5x1f_y_c_gain 	  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x41,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x17,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x11,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x03,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0xc0,
+		.nc_table_arb_20x0d_ch_merge	  = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 1,
+
+		.nc_table_aoc_12x01_audio_mode 			= { 0x03, 0x03 },
+		.nc_table_aoc_12x02_aoc_clk_mode 		= { 0x00, 0x00 },
+		.nc_table_aoc_12x18_aoc_16k_mode 		= { 0x00, 0x10 },
+
+		.nc_table_aoc_12x07_aoc_start_line_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x08_aoc_start_line_low 	= { 0x12, 0x12 },
+		.nc_table_aoc_12x09_aoc_cat_whd 		= { 0x03, 0x03 },
+
+		.nc_table_aoc_12x11_aoc_saa_value 		= { 0x0a, 0x14 },
+		.nc_table_aoc_12x12_aoc_data_value_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x13_aoc_data_value_low 	= { 0x50, 0xa0 },
+		.nc_table_aoc_12x14_aoc_base_unit 		= { 0x13, 0x09 },
+		.nc_table_aoc_12x15_aoc_catch_point 	= { 0x08, 0x12 },
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x8b5010, 0x88b800, 0x84c060, 0x80a1b0, 0x7de290, 0x100000, 0x00, 0x00, 0x00, 0x00, 0x00 },
+//		.nc_table_eq_distance_value = { 0x156BA6, 0x155BA6, 0x154BA6, 0x153BA6, 0x152BA6, 0x151BA6, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		/** .nc_table_eq_distance_value = { 0x8a6d75, 0x8610c2, 0x820426, 0x7e0598, 0x7b437b, 0x3cad80, 0x00, 0x00, 0x00, 0x00, 0x00 }, */
+
+										//      0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_base_5x01_bypass 	 = { 0x62, 0x22, 0x22, 0x22, 0x22, 0x22, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x77, 0x57, 0x57, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x7b, 0x7f, 0x7f, 0x7f, 0x7f, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x91, 0x87, 0x89, 0x93, 0x94, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+									  //      0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0x00, 0x00, 0x00, 0x00, 0x00 },
+											   //      0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_color_0x10_contrast 		= { 0x81, 0x86, 0x88, 0x8b, 0x8e, 0x83, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, 0x82, 0x82, 0x82, 0x92, 0x92, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x44_u_gain 			= { 0xd0, 0xd0, 0xd0, 0xd0, 0xd0, 0xd0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x48_v_gain 			= { 0xea, 0xea, 0xea, 0xea, 0xea, 0xea, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level 	= { 0x80, 0x84, 0x84, 0x84, 0x84, 0x86, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xc0, 0xc0, 0xb8, 0xb8, 0xb0, 0xb0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, 0x80, 0x80, 0x80, 0x90, 0x90, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80 },
+	},
+
+	[ AHD_1080P_50P ] = {
+		.name = "AHD_1080P_50P",
+
+		.width 	= 1920,
+		.height = 1080,
+		.fmt_fps 		= FMT_50P,
+		.fmt_standard 	= FMT_AHD,
+		.fmt_resolution = FMT_1080P,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd 	= 0x03,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x0b,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x04,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x44,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x00,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x00,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x00,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x00,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 	= 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x01,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x03,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain 	  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x41,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f ,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x17,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x11,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	   = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x03,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0xc0,
+		.nc_table_arb_20x0d_ch_merge	   = 0x01,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 1,
+
+		.nc_table_aoc_12x01_audio_mode 		  	= { 0x00, 0x00 },
+		.nc_table_aoc_12x02_aoc_clk_mode 	  	= { 0x00, 0x00 },
+		.nc_table_aoc_12x18_aoc_16k_mode 	  	= { 0x00, 0x10 },
+
+		.nc_table_aoc_12x07_aoc_start_line_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x08_aoc_start_line_low 	= { 0x12, 0x12 },
+		.nc_table_aoc_12x09_aoc_cat_whd 		= { 0x03, 0x03 },
+
+		.nc_table_aoc_12x11_aoc_saa_value 		= { 0x0a, 0x14 },
+		.nc_table_aoc_12x12_aoc_data_value_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x13_aoc_data_value_low 	= { 0x50, 0xa0 },
+		.nc_table_aoc_12x14_aoc_base_unit 		= { 0x13, 0x09 },
+		.nc_table_aoc_12x15_aoc_catch_point 	= { 0x08, 0x12 },
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x355d50, 0x309e30, 0x2890f0, 0x24e770, 0x227670, 0x100000, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		/** .nc_table_eq_distance_value = { 0x8f84a2, 0x8b92ab, 0x88d29c, 0x84adc4, 0x819870, 0x4064ae, 0x00, 0x00, 0x00, 0x00, 0x00 }, */
+
+		.nc_table_eq_base_5x01_bypass    = { 0x62, 0x62, 0x22, 0x22, 0x22, 0x22, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x77, 0x67, 0x57, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x78, 0x7a, 0x7f, 0x7f, 0x7f, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_ax3d_deq_on    = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x92, 0x88, 0x89, 0x8e, 0x94, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0x00, 0x00, 0x00, 0x00, 0x00 },
+											   //      0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_color_0x10_contrast 		= { 0x80, 0x87, 0x8a, 0x8a, 0x8a, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, 0x82, 0x82, 0x82, 0x92, 0x92, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level 	= { 0x80, 0x84, 0x84, 0x84, 0x84, 0x86, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xc0, 0xc0, 0xb8, 0xb8, 0xb0, 0xb0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, 0x80, 0x80, 0x80, 0x90, 0x90, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88 },
+	},
+
+	[ AHD_1080P_60P ] = {
+		.name = "AHD_1080P_60P",
+
+		.width 	= 1920,
+		.height = 1080,
+		.fmt_fps 	= FMT_60P,
+		.fmt_standard 	= FMT_AHD,
+		.fmt_resolution = FMT_1080P,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd 	= 0x02,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x0b,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x04,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x44,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b     = 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay   = 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x00,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x00,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x00,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x00,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x01,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness = 0x03,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time 		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a 	  = 0x41,
+		.nc_table_fmt_std_5x1f_y_c_gain 	  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x41,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x17,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x11,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x03,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0xc0,
+		.nc_table_arb_20x0d_ch_merge	  = 0x01,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 1,
+
+		.nc_table_aoc_12x01_audio_mode 			= { 0x03, 0x03 },
+		.nc_table_aoc_12x02_aoc_clk_mode 		= { 0x00, 0x00 },
+		.nc_table_aoc_12x18_aoc_16k_mode 		= { 0x00, 0x10 },
+
+		.nc_table_aoc_12x07_aoc_start_line_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x08_aoc_start_line_low 	= { 0x12, 0x12 },
+		.nc_table_aoc_12x09_aoc_cat_whd 		= { 0x03, 0x03 },
+
+		.nc_table_aoc_12x11_aoc_saa_value 		= { 0x0a, 0x14 },
+		.nc_table_aoc_12x12_aoc_data_value_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x13_aoc_data_value_low 	= { 0x50, 0xa0 },
+		.nc_table_aoc_12x14_aoc_base_unit 		= { 0x13, 0x09 },
+		.nc_table_aoc_12x15_aoc_catch_point 	= { 0x08, 0x12 },
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x355d50, 0x309e30, 0x2890f0, 0x24e770, 0x227670, 0x100000, 0x00, 0x00, 0x00, 0x00, 0x00 },
+//		.nc_table_eq_distance_value = { 0x156BA6, 0x155BA6, 0x154BA6, 0x153BA6, 0x152BA6, 0x151BA6, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		/** .nc_table_eq_distance_value = { 0x8a6d75, 0x8610c2, 0x820426, 0x7e0598, 0x7b437b, 0x3cad80, 0x00, 0x00, 0x00, 0x00, 0x00 }, */
+
+										//      0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_base_5x01_bypass 	 = { 0x62, 0x22, 0x22, 0x22, 0x22, 0x22, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x77, 0x57, 0x57, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x7b, 0x7f, 0x7f, 0x7f, 0x7f, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x91, 0x87, 0x89, 0x93, 0x94, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+									  //      0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0x00, 0x00, 0x00, 0x00, 0x00 },
+											   //      0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_color_0x10_contrast 		= { 0x81, 0x86, 0x88, 0x8b, 0x8e, 0x83, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, 0x82, 0x82, 0x82, 0x92, 0x92, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level 	= { 0x80, 0x84, 0x84, 0x84, 0x84, 0x86, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xc0, 0xc0, 0xb8, 0xb8, 0xb0, 0xb0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, 0x80, 0x80, 0x80, 0x90, 0x90, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78 },
+	},
+
+	[ AHD_3M_18P ] = {
+		.name = "AHD_3M_18P",
+
+		.width 	= 2048,
+		.height = 1536,
+		.fmt_fps 		= FMT_18P,
+		.fmt_standard 	= FMT_AHD,
+		.fmt_resolution = FMT_3M,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x04,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x04,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x02,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x40,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x16,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x68,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x69,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto   = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x0a,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f ,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x16,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x11,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x04,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x00,
+		.nc_table_arb_20x0d_ch_merge		  = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x8ed280, 0x8b9e30, 0x87cda0, 0x847240, 0x80efd0, 0x100000, 0, 0, 0, 0, 0 },
+		/** .nc_table_eq_distance_value = { 0x8d6c7e, 0x8a02d1, 0x8657cd, 0x833190, 0x7ebd9d, 0x3d52f5, 0, 0, 0, 0, 0 }, */
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x62, 0x22, 0x22, 0x22, 0x22, 0x22, },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x77, 0x57, 0x57, },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x7b, 0x7f, 0x7f, 0x7f, 0x7f, },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x91, 0x87, 0x89, 0x93, 0x94, },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, },
+
+		.nc_table_eq_color_0x10_contrast 	   = { 0x86, 0x82, 0x82, 0x7e, 0x7c, 0x77, },
+		.nc_table_eq_color_0x18_h_peaking 	   = { 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, },
+		.nc_table_eq_color_0x21_c_filter 	   = { 0x82, 0x82, 0x92, 0x92, 0xa2, 0xb2, },
+		.nc_table_eq_color_0x40_hue 		   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, },
+		.nc_table_eq_color_0x44_u_gain 		   = { 0x10, 0x10, 0x04, 0xfc, 0xfc, 0xfc, },
+		.nc_table_eq_color_0x48_v_gain 		   = { 0x10, 0x10, 0x04, 0xf4, 0x08, 0x08, },
+		.nc_table_eq_color_0x4c_u_offset 	   = { 0xfb, 0xfb, 0xfb, 0xfb, 0xfb, 0xfe, },
+		.nc_table_eq_color_0x50_v_offset 	   = { 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xfb, },
+		.nc_table_eq_color_5x20_black_level    = { 0x80, 0x81, 0x81, 0x83, 0x85, 0x87, },
+		.nc_table_eq_color_5x27_acc_ref 	   = { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, },
+		.nc_table_eq_color_5x28_cti_delay 	   = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,  },
+		.nc_table_eq_color_5x2b_sub_saturation = { 0xa8, 0xa8, 0xa8, 0xa8, 0x90, 0x90,  },
+		.nc_table_eq_color_5xd5_c_option 	   = { 0x80, 0x80, 0x90, 0x90, 0x90, 0xa0, },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, },
+
+	},
+
+	[ AHD_3M_25P ] = {
+		.name = "AHD_3M_25P",
+
+		.width 	= 2048,
+		.height = 1536,
+		.fmt_fps 		= FMT_25P,
+		.fmt_standard 	= FMT_AHD,
+		.fmt_resolution = FMT_3M,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x03,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x04,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x05,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x44,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x16,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x68,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x69,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 	= 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x0a,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f ,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x17,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x04,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x00,
+		.nc_table_arb_20x0d_ch_merge		  = 0x01,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 1,
+
+		.nc_table_aoc_12x01_audio_mode 			= { 0x00, 0x00 },
+		.nc_table_aoc_12x02_aoc_clk_mode 		= { 0x10, 0x10 },
+		.nc_table_aoc_12x18_aoc_16k_mode 		= { 0x00, 0x10 },
+
+		.nc_table_aoc_12x07_aoc_start_line_high = { 0x06, 0x06 },
+		.nc_table_aoc_12x08_aoc_start_line_low 	= { 0x6a, 0x6a },
+		.nc_table_aoc_12x09_aoc_cat_whd 		= { 0x03, 0x03 },
+
+		.nc_table_aoc_12x11_aoc_saa_value 		= { 0x0a, 0x14 },
+		.nc_table_aoc_12x12_aoc_data_value_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x13_aoc_data_value_low 	= { 0x50, 0xa0 },
+		.nc_table_aoc_12x14_aoc_base_unit 		= { 0x13, 0x09 },
+		.nc_table_aoc_12x15_aoc_catch_point 	= { 0x08, 0x12 },
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x931840, 0x8f6ec0, 0x8b9e30, 0x8842d0, 0x8583b0, 0x100000, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x67, 0x57, 0x57, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x7b, 0x7f, 0x7e, 0x7f, 0x7f, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x91, 0x93, 0x98, 0x98, 0x98, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_color_0x10_contrast 		= { 0x80, 0x7c, 0x79, 0x75, 0x70, 0x7a, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, 0x82, 0x92, 0x92, 0xa2, 0xb2, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x40_hue 			= { 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x10, 0x10, 0x04, 0xfc, 0xfc, 0xfc, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x10, 0x10, 0x04, 0xf4, 0x08, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0xfb, 0xfb, 0xfb, 0xfb, 0xfb, 0xfb, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset 		= { 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level 	= { 0x80, 0x82, 0x82, 0x85, 0x89, 0x8c, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xb0, 0xb0, 0xa0, 0xd0, 0xb4, 0x90, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, 0x80, 0x80, 0x90, 0x90, 0x90, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x00, 0x00, 0x00, 0x00, 0x00 },
+	},
+
+	[ AHD_3M_30P ] = {
+		.name = "AHD_3M_30P",
+
+		.width 	= 2048,
+		.height = 1536,
+		.fmt_fps 		= FMT_30P,
+		.fmt_standard 	= FMT_AHD,
+		.fmt_resolution = FMT_3M,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x02,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x04,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x05,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x44,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b     = 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay   = 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x16,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x68,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x69,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 	 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 	 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 	 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 	 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 	 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x0a,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x10,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f ,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x17,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x04,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x00,
+		.nc_table_arb_20x0d_ch_merge		  = 0x01,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 1,
+
+		.nc_table_aoc_12x01_audio_mode 	 = { 0x03, 0x03 },
+		.nc_table_aoc_12x02_aoc_clk_mode = { 0x10, 0x10 },
+		.nc_table_aoc_12x18_aoc_16k_mode = { 0x00, 0x10 },
+
+		.nc_table_aoc_12x07_aoc_start_line_high = { 0x06, 0x06 },
+		.nc_table_aoc_12x08_aoc_start_line_low  = { 0x6a, 0x6a },
+		.nc_table_aoc_12x09_aoc_cat_whd 		= { 0x03, 0x03 },
+
+		.nc_table_aoc_12x11_aoc_saa_value 		= { 0x0a, 0x14 },
+		.nc_table_aoc_12x12_aoc_data_value_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x13_aoc_data_value_low  = { 0x50, 0xa0 },
+		.nc_table_aoc_12x14_aoc_base_unit 		= { 0x13, 0x09 },
+		.nc_table_aoc_12x15_aoc_catch_point	 	= { 0x08, 0x12 },
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x927c00, 0x8eab70, 0x8adae0, 0x87cda0, 0x84c060, 0x100000, },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x67, 0x57, 0x57, },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x7b, 0x7f, 0x7e, 0x7f, 0x7f, },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x91, 0x93, 0x98, 0x98, 0x98, },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, },
+
+		.nc_table_eq_color_0x10_contrast 		= { 0x80, 0x7c, 0x79, 0x75, 0x70, 0x7a, },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, 0x82, 0x92, 0x92, 0xa2, 0xb2, },
+		.nc_table_eq_color_0x40_hue 			= { 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x10, 0x10, 0x04, 0xfc, 0xfc, 0xfc, },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x10, 0x10, 0x04, 0xf4, 0x08, 0x08, },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0xfb, 0xfb, 0xfb, 0xfb, 0xfb, 0xfb, },
+		.nc_table_eq_color_0x50_v_offset 		= { 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, },
+		.nc_table_eq_color_5x20_black_level 	= { 0x80, 0x82, 0x82, 0x85, 0x89, 0x8c, },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xb0, 0xb0, 0xa0, 0xd0, 0xb4, 0x90, },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, 0x80, 0x80, 0x90, 0x90, 0x90, },
+
+		.nc_table_eq_timing_0x58_h_delay_a 		= { 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, },
+	},
+
+	[ AHD_4M_15P ] = {
+		.name = "AHD_4M_15P",
+
+		.width 	= 2560,
+		.height = 1440,
+		.fmt_fps 		= FMT_15P,
+		.fmt_standard 	= FMT_AHD,
+		.fmt_resolution = FMT_4M,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x0A,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x04,
+
+		.nc_table_fmt_std_clock_1x84_vadc     = 0x02,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x40,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a = 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b = 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c = 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b  = 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay   = 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x15,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0xd2,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x33,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto    	 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode  	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path   	 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x09,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation       = 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x41,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x16,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x11,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x05,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x00,
+		.nc_table_arb_20x0d_ch_merge		  = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 1,
+
+		.nc_table_aoc_12x01_audio_mode 			= { 0x03, 0x03 },
+		.nc_table_aoc_12x02_aoc_clk_mode 		= { 0x00, 0x00 },
+		.nc_table_aoc_12x18_aoc_16k_mode 		= { 0x00, 0x11 },
+
+		.nc_table_aoc_12x07_aoc_start_line_high = { 0x05, 0x05 },
+		.nc_table_aoc_12x08_aoc_start_line_low 	= { 0xd4, 0xd4 },
+		.nc_table_aoc_12x09_aoc_cat_whd 		= { 0x03, 0x03 },
+
+		.nc_table_aoc_12x11_aoc_saa_value 		= { 0x0a, 0x14 },
+		.nc_table_aoc_12x12_aoc_data_value_high = { 0x00, 0x01 },
+		.nc_table_aoc_12x13_aoc_data_value_low 	= { 0xa0, 0x40 },
+		.nc_table_aoc_12x14_aoc_base_unit 		= { 0x0b, 0x05 },
+		.nc_table_aoc_12x15_aoc_catch_point 	= { 0x08, 0x12 },
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x8e3640, 0x8b9e30, 0x87f4b0, 0x84faf8, 0x822850, 0x100000, },
+										//      0,    1,    2,    3,    4,    5
+		.nc_table_eq_base_5x01_bypass    = { 0x62, 0x22, 0x22, 0x22, 0x22, 0x22, },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x77, 0x57, 0x57, },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x7b, 0x7f, 0x7f, 0x7f, 0x7f, },
+		.nc_table_eq_base_ax3d_deq_on    = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x91, 0x87, 0x89, 0x93, 0x94, },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, },
+									  //      0,    1,    2,    3,    4,    5
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, },
+											   //      0,    1,    2,    3,    4,    5
+		.nc_table_eq_color_0x10_contrast 		= { 0x86, 0x82, 0x82, 0x7e, 0x7c, 0x77, },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x10, 0x10, 0x04, 0xfc, 0xfc, 0xfc, },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x10, 0x10, 0x04, 0xf4, 0x08, 0x08, },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0xfb, 0xfb, 0xfb, 0xfb, 0xfb, 0xfe, },
+		.nc_table_eq_color_0x50_v_offset 		= { 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xfb, },
+		.nc_table_eq_color_5x20_black_level 	= { 0x80, 0x81, 0x81, 0x83, 0x85, 0x87, },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xa8, 0xa8, 0xa8, 0xa8, 0x90, 0x90, },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, 0x80, 0x90, 0x90, 0x90, 0xa0, },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, },
+	},
+
+	[ AHD_4M_25P ] = {
+		.name = "AHD_4M_25P",
+
+		.width 	= 2560,
+		.height = 1440,
+		.fmt_fps 		= FMT_25P,
+		.fmt_standard 	= FMT_AHD,
+		.fmt_resolution = FMT_4M,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x0f,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x00,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x05,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x44,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x15,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0xd2,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x33,
+
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 	= 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x09,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation = 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x41,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x17,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x05,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x00,
+		.nc_table_arb_20x0d_ch_merge		  = 0x01,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 1,
+
+		.nc_table_aoc_12x01_audio_mode 			= { 0x00, 0x00 },
+		.nc_table_aoc_12x02_aoc_clk_mode 		= { 0x10, 0x10 },
+		.nc_table_aoc_12x18_aoc_16k_mode 		= { 0x00, 0x10 },
+
+		.nc_table_aoc_12x07_aoc_start_line_high = { 0x05, 0x05 },
+		.nc_table_aoc_12x08_aoc_start_line_low 	= { 0xd4, 0xd4 },
+		.nc_table_aoc_12x09_aoc_cat_whd 		= { 0x03, 0x03 },
+
+		.nc_table_aoc_12x11_aoc_saa_value 		= { 0x0a, 0x14 },
+		.nc_table_aoc_12x12_aoc_data_value_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x13_aoc_data_value_low 	= { 0x50, 0xa0 },
+		.nc_table_aoc_12x14_aoc_base_unit 		= { 0x17, 0x0b },
+		.nc_table_aoc_12x15_aoc_catch_point 	= { 0x08, 0x12 },
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x92a310, 0x8f6ec0, 0x8adae0, 0x876bf8, 0x84c060, 0x100000, },
+										//      0,    1,    2,    3,    4,    5
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x67, 0x67, 0x57, 0x57, },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x7a, 0x78, 0x7c, 0x7e, 0x7f, },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x91, 0x93, 0x98, 0x98, 0x98,  },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, },
+									  //      0,    1,    2,    3,    4,    5
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, },
+											   //      0,    1,    2,    3,    4,    5
+		.nc_table_eq_color_0x10_contrast 		= { 0xa0, 0x9c, 0x90, 0x95, 0x90, 0x8a, },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, 0x82, 0x92, 0x92, 0xa2, 0xb2, },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, },
+		.nc_table_eq_color_0x44_u_gain 			= { 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, },
+		.nc_table_eq_color_0x48_v_gain 			= { 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0xfb, 0xfc, 0xfc, 0xfc, 0xfc, 0xfc, },
+		.nc_table_eq_color_0x50_v_offset 		= { 0xfa, 0xfa, 0xfa, 0xfa, 0xfa, 0xfa, },
+		.nc_table_eq_color_5x20_black_level 	= { 0x80, 0x8a, 0x8c, 0x8d, 0x91, 0x94, },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xf0, 0xe0, 0xd0, 0xe0, 0xe4, 0xc0, },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, 0x80, 0x80, 0x90, 0x90, 0x90, },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, },
+
+	},
+
+	[ AHD_4M_30P ] = {
+		.name = "AHD_4M_30P",
+
+		.width 	= 2560,
+		.height = 1440,
+		.fmt_fps 		= FMT_30P,
+		.fmt_standard 	= FMT_AHD,
+		.fmt_resolution = FMT_4M,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x0e,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x00,
+
+		.nc_table_fmt_std_clock_1x84_vadc     = 0x05,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x44,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay   = 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x15,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0xd2,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x33,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto   = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x09,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x17,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x05,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x00,
+		.nc_table_arb_20x0d_ch_merge		  = 0x01,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 1,
+
+		.nc_table_aoc_12x01_audio_mode 			= { 0x03, 0x03 },
+		.nc_table_aoc_12x02_aoc_clk_mode 		= { 0x10, 0x10 },
+		.nc_table_aoc_12x18_aoc_16k_mode 		= { 0x00, 0x10 },
+
+		.nc_table_aoc_12x07_aoc_start_line_high = { 0x05, 0x05 },
+		.nc_table_aoc_12x08_aoc_start_line_low 	= { 0xd4, 0xd4 },
+		.nc_table_aoc_12x09_aoc_cat_whd 		= { 0x03, 0x03 },
+
+		.nc_table_aoc_12x11_aoc_saa_value 		= { 0x0a, 0x14 },
+		.nc_table_aoc_12x12_aoc_data_value_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x13_aoc_data_value_low 	= { 0x50, 0xa0 },
+		.nc_table_aoc_12x14_aoc_base_unit 		= { 0x17, 0x0b },
+		.nc_table_aoc_12x15_aoc_catch_point 	= { 0x08, 0x12 },
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x91b8b0, 0x8de820, 0x8842d0, 0x8583b0, 0x827670, 0x100000, },
+										//      0,    1,    2,    3,    4,    5,
+		.nc_table_eq_base_5x01_bypass    = { 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x67, 0x57, 0x57, },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x78, 0x7f, 0x7c, 0x7e, 0x7e, },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x91, 0x93, 0x98, 0x98, 0x98,  },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, },
+									  //      0,    1,    2,    3,    4,    5,
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, },
+											   //      0,    1,    2,    3,    4,    5,
+		.nc_table_eq_color_0x10_contrast 		= { 0xa0, 0x9c, 0x90, 0x95, 0x90, 0x8a, },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, 0x82, 0x92, 0x92, 0xa2, 0xb2, },
+		.nc_table_eq_color_0x40_hue 			= { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, },
+		.nc_table_eq_color_0x44_u_gain 			= { 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, },
+		.nc_table_eq_color_0x48_v_gain 			= { 0xc8, 0xc8, 0xc8, 0xc8, 0xc8, 0xc8, },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0xfc, 0xfc, 0xfc, 0xfc, 0xfc, 0xfc, },
+		.nc_table_eq_color_0x50_v_offset 		= { 0xfa, 0xfa, 0xfa, 0xfa, 0xfa, 0xfa, },
+		.nc_table_eq_color_5x20_black_level 	= { 0x8c, 0x8a, 0x8c, 0x8d, 0x91, 0x94, },
+		.nc_table_eq_color_5x27_acc_ref 	    = { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, },
+		.nc_table_eq_color_5x28_cti_delay 	    = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xe0, 0xe0, 0xd0, 0xe0, 0xe4, 0xc0, },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, 0x80, 0x80, 0x90, 0x90, 0x90, },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, },
+	},
+
+	[ AHD_5M_12_5P ] = {
+		.name = "AHD_5M_12_5P",
+
+		.width  = 2592,
+		.height = 1944,
+		.fmt_fps 		= FMT_12_5P,
+		.fmt_standard 	= FMT_AHD,
+		.fmt_resolution = FMT_5M,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x00,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x05,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x02,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x40,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x17,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0xb4,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x1d,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 	= 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 	 	 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x08,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f ,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x16,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x11,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x05,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x10,
+		.nc_table_arb_20x0d_ch_merge		  = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 1,
+
+		.nc_table_aoc_12x01_audio_mode 			= { 0x00, 0x00 },
+		.nc_table_aoc_12x02_aoc_clk_mode 		= { 0x00, 0x00 },
+		.nc_table_aoc_12x18_aoc_16k_mode 		= { 0x00, 0x10 },
+
+		.nc_table_aoc_12x07_aoc_start_line_high = { 0x07, 0x07 },
+		.nc_table_aoc_12x08_aoc_start_line_low 	= { 0xb6, 0xb6 },
+		.nc_table_aoc_12x09_aoc_cat_whd 		= { 0x03, 0x03 },
+
+		.nc_table_aoc_12x11_aoc_saa_value 		= { 0x0a, 0x14 },
+		.nc_table_aoc_12x12_aoc_data_value_high = { 0x00, 0x01 },
+		.nc_table_aoc_12x13_aoc_data_value_low 	= { 0xa0, 0x40 },
+		.nc_table_aoc_12x14_aoc_base_unit 		= { 0x0b, 0x05 },
+		.nc_table_aoc_12x15_aoc_catch_point 	= { 0x08, 0x12 },
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x8ed280, 0x8b9e30, 0x877f80, 0x83fd10, 0x80efd0, 0x100000, },
+										//      0,    1,    2,    3,    4,    5,
+		.nc_table_eq_base_5x01_bypass 	 = { 0x62, 0x22, 0x22, 0x22, 0x22, 0x22, },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x77, 0x57, 0x57, },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x7b, 0x7f, 0x7f, 0x7f, 0x7f, },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x91, 0x87, 0x89, 0x93, 0x94, },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, },
+									  //      0,    1,    2,    3,    4,    5,
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, },
+											   //      0,    1,    2,    3,    4,    5,
+		.nc_table_eq_color_0x10_contrast 		= { 0x86, 0x82, 0x82, 0x7e, 0x7c, 0x77, },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, 0x82, 0x92, 0x92, 0xa2, 0xb2, },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x10, 0x10, 0x04, 0xfc, 0xfc, 0xfc, },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x10, 0x10, 0x04, 0xf4, 0x08, 0x08, },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0xfb, 0xfb, 0xfb, 0xfb, 0xfb, 0xfe, },
+		.nc_table_eq_color_0x50_v_offset 		= { 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xfb, },
+		.nc_table_eq_color_5x20_black_level 	= { 0x80, 0x81, 0x81, 0x83, 0x85, 0x87, },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xa8, 0xa8, 0xa8, 0xa8, 0x90, 0x90, },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, 0x80, 0x90, 0x90, 0x90, 0xa0, },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, },
+	},
+
+	[ AHD_5M_20P ] = {
+		.name = "AHD_5M_20P",
+
+		.width 	= 2592,
+		.height = 1944,
+		.fmt_fps 		= FMT_20P,
+		.fmt_standard 	= FMT_AHD,
+		.fmt_resolution = FMT_5M,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x01,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x05,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x05,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x44,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x17,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0xb4,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x1d,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 	= 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x08,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f ,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x17,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	   = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x05,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x10,
+		.nc_table_arb_20x0d_ch_merge	   = 0x01,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 1,
+
+		.nc_table_aoc_12x01_audio_mode 			= { 0x00, 0x00 },
+		.nc_table_aoc_12x02_aoc_clk_mode 		= { 0x10, 0x10 },
+		.nc_table_aoc_12x18_aoc_16k_mode 		= { 0x00, 0x10 },
+
+		.nc_table_aoc_12x07_aoc_start_line_high = { 0x07, 0x07 },
+		.nc_table_aoc_12x08_aoc_start_line_low 	= { 0xb6, 0xb6 },
+		.nc_table_aoc_12x09_aoc_cat_whd 		= { 0x03, 0x03 },
+
+		.nc_table_aoc_12x11_aoc_saa_value 		= { 0x0a, 0x14 },
+		.nc_table_aoc_12x12_aoc_data_value_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x13_aoc_data_value_low 	= { 0x64, 0xc8 },
+		.nc_table_aoc_12x14_aoc_base_unit 		= { 0x13, 0x09 },
+		.nc_table_aoc_12x15_aoc_catch_point 	= { 0x08, 0x12 },
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x9402a0, 0x903210, 0x8c3a70, 0x881bc0, 0x8583b0, 0x100000, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		/** .nc_table_eq_distance_value = { 0x9301eb, 0x8f344a, 0x8abba3, 0x875829, 0x8302d3, 0x3f4f3c, 0x00, 0x00, 0x00, 0x00, 0x00 }, */
+                                         //     0,    1,    2,    3,    4,    5,
+		.nc_table_eq_base_5x01_bypass    = { 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x67, 0x57, 0x57, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x7b, 0x7f, 0x7e, 0x7f, 0x7f, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_ax3d_deq_on    = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x91, 0x93, 0x98, 0x98, 0x98, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		 	 	 	 	 	 	 	   //     0,    1,    2,    3,    4,    5,
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0x00, 0x00, 0x00, 0x00, 0x00 },
+											   //     0,    1,    2,    3,    4,    5,
+		.nc_table_eq_color_0x10_contrast  	   = { 0x8b, 0x87, 0x8b, 0x80, 0x7b, 0x75, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x18_h_peaking 	   = { 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x21_c_filter 	   = { 0x82, 0x82, 0x92, 0x92, 0xa2, 0xb2, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x40_hue 		   = { 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x44_u_gain 		   = { 0x70, 0x70, 0x64, 0x5c, 0x5c, 0x5c, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x48_v_gain 		   = { 0x10, 0x10, 0x04, 0xf4, 0x08, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x4c_u_offset 	   = { 0xfc, 0xfc, 0xfc, 0xfc, 0xfc, 0xfc, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset       = { 0xf7, 0xf7, 0xf7, 0xf7, 0xf7, 0xf7, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level    = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x27_acc_ref 	   = { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x28_cti_delay 	   = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x2b_sub_saturation = { 0xe8, 0xe8, 0xd8, 0xf8, 0xe8, 0x90, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5xd5_c_option 	   = { 0x80, 0x80, 0xa0, 0x90, 0x90, 0x90, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78 },
+	},
+
+	[ AHD_5_3M_20P ] = {
+		.name = "AHD_5_3M_20P",
+
+		.width 	= 3072,
+		.height = 1728,
+		.fmt_fps 		= FMT_20P,
+		.fmt_standard 	= FMT_AHD,
+		.fmt_resolution = FMT_5_3M,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x03,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x05,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x05,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x44,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x10,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x02,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x17,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x4d,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x8e,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 	= 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x08,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f ,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x17,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	   = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x06,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x00,
+		.nc_table_arb_20x0d_ch_merge	   = 0x01,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 1,
+
+		.nc_table_aoc_12x01_audio_mode 			= { 0x00, 0x00 },
+		.nc_table_aoc_12x02_aoc_clk_mode 		= { 0x10, 0x10 },
+		.nc_table_aoc_12x18_aoc_16k_mode 		= { 0x00, 0x10 },
+
+		.nc_table_aoc_12x07_aoc_start_line_high = { 0x07, 0x07 },
+		.nc_table_aoc_12x08_aoc_start_line_low 	= { 0x4d, 0x4d },
+		.nc_table_aoc_12x09_aoc_cat_whd 		= { 0x03, 0x03 },
+
+		.nc_table_aoc_12x11_aoc_saa_value 		= { 0x0a, 0x14 },
+		.nc_table_aoc_12x12_aoc_data_value_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x13_aoc_data_value_low 	= { 0x64, 0xc8 },
+		.nc_table_aoc_12x14_aoc_base_unit 		= { 0x17, 0x0b },
+		.nc_table_aoc_12x15_aoc_catch_point 	= { 0x08, 0x12 },
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x933f50, 0x903210, 0x8b9e30, 0x87cda0, 0x84c060, 0x100000, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x67, 0x57, 0x57, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x7b, 0x7f, 0x7e, 0x7f, 0x7f, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x91, 0x93, 0x98, 0x98, 0x98, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_color_0x10_contrast 	   = { 0x8b, 0x87, 0x8b, 0x80, 0x7b, 0x75, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x18_h_peaking 	   = { 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x21_c_filter 	   = { 0x82, 0x82, 0x92, 0x92, 0xa2, 0xb2, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x40_hue 		   = { 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x44_u_gain 		   = { 0x70, 0x70, 0x64, 0x5c, 0x5c, 0x5c, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x48_v_gain 		   = { 0x10, 0x10, 0x04, 0xf4, 0x08, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x4c_u_offset 	   = { 0xfc, 0xfc, 0xfc, 0xfc, 0xfc, 0xfc, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset 	   = { 0xf7, 0xf7, 0xf7, 0xf7, 0xf7, 0xf7, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level    = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x27_acc_ref 	   = { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x28_cti_delay 	   = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x2b_sub_saturation = { 0xe8, 0xe8, 0xd8, 0xf8, 0xe8, 0x90, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5xd5_c_option 	   = { 0x80, 0x80, 0xa0, 0x90, 0x90, 0x90, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x00, 0x00, 0x00, 0x00, 0x00 },
+	},
+
+	[ AHD_8M_7_5P ] = {
+		.name = "AHD_8M_7_5P",
+
+		.width 	= 3840,
+		.height = 2160,
+		.fmt_fps 		= FMT_7_5P,
+		.fmt_standard 	= FMT_AHD,
+		.fmt_resolution = FMT_8M,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x00,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x08,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x02,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x40,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x30,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x05,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x18,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0xc1,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x52,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 	= 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x09,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain 	  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f ,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x10,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x07,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x80,
+		.nc_table_arb_20x0d_ch_merge		  = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x8f20a0, 0x8b9e30, 0x876428, 0x844b30, 0x805390, 0x100000, 0x0, 0x0, 0x0, 0x0, 0x0 },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x62, 0x22, 0x22, 0x22, 0x22, 0x22, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x77, 0x57, 0x57, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x7b, 0x7f, 0x7f, 0x7f, 0x7f, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x91, 0x87, 0x89, 0x93, 0x94, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_color_0x10_contrast 		= { 0x86, 0x82, 0x82, 0x7e, 0x7c, 0x77, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, 0x82, 0x92, 0x92, 0xa2, 0xb2, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x10, 0x10, 0x04, 0xfc, 0xfc, 0xfc, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x10, 0x10, 0x04, 0xf4, 0x08, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0xfb, 0xfb, 0xfb, 0xfb, 0xfb, 0xfe, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset 		= { 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xfb, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level 	= { 0x80, 0x81, 0x81, 0x83, 0x85, 0x87, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x27_acc_ref	 		= { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xa8, 0xa8, 0xa8, 0xa8, 0x90, 0x90, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, 0x80, 0x90, 0x90, 0x90, 0xa0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x50, 0x50, 0x50, 0x50, 0x50, 0x50, 0x50, 0x50, 0x50, 0x50, 0x50 },
+	},
+
+	[ AHD_8M_12_5P ] = {
+		.name = "AHD_8M_12_5P",
+
+		.width 	= 3840,
+		.height = 2160,
+		.fmt_fps 		= FMT_12_5P,
+		.fmt_standard 	= FMT_AHD,
+		.fmt_resolution = FMT_8M,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x01,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x08,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x04,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x44,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x18,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0xc1,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x52,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 	= 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x00,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain 	  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x17,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	   = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x07,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x80,
+		.nc_table_arb_20x0d_ch_merge	   = 0x01,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 1,
+
+		.nc_table_aoc_12x01_audio_mode 			= { 0x00, 0x00 },
+		.nc_table_aoc_12x02_aoc_clk_mode 		= { 0x10, 0x10 },
+		.nc_table_aoc_12x18_aoc_16k_mode 		= { 0x00, 0x10 },
+
+		.nc_table_aoc_12x07_aoc_start_line_high = { 0x08, 0x08 },
+		.nc_table_aoc_12x08_aoc_start_line_low 	= { 0xc4, 0xc4 },
+		.nc_table_aoc_12x09_aoc_cat_whd 		= { 0x03, 0x03 },
+
+		.nc_table_aoc_12x11_aoc_saa_value 		= { 0x0a, 0x14 },
+		.nc_table_aoc_12x12_aoc_data_value_high = { 0x00, 0x01 },
+		.nc_table_aoc_12x13_aoc_data_value_low 	= { 0xa0, 0x40 },
+		.nc_table_aoc_12x14_aoc_base_unit 		= { 0x13, 0x09 },
+		.nc_table_aoc_12x15_aoc_catch_point 	= { 0x08, 0x12 },
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x93b480, 0x903210, 0x8bc540, 0x877f80, 0x8583b0, 0x100000, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x62, 0x22, 0x22, 0x22, 0x22, 0x22, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x77, 0x57, 0x57, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x7b, 0x7f, 0x7f, 0x7f, 0x7f, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x91, 0x87, 0x89, 0x93, 0x94, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_color_0x10_contrast 		= { 0x86, 0x82, 0x82, 0x7e, 0x7c, 0x77, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, 0x82, 0x92, 0x92, 0xa2, 0xb2, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x10, 0x10, 0x04, 0xfc, 0xfc, 0xfc, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x10, 0x10, 0x04, 0xf4, 0x08, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0xfb, 0xfb, 0xfb, 0xfb, 0xfb, 0xfe, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset 		= { 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xfb, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level 	= { 0x80, 0x81, 0x81, 0x83, 0x85, 0x87, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x27_acc_ref	 		= { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xa8, 0xa8, 0xa8, 0xa8, 0x90, 0x90, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, 0x80, 0x90, 0x90, 0x90, 0xa0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00 },
+	},
+
+	[ AHD_8M_15P ] = {
+		.name = "AHD_8M_15P",
+
+		.width 	= 3840,
+		.height = 2160,
+		.fmt_fps 		= FMT_15P,
+		.fmt_standard 	= FMT_AHD,
+		.fmt_resolution = FMT_8M,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x02,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x08,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x05,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x44,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay   = 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x18,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0xc1,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x52,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x01,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x09,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain 	  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x17,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x07,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x80,
+		.nc_table_arb_20x0d_ch_merge		  = 0x01,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 1,
+
+		.nc_table_aoc_12x01_audio_mode 			= { 0x03, 0x03 },
+		.nc_table_aoc_12x02_aoc_clk_mode 		= { 0x10, 0x10 },
+		.nc_table_aoc_12x18_aoc_16k_mode 		= { 0x00, 0x11 },
+
+		.nc_table_aoc_12x07_aoc_start_line_high = { 0x08, 0x08 },
+		.nc_table_aoc_12x08_aoc_start_line_low 	= { 0xc4, 0xc4 },
+		.nc_table_aoc_12x09_aoc_cat_whd 		= { 0x03, 0x03 },
+
+		.nc_table_aoc_12x11_aoc_saa_value 		= { 0x0a, 0x14 },
+		.nc_table_aoc_12x12_aoc_data_value_high = { 0x00, 0x01 },
+		.nc_table_aoc_12x13_aoc_data_value_low 	= { 0xa0, 0x40 },
+		.nc_table_aoc_12x14_aoc_base_unit 		= { 0x13, 0x09 },
+		.nc_table_aoc_12x15_aoc_catch_point 	= { 0x08, 0x12 },
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x37b1d0, 0x3519c0, 0x314930, 0x2e8a10, 0x2c4020, 0x100000, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x62, 0x22, 0x22, 0x22, 0x22, 0x22, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x77, 0x57, 0x57, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x7b, 0x7f, 0x7f, 0x7f, 0x7f, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x91, 0x87, 0x89, 0x93, 0x94, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_color_0x10_contrast 		= { 0xa0, 0x82, 0x82, 0x7e, 0x7c, 0x77, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, 0x82, 0x92, 0x92, 0xa2, 0xb2, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x44_u_gain 			= { 0xda, 0xda, 0xda, 0xda, 0xda, 0xda, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x48_v_gain 			= { 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0xfb, 0xfb, 0xfb, 0xfb, 0xfb, 0xfe, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset 		= { 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xfb, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level 	= { 0x84, 0x81, 0x81, 0x83, 0x85, 0x87, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x27_acc_ref	 		= { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xb0, 0xa8, 0xa8, 0xa8, 0x90, 0x90, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, 0x80, 0x90, 0x90, 0x90, 0xa0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x86, 0x86, 0x86, 0x86, 0x86, 0x86, 0x86, 0x86, 0x86, 0x86, 0x86 },
+	},
+
+
+	[ CVI_HD_25P ] = {
+		.name = "CVI_HD_25P",
+
+		.width 	= 1280,
+		.height = 720,
+		.fmt_fps 		= FMT_25P,
+		.fmt_standard 	= FMT_CVI,
+		.fmt_resolution = FMT_720P,
+
+		/* Video Table ************************/
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+	},
+
+	[ CVI_HD_30P ] = {
+		.name = "CVI_HD_30P",
+
+		.width 	= 1280,
+		.height = 720,
+		.fmt_fps 		= FMT_30P,
+		.fmt_standard 	= FMT_CVI,
+		.fmt_resolution = FMT_720P,
+
+		/* Video Table ************************/
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+	},
+
+	[ CVI_HD_25P_EX ] = {
+		.name = "CVI_HD_25P_EX",
+
+		.width 	= 2560,
+		.height = 720,
+		.fmt_fps 		= FMT_25P,
+		.fmt_standard 	= FMT_CVI,
+		.fmt_resolution = FMT_720P_EX,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd 	= 0x0b,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x02,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x02,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x40,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x12,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0xe8,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x19,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0xf9,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0xdc,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x80,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x03,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x9c,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x80,
+
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x05,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x10,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x06,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0xf0,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x7b,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x1f_y_c_gain 	  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f ,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 	 	 = 0x16,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x11,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x01,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x02,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x80,
+		.nc_table_arb_20x0d_ch_merge		  = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x8c6180, 0x895440, 0x84c060, 0x813df0, 0x7c4868, 0x7993ed, 0x3b6820, 0, 0, 0, 0 },
+
+										   //   0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_base_5x01_bypass    = { 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x67, 0x57, 0x57, 0x57, 0x17, 0x17, 0x17, 0x07 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x78, 0x7f, 0x7f, 0x7d, 0x7d, 0x7d, 0x7f, 0x7f, 0x7f, 0x7f },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x91, 0x8c, 0x8d, 0x93, 0x94, 0x94, 0x91, 0x92, 0x93, 0x92 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+										 //   0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2 },
+
+		.nc_table_eq_color_0x10_contrast 		= { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x72, 0x72 },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3f, 0x3f },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, 0x82, 0x82, 0x82, 0x92, 0xa2, 0xa2, 0xa2, 0xa2, 0xb2, 0xb2 },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level 	= { 0x7c, 0x7c, 0x7c, 0x7c, 0x7c, 0x7c, 0x7c, 0x7c, 0x7c, 0x96, 0x96 },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x47, 0x37, 0x20, 0x57 },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80 },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0x50, 0x50 },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, 0x80, 0x80, 0x90, 0x90, 0xa0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80 },
+	},
+	[ CVI_HD_30P_EX ] = {
+		.name = "CVI_HD_30P_EX",
+
+		.width 	= 2560,
+		.height = 1440,
+		.fmt_fps 		= FMT_30P,
+		.fmt_standard 	= FMT_CVI,
+		.fmt_resolution = FMT_720P_EX,
+
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x0a,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x02,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x02,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x40,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x12,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0xe8,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x19,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x19,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x50,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x01,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x80,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x05,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x10,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x06,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0xf0,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel     = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x16,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x11,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x01,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x02,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x80,
+		.nc_table_arb_20x0d_ch_merge		  = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x8c6180, 0x895440, 0x84c060, 0x813df0, 0x7c4868, 0x79252a, 0x75c2b9, 0x3a3e07, 0, 0, 0 },
+		/** .nc_table_eq_distance_value = { 0x8de713, 0x8a6f8e, 0x86d503, 0x82a975, 0x7c9495, 0x3ccd3f, 0, 0, 0, 0, 0 }, */
+		                                   //   0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x67, 0x57, 0x57, 0x57, 0x17, 0x17, 0x17, 0x07 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x78, 0x7f, 0x7f, 0x7d, 0x7d, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x91, 0x8c, 0x8d, 0x93, 0x94, 0x95, 0x91, 0x92, 0x93, 0x92 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+										 //   0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2 },
+												  //   0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_color_0x10_contrast 		= { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x72, 0x72 },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, 0x82, 0x82, 0x82, 0x92, 0xa2, 0xa2, 0xa2, 0xa2, 0xb2, 0xb2 },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level 	= { 0x7c, 0x7c, 0x7c, 0x7c, 0x7c, 0x7c, 0x7c, 0x7c, 0x7c, 0x96, 0x96 },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x47, 0x37, 0x20, 0x57 },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80 },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0 },
+		.nc_table_eq_color_5xd5_c_option 	 	= { 0x80, 0x80, 0x80, 0x90, 0x90, 0xa0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80 },
+	},
+
+	[ CVI_HD_50P ] = {
+		.name = "CVI_HD_50P",
+
+		.width 	= 1280,
+		.height = 720,
+		.fmt_fps 		= FMT_50P,
+		.fmt_standard = FMT_CVI,
+		.fmt_resolution = FMT_720P,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd 	= 0x05,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x02,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x05,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x44,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x12,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0xe8,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x19,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0xf9,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0xdc,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0xb0,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x02,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x9c,
+
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x80,
+
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x05,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x10,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x06,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0xf0,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f ,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x17,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x02,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x80,
+		.nc_table_arb_20x0d_ch_merge		  = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x90f560, 0x8c6180, 0x88df10, 0x84e770, 0x822850, 0x100000, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x62, 0x22, 0x22, 0x22, 0x22, 0x22, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x77, 0x67, 0x47, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x92, 0x93, 0x94, 0x95, 0x93, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0, 0, 0, 0, 0 },
+											   //      0,    1     2,    3,    4,    5,
+		.nc_table_eq_color_0x10_contrast 		= { 0x98, 0x98, 0x98, 0x98, 0x98, 0x98, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x92, 0x92, 0x92, 0x92, 0xb2, 0xb2, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x44_u_gain 			= { 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x48_v_gain 			= { 0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x50_v_offset 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x20_black_level 	= { 0x86, 0x7a, 0x88, 0x84, 0x84, 0x84, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, 0x57, 0x57, 0x57, 0x47, 0x37, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xa8, 0xa0, 0xa0, 0x90, 0x90, 0x90, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5xd5_c_option 		= { 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 0, 0, 0, 0 },
+	},
+
+	[ CVI_HD_60P ] = {
+		.name = "CVI_HD_60P",
+
+		.width 	= 1280,
+		.height = 720,
+		.fmt_fps 		= FMT_60P,
+		.fmt_standard 	= FMT_CVI,
+		.fmt_resolution = FMT_720P,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x04,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x02,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x05,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x44,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x12,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0xe8,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x19,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x19,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x28,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x01,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x80,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x05,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x10,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x06,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 	    = 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f ,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x17,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val   = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x02,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x80,
+		.nc_table_arb_20x0d_ch_merge		  = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x90f560, 0x8d24d0, 0x890620, 0x86bc30, 0x8339c0, 0x100000, 0, 0, 0, 0, 0 },
+		 	 	 	 	 	 	 	 	   //   0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_base_5x01_bypass 	 = { 0x62, 0x22, 0x22, 0x22, 0x22, 0x22, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x67, 0x67, 0x47, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x92, 0x93, 0x95, 0x95, 0x93, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+										 //   0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0, 0, 0, 0, 0 },
+		 	 	 	 	 	 	 	 	 	 	  //   0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_color_0x10_contrast  		= { 0x98, 0x98, 0x98, 0x98, 0x98, 0x98, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x92, 0x92, 0x92, 0x92, 0xb2, 0xb2, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x44_u_gain 			= { 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x48_v_gain 			= { 0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x50_v_offset 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x20_black_level 	= { 0x86, 0x7a, 0x88, 0x84, 0x84, 0x84, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, 0x57, 0x57, 0x57, 0x47, 0x37, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xa8, 0xa0, 0xa0, 0x90, 0x90, 0x90, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5xd5_c_option 		= { 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 0, 0, 0, 0 },
+
+	},
+
+	[ CVI_FHD_25P ] = {
+		.name = "CVI_FHD_25P",
+
+		.width 	= 1920,
+		.height = 1080,
+		.fmt_fps 		= FMT_25P,
+		.fmt_standard 	= FMT_CVI,
+		.fmt_resolution = FMT_1080P,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x03,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x02,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x05,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x44,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x14,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x60,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x29,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0xf9,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x40,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x02,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x90,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x04,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x8b,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x80,
+
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x05,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x10,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x05,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain 	  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x41,
+		.nc_table_fmt_std_5x64_mem_rdp_01     = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel     = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x17,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x03,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0xc0,
+		.nc_table_arb_20x0d_ch_merge		  = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x90f560, 0x8bec50, 0x87f480, 0x83aef0, 0x7e57c0, 0x100000, 0, 0, 0, 0, 0 },
+									//          0,    1,    2,    3,    4,    5
+		.nc_table_eq_base_5x01_bypass 	 = { 0x62, 0x22, 0x22, 0x22, 0x22, 0x22, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x67, 0x67, 0x57, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x78, 0x78, 0x7f, 0x7c, 0x7c, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x92, 0x93, 0x94, 0x95, 0x98, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+								  //          0,    1,    2,    3,    4,    5
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0, 0, 0, 0, 0 },
+										   //          0,    1,    2,    3,    4,    5
+		.nc_table_eq_color_0x10_contrast 		= { 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x92, 0x92, 0x92, 0x92, 0xb2, 0xb2, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x50_v_offset 		= { 0xfc, 0xfa, 0xfc, 0xfc, 0xfc, 0xfc, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x20_black_level 	= { 0x80, 0x80, 0x88, 0x84, 0x84, 0x84, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, 0x57, 0x57, 0x57, 0x47, 0x37, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xa0, 0xa0, 0xa0, 0x90, 0xc0, 0xa0, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, 0x80, 0x80, 0xa0, 0xb0, 0xb0, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 0, 0, 0, 0 },
+	},
+
+	[ CVI_FHD_30P ] = {
+		.name = "CVI_FHD_30P",
+
+		.width 	= 1920,
+		.height = 1080,
+		.fmt_fps 		= FMT_30P,
+		.fmt_standard 	= FMT_CVI,
+		.fmt_resolution = FMT_1080P,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x02,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x02,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x05,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x44,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x14,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x60,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x29,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0xf9,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x02,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x40,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x01,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x74,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x80,
+
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x05,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x10,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x05,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain 	  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x41,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f ,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x17,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x03,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0xc0,
+		.nc_table_arb_20x0d_ch_merge		  = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x8ef990, 0x8b01f0, 0x86e340, 0x82eba0, 0x7ef400, 0x100000, 0, 0, 0, 0, 0 },
+		                            //          0,    1,    2,    3,    4,    5
+		.nc_table_eq_base_5x01_bypass 	 = { 0x62, 0x22, 0x22, 0x22, 0x22, 0x22, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x07, 0x77, 0x77, 0x67, 0x67, 0x57, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x78, 0x78, 0x7f, 0x7c, 0x7f, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x92, 0x93, 0x90, 0x90, 0x98, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+								  //          0,    1,    2,    3,    4,    5
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_color_0x10_contrast 		= { 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x92, 0x92, 0x92, 0x92, 0xb2, 0xb2, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x50_v_offset 		= { 0xfc, 0xfc, 0xfc, 0xfc, 0xfc, 0xfc, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x20_black_level 	= { 0x80, 0x80, 0x88, 0x84, 0x84, 0x84, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, 0x57, 0x57, 0x57, 0x47, 0x47, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xa0, 0xa0, 0xa0, 0x90, 0xc0, 0xa0, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, 0x80, 0x80, 0xa0, 0xb0, 0xb0, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 0, 0, 0, 0 },
+	},
+
+	[ CVI_4M_25P ] = {
+		.name = "CVI_4M_25P",
+
+		.width 	= 2560,
+		.height = 1440,
+		.fmt_fps 		= FMT_25P,
+		.fmt_standard 	= FMT_CVI,
+		.fmt_resolution = FMT_4M,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x0f,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x02,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x05,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x44,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x15,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0xce,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x2f,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x79,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x80,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x01,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x03,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x9e,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x50,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x14,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode  	 = 0x05,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x10,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x09,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x41,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 	 	 = 0x17,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x20,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x05,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x00,
+		.nc_table_arb_20x0d_ch_merge		  = 0x01,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x91b8b0, 0x8eab70, 0x88df10, 0x84e770, 0x7f4220, 0x100000, 0, 0, 0, 0, 0 },
+										//      0,    1,    2,    3,    4,    5,
+		.nc_table_eq_base_5x01_bypass    = { 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x77, 0x67, 0x57, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3d_deq_on    = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x92, 0x93, 0x95, 0x94, 0x95, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+									  //      0,    1,    2,    3,    4,    5,
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0, 0, 0, 0, 0 },
+		 	 	 	 	 	 	 	 		  //      0,    1,    2,    3,    4,    5,
+		.nc_table_eq_color_0x10_contrast 	   = { 0x81, 0x81, 0x7d, 0x7a, 0x7b, 0x82, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x18_h_peaking 	   = { 0x20, 0x20, 0x30, 0x30, 0x30, 0x30, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x21_c_filter 	   = { 0x92, 0x92, 0x92, 0x92, 0x92, 0x92, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x40_hue 		   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x44_u_gain 		   = { 0xe0, 0xe0, 0xe0, 0xe0, 0xe0, 0xe0, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x48_v_gain 		   = { 0xea, 0xea, 0xea, 0xea, 0xea, 0xea, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x4c_u_offset 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x50_v_offset 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x20_black_level    = { 0x81, 0x82, 0x83, 0x88, 0x90, 0x92, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x27_acc_ref 	   = { 0x57, 0x57, 0x57, 0x57, 0x17, 0x17, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x28_cti_delay 	   = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x2b_sub_saturation = { 0xd0, 0x90, 0x90, 0xa8, 0xd0, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5xd5_c_option 	   = { 0x80, 0x80, 0x80, 0x90, 0xb0, 0xb0, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80 },
+	},
+
+	[ CVI_4M_30P ] = {
+		.name = "CVI_4M_30P",
+
+		.width 	= 2560,
+		.height = 1440,
+		.fmt_fps 		= FMT_30P,
+		.fmt_standard 	= FMT_CVI,
+		.fmt_resolution = FMT_4M,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x0e,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x02,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x05,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x44,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay = 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x15,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0xce,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x2f,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x69,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x90,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x01,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x04,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x01,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x83,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x50,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x14,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x05,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x10,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x09,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x41,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x17,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val   = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point   = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x05,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x00,
+		.nc_table_arb_20x0d_ch_merge		  = 0x01,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x8fdc20, 0x8b9e30, 0x875870, 0x8360d0, 0x807aa0, 0x100000, 0, 0, 0, 0, 0 },
+		/** .nc_table_eq_distance_value = { 0x8e6230, 0x89c54b, 0x85f682, 0x825b36, 0x7f6501, 0x3e055f, 0, 0, 0, 0, 0 }, */
+									    //      0,    1,    2,    3,    4,    5,
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x67, 0x77, 0x57, 0x57, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x7a, 0x78, 0x7f, 0x7f, 0x7f, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x92, 0x93, 0x95, 0x94, 0x95, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+									  //      0,    1,    2,    3,    4,    5,
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0, 0, 0, 0, 0 },
+											   //      0,    1,    2,    3,    4,    5,
+		.nc_table_eq_color_0x10_contrast 		= { 0x81, 0x81, 0x7d, 0x7a, 0x7b, 0x82, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x20, 0x20, 0x30, 0x30, 0x30, 0x30, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x92, 0x92, 0x92, 0x92, 0x92, 0x92, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x44_u_gain 			= { 0xd0, 0xd0, 0xd0, 0xd0, 0xd0, 0xd0, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x48_v_gain 			= { 0xda, 0xda, 0xda, 0xda, 0xda, 0xda, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0xfe, 0xfb, 0xf6, 0xf6, 0xf6, 0xf6, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x50_v_offset 		= { 0xfa, 0xfc, 0xfc, 0xfc, 0xfc, 0xfc, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x20_black_level 	= { 0x81, 0x82, 0x83, 0x88, 0x90, 0x92, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, 0x57, 0x57, 0x57, 0x17, 0x17, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x28_cti_delay 	   	= { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xd0, 0x90, 0x90, 0xa8, 0xd0, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5xd5_c_option 	   	= { 0x80, 0x80, 0x80, 0x90, 0xb0, 0xb0, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x7a, 0x7a, 0x7a, 0x7a, 0x7a, 0x7a, 0x7a, 0x7a, 0x7a, 0x7a, 0x7a },
+	},
+
+	[ CVI_5M_20P ] = {
+		.name = "CVI_5M_20P",
+
+		.width  = 2592,
+		.height = 1944,
+		.fmt_fps 		= FMT_20P,
+		.fmt_standard 	= FMT_CVI,
+		.fmt_resolution = FMT_5M,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x0f,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x02,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x05,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x44,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x17,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0xb4,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x1d,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto 	= 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x05,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x20,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x36,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0xc0 ,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x39,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x75,
+
+		.nc_table_fmt_std_0x30_y_delay       = 0x17,
+		.nc_table_fmt_std_0xa4_y_c_delay2    = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val   = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point   = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	   = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x05,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x10,
+		.nc_table_arb_20x0d_ch_merge	   = 0x01,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 1,
+
+		.nc_table_aoc_12x01_audio_mode 			= { 0x00, 0x00 },
+		.nc_table_aoc_12x02_aoc_clk_mode 		= { 0x10, 0x10 },
+		.nc_table_aoc_12x18_aoc_16k_mode 		= { 0x00, 0x10 },
+
+		.nc_table_aoc_12x07_aoc_start_line_high = { 0x07, 0x07 },
+		.nc_table_aoc_12x08_aoc_start_line_low 	= { 0xb6, 0xb6 },
+		.nc_table_aoc_12x09_aoc_cat_whd 		= { 0x03, 0x03 },
+
+		.nc_table_aoc_12x11_aoc_saa_value 		= { 0x0a, 0x14 },
+		.nc_table_aoc_12x12_aoc_data_value_high = { 0x00, 0x00 },
+		.nc_table_aoc_12x13_aoc_data_value_low 	= { 0x64, 0xc8 },
+		.nc_table_aoc_12x14_aoc_base_unit 		= { 0x13, 0x09 },
+		.nc_table_aoc_12x15_aoc_catch_point 	= { 0x08, 0x12 },
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x8ebeb8, 0x897a36, 0x8634c2, 0x82c9fd, 0x7fe97b, 0x100000, 0, 0, 0, 0, 0 },
+										//      0,    1,    2,    3,    4,    5
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x67, 0x57, 0x27, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x7a, 0x7f, 0x7e, 0x7f, 0x7f, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x92, 0x93, 0x94, 0x93, 0x92, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0, 0, 0, 0, 0 },
+									  //      0,    1,    2,    3,    4,    5
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0, 0, 0, 0, 0 },
+											   //      0,    1,    2,    3,    4,    5
+		.nc_table_eq_color_0x10_contrast 		= { 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x10, 0x10, 0x10, 0x10, 0x30, 0x70, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x92, 0x92, 0x92, 0x92, 0xb2, 0xb2, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x50_v_offset 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x20_black_level 	= { 0x87, 0x87, 0x88, 0x8a, 0x8d, 0x86, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, 0x57, 0x57, 0x57, 0x47, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0xa0, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xa0, 0xa0, 0xa0, 0x90, 0x70, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, 0x80, 0x80, 0x90, 0xb0, 0xb0, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x7a, 0x7a, 0x7a, 0x7a, 0x7a, 0x7a, 0x7a, 0x7a, 0x7a, 0x7a, 0x7a },
+	},
+
+	[ CVI_8M_12_5P ] = {
+		.name = "CVI_8M_12_5P",
+
+		.width 	= 3840,
+		.height = 2160,
+		.fmt_fps 		= FMT_12_5P,
+		.fmt_standard 	= FMT_CVI,
+		.fmt_resolution = FMT_8M,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x01,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x0a,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x05,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x44,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x18,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0xbf,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x50,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x99,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x02,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x02,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x8c,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0xf0,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x0f,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x05,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x10,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x09,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x17,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x07,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x80,
+		.nc_table_arb_20x0d_ch_merge		  = 0x01,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x8ebef8, 0x8adae0, 0x861ff0, 0x83aef0, 0x816500, 0x100000, 0, 0, 0, 0, 0 },
+		/** .nc_table_eq_distance_value = { 0x8dd3a5, 0x894d9f, 0x857a0f, 0x80caf3, 0x7c9825, 0x3d1492, 0, 0, 0, 0, 0 }, */
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x77, 0x57, 0x57, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x7a, 0x7f, 0x7f, 0x7f, 0x7f, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x92, 0x93, 0x95, 0x94, 0x95, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_color_0x10_contrast 	   = { 0x7e, 0x81, 0x7d, 0x7a, 0x7b, 0x82, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x18_h_peaking 	   = { 0x20, 0x20, 0x30, 0x30, 0x30, 0x30, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x21_c_filter 	   = { 0x81, 0x91, 0x91, 0xa2, 0xb2, 0xb2, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x40_hue 		   = { 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x44_u_gain 		   = { 0x00, 0x00, 0x04, 0x14, 0x14, 0x14, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x48_v_gain 		   = { 0x00, 0x08, 0x04, 0x14, 0x14, 0x14, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x4c_u_offset 	   = { 0xfb, 0xfb, 0xf6, 0xf6, 0xf6, 0xf6, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x50_v_offset 	   = { 0xfc, 0xfc, 0xfc, 0xfc, 0xfc, 0xfc, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x20_black_level    = { 0x85, 0x82, 0x83, 0x88, 0x90, 0x92, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x27_acc_ref 	   = { 0x57, 0x57, 0x57, 0x57, 0x17, 0x17, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x28_cti_delay 	   = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x2b_sub_saturation = { 0xb0, 0x90, 0x90, 0xa8, 0xd0, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5xd5_c_option 	   = { 0xc0, 0x80, 0x80, 0x90, 0xb0, 0xb0, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 0, 0, 0, 0 },
+	},
+	[ CVI_8M_15P ] = {
+		.name = "CVI_8M_15P",
+
+		.width  = 3840,
+		.height = 2160,
+		.fmt_fps 		= FMT_15P,
+		.fmt_standard 	= FMT_CVI,
+		.fmt_resolution = FMT_8M,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x02,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x0a,
+
+		.nc_table_fmt_std_clock_1x84_vadc     = 0x05,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x44,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x18,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0xbf,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x50,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x89,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0xc0,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x01,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x01,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x74,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0xf0,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x14,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x05,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x10,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x09,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01     = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x17,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x07,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x80,
+		.nc_table_arb_20x0d_ch_merge		  = 0x01,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x922de0, 0x8de820, 0x890620, 0x855ca0, 0x822850, 0x100000, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x77, 0x57, 0x57, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x7a, 0x7f, 0x7f, 0x7f, 0x7f, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x92, 0x93, 0x95, 0x94, 0x95, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_color_0x10_contrast 	   = { 0x7e, 0x81, 0x7d, 0x7a, 0x7b, 0x82, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x18_h_peaking 	   = { 0x20, 0x20, 0x30, 0x30, 0x30, 0x30, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x21_c_filter 	   = { 0x81, 0x91, 0x91, 0xa2, 0xb2, 0xb2, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x40_hue 		   = { 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x44_u_gain 		   = { 0x00, 0x00, 0x04, 0x14, 0x14, 0x14, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x48_v_gain 		   = { 0x00, 0x08, 0x04, 0x14, 0x14, 0x14, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x4c_u_offset 	   = { 0xfb, 0xfb, 0xf6, 0xf6, 0xf6, 0xf6, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x50_v_offset 	   = { 0xfc, 0xfc, 0xfc, 0xfc, 0xfc, 0xfc, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x20_black_level    = { 0x85, 0x82, 0x83, 0x88, 0x90, 0x92, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x27_acc_ref 	   = { 0x57, 0x57, 0x57, 0x57, 0x17, 0x17, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x28_cti_delay 	   = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x2b_sub_saturation = { 0xb0, 0x90, 0x90, 0xa8, 0xd0, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5xd5_c_option 	   = { 0xc0, 0x80, 0x80, 0x90, 0xb0, 0xb0, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 0, 0, 0, 0 },
+	},
+
+	[ TVI_HD_25P ] = {
+		.name = "TVI_HD_25P",
+
+		.width 	= 1280,
+		.height = 720,
+		.fmt_fps 		= FMT_25P,
+		.fmt_standard 	= FMT_TVI,
+		.fmt_resolution = FMT_720P,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x07,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x01,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x05,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x04,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x20,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x05,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x12,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0xe8,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x19,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x01,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x59,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0xc0,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x01,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x80,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x05,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x10,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x21,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x80,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x00,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x10,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x02,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x80,
+		.nc_table_arb_20x0d_ch_merge		  = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x35dd10, 0x331df0, 0x3037c0, 0x2dc6c0, 0x2bf200, 0x100000, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_base_5x01_bypass    = { 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x67, 0x57, 0x57, 0x57, 0x47, 0x37, 0x27, 0x17, 0x17, 0x07 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x78, 0x78, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x91, 0x92, 0x93, 0x93, 0x93, 0x93, 0x93, 0x93, 0x93, 0x92 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2 },
+
+		.nc_table_eq_color_0x10_contrast 	   = { 0x82, 0x86, 0x84, 0x81, 0x7f, 0x7e, 0x7a, 0x7a, 0x72, 0x6d, 0x6d },
+		.nc_table_eq_color_0x18_h_peaking 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3f, 0x3f, 0x3f, 0x3f },
+		.nc_table_eq_color_0x21_c_filter 	   = { 0x82, 0x92, 0x92, 0xa2, 0xa2, 0xa2, 0xb2, 0xb2, 0xb2, 0xb2, 0xb2 },
+		.nc_table_eq_color_0x40_hue 		   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x44_u_gain 		   = { 0xe0, 0xe0, 0xe0, 0xe0, 0xe0, 0xe0, 0xe0, 0xe0, 0xe0, 0x00, 0x00 },
+		.nc_table_eq_color_0x48_v_gain 		   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x4c_u_offset 	   = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level	   = { 0x86, 0x88, 0x86, 0x86, 0x88, 0x8a, 0x8c, 0x92, 0x95, 0x98, 0x98 },
+		.nc_table_eq_color_5x27_acc_ref 	   = { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x37, 0x20, 0x20, 0x57 },
+		.nc_table_eq_color_5x28_cti_delay 	   = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80 },
+		.nc_table_eq_color_5x2b_sub_saturation = { 0xa8, 0xaa, 0xaa, 0xac, 0xa8, 0xa6, 0x98, 0xa0, 0xa0, 0x50, 0x50 },
+		.nc_table_eq_color_5xd5_c_option 	   = { 0x80, 0x80, 0x80, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, 0x7e, 0x7d, 0x7c, 0x5c, 0x7d, 0x7d, 0x7d, 0x7d, 0x7d, 0x7d },
+	},
+
+	[ TVI_HD_30P ] = {
+		.name = "TVI_HD_30P",
+
+		.width 	= 1280,
+		.height = 720,
+		.fmt_fps 		= FMT_30P,
+		.fmt_standard 	= FMT_TVI,
+		.fmt_resolution = FMT_720P,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x06,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x01,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x05,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x44,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x10,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x05,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x12,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0xe8,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x19,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x01,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x59,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0xff,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x001,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x80,
+		.nc_table_fmt_std_timing_9x40_pn_auto 	 	 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x05,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 	   	 = 0x10,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x20,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x80,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x00,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x10,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x02,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x80,
+		.nc_table_arb_20x0d_ch_merge		  = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x35dd10, 0x331df0, 0x3010b0, 0x2d9fb0, 0x2b7cd0, 0x100000, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_base_5x01_bypass	 = { 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x67, 0x57, 0x57, 0x57, 0x47, 0x37, 0x27, 0x17, 0x17, 0x07 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x78, 0x78, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x91, 0x92, 0x93, 0x93, 0x93, 0x93, 0x93, 0x93, 0x93, 0x92 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2 },
+
+		.nc_table_eq_color_0x10_contrast 	   = { 0x82, 0x86, 0x84, 0x81, 0x7f, 0x7e, 0x7a, 0x7a, 0x72, 0x6d, 0x6d },
+		.nc_table_eq_color_0x18_h_peaking      = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3f, 0x3f, 0x3f, 0x3f },
+		.nc_table_eq_color_0x21_c_filter 	   = { 0x82, 0x92, 0x92, 0xa2, 0xa2, 0xa2, 0xb2, 0xb2, 0xb2, 0xb2, 0xb2 },
+		.nc_table_eq_color_0x40_hue 		   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x44_u_gain 		   = { 0xe0, 0xe0, 0xe0, 0xe0, 0xe0, 0xe0, 0xe0, 0xe0, 0xe0, 0x00, 0x00 },
+		.nc_table_eq_color_0x48_v_gain 		   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x4c_u_offset 	   = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level    = { 0x86, 0x88, 0x86, 0x86, 0x88, 0x8a, 0x8c, 0x92, 0x95, 0x98, 0x98 },
+		.nc_table_eq_color_5x27_acc_ref 	   = { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x37, 0x20, 0x20, 0x57 },
+		.nc_table_eq_color_5x28_cti_delay 	   = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80 },
+		.nc_table_eq_color_5x2b_sub_saturation = { 0xa8, 0xaa, 0xaa, 0xac, 0xa8, 0xa6, 0x98, 0xa0, 0xa0, 0x50, 0x50 },
+		.nc_table_eq_color_5xd5_c_option 	   = { 0x80, 0x80, 0x80, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x20, 0x1e, 0x1d, 0x1c, 0x1c, 0x1d, 0x1d, 0x1d, 0x1d, 0x1d, 0x1d },
+	},
+
+	[ TVI_HD_25P_EX ] = {
+		.name = "TVI_HD_25P_EX",
+
+		.width 	= 2560,
+		.height = 720,
+		.fmt_fps 		= FMT_25P,
+		.fmt_standard 	= FMT_TVI,
+		.fmt_resolution = FMT_720P_EX,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x0b,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x01,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x05,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x44,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x05,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x12,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0xe8,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x19,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x59,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x80,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x05,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x10,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x06,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x1f_y_c_gain	 	  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x41,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x10,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x01,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x02,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x80,
+		.nc_table_arb_20x0d_ch_merge		  = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x35dd10, 0x331df0, 0x3037c0, 0x2dc6c0, 0x2bf200, 0x100000, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x67, 0x57, 0x57, 0x57, 0x47, 0x37, 0x27, 0x17, 0x17, 0x07 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x78, 0x78, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x91, 0x92, 0x93, 0x93, 0x93, 0x93, 0x93, 0x93, 0x93, 0x92 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2 },
+
+		.nc_table_eq_color_0x10_contrast 	   = { 0x82, 0x86, 0x84, 0x81, 0x7f, 0x7e, 0x7a, 0x7a, 0x72, 0x6d, 0x6d },
+		.nc_table_eq_color_0x18_h_peaking 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3f, 0x3f, 0x3f, 0x3f },
+		.nc_table_eq_color_0x21_c_filter 	   = { 0x82, 0x92, 0x92, 0xa2, 0xa2, 0xa2, 0xb2, 0xb2, 0xb2, 0xb2, 0xb2 },
+		.nc_table_eq_color_0x40_hue			   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x44_u_gain		   = { 0xe0, 0xe0, 0xe0, 0xe0, 0xe0, 0xe0, 0xe0, 0xe0, 0xe0, 0x00, 0x00 },
+		.nc_table_eq_color_0x48_v_gain 		   = { 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0 },
+		.nc_table_eq_color_0x4c_u_offset	   = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset  	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level    = { 0x86, 0x88, 0x86, 0x86, 0x88, 0x8a, 0x8c, 0x92, 0x95, 0x98, 0x98 },
+		.nc_table_eq_color_5x27_acc_ref 	   = { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x37, 0x20, 0x20, 0x57 },
+		.nc_table_eq_color_5x28_cti_delay 	   = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80 },
+		.nc_table_eq_color_5x2b_sub_saturation = { 0xa8, 0xaa, 0xaa, 0xac, 0xa8, 0xa6, 0x98, 0xa0, 0xa0, 0x50, 0x50 },
+		.nc_table_eq_color_5xd5_c_option 	   = { 0x80, 0x80, 0x80, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x68, 0x68, 0x68, 0x68, 0x68, 0x68, 0x68, 0x68, 0x68, 0x68, 0x68 },
+	},
+
+	[ TVI_HD_30P_EX ] = {
+		.name = "TVI_HD_30P_EX",
+
+		.width 	= 2560,
+		.height = 720,
+		.fmt_fps 		= FMT_30P,
+		.fmt_standard 	= FMT_TVI,
+		.fmt_resolution = FMT_720P_EX,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd  = 0x0a,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x01,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x05,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x44,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x10,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x03,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x05,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x12,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0xe8,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x19,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x59,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x80,
+		.nc_table_fmt_std_timing_9x40_pn_auto 		 = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode 	 = 0x05,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a 	 = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path 		 = 0x10,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay 		 = 0x06,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x1f_y_c_gain  	  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x41,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay 		 = 0x10,
+		.nc_table_fmt_std_0xa4_y_c_delay2 	 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val 	 = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point 	 = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x01,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x02,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x80,
+		.nc_table_arb_20x0d_ch_merge		  = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x35dd10, 0x331df0, 0x3010b0, 0x2d9fb0, 0x2b7cd0, 0x100000, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_base_5x01_bypass = { 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x67, 0x57, 0x57, 0x57, 0x47, 0x37, 0x27, 0x17, 0x17, 0x07 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x78, 0x78, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f },
+		.nc_table_eq_base_ax3d_deq_on    = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x91, 0x92, 0x93, 0x93, 0x93, 0x93, 0x93, 0x93, 0x93, 0x92 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2 },
+
+		.nc_table_eq_color_0x10_contrast 		= { 0x82, 0x86, 0x84, 0x81, 0x7f, 0x7e, 0x7a, 0x7a, 0x72, 0x6d, 0x6d },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3f, 0x3f, 0x3f, 0x3f },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, 0x92, 0x92, 0xa2, 0xa2, 0xa2, 0xb2, 0xb2, 0xb2, 0xb2, 0xb2 },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x44_u_gain 			= { 0xe0, 0xe0, 0xe0, 0xe0, 0xe0, 0xe0, 0xe0, 0xe0, 0xe0, 0x00, 0x00 },
+		.nc_table_eq_color_0x48_v_gain 			= { 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0 },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level 	= { 0x86, 0x88, 0x86, 0x86, 0x88, 0x8a, 0x8c, 0x92, 0x95, 0x98, 0x98 },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x37, 0x20, 0x20, 0x57 },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80 },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xa8, 0xaa, 0xaa, 0xac, 0xa8, 0xa6, 0x98, 0xa0, 0xa0, 0x50, 0x50 },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, 0x80, 0x80, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80 },
+
+	},
+
+	[ TVI_HD_B_25P ] = {
+		.name = "TVI_HD_B_25P",
+
+		.width = 1280,
+		.height = 720,
+		.fmt_fps = FMT_25P,
+		.fmt_standard = FMT_TVI,
+		.fmt_resolution = FMT_720P_Btype,
+
+		/* Video Table ************************/
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+
+	},
+
+	[ TVI_HD_B_30P ] = {
+		.name = "TVI_HD_B_30P",
+
+		.width = 2560,
+		.height = 720,
+		.fmt_fps = FMT_30P,
+		.fmt_standard = FMT_TVI,
+		.fmt_resolution = FMT_720P_Btype,
+
+		/* Video Table ************************/
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+	},
+
+	[ TVI_HD_B_25P_EX ] = {
+		.name = "TVI_HD_B_25P_EX",
+
+		.width = 2560,
+		.height = 720,
+		.fmt_fps = FMT_25P,
+		.fmt_standard = FMT_TVI,
+		.fmt_resolution = FMT_720P_Btype_EX,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd 	= 0x0b,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x03,
+
+		.nc_table_fmt_std_clock_1x84_vadc 	  = 0x02,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x40,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a 	= 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b 	= 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c 	= 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b 	= 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x12,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0xe8,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x19,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode = 0x05,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path = 0x10,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay = 0x06,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation = 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain 	  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f ,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay = 0x16,
+		.nc_table_fmt_std_0xa4_y_c_delay2 = 0x06,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point = 0x11,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x01,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x02,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x80,
+		.nc_table_arb_20x0d_ch_merge		  = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x323390, 0x2f4d60, 0x2c1910, 0x29cd20, 0x278530, 0x2443ae, 0x228608, 0x10d0db, 0, 0, 0 },
+		/** .nc_table_eq_distance_value = { 0x31461b, 0x2edd75, 0x2b7c2e, 0x28e7c3, 0x269fc5, 0x12651d, 0, 0, 0, 0, 0 }, */
+									//			0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x67, 0x67, 0x67, 0x57, 0x47, 0x27, 0x27, 0x27, 0x27, 0x07 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x78, 0x7c, 0x7c, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x91, 0x92, 0x93, 0x93, 0x92, 0x91, 0x92, 0x93, 0x93, 0x92 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2 },
+
+		.nc_table_eq_color_0x10_contrast 		= { 0x84, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x6d },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x00, 0x20, 0x20, 0x20, 0x20, 0x00, 0x70, 0x70, 0x70, 0x70, 0x3f },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, 0x82, 0x82, 0x82, 0x92, 0x82, 0x92, 0x92, 0x92, 0x92, 0xb2 },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x44_u_gain 			= { 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0x00 },
+		.nc_table_eq_color_0x48_v_gain 			= { 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0x00 },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level 	= { 0x86, 0x86, 0x86, 0x86, 0x86, 0x86, 0x8c, 0x8c, 0x8c, 0x8c, 0x98 },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x50, 0x50, 0x50, 0x50, 0x57 },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80 },
+		.nc_table_eq_color_5x2b_sub_saturation  = { 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xc0, 0xc0, 0xc0, 0x50 },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, 0x80, 0x80, 0x80, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x68, 0x68, 0x68, 0x68, 0x68, 0x68, 0x68, 0x68, 0x68, 0x68, 0x68 },
+	},
+
+	[ TVI_HD_B_30P_EX ] = {
+		.name = "TVI_HD_B_30P_EX",
+
+		.width = 2560,
+		.height = 720,
+		.fmt_fps = FMT_30P,
+		.fmt_standard = FMT_TVI,
+		.fmt_resolution = FMT_720P_Btype_EX,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd = 0x0a,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x03,
+
+		.nc_table_fmt_std_clock_1x84_vadc = 0x02,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x40,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a = 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b = 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c = 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b = 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay 	= 0x05,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x12,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0xe8,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x19,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode = 0x05,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path = 0x10,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay = 0x06,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation = 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	= 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0 = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8 = 0x6f ,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay = 0x16,
+		.nc_table_fmt_std_0xa4_y_c_delay2 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point = 0x11,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x01,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x02,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x80,
+		.nc_table_arb_20x0d_ch_merge		  = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x325aa0, 0x2f4d60, 0x2c4020, 0x29a810, 0x271000, 0x24d981, 0x22989e, 0x108184, 0, 0, 0 },
+		/** .nc_table_eq_distance_value = { 0x3250b9, 0x2f5aa0, 0x2c4945, 0x29a34d, 0x271232, 0x12907c, 0, 0, 0, 0, 0 }, */
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x67, 0x67, 0x67, 0x57, 0x47, 0x27, 0x27, 0x27, 0x27, 0x07 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x78, 0x7c, 0x7c, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x91, 0x92, 0x93, 0x93, 0x92, 0x91, 0x92, 0x93, 0x93, 0x92 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2 },
+
+		.nc_table_eq_color_0x10_contrast 		= { 0x84, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x6d },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x00, 0x20, 0x20, 0x20, 0x20, 0x00, 0x70, 0x70, 0x70, 0x70, 0x3f },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, 0x82, 0x82, 0x82, 0x92, 0x92, 0x92, 0x92, 0x92, 0x92, 0xb2 },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x44_u_gain 			= { 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0x00 },
+		.nc_table_eq_color_0x48_v_gain 			= { 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0x00 },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_0x50_v_offset 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.nc_table_eq_color_5x20_black_level 	= { 0x86, 0x86, 0x86, 0x86, 0x86, 0x8a, 0x8c, 0x92, 0x95, 0x98, 0x98 },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x57, 0x37, 0x20, 0x20, 0x57 },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80 },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xc0, 0xc0, 0xc0, 0x50 },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, 0x80, 0x80, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x68, 0x68, 0x68, 0x68, 0x68, 0x68, 0x68, 0x68, 0x68, 0x68, 0x68 },
+	},
+
+	[ TVI_960P_25P ] = {
+		.name = "TVI_960P_25P",
+
+		.width = 1280,
+		.height = 960,
+		.fmt_fps = FMT_25P,
+		.fmt_standard = FMT_TVI,
+		.fmt_resolution = FMT_960P,
+
+
+		/* Video Table ************************/
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+	},
+
+	[ TVI_960P_30P ] = {
+		.name = "TVI_960P_30P",
+
+		.width = 1280,
+		.height = 960,
+		.fmt_fps = FMT_30P,
+		.fmt_standard = FMT_TVI,
+		.fmt_resolution = FMT_960P,
+
+		/* Video Table ************************/
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+	},
+
+	[ TVI_HD_50P ] = {
+		.name = "TVI_HD_50P",
+
+		.width = 1280,
+		.height = 720,
+		.fmt_fps = FMT_50P,
+		.fmt_standard = FMT_TVI,
+		.fmt_resolution = FMT_720P,
+
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd = 0x05,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x01,
+
+		.nc_table_fmt_std_clock_1x84_vadc = 0x05,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x55,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a = 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b = 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c = 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b = 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay = 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x12,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0xe8,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x19,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode = 0x05,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay = 0x06,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x43,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	= 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0 = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8 = 0x6f ,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay = 0x17,
+		.nc_table_fmt_std_0xa4_y_c_delay2 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x02,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x80,
+		.nc_table_arb_20x0d_ch_merge		  = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x35b600, 0x339320, 0x30acf0, 0x2dedd0, 0x2bcaf0, 0x100000, 0, 0, 0, 0, 0 },
+									  //        0,    1,    2,    3,    4,    5
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x67, 0x57, 0x57, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x78, 0x7f, 0x7f, 0x7f, 0x7f, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x92, 0x93, 0x98, 0x98, 0x98, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+									//        0,    1,    2,    3,    4,    5
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0, 0, 0, 0, 0 },
+									  	  	 //        0,    1,    2,    3,    4,    5
+		.nc_table_eq_color_0x10_contrast 		= { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x10, 0x10, 0x20, 0x20, 0x20, 0x20, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, 0x82, 0x82, 0x82, 0x82, 0x82, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, 0x00, 0x04, 0x04, 0x04, 0x04, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x02, 0x02, 0xf4, 0xf4, 0xf4, 0xf4, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x50_v_offset 		= { 0xf8, 0xf8, 0xf4, 0xf4, 0xf4, 0xf4, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x20_black_level 	= { 0x87, 0x87, 0x88, 0x8c, 0x8c, 0x8c, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, 0x57, 0x57, 0x57, 0x57, 0x27, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0x80, 0x80, 0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, 0x80, 0x80, 0xa0, 0xb0, 0xb0, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0, 0, 0, 0, 0 },
+
+	},
+
+	[ TVI_HD_60P ] = {
+		.name = "TVI_HD_60P",
+
+		.width = 1280,
+		.height = 720,
+		.fmt_fps = FMT_60P,
+		.fmt_standard = FMT_TVI,
+		.fmt_resolution = FMT_720P,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd = 0x04,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x01,
+
+		.nc_table_fmt_std_clock_1x84_vadc = 0x05,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x44,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a = 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b = 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c = 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b = 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay = 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x12,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0xe8,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x19,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode = 0x05,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path = 0x10,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay = 0x06,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation = 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	= 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x20,
+		.nc_table_fmt_std_5x50_none_ = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0 = 0x8b,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8 = 0xae,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0xbb,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay = 0x17,
+		.nc_table_fmt_std_0xa4_y_c_delay2 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x02,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x80,
+		.nc_table_arb_20x0d_ch_merge		  = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x35dd10, 0x32f6e0, 0x2fc290, 0x2d5190, 0x2ba3e0, 0x100000, 0, 0, 0, 0, 0 },
+									  //        0,    1,    2,    3,    4,    5
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x67, 0x67, 0x57, 0x57, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x78, 0x7f, 0x7f, 0x7f, 0x7f, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x92, 0x93, 0x98, 0x98, 0x98, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+									//        0,    1,    2,    3,    4,    5
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0, 0, 0, 0, 0 },
+											 //        0,    1,    2,    3,    4,    5
+		.nc_table_eq_color_0x10_contrast 		= { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x10, 0x10, 0x20, 0x20, 0x20, 0x20, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, 0x82, 0x82, 0x82, 0x82, 0x82, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, 0x00, 0x04, 0x04, 0x04, 0x04, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x02, 0x02, 0xf4, 0xf4, 0xf4, 0xf4, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x50_v_offset 		= { 0xf8, 0xf8, 0xf4, 0xf4, 0xf4, 0xf4, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x20_black_level 	= { 0x87, 0x87, 0x88, 0x8c, 0x8c, 0x8c, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, 0x57, 0x57, 0x57, 0x57, 0x27, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0x80, 0x80, 0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, 0x80, 0x80, 0xa0, 0xb0, 0xb0, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0, 0, 0, 0, 0 },
+
+	},
+
+	[ TVI_FHD_25P ] = {
+		.name = "TVI_FHD_25P",
+
+		.width = 1920,
+		.height = 1080,
+		.fmt_fps = FMT_25P,
+		.fmt_standard = FMT_TVI,
+		.fmt_resolution = FMT_1080P,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd = 0x03,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x01,
+
+		.nc_table_fmt_std_clock_1x84_vadc = 0x04,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x55,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a = 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b = 0x30,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c = 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b = 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay = 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x14,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x60,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x29,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x80,
+		.nc_table_fmt_std_timing_9x40_pn_auto = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode = 0x05,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay = 0x04,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x43,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation = 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain       = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0 = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8 = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay = 0x17,
+		.nc_table_fmt_std_0xa4_y_c_delay2 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x03,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0xc0,
+		.nc_table_arb_20x0d_ch_merge		  = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x35dd10, 0x331df0, 0x305ed0, 0x2dc6c0, 0x2b7cd0, 0x100000, 0, 0, 0, 0, 0 },
+								//				0,    1,    2,    3,    4,    5
+		.nc_table_eq_base_5x01_bypass 	 = { 0x62, 0x22, 0x22, 0x22, 0x22, 0x22, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x67, 0x57, 0x57, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x78, 0x7f, 0x7b, 0x7d, 0x7d, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x91, 0x93, 0x94, 0x93, 0x93, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+						                  //  0,    1,    2,    3,    4,    5
+		.nc_table_eq_coeff_ax30_deq_01 = { 0x00, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x00, 0x78, 0x78, 0x78, 0x78, 0x78, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x00, 0x17, 0x17, 0x17, 0x17, 0x17, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0x00, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x00, 0x40, 0x40, 0x40, 0x40, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0x00, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x00, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x00, 0x02, 0x02, 0x02, 0x02, 0x02, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0x00, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0, 0, 0, 0, 0 },
+												   //  0,    1,    2,    3,    4,    5
+		.nc_table_eq_color_0x10_contrast 		= { 0x82, 0x82, 0x82, 0x82, 0x82, 0x82, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, 0x82, 0x82, 0x82, 0x82, 0xb2, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x40_hue	 			= { 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x44_u_gain 			= { 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x48_v_gain 			= { 0xba, 0xba, 0xba, 0xba, 0xba, 0xba, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x50_v_offset 		= { 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x20_black_level 	= { 0x88, 0x88, 0x88, 0x88, 0x90, 0x86, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, 0x57, 0x57, 0x57, 0x57, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xd0, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, 0x80, 0x80, 0xb0, 0xb0, 0xb0, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x82, 0x82, 0x82, 0x82, 0x82, 0x82, 0, 0, 0, 0, 0 },
+	},
+
+	[ TVI_FHD_30P ] = {
+		.name = "TVI_FHD_30P",
+
+		.width = 1920,
+		.height = 1080,
+		.fmt_fps = FMT_30P,
+		.fmt_standard = FMT_TVI,
+		.fmt_resolution = FMT_1080P,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd = 0x02,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x01,
+
+		.nc_table_fmt_std_clock_1x84_vadc = 0x04,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x55,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a = 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b = 0x30,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c = 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b = 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay = 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x14,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x60,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x29,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x80,
+		.nc_table_fmt_std_timing_9x40_pn_auto = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode = 0x05,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path = 0x00,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay = 0x04,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x43,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation       = 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain       = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2    = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x41,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel     = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay       = 0x17,
+		.nc_table_fmt_std_0xa4_y_c_delay2    = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val   = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point   = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x03,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0xc0,
+		.nc_table_arb_20x0d_ch_merge		  = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x35dd10, 0x325aa0, 0x2f4d60, 0x2d2a80, 0x2ae090, 0x100000, 0, 0, 0, 0, 0 },
+										//      0,    1,    2,    3,    4,    5
+		.nc_table_eq_base_5x01_bypass    = { 0x62, 0x22, 0x22, 0x22, 0x22, 0x22, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x67, 0x57, 0x57, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x7a, 0x7f, 0x7f, 0x7f, 0x7f, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3d_deq_on    = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x92, 0x93, 0x98, 0x93, 0x95, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0x00, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x00, 0x78, 0x78, 0x78, 0x78, 0x78, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x00, 0x17, 0x17, 0x17, 0x17, 0x17, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0x00, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x00, 0x40, 0x40, 0x40, 0x40, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0x00, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x00, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x00, 0x02, 0x02, 0x02, 0x02, 0x02, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0x00, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0, 0, 0, 0, 0 },
+											   //      0,    1,    2,    3,    4,    5
+		.nc_table_eq_color_0x10_contrast 		= { 0x82, 0x82, 0x82, 0x82, 0x82, 0x82, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x82, 0x82, 0x92, 0xb2, 0xb2, 0xb2, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x44_u_gain 			= { 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x48_v_gain 			= { 0xba, 0xba, 0xba, 0xba, 0xba, 0xba, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x50_v_offset 		= { 0xf8, 0x04, 0x04, 0x04, 0x04, 0x04, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x20_black_level 	= { 0x88, 0x88, 0x88, 0x8c, 0x8c, 0x8c, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, 0x57, 0x57, 0x57, 0x57, 0x27, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x90, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, 0x80, 0x80, 0xa0, 0xb0, 0xb0, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 0, 0, 0, 0 },
+
+	},
+
+	[ TVI_3M_18P ] = {
+		.name = "TVI_3M_18P",
+
+		.width = 1920,
+		.height = 1536,
+		.fmt_fps = FMT_18P,
+		.fmt_standard = FMT_TVI,
+		.fmt_resolution = FMT_3M,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd = 0x08,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x03,
+
+		.nc_table_fmt_std_clock_1x84_vadc = 0x05,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x44,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a = 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b = 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c = 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b = 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay = 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x16,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x2c,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x2d,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode = 0x05,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path = 0x10,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay = 0x00,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation = 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	= 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0 = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8 = 0x6f,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay = 0x16,
+		.nc_table_fmt_std_0xa4_y_c_delay2 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point = 0x11,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x03,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0xc0,
+		.nc_table_arb_20x0d_ch_merge		  = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x35b600, 0x33e140, 0x305ed0, 0x2dc6c0, 0x2bcaf0, 0x100000, 0, 0, 0, 0, 0 },
+									//          0,    1,    2,    3,    4,    5
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x67, 0x47, 0x47, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x7a, 0x7f, 0x7e, 0x7e, 0x7f, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x92, 0x93, 0x94, 0x92, 0x92, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0, 0, 0, 0, 0 },
+	                           	  //          0,    1,    2,    3,    4,    5
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0, 0, 0, 0, 0 },
+	                                	   //          0,    1,    2,    3,    4,    5
+		.nc_table_eq_color_0x10_contrast 		= { 0x6e, 0x6b, 0x98, 0x66, 0x66, 0x65, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x10, 0x10, 0x10, 0x00, 0x00, 0x20, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x81, 0x82, 0x92, 0x92, 0x92, 0xc4, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, 0x00, 0x02, 0x02, 0x02, 0x02, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x30, 0x28, 0x34, 0x34, 0x34, 0x34, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x3a, 0x38, 0x40, 0x40, 0x40, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x4c_u_offset		= { 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x50_v_offset 		= { 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x20_black_level 	= { 0x87, 0x87, 0x88, 0x8a, 0x8a, 0x8e, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, 0x57, 0x57, 0x57, 0x47, 0x37, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0x80, 0xc0, 0x80, 0x9c, 0x9c, 0xa0, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5xd5_c_option 	   	= { 0x80, 0x80, 0x80, 0x90, 0x90, 0xa0, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 0, 0, 0, 0 },
+	},
+
+	[ TVI_4M_15P ] = {
+		.name = "TVI_4M_15P",
+
+		.width = 2560,
+		.height = 1440,
+		.fmt_fps = FMT_15P,
+		.fmt_standard = FMT_TVI,
+		.fmt_resolution = FMT_4M,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd = 0x0d,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x03,
+
+		.nc_table_fmt_std_clock_1x84_vadc = 0x05,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x44,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a = 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b = 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c = 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b = 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay = 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x16,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0x1f,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x80,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode = 0x05,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path = 0x10,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay = 0x00,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	= 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe = 0x41,
+		.nc_table_fmt_std_5x64_mem_rdp_01 = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0 = 0x9e,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8 = 0x48,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x59,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x74,
+
+		.nc_table_fmt_std_0x30_y_delay = 0x16,
+		.nc_table_fmt_std_0xa4_y_c_delay2 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x10,
+		.nc_table_fmt_std_5x6f_v_delay_val = 0x7d,
+		.nc_table_fmt_std_5x7b_v_rst_point = 0x11,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x05,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x00,
+		.nc_table_arb_20x0d_ch_merge		  = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x36ee80, 0x34a490, 0x312220, 0x2e8a10, 0x2c1910, 0x100000, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x67, 0x57, 0x27, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x7a, 0x7f, 0x7e, 0x7f, 0x7f, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x92, 0x93, 0x94, 0x93, 0x92, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_color_0x10_contrast 		= { 0x80, 0x6b, 0x98, 0x66, 0x80, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x10, 0x10, 0x10, 0x00, 0x70, 0x70, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x92, 0x82, 0x92, 0x92, 0xb2, 0xb2, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x44_u_gain 			= { 0xd6, 0xd6, 0xd6, 0xd6, 0xd6, 0xd6, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x48_v_gain 			= { 0xe4, 0xe4, 0xe4, 0xe4, 0xe4, 0xe4, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x50_v_offset 		= { 0xfa, 0xfa, 0xfa, 0xfa, 0xfa, 0xfa, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x20_black_level 	= { 0x84, 0x87, 0x88, 0x8a, 0x86, 0x86, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, 0x57, 0x57, 0x57, 0x27, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0xa0, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xe0, 0xc0, 0x80, 0x9c, 0x60, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, 0x80, 0x80, 0x90, 0xb0, 0xb0, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0, 0, 0, 0, 0 },
+	},
+
+	[ TVI_4M_25P ] = {
+		.name = "TVI_4M_25P",
+
+		.width = 2560,
+		.height = 1440,
+		.fmt_fps = FMT_25P,
+		.fmt_standard = FMT_TVI,
+		.fmt_resolution = FMT_4M,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd = 0x0f,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x03,
+
+		.nc_table_fmt_std_clock_1x84_vadc = 0x05,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x44,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a = 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b = 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c = 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b = 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay = 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x15,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0xd6,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x37,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode = 0x05,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path = 0x10,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay = 0x09,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation = 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	= 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe = 0x41,
+		.nc_table_fmt_std_5x64_mem_rdp_01 = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0 = 0x9e,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8 = 0x48,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x59,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x74,
+
+		.nc_table_fmt_std_0x30_y_delay = 0x17,
+		.nc_table_fmt_std_0xa4_y_c_delay2 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x05,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x00,
+		.nc_table_arb_20x0d_ch_merge		  = 0x01,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x362b30, 0x331df0, 0x3010b0, 0x2d9fb0, 0x2bf200, 0x100000, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x67, 0x57, 0x27, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x7a, 0x7f, 0x7e, 0x7f, 0x7f, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x92, 0x93, 0x94, 0x93, 0x92, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_color_0x10_contrast 		= { 0x80, 0x6b, 0x98, 0x66, 0x80, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x10, 0x10, 0x10, 0x00, 0x70, 0x70, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x92, 0x82, 0x92, 0x92, 0xb2, 0xb2, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x40_hue 			= { 0xfc, 0xfc, 0xfc, 0xfc, 0xfc, 0xfc, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x44_u_gain 			= { 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x48_v_gain 			= { 0xda, 0xda, 0xda, 0xda, 0xda, 0xda, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x50_v_offset 		= { 0xfa, 0xfa, 0xfa, 0xfa, 0xfa, 0xfa, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x20_black_level 	= { 0x84, 0x87, 0x88, 0x8a, 0x86, 0x86, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, 0x57, 0x57, 0x57, 0x27, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0xa0, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xe0, 0xc0, 0x80, 0x9c, 0x60, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, 0x80, 0x80, 0x90, 0xb0, 0xb0, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x82, 0x82, 0x82, 0x82, 0x82, 0x82, 0, 0, 0, 0, 0 },
+	},
+
+	[ TVI_4M_30P ] = {
+		.name = "TVI_4M_30P",
+
+		.width = 2560,
+		.height = 1440,
+		.fmt_fps = FMT_30P,
+		.fmt_standard = FMT_TVI,
+		.fmt_resolution = FMT_4M,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd = 0x0e,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x03,
+
+		.nc_table_fmt_std_clock_1x84_vadc = 0x05,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x44,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a = 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b = 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c = 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b = 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay = 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x15,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0xd6,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x37,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode = 0x05,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path = 0x10,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay = 0x09,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation = 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	= 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe = 0x41,
+		.nc_table_fmt_std_5x64_mem_rdp_01 = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0 = 0x9e,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8 = 0x48,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x59,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x74,
+
+		.nc_table_fmt_std_0x30_y_delay = 0x17,
+		.nc_table_fmt_std_0xa4_y_c_delay2 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x05,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x00,
+		.nc_table_arb_20x0d_ch_merge		  = 0x01,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x362b30, 0x331df0, 0x2fc290, 0x2d2a80, 0x2b55c0, 0x100000, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x67, 0x57, 0x27, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x7a, 0x7f, 0x7e, 0x7f, 0x7f, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x92, 0x93, 0x94, 0x93, 0x92, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_color_0x10_contrast 		= { 0x80, 0x6b, 0x98, 0x66, 0x80, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x10, 0x10, 0x10, 0x00, 0x70, 0x70, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x92, 0x82, 0x92, 0x92, 0xb2, 0xb2, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x40_hue 			= { 0xfc, 0xfc, 0xfc, 0xfc, 0xfc, 0xfc, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x44_u_gain 			= { 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x48_v_gain 			= { 0xda, 0xda, 0xda, 0xda, 0xda, 0xda, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x50_v_offset 		= { 0xfa, 0xfa, 0xfa, 0xfa, 0xfa, 0xfa, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x20_black_level 	= { 0x84, 0x87, 0x88, 0x8a, 0x86, 0x86, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, 0x57, 0x57, 0x57, 0x27, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0xa0, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xe0, 0xc0, 0x80, 0x9c, 0x60, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, 0x80, 0x80, 0x90, 0xb0, 0xb0, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x86, 0x86, 0x86, 0x86, 0x86, 0x86, 0x86, 0x86, 0x86, 0x86, 0x86 },
+	},
+
+	[ TVI_5M_12_5P ] = {
+		.name = "TVI_5M_12_5P",
+
+		.width = 2560,
+		.height = 1944,
+		.fmt_fps = FMT_12_5P,
+		.fmt_standard = FMT_TVI,
+		.fmt_resolution = FMT_5M,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd = 0x09,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x03,
+
+		.nc_table_fmt_std_clock_1x84_vadc = 0x05,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x44,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a = 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b = 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c = 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b = 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay = 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x17,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0xca,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x33,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode = 0x05,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path = 0x10,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay = 0x20,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation = 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	= 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x20,
+		.nc_table_fmt_std_5x50_none_ = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0 = 0x8b,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8 = 0xae,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0xbb,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay = 0x16,
+		.nc_table_fmt_std_0xa4_y_c_delay2 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point = 0x11,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x05,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x10,
+		.nc_table_arb_20x0d_ch_merge		  = 0x00,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x35dd10, 0x339320, 0x301080, 0x2d5190, 0x2b55c0, 0x100000, 0, 0, 0, 0, 0 },
+									//          0,    1,    2,    3,    4,    5
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x67, 0x57, 0x27, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x7a, 0x7f, 0x7e, 0x7f, 0x7f, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x92, 0x93, 0x94, 0x93, 0x92, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0, 0, 0, 0, 0 },
+								  //          0,    1,    2,    3,    4,    5
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_color_0x10_contrast 		= { 0x6e, 0x6b, 0x98, 0x66, 0x80, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x10, 0x10, 0x10, 0x00, 0x70, 0x70, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x81, 0x82, 0x92, 0x92, 0xb2, 0xb2, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, 0x00, 0x02, 0x02, 0x05, 0x05, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x30, 0x28, 0x34, 0x34, 0x70, 0x70, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x3a, 0x38, 0x40, 0x40, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x02, 0x00, 0x00, 0x00, 0x04, 0x04, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x50_v_offset 		= { 0xf8, 0xf8, 0xf8, 0xf8, 0xf0, 0xf8, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x20_black_level 	= { 0x87, 0x87, 0x88, 0x8a, 0x86, 0x86, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, 0x57, 0x57, 0x57, 0x27, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0xa0, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0x80, 0xc0, 0x80, 0x9c, 0x60, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, 0x80, 0x80, 0x90, 0xb0, 0xb0, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94 },
+	},
+
+	[ TVI_5M_20P ] = {
+		.name = "TVI_5M_20P",
+
+		.width = 2560,
+		.height = 1944,
+		.fmt_fps = FMT_20P,
+		.fmt_standard = FMT_TVI,
+		.fmt_resolution = FMT_5M,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd = 0x0c,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x03,
+
+		.nc_table_fmt_std_clock_1x84_vadc = 0x05,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x44,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a = 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b = 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c = 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b = 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay = 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x17,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0xb5,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x1e,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode = 0x05,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path = 0x10,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay = 0x08,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain 	  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x41,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0 = 0x36,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8 = 0x40,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0xa7,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x74,
+
+		.nc_table_fmt_std_0x30_y_delay = 0x17,
+		.nc_table_fmt_std_0xa4_y_c_delay2 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	   = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x05,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x00,
+		.nc_table_arb_20x0d_ch_merge	   = 0x01,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x37b1d0, 0x34a490, 0x319750, 0x2eb120, 0x2cdc60, 0x100000, 0, 0, 0, 0, 0 },
+										//      0,    1,    2,    3,    4,    5
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x67, 0x57, 0x27, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x7a, 0x7f, 0x7e, 0x7f, 0x7f, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x92, 0x93, 0x94, 0x93, 0x92, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0, 0, 0, 0, 0 },
+									  //      0,    1,    2,    3,    4,    5
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0, 0, 0, 0, 0 },
+											   //      0,    1,    2,    3,    4,    5
+		.nc_table_eq_color_0x10_contrast 		= { 0x6e, 0x6b, 0x98, 0x6d, 0x61, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x10, 0x10, 0x10, 0x00, 0x30, 0x70, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x92, 0x82, 0x92, 0x92, 0xb2, 0xb2, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x40_hue 			= { 0x00, 0x00, 0x02, 0x02, 0x02, 0x05, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x44_u_gain 			= { 0xa0, 0xa0, 0xa0, 0xa0, 0x34, 0xa0, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x48_v_gain 			= { 0x3a, 0x10, 0x3a, 0x3a, 0x40, 0x3a, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0x02, 0x00, 0x00, 0x00, 0x00, 0x04, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x50_v_offset 		= { 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x20_black_level 	= { 0x87, 0x87, 0x88, 0x8a, 0x8d, 0x86, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, 0x57, 0x57, 0x57, 0x47, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0xa0, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0x80, 0xc0, 0x80, 0x9c, 0x70, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5xd5_c_option 		= { 0x80, 0x80, 0x80, 0x90, 0xb0, 0xb0, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0, 0, 0, 0, 0 },
+	},
+
+	[ TVI_8M_12_5P ] = {
+		.name = "TVI_8M_12_5P",
+
+		.width = 3840,
+		.height = 2160,
+		.fmt_fps = FMT_12_5P,
+		.fmt_standard = FMT_TVI,
+		.fmt_resolution = FMT_8M,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd = 0x01,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x09,
+
+		.nc_table_fmt_std_clock_1x84_vadc = 0x05,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x44,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a = 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b = 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c = 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b = 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay = 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x18,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0xc1,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x52,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x00,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0x00,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x00,
+		.nc_table_fmt_std_timing_9x40_pn_auto = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode = 0x05,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path = 0x10,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay = 0x09,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation = 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	= 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		= 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0 = 0x30,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8 = 0x6f ,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x67,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x48,
+
+		.nc_table_fmt_std_0x30_y_delay = 0x17,
+		.nc_table_fmt_std_0xa4_y_c_delay2 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x07,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x80,
+		.nc_table_arb_20x0d_ch_merge		  = 0x01,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq_distance_value = { 0x36ee80, 0x33e140, 0x30d400, 0x2e8a10, 0x2d0370, 0x100000, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_base_5x01_bypass = { 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x58_band_sel = { 0x77, 0x77, 0x77, 0x67, 0x47, 0x47, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x5c_gain_sel = { 0x78, 0x7a, 0x7f, 0x7e, 0x7e, 0x7f, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3d_deq_on = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x92, 0x93, 0x94, 0x92, 0x92, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_color_0x10_contrast = { 0x80, 0x6b, 0x90, 0x66, 0x61, 0x65, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x18_h_peaking = { 0x10, 0x10, 0x10, 0x00, 0x30, 0x20, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x21_c_filter = { 0x81, 0x82, 0x92, 0x92, 0xc4, 0xc4, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x40_hue = { 0x00, 0x00, 0x02, 0x02, 0x02, 0x02, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x44_u_gain = { 0x30, 0x28, 0x30, 0x34, 0x34, 0x34, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x48_v_gain = { 0x3a, 0x38, 0x18, 0x40, 0x40, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x4c_u_offset = { 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x50_v_offset = { 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x20_black_level = { 0x7c, 0x87, 0x90, 0x8a, 0x8d, 0x8e, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x27_acc_ref = { 0x57, 0x57, 0x57, 0x57, 0x47, 0x37, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x28_cti_delay = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x2b_sub_saturation = { 0xc0, 0xc0, 0xf0, 0x9c, 0xa0, 0xa0, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5xd5_c_option = { 0x80, 0x80, 0x80, 0x90, 0xa0, 0xa0, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x86, 0x86, 0x86, 0x86, 0x86, 0x86, 0, 0, 0, 0, 0 },
+	},
+
+	[ TVI_8M_15P ] = {
+		.name = "TVI_8M_15P",
+
+		.width = 3840,
+		.height = 2160,
+		.fmt_fps = FMT_15P,
+		.fmt_standard = FMT_TVI,
+		.fmt_resolution = FMT_8M,
+
+		/* Video Table ************************/
+		.nc_table_fmt_std = 1,
+
+		.nc_table_fmt_std_mode_set_0x81_sd_ahd = 0x02,
+		.nc_table_fmt_std_mode_set_0x85_special = 0x09,
+
+		.nc_table_fmt_std_clock_1x84_vadc = 0x05,
+		.nc_table_fmt_std_clock_1x8c_post_pre = 0x44,
+
+		.nc_table_fmt_std_color_5x24_burst_dec_a = 0x2a,
+		.nc_table_fmt_std_color_5x5f_burst_dec_b = 0x00,
+		.nc_table_fmt_std_color_5xd1_burst_dec_c = 0x00,
+		.nc_table_fmt_std_color_ax25_y_filter_b = 0x10,
+		.nc_table_fmt_std_color_ax27_y_filter_b_sel = 0x1e,
+
+		.nc_table_fmt_std_timing_0x89_h_delay_b = 0x00,
+		.nc_table_fmt_std_timing_0x8e_h_delay_c = 0x00,
+		.nc_table_fmt_std_timing_0xa0_y_delay = 0x00,
+
+		.nc_table_fmt_std_timing_5x6c_v_delay_manual_on		= 0x18,
+		.nc_table_fmt_std_timing_5x6d_v_delay_manual_val	= 0xc1,
+		.nc_table_fmt_std_timing_5x6e_v_blk_end_manual_on	= 0x10,
+		.nc_table_fmt_std_timing_5x6f_v_blk_end_manual_val	= 0x52,
+
+		.nc_table_fmt_std_timing_9x96_h_scaler1 = 0x00,
+		.nc_table_fmt_std_timing_9x97_h_scaler2 = 0x00,
+		.nc_table_fmt_std_timing_9x98_h_scaler3 = 0x00,
+		.nc_table_fmt_std_timing_9x99_h_scaler4 = 0x00,
+		.nc_table_fmt_std_timing_9x9a_h_scaler5 = 0x00,
+		.nc_table_fmt_std_timing_9x9b_h_scaler6 = 0x00,
+		.nc_table_fmt_std_timing_9x9c_h_scaler7 = 0x8c,
+		.nc_table_fmt_std_timing_9x9d_h_scaler8 = 0xf0,
+		.nc_table_fmt_std_timing_9x9e_h_scaler9 = 0x0f,
+		.nc_table_fmt_std_timing_9x40_pn_auto = 0x00,
+		.nc_table_fmt_std_timing_5x90_comb_mode = 0x05,
+		.nc_table_fmt_std_timing_5xb9_h_pll_op_a = 0x72,
+		.nc_table_fmt_std_timing_5x57_mem_path = 0x10,
+		.nc_table_fmt_std_timing_5x25_fsc_lock_speed = 0xdc,
+		.nc_table_fmt_std_timing_0x64_v_delay = 0x09,
+
+		/* Added *****************************************/
+		.nc_table_fmt_std_0x08_video_format 	= 0x00,
+		.nc_table_fmt_std_color_0x0c_brightness	= 0x00,
+		.nc_table_fmt_std_0x14_h_v_sharpness 	= 0x90,
+		.nc_table_fmt_std_0x1c_n_stb_time		= 0xaf,
+		.nc_table_fmt_std_0x23_novideo_det 		= 0x41,
+		.nc_table_fmt_std_0x34_linemem_md 		= 0x00,
+		.nc_table_fmt_std_0x3c_saturation 		= 0x80,
+		.nc_table_fmt_std_0x5c_v_delay 			= 0x00,
+
+		.nc_table_fmt_std_1xcc_vport_oclk_sel = 0x58,
+
+		.nc_table_fmt_std_5x00_a_cmp 		  = 0xd0,
+		.nc_table_fmt_std_5x1b_comb_th_a	  = 0x08,
+		.nc_table_fmt_std_5x1f_y_c_gain		  = 0x88,
+		.nc_table_fmt_std_5x22_u_v_offset2 	  = 0x23,
+		.nc_table_fmt_std_5x26_fsc_lock_sense = 0x40,
+		.nc_table_fmt_std_5x50_none_ 		  = 0xc6,
+		.nc_table_fmt_std_5x5b_vafe 		  = 0x43,
+		.nc_table_fmt_std_5x64_mem_rdp_01 	  = 0x00,
+		.nc_table_fmt_std_5xa9_adv_stp_delay1 = 0x00,
+		.nc_table_fmt_std_5xc8_y_sort_sel 	  = 0x00,
+
+		.nc_table_fmt_std_9x50_fsc_ext_val_1_7_0   = 0x73,
+		.nc_table_fmt_std_9x51_fsc_ext_val_1_15_8  = 0x76,
+		.nc_table_fmt_std_9x52_fsc_ext_val_1_23_16 = 0x58,
+		.nc_table_fmt_std_9x53_fsc_ext_val_1_31_24 = 0x74,
+
+		.nc_table_fmt_std_0x30_y_delay = 0x17,
+		.nc_table_fmt_std_0xa4_y_c_delay2 = 0x00,
+		.nc_table_fmt_std_5x6e_v_delay_ex_on = 0x00,
+		.nc_table_fmt_std_5x6f_v_delay_val = 0x00,
+		.nc_table_fmt_std_5x7b_v_rst_point = 0x00,
+
+		/* Arbiter Table *********************/
+		.nc_table_arb_20x01_scale_mode	  = 0x00,
+		.nc_table_arb_20x13_rd_packet_15_8 = 0x07,
+		.nc_table_arb_20x12_rd_packet_7_0  = 0x80,
+		.nc_table_arb_20x0d_ch_merge		  = 0x01,
+
+		/* Audio Table ************************/
+		.nc_table_aoc = 0,
+
+		/* Video EQ Table *********************/
+		.nc_table_eq = 1,
+
+		.nc_table_eq_distance_value = { 0x378ac0, 0x342f60, 0x3085e0, 0x2dc6c0, 0x2ba3e0, 0x100000, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_base_5x01_bypass 	 = { 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x58_band_sel  = { 0x77, 0x77, 0x77, 0x67, 0x47, 0x47, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_5x5c_gain_sel  = { 0x78, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3d_deq_on 	 = { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_ax3c_deq_a_sel = { 0x00, 0x92, 0x93, 0x94, 0x92, 0x92, 0, 0, 0, 0, 0 },
+		.nc_table_eq_base_9x80_deq_b_sel = { 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_coeff_ax30_deq_01 = { 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0xAC, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax31_deq_02 = { 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax32_deq_03 = { 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax33_deq_04 = { 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax34_deq_05 = { 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax35_deq_06 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax36_deq_07 = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax37_deq_08 = { 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax38_deq_09 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax39_deq_10 = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3a_deq_11 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_coeff_ax3b_deq_12 = { 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0xB2, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_color_0x10_contrast 		= { 0x88, 0x6b, 0x98, 0x66, 0x61, 0x65, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x18_h_peaking 		= { 0x20, 0x10, 0x10, 0x00, 0x30, 0x20, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x21_c_filter 		= { 0x92, 0x92, 0xa2, 0xa2, 0xc4, 0xc4, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x40_hue 			= { 0x05, 0x00, 0x02, 0x02, 0x02, 0x02, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x44_u_gain 			= { 0x50, 0x28, 0x34, 0x34, 0x34, 0x34, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x48_v_gain 			= { 0xe0, 0x38, 0x40, 0x40, 0x40, 0x40, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x4c_u_offset 		= { 0xfb, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_0x50_v_offset 		= { 0xfc, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x20_black_level 	= { 0x85, 0x87, 0x88, 0x8a, 0x8d, 0x8e, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x27_acc_ref 		= { 0x57, 0x57, 0x57, 0x57, 0x47, 0x37, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x28_cti_delay 		= { 0x80, 0x80, 0x80, 0x80, 0xa0, 0x80, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5x2b_sub_saturation 	= { 0xd0, 0xa0, 0xb0, 0x9c, 0x00, 0xa0, 0, 0, 0, 0, 0 },
+		.nc_table_eq_color_5xd5_c_option 		= { 0xc0, 0xa0, 0x90, 0xa0, 0xb0, 0xb0, 0, 0, 0, 0, 0 },
+
+		.nc_table_eq_timing_0x58_h_delay_a = { 0x86, 0x86, 0x86, 0x86, 0x86, 0x86, 0, 0, 0, 0, 0 },
+
+	},
+
+};
+
+
+NC_COAX_ATTR_TABLE_S coax_acp_16bit_init_lists[]=
+{
+	[ AHD_720P_30P ] = {
+		.name = "AHD20_720P_30P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x20,
+		.tx_shot_addr      = 0x0c,
+		.tx_baud 		   = { 0x30, 0x30, 0x30, 0x30, 0x30, 0x30 },
+		.tx_pel_baud 	   = { 0x20, 0x20, 0x20, 0x20, 0x20, 0x20 },
+		.tx_line_pos0 	   = { 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x03,
+		.tx_pel_line_pos0  = { 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x07,
+		.tx_mode 		   = 0x06,
+		.tx_sync_pos0 	   = { 0xD2, 0xD2, 0xD2, 0xD2, 0xD2, 0xD2 },
+		.tx_sync_pos1 	   = { 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 30,
+		.reset_delay = 30,
+	},
+
+	[ AHD_720P_25P ] = {
+		.name = "AHD20_720P_25P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x20,
+		.tx_shot_addr      = 0x0c,
+		.tx_baud 		   = { 0x30, 0x30, 0x30, 0x30, 0x30, 0x30 },
+		.tx_pel_baud 	   = { 0x20, 0x20, 0x20, 0x20, 0x20, 0x20 },
+		.tx_line_pos0 	   = { 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x03,
+		.tx_pel_line_pos0  = { 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x07,
+		.tx_mode 		   = 0x06,
+		.tx_sync_pos0 	   = { 0xD2, 0xD2, 0xD2, 0xD2, 0xD2, 0xD2 },
+		.tx_sync_pos1 	   = { 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 30,
+		.reset_delay = 30,
+	},
+
+	[ AHD_720P_30P_EX ] = {
+		.name = "AHD20_720P_30P_EX",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x20,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x30, 0x30, 0x30, 0x30, 0x30, 0x30 },
+		.tx_pel_baud 	   = { 0x20, 0x20, 0x20, 0x20, 0x20, 0x20 },
+		.tx_line_pos0 	   = { 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x03,
+		.tx_pel_line_pos0  = { 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x07,
+		.tx_mode 		   = 0x06,
+		.tx_sync_pos0 	   = { 0xD2, 0xD2, 0xD2, 0xD2, 0xD2, 0xD2 },
+		.tx_sync_pos1 	   = { 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 30,
+		.reset_delay = 30,
+	},
+
+	[ AHD_720P_25P_EX ] = {
+		.name = "AHD20_720P_25P_EX",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x20,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x30, 0x30, 0x30, 0x30, 0x30, 0x30 },
+		.tx_pel_baud 	   = { 0x20, 0x20, 0x20, 0x20, 0x20, 0x20 },
+		.tx_line_pos0 	   = { 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x03,
+		.tx_pel_line_pos0  = { 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x07,
+		.tx_mode 		   = 0x06,
+		.tx_sync_pos0 	   = { 0xD2, 0xD2, 0xD2, 0xD2, 0xD2, 0xD2 },
+		.tx_sync_pos1 	   = { 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 30,
+		.reset_delay = 30,
+	},
+
+	[ AHD_720P_30P_EX_Btype ] = {
+		.name = "AHD20_720P_30P_EX_Btype",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x20,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x30, 0x30, 0x30, 0x30, 0x30, 0x30 },
+		.tx_pel_baud 	   = { 0x20, 0x20, 0x20, 0x20, 0x20, 0x20 },
+		.tx_line_pos0 	   = { 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x03,
+		.tx_pel_line_pos0  = { 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x07,
+		.tx_mode 		   = 0x06,
+		.tx_sync_pos0 	   = { 0xD2, 0xD2, 0xD2, 0xD2, 0xD2, 0xD2 },
+		.tx_sync_pos1 	   = { 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 30,
+		.reset_delay = 30,
+	},
+
+	[ AHD_720P_25P_EX_Btype ] = {
+		.name = "AHD20_720P_25P_EX_Btype",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x20,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x30, 0x30, 0x30, 0x30, 0x30, 0x30 },
+		.tx_pel_baud 	   = { 0x20, 0x20, 0x20, 0x20, 0x20, 0x20 },
+		.tx_line_pos0 	   = { 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x03,
+		.tx_pel_line_pos0  = { 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x07,
+		.tx_mode 		   = 0x06,
+		.tx_sync_pos0 	   = { 0xD2, 0xD2, 0xD2, 0xD2, 0xD2, 0xD2 },
+		.tx_sync_pos1 	   = { 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 30,
+		.reset_delay = 30,
+	},
+
+	[ CVI_4M_25P ] = {
+		.name = "CVI_4M_25P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x0C,
+		.tx_cmd_addr       = 0x00,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x2b, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x16, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x04,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x09,
+		.tx_mode 		   = 0x60,
+		.tx_sync_pos0 	   = { 0xa0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x02, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x10,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x05,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x64,
+		.rx_head_matching  = 0xAB,
+		.rx_data_rz        = 0x85,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 25,
+		.reset_delay = 25,
+	},
+
+	[ CVI_4M_30P ] = {
+		.name = "CVI_4M_30P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x0C,
+		.tx_cmd_addr       = 0x00,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 	  	   = { 0x2a, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x16, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x04,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x09,
+		.tx_mode 		   = 0x60,
+		.tx_sync_pos0 	   = { 0xe0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x10,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x05,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x64,
+		.rx_head_matching  = 0xAB,
+		.rx_data_rz        = 0x85,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 25,
+		.reset_delay = 25,
+	},
+
+	[ CVI_5M_20P ] = {
+		.name = "CVI_5M_20P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x0C,
+		.tx_cmd_addr       = 0x00,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 	  	   = { 0x2a, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x16, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x04,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x09,
+		.tx_mode 		   = 0x60,
+		.tx_sync_pos0 	   = { 0xe0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x10,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x05,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x64,
+		.rx_head_matching  = 0xAB,
+		.rx_data_rz        = 0x85,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 25,
+		.reset_delay = 25,
+	},
+
+	[ CVI_8M_15P ] = {
+		.name = "CVI_8M_15P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x0C,
+		.tx_cmd_addr       = 0x00,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x2b, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x16, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x04,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x09,
+		.tx_mode 		   = 0x60,
+		.tx_sync_pos0 	   = { 0xa0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x02, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x10,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x05,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x64,
+		.rx_head_matching  = 0xAB,
+		.rx_data_rz        = 0x85,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 25,
+		.reset_delay = 25,
+	},
+
+	[ CVI_8M_12_5P ] = {
+		.name = "CVI_8M_12_5P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x0C,
+		.tx_cmd_addr       = 0x00,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x2a, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x16, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count     = 0x04,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x09,
+		.tx_mode 		   = 0x60,
+		.tx_sync_pos0 	   = { 0xe0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x10,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x05,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x64,
+		.rx_head_matching  = 0xAB,
+		.rx_data_rz        = 0x85,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 25,
+		.reset_delay = 25,
+	},
+
+};
+
+NC_COAX_ATTR_TABLE_S coax_init_lists[]=
+{
+	[ SD_H960_2EX_Btype_NT ] = {
+		.name = "AHD20_SD_H960_2EX_Btype_NT",
+		.ch                = 0,
+		.rx_src            = 0x01,
+		.rx_slice_lev      = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x20,
+		.tx_shot_addr      = 0x0c, // 0x0C
+		.tx_baud           = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud       = { 0x48, 0x48, 0x48, 0x48, 0x48, 0x48 },
+		.tx_line_pos0      = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1      = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count     = 0x01,
+		.tx_pel_line_pos0  = { 0x0e, 0x0e, 0x0e, 0x0e, 0x0e, 0x0e },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x01,
+		.tx_mode           = 0x06,
+		.tx_sync_pos0      = { 0x60, 0x60, 0x60, 0x60, 0x60, 0x60 },
+		.tx_sync_pos1      = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02 },
+		.tx_even           = 0x01,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay  = 25,
+		.reset_delay = 25,
+	},
+
+	[ SD_H960_2EX_Btype_PAL ] = {
+		.name = "AHD20_SD_H960_2EX_Btype_PAL",
+		.ch                = 0,
+		.rx_src            = 0x01,
+		.rx_slice_lev      = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x20,
+		.tx_shot_addr      = 0x0c,
+		.tx_baud           = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud       = { 0x48, 0x48, 0x48, 0x48, 0x48, 0x48 },
+		.tx_line_pos0      = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1      = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count     = 0x01,
+		.tx_pel_line_pos0  = { 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x01,
+		.tx_mode           = 0x06,
+		.tx_sync_pos0      = { 0x60, 0x60, 0x60, 0x60, 0x60, 0x60 },
+		.tx_sync_pos1      = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02 },
+		.tx_even           = 0x01,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay  = 25,
+		.reset_delay = 25,
+	},
+
+	[ SD_H960_NT ] = {
+		.name = "AHD20_SD_H960_NT",
+		.ch                = 0,
+		.rx_src            = 0x01,
+		.rx_slice_lev      = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x20,
+		.tx_shot_addr      = 0x0c,
+		.tx_baud           = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud       = { 0x1b, 0x1b, 0x1b, 0x1b, 0x1b, 0x1b },
+		.tx_line_pos0      = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1      = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count     = 0x01,
+		.tx_pel_line_pos0  = { 0x0e, 0x0e, 0x0e, 0x0e, 0x0e, 0x0e },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x01,
+		.tx_mode           = 0x06,
+		.tx_sync_pos0      = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 },
+		.tx_sync_pos1      = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even           = 0x01,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 30,
+		.reset_delay = 30,
+	},
+
+	[ SD_H960_PAL ] = {
+		.name = "AHD20_SD_H960_PAL",
+		.ch                = 0,
+		.rx_src            = 0x01,
+		.rx_slice_lev      = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x20,
+		.tx_shot_addr      = 0x0c,
+		.tx_baud           = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud       = { 0x1b, 0x1b, 0x1b, 0x1b, 0x1b, 0x1b },
+		.tx_line_pos0      = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1      = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count     = 0x01,
+		.tx_pel_line_pos0  = { 0x0e, 0x0e, 0x0e, 0x0e, 0x0e, 0x0e },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x01,
+		.tx_mode           = 0x06,
+		.tx_sync_pos0      = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 },
+		.tx_sync_pos1      = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even           = 0x01,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 30,
+		.reset_delay = 30,
+	},
+
+	[ SD_H1280_NT ] = {
+		.name = "AHD20_SD_H1280_NT",
+		.ch                = 0,
+		.rx_src            = 0x01,
+		.rx_slice_lev      = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x20,
+		.tx_shot_addr      = 0x0c,
+		.tx_baud           = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud       = { 0x48, 0x48, 0x48, 0x48, 0x48, 0x48 },
+		.tx_line_pos0      = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1      = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count     = 0x01,
+		.tx_pel_line_pos0  = { 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x01,
+		.tx_mode           = 0x06,
+		.tx_sync_pos0      = { 0x60, 0x60, 0x60, 0x60, 0x60, 0x60 },
+		.tx_sync_pos1      = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02 },
+		.tx_even           = 0x01,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 35,
+		.reset_delay = 35,
+	},
+
+	[ SD_H1280_PAL ] = {
+		.name = "AHD20_SD_H1280_PAL",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x20,
+		.tx_shot_addr      = 0x0c,
+		.tx_baud 		   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x48, 0x48, 0x48, 0x48, 0x48, 0x48 },
+		.tx_line_pos0 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1      = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count     = 0x01,
+		.tx_pel_line_pos0  = { 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x01,
+		.tx_mode 		   = 0x06,
+		.tx_sync_pos0 	   = { 0x60, 0x60, 0x60, 0x60, 0x60, 0x60 },
+		.tx_sync_pos1      = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02 },
+		.tx_even 		   = 0x01,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 35,
+		.reset_delay = 35,
+	},
+
+	[ SD_H1440_NT ] = {
+		.name = "AHD20_SD_H1440_NT",
+		.ch                = 0,
+		.rx_src            = 0x01,
+		.rx_slice_lev      = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x20,
+		.tx_shot_addr      = 0x0c,
+		.tx_baud           = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud       = { 0x48, 0x48, 0x48, 0x48, 0x48, 0x48 },
+		.tx_line_pos0      = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1      = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count     = 0x01,
+		.tx_pel_line_pos0  = { 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x01,
+		.tx_mode           = 0x06,
+		.tx_sync_pos0      = { 0x60, 0x60, 0x60, 0x60, 0x60, 0x60 },
+		.tx_sync_pos1      = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02 },
+		.tx_even           = 0x01,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 30,
+		.reset_delay = 30,
+	},
+
+	[ SD_H1440_PAL ] = {
+		.name = "AHD20_SD_H1440_PAL",
+		.ch                = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x20,
+		.tx_shot_addr      = 0x0c,
+		.tx_baud 		   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x48, 0x48, 0x48, 0x48, 0x48, 0x48 },
+		.tx_line_pos0 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1      = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count     = 0x01,
+		.tx_pel_line_pos0  = { 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x01,
+		.tx_mode 		   = 0x06,
+		.tx_sync_pos0 	   = { 0x60, 0x60, 0x60, 0x60, 0x60, 0x60 },
+		.tx_sync_pos1 	   = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02 },
+		.tx_even           = 0x01,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 30,
+		.reset_delay = 30,
+	},
+
+	[ SD_H960_EX_NT ] = {
+		.name = "AHD20_SD_H960_EX_NT",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev      = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x20,
+		.tx_shot_addr      = 0x0c,
+		.tx_baud 		   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud       = { 0x48, 0x48, 0x48, 0x48, 0x48, 0x48 },
+		.tx_line_pos0      = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1      = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count     = 0x01,
+		.tx_pel_line_pos0  = { 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x01,
+		.tx_mode 		   = 0x06,
+		.tx_sync_pos0 	   = { 0x60, 0x60, 0x60, 0x60, 0x60, 0x60 },
+		.tx_sync_pos1 	   = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02 },
+		.tx_even 		   = 0x01,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 30,
+		.reset_delay = 30,
+	},
+
+	[ SD_H960_EX_PAL ] = {
+		.name = "AHD20_SD_H960_EX_PAL",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x20,
+		.tx_shot_addr      = 0x0c,
+		.tx_baud           = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud       = { 0x48, 0x48, 0x48, 0x48, 0x48, 0x48 },
+		.tx_line_pos0      = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1      = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count     = 0x01,
+		.tx_pel_line_pos0  = { 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x01,
+		.tx_mode 		   = 0x06,
+		.tx_sync_pos0 	   = { 0x60, 0x60, 0x60, 0x60, 0x60, 0x60 },
+		.tx_sync_pos1 	   = { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02 },
+		.tx_even 		   = 0x01,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 30,
+		.reset_delay = 30,
+	},
+
+	[ SD_H960_2EX_NT ] = {
+		.name = "AHD20_SD_H960_2EX_NT",
+		.ch                = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x20,
+		.tx_shot_addr      = 0x0c,
+		.tx_baud 		   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x1a, 0x1a, 0x1a, 0x1a, 0x1a, 0x1a },
+		.tx_line_pos0 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x01,
+		.tx_pel_line_pos0  = { 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x01,
+		.tx_mode 		   = 0x06,
+		.tx_sync_pos0 	   = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 },
+		.tx_sync_pos1      = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even    	   = 0x01,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 30,
+		.reset_delay = 30,
+	},
+
+	[ SD_H960_2EX_PAL ] = {
+		.name = "AHD20_SD_H960_2EX_PAL",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x20,
+		.tx_shot_addr      = 0x0c,
+		.tx_baud 	       = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x1a, 0x1a, 0x1a, 0x1a, 0x1a, 0x1a },
+		.tx_line_pos0 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x01,
+		.tx_pel_line_pos0  = { 0x0e, 0x0e, 0x0e, 0x0e, 0x0e, 0x0e },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x01,
+		.tx_mode 		   = 0x06,
+		.tx_sync_pos0 	   = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 },
+		.tx_sync_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x01,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 30,
+		.reset_delay = 30,
+	},
+
+	[ AHD_960P_30P ] = {
+		.name = "AHD20_720P_960P_30P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		//.tx_baud 		   = { 0x2D, 0x2D, 0x2D, 0x28, 0x28, 0x28 },
+		.tx_baud 		   = { 0x26, 0x26, 0x26, 0x26, 0x26, 0x26 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x03,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x08,
+		.tx_mode 		   = 0x10,
+		.tx_sync_pos0 	   = { 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0 },
+		.tx_sync_pos1 	   = { 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 25,
+		.reset_delay = 25,
+	},
+
+	[ AHD_960P_25P ] = {
+		.name = "AHD20_720P_960P_25P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		//.tx_baud 		   = { 0x2D, 0x2D, 0x2D, 0x28, 0x28, 0x28 },
+		.tx_baud 		   = { 0x26, 0x26, 0x26, 0x26, 0x26, 0x26 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count     = 0x03,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x08,
+		.tx_mode 		   = 0x10,
+		.tx_sync_pos0 	   = { 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0 },
+		.tx_sync_pos1      = { 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 25,
+		.reset_delay = 25,
+	},
+
+	[ AHD_1080P_15P ] = {
+		.name = "AHD_1080P_15P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		//.tx_baud 		   = { 0x2D, 0x2D, 0x2D, 0x28, 0x28, 0x28 },
+		.tx_baud 		   = { 0x26, 0x26, 0x26, 0x26, 0x26, 0x26 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x03,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x08,
+		.tx_mode 		   = 0x10,
+		.tx_sync_pos0 	   = { 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0 },
+		.tx_sync_pos1 	   = { 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x80,
+
+		.shot_delay = 25,
+		.reset_delay = 25,
+	},
+
+	[ AHD_1080P_12_5P ] = {
+		.name = "AHD_1080P_12_5P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		//.tx_baud 		   = { 0x2D, 0x2D, 0x2D, 0x28, 0x28, 0x28 },
+		.tx_baud 		   = { 0x26, 0x26, 0x26, 0x26, 0x26, 0x26 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count     = 0x03,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x08,
+		.tx_mode 		   = 0x10,
+		.tx_sync_pos0 	   = { 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0 },
+		.tx_sync_pos1      = { 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x05,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x80,
+
+		.shot_delay = 25,
+		.reset_delay = 25,
+	},
+
+	[ AHD_1080P_30P ] = {
+		.name = "AHD20_1080P_30P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		//.tx_baud 		   = { 0x2D, 0x2D, 0x2D, 0x28, 0x28, 0x28 },
+		.tx_baud 		   = { 0x26, 0x26, 0x26, 0x26, 0x26, 0x26 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x03,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x08,
+		.tx_mode 		   = 0x10,
+		.tx_sync_pos0 	   = { 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0 },
+		.tx_sync_pos1 	   = { 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 25,
+		.reset_delay = 25,
+	},
+
+	[ AHD_1080P_25P ] = {
+		.name = "AHD20_1080P_25P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		//.tx_baud 		   = { 0x2D, 0x2D, 0x2D, 0x28, 0x28, 0x28 },
+		.tx_baud 		   = { 0x26, 0x26, 0x26, 0x26, 0x26, 0x26 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0e, 0x0e, 0x0e, 0x0e, 0x0e, 0x0e },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count     = 0x03,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x08,
+		.tx_mode 		   = 0x10,
+		.tx_sync_pos0 	   = { 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0 },
+		.tx_sync_pos1      = { 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x80,
+
+		.shot_delay = 25,
+		.reset_delay = 25,
+	},
+
+	[ AHD_1080P_60P ] = {
+		.name = "AHD20_1080P_60P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		//.tx_baud 		   = { 0x2D, 0x2D, 0x2D, 0x28, 0x28, 0x28 },
+		.tx_baud 		   = { 0x26, 0x26, 0x26, 0x26, 0x26, 0x26 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x03,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x08,
+		.tx_mode 		   = 0x10,
+		.tx_sync_pos0 	   = { 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0 },
+		.tx_sync_pos1 	   = { 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 25,
+		.reset_delay = 25,
+	},
+
+	[ AHD_1080P_50P ] = {
+		.name = "AHD20_1080P_50P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		//.tx_baud 		   = { 0x2D, 0x2D, 0x2D, 0x28, 0x28, 0x28 },
+		.tx_baud 		   = { 0x26, 0x26, 0x26, 0x26, 0x26, 0x26 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0e, 0x0e, 0x0e, 0x0e, 0x0e, 0x0e },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count     = 0x03,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x08,
+		.tx_mode 		   = 0x10,
+		.tx_sync_pos0 	   = { 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0 },
+		.tx_sync_pos1      = { 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x80,
+
+		.shot_delay = 25,
+		.reset_delay = 25,
+	},
+
+	[ AHD_720P_60P ] = {
+		.name = "AHD20_720P_60P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev      = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x1A, 0x1A, 0x1A, 0x1A, 0x1A, 0x1A },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count     = 0x03,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x03,
+		.tx_mode 		   = 0x10,
+		.tx_sync_pos0 	   = { 0x20, 0x20, 0x20, 0x20, 0x20, 0x20 },
+		.tx_sync_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 25,
+		.reset_delay = 25,
+	},
+
+	[ AHD_720P_50P ] = {
+		.name = "AHD20_720P_50P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x1A, 0x1A, 0x1A, 0x1A, 0x1A, 0x1A },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count     = 0x03,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x03,
+		.tx_mode 		   = 0x10,
+		.tx_sync_pos0      = { 0x16, 0x16, 0x16, 0x16, 0x16, 0x16 },
+		.tx_sync_pos1      = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 25,
+		.reset_delay = 25,
+	},
+
+	[ AHD_720P_30P ] = {
+		.name = "AHD20_720P_30P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 	       = { 0x16, 0x16, 0x16, 0x16, 0x16, 0x16 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0d, 0x0d, 0x0d, 0x0d, 0x0d, 0x0d },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x03,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x07,
+		.tx_mode 		   = 0x10,
+		.tx_sync_pos0 	   = { 0x7d, 0x7d, 0x7d, 0x7d, 0x7d, 0x7d },
+		.tx_sync_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x05,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 30,
+		.reset_delay = 30,
+#if 0
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count     = 0x03,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x03,
+		.tx_mode 		   = 0x10,
+		.tx_sync_pos0 	   = { 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0 },
+		.tx_sync_pos1 	   = { 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 30,
+		.reset_delay = 30,
+#endif
+	},
+
+	[ AHD_720P_25P ] = {
+		.name = "AHD20_720P_25P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 	       = { 0x16, 0x16, 0x16, 0x16, 0x16, 0x16 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0d, 0x0d, 0x0d, 0x0d, 0x0d, 0x0d },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x03,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x07,
+		.tx_mode 		   = 0x10,
+		.tx_sync_pos0 	   = { 0x7d, 0x7d, 0x7d, 0x7d, 0x7d, 0x7d },
+		.tx_sync_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x05,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 30,
+		.reset_delay = 30,
+	},
+
+	[ AHD_720P_30P_EX ] = {
+		.name = "AHD20_720P_30P_EX",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x30, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count     = 0x03,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x07,
+		.tx_mode 		   = 0x10,
+		.tx_sync_pos0      = { 0xb0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1      = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 30,
+		.reset_delay = 30,
+	},
+
+	[ AHD_720P_25P_EX ] = {
+		.name = "AHD20_720P_25P_EX",
+		.ch 			   = 0,
+		.rx_src 		   = 0x11,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 	       = { 0x30, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count     = 0x03,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x03,
+		.tx_mode 	       = 0x10,
+		.tx_sync_pos0 	   = { 0x35, 0x35, 0x35, 0x35, 0x35, 0x35 },
+		.tx_sync_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 30,
+		.reset_delay = 30,
+	},
+
+	[ AHD_720P_30P_EX_Btype ] = {
+		.name = "AHD20_720P_30P_EX_Btype",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 	       = { 0x30, 0x30, 0x30, 0x30, 0x30, 0x30 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x03,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x07,
+		.tx_mode 		   = 0x10,
+		.tx_sync_pos0 	   = { 0xb0, 0xb0, 0xb0, 0xb0, 0xb0, 0xb0 },
+		.tx_sync_pos1 	   = { 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 30,
+		.reset_delay = 30,
+	},
+
+	[ AHD_720P_25P_EX_Btype ] = {
+		.name = "AHD20_720P_25P_EX_Btype",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x30, 0x30, 0x30, 0x30, 0x30, 0x30 },
+		.tx_pel_baud 	   = { 0x20, 0x20, 0x20, 0x20, 0x20, 0x20 },
+		.tx_line_pos0 	   = { 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x03,
+		.tx_pel_line_pos0  = { 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x07,
+		.tx_mode 		   = 0x10,
+		.tx_sync_pos0 	   = { 0xD2, 0xD2, 0xD2, 0xD2, 0xD2, 0xD2 },
+		.tx_sync_pos1 	   = { 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 30,
+		.reset_delay = 30,
+	},
+
+	[ AHD_4M_30P ] = {
+		.name = "AHD30_4M_30P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x34, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x07,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x0E,
+		.tx_mode 		   = 0x10,
+		.tx_sync_pos0 	   = { 0xa0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x70,
+
+		.shot_delay = 25,
+		.reset_delay = 25,
+	},
+
+	[ AHD_4M_25P ] = {
+		.name = "AHD30_4M_25P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 	       = { 0x34, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x07,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x0E,
+		.tx_mode 		   = 0x10,
+		.tx_sync_pos0      = { 0xa0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x70,
+
+		.shot_delay = 25,
+		.reset_delay = 25,
+	},
+
+	[ AHD_4M_15P ] = {
+		.name = "AHD30_4M_15P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x2C, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x07,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x0E,
+		.tx_mode 		   = 0x10,
+		.tx_sync_pos0 	   = { 0xa0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 	       = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x70,
+
+		.shot_delay = 70,
+		.reset_delay = 0,
+	},
+
+	[ AHD_3M_30P ] = {
+		.name = "AHD30_3M_30P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x33, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count     = 0x03,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x07,
+		.tx_mode 		   = 0x10,
+		.tx_sync_pos0 	   = { 0xa0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 25,
+		.reset_delay = 25,
+	},
+
+	[ AHD_3M_25P ] = {
+		.name = "AHD30_3M_25P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x33, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x03,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x07,
+		.tx_mode 		   = 0x10,
+		.tx_sync_pos0 	   = { 0xa0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 25,
+		.reset_delay = 25,
+	},
+
+	[ AHD_3M_18P ] = {
+		.name = "AHD30_3M_18P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 	       = { 0x33, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count     = 0x03,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x07,
+		.tx_mode 		   = 0x10,
+		.tx_sync_pos0 	   = { 0x30, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 55,
+		.reset_delay = 0,
+	},
+
+	[ AHD_5M_12_5P ] = {
+		.name = "AHD30_5M_12_5P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev      = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x2C, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x07,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x0e,
+		.tx_mode 		   = 0x10,
+		.tx_sync_pos0 	   = { 0x30, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x70,
+
+		.shot_delay = 90,
+		.reset_delay = 0,
+	},
+
+	[ AHD_5M_20P ] = {
+		.name = "AHD30_5M_20P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x38, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x07,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x0e,
+		.tx_mode 		   = 0x10,
+		.tx_sync_pos0 	   = { 0xa0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x70,
+
+		.shot_delay = 55,
+		.reset_delay = 0,
+	},
+
+	[ AHD_5_3M_20P ] = {
+		.name = "AHD30_5_3M_20P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x38, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x07,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x08,
+		.tx_mode 		   = 0x10,
+		.tx_sync_pos0 	   = { 0xa0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 	       = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x70,
+
+		.shot_delay = 55,
+		.reset_delay = 0,
+	},
+
+	[ AHD_8M_CIF_30P ] = {
+		.name = "AHD_8M_CIF_30P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x11,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x10, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0      = { 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count     = 0x07,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x07,
+		.tx_mode 	       = 0x10,
+		.tx_sync_pos0 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x70,
+
+		.shot_delay = 90,
+		.reset_delay = 0,
+	},
+
+	[ AHD_8M_CIF_25P ] = {
+		.name = "AHD_8M_CIF_25P",
+		.ch                = 0,
+		.rx_src 		   = 0x11,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x10, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x07,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x07,
+		.tx_mode 		   = 0x10,
+		.tx_sync_pos0 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x70,
+
+		.shot_delay = 90,
+		.reset_delay = 0,
+	},
+
+	[ AHD_8M_7_5P ] = {
+		.name = "AHD30_8M_7_5P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x11,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 	       = { 0x10, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x07,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x07,
+		.tx_mode 		   = 0x10,
+		.tx_sync_pos0      = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x70,
+
+		.shot_delay = 90,
+		.reset_delay = 0,
+	},
+
+	[ AHD_8M_12_5P ] = {
+		.name = "AHD_8M_12_5P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x11,
+		.rx_slice_lev      = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x10, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1      = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x07,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x07,
+		.tx_mode 		   = 0x10,
+		.tx_sync_pos0 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x70,
+
+		.shot_delay = 90,
+		.reset_delay = 0,
+	},
+
+	[ AHD_8M_15P ] = {
+		.name = "AHD30_8M_15P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev      = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x34, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x07,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x0e,
+		.tx_mode 		   = 0x10,
+		.tx_sync_pos0 	   = { 0x60, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x03, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 	       = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x81,
+		.rx_manual_duty    = 0x2D,
+		.rx_head_matching  = 0x55,
+		.rx_data_rz        = 0x00,
+		.rx_sz             = 0x70,
+
+		.shot_delay = 90,
+		.reset_delay = 0,
+	},
+
+	[ TVI_FHD_30P ] = {
+		.name = "TVI_FHD_30P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x34, 0x34, 0x34, 0x34, 0x34, 0x34 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0B, 0x00, 0x00, 0x00, 0x00, 0x0A },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x01,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x02,
+		.tx_mode 		   = 0x08,
+		.tx_sync_pos0 	   = { 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0x20 },
+		.tx_sync_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x3E,
+		.rx_head_matching  = 0xAD,
+		.rx_data_rz        = 0x8F,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 30,
+		.reset_delay = 30,
+	},
+
+	[ TVI_FHD_25P ] = {
+		.name = "TVI_FHD_25P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x34, 0x34, 0x34, 0x34, 0x34, 0x34 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0	   = { 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x01,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x02,
+		.tx_mode 		   = 0x08,
+		.tx_sync_pos0 	   = { 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x3E,
+		.rx_head_matching  = 0xAD,
+		.rx_data_rz        = 0x8F,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 40,
+		.reset_delay = 40,
+	},
+
+	[ TVI_HD_60P ] = {
+		.name = "TVI_HD_60P",
+		.ch  			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x34, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x01,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x02,
+		.tx_mode 	       = 0x08,
+		.tx_sync_pos0 	   = { 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x3E,
+		.rx_head_matching  = 0xAD,
+		.rx_data_rz        = 0x8F,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 20,
+		.reset_delay = 20,
+	},
+
+	[ TVI_HD_50P ] = {
+		.name = "TVI_HD_50P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x34, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x01,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x02,
+		.tx_mode 		   = 0x08,
+		.tx_sync_pos0 	   = { 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x3E,
+		.rx_head_matching  = 0xAD,
+		.rx_data_rz        = 0x8F,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 20,
+		.reset_delay = 20,
+	},
+
+	[ TVI_HD_30P ] = {
+		.name = "TVI_HD_30P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x34, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x01,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x02,
+		.tx_mode 		   = 0x08,
+		.tx_sync_pos0 	   = { 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 	       = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x3E,
+		.rx_head_matching  = 0xAD,
+		.rx_data_rz        = 0x8F,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 25,
+		.reset_delay = 25,
+	},
+
+	[ TVI_HD_25P ] = {
+		.name = "TVI_HD_25P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x34, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x01,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x02,
+		.tx_mode 	       = 0x08,
+		.tx_sync_pos0 	   = { 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x3E,
+		.rx_head_matching  = 0xAD,
+		.rx_data_rz        = 0x8F,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 25,
+		.reset_delay = 25,
+	},
+
+	[ TVI_HD_30P_EX ] = {
+		.name = "TVI_HD_30P_EX",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 	       = { 0x34, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x01,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x02,
+		.tx_mode 		   = 0x08,
+		.tx_sync_pos0 	   = { 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even           = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x3E,
+		.rx_head_matching  = 0xAD,
+		.rx_data_rz        = 0x8F,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 25,
+		.reset_delay = 25,
+	},
+
+	[ TVI_HD_25P_EX ] = {
+		.name = "TVI_HD_25P_EX",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 	       = { 0x34, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x01,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x02,
+		.tx_mode 		   = 0x08,
+		.tx_sync_pos0 	   = { 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x3E,
+		.rx_head_matching  = 0xAD,
+		.rx_data_rz        = 0x8F,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 25,
+		.reset_delay = 25,
+	},
+
+	[ TVI_HD_B_30P ] = {
+		.name = "TVI_HD_B_30P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x34, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x01,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x02,
+		.tx_mode 		   = 0x08,
+		.tx_sync_pos0 	   = { 0x52, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x3E,
+		.rx_head_matching  = 0xAD,
+		.rx_data_rz        = 0x8F,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 40,
+		.reset_delay = 40,
+	},
+
+	[ TVI_HD_B_25P ] = {
+		.name = "TVI_HD_B_25P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 	 	   = { 0x34, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x01,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x02,
+		.tx_mode 		   = 0x08,
+		.tx_sync_pos0 	   = { 0x52, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x3E,
+		.rx_head_matching  = 0xAD,
+		.rx_data_rz        = 0x8F,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 25,
+		.reset_delay = 25,
+	},
+
+	[ TVI_HD_B_30P_EX ] = {
+		.name = "TVI_HD_B_30P_EX",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x34, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x01,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x02,
+		.tx_mode 		   = 0x08,
+		.tx_sync_pos0 	   = { 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x3E,
+		.rx_head_matching  = 0xAD,
+		.rx_data_rz        = 0x8F,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 35,
+		.reset_delay = 35,
+	},
+
+	[ TVI_HD_B_25P_EX ] = {
+		.name = "TVI_HD_B_25P_EX",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x34, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x01,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x02,
+		.tx_mode 		   = 0x08,
+		.tx_sync_pos0 	   = { 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 	  	   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x3E,
+		.rx_head_matching  = 0xAD,
+		.rx_data_rz        = 0x8F,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 40,
+		.reset_delay = 40,
+	},
+
+	[ TVI_3M_18P ] = {
+		.name = "TVI_3M_18P",
+		.ch 			   = 0,
+		.rx_src 	       = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x34, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count     = 0x01,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x02,
+		.tx_mode 		   = 0x08,
+		.tx_sync_pos0 	   = { 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC },
+		.tx_sync_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x3E,
+		.rx_head_matching  = 0xAD,
+		.rx_data_rz        = 0x8F,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 55,
+		.reset_delay = 55,
+	},
+
+	[ TVI_5M_12_5P ] = {
+		.name = "TVI_5M_12_5P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x34, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x01,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x02,
+		.tx_mode 		   = 0x08,
+		.tx_sync_pos0 	   = { 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x3E,
+		.rx_head_matching  = 0xAD,
+		.rx_data_rz        = 0x8F,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 80,
+		.reset_delay = 80,
+	},
+
+	[ TVI_5M_20P ] = {
+		.name = "TVI_5M_20P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x34, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x01,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x02,
+		.tx_mode 		   = 0x08,
+		.tx_sync_pos0 	   = { 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x3E,
+		.rx_head_matching  = 0xAD,
+		.rx_data_rz        = 0x8F,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 80,
+		.reset_delay = 80,
+	},	
+
+	[ TVI_4M_30P ] = {
+		.name = "TVI_4M_30P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x34, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x01,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x02,
+		.tx_mode 		   = 0x08,
+		.tx_sync_pos0 	   = { 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x3E,
+		.rx_head_matching  = 0xAD,
+		.rx_data_rz        = 0x8F,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 30,
+		.reset_delay = 30,
+	},
+
+	[ TVI_4M_25P ] = {
+		.name = "TVI_4M_25P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x34, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x01,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x02,
+		.tx_mode 		   = 0x08,
+		.tx_sync_pos0 	   = { 0xd0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x3E,
+		.rx_head_matching  = 0xAD,
+		.rx_data_rz        = 0x8F,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 30,
+		.reset_delay = 30,
+	},
+
+	[ TVI_4M_15P ] = {
+		.name = "TVI_4M_25P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x34, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x01,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x02,
+		.tx_mode 		   = 0x08,
+		.tx_sync_pos0 	   = { 0xd0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x3E,
+		.rx_head_matching  = 0xAD,
+		.rx_data_rz        = 0x8F,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 30,
+		.reset_delay = 30,
+	},
+
+	[ TVI_8M_12_5P ] = {
+		.name = "TVI_8M_12_5P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x34, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x01,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x02,
+		.tx_mode 		   = 0x08,
+		.tx_sync_pos0 	   = { 0xd0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x3E,
+		.rx_head_matching  = 0xAD,
+		.rx_data_rz        = 0x8F,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 30,
+		.reset_delay = 30,
+	},
+
+	[ TVI_8M_15P ] = {
+		.name = "TVI_8M_15P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x03,
+		.tx_cmd_addr       = 0x10,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x34, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x01,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x02,
+		.tx_mode 		   = 0x08,
+		.tx_sync_pos0 	   = { 0xd0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x06,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x3E,
+		.rx_head_matching  = 0xAD,
+		.rx_data_rz        = 0x8F,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 30,
+		.reset_delay = 30,
+	},
+
+	[ CVI_HD_60P ] = {
+		.name = "CVI_HD_60P",
+		.ch = 0,
+		.rx_src 		   = 0x01,   // 1
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x0C,
+		.tx_cmd_addr       = 0x00,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x16, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x10, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x05,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x0c,
+		.tx_mode 		   = 0x60,
+		.tx_sync_pos0 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1	   = { 0x06, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x05,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x64,
+		.rx_head_matching  = 0xAB,
+		.rx_data_rz        = 0x8D,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 20,
+		.reset_delay = 20,
+	},
+
+	[ CVI_HD_50P ] = {
+		.name = "CVI_HD_50P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x0C,
+		.tx_cmd_addr       = 0x00,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x16, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x10, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x05,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x0c,
+		.tx_mode 		   = 0x60,
+		.tx_sync_pos0 	   ={  0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x06, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x05,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x64,
+		.rx_head_matching  = 0xAB,
+		.rx_data_rz        = 0x8D,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 20,
+		.reset_delay = 20,
+	},
+
+	[ CVI_HD_30P ] = {
+		.name = "CVI_HD_30P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x0C,
+		.tx_cmd_addr       = 0x00,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x10, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x05,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x0c,
+		.tx_mode 		   = 0x60,
+		.tx_sync_pos0 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x03, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x05,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x32,
+		.rx_head_matching  = 0xAB,
+		.rx_data_rz        = 0x8D,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 35,
+		.reset_delay = 35,
+	},
+
+	[ CVI_HD_25P ] = {
+		.name = "CVI_HD_25P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x0C,
+		.tx_cmd_addr       = 0x00,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x10, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x05,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x0c,
+		.tx_mode 		   = 0x60,
+		.tx_sync_pos0 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x03, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x05,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x32,
+		.rx_head_matching  = 0xAB,
+		.rx_data_rz        = 0x8D,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 40,
+		.reset_delay = 40,
+	},
+
+	[ CVI_HD_30P_EX ] = {
+		.name = "CVI_HD_30P_EX",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x0C,
+		.tx_cmd_addr       = 0x00,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 	       = { 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x10, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x05,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x0c,
+		.tx_mode 		   = 0x60,
+		.tx_sync_pos0 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x03, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x05,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x32,
+		.rx_head_matching  = 0xAB,
+		.rx_data_rz        = 0x8D,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 35,
+		.reset_delay = 33,
+	},
+
+	[ CVI_HD_25P_EX ] = {
+		.name = "CVI_HD_25P_EX",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev  	   = 0x80,
+		.tx_bank           = 0x0C,
+		.tx_cmd_addr       = 0x00,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 	 	   = { 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x10, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x05,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x0c,
+		.tx_mode 		   = 0x60,
+		.tx_sync_pos0 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x03, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x05,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x32,
+		.rx_head_matching  = 0xAB,
+		.rx_data_rz        = 0x8D,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 25,
+		.reset_delay = 25,
+	},
+
+	[ CVI_FHD_30P ] = {
+		.name = "CVI_FHD_30P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x0C,
+		.tx_cmd_addr       = 0x00,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x16, 0x16, 0x16, 0x16, 0x16, 0x16 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x10, 0x10, 0x10, 0x10, 0x10, 0x10 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x05,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x0c,
+		.tx_mode 		   = 0x60,
+		.tx_sync_pos0 	   = { 0x08, 0x08, 0x08, 0x08, 0x08, 0x08 },
+		.tx_sync_pos1 	   = { 0x06, 0x06, 0x06, 0x06, 0x06, 0x06 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x05,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x64,
+		.rx_head_matching  = 0xAB,
+		.rx_data_rz        = 0x8D,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 35,
+		.reset_delay = 35,
+	},
+
+	[ CVI_FHD_25P ] = {
+		.name = "CVI_FHD_25P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x0C,
+		.tx_cmd_addr       = 0x00,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x16, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x10, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x05,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x0c,
+		.tx_mode 		   = 0x60,
+		.tx_sync_pos0 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x06, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x00,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x05,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x64,
+		.rx_head_matching  = 0xAB,
+		.rx_data_rz        = 0x8D,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 40,
+		.reset_delay = 40,
+	},
+
+	[ CVI_4M_25P ] = {
+		.name = "CVI_4M_25P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x0C,
+		.tx_cmd_addr       = 0x00,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x2b, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x16, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x0f,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x01,
+		.tx_mode 		   = 0x60,
+		.tx_sync_pos0 	   = { 0xa0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x02, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x10,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x05,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x64,
+		.rx_head_matching  = 0xAB,
+		.rx_data_rz        = 0x85,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 25,
+		.reset_delay = 25,
+	},
+
+	[ CVI_4M_30P ] = {
+		.name = "CVI_4M_30P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x0C,
+		.tx_cmd_addr       = 0x00,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 	  	   = { 0x2b, 0x00, 0x00, 0x2b, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x16, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x0f,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x1e,
+		.tx_mode 		   = 0x60,
+		.tx_sync_pos0 	   = { 0xe0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x10,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x05,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x64,
+		.rx_head_matching  = 0xAB,
+		.rx_data_rz        = 0x85,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 25,
+		.reset_delay = 25,
+	},
+
+	[ CVI_5M_20P ] = {
+		.name = "CVI_5M_20P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x0C,
+		.tx_cmd_addr       = 0x00,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 	  	   = { 0x16, 0x00, 0x00, 0x2b, 0x00, 0x00 },
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x10, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x05,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x0c,
+		.tx_mode 		   = 0x60,
+		.tx_sync_pos0 	   = { 0xf0, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x04, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x10,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x05,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x64,
+		.rx_head_matching  = 0xAB,
+		.rx_data_rz        = 0x85,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 25,
+		.reset_delay = 25,
+	},
+
+	[ CVI_8M_15P ] = {
+		.name = "CVI_8M_15P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x0C,
+		.tx_cmd_addr       = 0x00,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 		   = { 0x36, 0x00, 0x00, 0x00, 0x00, 0x00 },  //[0x35->0x37]
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0 	   = { 0x17, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count 	   = 0x0f,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x01,
+		.tx_mode 		   = 0x60,
+		.tx_sync_pos0 	   = { 0x50, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1 	   = { 0x03, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x10,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x05,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x58,  //[0x54~0x5D]
+		.rx_head_matching  = 0xAB,
+		.rx_data_rz        = 0x85,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 25,
+		.reset_delay = 25,
+	},
+
+	[ CVI_8M_12_5P ] = {
+		.name = "CVI_8M_12_5P",
+		.ch 			   = 0,
+		.rx_src 		   = 0x01,
+		.rx_slice_lev 	   = 0x80,
+		.tx_bank           = 0x0C,
+		.tx_cmd_addr       = 0x00,
+		.tx_shot_addr      = 0x09,
+		.tx_baud 	   = { 0x36, 0x00, 0x00, 0x00, 0x00, 0x00 },  //[0x35->0x39]
+		.tx_pel_baud 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos0  = { 0x17, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_pos1 	   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count     = 0x0f,
+		.tx_pel_line_pos0  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_pel_line_pos1  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_line_count_max = 0x1e,
+		.tx_mode 		   = 0x60,
+		.tx_sync_pos0  = { 0x50, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_sync_pos1  = { 0x03, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		.tx_even 		   = 0x00,
+		.tx_zero_length    = 0x10,
+
+		.rx_comm_on        = 0x01,
+		.rx_area           = 0x05,
+		.rx_signal_enhance = 0x01,
+		.rx_manual_duty    = 0x61,  //[0x5E~0x64]
+		.rx_head_matching  = 0xAB,
+		.rx_data_rz        = 0x85,
+		.rx_sz             = 0x60,
+
+		.shot_delay = 25,
+		.reset_delay = 25,
+	},
+};
+
+
+NC_COAX_CMD_TABLE_S coax_cmd_lists[]=
+{
+	[ COAX_CMD_IRIS_INC ] = {
+		.name 		  = "COAX_CMD_IRIS_INC",
+		.ahd_16bit    = { 0x40, 0x00, 0x00, 0x00, EOD },
+		.ahd_8bit     = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00, EOD },
+		.ahd_4_5m     = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, EOD },
+		.cvi_cmd      = { 0xa5, 0x80, 0x0A, 0x00, 0x00, 0x00, 0x6f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, EOD },
+		.cvi_new_cmd  = { 0xa5, 0x80, 0x0A, 0x00, 0x00,  0x00, 0x6f, 0xff, 0xff, 0xff, EOD },
+		.cvi_checksum = { 0x6f, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, EOD },
+		.tvi_v1_0     = { 0xb5, 0x00, 0x0f, 0x00, 0x80, 0x00, 0x00, 0x00, 0xc4, 0x80, EOD },
+		.tvi_v2_0     = { 0xb5, 0x01, 0x0f, 0x00, 0x80, 0x00, 0x00, 0x00, 0xc5, 0x80, EOD },
+		.sd           = { 0x40, 0x00, 0x00, 0x00, EOD },
+	},
+
+	[ COAX_CMD_IRIS_DEC ] = {
+		.name         = "COAX_CMD_IRIS_DEC",
+		.ahd_16bit    = { 0x20, 0x00, 0x00, 0x00, EOD },
+		.ahd_8bit     = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, EOD },
+		.ahd_4_5m     = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, EOD },
+		.cvi_cmd      = { 0xa5, 0x80, 0x06, 0x00, 0x00, 0x00, 0x60, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, EOD },
+		.cvi_new_cmd  = { 0xa5, 0x80, 0x0A, 0x00, 0x00,  0x00, 0x6f, 0xff, 0xff, 0xff, EOD },
+		.cvi_checksum = { 0x60, 0xff, 0xff, 0xff, 0xff, 0xff, EOD },
+		.tvi_v1_0     = { 0xb5, 0x00, 0x0e, 0x00, 0x80, 0x00, 0x00, 0x00, 0xc3, 0x80, EOD },
+		.tvi_v2_0     = { 0xb5, 0x01, 0x0e, 0x00, 0x80, 0x00, 0x00, 0x00, 0xc4, 0x80, EOD },
+		.sd           = { 0x20, 0x00, 0x00, 0x00, EOD },
+	},
+
+	[ COAX_CMD_FOCUS_INC ] = {
+		.name         = "COAX_CMD_FOCUS_INC",
+		.ahd_16bit    = { 0x80, 0x00, 0x00, 0x00, EOD },
+		.ahd_8bit     = { 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, EOD },
+		.ahd_4_5m     = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, EOD },
+		.cvi_cmd      = { 0xa5, 0x80, 0x12, 0x00, 0x00, 0x00, 0x77, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, EOD },
+		.cvi_new_cmd  = { 0xa5, 0x80, 0x0A, 0x00, 0x00,  0x00, 0x6f, 0xff, 0xff, 0xff, EOD },
+		.cvi_checksum = { 0x77, 0xff, 0xff, 0xff, 0xff, 0xff, EOD },
+		.tvi_v1_0     = { 0xb5, 0x00, 0x10, 0x00, 0x80, 0x00, 0x00, 0x00, 0xc5, 0x80, EOD },
+		.tvi_v2_0     = { 0xb5, 0x01, 0x10, 0x00, 0x80, 0x00, 0x00, 0x00, 0xc6, 0x80, EOD },
+		.sd           = { 0x80, 0x00, 0x00, 0x00, EOD },
+	},
+
+	[ COAX_CMD_FOCUS_DEC ] = {
+		.name 		  = "COAX_CMD_FOCUS_DEC",
+		.ahd_16bit    = { 0x00, 0x01, 0x01, 0x00, EOD },
+		.ahd_8bit     = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, EOD },
+		.ahd_4_5m 	  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, EOD },
+		.cvi_cmd      = { 0xa5, 0x80, 0x22, 0x00, 0x00, 0x00, 0x57, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, EOD },
+		.cvi_new_cmd  = { 0xa5, 0x80, 0x0A, 0x00, 0x00,  0x00, 0x6f, 0xff, 0xff, 0xff, EOD },
+		.cvi_checksum = { 0x57, 0xff, 0xff, 0xff, 0xff, 0xff, EOD },
+		.tvi_v1_0 	  = { 0xb5, 0x00, 0x11, 0x00, 0x80, 0x00, 0x00, 0x00, 0xc6, 0x80, EOD },
+		.tvi_v2_0     = { 0xb5, 0x01, 0x11, 0x00, 0x80, 0x00, 0x00, 0x00, 0xc7, 0x80, EOD },
+		.sd  		  = { 0x00, 0x01, 0x00, 0x00, EOD },
+	},
+
+	[ COAX_CMD_ZOOM_INC ] = {
+		.name 		  = "COAX_CMD_ZOOM_INC",
+		.ahd_16bit    = { 0x00, 0x02, 0x02, 0x00, EOD },
+		.ahd_8bit 	  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00, EOD },
+		.ahd_4_5m     = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, EOD },
+		.cvi_cmd      = { 0xa5, 0x80, 0x42, 0x00, 0x00, 0x00, 0x17, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, EOD },
+		.cvi_new_cmd  = { 0xa5, 0x80, 0x0A, 0x00, 0x00,  0x00, 0x6f, 0xff, 0xff, 0xff, EOD },
+		.cvi_checksum = { 0x17, 0xff, 0xff, 0xff, 0xff, 0xff, EOD },
+		.tvi_v1_0 	  = { 0xb5, 0x00, 0x13, 0x00, 0x80, 0x00, 0x00, 0x00, 0xc8, 0x80, EOD },
+		.tvi_v2_0     = { 0xb5, 0x01, 0x13, 0x00, 0x80, 0x00, 0x00, 0x00, 0xc9, 0x80, EOD },
+		.sd  		  = { 0x00, 0x02, 0x00, 0x00, EOD },
+	},
+
+	[ COAX_CMD_ZOOM_DEC ] = {
+		.name 		  = "COAX_CMD_ZOOM_DEC",
+		.ahd_16bit    = { 0x00, 0x04, 0x04, 0x00, EOD },
+		.ahd_8bit 	  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, EOD },
+		.ahd_4_5m 	  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, EOD },
+		.cvi_cmd      = { 0xa5, 0x80, 0x82, 0x00, 0x00, 0x00, 0xe7, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, EOD },
+		.cvi_new_cmd  = { 0xa5, 0x80, 0x0A, 0x00, 0x00,  0x00, 0x6f, 0xff, 0xff, 0xff, EOD },
+		.cvi_checksum = { 0xe7, 0xff, 0xff, 0xff, 0xff, 0xff, EOD },
+		.tvi_v1_0 	  = { 0xb5, 0x00, 0x12, 0x00, 0x80, 0x00, 0x00, 0x00, 0xc7, 0x80, EOD },
+		.tvi_v2_0     = { 0xb5, 0x01, 0x12, 0x00, 0x80, 0x00, 0x00, 0x00, 0xc8, 0x80, EOD },
+		.sd  		  = { 0x00, 0x04, 0x00, 0x00, EOD },
+	},
+
+	[ COAX_CMD_OSD_ON ] = {
+		.name 		  = "COAX_CMD_OSD_ON",
+		.ahd_16bit    = { 0x00, 0xc0, 0xc0, 0xfa, EOD },
+		.ahd_8bit 	  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x5F, EOD },
+		.ahd_4_5m 	  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  0x00, 0x03, 0x00, 0x5F, 0x00, 0x00, 0x00, 0x00, EOD },
+		.cvi_cmd      = { 0xa5, 0x80, 0x91, 0x80, 0x00, 0x00, 0x0C, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, EOD },
+		.cvi_new_cmd  = { 0xa5, 0x80, 0x91, 0x10, 0x00,  0x00, 0xEC, 0xff, 0xff, 0xff, EOD },
+		.cvi_checksum = { 0x0C, 0xff, 0xff, 0xff, 0xff, 0xff, EOD },
+		.tvi_v1_0 	  = { 0xb5, 0x00, 0x0f, 0x00, 0x80, 0x00, 0x00, 0x00, 0xc4, 0x80, EOD },
+		.tvi_v2_0     = { 0xb5, 0x01, 0x0f, 0x00, 0x80, 0x00, 0x00, 0x00, 0xc5, 0x80, EOD },
+		.sd  		  = { 0x00, 0xC0, 0x00, 0xFA, EOD },
+	},
+
+	[ COAX_CMD_PTZ_UP ] = {
+		.name 		  = "COAX_CMD_PTZ_UP",
+		.ahd_16bit    = { 0x00, 0x10, 0x10, 0x4c, EOD },
+		.ahd_8bit 	  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, EOD },
+		.ahd_4_5m 	  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  0x00, 0x08, 0x00, 0x32, 0x00, 0x00, 0x00, 0x00, EOD },
+		.cvi_cmd      = { 0xa5, 0x80, 0x10, 0x00, 0xf9, 0x00, 0xb2, 0xff, 0xff, 0xff, 0xff, 0xff,  0xff, 0xff, 0xff, 0xff, EOD },
+		.cvi_new_cmd  = { 0xa5, 0x80, 0x91, 0x20, 0x00, 0x00, 0xCC, 0xff, 0xff, 0xff, EOD },
+		.cvi_checksum = { 0xb2, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, EOD },
+		.tvi_v1_0 	  = { 0xb5, 0x00, 0x06, 0x24, 0x80, 0x00, 0x00, 0x00, 0xdf, 0x80, EOD },
+		.tvi_v2_0     = { 0xb5, 0x01, 0x06, 0xff, 0x80, 0x00, 0x00, 0x00, 0xbb, 0x80, EOD },
+		.sd  		  = { 0x00, 0x10, 0x00, 0x00, EOD },
+	},
+
+	[ COAX_CMD_PTZ_DOWN ] = {
+		.name 		  = "COAX_CMD_PTZ_DOWN",
+		.ahd_16bit    = { 0x00, 0x08, 0x08, 0x4c, EOD },
+		.ahd_8bit 	  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x32, EOD },
+		.ahd_4_5m 	  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  0x00, 0x10, 0x00, 0x32, 0x00, 0x00, 0x00, 0x00, EOD },
+		.cvi_cmd      = { 0xa5, 0x80, 0x20, 0x00, 0xf9, 0x00, 0x92, 0xff, 0xff, 0xff, 0xff, 0xff,  0xff, 0xff, 0xff, 0xff, EOD },
+		.cvi_new_cmd  = { 0xa5, 0x80, 0x91, 0xA0, 0x00,  0x00, 0x2C, 0xff, 0xff, 0xff, EOD },
+		.cvi_checksum = { 0x92, 0xff, 0xff, 0xff, 0xff, 0xff, EOD },
+		.tvi_v1_0 	  = { 0xb5, 0x00, 0x07, 0x24, 0x80, 0x00, 0x00, 0x00, 0xe0, 0x80, EOD },
+		.tvi_v2_0     = { 0xb5, 0x01, 0x07, 0xff, 0x80, 0x00, 0x00, 0x00, 0xbc, 0x80, EOD },
+		.sd  		  = { 0x00, 0x08, 0x00, 0x00, EOD },
+	},
+
+	[ COAX_CMD_PTZ_LEFT ] = {
+		.name 		  = "COAX_CMD_PTZ_LEFT",
+		.ahd_16bit    = { 0x00, 0x20, 0x20, 0x00, EOD },
+		.ahd_8bit 	  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x32, 0x00, EOD },
+		.ahd_4_5m 	  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  0x00, 0x04, 0x32, 0x00, 0x00, 0x00, 0x00, 0x00, EOD },
+		.cvi_cmd      = { 0xa5, 0x80, 0x40, 0xf9, 0x00, 0x00, 0xe2, 0xff, 0xff, 0xff, 0xff, 0xff,  0xff, 0xff, 0xff, 0xff, EOD },
+		.cvi_new_cmd  = { 0xa5, 0x80, 0x91, 0x60, 0x00,  0x00, 0xAC, 0xff, 0xff, 0xff, EOD },
+		.cvi_checksum = { 0xe2, 0xff, 0xff, 0xff, 0xff, 0xff, EOD },
+		.tvi_v1_0 	  = { 0xb5, 0x00, 0x09, 0x00, 0x80, 0x24, 0x00, 0x00, 0xe2, 0x80, EOD },
+		.tvi_v2_0     = { 0xb5, 0x01, 0x09, 0x00, 0x80, 0xff, 0x00, 0x00, 0xbe, 0x80, EOD },
+		.sd  		  = { 0x00, 0x20, 0x4C, 0x00, EOD },
+	},
+
+	[ COAX_CMD_PTZ_RIGHT ] = {
+		.name 		  = "COAX_CMD_PTZ_RIGHT",
+		.ahd_16bit    = { 0x00, 0x40, 0x40, 0x00, EOD },
+		.ahd_8bit 	  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x32, 0x00, EOD },
+		.ahd_4_5m 	  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  0x00, 0x02, 0x32, 0x00, 0x00, 0x00, 0x00, 0x00, EOD },
+		.cvi_cmd      = { 0xa5, 0x80, 0x80, 0xf9, 0x00, 0x00, 0x62, 0xff, 0xff, 0xff, 0xff, 0xff,  0xff, 0xff, 0xff, 0xff, EOD },
+		.cvi_new_cmd  = { 0xa5, 0x80, 0x91, 0xE0, 0x00,  0x00, 0x6C, 0xff, 0xff, 0xff, EOD },
+		.cvi_checksum = { 0x62, 0xff, 0xff, 0xff, 0xff, 0xff, EOD },
+		.tvi_v1_0 	  = { 0xb5, 0x00, 0x08, 0x00, 0x80, 0x24, 0x00, 0x00, 0xe1, 0x80, EOD },
+		.tvi_v2_0     = { 0xb5, 0x01, 0x08, 0x00, 0x80, 0xff, 0x00, 0x00, 0xbd, 0x80, EOD },
+		.sd  		  = { 0x00, 0x40, 0x4C, 0x00, EOD },
+	},
+
+	[ COAX_CMD_OSD_ENTER ] = {
+		.name 		  = "COAX_CMD_OSD_ENTER",
+		.ahd_16bit    = { 0x40, 0x00, 0x00, 0x00, EOD },
+		.ahd_8bit 	  = { 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, EOD },
+		.ahd_4_5m 	  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, EOD },
+		.cvi_cmd      = { 0xa5, 0x80, 0x91, 0x10, 0x00, 0x00, 0xec, 0xff, 0xff, 0xff, 0xff, 0xff,  0xff, 0xff, 0xff, 0xff, EOD },
+		.cvi_new_cmd  = { 0xa5, 0x80, 0x91, 0x10, 0x00,  0x00, 0xEC, 0xff, 0xff, 0xff, EOD },
+		.cvi_checksum = { 0xec, 0xff, 0xff, 0xff, 0xff, 0xff, EOD },
+		.tvi_v1_0 	  = { 0xb5, 0x00, 0x17, 0x5f, 0x80, 0x00, 0x00, 0x00, 0x2b, 0x80, EOD },
+		.tvi_v2_0     = { 0xb5, 0x01, 0x17, 0x5f, 0x80, 0x00, 0x00, 0x00, 0x2c, 0x80, EOD },
+		.sd  		  = { 0x40, 0x00, 0x00, 0x00, EOD },
+	},
+
+	[ COAX_CMD_SPECIAL_FW ] = {
+		.name 		  = "COAX_CMD_SPECIAL_FW",
+		.ahd_16bit    = { 0x00, 0x00, 0x00, 0x00, EOD },
+		.ahd_8bit 	  = { 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, EOD },
+		.ahd_4_5m 	  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, EOD },
+		.cvi_cmd      = { 0x00, 0x03, 0x40, EOD },
+		.cvi_new_cmd  = { 0xa5, 0x80, 0x0A, 0x00, 0x00,  0x00, 0x6f, 0xff, 0xff, 0xff, EOD },
+		.cvi_checksum = { 0x81, 0x92, 0xc1, 0xff, 0xc1, 0xff, 0xc1, 0xff, 0xc1, 0xff, 0xc1, 0xff,  EOD },
+		.tvi_v1_0 	  = { 0x00, 0x03, 0x40, EOD },
+		.tvi_v2_0     = { 0x00, EOD },
+		.sd  		  = { 0x00, EOD },
+	},
+
+	[ COAX_CMD_SPECIAL_CAMEQ ] = {
+		.name 		  = "COAX_CMD_SPECIAL_CAMEQ",
+		.ahd_16bit    = { 0x00, 0x00, 0x00, 0x00, EOD },
+		.ahd_8bit 	  = { 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, EOD },
+		.ahd_4_5m 	  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, EOD },
+		.cvi_cmd      = { 0x00, 0x03, 0x40, EOD },
+		.cvi_new_cmd  = { 0xa5, 0x80, 0x0A, 0x00, 0x00,  0x00, 0x6f, 0xff, 0xff, 0xff, EOD },
+		.cvi_checksum = { 0x81, 0x92, 0xc1, 0xff, 0xc1, 0xff, 0xc1, 0xff, 0xc1, 0xff, 0xc1, 0xff, EOD },
+		.tvi_v1_0 	  = { 0x00, EOD },
+		.tvi_v2_0     = { 0x00, EOD },
+		.sd  		  = { 0x00, EOD },
+	},
+
+	[ COAX_CMD_SPECIAL_FPS ] = {
+		.name 		  = "COAX_CMD_SPECIAL_FPS",
+		.ahd_16bit    = { 0x00, 0x00, 0x00, 0x00, EOD },
+		.ahd_8bit 	  = { 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, EOD },
+		.ahd_4_5m 	  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, EOD },
+		.cvi_cmd      = { 0x00, 0x03, 0x40, EOD},
+		.cvi_new_cmd  = { 0xa5, 0x80, 0x0A, 0x00, 0x00,  0x00, 0x6f, 0xff, 0xff, 0xff, EOD },
+		.cvi_checksum = { 0x81, 0x92, 0xc1, 0xff, 0xc1, 0xff, 0xc1, 0xff, 0xc1, 0xff, 0xc1, 0xff, EOD },
+		.tvi_v1_0 	  = { 0x00, EOD },
+		.tvi_v2_0     = { 0x00, EOD },
+		.sd  		  = { 0x00, EOD },
+	},
+
+	[ COAX_CMD_SPECIAL_MOTION ] = {
+		.name 		  = "COAX_CMD_SPECIAL_MOTION",
+		.ahd_16bit    = { 0x00, 0x00, 0x00, 0x00, EOD },
+		.ahd_8bit     = { 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, EOD },
+		.ahd_4_5m 	  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, EOD },
+		.cvi_cmd 	  = { 0x00, 0x03, 0x40, EOD },
+		.cvi_new_cmd  = { 0xa5, 0x80, 0x0A, 0x00, 0x00,  0x00, 0x6f, 0xff, 0xff, 0xff, EOD },
+		.cvi_checksum = { 0x81, 0x92, 0xc1, 0xff, 0xc1, 0xff, 0xc1, 0xff, 0xc1, 0xff, 0xc1, 0xff, EOD },
+		.tvi_v1_0 	  = { 0x00, EOD },
+		.tvi_v2_0     = { 0x00, EOD },
+		.sd  		  = { 0x00, EOD },
+	},
+
+	[ COAX_CMD_SPECIAL_3DNR_REQUEST ] = {
+		.name 		  = "COAX_CMD_SPECIAL_3DNR_REQUEST",
+		.ahd_16bit    = { 0x00, EOD },
+		.ahd_8bit     = { 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, EOD },
+		.ahd_4_5m 	  = { 0x60, 0xB0, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00,  0x60, 0xB0, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, EOD },
+		.cvi_cmd 	  = { 0x00, EOD },
+		.cvi_new_cmd  = { 0x00, EOD },
+		.cvi_checksum = { 0x00, EOD },
+		.tvi_v1_0 	  = { 0x00, EOD },
+		.tvi_v2_0     = { 0x00, EOD },
+		.sd  		  = { 0x00, EOD },
+	},
+
+	[ COAX_CMD_TVI_DOWNSTREAM_REQUEST ] = {
+		.name 		  = "COAX_CMD_SPECIAL_MOTION",
+		.ahd_16bit    = { 0x00, EOD },
+		.ahd_8bit     = { 0x00, EOD },
+		.ahd_4_5m 	  = { 0x00, EOD },
+		.cvi_cmd 	  = { 0x00, EOD },
+		.cvi_new_cmd  = { 0x00, EOD },
+		.cvi_checksum = { 0x00, EOD },
+		.tvi_v1_0     = { 0xb5, 0x00, 0x87, 0x00, 0x80, 0x00, 0x00, 0x00, 0x3c, 0x80, EOD },
+		.tvi_v2_0     = { 0xb5, 0x01, 0x87, 0x00, 0x80, 0x00, 0x00, 0x00, 0x3d, 0x80, EOD },
+		.sd  		  = { 0x00, EOD },
+	},
+
+};
+
+
+NC_VIDEO_FMT_INIT_TABLE_S *nc_drv_table_video_init_vlaue_get( NC_VIVO_CH_FORMATDEF_E def )
+{
+	NC_VIDEO_FMT_INIT_TABLE_S *pRet = &video_fmt_setting_value_def[def];
+	if( pRet == NULL )
+	{
+		printk("[DRV]vd_vi_init_list Not Supported format Yet!!!(%d)\n",def);
+		return NULL;
+	}
+	return  pRet;
+}
+
+NC_VIVO_CH_FORMATDEF_E nc_drv_table_video_format_get( NC_FORMAT_STANDARD_E format_standard, NC_FORMAT_RESOLUTION_E format_resolution, NC_FORMAT_FPS_E format_fps  )
+{
+	int ii;
+
+	for(ii=0;ii<NC_VIVO_CH_FORMATDEF_MAX;ii++)
+	{
+		NC_VIDEO_FMT_INIT_TABLE_S *pFmt = &video_fmt_setting_value_def[ ii ];
+
+		if( pFmt->fmt_standard == format_standard )
+			if( pFmt->fmt_resolution == format_resolution )
+				if( pFmt->fmt_fps == format_fps )
+					return ii;
+	}
+	printk("[%s::%d]UNKNOWN format!!!std(%d), res(%d), fps(%d)\n", __FILE__, __LINE__, format_standard, format_resolution, format_fps);
+
+	return NC_VIVO_CH_FORMATDEF_UNKNOWN;
+}
+
+NC_COAX_ATTR_TABLE_S *nc_drv_table_coax_normal_initialize_info_get( NC_VIVO_CH_FORMATDEF_E def )
+{
+	NC_COAX_ATTR_TABLE_S *pRet = &coax_init_lists[def];
+	if( pRet == NULL )
+	{
+		printk("Not Supported format Yet!!!(%d)\n",def);
+	}
+	return  pRet;
+}
+
+NC_COAX_ATTR_TABLE_S *nc_drv_table_coax_special_initialize_info_get( NC_VIVO_CH_FORMATDEF_E def )
+{
+	NC_COAX_ATTR_TABLE_S *pRet = &coax_acp_16bit_init_lists[def];
+	if( pRet == NULL )
+	{
+		printk("Not Supported format Yet!!!(%d)\n",def);
+	}
+	return  pRet;
+}
+
+NC_COAX_CMD_TABLE_S *nc_drv_table_coax_up_stream_command_get( NC_COAX_CMD_DEF_E def )
+{
+	NC_COAX_CMD_TABLE_S *pRet = &coax_cmd_lists[def];
+	if( pRet == NULL )
+	{
+		printk("Not Supported format Yet!!!(%d)\n",def);
+	}
+	return  pRet;
+}
+
+NC_VIVO_CH_FORMATDEF_E nc_drv_table_vfc_to_formatdef_get( NC_U8 vfc,  char *pstr )
+{
+	NC_VIVO_CH_FORMATDEF_E Video_Fmt;
+
+	switch( vfc )
+	{
+		case    0x00  : strcpy(pstr, "SD_H960_2EX_Btype_NT") ; 			Video_Fmt = SD_H960_2EX_Btype_NT ; 			break;
+		case    0x10  : strcpy(pstr, "SD_H960_2EX_Btype_PAL"); 			Video_Fmt = SD_H960_2EX_Btype_PAL; 			break;
+		//case    0x00  : strcpy(pstr, "SD_H960_2EX_NT") ; 				Video_Fmt = SD_H960_2EX_NT ; 			break;
+		//case    0x10  : strcpy(pstr, "SD_H960_2EX_PAL"); 				Video_Fmt = SD_H960_2EX_PAL; 			break;
+		case    0x20  : strcpy(pstr, "AHD_720P_30P_EX_Btype");     		Video_Fmt = AHD_720P_30P_EX_Btype;  		break;
+		case    0x21  : strcpy(pstr, "AHD_720P_25P_EX_Btype");     		Video_Fmt = AHD_720P_25P_EX_Btype;  		break;
+		case    0x22  : strcpy(pstr, "AHD_720P_60P"); 			 		Video_Fmt = AHD_720P_60P; 			 		break;
+		case    0x23  : strcpy(pstr, "AHD_720P_50P"); 			 		Video_Fmt = AHD_720P_50P; 			 		break;
+		case    0x25  : strcpy(pstr, "TVI_HD_30P_EX"); 				 	Video_Fmt = TVI_HD_30P_EX; 		 			break;
+		case    0x26  : strcpy(pstr, "TVI_HD_25P_EX"); 				 	Video_Fmt = TVI_HD_25P_EX; 					break;
+		case    0x27  : strcpy(pstr, "TVI_HD_60P");  				 	Video_Fmt = TVI_HD_60P;			 			break;
+		case    0x28  : strcpy(pstr, "TVI_HD_50P"); 			 	 	Video_Fmt = TVI_HD_50P;						break;
+		case    0x29  : strcpy(pstr, "TVI_HD_B_30P_EX"); 			 	Video_Fmt = TVI_HD_B_30P_EX;				break;
+		case    0x2A  : strcpy(pstr, "TVI_HD_B_25P_EX"); 			 	Video_Fmt = TVI_HD_B_25P_EX;				break;
+		case    0x2B  : strcpy(pstr, "CVI_HD_30P_EX");  			 	Video_Fmt = CVI_HD_30P_EX;					break;
+		case    0x2C  : strcpy(pstr, "CVI_HD_25P_EX"); 				 	Video_Fmt = CVI_HD_25P_EX; 					break;
+		case    0x2D  : strcpy(pstr, "CVI_HD_60P");  				 	Video_Fmt = CVI_HD_60P;						break;
+		case    0x2E  : strcpy(pstr, "CVI_HD_50P");  				 	Video_Fmt = CVI_HD_50P;						break;
+		case    0x30  : strcpy(pstr, "AHD_1080P_30P");  			 	Video_Fmt = AHD_1080P_30P;					break;
+		case    0x31  : strcpy(pstr, "AHD_1080P_25P");  			 	Video_Fmt = AHD_1080P_25P;					break;
+		case    0x33  : strcpy(pstr, "TVI_FHD_30P");  				 	Video_Fmt = TVI_FHD_30P;					break;
+		case    0x34  : strcpy(pstr, "TVI_FHD_25P");  				 	Video_Fmt = TVI_FHD_25P;					break;
+		case    0x35  : strcpy(pstr, "CVI_FHD_30P");  				 	Video_Fmt = CVI_FHD_30P;					break;
+		case    0x36  : strcpy(pstr, "CVI_FHD_25P");  				 	Video_Fmt = CVI_FHD_25P;					break;
+		case    0x38  : strcpy(pstr, "AHD_FHD_60P");  				 	Video_Fmt = AHD_1080P_60P;					break;
+		case    0x39  : strcpy(pstr, "AHD_FHD_50P");  				 	Video_Fmt = AHD_1080P_50P;					break;
+		case    0x3A  : strcpy(pstr, "TVI_FHD_60P");  			     	Video_Fmt = TVI_FHD_60P;					break;
+		case    0x3B  : strcpy(pstr, "TVI_FHD_50P");  			     	Video_Fmt = TVI_FHD_50P;					break;
+		case    0x3C  : strcpy(pstr, "AHD_FHD_15P");  			     	Video_Fmt = AHD_1080P_15P;					break;
+		case    0x3D  : strcpy(pstr, "AHD_FHD_12_5P");  			    Video_Fmt = AHD_1080P_12_5P;				break;
+		case    0x40  : strcpy(pstr, "AHD_3M_30P");  				 	Video_Fmt = AHD_3M_30P;						break;
+		case    0x41  : strcpy(pstr, "AHD_3M_25P"); 				 	Video_Fmt = AHD_3M_25P;						break;
+		case    0x42  : strcpy(pstr, "AHD_3M_18P");  				 	Video_Fmt = AHD_3M_18P;						break;
+		case    0x44  : strcpy(pstr, "TVI_3M_18P");  			 	 	Video_Fmt = TVI_3M_18P; 					break;
+		case    0x50  : strcpy(pstr, "AHD_4M_30P");  				 	Video_Fmt = AHD_4M_30P;			 			break;
+		case    0x51  : strcpy(pstr, "AHD_4M_25P");  				 	Video_Fmt = AHD_4M_25P;			 			break;
+		case    0x52  : strcpy(pstr, "AHD_4M_15P");  				 	Video_Fmt = AHD_4M_15P;			 			break;
+		case    0x54  : strcpy(pstr, "CVI_4M_30P");  				 	Video_Fmt = CVI_4M_30P;			 			break;
+		case    0x55  : strcpy(pstr, "CVI_4M_25P");  				 	Video_Fmt = CVI_4M_25P;			 			break;
+		case    0x57  : strcpy(pstr, "TVI_4M_30P");  				 	Video_Fmt = TVI_4M_30P;						break;
+		case    0x58  : strcpy(pstr, "TVI_4M_25P");  				 	Video_Fmt = TVI_4M_25P;						break;
+		case    0x59  : strcpy(pstr, "TVI_4M_15P");   				 	Video_Fmt = TVI_4M_15P;			 			break;
+		case    0x60  : strcpy(pstr, "AHD_8M_CIF_30P");  			 	Video_Fmt = AHD_8M_CIF_30P;		 			break;
+		case    0x61  : strcpy(pstr, "AHD_8M_CIF_25P");  			 	Video_Fmt = AHD_8M_CIF_25P;		 			break;
+		case    0x70  : strcpy(pstr, "AHD_5M_20P");  				 	Video_Fmt = AHD_5M_20P;			 			break;
+		case    0x71  : strcpy(pstr, "AHD_5M_12_5P");  				 	Video_Fmt = AHD_5M_12_5P;			 		break;
+		case    0x72  : strcpy(pstr, "AHD_5_3M_20P");  			 		Video_Fmt = AHD_5_3M_20P;			 		break;
+		case    0x73  : strcpy(pstr, "TVI_5M_12_5P");  				 	Video_Fmt = TVI_5M_12_5P;			 		break;
+		case    0x74  : strcpy(pstr, "TVI_5M_20P");  				 	Video_Fmt = TVI_5M_20P;			 			break;
+		case    0x75  : strcpy(pstr, "CVI_5M_20P");  				 	Video_Fmt = CVI_5M_20P;			 			break;
+		case    0x80  : strcpy(pstr, "AHD_8M_15P");  				 	Video_Fmt = AHD_8M_15P;			 			break;
+		case    0x81  : strcpy(pstr, "AHD_8M_7_5P");  			 		Video_Fmt = AHD_8M_7_5P;			 		break;
+		case    0x82  : strcpy(pstr, "AHD_8M_12_5P");  			 		Video_Fmt = AHD_8M_12_5P;			 		break;
+		case    0x83  : strcpy(pstr, "CVI_8M_15P");  				 	Video_Fmt = CVI_8M_15P;				 		break;
+		case    0x84  : strcpy(pstr, "CVI_8M_12_5P");  				 	Video_Fmt = CVI_8M_12_5P;			 		break;
+		case    0x85  : strcpy(pstr, "TVI_8M_15P");  				 	Video_Fmt = TVI_8M_15P;						break;
+		case    0x86  : strcpy(pstr, "TVI_8M_12_5P");  				 	Video_Fmt = TVI_8M_12_5P;					break;
+		case    0x90  : strcpy(pstr, "AHD_6M_18P");  				 	Video_Fmt = AHD_6M_18P;						break;
+		case    0xA0  : strcpy(pstr, "AHD_960P_30P");  		 		 	Video_Fmt = AHD_960P_30P;		  			break;
+		case    0xA1  : strcpy(pstr, "AHD_960P_25P");  		 		 	Video_Fmt = AHD_960P_25P;		  			break;
+		case    0xA2  : strcpy(pstr, "AHD_960P_60P");  		 		 	Video_Fmt = AHD_960P_60P;		  			break;
+		case    0xA3  : strcpy(pstr, "AHD_960P_50P");  		 		 	Video_Fmt = AHD_960P_50P;		  	 		break;
+		case    0xA4  : strcpy(pstr, "TVI_960P_30P");  		 		 	Video_Fmt = TVI_960P_30P;		  			break;
+		case    0xA5  : strcpy(pstr, "TVI_960P_25P");  		 		 	Video_Fmt = TVI_960P_25P;		  			break;
+		case    0xA6  : strcpy(pstr, "TVI_960P_60P");  		 		 	Video_Fmt = TVI_960P_60P;		  			break;
+		case    0xA7  : strcpy(pstr, "TVI_960P_50P");  		 		 	Video_Fmt = TVI_960P_50P;		  	 		break;
+		case    0xFF  : strcpy(pstr, "NC_VIVO_CH_FORMATDEF_UNKNOWN");	Video_Fmt = NC_VIVO_CH_FORMATDEF_UNKNOWN; 	break;
+		default : 		strcpy(pstr, "NC_VIVO_CH_FORMATDEF_UNKNOWN");  	Video_Fmt = NC_VIVO_CH_FORMATDEF_UNKNOWN;	break;
+	}
+
+	return Video_Fmt;
+}
+
+
+NC_U8 nc_drv_table_formatdef_to_vfc_get( NC_VIVO_CH_FORMATDEF_E fmt_def,  char *pstr )
+{
+	NC_U8 vfc;
+
+	switch( fmt_def )
+	{
+		case    SD_H960_2EX_NT    		: strcpy(pstr, "SD_H960_2EX_NT"); 				vfc = 0x00; 				break;
+		case    SD_H960_2EX_PAL   		: strcpy(pstr, "SD_H960_2EX_PAL"); 				vfc = 0x10; 				break;
+		case    SD_H960_2EX_Btype_NT    : strcpy(pstr, "SD_H960_2EX_Btype_NT"); 		vfc = 0x00; 				break;
+		case    SD_H960_2EX_Btype_PAL   : strcpy(pstr, "SD_H960_2EX_Btype_PAL"); 		vfc = 0x10; 				break;
+		case    AHD_720P_30P			: strcpy(pstr, "AHD_720P_30P_EX_Btype");     	vfc = 0x20;  				break;
+		case	AHD_720P_25P			: strcpy(pstr, "AHD_720P_25P_EX_Btype");     	vfc = 0x21;  				break;
+		case    AHD_720P_60P   			: strcpy(pstr, "AHD_720P_60P"); 			 	vfc = 0x22; 			 	break;
+		case    AHD_720P_50P   			: strcpy(pstr, "AHD_720P_50P"); 			 	vfc = 0x23; 			 	break;
+		case    TVI_HD_30P_EX   		: strcpy(pstr, "TVI_HD_30P_EX"); 				vfc = 0x25; 		 		break;
+		case    TVI_HD_25P_EX   		: strcpy(pstr, "TVI_HD_25P_EX"); 				vfc = 0x26; 				break;
+		case    TVI_HD_60P   			: strcpy(pstr, "TVI_HD_60P");  				 	vfc = 0x27;			 		break;
+		case    TVI_HD_50P   			: strcpy(pstr, "TVI_HD_50P"); 			 	 	vfc = 0x28;					break;
+		case    TVI_HD_B_30P_EX   		: strcpy(pstr, "TVI_HD_B_30P_EX"); 			 	vfc = 0x29;					break;
+		case    TVI_HD_B_25P_EX   		: strcpy(pstr, "TVI_HD_B_25P_EX"); 			 	vfc = 0x2A;					break;
+		case    CVI_HD_30P_EX   		: strcpy(pstr, "CVI_HD_30P_EX");  			 	vfc = 0x2B;					break;
+		case    CVI_HD_25P_EX   		: strcpy(pstr, "CVI_HD_25P_EX"); 				vfc = 0x2C; 				break;
+		case    CVI_HD_60P   			: strcpy(pstr, "CVI_HD_60P");  				 	vfc = 0x2D;					break;
+		case    CVI_HD_50P   			: strcpy(pstr, "CVI_HD_50P");  				 	vfc = 0x2E;					break;
+		case    AHD_1080P_30P   		: strcpy(pstr, "AHD_1080P_30P");  			 	vfc = 0x30;					break;
+		case    AHD_1080P_25P   		: strcpy(pstr, "AHD_1080P_25P");  			 	vfc = 0x31;					break;
+		case    AHD_1080P_60P   		: strcpy(pstr, "AHD_1080P_60P");  			 	vfc = 0x38;					break;
+		case    AHD_1080P_50P   		: strcpy(pstr, "AHD_1080P_50P");  			 	vfc = 0x39;					break;
+		case    AHD_1080P_15P   		: strcpy(pstr, "AHD_1080P_15P");  			 	vfc = 0x3C;					break;
+		case    AHD_1080P_12_5P   		: strcpy(pstr, "AHD_1080P_12_5P");  			vfc = 0x3D;					break;
+		case    TVI_FHD_30P   			: strcpy(pstr, "TVI_FHD_30P");  				vfc = 0x33;					break;
+		case    TVI_FHD_25P   			: strcpy(pstr, "TVI_FHD_25P");  				vfc = 0x34;					break;
+		case    CVI_FHD_30P   			: strcpy(pstr, "CVI_FHD_30P");  				vfc = 0x35;					break;
+		case    CVI_FHD_25P   			: strcpy(pstr, "CVI_FHD_25P");  				vfc = 0x36;					break;
+		case    TVI_FHD_60P   			: strcpy(pstr, "TVI_FHD_60P");  			    vfc = 0x3A;					break;
+		case    TVI_FHD_50P   			: strcpy(pstr, "TVI_FHD_50P");  			    vfc = 0x3B;					break;
+		case    AHD_3M_30P   			: strcpy(pstr, "AHD_3M_30P");  				 	vfc = 0x40;					break;
+		case    AHD_3M_25P   			: strcpy(pstr, "AHD_3M_25P"); 				 	vfc = 0x41;					break;
+		case    AHD_3M_18P   			: strcpy(pstr, "AHD_3M_18P");  				 	vfc = 0x42;					break;
+		case    TVI_3M_18P   			: strcpy(pstr, "TVI_3M_18P");  			 	 	vfc = 0x44; 				break;
+		case    AHD_4M_30P   			: strcpy(pstr, "AHD_4M_30P");  				 	vfc = 0x50;			 		break;
+		case    AHD_4M_25P   			: strcpy(pstr, "AHD_4M_25P");  				 	vfc = 0x51;			 		break;
+		case    AHD_4M_15P   			: strcpy(pstr, "AHD_4M_15P");  				 	vfc = 0x52;			 		break;
+		case    CVI_4M_30P   			: strcpy(pstr, "CVI_4M_30P");  				 	vfc = 0x54;			 		break;
+		case    CVI_4M_25P   			: strcpy(pstr, "CVI_4M_25P");  				 	vfc = 0x55;			 		break;
+		case    TVI_4M_30P   			: strcpy(pstr, "TVI_4M_30P");  				 	vfc = 0x57;					break;
+		case    TVI_4M_25P  			: strcpy(pstr, "TVI_4M_25P");  				 	vfc = 0x58;					break;
+		case    TVI_4M_15P   			: strcpy(pstr, "TVI_4M_15P");   				vfc = 0x59;			 		break;
+		case    AHD_8M_CIF_30P   		: strcpy(pstr, "AHD_8M_X_30P");  			 	vfc = 0x60;		 			break;
+		case    AHD_8M_CIF_25P   		: strcpy(pstr, "AHD_8M_X_25P");  			 	vfc = 0x61;		 			break;
+		case    AHD_5M_20P   			: strcpy(pstr, "AHD_5M_20P");  				 	vfc = 0x70;			 		break;
+		case    AHD_5M_12_5P   			: strcpy(pstr, "AHD_5M_12_5P");  				vfc = 0x71;			 		break;
+		case    AHD_5_3M_20P   			: strcpy(pstr, "AHD_5_3M_20P");  			 	vfc = 0x72;			 		break;
+		case    TVI_5M_12_5P   			: strcpy(pstr, "TVI_5M_12_5P");  				vfc = 0x73;			 		break;
+		case    TVI_5M_20P   			: strcpy(pstr, "TVI_5M_20P");  				 	vfc = 0x74;			 		break;
+		case    CVI_5M_20P   			: strcpy(pstr, "CVI_5M_20P");  				 	vfc = 0x75;			 		break;
+		case    AHD_8M_15P   			: strcpy(pstr, "AHD_8M_15P");  				 	vfc = 0x80;			 		break;
+		case    AHD_8M_7_5P   			: strcpy(pstr, "AHD_8M_7_5P");  			 	vfc = 0x81;			 		break;
+		case    AHD_8M_12_5P   			: strcpy(pstr, "AHD_8M_12_5P");  			 	vfc = 0x82;			 		break;
+		case    CVI_8M_15P   			: strcpy(pstr, "CVI_8M_15P");  				 	vfc = 0x83;				 	break;
+		case    CVI_8M_12_5P   			: strcpy(pstr, "CVI_8M_12_5P");  				vfc = 0x84;			 		break;
+		case    TVI_8M_15P   			: strcpy(pstr, "TVI_8M_15P");  				 	vfc = 0x85;					break;
+		case    TVI_8M_12_5P   			: strcpy(pstr, "TVI_8M_12_5P");  				vfc = 0x86;					break;
+		case    AHD_6M_18P   			: strcpy(pstr, "AHD_6M_18P");  				 	vfc = 0x90;					break;
+		case    AHD_960P_30P   			: strcpy(pstr, "AHD_960P_30P");  		 		vfc = 0xA0;		  			break;
+		case    AHD_960P_25P   			: strcpy(pstr, "AHD_960P_25P");  		 		vfc = 0xA1;		  			break;
+		case    AHD_960P_60P   			: strcpy(pstr, "AHD_960P_60P");  		 		vfc = 0xA2;		  			break;
+		case    AHD_960P_50P   			: strcpy(pstr, "AHD_960P_50P");  		 		vfc = 0xA3;		  	 		break;
+		case    TVI_960P_30P   			: strcpy(pstr, "TVI_960P_30P");  		 		vfc = 0xA4;		  			break;
+		case    TVI_960P_25P   			: strcpy(pstr, "TVI_960P_25P");  		 		vfc = 0xA5;		  			break;
+		case    TVI_960P_60P   			: strcpy(pstr, "TVI_960P_60P");  		 		vfc = 0xA6;		  			break;
+		case    TVI_960P_50P   			: strcpy(pstr, "TVI_960P_50P");  		 		vfc = 0xA7;		  	 		break;
+		case    NC_VIVO_CH_FORMATDEF_UNKNOWN : strcpy(pstr, "NC_VIVO_CH_FORMATDEF_UNKNOWN");	 vfc = 0xFF; 		break;
+		default : 							   strcpy(pstr, "NC_VIVO_CH_FORMATDEF_UNKNOWN");     vfc = 0xFF;		break;
+	}
+
+	return vfc;
+}
+
+
+

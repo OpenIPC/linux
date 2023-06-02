@@ -32,6 +32,7 @@
 #include <asm/hardware/cache-l2x0.h>
 #include "cache-tauros3.h"
 #include "cache-aurora-l2.h"
+#include <linux/rwlock_types.h>
 
 struct l2c_init_data {
 	const char *type;
@@ -63,6 +64,51 @@ static bool l2x0_flz_disable;
 /*
  * Common code for all cache controllers.
  */
+#ifdef CONFIG_NVT_CACHE_FLUSH_ALL_L2_CACHE
+
+static DEFINE_RWLOCK(l2c_rw_lock);
+
+static unsigned long l2c_lock_exclusive(void)
+{
+	unsigned long flags;
+
+	raw_local_irq_save(flags);
+
+	/* Just try to lock the l2c_rw_lock*/
+	if (write_trylock(&l2c_rw_lock) == 0) {
+		/* lock falied then just return -1 */
+		raw_local_irq_restore(flags);
+		return (unsigned long)-1;
+	}
+
+	return flags;
+}
+
+static void l2c_unlock_exclusive(unsigned long flags)
+{
+	write_unlock(&l2c_rw_lock);
+	raw_local_irq_restore(flags);
+}
+
+static void l2c_lock_shared(void)
+{
+	read_lock(&l2c_rw_lock);
+}
+
+static void l2c_unlock_shared(void)
+{
+	read_unlock(&l2c_rw_lock);
+}
+#else
+static void l2c_lock_shared(void)
+{
+}
+
+static void l2c_unlock_shared(void)
+{
+}
+#endif
+
 static inline void l2c_wait_mask(void __iomem *reg, unsigned long mask)
 {
 	/* wait for cache operation by line or way to complete */
@@ -200,6 +246,7 @@ static void l2c210_inv_range(unsigned long start, unsigned long end)
 {
 	void __iomem *base = l2x0_base;
 
+	l2c_lock_shared();
 	if (start & (CACHE_LINE_SIZE - 1)) {
 		start &= ~(CACHE_LINE_SIZE - 1);
 		writel_relaxed(start, base + L2X0_CLEAN_INV_LINE_PA);
@@ -213,15 +260,41 @@ static void l2c210_inv_range(unsigned long start, unsigned long end)
 
 	__l2c210_op_pa_range(base + L2X0_INV_LINE_PA, start, end);
 	__l2c210_cache_sync(base);
+	l2c_unlock_shared();
 }
+
+#ifdef CONFIG_NVT_CACHE_FLUSH_ALL_L2_CACHE
+unsigned long nvt_l2c210_clean_all(void)
+{
+	void __iomem *base = l2x0_base;
+	unsigned long flags;
+
+	flags = l2c_lock_exclusive();
+	if (flags == (unsigned long) -1) {
+		return flags;
+	}
+
+	l2c_wait_mask(base + L2X0_CACHE_SYNC, 1);
+
+	__l2c_op_way(base + L2X0_CLEAN_WAY);
+	__l2c210_cache_sync(base);
+
+	l2c_wait_mask(base + L2X0_CACHE_SYNC, 1);
+
+	l2c_unlock_exclusive(flags);
+	return 0;
+}
+#endif
 
 static void l2c210_clean_range(unsigned long start, unsigned long end)
 {
 	void __iomem *base = l2x0_base;
 
+	l2c_lock_shared();
 	start &= ~(CACHE_LINE_SIZE - 1);
 	__l2c210_op_pa_range(base + L2X0_CLEAN_LINE_PA, start, end);
 	__l2c210_cache_sync(base);
+	l2c_unlock_shared();
 }
 
 static void l2c210_flush_range(unsigned long start, unsigned long end)
@@ -229,23 +302,53 @@ static void l2c210_flush_range(unsigned long start, unsigned long end)
 	void __iomem *base = l2x0_base;
 
 	start &= ~(CACHE_LINE_SIZE - 1);
+
+	l2c_lock_shared();
 	__l2c210_op_pa_range(base + L2X0_CLEAN_INV_LINE_PA, start, end);
 	__l2c210_cache_sync(base);
+	l2c_unlock_shared();
 }
+
+#ifdef CONFIG_NVT_CACHE_FLUSH_ALL_L2_CACHE
+unsigned long nvt_l2c210_flush_all(void)
+{
+	unsigned long flags;
+	void __iomem *base = l2x0_base;
+
+	flags = l2c_lock_exclusive();
+	if (flags == (unsigned long) -1) {
+		return flags;
+	}
+
+	l2c_wait_mask(base + L2X0_CACHE_SYNC, 1);
+	__l2c_op_way(base + L2X0_CLEAN_INV_WAY);
+	__l2c210_cache_sync(base);
+	l2c_wait_mask(base + L2X0_CACHE_SYNC, 1);
+
+	l2c_unlock_exclusive(flags);
+
+	return 0;
+}
+#endif
 
 static void l2c210_flush_all(void)
 {
+#ifdef CONFIG_NVT_CACHE_FLUSH_ALL_L2_CACHE
+	nvt_l2c210_flush_all();
+#else
 	void __iomem *base = l2x0_base;
 
 	BUG_ON(!irqs_disabled());
-
 	__l2c_op_way(base + L2X0_CLEAN_INV_WAY);
 	__l2c210_cache_sync(base);
+#endif
 }
 
 static void l2c210_sync(void)
 {
+	l2c_lock_shared();
 	__l2c210_cache_sync(l2x0_base);
+	l2c_unlock_shared();
 }
 
 static const struct l2c_init_data l2c210_data __initconst = {
@@ -368,10 +471,18 @@ static void l2c220_flush_range(unsigned long start, unsigned long end)
 	unsigned long flags;
 
 	start &= ~(CACHE_LINE_SIZE - 1);
+
+#ifdef CONFIG_NVT_CACHE_FLUSH_ALL_L2_CACHE
+	if ((end - start) >= (l2x0_size << CONFIG_NVT_CACHE_FLUSH_ALL_L2_THRESHOLD)) {
+		l2c220_op_way(base, L2X0_CLEAN_INV_WAY);
+		return;
+	}
+#else
 	if ((end - start) >= l2x0_size) {
 		l2c220_op_way(base, L2X0_CLEAN_INV_WAY);
 		return;
 	}
+#endif
 
 	raw_spin_lock_irqsave(&l2x0_lock, flags);
 	flags = l2c220_op_pa_range(base + L2X0_CLEAN_INV_LINE_PA,
@@ -484,7 +595,11 @@ static void l2c310_inv_range_erratum(unsigned long start, unsigned long end)
 		unsigned long flags;
 
 		/* Erratum 588369 for both clean+invalidate operations */
+#ifdef CONFIG_NVT_CACHE_FLUSH_ALL_L2_CACHE
+		flags = l2c_lock_exclusive();
+#else
 		raw_spin_lock_irqsave(&l2x0_lock, flags);
+#endif
 		l2c_set_debug(base, 0x03);
 
 		if (start & (CACHE_LINE_SIZE - 1)) {
@@ -501,20 +616,34 @@ static void l2c310_inv_range_erratum(unsigned long start, unsigned long end)
 		}
 
 		l2c_set_debug(base, 0x00);
+
+#ifdef CONFIG_NVT_CACHE_FLUSH_ALL_L2_CACHE
+		l2c_unlock_exclusive(flags);
+#else
 		raw_spin_unlock_irqrestore(&l2x0_lock, flags);
+#endif
 	}
 
+	l2c_lock_shared();
 	__l2c210_op_pa_range(base + L2X0_INV_LINE_PA, start, end);
 	__l2c210_cache_sync(base);
+	l2c_unlock_shared();
 }
 
 static void l2c310_flush_range_erratum(unsigned long start, unsigned long end)
 {
+#ifndef CONFIG_NVT_CACHE_FLUSH_ALL_L2_CACHE
 	raw_spinlock_t *lock = &l2x0_lock;
+#endif
 	unsigned long flags;
 	void __iomem *base = l2x0_base;
 
+#ifdef CONFIG_NVT_CACHE_FLUSH_ALL_L2_CACHE
+	flags = l2c_lock_exclusive();
+#else
 	raw_spin_lock_irqsave(lock, flags);
+#endif
+
 	while (start < end) {
 		unsigned long blk_end = start + min(end - start, 4096UL);
 
@@ -527,12 +656,22 @@ static void l2c310_flush_range_erratum(unsigned long start, unsigned long end)
 		l2c_set_debug(base, 0x00);
 
 		if (blk_end < end) {
+#ifdef CONFIG_NVT_CACHE_FLUSH_ALL_L2_CACHE
+			l2c_unlock_exclusive(flags);
+			flags = l2c_lock_exclusive();
+#else
 			raw_spin_unlock_irqrestore(lock, flags);
 			raw_spin_lock_irqsave(lock, flags);
+#endif
 		}
 	}
+#ifndef CONFIG_NVT_CACHE_FLUSH_ALL_L2_CACHE
 	raw_spin_unlock_irqrestore(lock, flags);
+#endif
 	__l2c210_cache_sync(base);
+#ifdef CONFIG_NVT_CACHE_FLUSH_ALL_L2_CACHE
+	l2c_unlock_exclusive(flags);
+#endif
 }
 
 static void l2c310_flush_all_erratum(void)
@@ -540,12 +679,21 @@ static void l2c310_flush_all_erratum(void)
 	void __iomem *base = l2x0_base;
 	unsigned long flags;
 
+#ifdef CONFIG_NVT_CACHE_FLUSH_ALL_L2_CACHE
+	flags = l2c_lock_exclusive();
+#else
 	raw_spin_lock_irqsave(&l2x0_lock, flags);
+#endif
 	l2c_set_debug(base, 0x03);
 	__l2c_op_way(base + L2X0_CLEAN_INV_WAY);
 	l2c_set_debug(base, 0x00);
 	__l2c210_cache_sync(base);
+
+#ifdef CONFIG_NVT_CACHE_FLUSH_ALL_L2_CACHE
+	l2c_unlock_exclusive(flags);
+#else
 	raw_spin_unlock_irqrestore(&l2x0_lock, flags);
+#endif
 }
 
 static void __init l2c310_save(void __iomem *base)
@@ -897,6 +1045,10 @@ static int __init __l2c_init(const struct l2c_init_data *data,
 		data->type, ways, l2x0_size >> 10);
 	pr_info("%s: CACHE_ID 0x%08x, AUX_CTRL 0x%08x\n",
 		data->type, cache_id, aux);
+
+#ifdef CONFIG_NVT_CACHE_FLUSH_ALL_L2_CACHE
+	pr_info("APIs of flush/clean all cache are supported\n");
+#endif
 
 	l2x0_pmu_register(l2x0_base, cache_id);
 
@@ -1681,6 +1833,12 @@ static void bcm_flush_range(unsigned long start, unsigned long end)
 	l2c210_flush_range(bcm_l2_phys_addr(BCM_VC_EMI_SEC3_START_ADDR),
 		new_end);
 }
+
+unsigned int l2c310_get_l2_size(void)
+{
+	return l2x0_size;
+}
+EXPORT_SYMBOL(l2c310_get_l2_size);
 
 /* Broadcom L2C-310 start from ARMs R3P2 or later, and require no fixups */
 static const struct l2c_init_data of_bcm_l2x0_data __initconst = {

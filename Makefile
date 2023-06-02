@@ -587,7 +587,7 @@ virt-y		:= virt/
 endif # KBUILD_EXTMOD
 
 ifeq ($(dot-config),1)
-include include/config/auto.conf
+-include include/config/auto.conf
 endif
 
 # The all: target is the default when no target is given on the
@@ -618,7 +618,7 @@ ifeq ($(may-sync-config),1)
 # Read in dependencies to all Kconfig* files, make sure to run syncconfig if
 # changes are detected. This should be included after arch/$(SRCARCH)/Makefile
 # because some architectures define CROSS_COMPILE there.
-include include/config/auto.conf.cmd
+-include include/config/auto.conf.cmd
 
 # To avoid any implicit rule to kick in, define an empty command
 $(KCONFIG_CONFIG): ;
@@ -1055,9 +1055,20 @@ define filechk_kernel.release
 	echo "$(KERNELVERSION)$$($(CONFIG_SHELL) $(srctree)/scripts/setlocalversion $(srctree))"
 endef
 
+define filechk_nvtversion.h
+	if [ "$(SHELL)" == "/bin/guano" ]; then \
+		echo "#define NVT_UTS_RELEASE \t\""$(KERNELVERSION)_$$($(CONFIG_SHELL) $(srctree)/scripts/setlocalversion --show-nvtver)"\""; \
+	else \
+		echo "#define NVT_UTS_RELEASE    \""4.19.91_af5fb85"\""; \
+	fi
+endef
+
 # Store (new) KERNELRELEASE string in include/config/kernel.release
 include/config/kernel.release: $(srctree)/Makefile FORCE
 	$(call filechk,kernel.release)
+
+include/generated/nvtversion.h: include/config/auto.conf FORCE
+	$(call filechk,nvtversion.h)
 
 # Additional helpers built in scripts/
 # Carefully list dependencies so we do not try to build scripts twice
@@ -1093,7 +1104,8 @@ endif
 # that need to depend on updated CONFIG_* values can be checked here.
 prepare2: prepare3 outputmakefile asm-generic
 
-prepare1: prepare2 $(version_h) $(autoksyms_h) include/generated/utsrelease.h
+prepare1: prepare2 $(version_h) $(autoksyms_h) include/generated/utsrelease.h \
+		include/generated/nvtversion.h
 	$(cmd_crmodverdir)
 
 archprepare: archheaders archscripts prepare1 scripts_basic

@@ -12,6 +12,7 @@
 #include <linux/interrupt.h>
 #include <linux/kernel_stat.h>
 #include <linux/mutex.h>
+#include <linux/nvt_profiler.h>
 
 #include "internals.h"
 
@@ -472,6 +473,7 @@ int show_interrupts(struct seq_file *p, void *v)
 		seq_printf(p, "%*s", prec + 8, "");
 		for_each_online_cpu(j)
 			seq_printf(p, "CPU%-8d", j);
+		nvt_profiler_proc_intr_head(p);
 		seq_putc(p, '\n');
 	}
 
@@ -491,6 +493,8 @@ int show_interrupts(struct seq_file *p, void *v)
 	for_each_online_cpu(j)
 		seq_printf(p, "%10u ", desc->kstat_irqs ?
 					*per_cpu_ptr(desc->kstat_irqs, j) : 0);
+
+	nvt_profiler_proc_intr_val(p, desc);
 
 	raw_spin_lock_irqsave(&desc->lock, flags);
 	if (desc->irq_data.chip) {

@@ -632,4 +632,23 @@ config RISCV_TIMER
 	  is accessed via both the SBI and the rdcycle instruction.  This is
 	  required for all RISC-V systems.
 
+config NVTTMR010_TIMER
+	bool "NVTTMR010 support"
+	depends on NVT_IVOT_PLAT_NA51068 || NVT_IVOT_PLAT_NA51068_CA53
+	default y
+	select TIMER_OF if OF
+	help
+	  This enables the NVT NVTTMR010 timer for the NA51068 platform.
+
+config NOVATEK_TIMER
+	bool "Novatek hardware timer support"
+	depends on NVT_IVOT_PLAT_NA51055 || NVT_IVOT_PLAT_NA51089
+	default n
+	select TIMER_OF if OF
+	depends on HAS_IOMEM
+	select CLKSRC_MMIO
+	help
+	  This enables the NVT hardware timer for the NA51055 platform.
+
+
 endmenu

@@ -69,6 +69,10 @@ MODULE_PARM_DESC(initial_descriptor_timeout,
 		"initial 64-byte descriptor request timeout in milliseconds "
 		"(default 5000 - 5.0 seconds)");
 
+#if defined(CONFIG_USB_NVTIVOT_HCD)
+extern int mask_connect;
+#endif
+
 /*
  * As of 2.6.10 we introduce a new USB device initialization scheme which
  * closely resembles the way Windows works.  Hopefully it will be compatible
@@ -4507,7 +4511,9 @@ hub_port_init(struct usb_hub *hub, struct usb_device *udev, int port1,
 	if (retval < 0)		/* error or disconnect */
 		goto fail;
 	/* success, speed is known */
-
+#if defined(CONFIG_USB_NVTIVOT_HCD)
+	clear_bit(HCD_FLAG_NRY, &hcd->flags);
+#endif
 	retval = -ENODEV;
 
 	/* Don't allow speed changes at reset, except usb 3.0 to faster */
@@ -4659,8 +4665,12 @@ hub_port_init(struct usb_hub *hub, struct usb_device *udev, int port1,
 			kfree(buf);
 
 			retval = hub_port_reset(hub, port1, udev, delay, false);
-			if (retval < 0)		/* error or disconnect */
+			if (retval < 0)	{	/* error or disconnect */
+				#if defined(CONFIG_USB_NVTIVOT_HCD)
+				set_bit(1, &hcd->modem_dongle);
+				#endif
 				goto fail;
+			}
 			if (oldspeed != udev->speed) {
 				dev_dbg(&udev->dev,
 					"device reset changed speed!\n");
@@ -4668,9 +4678,13 @@ hub_port_init(struct usb_hub *hub, struct usb_device *udev, int port1,
 				goto fail;
 			}
 			if (r) {
-				if (r != -ENODEV)
+				if (r != -ENODEV) {
 					dev_err(&udev->dev, "device descriptor read/64, error %d\n",
 							r);
+					#if defined(CONFIG_USB_NVTIVOT_HCD)
+					set_bit(1, &hcd->modem_dongle);
+					#endif
+				}
 				retval = -EMSGSIZE;
 				continue;
 			}
@@ -4722,10 +4736,14 @@ hub_port_init(struct usb_hub *hub, struct usb_device *udev, int port1,
 
 		retval = usb_get_device_descriptor(udev, 8);
 		if (retval < 8) {
-			if (retval != -ENODEV)
+			if (retval != -ENODEV) {
 				dev_err(&udev->dev,
 					"device descriptor read/8, error %d\n",
 					retval);
+				#if defined(CONFIG_USB_NVTIVOT_HCD)
+				set_bit(1, &hcd->modem_dongle);
+				#endif
+			}
 			if (retval >= 0)
 				retval = -EMSGSIZE;
 		} else {
@@ -4787,9 +4805,13 @@ hub_port_init(struct usb_hub *hub, struct usb_device *udev, int port1,
 
 	retval = usb_get_device_descriptor(udev, USB_DT_DEVICE_SIZE);
 	if (retval < (signed)sizeof(udev->descriptor)) {
-		if (retval != -ENODEV)
+		if (retval != -ENODEV) {
 			dev_err(&udev->dev, "device descriptor read/all, error %d\n",
 					retval);
+			#if defined(CONFIG_USB_NVTIVOT_HCD)
+			set_bit(1, &hcd->modem_dongle);
+			#endif
+		}
 		if (retval >= 0)
 			retval = -ENOMSG;
 		goto fail;
@@ -4934,6 +4956,14 @@ static void hub_port_connect(struct usb_hub *hub, int port1, u16 portstatus,
 			portstatus = status;
 		}
 	}
+
+#if defined(CONFIG_USB_NVTIVOT_HCD)
+	if (mask_connect) {
+		portstatus &= ~USB_PORT_STAT_CONNECTION;
+		unreliable_port = port1;
+		//printk("MASK_CONNECT\n");
+	}
+#endif
 
 	/* Return now if debouncing failed or nothing is connected or
 	 * the device was "removed".
@@ -5396,6 +5426,18 @@ static void hub_event(struct work_struct *work)
 				dev_err(hub_dev, "over-current condition\n");
 		}
 	}
+
+	#if defined(CONFIG_USB_EHCI_HCD_NVTIVOT)
+	{
+		u16 status=0,change=0;
+
+		hub_port_status(hub, 1, &status, &change);
+		if ((status == 0) && (change==0) && (hdev->maxchild == 1)) {
+			//printk("msg show*************\n");
+			bus_to_hcd(hdev->bus)->driver->port_nc(bus_to_hcd(hdev->bus));
+		}
+	}
+	#endif
 
 out_autopm:
 	/* Balance the usb_autopm_get_interface() above */

@@ -1,0 +1,4369 @@
+/*
+    TOP Configuration module
+
+    @file       top.c
+    @ingroup    mIDrvSys_TOP
+    @note       Nothing
+
+    Copyright   Novatek Microelectronics Corp. 2019.  All rights reserved.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License version 2 as
+    published by the Free Software Foundation.
+*/
+
+#define TOP_CTRL0_REG_OFS           0x20
+#define TOP_CTRL1_REG_OFS           0x24
+#define TOP_CTRL2_REG_OFS           0x28
+#define TOP_CTRL3_REG_OFS           0x2C
+#define TOP_CTRL4_REG_OFS           0x30
+#define TOP_CTRL5_REG_OFS           0x40
+#define TOP_CTRL6_REG_OFS           0x44
+#define TOP_CTRL7_REG_OFS           0x50
+#define TOP_CTRL8_REG_OFS           0x54
+#define TOP_CTRL9_REG_OFS           0x58
+#define TOP_CTRL10_REG_OFS          0x5C
+#define TOP_CTRL11_REG_OFS          0x60
+#define TOP_CTRL12_REG_OFS          0x70
+#define TOP_CTRL13_REG_OFS          0x74
+#define TOP_CTRL14_REG_OFS          0x80
+#define TOP_VCAP_MUX_REG_OFS        0xC0
+#define TOP_ETH_MUX_REG_OFS         0xC8
+#define TOP_LCD_MUX_REG_OFS         0xCC
+
+
+#if defined(__FREERTOS)
+/* rtos */
+#include <stdio.h>
+#include <kwrap/error_no.h>
+#include <kwrap/spinlock.h>
+#include "top.h"
+#include "top_int.h"
+#include <rcw_macro.h>
+#include <io_address.h>
+
+#define __MODULE__    rtos_top
+#include <kwrap/debug.h>
+unsigned int rtos_top_debug_level = NVT_DBG_WRN;
+
+static  VK_DEFINE_SPINLOCK(my_lock);
+#define loc_cpu(flags) vk_spin_lock_irqsave(&my_lock, flags)
+#define unl_cpu(flags) vk_spin_unlock_irqrestore(&my_lock, flags)
+
+#define TOP_SETREG(ofs,value)        OUTW((IOADDR_TOP_REG_BASE+(ofs)),(value))
+#define TOP_GETREG(ofs)              INW(IOADDR_TOP_REG_BASE+(ofs))
+#define TOP_DBG(fmt, args...)        DBG_DUMP(fmt, ##args)
+#define TOP_DBG_ERR(fmt, args...)    DBG_ERR(fmt, ##args)
+
+#define HW_TOP_SETREG(ofs,value)     OUTW((IOADDR_TOP_REG_BASE+(ofs)),(value))
+#define HW_TOP_GETREG(ofs)           INW(IOADDR_TOP_REG_BASE+(ofs))
+#else
+/* linux kernel */
+#include <linux/spinlock.h>
+#include <plat/top.h>
+#include "top_int.h"
+#include "na51068_pinmux.h"
+#include <mach/rcw_macro.h>
+
+static DEFINE_SPINLOCK(top_lock);
+#define loc_cpu(flags) spin_lock_irqsave(&top_lock, flags);
+#define unl_cpu(flags) spin_unlock_irqrestore(&top_lock, flags);
+
+#define TOP_DBG(fmt, ...)        pr_info(fmt, ##__VA_ARGS__)
+#define TOP_DBG_ERR(fmt, ...)    pr_err(fmt, ##__VA_ARGS__)
+
+static struct sw_top_reg sw_top_reg_arr[] = {
+	{TOP_CTRL0_REG_OFS, 0},
+	{TOP_CTRL1_REG_OFS, 0},
+	{TOP_CTRL2_REG_OFS, 0},
+	{TOP_CTRL3_REG_OFS, 0},
+	{TOP_CTRL4_REG_OFS, 0},
+	{TOP_CTRL5_REG_OFS, 0},
+	{TOP_CTRL6_REG_OFS, 0},
+	{TOP_CTRL7_REG_OFS, 0},
+	{TOP_CTRL8_REG_OFS, 0},
+	{TOP_CTRL9_REG_OFS, 0},
+	{TOP_CTRL10_REG_OFS, 0},
+	{TOP_CTRL11_REG_OFS, 0},
+	{TOP_CTRL12_REG_OFS, 0},
+	{TOP_CTRL13_REG_OFS, 0},
+	{TOP_CTRL14_REG_OFS, 0},
+	{TOP_VCAP_MUX_REG_OFS, 0},
+	{TOP_ETH_MUX_REG_OFS, 0},
+	{TOP_LCD_MUX_REG_OFS, 0},
+};
+static int sw_top_reg_size = sizeof(sw_top_reg_arr)/sizeof(sw_top_reg_arr[0]);
+
+ER sw_top_reg_set(uint32_t ofs, uint32_t val)
+{
+	UINT i;
+
+	for (i = 0; i < sw_top_reg_size; i++) {
+		if (sw_top_reg_arr[i].offset == ofs) {
+			sw_top_reg_arr[i].value = val;
+			return E_OK;
+		}
+	}
+
+	TOP_DBG_ERR("unhandled offset when doing %s\n", __FUNCTION__);
+	return E_PAR;
+}
+
+uint32_t sw_top_reg_get(uint32_t ofs)
+{
+	UINT i;
+
+	for (i = 0; i < sw_top_reg_size; i++) {
+		if (sw_top_reg_arr[i].offset == ofs) {
+			return sw_top_reg_arr[i].value;
+		}
+	}
+
+	TOP_DBG_ERR("unhandled offset when doing %s\n", __FUNCTION__);
+	return 0;
+}
+
+void sw_top_reg_dump(void)
+{
+	UINT i;
+
+	for (i = 0; i < sw_top_reg_size; i++) {
+		TOP_DBG("offset=0x%x, value=0x%x\n", sw_top_reg_arr[i].offset, sw_top_reg_arr[i].value);
+	}
+	TOP_DBG("\n");
+}
+
+#define TOP_SETREG(ofs,value)     sw_top_reg_set(ofs, value)
+#define TOP_GETREG(ofs)           sw_top_reg_get(ofs)
+
+void __iomem *top_vaddr;
+#define HW_TOP_SETREG(ofs,value)  OUTW((top_vaddr+(ofs)),(value))
+#define HW_TOP_GETREG(ofs)        INW(top_vaddr+(ofs))
+
+void pinmux_preset(struct nvt_pinctrl_info *info)
+{
+	top_vaddr = info->top_base;
+}
+
+static void gpio_info_show(struct nvt_pinctrl_info *info, u32 start_offset, u32 end_offset)
+{
+	u32 target_ofs, target_bit;
+	u32 BIT_MASK = 0x7;
+	u32 reg_value;
+
+	for (target_ofs = start_offset; target_ofs <= end_offset; target_ofs+= 0x4) {
+		reg_value = HW_TOP_GETREG(target_ofs);
+		for (target_bit = 0; target_bit < 32; target_bit += 4)
+			pr_info(" 0x%x      %-2d     0x%x\n", target_ofs, target_bit, \
+				(reg_value >> target_bit) & BIT_MASK);
+	}
+}
+
+void pinmux_gpio_parsing(struct nvt_pinctrl_info *info)
+{
+	pr_info("\nOFFSET    BIT    VALUE\n");
+
+	gpio_info_show(info, TOP_REGGPIO_START_OFS, TOP_REGGPIO_END_OFS);
+}
+#endif
+
+static uint32_t pin_config[PIN_FUNC_MAX];
+#define ETH_MAC0 0x1
+#define ETH_MAC1 0x2
+UINT8 eth_mac_record = 0;
+UINT32 eth_phy_record = 0;
+UINT32 vcap_int_record[4] = {0, 0, 0, 0};
+UINT32 vcap_bt1120_record[2] = {0, 0};
+UINT32 vcap_bt1120_record_backup[2] = {0, 0};
+
+
+#define uart_pinno                  2
+#define uart0_pincnt                1
+#define uart0rts_pincnt             1
+#define uart1_pincnt                3
+#define uart2_pincnt                1
+#define uart3_pincnt                6
+#define uartceva_pincnt             1
+UINT32 uart0[uart0_pincnt][1+uart_pinno] = {
+	{1,	PCTRL_X_UART0_SOUT,	PCTRL_X_UART0_SIN}
+};
+UINT32 uart0rts[uart0rts_pincnt][1+uart_pinno] = {
+	{1,	PCTRL_X_UART0_RTS,	PCTRL_X_UART0_CTS}
+};
+UINT32 uart1[uart1_pincnt][1+uart_pinno] = {
+	{1,	PCTRL_X_UART1_SOUT,	PCTRL_X_UART1_SIN},
+	{2,	PCTRL_X_I2C1_SCL,	PCTRL_X_I2C1_SDA},
+	{2,	PCTRL_X_GPIO_0,		PCTRL_X_GPIO_1}
+};
+UINT32 uart2[uart2_pincnt][1+uart_pinno] = {
+	{1,	PCTRL_X_UART2_SOUT,	PCTRL_X_UART2_SIN}
+};
+UINT32 uart3[uart3_pincnt][1+uart_pinno] = {
+	{2,	PCTRL_X_CPU_TCK,	PCTRL_X_CPU_TDO},
+	{2,	PCTRL_X_I2C0_SCL,	PCTRL_X_I2C0_SDA},
+	{2,	PCTRL_X_I2C2_SCL,	PCTRL_X_I2C2_SDA},
+	{2,	PCTRL_X_I2S1_SCLK,	PCTRL_X_I2S1_FS},
+	{2,	PCTRL_X_GPIO_2,		PCTRL_X_GPIO_3},
+	{2,	PCTRL_X_GPIO_7,		PCTRL_X_GPIO_8}
+};
+UINT32 uartceva[uartceva_pincnt][1+uart_pinno] = {
+	{2,	PCTRL_X_UART1_SOUT,	PCTRL_X_UART1_SIN}
+};
+
+#define i2c_pinno                   2
+#define i2c0_pincnt                 2
+#define i2c1_pincnt                 5
+#define i2c2_pincnt                 2
+#define i2c3_pincnt                 1
+UINT32 i2c0[i2c0_pincnt][1+i2c_pinno] = {
+	{1,	PCTRL_X_I2C0_SCL,	PCTRL_X_I2C0_SDA},
+	{1,	PCTRL_X_GPIO_0,		PCTRL_X_GPIO_1}
+};
+UINT32 i2c1[i2c1_pincnt][1+i2c_pinno] = {
+	{1,	PCTRL_X_I2C1_SCL,	PCTRL_X_I2C1_SDA},
+	{1,	PCTRL_X_GPIO_2,		PCTRL_X_GPIO_3},
+	{2,	PCTRL_X_GPIO_5,		PCTRL_X_GPIO_6},
+	{3,	PCTRL_X_UART1_SOUT,	PCTRL_X_UART1_SIN},
+	{2,	PCTRL_X_CPU_TDI,	PCTRL_X_CPU_TMS}
+};
+UINT32 i2c2[i2c2_pincnt][1+i2c_pinno] = {
+	{1,	PCTRL_X_I2C2_SCL,	PCTRL_X_I2C2_SDA},
+	{3,	PCTRL_X_I2S1_SCLK,	PCTRL_X_I2S1_FS}
+};
+UINT32 i2c3[i2c3_pincnt][1+i2c_pinno] = {
+	{1,	PCTRL_X_HDMI0_I2C_SCL,	PCTRL_X_HDMI0_I2C_SDA}
+};
+
+#define sdio_pinno                  5
+#define sdio_pinno2                 2
+#define sdio_pincnt                 2
+UINT32 sdio0[sdio_pincnt][1+sdio_pinno] = {
+	{5,	PCTRL_X_I2S1_SCLK,	PCTRL_X_I2S1_FS,	PCTRL_X_I2S1_RXD,	PCTRL_X_I2S1_TXD, 	PCTRL_X_I2C1_SCL},
+	{6,	PCTRL_X_GPIO_5,		PCTRL_X_GPIO_6,		PCTRL_X_GPIO_7,		PCTRL_X_GPIO_8,		PCTRL_X_GPIO_9}
+};
+UINT32 sdio0_2[sdio_pincnt][1+sdio_pinno2] = {
+	{5,	PCTRL_X_I2C1_SDA,	PCTRL_X_EXT1_CLK},
+	{5,	PCTRL_X_I2C2_SCL,	PCTRL_X_I2C2_SDA}
+};
+
+#define spi_pinno                   7
+#define spi_pincnt                  3
+UINT32 spi[spi_pincnt][1+spi_pinno] = {
+	{1,	PCTRL_X_SPI_SCK,PCTRL_X_SPI_CSN0,PCTRL_X_SPI_TX,PCTRL_X_SPI_RX,PCTRL_X_SPI_WPN,PCTRL_X_SPI_HOLDN,PCTRL_X_SPI_CSN1},
+	{2,	PCTRL_X_SPI_SCK,PCTRL_X_SPI_CSN0,PCTRL_X_SPI_TX,PCTRL_X_SPI_RX,PCTRL_X_SPI_WPN,PCTRL_X_SPI_HOLDN,PCTRL_X_SPI_CSN1},
+	{3,	PCTRL_X_SPI_SCK,PCTRL_X_SPI_CSN0,PCTRL_X_SPI_TX,PCTRL_X_SPI_RX,PCTRL_X_SPI_WPN,PCTRL_X_SPI_HOLDN,PCTRL_X_SPI_CSN1}
+};
+
+#define extclk_pinno                1
+#define extclk_pincnt               3
+UINT32 extclk0[extclk_pincnt][1+extclk_pinno] = {
+	{1,	PCTRL_X_EXT0_CLK},
+	{6,	PCTRL_X_EXT1_CLK},
+	{3,	PCTRL_X_CAP2_CLK}
+};
+UINT32 extclk1[extclk_pincnt][1+extclk_pinno] = {
+	{1,	PCTRL_X_EXT1_CLK},
+	{6,	PCTRL_X_EXT0_CLK},
+	{4,	PCTRL_X_CAP1_CLK}
+};
+
+#define ssp_pinno                   4
+#define ssp0_pincnt                 2
+#define ssp1_pincnt                 1
+#define ssp2_pincnt                 2
+#define ssp2_2_pinno                2
+#define ssp2_2_pincnt               2
+#define ssp2_3_pinno                1
+#define ssp2_3_pincnt               2
+#define sspmclk_pinno               1
+#define sspmclk0_pincnt             1
+#define sspmclk1_pincnt             1
+#define sspmclk2_pincnt             2
+UINT32 ssp0[ssp0_pincnt][1+ssp_pinno] = {
+	{1,	PCTRL_X_I2S0_SCLK,PCTRL_X_I2S0_FS,PCTRL_X_I2S0_RXD,PCTRL_X_I2S0_TXD},
+	{6,	PCTRL_X_I2S1_SCLK,PCTRL_X_I2S1_FS,PCTRL_X_I2S1_RXD,PCTRL_X_I2S1_TXD}
+};
+UINT32 ssp1[ssp1_pincnt][1+ssp_pinno] = {
+	{1,	PCTRL_X_I2S1_SCLK,PCTRL_X_I2S1_FS,PCTRL_X_I2S1_RXD,PCTRL_X_I2S1_TXD}
+};
+UINT32 ssp2[ssp2_pincnt][1+ssp_pinno] = {
+	{3,	PCTRL_X_CPU_TDI,PCTRL_X_CPU_TMS,PCTRL_X_CPU_TCK,PCTRL_X_CPU_TDO},
+	{1,	PCTRL_X_GPIO_6,PCTRL_X_GPIO_7,PCTRL_X_GPIO_8,PCTRL_X_GPIO_9}
+};
+UINT32 ssp2_2[ssp2_2_pincnt][1+ssp2_2_pinno] = {
+	{3,	PCTRL_X_I2C0_SCL,PCTRL_X_I2C0_SDA},
+	{3,	PCTRL_X_I2C1_SCL,PCTRL_X_I2C1_SDA}
+};
+UINT32 ssp2_3[ssp2_3_pincnt][1+ssp2_3_pinno] = {
+	{2,	PCTRL_X_I2S0_TXD},
+	{2,	PCTRL_X_I2S1_TXD}
+};
+UINT32 sspmclk0[sspmclk0_pincnt][1+sspmclk_pinno] = {
+	{2,	PCTRL_X_EXT0_CLK}
+};
+UINT32 sspmclk1[sspmclk1_pincnt][1+sspmclk_pinno] = {
+	{2,	PCTRL_X_EXT1_CLK}
+};
+UINT32 sspmclk2[sspmclk2_pincnt][1+sspmclk_pinno] = {
+	{1,	PCTRL_X_GPIO_5},
+	{3,	PCTRL_X_CPU_NTRST}
+};
+
+#define lcd_pinno                   16
+#define lcd_2_pinno                 1
+#define lcd_pincnt                  4
+#define lcd888_pincnt               1
+#define lcd888_pinno                18
+#define lcd888_2_pinno              9
+UINT32 lcd[lcd_pincnt][1+lcd_pinno] = {
+	{3,PCTRL_X_EPHY0_REFCLK,PCTRL_X_EPHY0_RESET,PCTRL_X_RGMII0_RX_CLK,PCTRL_X_RGMII0_RX_CTL,PCTRL_X_RGMII0_RXD0,PCTRL_X_RGMII0_RXD1,PCTRL_X_RGMII0_RXD2,PCTRL_X_RGMII0_RXD3,
+	   PCTRL_X_RGMII0_TX_CLK,PCTRL_X_RGMII0_TX_CTL,PCTRL_X_RGMII0_TXD0,PCTRL_X_RGMII0_TXD1,PCTRL_X_RGMII0_TXD2,PCTRL_X_RGMII0_TXD3,PCTRL_X_RGMII0_MDC,PCTRL_X_RGMII0_MDIO},
+	{3,PCTRL_X_CAP0_CLK,PCTRL_X_CAP0_DATA0,PCTRL_X_CAP0_DATA1,PCTRL_X_CAP0_DATA2,PCTRL_X_CAP0_DATA3,PCTRL_X_CAP0_DATA4,PCTRL_X_CAP0_DATA5,PCTRL_X_CAP0_DATA6,
+	   PCTRL_X_CAP0_DATA7,PCTRL_X_CAP1_DATA0,PCTRL_X_CAP1_DATA1,PCTRL_X_CAP1_DATA2,PCTRL_X_CAP1_DATA3,PCTRL_X_CAP1_DATA4,PCTRL_X_CAP1_DATA5,PCTRL_X_CAP1_DATA6},
+	{4,PCTRL_X_EPHY0_REFCLK,PCTRL_X_EPHY0_RESET,PCTRL_X_RGMII0_RX_CLK,PCTRL_X_RGMII0_RX_CTL,PCTRL_X_RGMII0_RXD0,PCTRL_X_RGMII0_RXD1,PCTRL_X_RGMII0_RXD2,PCTRL_X_RGMII0_RXD3,
+	   PCTRL_X_RGMII0_TX_CLK,PCTRL_X_RGMII0_TX_CTL,PCTRL_X_RGMII0_TXD0,PCTRL_X_RGMII0_TXD1,PCTRL_X_RGMII0_TXD2,PCTRL_X_RGMII0_TXD3,PCTRL_X_RGMII0_MDC,PCTRL_X_RGMII0_MDIO},
+	{4,PCTRL_X_CAP0_CLK,PCTRL_X_CAP0_DATA0,PCTRL_X_CAP0_DATA1,PCTRL_X_CAP0_DATA2,PCTRL_X_CAP0_DATA3,PCTRL_X_CAP0_DATA4,PCTRL_X_CAP0_DATA5,PCTRL_X_CAP0_DATA6,
+	   PCTRL_X_CAP0_DATA7,PCTRL_X_CAP1_DATA0,PCTRL_X_CAP1_DATA1,PCTRL_X_CAP1_DATA2,PCTRL_X_CAP1_DATA3,PCTRL_X_CAP1_DATA4,PCTRL_X_CAP1_DATA5,PCTRL_X_CAP1_DATA6},
+};
+UINT32 lcd_2[lcd_pincnt][1+lcd_2_pinno] = {
+	{3,PCTRL_X_GPIO_5},
+	{3,PCTRL_X_CAP1_DATA7},
+	{4,PCTRL_X_GPIO_5},
+	{4,PCTRL_X_CAP1_DATA7},
+};
+UINT32 lcd888[lcd888_pincnt][1+lcd888_pinno] = {
+	{5,PCTRL_X_CAP0_CLK,PCTRL_X_CAP0_DATA0,PCTRL_X_CAP0_DATA1,PCTRL_X_CAP0_DATA2,PCTRL_X_CAP0_DATA3,PCTRL_X_CAP0_DATA4,PCTRL_X_CAP0_DATA5,PCTRL_X_CAP0_DATA6,
+	   PCTRL_X_CAP0_DATA7,PCTRL_X_CAP1_CLK, PCTRL_X_CAP1_DATA0,PCTRL_X_CAP1_DATA1,PCTRL_X_CAP1_DATA2,PCTRL_X_CAP1_DATA3,PCTRL_X_CAP1_DATA4,PCTRL_X_CAP1_DATA5,
+	   PCTRL_X_CAP1_DATA6,PCTRL_X_CAP1_DATA7}
+};
+UINT32 lcd888_2[lcd888_pincnt][1+lcd888_2_pinno] = {
+	{4,PCTRL_X_I2C1_SCL,PCTRL_X_I2C1_SDA,PCTRL_X_I2S0_SCLK,PCTRL_X_I2S0_FS,PCTRL_X_I2S0_RXD,PCTRL_X_I2S1_SCLK,PCTRL_X_I2S1_FS,PCTRL_X_I2S1_RXD,PCTRL_X_EXT1_CLK}
+};
+
+#define remote_pinno               1
+#define remote_pincnt              11
+UINT32 remote[remote_pincnt][1+remote_pinno] = {
+	{6,	PCTRL_X_CPU_TDI},
+	{6,	PCTRL_X_CPU_TMS},
+	{6,	PCTRL_X_CPU_TCK},
+	{6,	PCTRL_X_CPU_TDO},
+	{6,	PCTRL_X_UART1_SOUT},
+	{6,	PCTRL_X_UART1_SIN},
+	{6,	PCTRL_X_GPIO_0},
+	{6,	PCTRL_X_GPIO_1},
+	{6,	PCTRL_X_GPIO_2},
+	{6,	PCTRL_X_GPIO_3},
+	{6,	PCTRL_X_GPIO_4},
+};
+
+#define vcap_pinno                 8
+#define vcapclk_pinno              1
+#define bt1120_pinno               16
+#define bt1120clk_pinno            1
+#define vcap0_pincnt               3
+#define vcap1_pincnt               2
+#define vcap2_pincnt               3
+#define vcap3_pincnt               4
+#define bt1120_0_pincnt            3
+#define bt1120_1_pincnt            5
+#define ts_pinno                   2
+#define ts_pincnt                  1
+UINT32 vcap0[vcap0_pincnt][1+vcap_pinno] = {
+	{1,	PCTRL_X_CAP0_DATA0,PCTRL_X_CAP0_DATA1,PCTRL_X_CAP0_DATA2,PCTRL_X_CAP0_DATA3,PCTRL_X_CAP0_DATA4,PCTRL_X_CAP0_DATA5,PCTRL_X_CAP0_DATA6,PCTRL_X_CAP0_DATA7},
+	{1,	PCTRL_X_CAP0_DATA0,PCTRL_X_CAP0_DATA1,PCTRL_X_CAP0_DATA2,PCTRL_X_CAP0_DATA3,PCTRL_X_CAP0_DATA4,PCTRL_X_CAP0_DATA5,PCTRL_X_CAP0_DATA6,PCTRL_X_CAP0_DATA7},
+	{1,	PCTRL_X_CAP0_DATA0,PCTRL_X_CAP0_DATA1,PCTRL_X_CAP0_DATA2,PCTRL_X_CAP0_DATA3,PCTRL_X_CAP0_DATA4,PCTRL_X_CAP0_DATA5,PCTRL_X_CAP0_DATA6,PCTRL_X_CAP0_DATA7},
+};
+UINT32 ts0[ts_pincnt][1+ts_pinno] = {
+	{7,	PCTRL_X_I2S1_SCLK,PCTRL_X_I2S1_FS},
+};
+UINT32 vcap1[vcap1_pincnt][1+vcap_pinno] = {
+	{1,	PCTRL_X_CAP1_DATA0,PCTRL_X_CAP1_DATA1,PCTRL_X_CAP1_DATA2,PCTRL_X_CAP1_DATA3,PCTRL_X_CAP1_DATA4,PCTRL_X_CAP1_DATA5,PCTRL_X_CAP1_DATA6,PCTRL_X_CAP1_DATA7},
+	{1,	PCTRL_X_CAP1_DATA0,PCTRL_X_CAP1_DATA1,PCTRL_X_CAP1_DATA2,PCTRL_X_CAP1_DATA3,PCTRL_X_CAP1_DATA4,PCTRL_X_CAP1_DATA5,PCTRL_X_CAP1_DATA6,PCTRL_X_CAP1_DATA7}
+};
+UINT32 ts1[ts_pincnt][1+ts_pinno] = {
+	{7, PCTRL_X_I2S1_RXD,PCTRL_X_I2S1_TXD},
+};
+UINT32 vcap2[vcap2_pincnt][1+vcap_pinno] = {
+	{1,	PCTRL_X_CAP2_DATA0,PCTRL_X_CAP2_DATA1,PCTRL_X_CAP2_DATA2,PCTRL_X_CAP2_DATA3,PCTRL_X_CAP2_DATA4,PCTRL_X_CAP2_DATA5,PCTRL_X_CAP2_DATA6,PCTRL_X_CAP2_DATA7},
+	{1,	PCTRL_X_CAP2_DATA0,PCTRL_X_CAP2_DATA1,PCTRL_X_CAP2_DATA2,PCTRL_X_CAP2_DATA3,PCTRL_X_CAP2_DATA4,PCTRL_X_CAP2_DATA5,PCTRL_X_CAP2_DATA6,PCTRL_X_CAP2_DATA7},
+	{1,	PCTRL_X_CAP2_DATA0,PCTRL_X_CAP2_DATA1,PCTRL_X_CAP2_DATA2,PCTRL_X_CAP2_DATA3,PCTRL_X_CAP2_DATA4,PCTRL_X_CAP2_DATA5,PCTRL_X_CAP2_DATA6,PCTRL_X_CAP2_DATA7}
+};
+UINT32 ts2[ts_pincnt][1+ts_pinno] = {
+	{7, PCTRL_X_I2S0_SCLK,PCTRL_X_I2S0_FS},
+};
+UINT32 vcap3[vcap3_pincnt][1+vcap_pinno] = {
+	{1,	PCTRL_X_CAP3_DATA0,PCTRL_X_CAP3_DATA1,PCTRL_X_CAP3_DATA2,PCTRL_X_CAP3_DATA3,PCTRL_X_CAP3_DATA4,PCTRL_X_CAP3_DATA5,PCTRL_X_CAP3_DATA6,PCTRL_X_CAP3_DATA7},
+	{1,	PCTRL_X_CAP3_DATA0,PCTRL_X_CAP3_DATA1,PCTRL_X_CAP3_DATA2,PCTRL_X_CAP3_DATA3,PCTRL_X_CAP3_DATA4,PCTRL_X_CAP3_DATA5,PCTRL_X_CAP3_DATA6,PCTRL_X_CAP3_DATA7},
+	{1,	PCTRL_X_CAP3_DATA0,PCTRL_X_CAP3_DATA1,PCTRL_X_CAP3_DATA2,PCTRL_X_CAP3_DATA3,PCTRL_X_CAP3_DATA4,PCTRL_X_CAP3_DATA5,PCTRL_X_CAP3_DATA6,PCTRL_X_CAP3_DATA7},
+	{1,	PCTRL_X_CAP3_DATA0,PCTRL_X_CAP3_DATA1,PCTRL_X_CAP3_DATA2,PCTRL_X_CAP3_DATA3,PCTRL_X_CAP3_DATA4,PCTRL_X_CAP3_DATA5,PCTRL_X_CAP3_DATA6,PCTRL_X_CAP3_DATA7}
+};
+UINT32 ts3[ts_pincnt][1+ts_pinno] = {
+	{7, PCTRL_X_I2S0_RXD,PCTRL_X_I2S0_TXD},
+};
+UINT32 vcap0clk[vcap0_pincnt][1+vcapclk_pinno] = {
+	{1,	PCTRL_X_CAP0_CLK},
+	{3,	PCTRL_X_EXT1_CLK},
+	{1,	PCTRL_X_CAP0_CLK},
+};
+UINT32 vcap1clk[vcap1_pincnt][1+vcapclk_pinno] = {
+	{1,	PCTRL_X_CAP1_CLK},
+	{1,	PCTRL_X_CAP1_CLK}
+};
+UINT32 vcap2clk[vcap2_pincnt][1+vcapclk_pinno] = {
+	{1,	PCTRL_X_CAP2_CLK},
+	{3,	PCTRL_X_CAP1_CLK},
+	{1,	PCTRL_X_CAP2_CLK}
+};
+UINT32 vcap3clk[vcap3_pincnt][1+vcapclk_pinno] = {
+	{1,	PCTRL_X_CAP3_CLK},
+	{6,	PCTRL_X_I2C1_SCL},
+	{2,	PCTRL_X_CAP2_CLK},
+	{1,	PCTRL_X_CAP3_CLK}
+};
+UINT32 bt1120_0[bt1120_0_pincnt][1+bt1120_pinno] = {
+	{1,	PCTRL_X_CAP0_DATA0,PCTRL_X_CAP0_DATA1,PCTRL_X_CAP0_DATA2,PCTRL_X_CAP0_DATA3,PCTRL_X_CAP0_DATA4,PCTRL_X_CAP0_DATA5,PCTRL_X_CAP0_DATA6,PCTRL_X_CAP0_DATA7,PCTRL_X_CAP1_DATA0,PCTRL_X_CAP1_DATA1,PCTRL_X_CAP1_DATA2,PCTRL_X_CAP1_DATA3,PCTRL_X_CAP1_DATA4,PCTRL_X_CAP1_DATA5,PCTRL_X_CAP1_DATA6,PCTRL_X_CAP1_DATA7},
+	{1,	PCTRL_X_CAP0_DATA0,PCTRL_X_CAP0_DATA1,PCTRL_X_CAP0_DATA2,PCTRL_X_CAP0_DATA3,PCTRL_X_CAP0_DATA4,PCTRL_X_CAP0_DATA5,PCTRL_X_CAP0_DATA6,PCTRL_X_CAP0_DATA7,PCTRL_X_CAP1_DATA0,PCTRL_X_CAP1_DATA1,PCTRL_X_CAP1_DATA2,PCTRL_X_CAP1_DATA3,PCTRL_X_CAP1_DATA4,PCTRL_X_CAP1_DATA5,PCTRL_X_CAP1_DATA6,PCTRL_X_CAP1_DATA7},
+	{1,	PCTRL_X_CAP0_DATA0,PCTRL_X_CAP0_DATA1,PCTRL_X_CAP0_DATA2,PCTRL_X_CAP0_DATA3,PCTRL_X_CAP0_DATA4,PCTRL_X_CAP0_DATA5,PCTRL_X_CAP0_DATA6,PCTRL_X_CAP0_DATA7,PCTRL_X_CAP1_DATA0,PCTRL_X_CAP1_DATA1,PCTRL_X_CAP1_DATA2,PCTRL_X_CAP1_DATA3,PCTRL_X_CAP1_DATA4,PCTRL_X_CAP1_DATA5,PCTRL_X_CAP1_DATA6,PCTRL_X_CAP1_DATA7}
+};
+UINT32 bt1120_1[bt1120_1_pincnt][1+bt1120_pinno] = {
+	{1,	PCTRL_X_CAP2_DATA0,PCTRL_X_CAP2_DATA1,PCTRL_X_CAP2_DATA2,PCTRL_X_CAP2_DATA3,PCTRL_X_CAP2_DATA4,PCTRL_X_CAP2_DATA5,PCTRL_X_CAP2_DATA6,PCTRL_X_CAP2_DATA7,PCTRL_X_CAP3_DATA0,PCTRL_X_CAP3_DATA1,PCTRL_X_CAP3_DATA2,PCTRL_X_CAP3_DATA3,PCTRL_X_CAP3_DATA4,PCTRL_X_CAP3_DATA5,PCTRL_X_CAP3_DATA6,PCTRL_X_CAP3_DATA7},
+	{1,	PCTRL_X_CAP2_DATA0,PCTRL_X_CAP2_DATA1,PCTRL_X_CAP2_DATA2,PCTRL_X_CAP2_DATA3,PCTRL_X_CAP2_DATA4,PCTRL_X_CAP2_DATA5,PCTRL_X_CAP2_DATA6,PCTRL_X_CAP2_DATA7,PCTRL_X_CAP3_DATA0,PCTRL_X_CAP3_DATA1,PCTRL_X_CAP3_DATA2,PCTRL_X_CAP3_DATA3,PCTRL_X_CAP3_DATA4,PCTRL_X_CAP3_DATA5,PCTRL_X_CAP3_DATA6,PCTRL_X_CAP3_DATA7},
+	{1,	PCTRL_X_CAP2_DATA0,PCTRL_X_CAP2_DATA1,PCTRL_X_CAP2_DATA2,PCTRL_X_CAP2_DATA3,PCTRL_X_CAP2_DATA4,PCTRL_X_CAP2_DATA5,PCTRL_X_CAP2_DATA6,PCTRL_X_CAP2_DATA7,PCTRL_X_CAP3_DATA0,PCTRL_X_CAP3_DATA1,PCTRL_X_CAP3_DATA2,PCTRL_X_CAP3_DATA3,PCTRL_X_CAP3_DATA4,PCTRL_X_CAP3_DATA5,PCTRL_X_CAP3_DATA6,PCTRL_X_CAP3_DATA7},
+	{1,	PCTRL_X_CAP2_DATA0,PCTRL_X_CAP2_DATA1,PCTRL_X_CAP2_DATA2,PCTRL_X_CAP2_DATA3,PCTRL_X_CAP2_DATA4,PCTRL_X_CAP2_DATA5,PCTRL_X_CAP2_DATA6,PCTRL_X_CAP2_DATA7,PCTRL_X_CAP3_DATA0,PCTRL_X_CAP3_DATA1,PCTRL_X_CAP3_DATA2,PCTRL_X_CAP3_DATA3,PCTRL_X_CAP3_DATA4,PCTRL_X_CAP3_DATA5,PCTRL_X_CAP3_DATA6,PCTRL_X_CAP3_DATA7},
+	{1,	PCTRL_X_CAP2_DATA0,PCTRL_X_CAP2_DATA1,PCTRL_X_CAP2_DATA2,PCTRL_X_CAP2_DATA3,PCTRL_X_CAP2_DATA4,PCTRL_X_CAP2_DATA5,PCTRL_X_CAP2_DATA6,PCTRL_X_CAP2_DATA7,PCTRL_X_CAP3_DATA0,PCTRL_X_CAP3_DATA1,PCTRL_X_CAP3_DATA2,PCTRL_X_CAP3_DATA3,PCTRL_X_CAP3_DATA4,PCTRL_X_CAP3_DATA5,PCTRL_X_CAP3_DATA6,PCTRL_X_CAP3_DATA7}
+};
+UINT32 bt1120clk_0[bt1120_0_pincnt][1+bt1120clk_pinno] = {
+	{1,	PCTRL_X_CAP0_CLK},
+	{1,	PCTRL_X_CAP1_CLK},
+	{3,	PCTRL_X_EXT1_CLK}
+};
+UINT32 bt1120clk_1[bt1120_1_pincnt][1+bt1120clk_pinno] = {
+	{1,	PCTRL_X_CAP2_CLK},
+	{1,	PCTRL_X_CAP3_CLK},
+	{3,	PCTRL_X_CAP1_CLK},
+	{6,	PCTRL_X_I2C1_SCL},
+	{2,	PCTRL_X_CAP2_CLK}
+};
+
+#define rgmii_pinno                15
+#define rmii_pinno                 10
+#define eth_pincnt                 2
+UINT32 rgmii[eth_pincnt][1+rgmii_pinno] = {
+	{1,	PCTRL_X_EPHY0_RESET,PCTRL_X_RGMII0_RX_CLK,PCTRL_X_RGMII0_RX_CTL,PCTRL_X_RGMII0_RXD0,PCTRL_X_RGMII0_RXD1,PCTRL_X_RGMII0_RXD2,PCTRL_X_RGMII0_RXD3,
+		PCTRL_X_RGMII0_TX_CLK,PCTRL_X_RGMII0_TX_CTL,PCTRL_X_RGMII0_TXD0,PCTRL_X_RGMII0_TXD1,PCTRL_X_RGMII0_TXD2,PCTRL_X_RGMII0_TXD3,PCTRL_X_RGMII0_MDC,PCTRL_X_RGMII0_MDIO},
+	{6,	PCTRL_X_CAP0_DATA0,PCTRL_X_CAP0_DATA1,PCTRL_X_CAP0_DATA2,PCTRL_X_CAP0_DATA3,PCTRL_X_CAP0_DATA4,PCTRL_X_CAP0_DATA5,PCTRL_X_CAP0_DATA6,
+		PCTRL_X_CAP0_DATA7,PCTRL_X_CAP1_CLK,PCTRL_X_CAP1_DATA0,PCTRL_X_CAP1_DATA1,PCTRL_X_CAP1_DATA2,PCTRL_X_CAP1_DATA3,PCTRL_X_CAP1_DATA4,PCTRL_X_CAP1_DATA5}
+};
+UINT32 rmii[eth_pincnt][1+rmii_pinno] = {
+	{2,	PCTRL_X_EPHY0_RESET,PCTRL_X_RGMII0_RX_CLK,PCTRL_X_RGMII0_RX_CTL,PCTRL_X_RGMII0_RXD0,PCTRL_X_RGMII0_RXD1,
+		PCTRL_X_RGMII0_TX_CTL,PCTRL_X_RGMII0_TXD0,PCTRL_X_RGMII0_TXD1,PCTRL_X_RGMII0_MDC,PCTRL_X_RGMII0_MDIO},
+	{2,	PCTRL_X_CAP0_DATA0,PCTRL_X_CAP0_DATA1,PCTRL_X_CAP0_DATA2,PCTRL_X_CAP0_DATA3,PCTRL_X_CAP0_DATA4,
+		PCTRL_X_CAP1_CLK, PCTRL_X_CAP1_DATA0,PCTRL_X_CAP1_DATA1,PCTRL_X_CAP1_DATA4,PCTRL_X_CAP1_DATA5}
+};
+const UINT32 phy_clk_out[eth_pincnt][eth_pincnt][3] = {
+	// 1st pinmux
+	{
+		// RGMII
+		{PIN_ETH_CFG_RGMII_1ST_PINMUX, 1, PCTRL_X_EPHY0_REFCLK},
+		// RMII
+		{PIN_ETH_CFG_RMII_1ST_PINMUX, 2, PCTRL_X_EPHY0_REFCLK},
+	    },
+	// 2nd pinmux
+	{
+		// RGMII
+		{PIN_ETH_CFG_RGMII_2ND_PINMUX, 6, PCTRL_X_CAP0_CLK},
+		// RMII
+		{PIN_ETH_CFG_RMII_2ND_PINMUX, 2, PCTRL_X_CAP0_CLK},
+	},
+};
+
+#define cpuice_pinno               5
+#define cpuice_pincnt              1
+#define vgahs_pinno                1
+#define vgahs_pincnt               1
+#define vgavs_pinno                1
+#define vgavs_pincnt               1
+#define bmc_pinno                  4
+#define bmc_pincnt                 1
+#define rtccal_pinno               1
+#define rtccal_pincnt              1
+#define dacramp_pinno              1
+#define dacramp_pincnt             1
+#define hdmiplg_pinno              1
+#define hdmiplg_pincnt             1
+#define dspice_pinno               4
+#define dspice_pincnt              2
+#define ethled_pinno               2
+#define ethled_pincnt              2
+#define sataled_pinno              2
+#define sataled_pincnt             2
+UINT32 cpuice[cpuice_pincnt][1+cpuice_pinno] = {
+	{1,	PCTRL_X_CPU_NTRST, PCTRL_X_CPU_TDI, PCTRL_X_CPU_TMS, PCTRL_X_CPU_TCK, PCTRL_X_CPU_TDO}
+};
+UINT32 vgahs[vgahs_pincnt][1+vgahs_pinno] = {
+	{1,	PCTRL_X_VGA_HS}
+};
+UINT32 vgavs[vgavs_pincnt][1+vgavs_pinno] = {
+	{1,	PCTRL_X_VGA_VS}
+};
+UINT32 bmc[bmc_pincnt][1+bmc_pinno] = {
+	{5,	PCTRL_X_GPIO_5,	PCTRL_X_GPIO_6,	PCTRL_X_GPIO_7,	PCTRL_X_GPIO_8}
+};
+UINT32 rtccal[rtccal_pincnt][1+rtccal_pinno] = {
+	{2,	PCTRL_X_UART0_RTS}
+};
+UINT32 dacramp[dacramp_pincnt][1+dacramp_pinno] = {
+	{4,	PCTRL_X_UART1_SIN}
+};
+UINT32 hdmiplg[hdmiplg_pincnt][1+hdmiplg_pinno] = {
+	{1,	PCTRL_X_HDMI0_HPD}
+};
+UINT32 dspice[dspice_pincnt][1+dspice_pinno] = {
+	{4,	PCTRL_X_CPU_TDI, PCTRL_X_CPU_TMS, PCTRL_X_CPU_TCK, PCTRL_X_CPU_TDO},
+	{3,	PCTRL_X_I2S0_SCLK, PCTRL_X_I2S0_FS, PCTRL_X_I2S0_RXD, PCTRL_X_I2S0_TXD}
+};
+UINT32 ethled[ethled_pincnt][1+ethled_pinno] = {
+	{5,	PCTRL_X_CPU_TDI, PCTRL_X_CPU_TMS},
+	{3,	PCTRL_X_GPIO_8, PCTRL_X_GPIO_9}
+};
+UINT32 sataled[sataled_pincnt][1+sataled_pinno] = {
+	{5,	PCTRL_X_CPU_TCK, PCTRL_X_CPU_TDO},
+	{3,	PCTRL_X_GPIO_3, PCTRL_X_GPIO_4}
+};
+
+#define pwm_pinno                 1
+#define pwm0_pincnt               1
+#define pwm1_pincnt               1
+#define pwm2_pincnt               1
+UINT32 pwm0[pwm0_pincnt][1+pwm_pinno] = {
+	{1,	PCTRL_X_PWM0_OUT}
+};
+UINT32 pwm1[pwm1_pincnt][1+pwm_pinno] = {
+	{1,	PCTRL_X_PWM1_OUT}
+};
+UINT32 pwm2[pwm2_pincnt][1+pwm_pinno] = {
+	{3,	PCTRL_X_I2S1_TXD}
+};
+
+static struct pinmux_pad_table uart_pad_mapping[] = {
+	{PCTRL_X_UART0_SOUT,    PAD_X_UART0_SOUT,    {PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_UART0_SIN,     PAD_X_UART0_SIN,     {PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_UART0_RTS,     PAD_X_UART0_RTS,     {PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_UART0_CTS,     PAD_X_UART0_CTS,     {PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_UART1_SOUT,    PAD_X_UART1_SOUT,    {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_UART1_SIN,     PAD_X_UART1_SIN,     {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLDOWN, PAD_NONE,   PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_UART2_SOUT,    PAD_X_UART2_SOUT,    {PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_UART2_SIN,     PAD_X_UART2_SIN,     {PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_I2C0_SCL,      PAD_X_I2C0_SCL,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_I2C0_SDA,      PAD_X_I2C0_SDA,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_I2C1_SCL,      PAD_X_I2C1_SCL,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_PULLUP, PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_I2C1_SDA,      PAD_X_I2C1_SDA,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_PULLUP, PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_I2C2_SCL,      PAD_X_I2C2_SCL,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_PULLUP, PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_I2C2_SDA,      PAD_X_I2C2_SDA,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_PULLUP, PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_GPIO_0,        PAD_X_GPIO_0,        {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_GPIO_1,        PAD_X_GPIO_1,        {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_CPU_TCK,       PAD_X_CPU_TCK,       {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP, PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_CPU_TDO,       PAD_X_CPU_TDO,       {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP, PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_I2S1_SCLK,     PAD_X_I2S1_SCLK,     {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_PULLDOWN},},
+	{PCTRL_X_I2S1_FS,       PAD_X_I2S1_FS,       {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_PULLDOWN},},
+	{PCTRL_X_GPIO_2,        PAD_X_GPIO_2,        {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_GPIO_3,        PAD_X_GPIO_3,        {PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_GPIO_7,        PAD_X_GPIO_7,        {PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_NONE},},
+	{PCTRL_X_GPIO_8,        PAD_X_GPIO_8,        {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_NONE},},
+};
+
+static struct pinmux_pad_table i2c_pad_mapping[] = {
+	{PCTRL_X_I2C0_SCL,      PAD_X_I2C0_SCL,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_I2C0_SDA,      PAD_X_I2C0_SDA,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_I2C1_SCL,      PAD_X_I2C1_SCL,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_PULLUP, PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_I2C1_SDA,      PAD_X_I2C1_SDA,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_PULLUP, PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_I2C2_SCL,      PAD_X_I2C2_SCL,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_PULLUP, PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_I2C2_SDA,      PAD_X_I2C2_SDA,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_PULLUP, PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_GPIO_0,        PAD_X_GPIO_0,        {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_GPIO_1,        PAD_X_GPIO_1,        {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_GPIO_2,        PAD_X_GPIO_2,        {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_GPIO_3,        PAD_X_GPIO_3,        {PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_GPIO_5,        PAD_X_GPIO_5,        {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_NONE},},
+	{PCTRL_X_GPIO_6,        PAD_X_GPIO_6,        {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_NONE},},
+	{PCTRL_X_UART1_SOUT,    PAD_X_UART1_SOUT,    {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_UART1_SIN,     PAD_X_UART1_SIN,     {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLDOWN, PAD_NONE,   PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_CPU_TDI,       PAD_X_CPU_TDI,       {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP, PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_CPU_TMS,       PAD_X_CPU_TMS,       {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP, PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_I2S1_SCLK,     PAD_X_I2S1_SCLK,     {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_PULLDOWN},},
+	{PCTRL_X_I2S1_FS,       PAD_X_I2S1_FS,       {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_PULLDOWN},},
+	{PCTRL_X_HDMI0_I2C_SCL, PAD_X_HDMI0_I2C_SCL, {PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_HDMI0_I2C_SDA, PAD_X_HDMI0_I2C_SDA, {PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+};
+
+static struct pinmux_pad_table sdio_pad_mapping[] = {
+	{PCTRL_X_I2S1_SCLK,     PAD_X_I2S1_SCLK,     {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_PULLDOWN},},
+	{PCTRL_X_I2S1_FS,       PAD_X_I2S1_FS,       {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_PULLDOWN},},
+	{PCTRL_X_I2S1_RXD,      PAD_X_I2S1_RXD,      {PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_PULLDOWN},},
+	{PCTRL_X_I2S1_TXD,      PAD_X_I2S1_TXD,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_PULLDOWN},},
+	{PCTRL_X_I2C1_SCL,      PAD_X_I2C1_SCL,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_PULLUP, PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_I2C1_SDA,      PAD_X_I2C1_SDA,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_PULLUP, PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_EXT1_CLK,      PAD_X_EXT1_CLK,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLDOWN, PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_NONE},},
+	{PCTRL_X_GPIO_5,        PAD_X_GPIO_5,        {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_NONE},},
+	{PCTRL_X_GPIO_6,        PAD_X_GPIO_6,        {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_NONE},},
+	{PCTRL_X_GPIO_7,        PAD_X_GPIO_7,        {PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_NONE},},
+	{PCTRL_X_GPIO_8,        PAD_X_GPIO_8,        {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_NONE},},
+	{PCTRL_X_GPIO_9,        PAD_X_GPIO_9,        {PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,     PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_PULLUP,   PAD_NONE},},
+	{PCTRL_X_I2C2_SCL,      PAD_X_I2C2_SCL,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_PULLUP, PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_I2C2_SDA,      PAD_X_I2C2_SDA,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_PULLUP, PAD_NONE,     PAD_NONE},},
+};
+
+static struct pinmux_pad_table spi_pad_mapping[] = {
+	{PCTRL_X_SPI_SCK,       PAD_X_SPI_SCK,       {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_SPI_CSN0,      PAD_X_SPI_CSN0,      {PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_SPI_TX,        PAD_X_SPI_TX,        {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_SPI_RX,        PAD_X_SPI_RX,        {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_SPI_WPN,       PAD_X_SPI_WPN,       {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLDOWN, PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_SPI_HOLDN,     PAD_X_SPI_HOLDN,     {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLDOWN, PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_SPI_CSN1,      PAD_X_SPI_CSN1,      {PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+};
+
+static struct pinmux_pad_table extclk_pad_mapping[] = {
+	{PCTRL_X_EXT0_CLK,      PAD_X_EXT0_CLK,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_PULLUP,   PAD_NONE},},
+	{PCTRL_X_EXT1_CLK,      PAD_X_EXT1_CLK,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLDOWN, PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_NONE},},
+	{PCTRL_X_CAP2_CLK,      PAD_X_CAP2_CLK,      {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP1_CLK,      PAD_X_CAP1_CLK,      {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,   PAD_NONE,     PAD_NONE},},
+};
+
+static struct pinmux_pad_table ssp_pad_mapping[] = {
+	{PCTRL_X_I2S0_SCLK,     PAD_X_I2S0_SCLK,     {PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,     PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_PULLUP},},
+	{PCTRL_X_I2S0_FS,       PAD_X_I2S0_FS,       {PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,     PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_PULLUP},},
+	{PCTRL_X_I2S0_RXD,      PAD_X_I2S0_RXD,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,     PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_PULLUP},},
+	{PCTRL_X_I2S0_TXD,      PAD_X_I2S0_TXD,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,     PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_PULLUP},},
+	{PCTRL_X_I2S1_SCLK,     PAD_X_I2S1_SCLK,     {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_PULLDOWN},},
+	{PCTRL_X_I2S1_FS,       PAD_X_I2S1_FS,       {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_PULLDOWN},},
+	{PCTRL_X_I2S1_RXD,      PAD_X_I2S1_RXD,      {PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_PULLDOWN},},
+	{PCTRL_X_I2S1_TXD,      PAD_X_I2S1_TXD,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_PULLDOWN},},
+	{PCTRL_X_CPU_TDI,       PAD_X_CPU_TDI,       {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP, PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_CPU_TMS,       PAD_X_CPU_TMS,       {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP, PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_CPU_TCK,       PAD_X_CPU_TCK,       {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP, PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_CPU_TDO,       PAD_X_CPU_TDO,       {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP, PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_GPIO_6,        PAD_X_GPIO_6,        {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_NONE},},
+	{PCTRL_X_GPIO_7,        PAD_X_GPIO_7,        {PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_NONE},},
+	{PCTRL_X_GPIO_8,        PAD_X_GPIO_8,        {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_NONE},},
+	{PCTRL_X_GPIO_9,        PAD_X_GPIO_9,        {PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,     PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_PULLUP,   PAD_NONE},},
+	{PCTRL_X_I2C0_SCL,      PAD_X_I2C0_SCL,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_I2C0_SDA,      PAD_X_I2C0_SDA,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_I2C1_SCL,      PAD_X_I2C1_SCL,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_PULLUP, PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_I2C1_SDA,      PAD_X_I2C1_SDA,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_PULLUP, PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_EXT0_CLK,      PAD_X_EXT0_CLK,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_PULLUP,   PAD_NONE},},
+	{PCTRL_X_EXT1_CLK,      PAD_X_EXT1_CLK,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLDOWN, PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_NONE},},
+	{PCTRL_X_GPIO_5,        PAD_X_GPIO_5,        {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_NONE},},
+	{PCTRL_X_CPU_NTRST,     PAD_X_CPU_NTRST,     {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+};
+
+static struct pinmux_pad_table lcd_pad_mapping[] = {
+	{PCTRL_X_EPHY0_REFCLK,  PAD_X_EPHY0_REFCLK,  {PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_EPHY0_RESET,   PAD_X_EPHY0_RESET,   {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_RGMII0_RX_CLK, PAD_X_RGMII0_RX_CLK, {PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_RGMII0_RX_CTL, PAD_X_RGMII0_RX_CTL, {PAD_PULLDOWN, PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_RGMII0_RXD0,   PAD_X_RGMII0_RXD0,   {PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_RGMII0_RXD1,   PAD_X_RGMII0_RXD1,   {PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_RGMII0_RXD2,   PAD_X_RGMII0_RXD2,   {PAD_PULLDOWN, PAD_NONE,     PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_RGMII0_RXD3,   PAD_X_RGMII0_RXD3,   {PAD_PULLDOWN, PAD_NONE,     PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_RGMII0_TX_CLK, PAD_X_RGMII0_TX_CLK, {PAD_PULLDOWN, PAD_NONE,     PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_RGMII0_TX_CTL, PAD_X_RGMII0_TX_CTL, {PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_RGMII0_TXD0,   PAD_X_RGMII0_TXD0,   {PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_RGMII0_TXD1,   PAD_X_RGMII0_TXD1,   {PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_RGMII0_TXD2,   PAD_X_RGMII0_TXD2,   {PAD_PULLDOWN, PAD_NONE,     PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_RGMII0_TXD3,   PAD_X_RGMII0_TXD3,   {PAD_PULLDOWN, PAD_NONE,     PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_RGMII0_MDC,    PAD_X_RGMII0_MDC,    {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_RGMII0_MDIO,   PAD_X_RGMII0_MDIO,   {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP0_CLK,      PAD_X_CAP0_CLK,      {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP0_DATA0,    PAD_X_CAP0_DATA0,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_PULLUP,   PAD_NONE},},
+	{PCTRL_X_CAP0_DATA1,    PAD_X_CAP0_DATA1,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP0_DATA2,    PAD_X_CAP0_DATA2,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_CAP0_DATA3,    PAD_X_CAP0_DATA3,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP0_DATA4,    PAD_X_CAP0_DATA4,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP0_DATA5,    PAD_X_CAP0_DATA5,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP0_DATA6,    PAD_X_CAP0_DATA6,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP0_DATA7,    PAD_X_CAP0_DATA7,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP1_CLK,      PAD_X_CAP1_CLK,      {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP1_DATA0,    PAD_X_CAP1_DATA0,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP1_DATA1,    PAD_X_CAP1_DATA1,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP1_DATA2,    PAD_X_CAP1_DATA2,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_CAP1_DATA3,    PAD_X_CAP1_DATA3,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP1_DATA4,    PAD_X_CAP1_DATA4,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_PULLUP,   PAD_NONE},},
+	{PCTRL_X_CAP1_DATA5,    PAD_X_CAP1_DATA5,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_PULLUP,   PAD_NONE},},
+	{PCTRL_X_CAP1_DATA6,    PAD_X_CAP1_DATA6,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_PULLDOWN},},
+	{PCTRL_X_CAP1_DATA7,    PAD_X_CAP1_DATA7,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_PULLDOWN},},
+	{PCTRL_X_GPIO_5,        PAD_X_GPIO_5,        {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_NONE},},
+	{PCTRL_X_I2C1_SCL,      PAD_X_I2C1_SCL,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_PULLUP, PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_I2C1_SDA,      PAD_X_I2C1_SDA,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_PULLUP, PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_I2S0_SCLK,     PAD_X_I2S0_SCLK,     {PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,     PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_PULLUP},},
+	{PCTRL_X_I2S0_FS,       PAD_X_I2S0_FS,       {PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,     PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_PULLUP},},
+	{PCTRL_X_I2S0_RXD,      PAD_X_I2S0_RXD,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,     PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_PULLUP},},
+	{PCTRL_X_I2S1_SCLK,     PAD_X_I2S1_SCLK,     {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_PULLDOWN},},
+	{PCTRL_X_I2S1_FS,       PAD_X_I2S1_FS,       {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_PULLDOWN},},
+	{PCTRL_X_I2S1_RXD,      PAD_X_I2S1_RXD,      {PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_PULLDOWN},},
+	{PCTRL_X_EXT1_CLK,      PAD_X_EXT1_CLK,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLDOWN, PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_NONE},},
+
+};
+
+static struct pinmux_pad_table remote_pad_mapping[] = {
+	{PCTRL_X_CPU_TDI,       PAD_X_CPU_TDI,       {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP, PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_CPU_TMS,       PAD_X_CPU_TMS,       {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP, PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_CPU_TCK,       PAD_X_CPU_TCK,       {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP, PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_CPU_TDO,       PAD_X_CPU_TDO,       {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP, PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_UART1_SOUT,    PAD_X_UART1_SOUT,    {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_UART1_SIN,     PAD_X_UART1_SIN,     {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLDOWN, PAD_NONE,   PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_GPIO_0,        PAD_X_GPIO_0,        {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_GPIO_1,        PAD_X_GPIO_1,        {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_GPIO_2,        PAD_X_GPIO_2,        {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_GPIO_3,        PAD_X_GPIO_3,        {PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_GPIO_4,        PAD_X_GPIO_4,        {PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_PULLDOWN, PAD_NONE},},
+};
+
+static struct pinmux_pad_table vcap_pad_mapping[] = {
+	{PCTRL_X_CAP0_CLK,      PAD_X_CAP0_CLK,      {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP0_DATA0,    PAD_X_CAP0_DATA0,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_PULLUP,   PAD_NONE},},
+	{PCTRL_X_CAP0_DATA1,    PAD_X_CAP0_DATA1,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP0_DATA2,    PAD_X_CAP0_DATA2,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_CAP0_DATA3,    PAD_X_CAP0_DATA3,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP0_DATA4,    PAD_X_CAP0_DATA4,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP0_DATA5,    PAD_X_CAP0_DATA5,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP0_DATA6,    PAD_X_CAP0_DATA6,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP0_DATA7,    PAD_X_CAP0_DATA7,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP1_CLK,      PAD_X_CAP1_CLK,      {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP1_DATA0,    PAD_X_CAP1_DATA0,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP1_DATA1,    PAD_X_CAP1_DATA1,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP1_DATA2,    PAD_X_CAP1_DATA2,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_CAP1_DATA3,    PAD_X_CAP1_DATA3,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP1_DATA4,    PAD_X_CAP1_DATA4,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_PULLUP,   PAD_NONE},},
+	{PCTRL_X_CAP1_DATA5,    PAD_X_CAP1_DATA5,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_PULLUP,   PAD_NONE},},
+	{PCTRL_X_CAP1_DATA6,    PAD_X_CAP1_DATA6,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_PULLDOWN},},
+	{PCTRL_X_CAP1_DATA7,    PAD_X_CAP1_DATA7,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_PULLDOWN},},
+	{PCTRL_X_CAP2_CLK,      PAD_X_CAP2_CLK,      {PAD_PULLDOWN, PAD_PULLDOWN, PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP2_DATA0,    PAD_X_CAP2_DATA0,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP2_DATA1,    PAD_X_CAP2_DATA1,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP2_DATA2,    PAD_X_CAP2_DATA2,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP2_DATA3,    PAD_X_CAP2_DATA3,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP2_DATA4,    PAD_X_CAP2_DATA4,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP2_DATA5,    PAD_X_CAP2_DATA5,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP2_DATA6,    PAD_X_CAP2_DATA6,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP2_DATA7,    PAD_X_CAP2_DATA7,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP3_CLK,      PAD_X_CAP3_CLK,      {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP3_DATA0,    PAD_X_CAP3_DATA0,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP3_DATA1,    PAD_X_CAP3_DATA1,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP3_DATA2,    PAD_X_CAP3_DATA2,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP3_DATA3,    PAD_X_CAP3_DATA3,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP3_DATA4,    PAD_X_CAP3_DATA4,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP3_DATA5,    PAD_X_CAP3_DATA5,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP3_DATA6,    PAD_X_CAP3_DATA6,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP3_DATA7,    PAD_X_CAP3_DATA7,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_I2S0_SCLK,     PAD_X_I2S0_SCLK,     {PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,     PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_PULLUP},},
+	{PCTRL_X_I2S0_FS,       PAD_X_I2S0_FS,       {PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,     PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_PULLUP},},
+	{PCTRL_X_I2S0_RXD,      PAD_X_I2S0_RXD,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,     PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_PULLUP},},
+	{PCTRL_X_I2S0_TXD,      PAD_X_I2S0_TXD,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,     PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_PULLUP},},
+	{PCTRL_X_I2S1_SCLK,     PAD_X_I2S1_SCLK,     {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_PULLDOWN},},
+	{PCTRL_X_I2S1_FS,       PAD_X_I2S1_FS,       {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_PULLDOWN},},
+	{PCTRL_X_I2S1_RXD,      PAD_X_I2S1_RXD,      {PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_PULLDOWN},},
+	{PCTRL_X_I2S1_TXD,      PAD_X_I2S1_TXD,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_PULLDOWN},},
+	{PCTRL_X_EXT1_CLK,      PAD_X_EXT1_CLK,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLDOWN, PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_NONE},},
+	{PCTRL_X_I2C1_SCL,      PAD_X_I2C1_SCL,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_PULLUP, PAD_PULLDOWN, PAD_NONE},},
+};
+
+static struct pinmux_pad_table eth_pad_mapping[] = {
+	{PCTRL_X_EPHY0_REFCLK,  PAD_X_EPHY0_REFCLK,  {PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_EPHY0_RESET,   PAD_X_EPHY0_RESET,   {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_RGMII0_RX_CLK, PAD_X_RGMII0_RX_CLK, {PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_RGMII0_RX_CTL, PAD_X_RGMII0_RX_CTL, {PAD_PULLDOWN, PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_RGMII0_RXD0,   PAD_X_RGMII0_RXD0,   {PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_RGMII0_RXD1,   PAD_X_RGMII0_RXD1,   {PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_RGMII0_RXD2,   PAD_X_RGMII0_RXD2,   {PAD_PULLDOWN, PAD_NONE,     PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_RGMII0_RXD3,   PAD_X_RGMII0_RXD3,   {PAD_PULLDOWN, PAD_NONE,     PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_RGMII0_TX_CLK, PAD_X_RGMII0_TX_CLK, {PAD_PULLDOWN, PAD_NONE,     PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_RGMII0_TX_CTL, PAD_X_RGMII0_TX_CTL, {PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_RGMII0_TXD0,   PAD_X_RGMII0_TXD0,   {PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_RGMII0_TXD1,   PAD_X_RGMII0_TXD1,   {PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_RGMII0_TXD2,   PAD_X_RGMII0_TXD2,   {PAD_PULLDOWN, PAD_NONE,     PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_RGMII0_TXD3,   PAD_X_RGMII0_TXD3,   {PAD_PULLDOWN, PAD_NONE,     PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_RGMII0_MDC,    PAD_X_RGMII0_MDC,    {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_RGMII0_MDIO,   PAD_X_RGMII0_MDIO,   {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP0_CLK,      PAD_X_CAP0_CLK,      {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP0_DATA0,    PAD_X_CAP0_DATA0,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_PULLUP,   PAD_NONE},},
+	{PCTRL_X_CAP0_DATA1,    PAD_X_CAP0_DATA1,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP0_DATA2,    PAD_X_CAP0_DATA2,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_CAP0_DATA3,    PAD_X_CAP0_DATA3,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP0_DATA4,    PAD_X_CAP0_DATA4,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP0_DATA5,    PAD_X_CAP0_DATA5,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP0_DATA6,    PAD_X_CAP0_DATA6,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP0_DATA7,    PAD_X_CAP0_DATA7,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP1_CLK,      PAD_X_CAP1_CLK,      {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP1_DATA0,    PAD_X_CAP1_DATA0,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP1_DATA1,    PAD_X_CAP1_DATA1,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP1_DATA2,    PAD_X_CAP1_DATA2,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_CAP1_DATA3,    PAD_X_CAP1_DATA3,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CAP1_DATA4,    PAD_X_CAP1_DATA4,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_PULLUP,   PAD_NONE},},
+	{PCTRL_X_CAP1_DATA5,    PAD_X_CAP1_DATA5,    {PAD_PULLDOWN, PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_PULLUP,   PAD_NONE},},
+};
+
+static struct pinmux_pad_table misc_pad_mapping[] = {
+	{PCTRL_X_CPU_NTRST,     PAD_X_CPU_NTRST,     {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_CPU_TDI,       PAD_X_CPU_TDI,       {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP, PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_CPU_TMS,       PAD_X_CPU_TMS,       {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP, PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_CPU_TCK,       PAD_X_CPU_TCK,       {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP, PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_CPU_TDO,       PAD_X_CPU_TDO,       {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP, PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_VGA_HS,        PAD_X_VGA_HS,        {PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_VGA_VS,        PAD_X_VGA_VS,        {PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_GPIO_3,        PAD_X_GPIO_3,        {PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_GPIO_4,        PAD_X_GPIO_4,        {PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_GPIO_5,        PAD_X_GPIO_5,        {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_NONE},},
+	{PCTRL_X_GPIO_6,        PAD_X_GPIO_6,        {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_NONE},},
+	{PCTRL_X_GPIO_7,        PAD_X_GPIO_7,        {PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_NONE},},
+	{PCTRL_X_GPIO_8,        PAD_X_GPIO_8,        {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_NONE},},
+	{PCTRL_X_GPIO_9,        PAD_X_GPIO_9,        {PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,     PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_PULLUP,   PAD_NONE},},
+	{PCTRL_X_UART0_RTS,     PAD_X_UART0_RTS,     {PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_UART1_SIN,     PAD_X_UART1_SIN,     {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_PULLDOWN, PAD_NONE,   PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_HDMI0_HPD,     PAD_X_HDMI0_HPD,     {PAD_PULLDOWN, PAD_PULLDOWN, PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_I2S0_SCLK,     PAD_X_I2S0_SCLK,     {PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,     PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_PULLUP},},
+	{PCTRL_X_I2S0_FS,       PAD_X_I2S0_FS,       {PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,     PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_PULLUP},},
+	{PCTRL_X_I2S0_RXD,      PAD_X_I2S0_RXD,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,     PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_PULLUP},},
+	{PCTRL_X_I2S0_TXD,      PAD_X_I2S0_TXD,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_NONE,     PAD_PULLUP,   PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_PULLUP},},
+};
+
+static struct pinmux_pad_table pwm_pad_mapping[] = {
+	{PCTRL_X_PWM0_OUT,      PAD_X_PWM0_OUT,      {PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_NONE,     PAD_NONE},},
+	{PCTRL_X_PWM1_OUT,      PAD_X_PWM1_OUT,      {PAD_PULLUP,   PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,     PAD_NONE,   PAD_PULLDOWN, PAD_NONE},},
+	{PCTRL_X_I2S1_TXD,      PAD_X_I2S1_TXD,      {PAD_PULLDOWN, PAD_PULLUP,   PAD_PULLUP,   PAD_PULLUP,   PAD_NONE,     PAD_PULLUP, PAD_PULLUP,   PAD_PULLDOWN},},
+};
+
+#ifndef __FREERTOS
+static u32 pinmux_config_decode(u32 reg_order)
+{
+	REGVALUE reg_value;
+	UINT32 offset, bitmask, bitoffset;
+	unsigned long flags = 0;
+
+	offset     = (reg_order >> 3)<<2;
+	bitoffset  = (reg_order & 0x7)<<2;
+	bitmask    = ~(0x7 << bitoffset);
+
+	loc_cpu(flags);
+	reg_value = HW_TOP_GETREG(TOP_CTRL0_REG_OFS + offset);
+	unl_cpu(flags);
+
+	return (reg_value & ~bitmask) >> bitoffset;
+}
+
+void pinmux_parsing(struct nvt_pinctrl_info *info)
+{
+	u32 config, i, j;
+	u8 config_fail_check;
+	REGVALUE reg_value;
+	unsigned long flags = 0;
+
+	/*uart*/
+	config_fail_check = 0;
+	info->top_pinmux[PIN_FUNC_UART].pin_function = PIN_FUNC_UART;
+	info->top_pinmux[PIN_FUNC_UART].config = 0x0;
+	for (i = 0; i < uart0_pincnt; i++) {
+		for (j = 0; j < uart_pinno; j++) {
+			config = pinmux_config_decode(uart0[i][j+1]);
+			if (config != uart0[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_UART].config |= (PIN_UART_CFG_CH0_1ST_PINMUX << i);
+
+		config_fail_check = 0;
+	}
+
+	config_fail_check = 0;
+	for (i = 0; i < uart0rts_pincnt; i++) {
+		for (j = 0; j < uart_pinno; j++) {
+			config = pinmux_config_decode(uart0rts[i][j+1]);
+			if (config != uart0rts[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_UART].config |= (PIN_UART_CFG_CH0_CTSRTS << i);
+
+		config_fail_check = 0;
+	}
+
+	config_fail_check = 0;
+	for (i = 0; i < uart1_pincnt; i++) {
+		for (j = 0; j < uart_pinno; j++) {
+			config = pinmux_config_decode(uart1[i][j+1]);
+			if (config != uart1[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_UART].config |= (PIN_UART_CFG_CH1_1ST_PINMUX << i);
+
+		config_fail_check = 0;
+	}
+
+	config_fail_check = 0;
+	for (i = 0; i < uart2_pincnt; i++) {
+		for (j = 0; j < uart_pinno; j++) {
+			config = pinmux_config_decode(uart2[i][j+1]);
+			if (config != uart2[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_UART].config |= (PIN_UART_CFG_CH1_1ST_PINMUX << i);
+
+		config_fail_check = 0;
+	}
+
+	config_fail_check = 0;
+	for (i = 0; i < uart3_pincnt; i++) {
+		for (j = 0; j < uart_pinno; j++) {
+			config = pinmux_config_decode(uart3[i][j+1]);
+			if (config != uart3[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_UART].config |= (PIN_UART_CFG_CH3_1ST_PINMUX << i);
+
+		config_fail_check = 0;
+	}
+
+	config_fail_check = 0;
+	for (i = 0; i < uartceva_pincnt; i++) {
+		for (j = 0; j < uart_pinno; j++) {
+			config = pinmux_config_decode(uartceva[i][j+1]);
+			if (config != uartceva[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_UART].config |= (PIN_UART_CFG_CEVA_1ST_PINMUX << i);
+
+		config_fail_check = 0;
+	}
+
+	/*i2c*/
+	config_fail_check = 0;
+	info->top_pinmux[PIN_FUNC_I2C].pin_function = PIN_FUNC_I2C;
+	info->top_pinmux[PIN_FUNC_I2C].config = 0x0;
+	for (i = 0; i < i2c0_pincnt; i++) {
+		for (j = 0; j < i2c_pinno; j++) {
+			config = pinmux_config_decode(i2c0[i][j+1]);
+			if (config != i2c0[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_I2C].config |= (PIN_I2C_CFG_CH0_1ST_PINMUX << i);
+
+		config_fail_check = 0;
+	}
+
+	config_fail_check = 0;
+	for (i = 0; i < i2c1_pincnt; i++) {
+		for (j = 0; j < i2c_pinno; j++) {
+			config = pinmux_config_decode(i2c1[i][j+1]);
+			if (config != i2c1[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_I2C].config |= (PIN_I2C_CFG_CH1_1ST_PINMUX << i);
+
+		config_fail_check = 0;
+	}
+
+	config_fail_check = 0;
+	for (i = 0; i < i2c2_pincnt; i++) {
+		for (j = 0; j < i2c_pinno; j++) {
+			config = pinmux_config_decode(i2c2[i][j+1]);
+			if (config != i2c2[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_I2C].config |= (PIN_I2C_CFG_CH2_1ST_PINMUX << i);
+
+		config_fail_check = 0;
+	}
+
+	config_fail_check = 0;
+	for (i = 0; i < i2c3_pincnt; i++) {
+		for (j = 0; j < i2c_pinno; j++) {
+			config = pinmux_config_decode(i2c3[i][j+1]);
+			if (config != i2c3[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_I2C].config |= (PIN_I2C_CFG_HDMI_1ST_PINMUX << i);
+
+		config_fail_check = 0;
+	}
+
+	/*sdio*/
+	config_fail_check = 0;
+	info->top_pinmux[PIN_FUNC_SDIO].pin_function = PIN_FUNC_SDIO;
+	info->top_pinmux[PIN_FUNC_SDIO].config = 0x0;
+	for (i = 0; i < sdio_pincnt; i++) {
+		for (j = 0; j < sdio_pinno; j++) {
+			config = pinmux_config_decode(sdio0[i][j+1]);
+			if (config != sdio0[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+
+		for (j = 0; j < sdio_pinno2; j++) {
+			config = pinmux_config_decode(sdio0_2[i][j+1]);
+			if (config != sdio0_2[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_SDIO].config |= (PIN_SDIO_CFG_1ST_PINMUX << i);
+
+		config_fail_check = 0;
+	}
+
+	/*spi*/
+	config_fail_check = 0;
+	info->top_pinmux[PIN_FUNC_SPI].pin_function = PIN_FUNC_SPI;
+	info->top_pinmux[PIN_FUNC_SPI].config = 0x0;
+	for (i = 0; i < spi_pincnt; i++) {
+		for (j = 0; j < spi_pinno; j++) {
+			config = pinmux_config_decode(spi[i][j+1]);
+			if (config != spi[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_SPI].config |= (PIN_SPI_CFG_CH0_1ST_PINMUX << i);
+
+		config_fail_check = 0;
+	}
+
+	/*extclk*/
+	config_fail_check = 0;
+	info->top_pinmux[PIN_FUNC_EXTCLK].pin_function = PIN_FUNC_EXTCLK;
+	info->top_pinmux[PIN_FUNC_EXTCLK].config = 0x0;
+	for (i = 0; i < extclk_pincnt; i++) {
+		for (j = 0; j < extclk_pinno; j++) {
+			config = pinmux_config_decode(extclk0[i][j+1]);
+			if (config != extclk0[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_EXTCLK].config |= (PIN_EXTCLK_CFG_CH0_1ST_PINMUX << i);
+
+		config_fail_check = 0;
+	}
+
+	config_fail_check = 0;
+	for (i = 0; i < extclk_pincnt; i++) {
+		for (j = 0; j < extclk_pinno; j++) {
+			config = pinmux_config_decode(extclk1[i][j+1]);
+			if (config != extclk1[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_EXTCLK].config |= (PIN_EXTCLK_CFG_CH1_1ST_PINMUX << i);
+
+		config_fail_check = 0;
+	}
+
+	/*ssp*/
+	config_fail_check = 0;
+	info->top_pinmux[PIN_FUNC_SSP].pin_function = PIN_FUNC_SSP;
+	info->top_pinmux[PIN_FUNC_SSP].config = 0x0;
+	for (i = 0; i < ssp0_pincnt; i++) {
+		for (j = 0; j < ssp_pinno; j++) {
+			config = pinmux_config_decode(ssp0[i][j+1]);
+			if (config != ssp0[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_SSP].config |= (PIN_SSP_CFG_CH0_1ST_PINMUX << i);
+
+		config_fail_check = 0;
+	}
+
+	config_fail_check = 0;
+	for (i = 0; i < ssp1_pincnt; i++) {
+		for (j = 0; j < ssp_pinno; j++) {
+			config = pinmux_config_decode(ssp1[i][j+1]);
+			if (config != ssp1[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_SSP].config |= (PIN_SSP_CFG_CH1_1ST_PINMUX << i);
+
+		config_fail_check = 0;
+	}
+
+	config_fail_check = 0;
+	for (i = 0; i < ssp2_pincnt; i++) {
+		for (j = 0; j < ssp_pinno; j++) {
+			config = pinmux_config_decode(ssp2[i][j+1]);
+			if (config != ssp2[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_SSP].config |= (PIN_SSP_CFG_CH2_1ST_PINMUX << i);
+
+		config_fail_check = 0;
+	}
+
+	config_fail_check = 0;
+	for (i = 0; i < 1; i++) {
+		for (j = 0; j < ssp2_2_pinno; j++) {
+			config = pinmux_config_decode(ssp2_2[i][j+1]);
+			if (config != ssp2_2[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+
+		for (j = 0; j < ssp2_3_pinno; j++) {
+			config = pinmux_config_decode(ssp2_3[i][j+1]);
+			if (config != ssp2_3[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+	}
+
+	if (config_fail_check == 0)
+		info->top_pinmux[PIN_FUNC_SSP].config |= PIN_SSP_CFG_CH2_3RD_PINMUX;
+
+	config_fail_check = 0;
+	for (i = 1; i < ssp2_2_pincnt; i++) {
+		for (j = 0; j < ssp2_2_pinno; j++) {
+			config = pinmux_config_decode(ssp2_2[i][j+1]);
+			if (config != ssp2_2[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+
+		for (j = 0; j < ssp2_3_pinno; j++) {
+			config = pinmux_config_decode(ssp2_3[i][j+1]);
+			if (config != ssp2_3[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+	}
+
+	if (config_fail_check == 0)
+		info->top_pinmux[PIN_FUNC_SSP].config |= PIN_SSP_CFG_CH2_3RD_PINMUX;
+
+	config_fail_check = 0;
+	for (i = 0; i < sspmclk0_pincnt; i++) {
+		for (j = 0; j < sspmclk_pinno; j++) {
+			config = pinmux_config_decode(sspmclk0[i][j+1]);
+			if (config != sspmclk0[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_SSP].config |= (PIN_SSP_CFG_MCLK0_1ST_PINMUX << i);
+
+		config_fail_check = 0;
+	}
+
+	config_fail_check = 0;
+	for (i = 0; i < sspmclk1_pincnt; i++) {
+		for (j = 0; j < sspmclk_pinno; j++) {
+			config = pinmux_config_decode(sspmclk1[i][j+1]);
+			if (config != sspmclk1[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_SSP].config |= (PIN_SSP_CFG_MCLK1_1ST_PINMUX << i);
+
+		config_fail_check = 0;
+	}
+
+	config_fail_check = 0;
+	for (i = 0; i < sspmclk2_pincnt; i++) {
+		for (j = 0; j < sspmclk_pinno; j++) {
+			config = pinmux_config_decode(sspmclk2[i][j+1]);
+			if (config != sspmclk2[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_SSP].config |= (PIN_SSP_CFG_MCLK2_1ST_PINMUX << i);
+
+		config_fail_check = 0;
+	}
+
+	/*lcd*/
+	config_fail_check = 0;
+	info->top_pinmux[PIN_FUNC_LCD].pin_function = PIN_FUNC_LCD;
+	info->top_pinmux[PIN_FUNC_LCD].config = 0x0;
+	for (i = 0; i < lcd_pincnt; i++) {
+		for (j = 0; j < lcd_pinno; j++) {
+			config = pinmux_config_decode(lcd[i][j+1]);
+			if (config != lcd[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+
+		for (j = 0; j < lcd_2_pinno; j++) {
+			config = pinmux_config_decode(lcd_2[i][j+1]);
+			if (config != lcd_2[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_LCD].config |= (PIN_LCD_CFG_LCD310_BT1120_1ST_PINMUX << i);
+
+		config_fail_check = 0;
+	}
+
+	config_fail_check = 0;
+	for (i = 0; i < lcd888_pincnt; i++) {
+		for (j = 0; j < lcd_pinno; j++) {
+			config = pinmux_config_decode(lcd888[i][j+1]);
+			if (config != lcd888[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+
+		for (j = 0; j < lcd888_2_pinno; j++) {
+			config = pinmux_config_decode(lcd888_2[i][j+1]);
+			if (config != lcd888_2[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+	}
+
+	if (config_fail_check == 0)
+		info->top_pinmux[PIN_FUNC_LCD].config |= PIN_LCD_CFG_LCD310_RGB888_1ST_PINMUX;
+
+	/*remote*/
+	config_fail_check = 0;
+	info->top_pinmux[PIN_FUNC_REMOTE].pin_function = PIN_FUNC_REMOTE;
+	info->top_pinmux[PIN_FUNC_REMOTE].config = 0x0;
+	for (i = 0; i < remote_pincnt; i++) {
+		for (j = 0; j < remote_pinno; j++) {
+			config = pinmux_config_decode(remote[i][j+1]);
+			if (config != remote[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_REMOTE].config |= (PIN_REMOTE_CFG_1ST_PINMUX << i);
+
+		config_fail_check = 0;
+	}
+
+	/*vcap*/
+	info->top_pinmux[PIN_FUNC_VCAP].pin_function = PIN_FUNC_VCAP;
+	info->top_pinmux[PIN_FUNC_VCAP].config = 0x0;
+	//bt1120_0
+	config_fail_check = 0;
+	for (i = 0; i < bt1120_0_pincnt; i++) {
+		config_fail_check = 0;
+
+		for (j = 0; j < bt1120_pinno; j++) {
+			config = pinmux_config_decode(bt1120_0[i][j+1]);
+			if (config != bt1120_0[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+
+		for (j = 0; j < bt1120clk_pinno; j++) {
+			config = pinmux_config_decode(bt1120clk_0[i][j+1]);
+			if (config != bt1120clk_0[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+
+		if ((config_fail_check == 0) && (vcap_bt1120_record[0] & (PIN_VCAP_CFG_BT1120_0_1ST_PINMUX << i))) {
+			info->top_pinmux[PIN_FUNC_VCAP].config |= (PIN_VCAP_CFG_BT1120_0_1ST_PINMUX << i);
+			break;
+		} else {
+			config_fail_check = 1;
+		}
+	}
+
+	if (config_fail_check == 1) {
+		//ts0
+		config_fail_check = 0;
+		for (i = 0; i < ts_pincnt; i++) {
+			config_fail_check = 0;
+
+			for (j = 0; j < ts_pinno; j++) {
+				config = pinmux_config_decode(ts0[i][j+1]);
+				if (config != ts0[i][0]) {
+					config_fail_check = 1;
+					break;
+				}
+			}
+
+			if (config_fail_check == 0) {
+				for (j = 0; j < vcap_pinno; j++) {
+					config = pinmux_config_decode(vcap0[vcap0_pincnt-1][j+1]);
+					if (config != vcap0[vcap0_pincnt-1][0]) {
+						config_fail_check = 1;
+						break;
+					}
+				}
+
+				for (j = 0; j < vcapclk_pinno; j++) {
+					config = pinmux_config_decode(vcap0clk[vcap0_pincnt-1][j+1]);
+					if (config != vcap0clk[vcap0_pincnt-1][0]) {
+						config_fail_check = 1;
+						break;
+					}
+				}
+
+				if (config_fail_check == 0) {
+					info->top_pinmux[PIN_FUNC_VCAP].config |= PIN_VCAP_CFG_TSI0_1ST_PINMUX;
+					break;
+				}
+			}
+		}
+
+		if (config_fail_check == 1) {
+			//vcap0
+			config_fail_check = 0;
+			for (i = 0; i < vcap0_pincnt-1; i++) {
+				config_fail_check = 0;
+
+				for (j = 0; j < vcap_pinno; j++) {
+					config = pinmux_config_decode(vcap0[i][j+1]);
+					if (config != vcap0[i][0]) {
+						config_fail_check = 1;
+						break;
+					}
+				}
+
+				for (j = 0; j < vcapclk_pinno; j++) {
+					config = pinmux_config_decode(vcap0clk[i][j+1]);
+					if (config != vcap0clk[i][0]) {
+						config_fail_check = 1;
+						break;
+					}
+				}
+
+				if (config_fail_check == 0) {
+					info->top_pinmux[PIN_FUNC_VCAP].config |= (PIN_VCAP_CFG_CH0_1ST_PINMUX << i);
+					break;
+				}
+			}
+		}
+
+		//ts1
+		config_fail_check = 0;
+		for (i = 0; i < ts_pincnt; i++) {
+			config_fail_check = 0;
+
+			for (j = 0; j < ts_pinno; j++) {
+				config = pinmux_config_decode(ts1[i][j+1]);
+				if (config != ts1[i][0]) {
+					config_fail_check = 1;
+					break;
+				}
+			}
+
+			if (config_fail_check == 0) {
+				for (j = 0; j < vcap_pinno; j++) {
+					config = pinmux_config_decode(vcap1[vcap1_pincnt-1][j+1]);
+					if (config != vcap1[vcap1_pincnt-1][0]) {
+						config_fail_check = 1;
+						break;
+					}
+				}
+
+				for (j = 0; j < vcapclk_pinno; j++) {
+					config = pinmux_config_decode(vcap1clk[vcap1_pincnt-1][j+1]);
+					if (config != vcap1clk[vcap1_pincnt-1][0]) {
+						config_fail_check = 1;
+						break;
+					}
+				}
+
+				if (config_fail_check == 0) {
+					info->top_pinmux[PIN_FUNC_VCAP].config |= PIN_VCAP_CFG_TSI1_1ST_PINMUX;
+					break;
+				}
+			}
+		}
+
+		if (config_fail_check == 1) {
+			//vcap1
+			config_fail_check = 0;
+			for (i = 0; i < vcap1_pincnt-1; i++) {
+				config_fail_check = 0;
+
+				for (j = 0; j < vcap_pinno; j++) {
+					config = pinmux_config_decode(vcap1[i][j+1]);
+					if (config != vcap1[i][0]) {
+						config_fail_check = 1;
+						break;
+					}
+				}
+
+				for (j = 0; j < vcapclk_pinno; j++) {
+					config = pinmux_config_decode(vcap1clk[i][j+1]);
+					if (config != vcap1clk[i][0]) {
+						config_fail_check = 1;
+						break;
+					}
+				}
+
+				if (config_fail_check == 0) {
+					info->top_pinmux[PIN_FUNC_VCAP].config |= (PIN_VCAP_CFG_CH1_1ST_PINMUX << i);
+					break;
+				}
+			}
+		}
+	}
+
+	//bt1120_1
+	config_fail_check = 0;
+	for (i = 0; i < bt1120_1_pincnt; i++) {
+		config_fail_check = 0;
+
+		for (j = 0; j < bt1120_pinno; j++) {
+			config = pinmux_config_decode(bt1120_1[i][j+1]);
+			if (config != bt1120_1[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+
+		for (j = 0; j < bt1120clk_pinno; j++) {
+			config = pinmux_config_decode(bt1120clk_1[i][j+1]);
+			if (config != bt1120clk_1[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+
+		if ((config_fail_check == 0) && (vcap_bt1120_record[1] & (PIN_VCAP_CFG_BT1120_1_1ST_PINMUX << i))) {
+			info->top_pinmux[PIN_FUNC_VCAP].config |= (PIN_VCAP_CFG_BT1120_1_1ST_PINMUX << i);
+			break;
+		} else {
+			config_fail_check = 1;
+		}
+	}
+
+	if (config_fail_check == 1) {
+		//ts2
+		config_fail_check = 0;
+		for (i = 0; i < ts_pincnt; i++) {
+			config_fail_check = 0;
+
+			for (j = 0; j < ts_pinno; j++) {
+				config = pinmux_config_decode(ts2[i][j+1]);
+				if (config != ts2[i][0]) {
+					config_fail_check = 1;
+					break;
+				}
+			}
+
+			if (config_fail_check == 0) {
+				for (j = 0; j < vcap_pinno; j++) {
+					config = pinmux_config_decode(vcap2[vcap2_pincnt-1][j+1]);
+					if (config != vcap2[vcap2_pincnt-1][0]) {
+						config_fail_check = 1;
+						break;
+					}
+				}
+
+				for (j = 0; j < vcapclk_pinno; j++) {
+					config = pinmux_config_decode(vcap2clk[vcap2_pincnt-1][j+1]);
+					if (config != vcap2clk[vcap2_pincnt-1][0]) {
+						config_fail_check = 1;
+						break;
+					}
+				}
+
+				if (config_fail_check == 0) {
+					info->top_pinmux[PIN_FUNC_VCAP].config |= PIN_VCAP_CFG_TSI2_1ST_PINMUX;
+					break;
+				}
+			}
+		}
+
+		if (config_fail_check == 1) {
+			//vcap2
+			config_fail_check = 0;
+			for (i = 0; i < vcap2_pincnt-1; i++) {
+				config_fail_check = 0;
+
+				for (j = 0; j < vcap_pinno; j++) {
+					config = pinmux_config_decode(vcap2[i][j+1]);
+					if (config != vcap2[i][0]) {
+						config_fail_check = 1;
+						break;
+					}
+				}
+
+				for (j = 0; j < vcapclk_pinno; j++) {
+					config = pinmux_config_decode(vcap2clk[i][j+1]);
+					if (config != vcap2clk[i][0]) {
+						config_fail_check = 1;
+						break;
+					}
+				}
+
+				if (config_fail_check == 0) {
+					info->top_pinmux[PIN_FUNC_VCAP].config |= (PIN_VCAP_CFG_CH2_1ST_PINMUX << i);
+					break;
+				}
+			}
+		}
+
+		//ts3
+		config_fail_check = 0;
+		for (i = 0; i < ts_pincnt; i++) {
+			config_fail_check = 0;
+
+			for (j = 0; j < ts_pinno; j++) {
+				config = pinmux_config_decode(ts3[i][j+1]);
+				if (config != ts3[i][0]) {
+					config_fail_check = 1;
+					break;
+				}
+			}
+
+			if (config_fail_check == 0) {
+				for (j = 0; j < vcap_pinno; j++) {
+					config = pinmux_config_decode(vcap3[vcap3_pincnt-1][j+1]);
+					if (config != vcap3[vcap3_pincnt-1][0]) {
+						config_fail_check = 1;
+						break;
+					}
+				}
+
+				for (j = 0; j < vcapclk_pinno; j++) {
+					config = pinmux_config_decode(vcap3clk[vcap3_pincnt-1][j+1]);
+					if (config != vcap3clk[vcap3_pincnt-1][0]) {
+						config_fail_check = 1;
+						break;
+					}
+				}
+
+				if (config_fail_check == 0) {
+					info->top_pinmux[PIN_FUNC_VCAP].config |= PIN_VCAP_CFG_TSI3_1ST_PINMUX;
+					break;
+				}
+			}
+		}
+
+		if (config_fail_check == 1) {
+			//vcap3
+			config_fail_check = 0;
+			for (i = 0; i < vcap3_pincnt-1; i++) {
+				config_fail_check = 0;
+
+				for (j = 0; j < vcap_pinno; j++) {
+					config = pinmux_config_decode(vcap3[i][j+1]);
+					if (config != vcap3[i][0]) {
+						config_fail_check = 1;
+						break;
+					}
+				}
+
+				for (j = 0; j < vcapclk_pinno; j++) {
+					config = pinmux_config_decode(vcap3clk[i][j+1]);
+					if (config != vcap3clk[i][0]) {
+						config_fail_check = 1;
+						break;
+					}
+				}
+
+				if (config_fail_check == 0) {
+					info->top_pinmux[PIN_FUNC_VCAP].config |= (PIN_VCAP_CFG_CH3_1ST_PINMUX << i);
+					break;
+				}
+			}
+		}
+	}
+
+	/*eth*/
+	config_fail_check = 0;
+	info->top_pinmux[PIN_FUNC_ETH].pin_function = PIN_FUNC_ETH;
+	info->top_pinmux[PIN_FUNC_ETH].config = 0x0;
+	for (i = 0; i < eth_pincnt; i++) {
+		for (j = 0; j < rgmii_pinno; j++) {
+			config = pinmux_config_decode(rgmii[i][j+1]);
+			if (config != rgmii[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_ETH].config |= (PIN_ETH_CFG_RGMII_1ST_PINMUX << i);
+
+		config_fail_check = 0;
+
+		for (j = 0; j < rmii_pinno; j++) {
+			config = pinmux_config_decode(rmii[i][j+1]);
+			if (config != rmii[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_ETH].config |= (PIN_ETH_CFG_RMII_1ST_PINMUX << i);
+
+		config_fail_check = 0;
+	}
+
+	for (i = 0; i < eth_pincnt; i++) {
+		for (j = 0; j < eth_pincnt; j++) {
+			if (eth_phy_record & (PIN_ETH_CFG_EXTPHYCLK_1ST_PINMUX << i)) {
+				info->top_pinmux[PIN_FUNC_ETH].config |= (PIN_ETH_CFG_EXTPHYCLK_1ST_PINMUX << i);
+				break;
+			} else {
+				config = pinmux_config_decode(phy_clk_out[i][j][2]);
+				if ((config == phy_clk_out[i][j][1])
+					&& (info->top_pinmux[PIN_FUNC_ETH].config & phy_clk_out[i][j][0])) {
+					info->top_pinmux[PIN_FUNC_ETH].config |= (PIN_ETH_CFG_EXTPHYCLK_1ST_PINMUX << i);
+					break;
+				}
+			}
+		}
+	}
+
+	if (HW_TOP_GETREG(TOP_ETH_MUX_REG_OFS) & 0x1)
+		info->top_pinmux[PIN_FUNC_ETH].config |= PIN_ETH_CFG_PHY_ROUTE_ETH0;
+	else if (eth_mac_record == ETH_MAC1)
+		info->top_pinmux[PIN_FUNC_ETH].config |= PIN_ETH_CFG_PHY_ROUTE_ETH1;
+
+	/*misc*/
+	config_fail_check = 0;
+	info->top_pinmux[PIN_FUNC_MISC].pin_function = PIN_FUNC_MISC;
+	info->top_pinmux[PIN_FUNC_MISC].config = 0x0;
+	for (i = 0; i < cpuice_pincnt; i++) {
+		for (j = 0; j < cpuice_pinno; j++) {
+			config = pinmux_config_decode(cpuice[i][j+1]);
+			if (config != cpuice[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_MISC].config |= (PIN_MISC_CFG_CPU_ICE << i);
+
+		config_fail_check = 0;
+	}
+
+	config_fail_check = 0;
+	for (i = 0; i < vgahs_pincnt; i++) {
+		for (j = 0; j < vgahs_pinno; j++) {
+			config = pinmux_config_decode(vgahs[i][j+1]);
+			if (config != vgahs[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_MISC].config |= (PIN_MISC_CFG_VGA_HS << i);
+
+		config_fail_check = 0;
+	}
+
+	config_fail_check = 0;
+	for (i = 0; i < vgavs_pincnt; i++) {
+		for (j = 0; j < vgavs_pinno; j++) {
+			config = pinmux_config_decode(vgavs[i][j+1]);
+			if (config != vgavs[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_MISC].config |= (PIN_MISC_CFG_VGA_VS << i);
+
+		config_fail_check = 0;
+	}
+
+	config_fail_check = 0;
+	for (i = 0; i < bmc_pincnt; i++) {
+		for (j = 0; j < bmc_pinno; j++) {
+			config = pinmux_config_decode(bmc[i][j+1]);
+			if (config != bmc[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_MISC].config |= (PIN_MISC_CFG_BMC << i);
+
+		config_fail_check = 0;
+	}
+
+	config_fail_check = 0;
+	for (i = 0; i < rtccal_pincnt; i++) {
+		for (j = 0; j < rtccal_pinno; j++) {
+			config = pinmux_config_decode(rtccal[i][j+1]);
+			if (config != rtccal[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_MISC].config |= (PIN_MISC_CFG_RTC_CAL_OUT << i);
+
+		config_fail_check = 0;
+	}
+
+	config_fail_check = 0;
+	for (i = 0; i < dacramp_pincnt; i++) {
+		for (j = 0; j < dacramp_pinno; j++) {
+			config = pinmux_config_decode(dacramp[i][j+1]);
+			if (config != dacramp[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_MISC].config |= (PIN_MISC_CFG_DAC_RAMP_TP << i);
+
+		config_fail_check = 0;
+	}
+
+	config_fail_check = 0;
+	for (i = 0; i < hdmiplg_pincnt; i++) {
+		for (j = 0; j < hdmiplg_pinno; j++) {
+			config = pinmux_config_decode(hdmiplg[i][j+1]);
+			if (config != hdmiplg[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_MISC].config |= (PIN_MISC_CFG_HDMI_HOTPLUG << i);
+
+		config_fail_check = 0;
+	}
+
+	config_fail_check = 0;
+	for (i = 0; i < dspice_pincnt; i++) {
+		for (j = 0; j < dspice_pinno; j++) {
+			config = pinmux_config_decode(dspice[i][j+1]);
+			if (config != dspice[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_MISC].config |= (PIN_MISC_CFG_DSP_ICE_1ST_PINMUX << i);
+
+		config_fail_check = 0;
+	}
+
+	config_fail_check = 0;
+	for (i = 0; i < ethled_pincnt; i++) {
+		for (j = 0; j < ethled_pinno; j++) {
+			config = pinmux_config_decode(ethled[i][j+1]);
+			if (config != ethled[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_MISC].config |= (PIN_MISC_CFG_ETH_LED_1ST_PINMUX << i);
+
+		config_fail_check = 0;
+	}
+
+	config_fail_check = 0;
+	for (i = 0; i < sataled_pincnt; i++) {
+		for (j = 0; j < sataled_pinno; j++) {
+			config = pinmux_config_decode(sataled[i][j+1]);
+			if (config != sataled[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_MISC].config |= (PIN_MISC_CFG_SATA_LED_1ST_PINMUX << i);
+
+		config_fail_check = 0;
+	}
+
+	/*pwm*/
+	config_fail_check = 0;
+	info->top_pinmux[PIN_FUNC_PWM].pin_function = PIN_FUNC_PWM;
+	info->top_pinmux[PIN_FUNC_PWM].config = 0x0;
+	for (i = 0; i < pwm0_pincnt; i++) {
+		for (j = 0; j < pwm_pinno; j++) {
+			config = pinmux_config_decode(pwm0[i][j+1]);
+			if (config != pwm0[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_PWM].config |= (PIN_PWM_CFG_CH0_1ST_PINMUX << i);
+
+		config_fail_check = 0;
+	}
+
+	config_fail_check = 0;
+	for (i = 0; i < pwm1_pincnt; i++) {
+		for (j = 0; j < pwm_pinno; j++) {
+			config = pinmux_config_decode(pwm1[i][j+1]);
+			if (config != pwm1[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_PWM].config |= (PIN_PWM_CFG_CH1_1ST_PINMUX << i);
+
+		config_fail_check = 0;
+	}
+
+	config_fail_check = 0;
+	for (i = 0; i < pwm2_pincnt; i++) {
+		for (j = 0; j < pwm_pinno; j++) {
+			config = pinmux_config_decode(pwm2[i][j+1]);
+			if (config != pwm2[i][0]) {
+				config_fail_check = 1;
+				break;
+			}
+		}
+
+		if (config_fail_check == 0)
+			info->top_pinmux[PIN_FUNC_PWM].config |= (PIN_PWM_CFG_CH2_1ST_PINMUX << i);
+
+		config_fail_check = 0;
+	}
+
+	/*vcap_int*/
+	loc_cpu(flags);
+	reg_value = HW_TOP_GETREG(TOP_VCAP_MUX_REG_OFS);
+	unl_cpu(flags);
+
+	info->top_pinmux[PIN_FUNC_VCAPINT].pin_function = PIN_FUNC_VCAPINT;
+	info->top_pinmux[PIN_FUNC_VCAPINT].config = 0x0;
+
+	switch (reg_value & 0xF) {
+	case 0x0:
+		if (vcap_int_record[0] == PIN_VCAPINT_CFG_CAP0_CFG_0)
+			info->top_pinmux[PIN_FUNC_VCAPINT].config |= PIN_VCAPINT_CFG_CAP0_CFG_0;
+		break;
+	case 0x2:
+		info->top_pinmux[PIN_FUNC_VCAPINT].config |= PIN_VCAPINT_CFG_CAP0_CFG_2;
+		break;
+	case 0x3:
+		info->top_pinmux[PIN_FUNC_VCAPINT].config |= PIN_VCAPINT_CFG_CAP0_CFG_3;
+		break;
+	case 0x4:
+		info->top_pinmux[PIN_FUNC_VCAPINT].config |= PIN_VCAPINT_CFG_CAP0_CFG_4;
+		break;
+	default:
+		break;
+	}
+
+	switch ((reg_value >> 4) & 0xF) {
+	case 0x0:
+		if (vcap_int_record[1] == PIN_VCAPINT_CFG_CAP1_CFG_0)
+			info->top_pinmux[PIN_FUNC_VCAPINT].config |= PIN_VCAPINT_CFG_CAP1_CFG_0;
+		break;
+	case 0x2:
+		info->top_pinmux[PIN_FUNC_VCAPINT].config |= PIN_VCAPINT_CFG_CAP1_CFG_2;
+		break;
+	case 0x3:
+		info->top_pinmux[PIN_FUNC_VCAPINT].config |= PIN_VCAPINT_CFG_CAP1_CFG_3;
+		break;
+	case 0x4:
+		info->top_pinmux[PIN_FUNC_VCAPINT].config |= PIN_VCAPINT_CFG_CAP1_CFG_4;
+		break;
+	default:
+		break;
+	}
+
+	switch ((reg_value >> 8) & 0xF) {
+	case 0x0:
+		if (vcap_int_record[2] == PIN_VCAPINT_CFG_CAP2_CFG_0)
+			info->top_pinmux[PIN_FUNC_VCAPINT].config |= PIN_VCAPINT_CFG_CAP2_CFG_0;
+		break;
+	case 0x1:
+		info->top_pinmux[PIN_FUNC_VCAPINT].config |= PIN_VCAPINT_CFG_CAP2_CFG_1;
+		break;
+	case 0x2:
+		info->top_pinmux[PIN_FUNC_VCAPINT].config |= PIN_VCAPINT_CFG_CAP2_CFG_2;
+		break;
+	case 0x3:
+		info->top_pinmux[PIN_FUNC_VCAPINT].config |= PIN_VCAPINT_CFG_CAP2_CFG_3;
+		break;
+	case 0x4:
+		info->top_pinmux[PIN_FUNC_VCAPINT].config |= PIN_VCAPINT_CFG_CAP2_CFG_4;
+		break;
+	default:
+		break;
+	}
+
+	switch ((reg_value >> 12) & 0xF) {
+	case 0x0:
+		if (vcap_int_record[3] == PIN_VCAPINT_CFG_CAP3_CFG_0)
+			info->top_pinmux[PIN_FUNC_VCAPINT].config |= PIN_VCAPINT_CFG_CAP3_CFG_0;
+		break;
+	case 0x1:
+		info->top_pinmux[PIN_FUNC_VCAPINT].config |= PIN_VCAPINT_CFG_CAP3_CFG_1;
+		break;
+	case 0x2:
+		info->top_pinmux[PIN_FUNC_VCAPINT].config |= PIN_VCAPINT_CFG_CAP3_CFG_2;
+		break;
+	case 0x3:
+		info->top_pinmux[PIN_FUNC_VCAPINT].config |= PIN_VCAPINT_CFG_CAP3_CFG_3;
+		break;
+	case 0x4:
+		info->top_pinmux[PIN_FUNC_VCAPINT].config |= PIN_VCAPINT_CFG_CAP3_CFG_4;
+		break;
+	default:
+		break;
+	}
+}
+#endif
+
+uint32_t pinmux_get_config(PIN_FUNC pinfunc)
+{
+	uint32_t ret = 0;
+
+	if(pinfunc < PIN_FUNC_MAX) {
+		ret = pin_config[pinfunc];
+	}
+
+	return ret;
+}
+
+ER pinmux_config_uart(uint32_t config)
+{
+	REGVALUE reg_value;
+	UINT32 offset,bitmask,bitoffset;
+	UINT32 i,j,k;
+	unsigned long flags = 0;
+
+	loc_cpu(flags);
+
+	/* UART0 */
+	for(i=0; i<uart0_pincnt; i++) {
+		if(config & (PIN_UART_CFG_CH0_1ST_PINMUX<<i)) {
+			for(j=0;j<uart_pinno;j++) {
+				offset 		= (uart0[i][j+1]>>3)<<2;
+				bitoffset	= (uart0[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: UART0 conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((uart0[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(uart_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (uart_pad_mapping[k].pinmux_pin == uart0[i][j+1]) {
+						pad_set_pull_updown(uart_pad_mapping[k].pad_pin, uart_pad_mapping[k].pad_value[uart0[i][0]]);
+						break;
+					}
+				}
+
+			}
+
+			break;
+		}
+	}
+
+	/* UART0 RTSCTS */
+	for(i=0; i<uart0rts_pincnt; i++) {
+		if(config & (PIN_UART_CFG_CH0_CTSRTS<<i)) {
+			for(j=0;j<uart_pinno;j++) {
+				offset 		= (uart0rts[i][j+1]>>3)<<2;
+				bitoffset	= (uart0rts[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: UART0 RTSCTS conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((uart0rts[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(uart_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (uart_pad_mapping[k].pinmux_pin == uart0rts[i][j+1]) {
+						pad_set_pull_updown(uart_pad_mapping[k].pad_pin, uart_pad_mapping[k].pad_value[uart0rts[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* UART1 */
+	for(i=0; i<uart1_pincnt; i++) {
+		if(config & (PIN_UART_CFG_CH1_1ST_PINMUX<<i)) {
+			for(j=0;j<uart_pinno;j++) {
+				offset 		= (uart1[i][j+1]>>3)<<2;
+				bitoffset	= (uart1[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: UART1 conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((uart1[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(uart_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (uart_pad_mapping[k].pinmux_pin == uart1[i][j+1]) {
+						pad_set_pull_updown(uart_pad_mapping[k].pad_pin, uart_pad_mapping[k].pad_value[uart1[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* UART2 */
+	for(i=0; i<uart2_pincnt; i++) {
+		if(config & (PIN_UART_CFG_CH2_1ST_PINMUX<<i)) {
+			for(j=0;j<uart_pinno;j++) {
+				offset 		= (uart2[i][j+1]>>3)<<2;
+				bitoffset	= (uart2[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: UART2 conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((uart2[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(uart_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (uart_pad_mapping[k].pinmux_pin == uart2[i][j+1]) {
+						pad_set_pull_updown(uart_pad_mapping[k].pad_pin, uart_pad_mapping[k].pad_value[uart2[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* UART3 */
+	for(i=0; i<uart3_pincnt; i++) {
+		if(config & (PIN_UART_CFG_CH3_1ST_PINMUX<<i)) {
+			for(j=0;j<uart_pinno;j++) {
+				offset 		= (uart3[i][j+1]>>3)<<2;
+				bitoffset	= (uart3[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: UART3 conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((uart3[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(uart_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (uart_pad_mapping[k].pinmux_pin == uart3[i][j+1]) {
+						pad_set_pull_updown(uart_pad_mapping[k].pad_pin, uart_pad_mapping[k].pad_value[uart3[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* UART CEVA */
+	for(i=0; i<uartceva_pincnt; i++) {
+		if(config & (PIN_UART_CFG_CEVA_1ST_PINMUX<<i)) {
+			for(j=0;j<uart_pinno;j++) {
+				offset 		= (uartceva[i][j+1]>>3)<<2;
+				bitoffset	= (uartceva[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: UART CEVA conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((uartceva[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(uart_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (uart_pad_mapping[k].pinmux_pin == uartceva[i][j+1]) {
+						pad_set_pull_updown(uart_pad_mapping[k].pad_pin, uart_pad_mapping[k].pad_value[uartceva[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	pin_config[PIN_FUNC_UART] = config;
+
+	unl_cpu(flags);
+
+	return E_OK;
+}
+
+ER pinmux_config_i2c(uint32_t config)
+{
+	REGVALUE reg_value;
+	UINT32 offset,bitmask,bitoffset;
+	UINT32 i,j,k;
+	unsigned long flags = 0;
+
+	loc_cpu(flags);
+
+	/* I2C0 */
+	for(i=0; i<i2c0_pincnt; i++) {
+		if(config & (PIN_I2C_CFG_CH0_1ST_PINMUX<<i)) {
+			for(j=0;j<i2c_pinno;j++) {
+				offset 		= (i2c0[i][j+1]>>3)<<2;
+				bitoffset	= (i2c0[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: I2C0 conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((i2c0[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(i2c_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (i2c_pad_mapping[k].pinmux_pin == i2c0[i][j+1]) {
+						pad_set_pull_updown(i2c_pad_mapping[k].pad_pin, i2c_pad_mapping[k].pad_value[i2c0[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* I2C1 */
+	for(i=0; i<i2c1_pincnt; i++) {
+		if(config & (PIN_I2C_CFG_CH1_1ST_PINMUX<<i)) {
+			for(j=0;j<i2c_pinno;j++) {
+				offset 		= (i2c1[i][j+1]>>3)<<2;
+				bitoffset	= (i2c1[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: I2C1 conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((i2c1[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(i2c_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (i2c_pad_mapping[k].pinmux_pin == i2c1[i][j+1]) {
+						pad_set_pull_updown(i2c_pad_mapping[k].pad_pin, i2c_pad_mapping[k].pad_value[i2c1[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* I2C2 */
+	for(i=0; i<i2c2_pincnt; i++) {
+		if(config & (PIN_I2C_CFG_CH2_1ST_PINMUX<<i)) {
+			for(j=0;j<i2c_pinno;j++) {
+				offset 		= (i2c2[i][j+1]>>3)<<2;
+				bitoffset	= (i2c2[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: I2C2 conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((i2c2[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(i2c_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (i2c_pad_mapping[k].pinmux_pin == i2c2[i][j+1]) {
+						pad_set_pull_updown(i2c_pad_mapping[k].pad_pin, i2c_pad_mapping[k].pad_value[i2c2[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* I2C3 */
+	for(i=0; i<i2c3_pincnt; i++) {
+		if(config & (PIN_I2C_CFG_HDMI_1ST_PINMUX<<i)) {
+			for(j=0;j<i2c_pinno;j++) {
+				offset 		= (i2c3[i][j+1]>>3)<<2;
+				bitoffset	= (i2c3[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: I2C3 conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((i2c3[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(i2c_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (i2c_pad_mapping[k].pinmux_pin == i2c3[i][j+1]) {
+						pad_set_pull_updown(i2c_pad_mapping[k].pad_pin, i2c_pad_mapping[k].pad_value[i2c3[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	pin_config[PIN_FUNC_I2C] = config;
+
+	unl_cpu(flags);
+
+	return E_OK;
+}
+
+ER pinmux_config_sdio(uint32_t config)
+{
+	REGVALUE reg_value;
+	UINT32 offset,bitmask,bitoffset;
+	UINT32 i,j,k;
+	unsigned long flags = 0;
+
+	loc_cpu(flags);
+
+	/* SDIO0 */
+	for(i=0; i<sdio_pincnt; i++) {
+		if(config & (PIN_SDIO_CFG_1ST_PINMUX<<i)) {
+			for(j=0;j<sdio_pinno;j++) {
+				offset 		= (sdio0[i][j+1]>>3)<<2;
+				bitoffset	= (sdio0[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: SDIO0 conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((sdio0[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(sdio_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (sdio_pad_mapping[k].pinmux_pin == sdio0[i][j+1]) {
+						pad_set_pull_updown(sdio_pad_mapping[k].pad_pin, sdio_pad_mapping[k].pad_value[sdio0[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* SDIO0_2 */
+	for(i=0; i<sdio_pincnt; i++) {
+		if(config & (PIN_SDIO_CFG_1ST_PINMUX<<i)) {
+			for(j=0;j<sdio_pinno2;j++) {
+				offset 		= (sdio0_2[i][j+1]>>3)<<2;
+				bitoffset	= (sdio0_2[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: SDIO0_2 conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((sdio0_2[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(sdio_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (sdio_pad_mapping[k].pinmux_pin == sdio0_2[i][j+1]) {
+						pad_set_pull_updown(sdio_pad_mapping[k].pad_pin, sdio_pad_mapping[k].pad_value[sdio0_2[i][0]]);
+						break;
+					}
+				}
+
+			}
+
+			break;
+		}
+	}
+
+	pin_config[PIN_FUNC_SDIO] = config;
+
+	unl_cpu(flags);
+
+	return E_OK;
+}
+
+ER pinmux_config_spi(uint32_t config)
+{
+	REGVALUE reg_value;
+	UINT32 offset,bitmask,bitoffset;
+	UINT32 i,j,k;
+	unsigned long flags = 0;
+
+	loc_cpu(flags);
+
+	/* SPI */
+	for(i=0; i<spi_pincnt; i++) {
+		if(config & (PIN_SPI_CFG_CH0_1ST_PINMUX<<i)) {
+			for(j=0;j<spi_pinno;j++) {
+				offset 		= (spi[i][j+1]>>3)<<2;
+				bitoffset	= (spi[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: SPI conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((spi[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(spi_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (spi_pad_mapping[k].pinmux_pin == spi[i][j+1]) {
+						pad_set_pull_updown(spi_pad_mapping[k].pad_pin, spi_pad_mapping[k].pad_value[spi[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	pin_config[PIN_FUNC_SPI] = config;
+
+	unl_cpu(flags);
+
+	return E_OK;
+}
+
+ER pinmux_config_extclk(uint32_t config)
+{
+	REGVALUE reg_value;
+	UINT32 offset,bitmask,bitoffset;
+	UINT32 i,j,k;
+	unsigned long flags = 0;
+
+	loc_cpu(flags);
+
+	/* EXTCLK0 */
+	for(i=0; i<extclk_pincnt; i++) {
+		if(config & (PIN_EXTCLK_CFG_CH0_1ST_PINMUX<<i)) {
+			for(j=0;j<extclk_pinno;j++) {
+				offset 		= (extclk0[i][j+1]>>3)<<2;
+				bitoffset	= (extclk0[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: EXTCLK0 conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((extclk0[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(extclk_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (extclk_pad_mapping[k].pinmux_pin == extclk0[i][j+1]) {
+						pad_set_pull_updown(extclk_pad_mapping[k].pad_pin, extclk_pad_mapping[k].pad_value[extclk0[i][0]]);
+						break;
+					}
+				}
+			}
+			/* break; EXT CLK allow to output multiple path */
+		}
+	}
+
+	/* EXTCLK1 */
+	for(i=0; i<extclk_pincnt; i++) {
+		if(config & (PIN_EXTCLK_CFG_CH1_1ST_PINMUX<<i)) {
+			for(j=0;j<extclk_pinno;j++) {
+				offset 		= (extclk1[i][j+1]>>3)<<2;
+				bitoffset	= (extclk1[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: EXTCLK1 conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((extclk1[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(extclk_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (extclk_pad_mapping[k].pinmux_pin == extclk1[i][j+1]) {
+						pad_set_pull_updown(extclk_pad_mapping[k].pad_pin, extclk_pad_mapping[k].pad_value[extclk1[i][0]]);
+						break;
+					}
+				}
+			}
+
+			/* break; EXT CLK allow to output multiple path */
+		}
+	}
+
+	pin_config[PIN_FUNC_EXTCLK] = config;
+
+	unl_cpu(flags);
+
+	return E_OK;
+}
+
+ER pinmux_config_ssp(uint32_t config)
+{
+	REGVALUE reg_value;
+	UINT32 offset,bitmask,bitoffset;
+	UINT32 i,j,k;
+	unsigned long flags = 0;
+
+	loc_cpu(flags);
+
+	/* SSP0 */
+	for(i=0; i<ssp0_pincnt; i++) {
+		if(config & (PIN_SSP_CFG_CH0_1ST_PINMUX<<i)) {
+			for(j=0;j<ssp_pinno;j++) {
+				offset 		= (ssp0[i][j+1]>>3)<<2;
+				bitoffset	= (ssp0[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: SSP0 conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((ssp0[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(ssp_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (ssp_pad_mapping[k].pinmux_pin == ssp0[i][j+1]) {
+						pad_set_pull_updown(ssp_pad_mapping[k].pad_pin, ssp_pad_mapping[k].pad_value[ssp0[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* SSP1 */
+	for(i=0; i<ssp1_pincnt; i++) {
+		if(config & (PIN_SSP_CFG_CH1_1ST_PINMUX<<i)) {
+			for(j=0;j<ssp_pinno;j++) {
+				offset 		= (ssp1[i][j+1]>>3)<<2;
+				bitoffset	= (ssp1[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: SSP1 conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((ssp1[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(ssp_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (ssp_pad_mapping[k].pinmux_pin == ssp1[i][j+1]) {
+						pad_set_pull_updown(ssp_pad_mapping[k].pad_pin, ssp_pad_mapping[k].pad_value[ssp1[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* SSP2 */
+	for(i=0; i<ssp2_pincnt; i++) {
+		if(config & (PIN_SSP_CFG_CH2_1ST_PINMUX<<i)) {
+			for(j=0;j<ssp_pinno;j++) {
+				offset 		= (ssp2[i][j+1]>>3)<<2;
+				bitoffset	= (ssp2[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: SSP2 conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((ssp2[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(ssp_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (ssp_pad_mapping[k].pinmux_pin == ssp2[i][j+1]) {
+						pad_set_pull_updown(ssp_pad_mapping[k].pad_pin, ssp_pad_mapping[k].pad_value[ssp2[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* SSP2_2 */
+	for(i=0; i<ssp2_2_pincnt; i++) {
+		if(config & (PIN_SSP_CFG_CH2_3RD_PINMUX<<i)) {
+			for(j=0;j<ssp2_2_pinno;j++) {
+				offset 		= (ssp2_2[i][j+1]>>3)<<2;
+				bitoffset	= (ssp2_2[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: SSP2_2 conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((ssp2_2[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(ssp_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (ssp_pad_mapping[k].pinmux_pin == ssp2_2[i][j+1]) {
+						pad_set_pull_updown(ssp_pad_mapping[k].pad_pin, ssp_pad_mapping[k].pad_value[ssp2_2[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* SSP2_3 */
+	for(i=0; i<ssp2_3_pincnt; i++) {
+		if(config & (PIN_SSP_CFG_CH2_3RD_PINMUX<<i)) {
+			for(j=0;j<ssp2_3_pinno;j++) {
+				offset 		= (ssp2_3[i][j+1]>>3)<<2;
+				bitoffset	= (ssp2_3[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: SSP2_3 conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((ssp2_3[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(ssp_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (ssp_pad_mapping[k].pinmux_pin == ssp2_3[i][j+1]) {
+						pad_set_pull_updown(ssp_pad_mapping[k].pad_pin, ssp_pad_mapping[k].pad_value[ssp2_3[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* SSPMCLK0 */
+	for(i=0; i<sspmclk0_pincnt; i++) {
+		if(config & (PIN_SSP_CFG_MCLK0_1ST_PINMUX<<i)) {
+			for(j=0;j<sspmclk_pinno;j++) {
+				offset 		= (sspmclk0[i][j+1]>>3)<<2;
+				bitoffset	= (sspmclk0[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: SSPMCLK0 conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((sspmclk0[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(ssp_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (ssp_pad_mapping[k].pinmux_pin == sspmclk0[i][j+1]) {
+						pad_set_pull_updown(ssp_pad_mapping[k].pad_pin, ssp_pad_mapping[k].pad_value[sspmclk0[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* SSPMCLK1 */
+	for(i=0; i<sspmclk1_pincnt; i++) {
+		if(config & (PIN_SSP_CFG_MCLK1_1ST_PINMUX<<i)) {
+			for(j=0;j<sspmclk_pinno;j++) {
+				offset 		= (sspmclk1[i][j+1]>>3)<<2;
+				bitoffset	= (sspmclk1[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: SSPMCLK1 conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((sspmclk1[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(ssp_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (ssp_pad_mapping[k].pinmux_pin == sspmclk1[i][j+1]) {
+						pad_set_pull_updown(ssp_pad_mapping[k].pad_pin, ssp_pad_mapping[k].pad_value[sspmclk1[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* SSPMCLK2 */
+	for(i=0; i<sspmclk2_pincnt; i++) {
+		if(config & (PIN_SSP_CFG_MCLK2_1ST_PINMUX<<i)) {
+			for(j=0;j<sspmclk_pinno;j++) {
+				offset 		= (sspmclk2[i][j+1]>>3)<<2;
+				bitoffset	= (sspmclk2[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: SSPMCLK2 conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((sspmclk2[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(ssp_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (ssp_pad_mapping[k].pinmux_pin == sspmclk2[i][j+1]) {
+						pad_set_pull_updown(ssp_pad_mapping[k].pad_pin, ssp_pad_mapping[k].pad_value[sspmclk2[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	pin_config[PIN_FUNC_SSP] = config;
+
+	unl_cpu(flags);
+
+	return E_OK;
+}
+
+ER pinmux_config_lcd(uint32_t config)
+{
+	REGVALUE reg_value;
+	UINT32 offset,bitmask,bitoffset;
+	UINT32 i,j,k;
+	unsigned long flags = 0;
+
+	loc_cpu(flags);
+
+	/* LCD */
+	for(i=0; i<lcd_pincnt; i++) {
+		if(config & (PIN_LCD_CFG_LCD310_BT1120_1ST_PINMUX<<i)) {
+			for(j=0;j<lcd_pinno;j++) {
+				offset 		= (lcd[i][j+1]>>3)<<2;
+				bitoffset	= (lcd[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: LCD conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((lcd[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(lcd_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (lcd_pad_mapping[k].pinmux_pin == lcd[i][j+1]) {
+						pad_set_pull_updown(lcd_pad_mapping[k].pad_pin, lcd_pad_mapping[k].pad_value[lcd[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* LCD_2 */
+	for(i=0; i<lcd_pincnt; i++) {
+		if(config & (PIN_LCD_CFG_LCD310_BT1120_1ST_PINMUX<<i)) {
+			for(j=0;j<lcd_2_pinno;j++) {
+				offset 		= (lcd_2[i][j+1]>>3)<<2;
+				bitoffset	= (lcd_2[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: LCD_2 conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((lcd_2[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(lcd_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (lcd_pad_mapping[k].pinmux_pin == lcd_2[i][j+1]) {
+						pad_set_pull_updown(lcd_pad_mapping[k].pad_pin, lcd_pad_mapping[k].pad_value[lcd_2[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* LCD888 */
+	for(i=0; i<lcd888_pincnt; i++) {
+		if(config & (PIN_LCD_CFG_LCD310_RGB888_1ST_PINMUX<<i)) {
+			for(j=0;j<lcd888_pinno;j++) {
+				offset 		= (lcd888[i][j+1]>>3)<<2;
+				bitoffset	= (lcd888[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: LCD888 conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((lcd888[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(lcd_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (lcd_pad_mapping[k].pinmux_pin == lcd888[i][j+1]) {
+						pad_set_pull_updown(lcd_pad_mapping[k].pad_pin, lcd_pad_mapping[k].pad_value[lcd888[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* LCD888_2 */
+	for(i=0; i<lcd888_pincnt; i++) {
+		if(config & (PIN_LCD_CFG_LCD310_RGB888_1ST_PINMUX<<i)) {
+			for(j=0;j<lcd888_2_pinno;j++) {
+				offset 		= (lcd888_2[i][j+1]>>3)<<2;
+				bitoffset	= (lcd888_2[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: LCD888_2 conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((lcd888_2[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(lcd_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (lcd_pad_mapping[k].pinmux_pin == lcd888_2[i][j+1]) {
+						pad_set_pull_updown(lcd_pad_mapping[k].pad_pin, lcd_pad_mapping[k].pad_value[lcd888_2[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	if (config & PIN_LCD_CFG_LCD310_RGB888_1ST_PINMUX) {
+		reg_value = TOP_GETREG(TOP_LCD_MUX_REG_OFS);
+		reg_value |=  0x3;
+		TOP_SETREG(TOP_LCD_MUX_REG_OFS, reg_value);
+	} else if (config & PIN_LCD_CFG_LCD310_BT1120_2ND_PINMUX) {
+		reg_value = TOP_GETREG(TOP_LCD_MUX_REG_OFS);
+		reg_value &=  ~0x3;
+		reg_value |=  0x1;
+		TOP_SETREG(TOP_LCD_MUX_REG_OFS, reg_value);
+	} else if (config & PIN_LCD_CFG_LCD210_BT1120_2ND_PINMUX) {
+		reg_value = TOP_GETREG(TOP_LCD_MUX_REG_OFS);
+		reg_value &=  ~0x3;
+		reg_value |=  0x2;
+		TOP_SETREG(TOP_LCD_MUX_REG_OFS, reg_value);
+	} else {
+		reg_value = TOP_GETREG(TOP_LCD_MUX_REG_OFS);
+		reg_value &=  ~0x3;
+		TOP_SETREG(TOP_LCD_MUX_REG_OFS, reg_value);
+	}
+
+	if (config & PIN_LCD_CFG_LCD310_BT1120_1ST_PINMUX) {
+		reg_value = TOP_GETREG(TOP_LCD_MUX_REG_OFS);
+		reg_value &=  ~(0x3<<4);
+		reg_value |=  (0x1<<4);
+		TOP_SETREG(TOP_LCD_MUX_REG_OFS, reg_value);
+	} else if (config & PIN_LCD_CFG_LCD210_BT1120_1ST_PINMUX) {
+		reg_value = TOP_GETREG(TOP_LCD_MUX_REG_OFS);
+		reg_value &=  ~(0x3<<4);
+		reg_value |=  (0x2<<4);
+		TOP_SETREG(TOP_LCD_MUX_REG_OFS, reg_value);
+	} else {
+		reg_value = TOP_GETREG(TOP_LCD_MUX_REG_OFS);
+		reg_value &=  ~(0x3<<4);
+		TOP_SETREG(TOP_LCD_MUX_REG_OFS, reg_value);
+	}
+
+	pin_config[PIN_FUNC_LCD] = config;
+
+	unl_cpu(flags);
+
+	return E_OK;
+}
+
+ER pinmux_config_remote(uint32_t config)
+{
+	REGVALUE reg_value;
+	UINT32 offset,bitmask,bitoffset;
+	UINT32 i,j,k;
+	unsigned long flags = 0;
+
+	loc_cpu(flags);
+
+	/* REMOTE */
+	for(i=0; i<remote_pincnt; i++) {
+		if(config & (PIN_REMOTE_CFG_1ST_PINMUX<<i)) {
+			for(j=0;j<remote_pinno;j++) {
+				offset 		= (remote[i][j+1]>>3)<<2;
+				bitoffset	= (remote[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: REMOTE conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((remote[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(remote_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (remote_pad_mapping[k].pinmux_pin == remote[i][j+1]) {
+						pad_set_pull_updown(remote_pad_mapping[k].pad_pin, remote_pad_mapping[k].pad_value[remote[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	pin_config[PIN_FUNC_REMOTE] = config;
+
+	unl_cpu(flags);
+
+	return E_OK;
+}
+
+ER pinmux_config_vcap(uint32_t config)
+{
+	REGVALUE reg_value;
+	UINT32 offset,bitmask,bitoffset;
+	UINT32 i,j,k;
+	unsigned long flags = 0;
+
+	loc_cpu(flags);
+
+	/* VCAP0 */
+	for(i=0; i<vcap0_pincnt; i++) {
+		if(config & (PIN_VCAP_CFG_CH0_1ST_PINMUX<<i)) {
+			for(j=0;j<vcap_pinno;j++) {
+				offset 		= (vcap0[i][j+1]>>3)<<2;
+				bitoffset	= (vcap0[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: VCAP0 conflict\n", __FUNCTION__);
+					for (i = 0; i < sizeof(vcap_bt1120_record)/sizeof(vcap_bt1120_record[0]); i++) {
+						vcap_bt1120_record[i] = vcap_bt1120_record_backup[i];
+					}
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((vcap0[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(vcap_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (vcap_pad_mapping[k].pinmux_pin == vcap0[i][j+1]) {
+						pad_set_pull_updown(vcap_pad_mapping[k].pad_pin, vcap_pad_mapping[k].pad_value[vcap0[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	for(i=0; i<ts_pincnt; i++) {
+		if(config & (PIN_VCAP_CFG_TSI0_1ST_PINMUX<<i)) {
+			for(j=0;j<ts_pinno;j++) {
+				offset 		= (ts0[i][j+1]>>3)<<2;
+				bitoffset	= (ts0[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: TS0 conflict\n", __FUNCTION__);
+					for (i = 0; i < sizeof(vcap_bt1120_record)/sizeof(vcap_bt1120_record[0]); i++) {
+						vcap_bt1120_record[i] = vcap_bt1120_record_backup[i];
+					}
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((ts0[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(vcap_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (vcap_pad_mapping[k].pinmux_pin == ts0[i][j+1]) {
+						pad_set_pull_updown(vcap_pad_mapping[k].pad_pin, vcap_pad_mapping[k].pad_value[ts0[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* VCAP0-CLK */
+	for(i=0; i<vcap0_pincnt; i++) {
+		if(config & (PIN_VCAP_CFG_CH0_1ST_PINMUX<<i)) {
+			for(j=0;j<vcapclk_pinno;j++) {
+				offset 		= (vcap0clk[i][j+1]>>3)<<2;
+				bitoffset	= (vcap0clk[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: VCAP0-CLK conflict\n", __FUNCTION__);
+					for (i = 0; i < sizeof(vcap_bt1120_record)/sizeof(vcap_bt1120_record[0]); i++) {
+						vcap_bt1120_record[i] = vcap_bt1120_record_backup[i];
+					}
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((vcap0clk[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(vcap_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (vcap_pad_mapping[k].pinmux_pin == vcap0clk[i][j+1]) {
+						pad_set_pull_updown(vcap_pad_mapping[k].pad_pin, vcap_pad_mapping[k].pad_value[vcap0clk[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* VCAP1 */
+	for(i=0; i<vcap1_pincnt; i++) {
+		if(config & (PIN_VCAP_CFG_CH1_1ST_PINMUX<<i)) {
+			for(j=0;j<vcap_pinno;j++) {
+				offset 		= (vcap1[i][j+1]>>3)<<2;
+				bitoffset	= (vcap1[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: VCAP1 conflict\n", __FUNCTION__);
+					for (i = 0; i < sizeof(vcap_bt1120_record)/sizeof(vcap_bt1120_record[0]); i++) {
+						vcap_bt1120_record[i] = vcap_bt1120_record_backup[i];
+					}
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((vcap1[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(vcap_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (vcap_pad_mapping[k].pinmux_pin == vcap1[i][j+1]) {
+						pad_set_pull_updown(vcap_pad_mapping[k].pad_pin, vcap_pad_mapping[k].pad_value[vcap1[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	for(i=0; i<ts_pincnt; i++) {
+		if(config & (PIN_VCAP_CFG_TSI1_1ST_PINMUX<<i)) {
+			for(j=0;j<ts_pinno;j++) {
+				offset 		= (ts1[i][j+1]>>3)<<2;
+				bitoffset	= (ts1[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: TS1 conflict\n", __FUNCTION__);
+					for (i = 0; i < sizeof(vcap_bt1120_record)/sizeof(vcap_bt1120_record[0]); i++) {
+						vcap_bt1120_record[i] = vcap_bt1120_record_backup[i];
+					}
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((ts1[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(vcap_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (vcap_pad_mapping[k].pinmux_pin == ts1[i][j+1]) {
+						pad_set_pull_updown(vcap_pad_mapping[k].pad_pin, vcap_pad_mapping[k].pad_value[ts1[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* VCAP1-CLK */
+	for(i=0; i<vcap1_pincnt; i++) {
+		if(config & (PIN_VCAP_CFG_CH1_1ST_PINMUX<<i)) {
+			for(j=0;j<vcapclk_pinno;j++) {
+				offset 		= (vcap1clk[i][j+1]>>3)<<2;
+				bitoffset	= (vcap1clk[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: VCAP1-CLK conflict\n", __FUNCTION__);
+					for (i = 0; i < sizeof(vcap_bt1120_record)/sizeof(vcap_bt1120_record[0]); i++) {
+						vcap_bt1120_record[i] = vcap_bt1120_record_backup[i];
+					}
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((vcap1clk[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(vcap_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (vcap_pad_mapping[k].pinmux_pin == vcap1clk[i][j+1]) {
+						pad_set_pull_updown(vcap_pad_mapping[k].pad_pin, vcap_pad_mapping[k].pad_value[vcap1clk[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* VCAP2 */
+	for(i=0; i<vcap2_pincnt; i++) {
+		if(config & (PIN_VCAP_CFG_CH2_1ST_PINMUX<<i)) {
+			for(j=0;j<vcap_pinno;j++) {
+				offset 		= (vcap2[i][j+1]>>3)<<2;
+				bitoffset	= (vcap2[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: VCAP2 conflict\n", __FUNCTION__);
+					for (i = 0; i < sizeof(vcap_bt1120_record)/sizeof(vcap_bt1120_record[0]); i++) {
+						vcap_bt1120_record[i] = vcap_bt1120_record_backup[i];
+					}
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((vcap2[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(vcap_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (vcap_pad_mapping[k].pinmux_pin == vcap2[i][j+1]) {
+						pad_set_pull_updown(vcap_pad_mapping[k].pad_pin, vcap_pad_mapping[k].pad_value[vcap2[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	for(i=0; i<ts_pincnt; i++) {
+		if(config & (PIN_VCAP_CFG_TSI2_1ST_PINMUX<<i)) {
+			for(j=0;j<ts_pinno;j++) {
+				offset 		= (ts2[i][j+1]>>3)<<2;
+				bitoffset	= (ts2[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: TS2 conflict\n", __FUNCTION__);
+					for (i = 0; i < sizeof(vcap_bt1120_record)/sizeof(vcap_bt1120_record[0]); i++) {
+						vcap_bt1120_record[i] = vcap_bt1120_record_backup[i];
+					}
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((ts2[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(vcap_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (vcap_pad_mapping[k].pinmux_pin == ts2[i][j+1]) {
+						pad_set_pull_updown(vcap_pad_mapping[k].pad_pin, vcap_pad_mapping[k].pad_value[ts2[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* VCAP2-CLK */
+	for(i=0; i<vcap2_pincnt; i++) {
+		if(config & (PIN_VCAP_CFG_CH2_1ST_PINMUX<<i)) {
+			for(j=0;j<vcapclk_pinno;j++) {
+				offset 		= (vcap2clk[i][j+1]>>3)<<2;
+				bitoffset	= (vcap2clk[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: VCAP2-CLK conflict\n", __FUNCTION__);
+					for (i = 0; i < sizeof(vcap_bt1120_record)/sizeof(vcap_bt1120_record[0]); i++) {
+						vcap_bt1120_record[i] = vcap_bt1120_record_backup[i];
+					}
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((vcap2clk[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(vcap_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (vcap_pad_mapping[k].pinmux_pin == vcap2clk[i][j+1]) {
+						pad_set_pull_updown(vcap_pad_mapping[k].pad_pin, vcap_pad_mapping[k].pad_value[vcap2clk[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* VCAP3 */
+	for(i=0; i<vcap3_pincnt; i++) {
+		if(config & (PIN_VCAP_CFG_CH3_1ST_PINMUX<<i)) {
+			for(j=0;j<vcap_pinno;j++) {
+				offset 		= (vcap3[i][j+1]>>3)<<2;
+				bitoffset	= (vcap3[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: VCAP3 conflict\n", __FUNCTION__);
+					for (i = 0; i < sizeof(vcap_bt1120_record)/sizeof(vcap_bt1120_record[0]); i++) {
+						vcap_bt1120_record[i] = vcap_bt1120_record_backup[i];
+					}
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((vcap3[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(vcap_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (vcap_pad_mapping[k].pinmux_pin == vcap3[i][j+1]) {
+						pad_set_pull_updown(vcap_pad_mapping[k].pad_pin, vcap_pad_mapping[k].pad_value[vcap3[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	for(i=0; i<ts_pincnt; i++) {
+		if(config & (PIN_VCAP_CFG_TSI3_1ST_PINMUX<<i)) {
+			for(j=0;j<ts_pinno;j++) {
+				offset 		= (ts3[i][j+1]>>3)<<2;
+				bitoffset	= (ts3[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: TS3 conflict\n", __FUNCTION__);
+					for (i = 0; i < sizeof(vcap_bt1120_record)/sizeof(vcap_bt1120_record[0]); i++) {
+						vcap_bt1120_record[i] = vcap_bt1120_record_backup[i];
+					}
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((ts3[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(vcap_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (vcap_pad_mapping[k].pinmux_pin == ts3[i][j+1]) {
+						pad_set_pull_updown(vcap_pad_mapping[k].pad_pin, vcap_pad_mapping[k].pad_value[ts3[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* VCAP3-CLK */
+	for(i=0; i<vcap3_pincnt; i++) {
+		if(config & (PIN_VCAP_CFG_CH3_1ST_PINMUX<<i)) {
+			for(j=0;j<vcapclk_pinno;j++) {
+				offset 		= (vcap3clk[i][j+1]>>3)<<2;
+				bitoffset	= (vcap3clk[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: VCAP3-CLK conflict\n", __FUNCTION__);
+					for (i = 0; i < sizeof(vcap_bt1120_record)/sizeof(vcap_bt1120_record[0]); i++) {
+						vcap_bt1120_record[i] = vcap_bt1120_record_backup[i];
+					}
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((vcap3clk[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(vcap_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (vcap_pad_mapping[k].pinmux_pin == vcap3clk[i][j+1]) {
+						pad_set_pull_updown(vcap_pad_mapping[k].pad_pin, vcap_pad_mapping[k].pad_value[vcap3clk[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* BT1120_0 DATA */
+	for(i=0; i<bt1120_0_pincnt; i++) {
+		if(config & (PIN_VCAP_CFG_BT1120_0_1ST_PINMUX<<i)) {
+			for(j=0;j<bt1120_pinno;j++) {
+				offset 		= (bt1120_0[i][j+1]>>3)<<2;
+				bitoffset	= (bt1120_0[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: BT1120_0 DATA conflict\n", __FUNCTION__);
+					for (i = 0; i < sizeof(vcap_bt1120_record)/sizeof(vcap_bt1120_record[0]); i++) {
+						vcap_bt1120_record[i] = vcap_bt1120_record_backup[i];
+					}
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((bt1120_0[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+				vcap_bt1120_record[0] |= (PIN_VCAP_CFG_BT1120_0_1ST_PINMUX<<i);
+
+				for (k=0; k < sizeof(vcap_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (vcap_pad_mapping[k].pinmux_pin == bt1120_0[i][j+1]) {
+						pad_set_pull_updown(vcap_pad_mapping[k].pad_pin, vcap_pad_mapping[k].pad_value[bt1120_0[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* BT1120_0 CLK */
+	for(i=0; i<bt1120_0_pincnt; i++) {
+		if(config & (PIN_VCAP_CFG_BT1120_0_1ST_PINMUX<<i)) {
+			for(j=0;j<bt1120clk_pinno;j++) {
+				offset 		= (bt1120clk_0[i][j+1]>>3)<<2;
+				bitoffset	= (bt1120clk_0[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: BT1120_0 CLK conflict\n", __FUNCTION__);
+					for (i = 0; i < sizeof(vcap_bt1120_record)/sizeof(vcap_bt1120_record[0]); i++) {
+						vcap_bt1120_record[i] = vcap_bt1120_record_backup[i];
+					}
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((bt1120clk_0[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+				vcap_bt1120_record[0] |= (PIN_VCAP_CFG_BT1120_0_1ST_PINMUX<<i);
+
+				for (k=0; k < sizeof(vcap_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (vcap_pad_mapping[k].pinmux_pin == bt1120clk_0[i][j+1]) {
+						pad_set_pull_updown(vcap_pad_mapping[k].pad_pin, vcap_pad_mapping[k].pad_value[bt1120clk_0[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* BT1120_1 DATA */
+	for(i=0; i<bt1120_1_pincnt; i++) {
+		if(config & (PIN_VCAP_CFG_BT1120_1_1ST_PINMUX<<i)) {
+			for(j=0;j<bt1120_pinno;j++) {
+				offset 		= (bt1120_1[i][j+1]>>3)<<2;
+				bitoffset	= (bt1120_1[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: BT1120_1 DATA conflict\n", __FUNCTION__);
+					for (i = 0; i < sizeof(vcap_bt1120_record)/sizeof(vcap_bt1120_record[0]); i++) {
+						vcap_bt1120_record[i] = vcap_bt1120_record_backup[i];
+					}
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((bt1120_1[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+				vcap_bt1120_record[1] |= (PIN_VCAP_CFG_BT1120_1_1ST_PINMUX<<i);
+
+				for (k=0; k < sizeof(vcap_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (vcap_pad_mapping[k].pinmux_pin == bt1120_1[i][j+1]) {
+						pad_set_pull_updown(vcap_pad_mapping[k].pad_pin, vcap_pad_mapping[k].pad_value[bt1120_1[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* BT1120_1 CLK */
+	for(i=0; i<bt1120_1_pincnt; i++) {
+		if(config & (PIN_VCAP_CFG_BT1120_1_1ST_PINMUX<<i)) {
+			for(j=0;j<bt1120clk_pinno;j++) {
+				offset 		= (bt1120clk_1[i][j+1]>>3)<<2;
+				bitoffset	= (bt1120clk_1[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: BT1120_1 CLK conflict\n", __FUNCTION__);
+					for (i = 0; i < sizeof(vcap_bt1120_record)/sizeof(vcap_bt1120_record[0]); i++) {
+						vcap_bt1120_record[i] = vcap_bt1120_record_backup[i];
+					}
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((bt1120clk_1[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+				vcap_bt1120_record[1] |= (PIN_VCAP_CFG_BT1120_1_1ST_PINMUX<<i);
+
+				for (k=0; k < sizeof(vcap_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (vcap_pad_mapping[k].pinmux_pin == bt1120clk_1[i][j+1]) {
+						pad_set_pull_updown(vcap_pad_mapping[k].pad_pin, vcap_pad_mapping[k].pad_value[bt1120clk_1[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	pin_config[PIN_FUNC_VCAP] = config;
+
+	unl_cpu(flags);
+
+	return E_OK;
+}
+
+ER pinmux_config_eth(uint32_t config)
+{
+	REGVALUE reg_value;
+	UINT32 offset,bitmask,bitoffset;
+	UINT32 i,j,k;
+	unsigned long flags = 0;
+
+	loc_cpu(flags);
+
+	/* RGMII */
+	for(i=0; i<eth_pincnt; i++) {
+		if(config & (PIN_ETH_CFG_RGMII_1ST_PINMUX<<i)) {
+			for(j=0;j<rgmii_pinno;j++) {
+				offset 		= (rgmii[i][j+1]>>3)<<2;
+				bitoffset	= (rgmii[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: RGMII conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((rgmii[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(eth_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (eth_pad_mapping[k].pinmux_pin == rgmii[i][j+1]) {
+						pad_set_pull_updown(eth_pad_mapping[k].pad_pin, eth_pad_mapping[k].pad_value[rgmii[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* RMII */
+	for(i=0; i<eth_pincnt; i++) {
+		if(config & (PIN_ETH_CFG_RMII_1ST_PINMUX<<i)) {
+			for(j=0;j<rmii_pinno;j++) {
+				offset 		= (rmii[i][j+1]>>3)<<2;
+				bitoffset	= (rmii[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: RMII conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((rmii[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(eth_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (eth_pad_mapping[k].pinmux_pin == rmii[i][j+1]) {
+						pad_set_pull_updown(eth_pad_mapping[k].pad_pin, eth_pad_mapping[k].pad_value[rmii[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* EXT_PHY_CLK (25 MHz output) */
+	for(i=0; i<eth_pincnt; i++) {
+		if (config & (PIN_ETH_CFG_EXTPHYCLK_1ST_PINMUX<<i)) {
+			eth_phy_record |= (PIN_ETH_CFG_EXTPHYCLK_1ST_PINMUX<<i);
+			for(j=0; j<eth_pincnt; j++) {
+				if (config & phy_clk_out[i][j][0]) {
+					offset    = (phy_clk_out[i][j][2]>>3)<<2;
+					bitoffset = (phy_clk_out[i][j][2]&0x7)<<2;
+					bitmask   = ~(0x7 << bitoffset);
+					reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+					#ifndef __FREERTOS
+					if (reg_value & ~bitmask) {
+						TOP_DBG_ERR("%s: EXT_PHY_CLK conflict\n", __FUNCTION__);
+						unl_cpu(flags);
+						return E_PAR;
+					}
+					#endif
+					reg_value &= bitmask;
+					reg_value |= ((phy_clk_out[i][j][1])<<bitoffset);
+					TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+					for (k=0; k < sizeof(eth_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+						if (eth_pad_mapping[k].pinmux_pin == phy_clk_out[i][j][2]) {
+							pad_set_pull_updown(eth_pad_mapping[k].pad_pin, eth_pad_mapping[k].pad_value[phy_clk_out[i][j][1]]);
+							break;
+						}
+					}
+
+					break;
+				}
+			}
+		}
+	}
+
+	if (config & PIN_ETH_CFG_RGMII_1ST_PINMUX) {
+		reg_value = TOP_GETREG(TOP_ETH_MUX_REG_OFS);
+		reg_value &= ~(0xF<<4);
+		reg_value |=  (0x1<<4);
+		TOP_SETREG(TOP_ETH_MUX_REG_OFS, reg_value);
+	} else if (config & PIN_ETH_CFG_RMII_1ST_PINMUX) {
+		reg_value = TOP_GETREG(TOP_ETH_MUX_REG_OFS);
+		reg_value &= ~(0xF<<4);
+		reg_value |=  (0x4<<4);
+		TOP_SETREG(TOP_ETH_MUX_REG_OFS, reg_value);
+	} else {
+		reg_value = TOP_GETREG(TOP_ETH_MUX_REG_OFS);
+		reg_value &= ~(0xF<<4);
+		TOP_SETREG(TOP_ETH_MUX_REG_OFS, reg_value);
+	}
+
+	if (config & PIN_ETH_CFG_RGMII_2ND_PINMUX) {
+		reg_value = TOP_GETREG(TOP_ETH_MUX_REG_OFS);
+		reg_value &= ~(0xF<<8);
+		reg_value |=  (0x1<<8);
+		TOP_SETREG(TOP_ETH_MUX_REG_OFS, reg_value);
+	} else if (config & PIN_ETH_CFG_RMII_2ND_PINMUX) {
+		reg_value = TOP_GETREG(TOP_ETH_MUX_REG_OFS);
+		reg_value &= ~(0xF<<8);
+		reg_value |=  (0x4<<8);
+		TOP_SETREG(TOP_ETH_MUX_REG_OFS, reg_value);
+	} else {
+		reg_value = TOP_GETREG(TOP_ETH_MUX_REG_OFS);
+		reg_value &= ~(0xF<<8);
+		TOP_SETREG(TOP_ETH_MUX_REG_OFS, reg_value);
+	}
+
+	if (config & PIN_ETH_CFG_PHY_ROUTE_ETH0) {
+		reg_value = TOP_GETREG(TOP_ETH_MUX_REG_OFS);
+		reg_value |=  0x1;
+		TOP_SETREG(TOP_ETH_MUX_REG_OFS, reg_value);
+		eth_mac_record = ETH_MAC0;
+	} else if (config & PIN_ETH_CFG_PHY_ROUTE_ETH1){
+		reg_value = TOP_GETREG(TOP_ETH_MUX_REG_OFS);
+		reg_value &=  ~0x1;
+		TOP_SETREG(TOP_ETH_MUX_REG_OFS, reg_value);
+		eth_mac_record = ETH_MAC1;
+	}
+
+	pin_config[PIN_FUNC_ETH] = config;
+
+	unl_cpu(flags);
+
+	return E_OK;
+}
+
+ER pinmux_config_misc(uint32_t config)
+{
+	REGVALUE reg_value;
+	UINT32 offset,bitmask,bitoffset;
+	UINT32 i,j,k;
+	unsigned long flags = 0;
+
+	loc_cpu(flags);
+
+	/* CPU ICE */
+	for(i=0; i<cpuice_pincnt; i++) {
+		if(config & (PIN_MISC_CFG_CPU_ICE<<i)) {
+			for(j=0;j<cpuice_pinno;j++) {
+				offset 		= (cpuice[i][j+1]>>3)<<2;
+				bitoffset	= (cpuice[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: CPU ICE conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((cpuice[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(misc_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (misc_pad_mapping[k].pinmux_pin == cpuice[i][j+1]) {
+						pad_set_pull_updown(misc_pad_mapping[k].pad_pin, misc_pad_mapping[k].pad_value[cpuice[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* VGA HS */
+	for(i=0; i<vgahs_pincnt; i++) {
+		if(config & (PIN_MISC_CFG_VGA_HS<<i)) {
+			for(j=0;j<vgahs_pinno;j++) {
+				offset 		= (vgahs[i][j+1]>>3)<<2;
+				bitoffset	= (vgahs[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: VGA HS conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((vgahs[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(misc_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (misc_pad_mapping[k].pinmux_pin == vgahs[i][j+1]) {
+						pad_set_pull_updown(misc_pad_mapping[k].pad_pin, misc_pad_mapping[k].pad_value[vgahs[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* VGA VS */
+	for(i=0; i<vgavs_pincnt; i++) {
+		if(config & (PIN_MISC_CFG_VGA_VS<<i)) {
+			for(j=0;j<vgavs_pinno;j++) {
+				offset 		= (vgavs[i][j+1]>>3)<<2;
+				bitoffset	= (vgavs[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: VGA VS conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((vgavs[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(misc_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (misc_pad_mapping[k].pinmux_pin == vgavs[i][j+1]) {
+						pad_set_pull_updown(misc_pad_mapping[k].pad_pin, misc_pad_mapping[k].pad_value[vgavs[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* BMC */
+	for(i=0; i<bmc_pincnt; i++) {
+		if(config & (PIN_MISC_CFG_BMC<<i)) {
+			for(j=0;j<bmc_pinno;j++) {
+				offset 		= (bmc[i][j+1]>>3)<<2;
+				bitoffset	= (bmc[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: BMC conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((bmc[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(misc_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (misc_pad_mapping[k].pinmux_pin == bmc[i][j+1]) {
+						pad_set_pull_updown(misc_pad_mapping[k].pad_pin, misc_pad_mapping[k].pad_value[bmc[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* RTC CAL OUT */
+	for(i=0; i<rtccal_pincnt; i++) {
+		if(config & (PIN_MISC_CFG_RTC_CAL_OUT<<i)) {
+			for(j=0;j<rtccal_pinno;j++) {
+				offset 		= (rtccal[i][j+1]>>3)<<2;
+				bitoffset	= (rtccal[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: RTC CAL conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((rtccal[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(misc_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (misc_pad_mapping[k].pinmux_pin == rtccal[i][j+1]) {
+						pad_set_pull_updown(misc_pad_mapping[k].pad_pin, misc_pad_mapping[k].pad_value[rtccal[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* DAC RAMP TP */
+	for(i=0; i<dacramp_pincnt; i++) {
+		if(config & (PIN_MISC_CFG_DAC_RAMP_TP<<i)) {
+			for(j=0;j<dacramp_pinno;j++) {
+				offset 		= (dacramp[i][j+1]>>3)<<2;
+				bitoffset	= (dacramp[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: DAC RAMP conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((dacramp[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(misc_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (misc_pad_mapping[k].pinmux_pin == dacramp[i][j+1]) {
+						pad_set_pull_updown(misc_pad_mapping[k].pad_pin, misc_pad_mapping[k].pad_value[dacramp[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* HDMI HOTPLUG */
+	for(i=0; i<hdmiplg_pincnt; i++) {
+		if(config & (PIN_MISC_CFG_HDMI_HOTPLUG<<i)) {
+			for(j=0;j<hdmiplg_pinno;j++) {
+				offset 		= (hdmiplg[i][j+1]>>3)<<2;
+				bitoffset	= (hdmiplg[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: HDMI HOTPLUG conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((hdmiplg[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(misc_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (misc_pad_mapping[k].pinmux_pin == hdmiplg[i][j+1]) {
+						pad_set_pull_updown(misc_pad_mapping[k].pad_pin, misc_pad_mapping[k].pad_value[hdmiplg[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* DSP ICE */
+	for(i=0; i<dspice_pincnt; i++) {
+		if(config & (PIN_MISC_CFG_DSP_ICE_1ST_PINMUX<<i)) {
+			for(j=0;j<dspice_pinno;j++) {
+				offset 		= (dspice[i][j+1]>>3)<<2;
+				bitoffset	= (dspice[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: DSP ICE conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((dspice[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(misc_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (misc_pad_mapping[k].pinmux_pin == dspice[i][j+1]) {
+						pad_set_pull_updown(misc_pad_mapping[k].pad_pin, misc_pad_mapping[k].pad_value[dspice[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* ETH LED */
+	for(i=0; i<ethled_pincnt; i++) {
+		if(config & (PIN_MISC_CFG_ETH_LED_1ST_PINMUX<<i)) {
+			for(j=0;j<ethled_pinno;j++) {
+				offset 		= (ethled[i][j+1]>>3)<<2;
+				bitoffset	= (ethled[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: ETH LED conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((ethled[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(misc_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (misc_pad_mapping[k].pinmux_pin == ethled[i][j+1]) {
+						pad_set_pull_updown(misc_pad_mapping[k].pad_pin, misc_pad_mapping[k].pad_value[ethled[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* SATA LED */
+	for(i=0; i<sataled_pincnt; i++) {
+		if(config & (PIN_MISC_CFG_SATA_LED_1ST_PINMUX<<i)) {
+			for(j=0;j<sataled_pinno;j++) {
+				offset 		= (sataled[i][j+1]>>3)<<2;
+				bitoffset	= (sataled[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: SATA LED conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((sataled[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(misc_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (misc_pad_mapping[k].pinmux_pin == sataled[i][j+1]) {
+						pad_set_pull_updown(misc_pad_mapping[k].pad_pin, misc_pad_mapping[k].pad_value[sataled[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	pin_config[PIN_FUNC_MISC] = config;
+
+	unl_cpu(flags);
+
+	return E_OK;
+}
+
+ER pinmux_config_pwm(uint32_t config)
+{
+	REGVALUE reg_value;
+	UINT32 offset,bitmask,bitoffset;
+	UINT32 i,j,k;
+	unsigned long flags = 0;
+
+	loc_cpu(flags);
+
+	/* PWM0 */
+	for(i=0; i<pwm0_pincnt; i++) {
+		if(config & (PIN_PWM_CFG_CH0_1ST_PINMUX<<i)) {
+			for(j=0;j<pwm_pinno;j++) {
+				offset 		= (pwm0[i][j+1]>>3)<<2;
+				bitoffset	= (pwm0[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: PWM0 conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((pwm0[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(pwm_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (pwm_pad_mapping[k].pinmux_pin == pwm0[i][j+1]) {
+						pad_set_pull_updown(pwm_pad_mapping[k].pad_pin, pwm_pad_mapping[k].pad_value[pwm0[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* PWM1 */
+	for(i=0; i<pwm1_pincnt; i++) {
+		if(config & (PIN_PWM_CFG_CH1_1ST_PINMUX<<i)) {
+			for(j=0;j<pwm_pinno;j++) {
+				offset 		= (pwm1[i][j+1]>>3)<<2;
+				bitoffset	= (pwm1[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: PWM1 conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((pwm1[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(pwm_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (pwm_pad_mapping[k].pinmux_pin == pwm1[i][j+1]) {
+						pad_set_pull_updown(pwm_pad_mapping[k].pad_pin, pwm_pad_mapping[k].pad_value[pwm1[i][0]]);
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	/* PWM2 */
+	for(i=0; i<pwm2_pincnt; i++) {
+		if(config & (PIN_PWM_CFG_CH2_1ST_PINMUX<<i)) {
+			for(j=0;j<pwm_pinno;j++) {
+				offset 		= (pwm2[i][j+1]>>3)<<2;
+				bitoffset	= (pwm2[i][j+1]&0x7)<<2;
+				bitmask     = ~(0x7 << bitoffset);
+				reg_value = TOP_GETREG(TOP_CTRL0_REG_OFS+offset);
+				#ifndef __FREERTOS
+				if (reg_value & ~bitmask) {
+					TOP_DBG_ERR("%s: PWM2 conflict\n", __FUNCTION__);
+					unl_cpu(flags);
+					return E_PAR;
+				}
+				#endif
+				reg_value &= bitmask;
+				reg_value |= ((pwm2[i][0])<<bitoffset);
+				TOP_SETREG(TOP_CTRL0_REG_OFS+offset, reg_value);
+
+				for (k=0; k < sizeof(pwm_pad_mapping)/sizeof(struct pinmux_pad_table); k++) {
+					if (pwm_pad_mapping[k].pinmux_pin == pwm2[i][j+1]) {
+						pad_set_pull_updown(pwm_pad_mapping[k].pad_pin, pwm_pad_mapping[k].pad_value[pwm2[i][0]]);
+						break;
+					}
+				}
+			}
+			break;
+		}
+	}
+
+	pin_config[PIN_FUNC_PWM] = config;
+
+	unl_cpu(flags);
+
+	return E_OK;
+}
+
+ER pinmux_config_vcap_interal(uint32_t config)
+{
+	REGVALUE reg_value;
+	unsigned long flags = 0;
+
+	loc_cpu(flags);
+
+	if (config & PIN_VCAPINT_CFG_CAP0_CFG_0) {
+		reg_value = TOP_GETREG(TOP_VCAP_MUX_REG_OFS);
+		reg_value &= ~(0xF<<0);
+		reg_value |=  (0x0<<0);
+		TOP_SETREG(TOP_VCAP_MUX_REG_OFS, reg_value);
+		vcap_int_record[0] = PIN_VCAPINT_CFG_CAP0_CFG_0;
+	} else if (config & PIN_VCAPINT_CFG_CAP0_CFG_2) {
+		reg_value = TOP_GETREG(TOP_VCAP_MUX_REG_OFS);
+		reg_value &= ~(0xF<<0);
+		reg_value |=  (0x2<<0);
+		TOP_SETREG(TOP_VCAP_MUX_REG_OFS, reg_value);
+	} else if (config & PIN_VCAPINT_CFG_CAP0_CFG_3) {
+		reg_value = TOP_GETREG(TOP_VCAP_MUX_REG_OFS);
+		reg_value &= ~(0xF<<0);
+		reg_value |=  (0x3<<0);
+		TOP_SETREG(TOP_VCAP_MUX_REG_OFS, reg_value);
+	} else if (config & PIN_VCAPINT_CFG_CAP0_CFG_4) {
+		reg_value = TOP_GETREG(TOP_VCAP_MUX_REG_OFS);
+		reg_value &= ~(0xF<<0);
+		reg_value |=  (0x4<<0);
+		TOP_SETREG(TOP_VCAP_MUX_REG_OFS, reg_value);
+	}
+
+
+	if (config & PIN_VCAPINT_CFG_CAP1_CFG_0) {
+		reg_value = TOP_GETREG(TOP_VCAP_MUX_REG_OFS);
+		reg_value &= ~(0xF<<4);
+		reg_value |=  (0x0<<4);
+		TOP_SETREG(TOP_VCAP_MUX_REG_OFS, reg_value);
+		vcap_int_record[1] = PIN_VCAPINT_CFG_CAP1_CFG_0;
+	} else if (config & PIN_VCAPINT_CFG_CAP1_CFG_2) {
+		reg_value = TOP_GETREG(TOP_VCAP_MUX_REG_OFS);
+		reg_value &= ~(0xF<<4);
+		reg_value |=  (0x2<<4);
+		TOP_SETREG(TOP_VCAP_MUX_REG_OFS, reg_value);
+	} else if (config & PIN_VCAPINT_CFG_CAP1_CFG_3) {
+		reg_value = TOP_GETREG(TOP_VCAP_MUX_REG_OFS);
+		reg_value &= ~(0xF<<4);
+		reg_value |=  (0x3<<4);
+		TOP_SETREG(TOP_VCAP_MUX_REG_OFS, reg_value);
+	} else if (config & PIN_VCAPINT_CFG_CAP1_CFG_4) {
+		reg_value = TOP_GETREG(TOP_VCAP_MUX_REG_OFS);
+		reg_value &= ~(0xF<<4);
+		reg_value |=  (0x4<<4);
+		TOP_SETREG(TOP_VCAP_MUX_REG_OFS, reg_value);
+	}
+
+
+	if (config & PIN_VCAPINT_CFG_CAP2_CFG_0) {
+		reg_value = TOP_GETREG(TOP_VCAP_MUX_REG_OFS);
+		reg_value &= ~(0xF<<8);
+		reg_value |=  (0x0<<8);
+		TOP_SETREG(TOP_VCAP_MUX_REG_OFS, reg_value);
+		vcap_int_record[2] = PIN_VCAPINT_CFG_CAP2_CFG_0;
+	} else if (config & PIN_VCAPINT_CFG_CAP2_CFG_1) {
+		reg_value = TOP_GETREG(TOP_VCAP_MUX_REG_OFS);
+		reg_value &= ~(0xF<<8);
+		reg_value |=  (0x1<<8);
+		TOP_SETREG(TOP_VCAP_MUX_REG_OFS, reg_value);
+	} else if (config & PIN_VCAPINT_CFG_CAP2_CFG_2) {
+		reg_value = TOP_GETREG(TOP_VCAP_MUX_REG_OFS);
+		reg_value &= ~(0xF<<8);
+		reg_value |=  (0x2<<8);
+		TOP_SETREG(TOP_VCAP_MUX_REG_OFS, reg_value);
+	} else if (config & PIN_VCAPINT_CFG_CAP2_CFG_3) {
+		reg_value = TOP_GETREG(TOP_VCAP_MUX_REG_OFS);
+		reg_value &= ~(0xF<<8);
+		reg_value |=  (0x3<<8);
+		TOP_SETREG(TOP_VCAP_MUX_REG_OFS, reg_value);
+	} else if (config & PIN_VCAPINT_CFG_CAP2_CFG_4) {
+		reg_value = TOP_GETREG(TOP_VCAP_MUX_REG_OFS);
+		reg_value &= ~(0xF<<8);
+		reg_value |=  (0x4<<8);
+		TOP_SETREG(TOP_VCAP_MUX_REG_OFS, reg_value);
+	}
+
+
+	if (config & PIN_VCAPINT_CFG_CAP3_CFG_0) {
+		reg_value = TOP_GETREG(TOP_VCAP_MUX_REG_OFS);
+		reg_value &= ~(0xF<<12);
+		reg_value |=  (0x0<<12);
+		TOP_SETREG(TOP_VCAP_MUX_REG_OFS, reg_value);
+		vcap_int_record[3] = PIN_VCAPINT_CFG_CAP3_CFG_0;
+	} else if (config & PIN_VCAPINT_CFG_CAP3_CFG_1) {
+		reg_value = TOP_GETREG(TOP_VCAP_MUX_REG_OFS);
+		reg_value &= ~(0xF<<12);
+		reg_value |=  (0x1<<12);
+		TOP_SETREG(TOP_VCAP_MUX_REG_OFS, reg_value);
+	} else if (config & PIN_VCAPINT_CFG_CAP3_CFG_2) {
+		reg_value = TOP_GETREG(TOP_VCAP_MUX_REG_OFS);
+		reg_value &= ~(0xF<<12);
+		reg_value |=  (0x2<<12);
+		TOP_SETREG(TOP_VCAP_MUX_REG_OFS, reg_value);
+	} else if (config & PIN_VCAPINT_CFG_CAP3_CFG_3) {
+		reg_value = TOP_GETREG(TOP_VCAP_MUX_REG_OFS);
+		reg_value &= ~(0xF<<12);
+		reg_value |=  (0x3<<12);
+		TOP_SETREG(TOP_VCAP_MUX_REG_OFS, reg_value);
+	} else if (config & PIN_VCAPINT_CFG_CAP3_CFG_4) {
+		reg_value = TOP_GETREG(TOP_VCAP_MUX_REG_OFS);
+		reg_value &= ~(0xF<<12);
+		reg_value |=  (0x4<<12);
+		TOP_SETREG(TOP_VCAP_MUX_REG_OFS, reg_value);
+	}
+
+	pin_config[PIN_FUNC_VCAPINT] = config;
+
+	unl_cpu(flags);
+
+	return E_OK;
+}
+
+
+typedef ER (*PINMUX_CONFIG_HDL)(uint32_t);
+static PINMUX_CONFIG_HDL pinmux_config_hdl[] =
+{
+	pinmux_config_uart,
+	pinmux_config_i2c,
+	pinmux_config_sdio,
+	pinmux_config_spi,
+	pinmux_config_extclk,
+	pinmux_config_ssp,
+	pinmux_config_lcd,
+	pinmux_config_remote,
+	pinmux_config_vcap,
+	pinmux_config_eth,
+	pinmux_config_misc,
+	pinmux_config_pwm,
+	pinmux_config_vcap_interal
+};
+
+/**
+	Configure pinmux controller
+
+	Configure pinmux controller by upper layer
+
+	@param[in] info	nvt_pinctrl_info
+	@return void
+*/
+ER pinmux_init(struct nvt_pinctrl_info *info)
+{
+	uint32_t i;
+	int err;
+#ifndef __FREERTOS
+	unsigned long flags = 0;
+
+	for (i = 0; i < sw_top_reg_size; i++)
+		sw_top_reg_arr[i].value = 0;
+#endif
+
+	eth_mac_record = 0;
+
+	eth_phy_record = 0;
+
+	for (i = 0; i < sizeof(vcap_int_record)/sizeof(vcap_int_record[0]); i++)
+		vcap_int_record[i] = 0;
+
+	for (i = 0; i < sizeof(vcap_bt1120_record)/sizeof(vcap_bt1120_record[0]); i++) {
+		vcap_bt1120_record_backup[i] = vcap_bt1120_record[i];
+		vcap_bt1120_record[i] = 0;
+	}
+
+	for (i = 0; i < PIN_FUNC_MAX; i++) {
+		if (info->top_pinmux[i].pin_function != i) {
+			TOP_DBG_ERR("top_config[%d].pinFunction context error\n", i);
+			return E_CTX;
+		}
+
+		err = pinmux_config_hdl[i](info->top_pinmux[i].config);
+		if (err != E_OK) {
+			TOP_DBG_ERR("top_config[%d].config config error\n", i);
+			return err;
+		}
+	}
+
+#ifndef __FREERTOS
+	loc_cpu(flags);
+
+	for (i = 0; i < sw_top_reg_size; i++) {
+		HW_TOP_SETREG(sw_top_reg_arr[i].offset, sw_top_reg_arr[i].value);
+	}
+
+	unl_cpu(flags);
+#endif
+
+	return E_OK;
+}

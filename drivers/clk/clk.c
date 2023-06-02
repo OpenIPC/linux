@@ -2909,6 +2909,284 @@ static inline void clk_debug_unregister(struct clk_core *core)
 }
 #endif
 
+#ifdef CONFIG_PLAT_NOVATEK
+#include <linux/proc_fs.h>
+#include <linux/seq_file.h>
+#include <linux/uaccess.h>
+#include <plat/pll.h>
+#include "novatek/nvt-im-clk.h"
+#define MAX_CMD_LENGTH 30
+#define MAX_ARG_NUM     6
+
+static int nvt_inited = 0;
+static struct clk_core *local_core;
+static int nvt_clk_debug_register(struct clk_core *core)
+{
+	if (!nvt_inited) {
+		local_core = core;
+		nvt_inited = 1;
+	}
+
+	return 0;
+}
+static void nvt_clk_summary_show_one(struct seq_file *s, struct clk_core *c,
+				 int level)
+{
+	if (!c)
+		return;
+
+	seq_printf(s, "%*s%-*s %11d %12d %11lu %10lu %-3d\n",
+		   level * 3 + 1, "",
+		   30 - level * 3, c->name,
+		   c->enable_count, c->prepare_count, clk_core_get_rate(c),
+		   clk_core_get_accuracy(c), clk_core_get_phase(c));
+}
+
+static void nvt_clk_summary_show_subtree(struct seq_file *s, struct clk_core *c,
+				     int level)
+{
+	struct clk_core *child;
+
+	if (!c)
+		return;
+
+	nvt_clk_summary_show_one(s, c, level);
+
+	hlist_for_each_entry(child, &c->children, child_node)
+		nvt_clk_summary_show_subtree(s, child, level + 1);
+}
+
+static int nvt_clk_summary_show(struct seq_file *s, void *data)
+{
+	seq_puts(s, "   clock                         enable_cnt  prepare_cnt        rate   accuracy   phase\n");
+	seq_puts(s, "----------------------------------------------------------------------------------------\n");
+
+	clk_prepare_lock();
+
+	hlist_for_each_entry(local_core,  &clk_root_list, child_node)
+		nvt_clk_summary_show_subtree(s, local_core, 0);
+
+	clk_prepare_unlock();
+
+	return 0;
+}
+
+
+static int nvt_clk_summary_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, nvt_clk_summary_show, inode->i_private);
+}
+
+static const struct file_operations nvt_clk_summary_fops = {
+	.open		= nvt_clk_summary_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= single_release,
+};
+
+static int clk_max_freq_show(struct seq_file *s, void *data)
+{
+	char name[CLK_NAME_STR_SIZE];
+	int freq = 0, i = 0;
+	int max_freq_cnt = nvt_get_max_freq_node();
+
+	seq_puts(s, "             clock             max_rate\n");
+	seq_puts(s, "---------------------------------------\n");
+	if (max_freq_cnt) {
+		for (i = 0; i < max_freq_cnt; i++) {
+			nvt_get_max_freq_info(i, name, &freq);
+			seq_printf(s, "  %16s %20d\n", name, freq);
+		}
+	}
+
+	return 0;
+}
+
+static int clk_maxfreq_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, clk_max_freq_show, inode->i_private);
+}
+
+static const struct file_operations clk_maxfreq_fops = {
+	.open		= clk_maxfreq_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= single_release,
+};
+
+void nvt_clk_disable_childless(void)
+{
+	struct device_node *node, *pll;
+	struct clk* pll_clk;
+	char pll_name[10] = {};
+	u32 value[3] = {};
+
+	node = of_find_node_by_path("/pll_preset@0");
+	if (node) {
+		for_each_child_of_node(node, pll) {
+			if (!of_property_read_u32_array(pll, "pll_config", value, 3)) {
+				if (value[2]) {
+					if (value[0] == 24)
+						snprintf(pll_name, 10, "pllf320");
+					else
+						snprintf(pll_name, 10, "pll%d", value[0]);
+
+					pll_clk = clk_get(NULL, pll_name);
+					if (!IS_ERR(pll_clk)) {
+						if (hlist_empty(&pll_clk->core->children)) {
+							if (__clk_is_enabled(pll_clk))
+								clk_disable(pll_clk);
+						}
+					} else
+						pr_err("Get %s failed!\n", pll_name);
+				}
+			}
+		}
+	} else
+		pr_err("*** %s not get dts node ***\n", __func__);
+}
+EXPORT_SYMBOL(nvt_clk_disable_childless);
+
+static ssize_t nvt_clk_childless_write(struct file *file, const char __user *buf,
+		size_t size, loff_t *off)
+{
+	int len = size;
+	char cmd_line[MAX_CMD_LENGTH];
+	char *cmdstr = cmd_line;
+	const char delimiters[] = {' ', 0x0A, 0x0D, '\0'};
+	char *argv[MAX_ARG_NUM] = {0};
+	unsigned char ucargc = 0;
+
+	/*check command length*/
+	if ((!len) || (len > (MAX_CMD_LENGTH - 1))) {
+		pr_err("Command length is too long or 0!\n");
+		goto ERR_OUT;
+	}
+
+	/*copy command string from user space*/
+	if (copy_from_user(cmd_line, buf, len)) {
+		goto ERR_OUT;
+	}
+
+	cmd_line[len - 1] = '\0';
+
+	/*parse command string*/
+	for (ucargc = 0; ucargc < MAX_ARG_NUM; ucargc++) {
+		argv[ucargc] = strsep(&cmdstr, delimiters);
+
+		if (argv[ucargc] == NULL) {
+			break;
+		}
+	}
+
+	nvt_clk_disable_childless();
+
+	return size;
+
+ERR_OUT:
+	return -1;
+}
+
+static int clk_childless_show(struct seq_file *s, void *data)
+{
+	struct device_node *node, *pll;
+	struct clk* pll_clk;
+	char pll_name[10] = {};
+	u32 value[3] = {};
+
+	seq_printf(s, "childless pll:\n");
+	node = of_find_node_by_path("/pll_preset@0");
+	if (node) {
+		for_each_child_of_node(node, pll) {
+			if (!of_property_read_u32_array(pll, "pll_config", value, 3)) {
+				if (value[2]) {
+					if (value[0] == 24)
+						snprintf(pll_name, 10, "pllf320");
+					else
+						snprintf(pll_name, 10, "pll%d", value[0]);
+
+					pll_clk = clk_get(NULL, pll_name);
+					if (!IS_ERR(pll_clk)) {
+						if (hlist_empty(&pll_clk->core->children)) {
+							seq_printf(s, "%s\n", pll_name);
+						}
+					} else
+						seq_printf(s, "Get %s failed!\n", pll_name);
+				}
+			}
+		}
+	} else
+		seq_printf(s, "*** %s not get dts node ***\n", __func__);
+
+	return 0;
+}
+
+
+static int nvt_clk_childless_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, clk_childless_show, NULL);
+}
+
+static const struct file_operations clk_childless_fops = {
+	.open		= nvt_clk_childless_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= single_release,
+	.write          = nvt_clk_childless_write,
+};
+
+typedef struct proc_pinmux {
+	struct proc_dir_entry *pproc_module_root;
+	struct proc_dir_entry *pproc_childless_entry;
+	struct proc_dir_entry *pproc_summary_entry;
+	struct proc_dir_entry *pproc_maxfreq_entry;
+} proc_clk_t;
+proc_clk_t proc_clk;
+
+static int __init nvt_clk_proc_init(void)
+{
+	int ret = 0;
+	struct proc_dir_entry *pmodule_root = NULL;
+	struct proc_dir_entry *pentry = NULL;
+
+	pmodule_root = proc_mkdir("nvt_info/nvt_clk", NULL);
+	if (pmodule_root == NULL) {
+		pr_err("failed to create Module root\n");
+		ret = -EINVAL;
+		goto remove_proc;
+	}
+	proc_clk.pproc_module_root = pmodule_root;
+
+	pentry = proc_create("clk_childless", S_IRUGO | S_IXUGO, pmodule_root, &clk_childless_fops);
+	if (pentry == NULL) {
+		pr_err("failed to create proc help!\n");
+		ret = -EINVAL;
+		goto remove_proc;
+	}
+	proc_clk.pproc_childless_entry = pentry;
+
+	pentry = proc_create("clk_summary", S_IRUGO | S_IXUGO, pmodule_root, &nvt_clk_summary_fops);
+	if (pentry == NULL) {
+		pr_err("failed to create proc clk summary!\n");
+		ret = -EINVAL;
+		goto remove_proc;
+	}
+	proc_clk.pproc_summary_entry = pentry;
+
+	pentry = proc_create("max_frequency", S_IRUGO | S_IXUGO, pmodule_root, &clk_maxfreq_fops);
+	if (pentry == NULL) {
+		pr_err("failed to create proc max frequency!\n");
+		ret = -EINVAL;
+		goto remove_proc;
+	}
+	proc_clk.pproc_maxfreq_entry = pentry;
+remove_proc:
+	return ret;
+}
+
+late_initcall(nvt_clk_proc_init);
+#endif
+
 /**
  * __clk_core_init - initialize the data structures in a struct clk_core
  * @core:	clk_core being initialized
@@ -3103,6 +3381,10 @@ unlock:
 
 	if (!ret)
 		clk_debug_register(core);
+
+#ifdef CONFIG_PLAT_NOVATEK
+	nvt_clk_debug_register(core);
+#endif
 
 	return ret;
 }

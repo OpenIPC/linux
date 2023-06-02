@@ -118,4 +118,21 @@ config PTP_1588_CLOCK_KVM
 	  To compile this driver as a module, choose M here: the module
 	  will be called ptp_kvm.
 
+config PTP_1588_CLOCK_NVT
+	tristate "Novatek DTE as PTP clock"
+	depends on PTP_1588_CLOCK=y
+	depends on NET && HAS_IOMEM
+	depends on PLAT_NOVATEK
+	depends on ARM || ARM64
+	depends on NVT_IVOT_PLAT_NA51055
+	help
+	  This driver adds support for using the Digital timing engine
+	  (DTE) in the Novatek SoC's as a PTP clock.
+
+	  The clock can be used in both wired and wireless networks
+	  for PTP purposes.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called ptp_dte.
+
 endmenu

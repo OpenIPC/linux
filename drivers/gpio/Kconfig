@@ -387,6 +387,22 @@ config GPIO_MXS
 	select GPIO_GENERIC
 	select GENERIC_IRQ_CHIP
 
+config GPIO_NVT_NA51055
+	tristate "NOVATEK NT9852X GPIO"
+	depends on NVT_IVOT_PLAT_NA51055
+	select GPIO_GENERIC
+	select GENERIC_IRQ_CHIP
+	help
+	  Say yes here to support the Novatek NT96520 GPIO device
+
+config GPIO_NVT_NA51089
+	tristate "NOVATEK NT9856X GPIO"
+	depends on NVT_IVOT_PLAT_NA51089
+	select GPIO_GENERIC
+	select GENERIC_IRQ_CHIP
+	help
+	  Say yes here to support the Novatek NT96560 GPIO device
+
 config GPIO_OCTEON
 	tristate "Cavium OCTEON GPIO"
 	depends on GPIOLIB && CAVIUM_OCTEON_SOC
