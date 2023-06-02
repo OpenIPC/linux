@@ -49,11 +49,17 @@ $(obj)/xipImage: FORCE
 $(obj)/Image: vmlinux FORCE
 	$(call if_changed,objcopy)
 
+# just copy Image to zImage when build a no compressed uImage
+ifeq ($(CONFIG_KERNEL_NO_COMPRESS),y)
+$(obj)/zImage: $(obj)/Image FORCE
+	@cp $(obj)/Image $(obj)/zImage
+else
 $(obj)/compressed/vmlinux: $(obj)/Image FORCE
 	$(Q)$(MAKE) $(build)=$(obj)/compressed $@
 
 $(obj)/zImage:	$(obj)/compressed/vmlinux FORCE
 	$(call if_changed,objcopy)
+endif
 
 endif
 

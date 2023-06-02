@@ -972,7 +972,7 @@ bool pwm_can_sleep(struct pwm_device *pwm)
 }
 EXPORT_SYMBOL_GPL(pwm_can_sleep);
 
-#ifdef CONFIG_DEBUG_FS
+#ifdef CONFIG_DEBUG_PWM_FS
 static void pwm_dbg_show(struct pwm_chip *chip, struct seq_file *s)
 {
 	unsigned int i;

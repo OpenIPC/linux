@@ -18,6 +18,9 @@
 #include <linux/usb/of.h>
 #include <linux/usb/otg.h>
 #include <linux/of_platform.h>
+#ifndef CONFIG_USE_OF
+#include <mach/fh_usb_plat.h>
+#endif
 
 const char *usb_otg_state_string(enum usb_otg_state state)
 {
@@ -115,6 +118,7 @@ static enum usb_dr_mode usb_get_dr_mode_from_string(const char *str)
 
 enum usb_dr_mode usb_get_dr_mode(struct device *dev)
 {
+#ifdef CONFIG_USE_OF
 	const char *dr_mode;
 	int err;
 
@@ -123,10 +127,36 @@ enum usb_dr_mode usb_get_dr_mode(struct device *dev)
 		return USB_DR_MODE_UNKNOWN;
 
 	return usb_get_dr_mode_from_string(dr_mode);
+#else
+	struct fh_usb_platform_data *plat_data
+		= (struct fh_usb_platform_data *)dev_get_platdata(dev);
+
+	return usb_get_dr_mode_from_string(plat_data->dr_mode);
+#endif
 }
 EXPORT_SYMBOL_GPL(usb_get_dr_mode);
 
-#ifdef CONFIG_OF
+u32 usb_get_vbus_pwren_gpio(struct device *dev)
+{
+#ifdef CONFIG_USE_OF
+	u32 pwren_gpio;
+	int err;
+
+	err = device_property_read_u32(dev, "vbus_pwren", &pwren_gpio);
+	if (err < 0)
+		return 0xFFFFFFFF;
+	else
+		return pwren_gpio;
+#else
+	struct fh_usb_platform_data *plat_data
+		= (struct fh_usb_platform_data *)dev_get_platdata(dev);
+
+	return plat_data->vbus_pwren;
+#endif
+}
+EXPORT_SYMBOL_GPL(usb_get_vbus_pwren_gpio);
+
+#ifdef CONFIG_USE_OF
 /**
  * of_usb_get_dr_mode_by_phy - Get dual role mode for the controller device
  * which is associated with the given phy device_node

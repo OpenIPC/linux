@@ -24,6 +24,16 @@ config DEBUG_PINCTRL
 	help
 	  Say Y here to add some extra checks and diagnostics to PINCTRL calls.
 
+config PINCTRL_FULLHAN
+	bool "Fulhan pin controller driver"
+	depends on ARCH_FULLHAN && USE_OF
+	select PINMUX
+	default y
+	help
+	  This is the pin controller driver for FullHan processors.
+	  This option is selected automatically when specific
+	  machine and arch are selected to build.
+
 config PINCTRL_ADI2
 	bool "ADI pin controller driver"
 	depends on (BF54x || BF60x)

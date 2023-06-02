@@ -16,6 +16,14 @@
 
 #include <linux/types.h>
 
+/* identification number of Unit or Terminal */
+#define UVC_INTERFACE_ID			0
+#define UVC_CAMERAL_TERMINAL_ID		1
+#define UVC_PROCESSING_UNIT_ID		2
+#define UVC_H264_EXTENSION_UNIT_ID	3
+#define UVC_OUTPUT_TERMINAL_ID		4
+#define UVC_OUTPUT_TERMINAL2_ID		5
+
 /* --------------------------------------------------------------------------
  * UVC constants
  */
@@ -564,6 +572,27 @@ struct UVC_FRAME_MJPEG(n) {				\
 	__u8  bFrameIntervalType;			\
 	__u32 dwFrameInterval[n];			\
 } __attribute__ ((packed))
+
+/* Frame Based Payload - 3.1.1. Frame Based Format Descriptor */
+struct uvc_format_frameBased {
+	__u8  bLength;
+	__u8  bDescriptorType;
+	__u8  bDescriptorSubType;
+	__u8  bFormatIndex;
+	__u8  bNumFrameDescriptors;
+	__u8  guidFormat[16];
+	__u8  bBitsPerPixel;
+	__u8  bDefaultFrameIndex;
+	__u8  bAspectRatioX;
+	__u8  bAspectRatioY;
+	__u8  bmInterfaceFlags;
+	__u8  bCopyProtect;
+	__u8  bVariableSize;
+} __attribute__((__packed__));
+
+#define UVC_DT_FORMAT_FRAMEBASED_SIZE			28
+
+#define UVC_DT_FRAME_FRAMEBASED_SIZE(n)			(26+4*(n))
 
 #endif /* __LINUX_USB_VIDEO_H */
 

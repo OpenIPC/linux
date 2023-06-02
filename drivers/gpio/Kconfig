@@ -150,6 +150,12 @@ config GPIO_CLPS711X
 	help
 	  Say yes here to support GPIO on CLPS711X SoCs.
 
+config GPIO_FH
+	tristate "FH GPIO support"
+	depends on ARCH_FULLHAN
+	help
+	  Say yes here to support GPIO functionality of FH.
+
 config GPIO_DAVINCI
 	bool "TI Davinci/Keystone GPIO support"
 	default y if ARCH_DAVINCI

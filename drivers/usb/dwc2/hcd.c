@@ -943,6 +943,7 @@ void dwc2_hc_halt(struct dwc2_hsotg *hsotg, struct dwc2_host_chan *chan,
 		 * (in the case of URB_DEQUEUE), so the channel needs to be
 		 * shut down carefully to prevent crashes.
 		 */
+		int wtd = 10000;
 		u32 hcintmsk = HCINTMSK_CHHLTD;
 
 		dev_vdbg(hsotg->dev, "dequeue/error\n");
@@ -963,6 +964,11 @@ void dwc2_hc_halt(struct dwc2_hsotg *hsotg, struct dwc2_host_chan *chan,
 		chan->halt_status = halt_status;
 
 		hcchar = dwc2_readl(hsotg->regs + HCCHAR(chan->hc_num));
+		while (wtd--) {
+			if (!(hcchar & HCCHAR_CHENA))
+				break;
+			hcchar = dwc2_readl(hsotg->regs + HCCHAR(chan->hc_num));
+		}
 		if (!(hcchar & HCCHAR_CHENA)) {
 			/*
 			 * The channel is either already halted or it hasn't
@@ -1425,18 +1431,19 @@ static void dwc2_hc_start_transfer(struct dwc2_hsotg *hsotg,
 			if (num_packets > max_hc_pkt_count) {
 				num_packets = max_hc_pkt_count;
 				chan->xfer_len = num_packets * chan->max_packet;
+			} else if (chan->ep_is_in) {
+				/*
+				 * Always program an integral # of max packets
+				 * for IN transfers.
+				 * Note: This assumes that the input buffer is
+				 * aligned and sized accordingly.
+				 */
+				chan->xfer_len = num_packets * chan->max_packet;
 			}
 		} else {
 			/* Need 1 packet for transfer length of 0 */
 			num_packets = 1;
 		}
-
-		if (chan->ep_is_in)
-			/*
-			 * Always program an integral # of max packets for IN
-			 * transfers
-			 */
-			chan->xfer_len = num_packets * chan->max_packet;
 
 		if (chan->ep_type == USB_ENDPOINT_XFER_INT ||
 		    chan->ep_type == USB_ENDPOINT_XFER_ISOC)
@@ -2344,6 +2351,14 @@ static void dwc2_core_host_init(struct dwc2_hsotg *hsotg)
 	otgctl &= ~GOTGCTL_HSTSETHNPEN;
 	dwc2_writel(otgctl, hsotg->regs + GOTGCTL);
 
+#if IS_ENABLED(CONFIG_USB_DWC2_VBVALIDOVEN)
+	/* VBUS Valid Override Enable, VBUS Valid OverrideValue */
+	otgctl = dwc2_readl(hsotg->regs + GOTGCTL);
+	otgctl |= GOTGCTL_VBVALIDOVEN;
+	otgctl |= GOTGCTL_VBVALIDOVVAL;
+	dwc2_writel(otgctl, hsotg->regs + GOTGCTL);
+#endif
+
 	if (hsotg->core_params->dma_desc_enable <= 0) {
 		int num_channels, i;
 		u32 hcchar;
@@ -2544,59 +2559,72 @@ static void dwc2_hc_init_xfer(struct dwc2_hsotg *hsotg,
 
 #define DWC2_USB_DMA_ALIGN 4
 
+struct dma_aligned_buffer {
+	void *old_xfer_buffer;
+	u8 data[0];
+};
+
 static void dwc2_free_dma_aligned_buffer(struct urb *urb)
 {
-	void *stored_xfer_buffer;
+	struct dma_aligned_buffer *dma;
+	size_t length;
 
 	if (!(urb->transfer_flags & URB_ALIGNED_TEMP_BUFFER))
 		return;
 
-	/* Restore urb->transfer_buffer from the end of the allocated area */
-	memcpy(&stored_xfer_buffer, urb->transfer_buffer +
-	       urb->transfer_buffer_length, sizeof(urb->transfer_buffer));
+	dma = container_of(urb->transfer_buffer,
+			   struct dma_aligned_buffer, data);
 
-	if (usb_urb_dir_in(urb))
-		memcpy(stored_xfer_buffer, urb->transfer_buffer,
-		       urb->transfer_buffer_length);
-	kfree(urb->transfer_buffer);
-	urb->transfer_buffer = stored_xfer_buffer;
+	if (usb_urb_dir_in(urb)) {
+		if (usb_pipeisoc(urb->pipe))
+			length = urb->transfer_buffer_length;
+		else
+			length = urb->actual_length;
+
+		memcpy(dma->old_xfer_buffer, dma->data, length);
+	}
+	urb->transfer_buffer = dma->old_xfer_buffer;
+	kfree(dma);
 
 	urb->transfer_flags &= ~URB_ALIGNED_TEMP_BUFFER;
 }
 
 static int dwc2_alloc_dma_aligned_buffer(struct urb *urb, gfp_t mem_flags)
 {
-	void *kmalloc_ptr;
+	struct dma_aligned_buffer *dma;
 	size_t kmalloc_size;
 
-	if (urb->num_sgs || urb->sg ||
-	    urb->transfer_buffer_length == 0 ||
+	if (urb->num_sgs || urb->sg || urb->transfer_buffer_length == 0 ||
+	    (urb->transfer_flags & URB_NO_TRANSFER_DMA_MAP) ||
 	    !((uintptr_t)urb->transfer_buffer & (DWC2_USB_DMA_ALIGN - 1)))
 		return 0;
 
-	/*
-	 * Allocate a buffer with enough padding for original transfer_buffer
-	 * pointer. This allocation is guaranteed to be aligned properly for
-	 * DMA
-	 */
-	kmalloc_size = urb->transfer_buffer_length +
-		sizeof(urb->transfer_buffer);
+	kmalloc_size = sizeof(struct dma_aligned_buffer);
+	if (usb_urb_dir_out(urb)) {
+		kmalloc_size += urb->transfer_buffer_length;
+	} else {
+		struct usb_host_endpoint *ep = urb->ep;
+		int maxp = usb_endpoint_maxp(&ep->desc);
 
-	kmalloc_ptr = kmalloc(kmalloc_size, mem_flags);
-	if (!kmalloc_ptr)
+		/*
+		 * Input transfer buffer size must be a multiple of the
+		 * endpoint's maximum packet size to match the transfer
+		 * limit programmed into the chip.
+		 * See calculation of chan->xfer_len in
+		 * dwc2_hc_start_transfer().
+		 */
+		kmalloc_size += roundup(urb->transfer_buffer_length, maxp);
+	}
+
+	dma = kmalloc(kmalloc_size, mem_flags);
+	if (!dma)
 		return -ENOMEM;
 
-	/*
-	 * Position value of original urb->transfer_buffer pointer to the end
-	 * of allocation for later referencing
-	 */
-	memcpy(kmalloc_ptr + urb->transfer_buffer_length,
-	       &urb->transfer_buffer, sizeof(urb->transfer_buffer));
-
+	dma->old_xfer_buffer = urb->transfer_buffer;
 	if (usb_urb_dir_out(urb))
-		memcpy(kmalloc_ptr, urb->transfer_buffer,
+		memcpy(dma->data, urb->transfer_buffer,
 		       urb->transfer_buffer_length);
-	urb->transfer_buffer = kmalloc_ptr;
+	urb->transfer_buffer = dma->data;
 
 	urb->transfer_flags |= URB_ALIGNED_TEMP_BUFFER;
 
@@ -3624,6 +3652,10 @@ static int dwc2_hcd_hub_control(struct dwc2_hsotg *hsotg, u16 typereq,
 			goto error;
 
 		if (!hsotg->flags.b.port_connect_status) {
+			if (dwc2_is_host_mode(hsotg) &&
+				(dwc2_read_hprt0(hsotg) & HPRT0_PWR) == 0) {
+				dev_info(hsotg->dev, "power cycle should not be broken\n");
+			} else
 			/*
 			 * The port is disconnected, which means the core is
 			 * either in device mode or it soon will be. Just
@@ -4772,9 +4804,7 @@ static int _dwc2_hcd_urb_dequeue(struct usb_hcd *hcd, struct urb *urb,
 	urb->hcpriv = NULL;
 
 	/* Higher layer software sets URB status */
-	spin_unlock(&hsotg->lock);
 	usb_hcd_giveback_urb(hcd, urb, status);
-	spin_lock(&hsotg->lock);
 
 	dev_dbg(hsotg->dev, "Called usb_hcd_giveback_urb()\n");
 	dev_dbg(hsotg->dev, "  urb->status = %d\n", urb->status);
@@ -5173,6 +5203,10 @@ int dwc2_hcd_init(struct dwc2_hsotg *hsotg, int irq)
 
 	/* Don't support SG list at this point */
 	hcd->self.sg_tablesize = 0;
+
+	/*copy phy to hcd  add tangyh*/
+	hcd->usb_phy = hsotg->uphy;
+	hcd->phy = hsotg->phy;
 
 	if (!IS_ERR_OR_NULL(hsotg->uphy))
 		otg_set_host(hsotg->uphy->otg, &hcd->self);

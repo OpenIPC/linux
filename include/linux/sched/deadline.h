@@ -11,7 +11,7 @@
 
 static inline int dl_prio(int prio)
 {
-	if (unlikely(prio < MAX_DL_PRIO))
+	if (IS_ENABLED(CONFIG_SCHED_DL) && unlikely(prio < MAX_DL_PRIO))
 		return 1;
 	return 0;
 }
@@ -25,5 +25,11 @@ static inline bool dl_time_before(u64 a, u64 b)
 {
 	return (s64)(a - b) < 0;
 }
+
+#ifdef CONFIG_SCHED_DL
+#define dl_deadline(tsk)	((tsk)->dl.deadline)
+#else
+#define dl_deadline(tsk)	0
+#endif
 
 #endif /* _SCHED_DEADLINE_H */

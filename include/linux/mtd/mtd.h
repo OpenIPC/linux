@@ -127,6 +127,35 @@ struct mtd_ooblayout_ops {
 		    struct mtd_oob_region *oobfree);
 };
 
+/*
+ * Internal ECC layout control structure. For historical reasons, there is a
+ * similar, smaller struct nand_ecclayout_user (in mtd-abi.h) that is retained
+ * for export to user-space via the ECCGETLAYOUT ioctl.
+ * nand_ecclayout should be expandable in the future simply by the above macros.
+ */
+struct nand_ecclayout {
+	__u32 eccbytes;
+	__u32 eccpos[MTD_MAX_ECCPOS_ENTRIES_LARGE];
+	__u32 oobavail;
+	struct nand_oobfree oobfree[MTD_MAX_OOBFREE_ENTRIES_LARGE];
+};
+
+
+/*
+ * oob operation modes
+ *
+ * MTD_OOB_PLACE:	oob data are placed at the given offset
+ * MTD_OOB_AUTO:	oob data are automatically placed at the free areas
+ *			which are defined by the ecclayout
+ * MTD_OOB_RAW:		mode to read oob and data without doing ECC checking
+ */
+typedef enum {
+	MTD_OOB_PLACE,
+	MTD_OOB_AUTO,
+	MTD_OOB_RAW,
+} mtd_oob_mode_t;
+
+
 /**
  * struct mtd_pairing_info - page pairing information
  *
@@ -546,8 +575,8 @@ struct mtd_notifier {
 };
 
 
-extern void register_mtd_user (struct mtd_notifier *new);
-extern int unregister_mtd_user (struct mtd_notifier *old);
+extern void register_mtd_user(struct mtd_notifier *new);
+extern int unregister_mtd_user(struct mtd_notifier *old);
 void *mtd_kmalloc_up_to(const struct mtd_info *mtd, size_t *size);
 
 void mtd_erase_callback(struct erase_info *instr);
@@ -565,5 +594,27 @@ static inline int mtd_is_bitflip_or_eccerr(int err) {
 }
 
 unsigned mtd_mmap_capabilities(struct mtd_info *mtd);
+
+/*
+ * Debugging macro and defines
+ */
+#define MTD_DEBUG_LEVEL0	(0)	/* Quiet   */
+#define MTD_DEBUG_LEVEL1	(1)	/* Audible */
+#define MTD_DEBUG_LEVEL2	(2)	/* Loud    */
+#define MTD_DEBUG_LEVEL3	(3)	/* Noisy   */
+
+#ifdef CONFIG_MTD_DEBUG
+#define DEBUG(n, args...)				\
+	do {						\
+		if (n <= CONFIG_MTD_DEBUG_VERBOSE)	\
+			printk(KERN_INFO args);		\
+	} while (0)
+#else /* CONFIG_MTD_DEBUG */
+#define DEBUG(n, args...)				\
+	do {						\
+	} while (0)
+
+#endif /* CONFIG_MTD_DEBUG */
+
 
 #endif /* __MTD_MTD_H__ */

@@ -5,7 +5,7 @@
 klibcdirs:;
 PHONY += klibcdirs
 
-
+ifeq ($(CONFIG_EMULATION),)
 # Bzip2
 suffix_$(CONFIG_RD_BZIP2)  = .bz2
 
@@ -23,6 +23,20 @@ suffix_$(CONFIG_RD_LZ4)    = .lz4
 
 # Gzip
 suffix_$(CONFIG_RD_GZIP)   = .gz
+else
+# force use rootfs.cpio, decompress rootfs.cpio.* to rootfs.cpio
+suffix := $(suffix $(CONFIG_INITRAMFS_SOURCE))
+ifeq ($(suffix), .xz")
+dec_cmd := unxz
+endif
+ifeq ($(suffix), .gz")
+dec_cmd := gunzip
+endif
+ifneq ($(dec_cmd),)
+$(shell $(dec_cmd) -kf $(CONFIG_INITRAMFS_SOURCE))
+export CONFIG_INITRAMFS_SOURCE := $(subst $(suffix),",$(CONFIG_INITRAMFS_SOURCE))
+endif
+endif
 
 AFLAGS_initramfs_data.o += -DINITRAMFS_IMAGE="usr/initramfs_data.cpio$(suffix_y)"
 

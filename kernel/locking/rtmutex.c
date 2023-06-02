@@ -721,7 +721,7 @@ static int rt_mutex_adjust_prio_chain(struct task_struct *task,
 	 * the values of the node being removed.
 	 */
 	waiter->prio = task->prio;
-	waiter->deadline = task->dl.deadline;
+	waiter->deadline = dl_deadline(task);
 
 	rt_mutex_enqueue(lock, waiter);
 
@@ -997,7 +997,7 @@ static int task_blocks_on_rt_mutex(struct rt_mutex *lock,
 	waiter->task = task;
 	waiter->lock = lock;
 	waiter->prio = task->prio;
-	waiter->deadline = task->dl.deadline;
+	waiter->deadline = dl_deadline(task);
 
 	/* Get the top priority waiter on the lock */
 	if (rt_mutex_has_waiters(lock))

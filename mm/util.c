@@ -334,6 +334,7 @@ unsigned long vm_mmap_pgoff(struct file *file, unsigned long addr,
 	}
 	return ret;
 }
+EXPORT_SYMBOL(vm_mmap_pgoff);
 
 unsigned long vm_mmap(struct file *file, unsigned long addr,
 	unsigned long len, unsigned long prot,

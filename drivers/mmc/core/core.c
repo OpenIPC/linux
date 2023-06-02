@@ -2805,6 +2805,17 @@ void mmc_rescan(struct work_struct *work)
 		goto out;
 	}
 
+	/* rescan 2 times when detect mmc */
+	if (!(host->caps & MMC_CAP_NONREMOVABLE) && host->rescan_max_num) {
+		if (host->rescan_count >= host->rescan_max_num) {
+			mmc_power_off(host);
+			mmc_release_host(host);
+			goto out;
+		} else {
+			host->rescan_count++;
+		}
+	}
+
 	for (i = 0; i < ARRAY_SIZE(freqs); i++) {
 		if (!mmc_rescan_try_freq(host, max(freqs[i], host->f_min)))
 			break;

@@ -426,6 +426,7 @@ struct phy_device {
 	u8 mdix;
 
 	void (*adjust_link)(struct net_device *dev);
+	u32 link_down_times;
 };
 #define to_phy_device(d) container_of(to_mdio_device(d), \
 				      struct phy_device, mdio)
@@ -588,7 +589,16 @@ struct phy_driver {
 	void (*get_strings)(struct phy_device *dev, u8 *data);
 	void (*get_stats)(struct phy_device *dev,
 			  struct ethtool_stats *stats, u64 *data);
+	int (*no_link_timeout_process)(struct phy_device *dev);
 };
+
+static inline void bind_no_link_process(struct phy_driver *drv,
+int (*handler)(struct phy_device *))
+{
+	if (drv)
+		drv->no_link_timeout_process = handler;
+}
+
 #define to_phy_driver(d) container_of(to_mdio_common_driver(d),		\
 				      struct phy_driver, mdiodrv)
 

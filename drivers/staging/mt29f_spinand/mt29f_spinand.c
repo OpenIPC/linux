@@ -70,6 +70,36 @@ static const struct mtd_ooblayout_ops spinand_oob_64_ops = {
 	.ecc = spinand_ooblayout_64_ecc,
 	.free = spinand_ooblayout_64_free,
 };
+
+static int spinand_ooblayout_128_ecc(struct mtd_info *mtd, int section,
+				    struct mtd_oob_region *oobregion)
+{
+	if (section > 8)
+		return -ERANGE;
+
+	oobregion->offset = (section * 8) + 64;
+	oobregion->length = 8;
+
+	return 0;
+}
+
+static int spinand_ooblayout_128_free(struct mtd_info *mtd, int section,
+				     struct mtd_oob_region *oobregion)
+{
+	if (section > 8)
+		return -ERANGE;
+
+	oobregion->offset = 1;
+	oobregion->length = 63;
+
+	return 0;
+}
+
+static const struct mtd_ooblayout_ops spinand_oob_128_ops = {
+	.ecc = spinand_ooblayout_128_ecc,
+	.free = spinand_ooblayout_128_free,
+};
+
 #endif
 
 /**
@@ -890,9 +920,9 @@ static int spinand_probe(struct spi_device *spi_nand)
 
 #ifdef CONFIG_MTD_SPINAND_ONDIEECC
 	chip->ecc.mode	= NAND_ECC_HW;
-	chip->ecc.size	= 0x200;
-	chip->ecc.bytes	= 0x6;
-	chip->ecc.steps	= 0x4;
+	chip->ecc.size	= 0x100;
+	chip->ecc.bytes	= 0x8;
+	chip->ecc.steps	= 0x8;
 
 	chip->ecc.strength = 1;
 	chip->ecc.total	= chip->ecc.steps * chip->ecc.bytes;
@@ -913,7 +943,7 @@ static int spinand_probe(struct spi_device *spi_nand)
 	chip->read_byte	= spinand_read_byte;
 	chip->cmdfunc	= spinand_cmdfunc;
 	chip->waitfunc	= spinand_wait;
-	chip->options	|= NAND_CACHEPRG;
+	chip->options	|= (NAND_CACHEPRG | NAND_NO_SUBPAGE_WRITE);
 	chip->select_chip = spinand_select_chip;
 
 	mtd = nand_to_mtd(chip);
@@ -921,14 +951,13 @@ static int spinand_probe(struct spi_device *spi_nand)
 	dev_set_drvdata(&spi_nand->dev, mtd);
 
 	mtd->dev.parent = &spi_nand->dev;
-	mtd->oobsize = 64;
+	mtd->oobsize = 128;
 #ifdef CONFIG_MTD_SPINAND_ONDIEECC
-	mtd_set_ooblayout(mtd, &spinand_oob_64_ops);
+	mtd_set_ooblayout(mtd, &spinand_oob_128_ops);
 #endif
 
 	if (nand_scan(mtd, 1))
 		return -ENXIO;
-
 	return mtd_device_register(mtd, NULL, 0);
 }
 

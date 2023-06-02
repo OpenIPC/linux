@@ -150,12 +150,23 @@ extern unsigned long tick_nsec;		/* SHIFTED_HZ period (nsec) */
 
 #define NTP_INTERVAL_FREQ  (HZ)
 #define NTP_INTERVAL_LENGTH (NSEC_PER_SEC/NTP_INTERVAL_FREQ)
-
+#ifdef CONFIG_NTP
 extern int do_adjtimex(struct timex *);
 extern void hardpps(const struct timespec64 *, const struct timespec64 *);
+void ntp_notify_cmos_timer(void);
+#else
+static inline int do_adjtimex(struct timex *txc)
+{
+	return 0;
+}
+static inline void hardpps(const struct timespec *ts1,
+			   const struct timespec *ts2)
+{}
+static inline void ntp_notify_cmos_timer(void)
+{}
+#endif
 
 int read_current_timer(unsigned long *timer_val);
-void ntp_notify_cmos_timer(void);
 
 /* The clock frequency of the i8253/i8254 PIT */
 #define PIT_TICK_RATE 1193182ul

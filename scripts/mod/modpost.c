@@ -1975,7 +1975,7 @@ static void read_symbols(char *modname)
 	if (version)
 		maybe_frob_rcs_version(modname, version, info.modinfo,
 				       version - (char *)info.hdr);
-	if (version || (all_versions && !is_vmlinux(modname)))
+	if ((all_versions && !is_vmlinux(modname)))
 		get_src_version(modname, mod->srcversion,
 				sizeof(mod->srcversion)-1);
 

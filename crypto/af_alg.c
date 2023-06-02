@@ -443,6 +443,7 @@ EXPORT_SYMBOL_GPL(af_alg_free_sg);
 int af_alg_cmsg_send(struct msghdr *msg, struct af_alg_control *con)
 {
 	struct cmsghdr *cmsg;
+	struct af_alg_usr_def *p_usr_def;
 
 	for_each_cmsghdr(cmsg, msg) {
 		if (!CMSG_OK(msg, cmsg))
@@ -471,7 +472,12 @@ int af_alg_cmsg_send(struct msghdr *msg, struct af_alg_control *con)
 				return -EINVAL;
 			con->aead_assoclen = *(u32 *)CMSG_DATA(cmsg);
 			break;
+		case ALG_USR_DEF:
 
+			p_usr_def = (struct af_alg_usr_def *)CMSG_DATA(cmsg);
+			memcpy(&con->usr_def, p_usr_def,
+			sizeof(struct af_alg_usr_def));
+			break;
 		default:
 			return -EINVAL;
 		}

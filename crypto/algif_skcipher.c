@@ -307,6 +307,7 @@ static int skcipher_sendmsg(struct socket *sock, struct msghdr *msg,
 	struct skcipher_ctx *ctx = ask->private;
 	struct skcipher_tfm *skc = pask->private;
 	struct crypto_skcipher *tfm = skc->skcipher;
+	struct af_alg_usr_def *p_usr_def = crypto_skcipher_usr_def(tfm);
 	unsigned ivsize = crypto_skcipher_ivsize(tfm);
 	struct skcipher_sg_list *sgl;
 	struct af_alg_control con = {};
@@ -332,7 +333,8 @@ static int skcipher_sendmsg(struct socket *sock, struct msghdr *msg,
 		default:
 			return -EINVAL;
 		}
-
+		/* cpy usr def msg to tfm.... */
+		memcpy(p_usr_def, &con.usr_def, sizeof(struct af_alg_usr_def));
 		if (con.iv && con.iv->ivlen != ivsize)
 			return -EINVAL;
 	}
@@ -423,7 +425,6 @@ static int skcipher_sendmsg(struct socket *sock, struct msghdr *msg,
 
 		ctx->merge = plen & (PAGE_SIZE - 1);
 	}
-
 	err = 0;
 
 	ctx->more = msg->msg_flags & MSG_MORE;
@@ -665,7 +666,6 @@ static int skcipher_recvmsg_sync(struct socket *sock, struct msghdr *msg,
 		}
 
 		used = min_t(unsigned long, ctx->used, msg_data_left(msg));
-
 		used = af_alg_make_sg(&ctx->rsgl, &msg->msg_iter, used);
 		err = used;
 		if (err < 0)
@@ -704,7 +704,6 @@ free:
 		skcipher_pull_sgl(sk, used, 1);
 		iov_iter_advance(&msg->msg_iter, used);
 	}
-
 	err = 0;
 
 unlock:

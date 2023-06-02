@@ -1,0 +1,2379 @@
+/*
+ * Copyright (C) 2020 Fullhan Micorelectonics Co.,Ltd.
+ *
+ * The code contained herein is licensed under the GNU General Public
+ * License. You may obtain a copy of the GNU General Public License
+ * Version 2 or later at the following locations:
+ *
+ * http://www.opensource.org/licenses/gpl-license.html
+ * http://www.gnu.org/copyleft/gpl.html
+ */
+
+/*
+	#define PUPD_NONE           (0)
+	#define PUPD_UP             (1)
+	#define PUPD_DOWN           (2)
+*/
+
+/ {
+	pinctrl: pinctrl@f0000080 {
+		compatible = "fh,fh-pinctrl";
+		reg = <0xf0000080 0x104>;
+		pad-num = <65>;
+		max-mux = <9>;
+		pinctrl-names = "default";
+		pinctrl-0 = <
+			&pinctrl_AC_MCLK
+			&pinctrl_ETH
+			&pinctrl_I2C0
+			&pinctrl_PWM2
+			&pinctrl_PWM3
+			&pinctrl_PWM4
+			&pinctrl_PWM5
+			&pinctrl_PWM6
+			&pinctrl_PWM7
+			&pinctrl_PWM8
+			&pinctrl_PWM9
+			&pinctrl_SADC_XAIN0
+			&pinctrl_SADC_XAIN1
+			&pinctrl_SADC_XAIN2
+			&pinctrl_SADC_XAIN3
+			&pinctrl_SD0_NO_WP
+			&pinctrl_SD1_NO_WP
+			&pinctrl_SENSOR_CLK
+			&pinctrl_SSI0_4BIT
+			&pinctrl_SSI1
+			&pinctrl_UART0
+			&pinctrl_UART1
+			&pinctrl_GPIO13
+			&pinctrl_GPIO28
+			&pinctrl_GPIO29
+			&pinctrl_GPIO30
+			&pinctrl_GPIO31
+			&pinctrl_GPIO32
+			&pinctrl_GPIO43
+			&pinctrl_GPIO44
+			&pinctrl_GPIO47
+			&pinctrl_GPIO48
+			&pinctrl_GPIO49
+			&pinctrl_GPIO50
+			&pinctrl_GPIO51
+			&pinctrl_GPIO52
+			&pinctrl_GPIO53
+			&pinctrl_GPIO54
+			&pinctrl_GPIO55
+			&pinctrl_GPIO56
+
+			&pinctrl_GPIO45
+			&pinctrl_GPIO46
+		>;
+		pinctrl_groups {
+			pinctrl_ACI2S: ACI2S {
+				fh,pins = <
+					&mux_AC_I2S_CLK 0
+					&mux_AC_I2S_DI 0
+					&mux_AC_I2S_DO 0
+					&mux_AC_I2S_WS 0
+					&mux_AC_MCLK 0
+				>;
+			};
+			pinctrl_AC_MCLK: AC_MCLK {
+				fh,pins = <
+					&mux_AC_MCLK 0
+				>;
+			};
+			pinctrl_ARCJTAG: ARCJTAG {
+				fh,pins = <
+					&mux_ARC_JTAG_TCK 0
+					&mux_ARC_JTAG_TDI 0
+					&mux_ARC_JTAG_TDO 0
+					&mux_ARC_JTAG_TMS 0
+					&mux_ARC_JTAG_TRSTN 0
+				>;
+			};
+			pinctrl_ARMJTAG: ARMJTAG {
+				fh,pins = <
+					&mux_ARM_JTAG_TCK 0
+					&mux_ARM_JTAG_TDI 0
+					&mux_ARM_JTAG_TDO 0
+					&mux_ARM_JTAG_TMS 0
+					&mux_ARM_JTAG_TRSTN 0
+				>;
+			};
+			pinctrl_DWI2S: DWI2S {
+				fh,pins = <
+					&mux_DW_I2S_CLK 0
+					&mux_DW_I2S_DI 0
+					&mux_DW_I2S_DO 0
+					&mux_DW_I2S_WS 0
+				>;
+			};
+			pinctrl_ETH: ETH {
+				fh,pins = <
+					&mux_ETH_LINK_ACT 1
+					&mux_ETH_LINK_STA 1
+				>;
+			};
+			pinctrl_I2C0: I2C0 {
+				fh,pins = <
+					&mux_I2C0_SCL 0
+					&mux_I2C0_SDA 0
+				>;
+			};
+			pinctrl_I2C1: I2C1 {
+				fh,pins = <
+					&mux_I2C1_SCL 2
+					&mux_I2C1_SDA 2
+				>;
+			};
+			pinctrl_I2C2: I2C2 {
+				fh,pins = <
+					&mux_I2C2_SCL 1
+					&mux_I2C2_SDA 1
+				>;
+			};
+			pinctrl_PAEJTAG: PAEJTAG {
+				fh,pins = <
+					&mux_PAE_JTAG_TCK 0
+					&mux_PAE_JTAG_TDI 0
+					&mux_PAE_JTAG_TDO 0
+					&mux_PAE_JTAG_TMS 0
+					&mux_PAE_JTAG_TRSTN 0
+				>;
+			};
+			pinctrl_PWM0: PWM0 {
+				fh,pins = <
+					&mux_PWM0 0
+				>;
+			};
+			pinctrl_PWM1: PWM1 {
+				fh,pins = <
+					&mux_PWM1 0
+				>;
+			};
+			pinctrl_PWM10: PWM10 {
+				fh,pins = <
+					&mux_PWM10 0
+				>;
+			};
+			pinctrl_PWM11: PWM11 {
+				fh,pins = <
+					&mux_PWM11 0
+				>;
+			};
+			pinctrl_PWM2: PWM2 {
+				fh,pins = <
+					&mux_PWM2 0
+				>;
+			};
+			pinctrl_PWM3: PWM3 {
+				fh,pins = <
+					&mux_PWM3 0
+				>;
+			};
+			pinctrl_PWM4: PWM4 {
+				fh,pins = <
+					&mux_PWM4 0
+				>;
+			};
+			pinctrl_PWM5: PWM5 {
+				fh,pins = <
+					&mux_PWM5 0
+				>;
+			};
+			pinctrl_PWM6: PWM6 {
+				fh,pins = <
+					&mux_PWM6 1
+				>;
+			};
+			pinctrl_PWM7: PWM7 {
+				fh,pins = <
+					&mux_PWM7 1
+				>;
+			};
+			pinctrl_PWM8: PWM8 {
+				fh,pins = <
+					&mux_PWM8 1
+				>;
+			};
+			pinctrl_PWM9: PWM9 {
+				fh,pins = <
+					&mux_PWM9 1
+				>;
+			};
+			pinctrl_RMII: RMII {
+				fh,pins = <
+					&mux_MAC_MDC 0
+					&mux_MAC_MDIO 0
+					&mux_MAC_REF_CLK 0
+					&mux_MAC_RMII_CLK 0
+					&mux_MAC_RXDV 0
+					&mux_MAC_RXD_0 0
+					&mux_MAC_RXD_1 0
+					&mux_MAC_TXD_0 0
+					&mux_MAC_TXD_1 0
+					&mux_MAC_TXEN 0
+				>;
+			};
+			pinctrl_RTC: RTC {
+				fh,pins = <
+					&mux_RTC_CLK 0
+				>;
+			};
+			pinctrl_SADC_XAIN0: SADC_XAIN0 {
+				fh,pins = <
+					&mux_SADC_XAIN0 0
+				>;
+			};
+			pinctrl_SADC_XAIN1: SADC_XAIN1 {
+				fh,pins = <
+					&mux_SADC_XAIN1 0
+				>;
+			};
+			pinctrl_SADC_XAIN2: SADC_XAIN2 {
+				fh,pins = <
+					&mux_SADC_XAIN2 0
+				>;
+			};
+			pinctrl_SADC_XAIN3: SADC_XAIN3 {
+				fh,pins = <
+					&mux_SADC_XAIN3 0
+				>;
+			};
+			pinctrl_SD0: SD0 {
+				fh,pins = <
+					&mux_SD0_CD 0
+					&mux_SD0_CLK 0
+					&mux_SD0_CMD_RSP 0
+					&mux_SD0_DATA_0 0
+					&mux_SD0_DATA_1 0
+					&mux_SD0_DATA_2 0
+					&mux_SD0_DATA_3 0
+				>;
+			};
+			pinctrl_SD0_1BIT_NO_WP: SD0_1BIT_NO_WP {
+				fh,pins = <
+					&mux_SD0_CD 0
+					&mux_SD0_CLK 0
+					&mux_SD0_CMD_RSP 0
+					&mux_SD0_DATA_0 0
+				>;
+			};
+			pinctrl_SD0_NO_WP: SD0_NO_WP {
+				fh,pins = <
+					&mux_SD0_CD 0
+					&mux_SD0_CLK 0
+					&mux_SD0_CMD_RSP 0
+					&mux_SD0_DATA_0 0
+					&mux_SD0_DATA_1 0
+					&mux_SD0_DATA_2 0
+					&mux_SD0_DATA_3 0
+				>;
+			};
+			pinctrl_SD0_WIFI: SD0_WIFI {
+				fh,pins = <
+					&mux_SD0_CLK 0
+					&mux_SD0_CMD_RSP 0
+					&mux_SD0_DATA_0 0
+					&mux_SD0_DATA_1 0
+					&mux_SD0_DATA_2 0
+					&mux_SD0_DATA_3 0
+				>;
+			};
+			pinctrl_SD1: SD1 {
+				fh,pins = <
+					&mux_SD1_CD 2
+					&mux_SD1_CLK 2
+					&mux_SD1_CMD_RSP 2
+					&mux_SD1_DATA_0 2
+					&mux_SD1_DATA_1 2
+					&mux_SD1_DATA_2 2
+					&mux_SD1_DATA_3 2
+				>;
+			};
+			pinctrl_SD1_1BIT_NO_WP: SD1_1BIT_NO_WP {
+				fh,pins = <
+					&mux_SD1_CD 2
+					&mux_SD1_CLK 2
+					&mux_SD1_CMD_RSP 2
+					&mux_SD1_DATA_0 2
+				>;
+			};
+			pinctrl_SD1_NO_WP: SD1_NO_WP {
+				fh,pins = <
+					&mux_SD1_CD 2
+					&mux_SD1_CLK 2
+					&mux_SD1_CMD_RSP 2
+					&mux_SD1_DATA_0 2
+					&mux_SD1_DATA_1 2
+					&mux_SD1_DATA_2 2
+					&mux_SD1_DATA_3 2
+				>;
+			};
+			pinctrl_SD1_WIFI: SD1_WIFI {
+				fh,pins = <
+					&mux_SD1_CLK 2
+					&mux_SD1_CMD_RSP 2
+					&mux_SD1_DATA_0 2
+					&mux_SD1_DATA_1 2
+					&mux_SD1_DATA_2 2
+					&mux_SD1_DATA_3 2
+				>;
+			};
+			pinctrl_SENSOR_CLK: SENSOR_CLK {
+				fh,pins = <
+					&mux_SENSOR_CLK 0
+				>;
+			};
+			pinctrl_SSI0: SSI0 {
+				fh,pins = <
+					&mux_GPIO6 0
+					&mux_SSI0_CLK 0
+					&mux_SSI0_RXD 0
+					&mux_SSI0_TXD 0
+				>;
+			};
+			pinctrl_SSI0_4BIT: SSI0_4BIT {
+				fh,pins = <
+					&mux_GPIO6 0
+					&mux_SSI0_CLK 0
+					&mux_SSI0_D2 0
+					&mux_SSI0_D3 0
+					&mux_SSI0_RXD 0
+					&mux_SSI0_TXD 0
+				>;
+			};
+			pinctrl_SSI1: SSI1 {
+				fh,pins = <
+					&mux_GPIO14 0
+					&mux_SSI1_CLK 2
+					&mux_SSI1_RXD 2
+					&mux_SSI1_TXD 2
+				>;
+			};
+			pinctrl_SSI2: SSI2 {
+				fh,pins = <
+					&mux_SSI2_CLK 1
+					&mux_SSI2_CSN_0 1
+					&mux_SSI2_RXD 1
+					&mux_SSI2_TXD 1
+				>;
+			};
+			pinctrl_UART0: UART0 {
+				fh,pins = <
+					&mux_UART0_RX 0
+					&mux_UART0_TX 0
+				>;
+			};
+			pinctrl_UART1: UART1 {
+				fh,pins = <
+					&mux_UART1_RX 0
+					&mux_UART1_TX 0
+				>;
+			};
+			pinctrl_UART2: UART2 {
+				fh,pins = <
+					&mux_UART2_RX 0
+					&mux_UART2_TX 0
+				>;
+			};
+			pinctrl_USB: USB {
+				fh,pins = <
+					&mux_USB_PWREN 0
+				>;
+			};
+			pinctrl_GPIO0: GPIO0 {
+				fh,pins = <
+					&mux_GPIO0 0
+				>;
+			};
+			pinctrl_GPIO1: GPIO1 {
+				fh,pins = <
+					&mux_GPIO1 0
+				>;
+			};
+			pinctrl_GPIO2: GPIO2 {
+				fh,pins = <
+					&mux_GPIO2 0
+				>;
+			};
+			pinctrl_GPIO3: GPIO3 {
+				fh,pins = <
+					&mux_GPIO3 0
+				>;
+			};
+			pinctrl_GPIO4: GPIO4 {
+				fh,pins = <
+					&mux_GPIO4 0
+				>;
+			};
+			pinctrl_GPIO5: GPIO5 {
+				fh,pins = <
+					&mux_GPIO5 0
+				>;
+			};
+			pinctrl_GPIO6: GPIO6 {
+				fh,pins = <
+					&mux_GPIO6 0
+				>;
+			};
+			pinctrl_GPIO7: GPIO7 {
+				fh,pins = <
+					&mux_GPIO7 0
+				>;
+			};
+			pinctrl_GPIO8: GPIO8 {
+				fh,pins = <
+					&mux_GPIO8 0
+				>;
+			};
+			pinctrl_GPIO9: GPIO9 {
+				fh,pins = <
+					&mux_GPIO9 0
+				>;
+			};
+			pinctrl_GPIO10: GPIO10 {
+				fh,pins = <
+					&mux_GPIO10 0
+				>;
+			};
+			pinctrl_GPIO11: GPIO11 {
+				fh,pins = <
+					&mux_GPIO11 0
+				>;
+			};
+			pinctrl_GPIO12: GPIO12 {
+				fh,pins = <
+					&mux_GPIO12 0
+				>;
+			};
+			pinctrl_GPIO13: GPIO13 {
+				fh,pins = <
+					&mux_GPIO13 0
+				>;
+			};
+			pinctrl_GPIO14: GPIO14 {
+				fh,pins = <
+					&mux_GPIO14 0
+				>;
+			};
+			pinctrl_GPIO15: GPIO15 {
+				fh,pins = <
+					&mux_GPIO15 0
+				>;
+			};
+			pinctrl_GPIO16: GPIO16 {
+				fh,pins = <
+					&mux_GPIO16 0
+				>;
+			};
+			pinctrl_GPIO17: GPIO17 {
+				fh,pins = <
+					&mux_GPIO17 0
+				>;
+			};
+			pinctrl_GPIO18: GPIO18 {
+				fh,pins = <
+					&mux_GPIO18 0
+				>;
+			};
+			pinctrl_GPIO19: GPIO19 {
+				fh,pins = <
+					&mux_GPIO19 0
+				>;
+			};
+			pinctrl_GPIO20: GPIO20 {
+				fh,pins = <
+					&mux_GPIO20 0
+				>;
+			};
+			pinctrl_GPIO21: GPIO21 {
+				fh,pins = <
+					&mux_GPIO21 0
+				>;
+			};
+			pinctrl_GPIO22: GPIO22 {
+				fh,pins = <
+					&mux_GPIO22 0
+				>;
+			};
+			pinctrl_GPIO23: GPIO23 {
+				fh,pins = <
+					&mux_GPIO23 0
+				>;
+			};
+			pinctrl_GPIO24: GPIO24 {
+				fh,pins = <
+					&mux_GPIO24 0
+				>;
+			};
+			pinctrl_GPIO25: GPIO25 {
+				fh,pins = <
+					&mux_GPIO25 0
+				>;
+			};
+			pinctrl_GPIO26: GPIO26 {
+				fh,pins = <
+					&mux_GPIO26 0
+				>;
+			};
+			pinctrl_GPIO27: GPIO27 {
+				fh,pins = <
+					&mux_GPIO27 0
+				>;
+			};
+			pinctrl_GPIO28: GPIO28 {
+				fh,pins = <
+					&mux_GPIO28 0
+				>;
+			};
+			pinctrl_GPIO29: GPIO29 {
+				fh,pins = <
+					&mux_GPIO29 0
+				>;
+			};
+			pinctrl_GPIO30: GPIO30 {
+				fh,pins = <
+					&mux_GPIO30 0
+				>;
+			};
+			pinctrl_GPIO31: GPIO31 {
+				fh,pins = <
+					&mux_GPIO31 0
+				>;
+			};
+			pinctrl_GPIO32: GPIO32 {
+				fh,pins = <
+					&mux_GPIO32 0
+				>;
+			};
+			pinctrl_GPIO33: GPIO33 {
+				fh,pins = <
+					&mux_GPIO33 0
+				>;
+			};
+			pinctrl_GPIO34: GPIO34 {
+				fh,pins = <
+					&mux_GPIO34 0
+				>;
+			};
+			pinctrl_GPIO35: GPIO35 {
+				fh,pins = <
+					&mux_GPIO35 0
+				>;
+			};
+			pinctrl_GPIO36: GPIO36 {
+				fh,pins = <
+					&mux_GPIO36 0
+				>;
+			};
+			pinctrl_GPIO37: GPIO37 {
+				fh,pins = <
+					&mux_GPIO37 0
+				>;
+			};
+			pinctrl_GPIO38: GPIO38 {
+				fh,pins = <
+					&mux_GPIO38 0
+				>;
+			};
+			pinctrl_GPIO39: GPIO39 {
+				fh,pins = <
+					&mux_GPIO39 0
+				>;
+			};
+			pinctrl_GPIO40: GPIO40 {
+				fh,pins = <
+					&mux_GPIO40 0
+				>;
+			};
+			pinctrl_GPIO41: GPIO41 {
+				fh,pins = <
+					&mux_GPIO41 0
+				>;
+			};
+			pinctrl_GPIO42: GPIO42 {
+				fh,pins = <
+					&mux_GPIO42 0
+				>;
+			};
+			pinctrl_GPIO43: GPIO43 {
+				fh,pins = <
+					&mux_GPIO43 0
+				>;
+			};
+			pinctrl_GPIO44: GPIO44 {
+				fh,pins = <
+					&mux_GPIO44 0
+				>;
+			};
+			pinctrl_GPIO45: GPIO45 {
+				fh,pins = <
+					&mux_GPIO45 0
+				>;
+			};
+			pinctrl_GPIO46: GPIO46 {
+				fh,pins = <
+					&mux_GPIO46 0
+				>;
+			};
+			pinctrl_GPIO47: GPIO47 {
+				fh,pins = <
+					&mux_GPIO47 0
+				>;
+			};
+			pinctrl_GPIO48: GPIO48 {
+				fh,pins = <
+					&mux_GPIO48 0
+				>;
+			};
+			pinctrl_GPIO49: GPIO49 {
+				fh,pins = <
+					&mux_GPIO49 0
+				>;
+			};
+			pinctrl_GPIO50: GPIO50 {
+				fh,pins = <
+					&mux_GPIO50 0
+				>;
+			};
+			pinctrl_GPIO51: GPIO51 {
+				fh,pins = <
+					&mux_GPIO51 0
+				>;
+			};
+			pinctrl_GPIO52: GPIO52 {
+				fh,pins = <
+					&mux_GPIO52 0
+				>;
+			};
+			pinctrl_GPIO53: GPIO53 {
+				fh,pins = <
+					&mux_GPIO53 0
+				>;
+			};
+			pinctrl_GPIO54: GPIO54 {
+				fh,pins = <
+					&mux_GPIO54 0
+				>;
+			};
+			pinctrl_GPIO55: GPIO55 {
+				fh,pins = <
+					&mux_GPIO55 0
+				>;
+			};
+			pinctrl_GPIO56: GPIO56 {
+				fh,pins = <
+					&mux_GPIO56 0
+				>;
+			};
+			pinctrl_GPIO57: GPIO57 {
+				fh,pins = <
+					&mux_GPIO57 0
+				>;
+			};
+			pinctrl_GPIO58: GPIO58 {
+				fh,pins = <
+					&mux_GPIO58 0
+				>;
+			};
+			pinctrl_GPIO59: GPIO59 {
+				fh,pins = <
+					&mux_GPIO59 0
+				>;
+			};
+			pinctrl_GPIO60: GPIO60 {
+				fh,pins = <
+					&mux_GPIO60 0
+				>;
+			};
+			pinctrl_GPIO61: GPIO61 {
+				fh,pins = <
+					&mux_GPIO61 0
+				>;
+			};
+			pinctrl_GPIO62: GPIO62 {
+				fh,pins = <
+					&mux_GPIO62 0
+				>;
+			};
+			pinctrl_GPIO63: GPIO63 {
+				fh,pins = <
+					&mux_GPIO63 0
+				>;
+			};
+			pinctrl_SD1_EMMC: SD1_EMMC {
+				fh,pins = <
+					&mux_SD1_CD 3
+					&mux_SD1_CLK 3
+					&mux_SD1_CMD_RSP 3
+					&mux_SD1_DATA_0 3
+					&mux_SD1_DATA_1 3
+					&mux_SD1_DATA_2 3
+					&mux_SD1_DATA_3 3
+				>;
+			};
+		};
+		pinmux: pinmux {
+			compatible = "fh,fh-pinmux";
+			#list-cells = <1>;
+			mux_AC_I2S_CLK: AC_I2S_CLK {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad39
+				>;
+			};
+			mux_AC_I2S_DI: AC_I2S_DI {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad38
+				>;
+			};
+			mux_AC_I2S_DO: AC_I2S_DO {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad37
+				>;
+			};
+			mux_AC_I2S_WS: AC_I2S_WS {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad40
+				>;
+			};
+			mux_AC_MCLK: AC_MCLK {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad41
+				>;
+			};
+
+			mux_ARC_JTAG_TCK: ARC_JTAG_TCK {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad55
+				>;
+			};
+			mux_ARC_JTAG_TDI: ARC_JTAG_TDI {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad54
+				>;
+			};
+			mux_ARC_JTAG_TDO: ARC_JTAG_TDO {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad53
+				>;
+			};
+			mux_ARC_JTAG_TMS: ARC_JTAG_TMS {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad56
+				>;
+			};
+			mux_ARC_JTAG_TRSTN: ARC_JTAG_TRSTN {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad52
+				>;
+			};
+
+			mux_ARM_JTAG_TCK: ARM_JTAG_TCK {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad40
+				>;
+			};
+			mux_ARM_JTAG_TDI: ARM_JTAG_TDI {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad39
+				>;
+			};
+			mux_ARM_JTAG_TDO: ARM_JTAG_TDO {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad38
+				>;
+			};
+			mux_ARM_JTAG_TMS: ARM_JTAG_TMS {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad41
+				>;
+			};
+			mux_ARM_JTAG_TRSTN: ARM_JTAG_TRSTN {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad37
+				>;
+			};
+
+			mux_DW_I2S_CLK: DW_I2S_CLK {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad39
+				>;
+			};
+			mux_DW_I2S_DI: DW_I2S_DI {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad38
+				>;
+			};
+			mux_DW_I2S_DO: DW_I2S_DO {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad37
+				>;
+			};
+			mux_DW_I2S_WS: DW_I2S_WS {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad40
+				>;
+			};
+
+			mux_ETH_LINK_ACT: ETH_LINK_ACT {
+				#list-cells = <1>;
+				select = <1>;
+				fh,pads = <
+					&pad1
+					&pad63
+				>;
+			};
+			mux_ETH_LINK_SPD: ETH_LINK_SPD {
+				#list-cells = <1>;
+				select = <1>;
+				fh,pads = <
+					&pad2
+					&pad64
+				>;
+			};
+			mux_ETH_LINK_STA: ETH_LINK_STA {
+				#list-cells = <1>;
+				select = <1>;
+				fh,pads = <
+					&pad2
+					&pad64
+				>;
+			};
+
+			mux_I2C0_SCL: I2C0_SCL {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad5
+				>;
+			};
+			mux_I2C0_SDA: I2C0_SDA {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad6
+				>;
+			};
+
+			mux_I2C1_SCL: I2C1_SCL {
+				#list-cells = <1>;
+				select = <2>;
+				fh,pads = <
+					&pad11
+					&pad30
+					&pad46
+				>;
+			};
+			mux_I2C1_SDA: I2C1_SDA {
+				#list-cells = <1>;
+				select = <2>;
+				fh,pads = <
+					&pad12
+					&pad31
+					&pad47
+				>;
+			};
+
+			mux_I2C2_SCL: I2C2_SCL {
+				#list-cells = <1>;
+				select = <1>;
+				fh,pads = <
+					&pad16
+					&pad57
+				>;
+			};
+			mux_I2C2_SDA: I2C2_SDA {
+				#list-cells = <1>;
+				select = <1>;
+				fh,pads = <
+					&pad17
+					&pad58
+				>;
+			};
+
+			mux_MAC_MDC: MAC_MDC {
+				#list-cells = <1>;
+				select = <0>;
+				ds = <0>;
+				fh,pads = <
+					&pad28
+					&pad63
+				>;
+			};
+			mux_MAC_MDIO: MAC_MDIO {
+				#list-cells = <1>;
+				select = <0>;
+				ds = <0>;
+				fh,pads = <
+					&pad29
+					&pad64
+				>;
+			};
+			mux_MAC_REF_CLK: MAC_REF_CLK {
+				#list-cells = <1>;
+				select = <0>;
+				ds = <2>;
+				fh,pads = <
+					&pad21
+				>;
+			};
+			mux_MAC_RMII_CLK: MAC_RMII_CLK {
+				#list-cells = <1>;
+				select = <0>;
+				ds = <2>;
+				fh,pads = <
+					&pad20
+				>;
+			};
+			mux_MAC_RXDV: MAC_RXDV {
+				#list-cells = <1>;
+				select = <0>;
+				ds = <2>;
+				fh,pads = <
+					&pad27
+				>;
+			};
+			mux_MAC_RXD_0: MAC_RXD_0 {
+				#list-cells = <1>;
+				select = <0>;
+				ds = <2>;
+				fh,pads = <
+					&pad25
+				>;
+			};
+			mux_MAC_RXD_1: MAC_RXD_1 {
+				#list-cells = <1>;
+				select = <0>;
+				ds = <2>;
+				fh,pads = <
+					&pad26
+				>;
+			};
+			mux_MAC_TXD_0: MAC_TXD_0 {
+				#list-cells = <1>;
+				select = <0>;
+				ds = <2>;
+				fh,pads = <
+					&pad22
+				>;
+			};
+			mux_MAC_TXD_1: MAC_TXD_1 {
+				#list-cells = <1>;
+				select = <0>;
+				ds = <2>;
+				fh,pads = <
+					&pad23
+				>;
+			};
+			mux_MAC_TXEN: MAC_TXEN {
+				#list-cells = <1>;
+				select = <0>;
+				ds = <2>;
+				fh,pads = <
+					&pad24
+				>;
+			};
+
+			mux_PAE_JTAG_TCK: PAE_JTAG_TCK {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad55
+				>;
+			};
+			mux_PAE_JTAG_TDI: PAE_JTAG_TDI {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad54
+				>;
+			};
+			mux_PAE_JTAG_TDO: PAE_JTAG_TDO {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad53
+				>;
+			};
+			mux_PAE_JTAG_TMS: PAE_JTAG_TMS {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad56
+				>;
+			};
+			mux_PAE_JTAG_TRSTN: PAE_JTAG_TRSTN {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad52
+				>;
+			};
+
+			mux_PWM0: PWM0 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad16
+				>;
+			};
+			mux_PWM1: PWM1 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad17
+				>;
+			};
+			mux_PWM10: PWM10 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad63
+				>;
+			};
+			mux_PWM11: PWM11 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad64
+				>;
+			};
+			mux_PWM2: PWM2 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad11
+					&pad18
+					&pad20
+				>;
+			};
+			mux_PWM3: PWM3 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad12
+					&pad19
+					&pad22
+				>;
+			};
+			mux_PWM4: PWM4 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad13
+					&pad23
+				>;
+			};
+			mux_PWM5: PWM5 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad14
+					&pad24
+				>;
+			};
+			mux_PWM6: PWM6 {
+				#list-cells = <1>;
+				select = <1>;
+				fh,pads = <
+					&pad25
+					&pad37
+				>;
+			};
+			mux_PWM7: PWM7 {
+				#list-cells = <1>;
+				select = <1>;
+				fh,pads = <
+					&pad26
+					&pad38
+				>;
+			};
+			mux_PWM8: PWM8 {
+				#list-cells = <1>;
+				select = <1>;
+				fh,pads = <
+					&pad27
+					&pad39
+				>;
+			};
+			mux_PWM9: PWM9 {
+				#list-cells = <1>;
+				select = <1>;
+				fh,pads = <
+					&pad28
+					&pad40
+				>;
+			};
+
+			mux_RTC_CLK: RTC_CLK {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad64
+				>;
+			};
+
+			mux_SADC_XAIN0: SADC_XAIN0 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad59
+				>;
+			};
+			mux_SADC_XAIN1: SADC_XAIN1 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad60
+				>;
+			};
+			mux_SADC_XAIN2: SADC_XAIN2 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad61
+				>;
+			};
+			mux_SADC_XAIN3: SADC_XAIN3 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad62
+				>;
+			};
+
+			mux_SD0_CD: SD0_CD {
+				#list-cells = <1>;
+				select = <0>;
+				ds = <2>;
+				fh,pads = <
+					&pad52
+				>;
+			};
+			mux_SD0_CLK: SD0_CLK {
+				#list-cells = <1>;
+				select = <0>;
+				ds = <2>;
+				fh,pads = <
+					&pad53
+				>;
+			};
+			mux_SD0_CMD_RSP: SD0_CMD_RSP {
+				#list-cells = <1>;
+				select = <0>;
+				ds = <2>;
+				fh,pads = <
+					&pad54
+				>;
+			};
+			mux_SD0_DATA_0: SD0_DATA_0 {
+				#list-cells = <1>;
+				select = <0>;
+				ds = <2>;
+				fh,pads = <
+					&pad55
+				>;
+			};
+			mux_SD0_DATA_1: SD0_DATA_1 {
+				#list-cells = <1>;
+				select = <0>;
+				ds = <2>;
+				fh,pads = <
+					&pad56
+				>;
+			};
+			mux_SD0_DATA_2: SD0_DATA_2 {
+				#list-cells = <1>;
+				select = <0>;
+				ds = <2>;
+				fh,pads = <
+					&pad57
+				>;
+			};
+			mux_SD0_DATA_3: SD0_DATA_3 {
+				#list-cells = <1>;
+				select = <0>;
+				ds = <2>;
+				fh,pads = <
+					&pad58
+				>;
+			};
+
+			mux_SD1_CD: SD1_CD {
+				#list-cells = <1>;
+				select = <2>;
+				ds = <2>;
+				fh,pads = <
+					&pad10
+					&pad22
+					&pad31
+					&pad41
+					&pad63
+				>;
+			};
+			mux_SD1_CLK: SD1_CLK {
+				#list-cells = <1>;
+				select = <2>;
+				ds = <2>;
+				fh,pads = <
+					&pad9
+					&pad20
+					&pad30
+					&pad42
+				>;
+			};
+			mux_SD1_CMD_RSP: SD1_CMD_RSP {
+				#list-cells = <1>;
+				select = <2>;
+				ds = <2>;
+				fh,pads = <
+					&pad11
+					&pad23
+					&pad32
+					&pad43
+				>;
+			};
+			mux_SD1_DATA_0: SD1_DATA_0 {
+				#list-cells = <1>;
+				select = <2>;
+				ds = <2>;
+				fh,pads = <
+					&pad12
+					&pad24
+					&pad33
+					&pad44
+				>;
+			};
+			mux_SD1_DATA_1: SD1_DATA_1 {
+				#list-cells = <1>;
+				select = <2>;
+				ds = <2>;
+				fh,pads = <
+					&pad13
+					&pad25
+					&pad34
+					&pad45
+				>;
+			};
+			mux_SD1_DATA_2: SD1_DATA_2 {
+				#list-cells = <1>;
+				select = <2>;
+				ds = <2>;
+				fh,pads = <
+					&pad14
+					&pad26
+					&pad35
+					&pad46
+				>;
+			};
+			mux_SD1_DATA_3: SD1_DATA_3 {
+				#list-cells = <1>;
+				select = <2>;
+				ds = <2>;
+				fh,pads = <
+					&pad15
+					&pad27
+					&pad36
+					&pad47
+				>;
+			};
+
+			mux_SENSOR_CLK: SENSOR_CLK {
+				#list-cells = <1>;
+				select = <0>;
+				ds = <4>;
+				fh,pads = <
+					&pad7
+				>;
+			};
+
+			mux_SSI0_CLK: SSI0_CLK {
+				#list-cells = <1>;
+				select = <0>;
+				ds = <4>;
+				fh,pads = <
+					&pad42
+				>;
+			};
+			mux_SSI0_D2: SSI0_D2 {
+				#list-cells = <1>;
+				select = <0>;
+				ds = <4>;
+				fh,pads = <
+					&pad46
+				>;
+			};
+			mux_SSI0_D3: SSI0_D3 {
+				#list-cells = <1>;
+				select = <0>;
+				ds = <4>;
+				fh,pads = <
+					&pad47
+				>;
+			};
+			mux_SSI0_RXD: SSI0_RXD {
+				#list-cells = <1>;
+				select = <0>;
+				ds = <4>;
+				fh,pads = <
+					&pad45
+				>;
+			};
+			mux_SSI0_TXD: SSI0_TXD {
+				#list-cells = <1>;
+				select = <0>;
+				ds = <4>;
+				fh,pads = <
+					&pad44
+				>;
+			};
+
+			mux_SSI1_CLK: SSI1_CLK {
+				#list-cells = <1>;
+				select = <2>;
+				ds = <2>;
+				fh,pads = <
+					&pad11
+					&pad37
+					&pad48
+					&pad53
+				>;
+			};
+			mux_SSI1_RXD: SSI1_RXD {
+				#list-cells = <1>;
+				select = <2>;
+				ds = <2>;
+				fh,pads = <
+					&pad14
+					&pad40
+					&pad51
+					&pad55
+				>;
+			};
+			mux_SSI1_TXD: SSI1_TXD {
+				#list-cells = <1>;
+				select = <2>;
+				ds = <2>;
+				fh,pads = <
+					&pad13
+					&pad39
+					&pad50
+					&pad54
+				>;
+			};
+
+			mux_SSI2_CLK: SSI2_CLK {
+				#list-cells = <1>;
+				select = <1>;
+				ds = <2>;
+				fh,pads = <
+					&pad37
+					&pad48
+				>;
+			};
+			mux_SSI2_CSN_0: SSI2_CSN_0 {
+				#list-cells = <1>;
+				select = <1>;
+				ds = <2>;
+				fh,pads = <
+					&pad38
+					&pad49
+				>;
+			};
+			mux_SSI2_RXD: SSI2_RXD {
+				#list-cells = <1>;
+				select = <1>;
+				ds = <2>;
+				fh,pads = <
+					&pad40
+					&pad51
+				>;
+			};
+			mux_SSI2_TXD: SSI2_TXD {
+				#list-cells = <1>;
+				select = <1>;
+				ds = <2>;
+				fh,pads = <
+					&pad39
+					&pad50
+				>;
+			};
+
+			mux_UART0_RX: UART0_RX {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad4
+				>;
+			};
+			mux_UART0_TX: UART0_TX {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad3
+				>;
+			};
+
+			mux_UART1_RX: UART1_RX {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad10
+					&pad33
+					&pad47
+				>;
+			};
+			mux_UART1_TX: UART1_TX {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad9
+					&pad32
+					&pad46
+				>;
+			};
+
+			mux_UART2_RX: UART2_RX {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad14
+					&pad17
+					&pad35
+					&pad58
+				>;
+			};
+			mux_UART2_TX: UART2_TX {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad13
+					&pad16
+					&pad34
+					&pad57
+				>;
+			};
+
+			mux_USB_PWREN: USB_PWREN {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad15
+					&pad41
+				>;
+			};
+
+			mux_GPIO0: GPIO0 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad37
+				>;
+			};
+			mux_GPIO1: GPIO1 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad38
+				>;
+			};
+			mux_GPIO2: GPIO2 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad39
+				>;
+			};
+			mux_GPIO3: GPIO3 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad40
+				>;
+			};
+			mux_GPIO4: GPIO4 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad41
+				>;
+			};
+			mux_GPIO5: GPIO5 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad42
+				>;
+			};
+			mux_GPIO6: GPIO6 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad43
+				>;
+			};
+			mux_GPIO7: GPIO7 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad44
+				>;
+			};
+			mux_GPIO8: GPIO8 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad45
+				>;
+			};
+			mux_GPIO9: GPIO9 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad46
+				>;
+			};
+			mux_GPIO10: GPIO10 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad47
+				>;
+			};
+			mux_GPIO11: GPIO11 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad48
+				>;
+			};
+			mux_GPIO12: GPIO12 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad7
+				>;
+			};
+			mux_GPIO13: GPIO13 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad8
+				>;
+			};
+			mux_GPIO14: GPIO14 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad49
+				>;
+			};
+			mux_GPIO15: GPIO15 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad50
+				>;
+			};
+			mux_GPIO16: GPIO16 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad51
+				>;
+			};
+			mux_GPIO17: GPIO17 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad52
+				>;
+			};
+			mux_GPIO18: GPIO18 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad53
+				>;
+			};
+			mux_GPIO19: GPIO19 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad54
+				>;
+			};
+			mux_GPIO20: GPIO20 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad55
+				>;
+			};
+			mux_GPIO21: GPIO21 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad56
+				>;
+			};
+			mux_GPIO22: GPIO22 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad57
+				>;
+			};
+			mux_GPIO23: GPIO23 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad58
+				>;
+			};
+			mux_GPIO24: GPIO24 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad61
+				>;
+			};
+			mux_GPIO25: GPIO25 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad62
+				>;
+			};
+			mux_GPIO26: GPIO26 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad59
+				>;
+			};
+			mux_GPIO27: GPIO27 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad60
+				>;
+			};
+			mux_GPIO28: GPIO28 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad63
+				>;
+			};
+			mux_GPIO29: GPIO29 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad64
+				>;
+			};
+			mux_GPIO30: GPIO30 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad0
+				>;
+			};
+			mux_GPIO31: GPIO31 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad1
+				>;
+			};
+			mux_GPIO32: GPIO32 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad2
+				>;
+			};
+			mux_GPIO33: GPIO33 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad3
+				>;
+			};
+			mux_GPIO34: GPIO34 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad4
+				>;
+			};
+			mux_GPIO35: GPIO35 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad5
+				>;
+			};
+			mux_GPIO36: GPIO36 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad6
+				>;
+			};
+			mux_GPIO37: GPIO37 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad11
+				>;
+			};
+			mux_GPIO38: GPIO38 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad12
+				>;
+			};
+			mux_GPIO39: GPIO39 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad9
+				>;
+			};
+			mux_GPIO40: GPIO40 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad10
+				>;
+			};
+			mux_GPIO41: GPIO41 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad13
+				>;
+			};
+			mux_GPIO42: GPIO42 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad14
+				>;
+			};
+			mux_GPIO43: GPIO43 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad16
+				>;
+			};
+			mux_GPIO44: GPIO44 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad17
+				>;
+			};
+			mux_GPIO45: GPIO45 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad18
+				>;
+			};
+			mux_GPIO46: GPIO46 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad19
+				>;
+			};
+			mux_GPIO47: GPIO47 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad15
+				>;
+			};
+			mux_GPIO48: GPIO48 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad20
+				>;
+			};
+			mux_GPIO49: GPIO49 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad22
+				>;
+			};
+			mux_GPIO50: GPIO50 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad23
+				>;
+			};
+			mux_GPIO51: GPIO51 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad24
+				>;
+			};
+			mux_GPIO52: GPIO52 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad25
+				>;
+			};
+			mux_GPIO53: GPIO53 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad26
+				>;
+			};
+			mux_GPIO54: GPIO54 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad27
+				>;
+			};
+			mux_GPIO55: GPIO55 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad28
+				>;
+			};
+			mux_GPIO56: GPIO56 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad29
+				>;
+			};
+			mux_GPIO57: GPIO57 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad30
+				>;
+			};
+			mux_GPIO58: GPIO58 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad31
+				>;
+			};
+			mux_GPIO59: GPIO59 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad32
+				>;
+			};
+			mux_GPIO60: GPIO60 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad33
+				>;
+			};
+			mux_GPIO61: GPIO61 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad34
+				>;
+			};
+			mux_GPIO62: GPIO62 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad35
+				>;
+			};
+			mux_GPIO63: GPIO63 {
+				#list-cells = <1>;
+				select = <0>;
+				fh,pads = <
+					&pad36
+				>;
+			};
+		};
+		pinpad: pinpad {
+			compatible = "fh,fh-pinpad";
+			pad0: PAD_BOOT_MODE_CFG {
+				index = <0>;
+				funcs = "GPIO30";
+				pupd = <1>;
+				ds = <0>;
+			};
+			pad1: PAD_BOOT_SEL1_CFG {
+				index = <1>;
+				funcs = "GPIO31", "ETH_LINK_ACT";
+				pupd = <1>;
+				ds = <0>;
+			};
+			pad2: PAD_BOOT_SEL0_CFG {
+				index = <2>;
+				funcs = "GPIO32", "ETH_LINK_STA", "ETH_LINK_SPD";
+				pupd = <1>;
+				ds = <0>;
+			};
+			pad3: PAD_UART0_TX_CFG {
+				index = <3>;
+				funcs = "UART0_TX", "GPIO33";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad4: PAD_UART0_RX_CFG {
+				index = <4>;
+				funcs = "UART0_RX", "GPIO34";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad5: PAD_I2C0_SCL_CFG {
+				index = <5>;
+				funcs = "I2C0_SCL", "GPIO35";
+				pupd = <1>;
+				ds = <0>;
+			};
+			pad6: PAD_I2C0_SDA_CFG {
+				index = <6>;
+				funcs = "I2C0_SDA", "GPIO36";
+				pupd = <1>;
+				ds = <0>;
+			};
+			pad7: PAD_SENSOR_CLK_CFG {
+				index = <7>;
+				funcs = "SENSOR_CLK", "GPIO12";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad8: PAD_SENSOR_RSTN_CFG {
+				index = <8>;
+				funcs = "GPIO13";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad9: PAD_UART1_TX_CFG {
+				index = <9>;
+				funcs = "UART1_TX", "GPIO39", "", "SD1_CLK", "", "",
+						"TEST_O_INT_RMII_CLK";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad10: PAD_UART1_RX_CFG {
+				index = <10>;
+				funcs = "UART1_RX", "GPIO40", "", "SD1_CD", "", "",
+						"TEST_INT_RMII_TXD_0";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad11: PAD_I2C1_SCL_CFG {
+				index = <11>;
+				funcs = "I2C1_SCL", "GPIO37", "PWM2", "SD1_CMD_RSP", "",
+						"SSI1_CLK", "TEST_INT_RMII_TXD_1";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad12: PAD_I2C1_SDA_CFG {
+				index = <12>;
+				funcs = "I2C1_SDA", "GPIO38", "PWM3", "SD1_DATA_0", "",
+						"SSI1_CSN_0", "TEST_INT_RMII_TXEN";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad13: PAD_UART2_TX_CFG {
+				index = <13>;
+				funcs = "UART2_TX", "GPIO41", "PWM4", "SD1_DATA_1", "",
+						"SSI1_TXD", "TEST_O_INT_RMII_RXD_0";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad14: PAD_UART2_RX_CFG {
+				index = <14>;
+				funcs = "UART2_RX", "GPIO42", "PWM5", "SD1_DATA_2", "",
+						"SSI1_RXD", "TEST_O_INT_RMII_RXD_1";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad15: PAD_USB_PWREN_CFG {
+				index = <15>;
+				funcs = "USB_PWREN", "GPIO47", "", "SD1_DATA_3", "", "",
+						"TEST_O_INT_RMII_CRSDV";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad16: PAD_PWM0_CFG {
+				index = <16>;
+				funcs = "PWM0", "GPIO43", "I2C2_SCL", "UART2_TX", "", "",
+						"TEST_O_INT_RMII_TXD_0";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad17: PAD_PWM1_CFG {
+				index = <17>;
+				funcs = "PWM1", "GPIO44", "I2C2_SDA", "UART2_RX", "", "",
+						"TEST_O_INT_RMII_TXD_1";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad18: PAD_PWM2_CFG {
+				index = <18>;
+				funcs = "PWM2", "GPIO45";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad19: PAD_PWM3_CFG {
+				index = <19>;
+				funcs = "PWM3", "GPIO46";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad20: PAD_MAC_RMII_CLK_CFG {
+				index = <20>;
+				funcs = "MAC_RMII_CLK", "GPIO48", "SD1_CLK", "PWM2";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad21: PAD_MAC_REF_CLK_CFG {
+				index = <21>;
+				funcs = "MAC_REF_CLK";
+				pupd = <0>;
+				ds = <2>;
+			};
+			pad22: PAD_MAC_TXD0_CFG {
+				index = <22>;
+				funcs = "MAC_TXD_0", "GPIO49", "SD1_CD", "PWM3";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad23: PAD_MAC_TXD1_CFG {
+				index = <23>;
+				funcs = "MAC_TXD_1", "GPIO50", "SD1_CMD_RSP", "PWM4";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad24: PAD_MAC_TXEN_CFG {
+				index = <24>;
+				funcs = "MAC_TXEN", "GPIO51", "SD1_DATA_0", "PWM5";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad25: PAD_MAC_RXD0_CFG {
+				index = <25>;
+				funcs = "MAC_RXD_0", "GPIO52", "SD1_DATA_1", "PWM6";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad26: PAD_MAC_RXD1_CFG {
+				index = <26>;
+				funcs = "MAC_RXD_1", "GPIO53", "SD1_DATA_2", "PWM7";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad27: PAD_MAC_RXDV_CFG {
+				index = <27>;
+				funcs = "MAC_RXDV", "GPIO54", "SD1_DATA_3", "PWM8";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad28: PAD_MAC_MDC_CFG {
+				index = <28>;
+				funcs = "MAC_MDC", "GPIO55", "", "PWM9";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad29: PAD_MAC_MDIO_CFG {
+				index = <29>;
+				funcs = "MAC_MDIO", "GPIO56";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad30: PAD_SD1_CLK_CFG {
+				index = <30>;
+				funcs = "SD1_CLK", "GPIO57", "I2C1_SCL";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad31: PAD_SD1_CD_CFG {
+				index = <31>;
+				funcs = "SD1_CD", "GPIO58", "I2C1_SDA";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad32: PAD_SD1_CMD_RSP_CFG {
+				index = <32>;
+				funcs = "SD1_CMD_RSP", "GPIO59", "UART1_TX";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad33: PAD_SD1_DATA_0_CFG {
+				index = <33>;
+				funcs = "SD1_DATA_0", "GPIO60", "UART1_RX";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad34: PAD_SD1_DATA_1_CFG {
+				index = <34>;
+				funcs = "SD1_DATA_1", "GPIO61", "UART2_TX";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad35: PAD_SD1_DATA_2_CFG {
+				index = <35>;
+				funcs = "SD1_DATA_2", "GPIO62", "UART2_RX";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad36: PAD_SD1_DATA_3_CFG {
+				index = <36>;
+				funcs = "SD1_DATA_3", "GPIO63";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad37: PAD_GPIO_0_CFG {
+				index = <37>;
+				funcs = "ARM_JTAG_TRSTN", "GPIO0", "AC_I2S_DO", "DW_I2S_DO",
+						"SSI1_CLK", "SSI2_CLK", "ACIP_ADDAT", "PWM6",
+						"TEST_O_INT_SMI_MDC";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad38: PAD_GPIO_1_CFG {
+				index = <38>;
+				funcs = "ARM_JTAG_TDO", "GPIO1", "AC_I2S_DI", "DW_I2S_DI",
+						"SSI1_CSN_0", "SSI2_CSN_0", "ACIP_DADAT", "PWM7",
+						"TEST_O_INT_SMI_MDIO_I";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad39: PAD_GPIO_2_CFG {
+				index = <39>;
+				funcs = "ARM_JTAG_TDI", "GPIO2", "AC_I2S_CLK", "DW_I2S_CLK",
+						"SSI1_TXD", "SSI2_TXD", "ACIP_ADBCLK", "PWM8",
+						"TEST_O_INT_SMI_MDIO_O";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad40: PAD_GPIO_3_CFG {
+				index = <40>;
+				funcs = "ARM_JTAG_TCK", "GPIO3", "AC_I2S_WS", "DW_I2S_WS",
+						"SSI1_RXD", "SSI2_RXD", "ACIP_ADLRC", "PWM9",
+						"TEST_I_INT_SMI_MDIO_I";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad41: PAD_GPIO_4_CFG {
+				index = <41>;
+				funcs = "ARM_JTAG_TMS", "GPIO4", "AC_MCLK", "USB_PWREN",
+						"SD1_CD", "TEST_I_INT_SMI_MDC";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad42: PAD_SSI0_CLK_CFG {
+				index = <42>;
+				funcs = "SSI0_CLK", "GPIO5", "", "", "SD1_CLK";
+				pupd = <0>;
+				ds = <2>;
+			};
+			pad43: PAD_SSI0_CSN_0_CFG {
+				index = <43>;
+				funcs = "SSI0_CSN_0", "GPIO6", "", "", "SD1_CMD_RSP";
+				pupd = <0>;
+				ds = <2>;
+			};
+			pad44: PAD_SSI0_TXD_CFG {
+				index = <44>;
+				funcs = "SSI0_TXD", "GPIO7", "", "", "SD1_DATA_0";
+				pupd = <0>;
+				ds = <2>;
+			};
+			pad45: PAD_SSI0_RXD_CFG {
+				index = <45>;
+				funcs = "SSI0_RXD", "GPIO8", "", "", "SD1_DATA_1";
+				pupd = <0>;
+				ds = <2>;
+			};
+			pad46: PAD_SSI0_D2_CFG {
+				index = <46>;
+				funcs = "SSI0_D2", "GPIO9", "UART1_TX", "I2C1_SCL",
+						"SD1_DATA_2";
+				pupd = <0>;
+				ds = <2>;
+			};
+			pad47: PAD_SSI0_D3_CFG {
+				index = <47>;
+				funcs = "SSI0_D3", "GPIO10", "UART1_RX", "I2C1_SDA",
+						"SD1_DATA_3";
+				pupd = <0>;
+				ds = <2>;
+			};
+			pad48: PAD_SSI1_CLK_CFG {
+				index = <48>;
+				funcs = "SSI1_CLK", "GPIO11", "SSI2_CLK";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad49: PAD_SSI1_CSN_0_CFG {
+				index = <49>;
+				funcs = "SSI1_CSN_0", "GPIO14", "SSI2_CSN_0";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad50: PAD_SSI1_TXD_CFG {
+				index = <50>;
+				funcs = "SSI1_TXD", "GPIO15", "SSI2_TXD";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad51: PAD_SSI1_RXD_CFG {
+				index = <51>;
+				funcs = "SSI1_RXD", "GPIO16", "SSI2_RXD";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad52: PAD_SD0_CD_CFG {
+				index = <52>;
+				funcs = "SD0_CD", "GPIO17", "", "ARC_JTAG_TRSTN",
+						"PAE_JTAG_TRSTN";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad53: PAD_SD0_CLK_CFG {
+				index = <53>;
+				funcs = "SD0_CLK", "GPIO18", "SSI1_CLK", "ARC_JTAG_TDO",
+						"PAE_JTAG_TDO";
+				pupd = <0>;
+				ds = <2>;
+			};
+			pad54: PAD_SD0_CMD_RSP_CFG {
+				index = <54>;
+				funcs = "SD0_CMD_RSP", "GPIO19", "SSI1_TXD", "ARC_JTAG_TDI",
+						"PAE_JTAG_TDI";
+				pupd = <0>;
+				ds = <2>;
+			};
+			pad55: PAD_SD0_DATA_0_CFG {
+				index = <55>;
+				funcs = "SD0_DATA_0", "GPIO20", "SSI1_RXD", "ARC_JTAG_TCK",
+						"PAE_JTAG_TCK";
+				pupd = <0>;
+				ds = <2>;
+			};
+			pad56: PAD_SD0_DATA_1_CFG {
+				index = <56>;
+				funcs = "SD0_DATA_1", "GPIO21", "SSI1_CSN_0", "ARC_JTAG_TMS",
+						"PAE_JTAG_TMS";
+				pupd = <0>;
+				ds = <2>;
+			};
+			pad57: PAD_SD0_DATA_2_CFG {
+				index = <57>;
+				funcs = "SD0_DATA_2", "GPIO22", "", "UART2_TX", "I2C2_SCL", "",
+						"ACIP_DABCLK";
+				pupd = <0>;
+				ds = <2>;
+			};
+			pad58: PAD_SD0_DATA_3_CFG {
+				index = <58>;
+				funcs = "SD0_DATA_3", "GPIO23", "SSI1_CSN_0", "UART2_RX",
+						"I2C2_SDA", "", "ACIP_DALRC";
+				pupd = <0>;
+				ds = <2>;
+			};
+			pad59: PAD_SADC_XAIN0_CFG {
+				index = <59>;
+				funcs = "SADC_XAIN0", "GPIO26";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad60: PAD_SADC_XAIN1_CFG {
+				index = <60>;
+				funcs = "SADC_XAIN1", "GPIO27";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad61: PAD_SADC_XAIN2_CFG {
+				index = <61>;
+				funcs = "SADC_XAIN2", "GPIO24";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad62: PAD_SADC_XAIN3_CFG {
+				index = <62>;
+				funcs = "SADC_XAIN3", "GPIO25";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad63: PAD_GPIO_28_CFG {
+				index = <63>;
+				funcs = "GPIO28", "", "ETH_LINK_ACT", "PWM10",
+						"USB_DBG_CLK", "SD1_CD", "TEST_O_INT_RMII_TXEN",
+						"MAC_MDC";
+				pupd = <0>;
+				ds = <0>;
+			};
+			pad64: PAD_GPIO_29_CFG {
+				index = <64>;
+				funcs = "GPIO29", "", "ETH_LINK_STA", "PWM11", "RTC_CLK",
+						"ETH_LINK_SPD", "TEST_O_INT_SMI_MDIO_OE",
+						"MAC_MDIO";
+				pupd = <0>;
+				ds = <0>;
+			};
+		};
+	};
+};

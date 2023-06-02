@@ -2,7 +2,9 @@
 # Makefile for the kernel serial device drivers.
 #
 
-obj-$(CONFIG_SERIAL_CORE) += serial_core.o
+serial_core-$(CONFIG_TTY) := fulltty_serial.o
+serial_core-$(CONFIG_MINITTY_SERIAL) := minitty_serial.o
+obj-$(CONFIG_SERIAL_CORE) += serial_core.o serial_lib.o
 obj-$(CONFIG_SERIAL_21285) += 21285.o
 
 obj-$(CONFIG_SERIAL_EARLYCON) += earlycon.o
@@ -72,6 +74,7 @@ obj-$(CONFIG_KGDB_SERIAL_CONSOLE) += kgdboc.o
 obj-$(CONFIG_SERIAL_QE) += ucc_uart.o
 obj-$(CONFIG_SERIAL_TIMBERDALE)	+= timbuart.o
 obj-$(CONFIG_SERIAL_GRLIB_GAISLER_APBUART) += apbuart.o
+obj-$(CONFIG_SERIAL_FULLHAN) += fh_serial.o
 obj-$(CONFIG_SERIAL_ALTERA_JTAGUART) += altera_jtaguart.o
 obj-$(CONFIG_SERIAL_VT8500) += vt8500_serial.o
 obj-$(CONFIG_SERIAL_IFX6X60)  	+= ifx6x60.o

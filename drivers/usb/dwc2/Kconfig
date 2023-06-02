@@ -52,6 +52,14 @@ config USB_DWC2_DUAL_ROLE
 	  option requires USB_GADGET to be enabled.
 endchoice
 
+config USB_DWC2_VBVALIDOVEN
+	bool "Enable VBUS Valid Override"
+	depends on USB_DWC2_HOST || USB_DWC2_DUAL_ROLE
+	default n
+	help
+	  Say Y here to override the vbus-valid signal received from the PHY.
+	  In one word, this feature is used to ignor the vbus overcurrent.
+
 config USB_DWC2_PCI
 	tristate "DWC2 PCI"
 	depends on PCI
@@ -92,4 +100,29 @@ config USB_DWC2_DEBUG_PERIODIC
 	  non-periodic transfers, but of course the debug logs will be
 	  incomplete. Note that this also disables some debug messages
 	  for which the transfer type cannot be deduced.
+
+config USB_DWC2_HOST_DMA_DESC_NUM_DYNAMIC
+	bool "Enable Qtd Dynamic Adjust While Host Dma Desc Enabled"
+	depends on USB_DWC2_HOST
+	default n
+	help
+	  Say Y here to enable qtd dynamic adjust to adapt the varied
+	  usbnet environment and then reach higher performance accordingly
+	  while host dma desc enabled.
+
+config USB_DWC2_DMA
+	bool "Enable DMA Mode"
+	default y
+	help
+	  Say Y here to enable DMA mode for accessing the data FIFOs.
+
+config USB_DWC2_DMA_DESC
+	bool "Use Descriptor DMA Mode"
+	depends on USB_DWC2_DMA
+	default n
+	help
+	  Say Y here to enable the descriptor DMA mode for accessing
+	  the data FIFOs when DMA mode is enabled.
+	  WARNING: Say N here to use address DMA mode.
+	  If in doubt, say N.
 endif

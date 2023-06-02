@@ -1376,7 +1376,7 @@ unsigned long do_mmap(struct file *file, unsigned long addr,
 		return -ENOMEM;
 
 	/* offset overflow? */
-	if ((pgoff + (len >> PAGE_SHIFT)) < pgoff)
+	if (((phys_addr_t)pgoff + (len >> PAGE_SHIFT)) < (phys_addr_t)pgoff)
 		return -EOVERFLOW;
 
 	/* Too many mappings? */

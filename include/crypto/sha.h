@@ -22,6 +22,9 @@
 #define SHA512_DIGEST_SIZE      64
 #define SHA512_BLOCK_SIZE       128
 
+#define SM3_DIGEST_SIZE      32
+#define SM3_BLOCK_SIZE       64
+
 #define SHA1_H0		0x67452301UL
 #define SHA1_H1		0xefcdab89UL
 #define SHA1_H2		0x98badcfeUL
@@ -86,6 +89,12 @@ struct sha512_state {
 	u64 state[SHA512_DIGEST_SIZE / 8];
 	u64 count[2];
 	u8 buf[SHA512_BLOCK_SIZE];
+};
+
+struct sm3_state {
+	u32 state[SM3_DIGEST_SIZE / 4];
+	u64 count;
+	u8 buf[SM3_BLOCK_SIZE];
 };
 
 struct shash_desc;

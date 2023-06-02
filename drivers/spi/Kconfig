@@ -218,6 +218,41 @@ config SPI_DESIGNWARE
 	help
 	  general driver for SPI controller core from DesignWare
 
+config SPI_FH
+       tristate "fh spi driver for DW SPI core"
+       help
+         general driver for SPI controller core from DesignWare
+
+config SPI_FH_SLAVE
+    tristate "fh spi slave driver for DW SPI core"
+
+menu "spi multi wire support"
+depends on SPI_FH
+config SPI_USE_MULTI_WIRE
+	bool "spi0 will support 2 or 4 wire read"
+	help
+    if you set 4 wire support. 2 extra pin should switch to spi func
+	default n
+
+config SPI_SWAP_MAX_DATA_WIDTH
+	depends on SPI_USE_MULTI_WIRE
+  int "SPI_SWAP_MAX_DATA_WIDTH"
+  default 16
+endmenu
+
+config SPI_USE_DMA
+	tristate "spi xfer with external dma"
+	depends on SPI_FH && (FH_DMAC || FH_AXI_DMAC)
+	help
+    if you set; spi will use external DMA to help data xfer
+	default n
+
+config SPI_TINY_MEM
+	bool "spi tiny mem reduce code"
+	help
+    rm attribute code and dummy dma code
+	default n
+
 config SPI_DW_PCI
 	tristate "PCI interface driver for DW SPI core"
 	depends on SPI_DESIGNWARE && PCI

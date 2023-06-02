@@ -263,9 +263,13 @@ enum dwc2_lx_state {
  * Gadget periodic tx fifo sizes as used by legacy driver
  * EP0 is not included
  */
-#define DWC2_G_P_LEGACY_TX_FIFO_SIZE {256, 256, 256, 256, 768, 768, 768, \
-					   768, 0, 0, 0, 0, 0, 0, 0}
-
+#ifdef CONFIG_USB_G_WEBCAM_PATCH
+#define DWC2_G_P_LEGACY_TX_FIFO_SIZE {128, 768, 128, 128, 128, 32, 0, \
+					   0, 0, 0, 0, 0, 0, 0, 0}
+#else
+#define DWC2_G_P_LEGACY_TX_FIFO_SIZE {256, 256, 256, 256, 256, 32, 0, \
+					   0, 0, 0, 0, 0, 0, 0, 0}
+#endif
 /* Gadget ep0 states */
 enum dwc2_ep0_state {
 	DWC2_EP0_SETUP,
@@ -868,6 +872,7 @@ struct dwc2_hsotg {
 	void *priv;
 	int     irq;
 	struct clk *clk;
+	struct clk *clk2;
 	struct reset_control *reset;
 
 	unsigned int queuing_high_bandwidth:1;

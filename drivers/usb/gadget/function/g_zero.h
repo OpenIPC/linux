@@ -14,27 +14,31 @@
 #define GZERO_SS_ISO_QLEN	8
 
 struct usb_zero_options {
-	unsigned pattern;
-	unsigned isoc_interval;
-	unsigned isoc_maxpacket;
-	unsigned isoc_mult;
-	unsigned isoc_maxburst;
-	unsigned bulk_buflen;
-	unsigned qlen;
-	unsigned ss_bulk_qlen;
-	unsigned ss_iso_qlen;
+	unsigned int pattern;
+	unsigned int isoc_interval;
+	unsigned int isoc_maxpacket;
+	unsigned int isoc_mult;
+	unsigned int isoc_maxburst;
+	unsigned int bulk_buflen;
+	unsigned int qlen;
+	unsigned int ss_bulk_qlen;
+	unsigned int ss_iso_qlen;
 };
 
 struct f_ss_opts {
 	struct usb_function_instance func_inst;
-	unsigned pattern;
-	unsigned isoc_interval;
-	unsigned isoc_maxpacket;
-	unsigned isoc_mult;
-	unsigned isoc_maxburst;
-	unsigned bulk_buflen;
-	unsigned bulk_qlen;
-	unsigned iso_qlen;
+	unsigned int pattern;
+	unsigned int isoc_interval;
+	unsigned int isoc_maxpacket;
+	unsigned int isoc_mult;
+	unsigned int isoc_maxburst;
+	unsigned int bulk_buflen;
+	unsigned int bulk_qlen;
+	unsigned int iso_qlen;
+	unsigned int int_interval;
+	unsigned int int_maxpacket;
+	unsigned int int_maxburst;
+	unsigned int int_qlen;
 
 	/*
 	 * Read/write access to configfs attributes is handled by configfs.
@@ -67,6 +71,7 @@ int lb_modinit(void);
 /* common utilities */
 void disable_endpoints(struct usb_composite_dev *cdev,
 		struct usb_ep *in, struct usb_ep *out,
+		struct usb_ep *int_in, struct usb_ep *int_out,
 		struct usb_ep *iso_in, struct usb_ep *iso_out);
 
 #endif /* __G_ZERO_H */

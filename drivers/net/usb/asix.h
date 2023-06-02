@@ -153,8 +153,7 @@
 #define AX_RX_CTL_MFB_8192	0x0200
 #define AX_RX_CTL_MFB_16384	0x0300
 
-#define AX_DEFAULT_RX_CTL	(AX_RX_CTL_SO | AX_RX_CTL_AB)
-
+#define AX_DEFAULT_RX_CTL	(AX_RX_CTL_AB)
 /* GPIO 0 .. 2 toggles */
 #define AX_GPIO_GPO0EN		0x01	/* GPIO0 Output enable */
 #define AX_GPIO_GPO_0		0x02	/* GPIO0 Output value */

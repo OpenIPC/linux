@@ -215,7 +215,7 @@ SYSCALL_DEFINE2(settimeofday, struct timeval __user *, tv,
 
 	return do_sys_settimeofday(tv ? &new_ts : NULL, tz ? &new_tz : NULL);
 }
-
+#ifdef CONFIG_NTP
 SYSCALL_DEFINE1(adjtimex, struct timex __user *, txc_p)
 {
 	struct timex txc;		/* Local copy of parameter */
@@ -230,7 +230,7 @@ SYSCALL_DEFINE1(adjtimex, struct timex __user *, txc_p)
 	ret = do_adjtimex(&txc);
 	return copy_to_user(txc_p, &txc, sizeof(struct timex)) ? -EFAULT : ret;
 }
-
+#endif
 /**
  * current_fs_time - Return FS time
  * @sb: Superblock.

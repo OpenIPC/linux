@@ -115,6 +115,13 @@ config DW_APB_ICTL
 	select GENERIC_IRQ_CHIP
 	select IRQ_DOMAIN
 
+config FULLHAN_INTC
+	bool
+	select IRQ_DOMAIN
+	select SPARSE_IRQ
+	select MULTI_IRQ_HANDLER
+
+
 config HISILICON_IRQ_MBIGEN
 	bool
 	select ARM_GIC_V3

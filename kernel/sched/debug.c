@@ -645,7 +645,9 @@ do {									\
 	spin_lock_irqsave(&sched_debug_lock, flags);
 	print_cfs_stats(m, cpu);
 	print_rt_stats(m, cpu);
+#ifdef CONFIG_SCHED_DL
 	print_dl_stats(m, cpu);
+#endif
 
 	print_rq(m, rq, cpu);
 	spin_unlock_irqrestore(&sched_debug_lock, flags);

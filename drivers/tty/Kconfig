@@ -49,8 +49,14 @@ config CONSOLE_TRANSLATIONS
 	  This enables support for font mapping and Unicode translation
 	  on virtual consoles.
 
+config DUMMY_CONSOLE
+	bool
+	depends on VT
+	default y
+
+
 config VT_CONSOLE
-	bool "Support for console on virtual terminal" if EXPERT
+	bool "Support for console on virtual terminal"
 	depends on VT
 	default y
 	---help---

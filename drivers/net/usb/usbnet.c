@@ -48,7 +48,6 @@
 
 #define DRIVER_VERSION		"22-Aug-2005"
 
-
 /*-------------------------------------------------------------------------*/
 
 /*
@@ -203,7 +202,23 @@ static void intr_complete (struct urb *urb)
 		break;
 	}
 
-	status = usb_submit_urb (urb, GFP_ATOMIC);
+	queue_delayed_work(system_power_efficient_wq,
+				&dev->status_work, msecs_to_jiffies(30));
+	return;
+
+	status = usb_submit_urb(urb, GFP_ATOMIC);
+	if (status != 0)
+		netif_err(dev, timer, dev->net,
+			  "intr resubmit --> %d\n", status);
+}
+
+static void usbnet_status_func(struct work_struct *work)
+{
+	int status;
+	struct usbnet *dev = container_of(work, struct usbnet,
+						status_work.work);
+
+	status = usb_submit_urb(dev->interrupt, GFP_ATOMIC);
 	if (status != 0)
 		netif_err(dev, timer, dev->net,
 			  "intr resubmit --> %d\n", status);
@@ -1663,6 +1678,7 @@ usbnet_probe (struct usb_interface *udev, const struct usb_device_id *prod)
 	mutex_init (&dev->phy_mutex);
 	mutex_init(&dev->interrupt_mutex);
 	dev->interrupt_count = 0;
+	INIT_DELAYED_WORK(&dev->status_work, usbnet_status_func);
 
 	dev->net = net;
 	strcpy (net->name, "usb%d");

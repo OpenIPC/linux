@@ -966,6 +966,7 @@ void phy_state_machine(struct work_struct *work)
 	enum phy_state old_state;
 	int err = 0;
 	int old_link;
+	int time_interval = PHY_STATE_TIME * HZ;
 
 	mutex_lock(&phydev->lock);
 
@@ -982,7 +983,7 @@ void phy_state_machine(struct work_struct *work)
 		break;
 	case PHY_UP:
 		needs_aneg = true;
-
+		time_interval = 0;
 		phydev->link_timeout = PHY_AN_TIMEOUT;
 
 		break;
@@ -1022,7 +1023,7 @@ void phy_state_machine(struct work_struct *work)
 			break;
 
 		if (phydev->link) {
-			if (AUTONEG_ENABLE == phydev->autoneg) {
+			if (phydev->autoneg == AUTONEG_ENABLE) {
 				err = phy_aneg_done(phydev);
 				if (err < 0)
 					break;
@@ -1036,6 +1037,15 @@ void phy_state_machine(struct work_struct *work)
 			phydev->state = PHY_RUNNING;
 			netif_carrier_on(phydev->attached_dev);
 			phydev->adjust_link(phydev->attached_dev);
+		} else {
+			phydev->link_down_times++;
+			if (phydev->link_down_times > 5) {
+				if (phydev->drv->no_link_timeout_process) {
+					pr_err("linkdown . reset phy...\n");
+					phydev->drv->no_link_timeout_process(phydev);
+				}
+				phydev->link_down_times = 0;
+			}
 		}
 		break;
 	case PHY_FORCING:
@@ -1164,7 +1174,7 @@ void phy_state_machine(struct work_struct *work)
 	 */
 	if (phydev->irq == PHY_POLL)
 		queue_delayed_work(system_power_efficient_wq, &phydev->state_queue,
-				   PHY_STATE_TIME * HZ);
+				   time_interval);
 }
 
 void phy_mac_interrupt(struct phy_device *phydev, int new_link)

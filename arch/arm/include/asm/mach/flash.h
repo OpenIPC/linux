@@ -26,7 +26,7 @@ struct mtd_info;
  */
 struct flash_platform_data {
 	const char	*map_name;
-	const char	*name;
+	char	name[16];
 	unsigned int	width;
 	int		(*init)(void);
 	void		(*exit)(void);

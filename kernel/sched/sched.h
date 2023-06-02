@@ -121,7 +121,7 @@ static inline int rt_policy(int policy)
 
 static inline int dl_policy(int policy)
 {
-	return policy == SCHED_DEADLINE;
+	return IS_ENABLED(CONFIG_SCHED_DL) && policy == SCHED_DEADLINE;
 }
 static inline bool valid_policy(int policy)
 {
@@ -142,12 +142,15 @@ static inline int task_has_dl_policy(struct task_struct *p)
 /*
  * Tells if entity @a should preempt entity @b.
  */
+#ifdef CONFIG_SCHED_DL
 static inline bool
 dl_entity_preempt(struct sched_dl_entity *a, struct sched_dl_entity *b)
 {
 	return dl_time_before(a->deadline, b->deadline);
 }
-
+#else
+#define dl_entity_preempt(a, b)	false
+#endif
 /*
  * This is the priority-queue data structure of the RT scheduling class:
  */
@@ -201,8 +204,6 @@ static inline int dl_bandwidth_enabled(void)
 {
 	return sysctl_sched_rt_runtime >= 0;
 }
-
-extern struct dl_bw *dl_bw_of(int i);
 
 struct dl_bw {
 	raw_spinlock_t lock;
@@ -636,7 +637,9 @@ struct rq {
 
 	struct cfs_rq cfs;
 	struct rt_rq rt;
+#ifdef CONFIG_SCHED_DL
 	struct dl_rq dl;
+#endif
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
 	/* list of leaf cfs_rq on this cpu: */
@@ -1291,7 +1294,13 @@ static inline void set_curr_task(struct rq *rq, struct task_struct *curr)
 	curr->sched_class->set_curr_task(rq);
 }
 
+#ifdef CONFIG_SMP
 #define sched_class_highest (&stop_sched_class)
+#elif defined(CONFIG_SCHED_DL)
+#define sched_class_highest (&dl_sched_class)
+#else
+#define sched_class_highest (&rt_sched_class)
+#endif
 #define for_each_class(class) \
    for (class = sched_class_highest; class; class = class->next)
 
@@ -1340,7 +1349,6 @@ extern void sysrq_sched_debug_show(void);
 extern void sched_init_granularity(void);
 extern void update_max_interval(void);
 
-extern void init_sched_dl_class(void);
 extern void init_sched_rt_class(void);
 extern void init_sched_fair_class(void);
 
@@ -1350,8 +1358,6 @@ extern void resched_cpu(int cpu);
 extern struct rt_bandwidth def_rt_bandwidth;
 extern void init_rt_bandwidth(struct rt_bandwidth *rt_b, u64 period, u64 runtime);
 
-extern struct dl_bandwidth def_dl_bandwidth;
-extern void init_dl_bandwidth(struct dl_bandwidth *dl_b, u64 period, u64 runtime);
 extern void init_dl_task_timer(struct sched_dl_entity *dl_se);
 
 unsigned long to_ratio(u64 period, u64 runtime);
@@ -1722,7 +1728,6 @@ print_numa_stats(struct seq_file *m, int node, unsigned long tsf,
 
 extern void init_cfs_rq(struct cfs_rq *cfs_rq);
 extern void init_rt_rq(struct rt_rq *rt_rq);
-extern void init_dl_rq(struct dl_rq *dl_rq);
 
 extern void cfs_bandwidth_usage_inc(void);
 extern void cfs_bandwidth_usage_dec(void);

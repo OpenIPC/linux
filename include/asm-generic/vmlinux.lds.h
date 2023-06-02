@@ -40,7 +40,7 @@
  * }
  *
  * [__init_begin, __init_end] is the init section that may be freed after init
- * 	// __init_begin and __init_end should be page aligned, so that we can
+ *	// __init_begin and __init_end should be page aligned, so that we can
  *	// free the whole .init memory
  * [_stext, _etext] is the text section
  * [_sdata, _edata] is the data section
@@ -105,7 +105,7 @@
 #ifdef CONFIG_FTRACE_MCOUNT_RECORD
 #define MCOUNT_REC()	. = ALIGN(8);				\
 			VMLINUX_SYMBOL(__start_mcount_loc) = .; \
-			*(__mcount_loc)				\
+			KEEP(*(__mcount_loc))				\
 			VMLINUX_SYMBOL(__stop_mcount_loc) = .;
 #else
 #define MCOUNT_REC()
@@ -113,7 +113,7 @@
 
 #ifdef CONFIG_TRACE_BRANCH_PROFILING
 #define LIKELY_PROFILE()	VMLINUX_SYMBOL(__start_annotated_branch_profile) = .; \
-				*(_ftrace_annotated_branch)			      \
+				KEEP(*(_ftrace_annotated_branch))	\
 				VMLINUX_SYMBOL(__stop_annotated_branch_profile) = .;
 #else
 #define LIKELY_PROFILE()
@@ -121,7 +121,7 @@
 
 #ifdef CONFIG_PROFILE_ALL_BRANCHES
 #define BRANCH_PROFILE()	VMLINUX_SYMBOL(__start_branch_profile) = .;   \
-				*(_ftrace_branch)			      \
+				KEEP(*(_ftrace_branch))			      \
 				VMLINUX_SYMBOL(__stop_branch_profile) = .;
 #else
 #define BRANCH_PROFILE()
@@ -130,7 +130,7 @@
 #ifdef CONFIG_KPROBES
 #define KPROBE_BLACKLIST()	. = ALIGN(8);				      \
 				VMLINUX_SYMBOL(__start_kprobe_blacklist) = .; \
-				*(_kprobe_blacklist)			      \
+				KEEP(*(_kprobe_blacklist))		\
 				VMLINUX_SYMBOL(__stop_kprobe_blacklist) = .;
 #else
 #define KPROBE_BLACKLIST()
@@ -139,10 +139,10 @@
 #ifdef CONFIG_EVENT_TRACING
 #define FTRACE_EVENTS()	. = ALIGN(8);					\
 			VMLINUX_SYMBOL(__start_ftrace_events) = .;	\
-			*(_ftrace_events)				\
+			KEEP(*(_ftrace_events))				\
 			VMLINUX_SYMBOL(__stop_ftrace_events) = .;	\
 			VMLINUX_SYMBOL(__start_ftrace_enum_maps) = .;	\
-			*(_ftrace_enum_map)				\
+			KEEP(*(_ftrace_enum_map))		\
 			VMLINUX_SYMBOL(__stop_ftrace_enum_maps) = .;
 #else
 #define FTRACE_EVENTS()
@@ -150,10 +150,10 @@
 
 #ifdef CONFIG_TRACING
 #define TRACE_PRINTKS() VMLINUX_SYMBOL(__start___trace_bprintk_fmt) = .;      \
-			 *(__trace_printk_fmt) /* Trace_printk fmt' pointer */ \
+			 KEEP(*(__trace_printk_fmt)) /* Trace_printk fmt' pointer */ \
 			 VMLINUX_SYMBOL(__stop___trace_bprintk_fmt) = .;
 #define TRACEPOINT_STR() VMLINUX_SYMBOL(__start___tracepoint_str) = .;	\
-			 *(__tracepoint_str) /* Trace_printk fmt' pointer */ \
+			 KEEP(*(__tracepoint_str)) /* Trace_printk fmt' pointer */ \
 			 VMLINUX_SYMBOL(__stop___tracepoint_str) = .;
 #else
 #define TRACE_PRINTKS()
@@ -163,7 +163,7 @@
 #ifdef CONFIG_FTRACE_SYSCALLS
 #define TRACE_SYSCALLS() . = ALIGN(8);					\
 			 VMLINUX_SYMBOL(__start_syscalls_metadata) = .;	\
-			 *(__syscalls_metadata)				\
+			 KEEP(*(__syscalls_metadata))		\
 			 VMLINUX_SYMBOL(__stop_syscalls_metadata) = .;
 #else
 #define TRACE_SYSCALLS()
@@ -172,7 +172,7 @@
 #ifdef CONFIG_SERIAL_EARLYCON
 #define EARLYCON_TABLE() . = ALIGN(8);				\
 			 VMLINUX_SYMBOL(__earlycon_table) = .;	\
-			 *(__earlycon_table)			\
+			 KEEP(*(__earlycon_table))			\
 			 VMLINUX_SYMBOL(__earlycon_table_end) = .;
 #else
 #define EARLYCON_TABLE()
@@ -185,7 +185,7 @@
 #define _OF_TABLE_1(name)						\
 	. = ALIGN(8);							\
 	VMLINUX_SYMBOL(__##name##_of_table) = .;			\
-	*(__##name##_of_table)						\
+	KEEP(*(__##name##_of_table))			\
 	*(__##name##_of_table_end)
 
 #define CLKSRC_OF_TABLES()	OF_TABLE(CONFIG_CLKSRC_OF, clksrc)
@@ -200,7 +200,7 @@
 #define ACPI_PROBE_TABLE(name)						\
 	. = ALIGN(8);							\
 	VMLINUX_SYMBOL(__##name##_acpi_probe_table) = .;		\
-	*(__##name##_acpi_probe_table)					\
+	KEEP(*(__##name##_acpi_probe_table))			\
 	VMLINUX_SYMBOL(__##name##_acpi_probe_table_end) = .;
 #else
 #define ACPI_PROBE_TABLE(name)
@@ -209,7 +209,7 @@
 #define KERNEL_DTB()							\
 	STRUCT_ALIGN();							\
 	VMLINUX_SYMBOL(__dtb_start) = .;				\
-	*(.dtb.init.rodata)						\
+	KEEP(*(.dtb.init.rodata))				\
 	VMLINUX_SYMBOL(__dtb_end) = .;
 
 /*
@@ -233,7 +233,7 @@
 	VMLINUX_SYMBOL(__start___verbose) = .;                          \
 	*(__verbose)                                                    \
 	VMLINUX_SYMBOL(__stop___verbose) = .;				\
-	LIKELY_PROFILE()		       				\
+	LIKELY_PROFILE()						\
 	BRANCH_PROFILE()						\
 	TRACE_PRINTKS()							\
 	TRACEPOINT_STR()
@@ -448,7 +448,6 @@
 		KEEP(*(.security_initcall.init))			\
 		VMLINUX_SYMBOL(__security_initcall_end) = .;		\
 	}
-
 /*
  * .text section. Map to function alignment to avoid address changes
  * during second ld run in second ld pass when generating System.map
@@ -520,7 +519,7 @@
 #endif
 
 /* Section used for early init (in .S files) */
-#define HEAD_TEXT  *(.head.text)
+#define HEAD_TEXT  KEEP(*(.head.text))
 
 #define HEAD_TEXT_SECTION							\
 	.head.text : AT(ADDR(.head.text) - LOAD_OFFSET) {		\
@@ -565,7 +564,7 @@
 	MEM_DISCARD(init.data)						\
 	KERNEL_CTORS()							\
 	MCOUNT_REC()							\
-	*(.init.rodata)							\
+	*(.init.rodata .init.rodata.*)					\
 	FTRACE_EVENTS()							\
 	TRACE_SYSCALLS()						\
 	KPROBE_BLACKLIST()						\
@@ -583,7 +582,7 @@
 	EARLYCON_TABLE()
 
 #define INIT_TEXT							\
-	*(.init.text)							\
+	*(.init.text .init.text.*)					\
 	*(.text.startup)						\
 	MEM_DISCARD(init.text)
 
@@ -600,7 +599,7 @@
 	MEM_DISCARD(exit.text)
 
 #define EXIT_CALL							\
-	*(.exitcall.exit)
+	KEEP(*(.exitcall.exit))
 
 /*
  * bss (Block Started by Symbol) - uninitialized data
@@ -705,13 +704,22 @@
 #define INIT_SETUP(initsetup_align)					\
 		. = ALIGN(initsetup_align);				\
 		VMLINUX_SYMBOL(__setup_start) = .;			\
-		*(.init.setup)						\
+		KEEP(*(.init.setup))						\
 		VMLINUX_SYMBOL(__setup_end) = .;
 
 #define INIT_CALLS_LEVEL(level)						\
 		VMLINUX_SYMBOL(__initcall##level##_start) = .;		\
 		KEEP(*(.initcall##level##.init))			\
 		KEEP(*(.initcall##level##s.init))			\
+
+#ifdef CONFIG_DEFERRED_INIICALLS
+#define DEFERRED_INITCALLS						\
+		VMLINUX_SYMBOL(__deferred_initcall_start) = .;		\
+		KEEP(*(.deferred_initcall.init))		\
+		VMLINUX_SYMBOL(__deferred_initcall_end) = .;
+#else
+#define DEFERRED_INITCALLS
+#endif
 
 #define INIT_CALLS							\
 		VMLINUX_SYMBOL(__initcall_start) = .;			\
@@ -725,7 +733,8 @@
 		INIT_CALLS_LEVEL(rootfs)				\
 		INIT_CALLS_LEVEL(6)					\
 		INIT_CALLS_LEVEL(7)					\
-		VMLINUX_SYMBOL(__initcall_end) = .;
+		VMLINUX_SYMBOL(__initcall_end) = .;			\
+		DEFERRED_INITCALLS
 
 #define CON_INITCALL							\
 		VMLINUX_SYMBOL(__con_initcall_start) = .;		\

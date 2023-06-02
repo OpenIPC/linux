@@ -32,6 +32,11 @@
 #include "uvc_configfs.h"
 #include "uvc_v4l2.h"
 #include "uvc_video.h"
+#include "uvc_format.h"
+
+#include "f_uac.c"
+#include "f_uac_poll.c"
+#include "f_uvc_fast.c"
 
 unsigned int uvc_gadget_trace_param;
 
@@ -204,6 +209,23 @@ void uvc_set_trace_param(unsigned int trace)
 }
 EXPORT_SYMBOL(uvc_set_trace_param);
 
+
+void uvc_setup_to_demo(struct uvc_device *uvc)
+{
+#ifdef UVC_FASTBOOT
+	static bool first_ready;
+
+	if (first_ready == true) {
+		change_usb_support_fmt_fast(uvc);
+		uvc_function_connect(uvc);
+	}
+	first_ready = true;
+#endif
+
+	uvc->demo_ready = true;
+	pr_err("\n\nVIDIOC_UVC_DEMO_READY\n");
+}
+
 /* --------------------------------------------------------------------------
  * Control requests
  */
@@ -233,10 +255,11 @@ uvc_function_setup(struct usb_function *f, const struct usb_ctrlrequest *ctrl)
 	struct v4l2_event v4l2_event;
 	struct uvc_event *uvc_event = (void *)&v4l2_event.u.data;
 
-	/* printk(KERN_INFO "setup request %02x %02x value %04x index %04x %04x\n",
-	 *	ctrl->bRequestType, ctrl->bRequest, le16_to_cpu(ctrl->wValue),
-	 *	le16_to_cpu(ctrl->wIndex), le16_to_cpu(ctrl->wLength));
-	 */
+/**
+ * printk(KERN_INFO "setup request %02x %02x value %04x index %04x %04x\n",
+ * ctrl->bRequestType, ctrl->bRequest, le16_to_cpu(ctrl->wValue),
+ * le16_to_cpu(ctrl->wIndex), le16_to_cpu(ctrl->wLength));
+ */
 
 	if ((ctrl->bRequestType & USB_TYPE_MASK) != USB_TYPE_CLASS) {
 		INFO(f->config->cdev, "invalid request type\n");
@@ -256,8 +279,25 @@ uvc_function_setup(struct usb_function *f, const struct usb_ctrlrequest *ctrl)
 	memset(&v4l2_event, 0, sizeof(v4l2_event));
 	v4l2_event.type = UVC_EVENT_SETUP;
 	memcpy(&uvc_event->req, ctrl, sizeof(uvc_event->req));
+#ifndef UVC_FASTBOOT
 	v4l2_event_queue(&uvc->vdev, &v4l2_event);
+#else
+	static int uvc_enumdown;
 
+	if (ctrl->wIndex & 0xff)
+		uvc_enumdown = ctrl->wIndex;
+
+	if (!uvc_enumdown) {
+		uvc_events_process_class(uvc, ctrl);
+	} else {
+		if (uvc->demo_ready)
+			v4l2_event_queue(&uvc->vdev, &v4l2_event);
+		else {
+			pr_err("[UVC]WARNING:please open camera after demo ready!\n");
+			return -1;
+		}
+	}
+#endif
 	return 0;
 }
 
@@ -269,7 +309,7 @@ void uvc_function_setup_continue(struct uvc_device *uvc)
 }
 
 static int
-uvc_function_get_alt(struct usb_function *f, unsigned interface)
+uvc_function_get_alt(struct usb_function *f, unsigned int interface)
 {
 	struct uvc_device *uvc = to_uvc(f);
 
@@ -284,7 +324,7 @@ uvc_function_get_alt(struct usb_function *f, unsigned interface)
 }
 
 static int
-uvc_function_set_alt(struct usb_function *f, unsigned interface, unsigned alt)
+uvc_function_set_alt(struct usb_function *f, unsigned int interface, unsigned alt)
 {
 	struct uvc_device *uvc = to_uvc(f);
 	struct usb_composite_dev *cdev = f->config->cdev;
@@ -361,7 +401,8 @@ uvc_function_set_alt(struct usb_function *f, unsigned interface, unsigned alt)
 		memset(&v4l2_event, 0, sizeof(v4l2_event));
 		v4l2_event.type = UVC_EVENT_STREAMON;
 		v4l2_event_queue(&uvc->vdev, &v4l2_event);
-		return USB_GADGET_DELAYED_STATUS;
+		// return USB_GADGET_DELAYED_STATUS;
+		return 0;
 
 	default:
 		return -EINVAL;
@@ -450,7 +491,7 @@ uvc_register_video(struct uvc_device *uvc)
 		} \
 	} while (0)
 
-static struct usb_descriptor_header **
+struct usb_descriptor_header **
 uvc_copy_descriptors(struct uvc_device *uvc, enum usb_device_speed speed)
 {
 	struct uvc_input_header_descriptor *uvc_streaming_header;
@@ -656,6 +697,7 @@ uvc_function_bind(struct usb_configuration *c, struct usb_function *f)
 		goto error;
 	}
 	uvc->video.ep = ep;
+	uvc->video.ep->mult = max_packet_mult;
 
 	uvc_fs_streaming_ep.bEndpointAddress = uvc->video.ep->address;
 	uvc_hs_streaming_ep.bEndpointAddress = uvc->video.ep->address;
@@ -739,6 +781,14 @@ uvc_function_bind(struct usb_configuration *c, struct usb_function *f)
 		goto error;
 	}
 
+#ifdef CONFIG_UVC_INS_UAC
+	uac_bind_config(c);
+#endif
+
+#ifdef UVC_FASTBOOT
+	change_usb_support_fmt_fast(uvc);
+	uvc_function_connect(uvc);
+#endif
 	return 0;
 
 error:

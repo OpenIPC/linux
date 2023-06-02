@@ -1519,7 +1519,10 @@ struct task_struct {
 #ifdef CONFIG_CGROUP_SCHED
 	struct task_group *sched_task_group;
 #endif
+
+#ifdef CONFIG_SCHED_DL
 	struct sched_dl_entity dl;
+#endif
 
 #ifdef CONFIG_PREEMPT_NOTIFIERS
 	/* list of struct preempt_notifier: */
@@ -3543,6 +3546,44 @@ static inline void set_task_cpu(struct task_struct *p, unsigned int cpu)
 
 extern long sched_setaffinity(pid_t pid, const struct cpumask *new_mask);
 extern long sched_getaffinity(pid_t pid, struct cpumask *mask);
+
+extern int sched_dl_global_validate(void);
+extern void sched_dl_do_global(void);
+extern int sched_dl_overflow(struct task_struct *p, int policy,
+			     const struct sched_attr *attr);
+extern void __setparam_dl(struct task_struct *p, const struct sched_attr *attr);
+extern void __getparam_dl(struct task_struct *p, struct sched_attr *attr);
+extern bool __checkparam_dl(const struct sched_attr *attr);
+extern void __dl_clear_params(struct task_struct *p);
+extern bool dl_param_changed(struct task_struct *p,
+				  const struct sched_attr *attr);
+extern int dl_task_can_attach(struct task_struct *p,
+			    const struct cpumask *cs_cpus_allowed);
+extern int dl_cpuset_cpumask_can_shrink(const struct cpumask *cur,
+					const struct cpumask *trial);
+extern struct dl_bandwidth def_dl_bandwidth;
+
+struct dl_rq;
+struct dl_bw;
+
+#ifdef CONFIG_SCHED_DL
+#define dl_nr_running(rq)	((rq)->dl.dl_nr_running)
+#define dl_boosted(tsk)		((tsk)->dl.dl_boosted)
+extern bool dl_cpu_busy(unsigned int cpu);
+extern void init_sched_dl_class(void);
+extern void init_dl_bandwidth(struct dl_bandwidth *dl_b,
+				u64 period, u64 runtime);
+extern void init_dl_rq(struct dl_rq *dl_rq);
+extern void init_dl_bw(struct dl_bw *dl_b);
+#else
+#define dl_nr_running(rq)	0
+#define dl_boosted(tsk)		(*(int *)0)
+#define dl_cpu_busy(cpu)	false
+#define init_dl_bw(dl_b)	do { } while (0)
+#define init_sched_dl_class()	do { } while (0)
+#define init_dl_bandwidth(...)	do { } while (0)
+#define init_dl_rq(dl_rq)	do { } while (0)
+#endif
 
 #ifdef CONFIG_CGROUP_SCHED
 extern struct task_group root_task_group;

@@ -40,7 +40,8 @@ static unsigned long calibrate_delay_direct(void)
 	unsigned long good_timer_sum = 0;
 	unsigned long good_timer_count = 0;
 	unsigned long measured_times[MAX_DIRECT_CALIBRATION_RETRIES];
-	int max = -1; /* index of measured_times with max/min values or not set */
+	/* index of measured_times with max/min values or not set */
+	int max = -1;
 	int min = -1;
 	int i;
 
@@ -95,7 +96,7 @@ static unsigned long calibrate_delay_direct(void)
 		 * >= 12.5% apart, redo calibration.
 		 */
 		if (start >= post_end)
-			printk(KERN_NOTICE "calibrate_delay_direct() ignoring "
+			pr_notice("calibrate_delay_direct() ignoring "
 					"timer_rate as we had a TSC wrap around"
 					" start=%lu >=post_end=%lu\n",
 				start, post_end);
@@ -134,13 +135,13 @@ static unsigned long calibrate_delay_direct(void)
 		good_timer_count = 0;
 		if ((measured_times[max] - estimate) <
 				(estimate - measured_times[min])) {
-			printk(KERN_NOTICE "calibrate_delay_direct() dropping "
+			pr_notice("calibrate_delay_direct() dropping "
 					"min bogoMips estimate %d = %lu\n",
 				min, measured_times[min]);
 			measured_times[min] = 0;
 			min = max;
 		} else {
-			printk(KERN_NOTICE "calibrate_delay_direct() dropping "
+			pr_notice("calibrate_delay_direct() dropping "
 					"max bogoMips estimate %d = %lu\n",
 				max, measured_times[max]);
 			measured_times[max] = 0;
@@ -247,6 +248,71 @@ recalibrate:
 	return lpj;
 }
 
+
+static unsigned long calibrate_delay_converge_in_arch(void)
+{
+	/* First stage - slowly accelerate to find initial bounds */
+	unsigned long lpj, lpj_base, ticks, loopadd, loopadd_base, chop_limit;
+	int trials = 0, band = 0, trial_in_band = 0;
+
+	lpj = (1<<12);
+
+	/* wait for "start of" clock tick */
+	ticks = jiffies;
+	while (ticks == jiffies)
+		; /* nothing */
+	/* Go .. */
+	ticks = jiffies;
+	do {
+		if (++trial_in_band == (1<<band)) {
+			++band;
+			trial_in_band = 0;
+		}
+		__loop_delay(lpj * band);
+		trials += band;
+	} while (ticks == jiffies);
+	/*
+	 * We overshot, so retreat to a clear underestimate. Then estimate
+	 * the largest likely undershoot. This defines our chop bounds.
+	 */
+	trials -= band;
+	loopadd_base = lpj * band;
+	lpj_base = lpj * trials;
+
+recalibrate:
+	lpj = lpj_base;
+	loopadd = loopadd_base;
+
+	/*
+	 * Do a binary approximation to get lpj set to
+	 * equal one clock (up to LPS_PREC bits)
+	 */
+	chop_limit = lpj >> LPS_PREC;
+	while (loopadd > chop_limit) {
+		lpj += loopadd;
+		ticks = jiffies;
+		while (ticks == jiffies)
+			; /* nothing */
+		ticks = jiffies;
+		__loop_delay(lpj);
+		if (jiffies != ticks)	/* longer than 1 tick */
+			lpj -= loopadd;
+		loopadd >>= 1;
+	}
+	/*
+	 * If we incremented every single time possible, presume we've
+	 * massively underestimated initially, and retry with a higher
+	 * start, and larger range. (Only seen on x86_64, due to SMIs)
+	 */
+	if (lpj + loopadd * 2 == lpj_base + loopadd_base * 2) {
+		lpj_base = lpj;
+		loopadd_base <<= 2;
+		goto recalibrate;
+	}
+
+	return lpj;
+}
+
 static DEFINE_PER_CPU(unsigned long, cpu_loops_per_jiffy) = { 0 };
 
 /*
@@ -303,10 +369,13 @@ void calibrate_delay(void)
 		lpj = calibrate_delay_converge();
 	}
 	per_cpu(cpu_loops_per_jiffy, this_cpu) = lpj;
+	/* Show True Bigomips when ARM Architecture Timer is used*/
+	unsigned long lpj_bigomips = calibrate_delay_converge_in_arch();
+
 	if (!printed)
 		pr_cont("%lu.%02lu BogoMIPS (lpj=%lu)\n",
-			lpj/(500000/HZ),
-			(lpj/(5000/HZ)) % 100, lpj);
+			lpj_bigomips/(500000/HZ),
+			(lpj_bigomips/(5000/HZ)) % 100, lpj_bigomips);
 
 	loops_per_jiffy = lpj;
 	printed = true;

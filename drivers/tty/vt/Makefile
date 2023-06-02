@@ -5,6 +5,7 @@ FONTMAPFILE = cp437.uni
 
 obj-$(CONFIG_VT)			+= vt_ioctl.o vc_screen.o \
 					   selection.o keyboard.o
+obj-$(CONFIG_DUMMY_CONSOLE)			+= dummycon.o
 obj-$(CONFIG_CONSOLE_TRANSLATIONS)	+= consolemap.o consolemap_deftbl.o
 obj-$(CONFIG_HW_CONSOLE)		+= vt.o defkeymap.o
 

@@ -53,6 +53,22 @@ obj-$(CONFIG_ECHO)		+= echo/
 obj-$(CONFIG_VEXPRESS_SYSCFG)	+= vexpress-syscfg.o
 obj-$(CONFIG_CXL_BASE)		+= cxl/
 obj-$(CONFIG_PANEL)             += panel.o
+ccflags-y += -I$(srctree)/drivers/tee/tee_api
+
+obj-$(CONFIG_FH_DMAC_MISC) += fh_dma_miscdev.o
+obj-$(CONFIG_FH_ACW)		+= fh_acw.o
+obj-$(CONFIG_FH_DW_I2S)		+= fh_dw_i2s.o
+obj-$(CONFIG_FH_SADC_V1)		+= fh_sadc.o
+obj-$(CONFIG_FH_SADC_V2)		+= fh_sadc_v2.o
+obj-$(CONFIG_FH_SADC_V3)		+= fh_sadc_v3.o
+obj-$(CONFIG_FH_EFUSE)		+= fh_efuse.o
+obj-$(CONFIG_FH_EFUSE_TEE)		+= fh_efuse_tee.o
+obj-$(CONFIG_FH_PINCTRL_MISC_DEV)		+= fh_pinctrl_dev.o
+obj-$(CONFIG_FH_CLK_MISC) += fh_clk_miscdev.o
+obj-$(CONFIG_FH_PERF_MON) += fh_perf_mon.o
+obj-$(CONFIG_FH_STEPMOTOR) += fh_stepmotor.o fh_stepmotor_hw.o
+obj-$(CONFIG_FH_TSENSOR) += fh_tsensor.o
+
 
 lkdtm-$(CONFIG_LKDTM)		+= lkdtm_core.o
 lkdtm-$(CONFIG_LKDTM)		+= lkdtm_bugs.o

@@ -1708,7 +1708,7 @@ static int test_halt(struct usbtest_dev *tdev, int ep, struct urb *urb)
 	return 0;
 }
 
-static int halt_simple(struct usbtest_dev *dev)
+static int halt_simple(struct usbtest_dev *dev, int start)
 {
 	int			ep;
 	int			retval = 0;
@@ -1721,6 +1721,23 @@ static int halt_simple(struct usbtest_dev *dev)
 		urb = simple_alloc_urb(udev, 0, 512, 0);
 	if (urb == NULL)
 		return -ENOMEM;
+
+	if (start) {
+		struct completion	completion;
+
+		init_completion(&completion);
+		urb->context = &completion;
+		urb->pipe = dev->in_pipe;
+		retval = usb_submit_urb(urb, GFP_KERNEL);
+		if (retval == 0) {
+			if (!wait_for_completion_timeout(&completion,
+				msecs_to_jiffies(SIMPLE_IO_TIMEOUT))) {
+				usb_kill_urb(urb);
+				return -ETIMEDOUT;
+			}
+		} else
+			return retval;
+	}
 
 	if (dev->in_pipe) {
 		ep = usb_pipeendpoint(dev->in_pipe) | USB_DIR_IN;
@@ -2292,10 +2309,10 @@ usbtest_do_ioctl(struct usb_interface *intf, struct usbtest_param_32 *param)
 			break;
 		retval = 0;
 		dev_info(&intf->dev, "TEST 12:  unlink %d writes of %d\n",
-				param->iterations, param->length);
+				param->iterations, param->length*2);
 		for (i = param->iterations; retval == 0 && i--; /* NOP */)
 			retval = unlink_simple(dev, dev->out_pipe,
-						param->length);
+						param->length*2);
 		if (retval)
 			dev_err(&intf->dev, "unlink writes failed %d, "
 				"iterations left %d\n", retval, i);
@@ -2309,7 +2326,7 @@ usbtest_do_ioctl(struct usb_interface *intf, struct usbtest_param_32 *param)
 		dev_info(&intf->dev, "TEST 13:  set/clear %d halts\n",
 				param->iterations);
 		for (i = param->iterations; retval == 0 && i--; /* NOP */)
-			retval = halt_simple(dev);
+			retval = halt_simple(dev, i == param->iterations-1);
 
 		if (retval)
 			ERROR(dev, "halts failed, iterations left %d\n", i);

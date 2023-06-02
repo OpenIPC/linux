@@ -484,6 +484,21 @@ config MMC_SPI
 	  controllers.
 
 	  If unsure, or if your system has no SPI master driver, say N.
+config MMC_FH
+	tristate "FH Memory Card Interface"
+	depends on ARM
+	help
+	  This selects support for the Synopsys DesignWare Mobile Storage IP
+	  block, this provides host support for SD and MMC interfaces, in both
+	  PIO and external DMA modes.
+
+config MMC_FH_IDMAC
+	bool "Internal DMAC interface"
+	depends on MMC_FH
+	help
+	  This selects support for the internal DMAC block within the Synopsys
+	  Designware Mobile Storage IP block. This disables the external DMA
+	  interface.
 
 config MMC_S3C
 	tristate "Samsung S3C SD/MMC Card Interface support"

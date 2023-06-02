@@ -609,7 +609,7 @@ int gpiod_export(struct gpio_desc *desc, bool direction_may_change)
 
 	dev = device_create_with_groups(&gpio_class, &gdev->dev,
 					MKDEV(0, 0), data, gpio_groups,
-					ioname ? ioname : "gpio%u",
+					ioname ? ioname : "GPIO%u",
 					desc_to_gpio(desc));
 	if (IS_ERR(dev)) {
 		status = PTR_ERR(dev);

@@ -1535,7 +1535,7 @@ pick_next_task_rt(struct rq *rq, struct task_struct *prev, struct pin_cookie coo
 		 * to re-start task selection.
 		 */
 		if (unlikely((rq->stop && task_on_rq_queued(rq->stop)) ||
-			     rq->dl.dl_nr_running))
+			     dl_nr_running(rq)))
 			return RETRY_TASK;
 	}
 

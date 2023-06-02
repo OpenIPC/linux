@@ -34,6 +34,8 @@
 #include "core.h"
 #include "hw.h"
 
+static int dwc2_hsotg_wait_bit_set(struct dwc2_hsotg *hs_otg, u32 reg,
+							u32 bit, u32 timeout);
 /* conversion functions */
 static inline struct dwc2_hsotg_req *our_req(struct usb_request *req)
 {
@@ -190,6 +192,7 @@ static void dwc2_hsotg_init_fifo(struct dwc2_hsotg *hsotg)
 	unsigned int addr;
 	int timeout;
 	u32 val;
+	u16 fifodepth;
 
 	/* Reset fifo map if not correctly cleared during previous session */
 	WARN_ON(hsotg->fifo_map);
@@ -228,6 +231,10 @@ static void dwc2_hsotg_init_fifo(struct dwc2_hsotg *hsotg)
 		dwc2_writel(val, hsotg->regs + DPTXFSIZN(ep));
 	}
 
+	fifodepth = (dwc2_readl(hsotg->regs + GHWCFG3)) >> 16;
+	if (addr >= fifodepth)
+		pr_err("error:fifo size(%d) > fifo depth =%d\n",
+			addr, fifodepth);
 	/*
 	 * according to p428 of the design guide, we need to ensure that
 	 * all fifos are flushed before continuing
@@ -494,8 +501,8 @@ static int dwc2_hsotg_write_fifo(struct dwc2_hsotg *hsotg,
 static unsigned get_ep_limit(struct dwc2_hsotg_ep *hs_ep)
 {
 	int index = hs_ep->index;
-	unsigned maxsize;
-	unsigned maxpkt;
+	unsigned int maxsize;
+	unsigned int maxpkt;
 
 	if (index != 0) {
 		maxsize = DXEPTSIZ_XFERSIZE_LIMIT + 1;
@@ -883,7 +890,10 @@ static int dwc2_hsotg_ep_queue(struct usb_ep *ep, struct usb_request *req,
 		while (dwc2_gadget_target_frame_elapsed(hs_ep))
 			dwc2_gadget_incr_frame_num(hs_ep);
 
-		if (hs_ep->target_frame != TARGET_FRAME_INITIAL)
+		/* if (hs_ep->target_frame != TARGET_FRAME_INITIAL) */
+		/* change by mengqx */
+		if (hs_ep->target_frame != TARGET_FRAME_INITIAL ||
+			!hs_ep->dir_in)
 			dwc2_hsotg_start_req(hs, hs_ep, hs_req, false);
 	}
 	return 0;
@@ -2566,7 +2576,7 @@ void dwc2_hsotg_core_init_disconnected(struct dwc2_hsotg *hsotg,
 
 	if (using_dma(hsotg))
 		dwc2_writel(GAHBCFG_GLBL_INTR_EN | GAHBCFG_DMA_EN |
-			    (GAHBCFG_HBSTLEN_INCR4 << GAHBCFG_HBSTLEN_SHIFT),
+			    (GAHBCFG_HBSTLEN_INCR16 << GAHBCFG_HBSTLEN_SHIFT),
 			    hsotg->regs + GAHBCFG);
 	else
 		dwc2_writel(((hsotg->dedicated_fifos) ?
@@ -2698,9 +2708,14 @@ static void dwc2_gadget_handle_incomplete_isoc_in(struct dwc2_hsotg *hsotg)
 		epctrl = dwc2_readl(hsotg->regs + DIEPCTL(idx));
 		if ((epctrl & DXEPCTL_EPENA) && hs_ep->isochronous &&
 		    dwc2_gadget_target_frame_elapsed(hs_ep)) {
+#ifdef CONFIG_USB_G_WEBCAM_PATCH
+			/* do nothing, change by mengqx */
+
+#else
 			epctrl |= DXEPCTL_SNAK;
 			epctrl |= DXEPCTL_EPDIS;
 			dwc2_writel(epctrl, hsotg->regs + DIEPCTL(idx));
+#endif
 		}
 	}
 
@@ -2736,6 +2751,9 @@ static void dwc2_gadget_handle_incomplete_isoc_out(struct dwc2_hsotg *hsotg)
 		epctrl = dwc2_readl(hsotg->regs + DOEPCTL(idx));
 		if ((epctrl & DXEPCTL_EPENA) && hs_ep->isochronous &&
 		    dwc2_gadget_target_frame_elapsed(hs_ep)) {
+#ifdef CONFIG_USB_G_WEBCAM_PATCH
+			/* do nothing, change by mengqx */
+#else
 			/* Unmask GOUTNAKEFF interrupt */
 			gintmsk = dwc2_readl(hsotg->regs + GINTMSK);
 			gintmsk |= GINTSTS_GOUTNAKEFF;
@@ -2744,6 +2762,7 @@ static void dwc2_gadget_handle_incomplete_isoc_out(struct dwc2_hsotg *hsotg)
 			gintsts = dwc2_readl(hsotg->regs + GINTSTS);
 			if (!(gintsts & GINTSTS_GOUTNAKEFF))
 				__orr32(hsotg->regs + DCTL, DCTL_SGOUTNAK);
+#endif
 		}
 	}
 
@@ -3106,6 +3125,7 @@ static int dwc2_hsotg_ep_disable(struct usb_ep *ep)
 	int index = hs_ep->index;
 	unsigned long flags;
 	u32 epctrl_reg;
+	u32 epint_reg;
 	u32 ctrl;
 
 	dev_dbg(hsotg->dev, "%s(ep %p)\n", __func__, ep);
@@ -3116,6 +3136,8 @@ static int dwc2_hsotg_ep_disable(struct usb_ep *ep)
 	}
 
 	epctrl_reg = dir_in ? DIEPCTL(index) : DOEPCTL(index);
+	epint_reg = dir_in ? DIEPINT(hs_ep->index) :
+		DOEPINT(hs_ep->index);
 
 	spin_lock_irqsave(&hsotg->lock, flags);
 
@@ -3123,9 +3145,19 @@ static int dwc2_hsotg_ep_disable(struct usb_ep *ep)
 	ctrl &= ~DXEPCTL_EPENA;
 	ctrl &= ~DXEPCTL_USBACTEP;
 	ctrl |= DXEPCTL_SNAK;
+	ctrl |= DXEPCTL_EPDIS;	/* add by mengqx */
 
 	dev_dbg(hsotg->dev, "%s: DxEPCTL=0x%08x\n", __func__, ctrl);
 	dwc2_writel(ctrl, hsotg->regs + epctrl_reg);
+
+	if (dwc2_hsotg_wait_bit_set(hsotg, epint_reg, DXEPINT_EPDISBLD, 100)) {
+		dev_warn(hsotg->dev,
+			"%s: timeout DOEPCTL.EPDisable\n", __func__);
+	} else
+		dwc2_writel(DXEPINT_EPDISBLD, hsotg->regs + epint_reg);
+	/* add by mengqx */
+	if (dir_in)
+		dwc2_hsotg_txfifo_flush(hsotg, hs_ep->fifo_index);
 
 	/* disable endpoint interrupts */
 	dwc2_hsotg_ctrl_epint(hsotg, hs_ep->index, hs_ep->dir_in, 0);
@@ -3226,6 +3258,9 @@ static void dwc2_hsotg_ep_stop_xfr(struct dwc2_hsotg *hsotg,
 	} else {
 		/* Remove global NAKs */
 		__bic32(hsotg->regs + DCTL, DCTL_SGOUTNAK);
+#ifdef CONFIG_USB_G_WEBCAM_PATCH
+		__orr32(hsotg->regs + DCTL, DCTL_CGOUTNAK);
+#endif
 	}
 }
 
@@ -3802,7 +3837,7 @@ static void dwc2_hsotg_dump(struct dwc2_hsotg *hsotg)
 #endif
 }
 
-#ifdef CONFIG_OF
+#ifdef CONFIG_USE_OF
 static void dwc2_hsotg_of_probe(struct dwc2_hsotg *hsotg)
 {
 	struct device_node *np = hsotg->dev->of_node;
@@ -3860,9 +3895,11 @@ int dwc2_gadget_init(struct dwc2_hsotg *hsotg, int irq)
 	int i;
 	u32 p_tx_fifo[] = DWC2_G_P_LEGACY_TX_FIFO_SIZE;
 
+	/* Initialize to DMA Buffer Mode as default */
+	hsotg->g_using_dma = 1;
 	/* Initialize to legacy fifo configuration values */
-	hsotg->g_rx_fifo_sz = 2048;
-	hsotg->g_np_g_tx_fifo_sz = 1024;
+	hsotg->g_rx_fifo_sz = 768;
+	hsotg->g_np_g_tx_fifo_sz = 256;
 	memcpy(&hsotg->g_tx_fifo_sz[1], p_tx_fifo, sizeof(p_tx_fifo));
 	/* Device tree specific probe */
 	dwc2_hsotg_of_probe(hsotg);

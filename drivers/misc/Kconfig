@@ -4,6 +4,117 @@
 
 menu "Misc devices"
 
+config FH_DW_I2S
+	tristate "FH DW I2S(master) support"
+	default n
+	help
+	  FH DW I2S driver, as the MASTER, generate BICK & LRCLK for slave
+
+config FH_ACW
+	tristate "FH ACW(slave) support"
+	default n
+	help
+	  FH ACW I2S driver, as the SLAVE, external clk input is required
+
+config AUDIO_DMA_BUFFER_KB
+	int "Audio DMA buffer size in KB"
+	depends on FH_DW_I2S || FH_ACW
+	default 32
+	help
+	  Audio DMA buffer size in KB
+	  16KHz --> 16KB
+	  48KHz --> 32KB
+
+config FH_STEPMOTOR
+        depends on (ARCH_FH865x || ARCH_FH8636 || ARCH_FH8852V101)
+        tristate "FH STEPMOTOR Suppport"
+        default y
+
+config FH_SADC_V1
+	depends on (MACH_FH8856 || MACH_FH8852)
+    tristate "FH SADC support(v1 version)"
+	help
+	  To compile this driver as a module, choose M here: the module will
+	  be called fh_sadc.
+
+	  HW para:10bits precision, 8 channels, 5M clk in.
+	  one conversion need almost (12/5M *1)second
+
+config FH_SADC_V2
+        depends on (MACH_FH8626V100)
+    tristate "FH SADC support(v2 version)"
+        help
+          To compile this driver as a module, choose M here: the module will
+          be called fh_sadc.
+
+          HW para:12bits precision, 8 channels, 5M clk in.
+          one conversion need almost (12/5M *1)second
+
+config FH_SADC_V21
+        depends on (MACH_FH8626V100)
+    tristate "FH SADC support(v21 version)"
+    default n
+
+config FH_SADC_V3
+        depends on (ARCH_FH885xV200 || ARCH_FH865x || ARCH_FH8636 || ARCH_FH8852V101)
+    tristate "FH SADC support(v3 version)"
+        help
+          FH885xV200 or later soc version use SADC_V3 version.
+
+          HW para:12bits precision, 8 channels, 5M clk in.
+          one conversion need almost (12/5M *1)second
+choice
+	bool "FH EFUSE driver select"
+	default FH_EFUSE
+
+config FH_EFUSE_TEE
+	tristate "FH EFUSE driver for tee"
+	depends on TEE
+
+config FH_EFUSE
+	tristate "FH EFUSE driver original"
+	help
+	  To compile this driver as a module, choose M here: the module will
+	  be called fh_efuse.
+
+	  HW para:60 bytes could be programmed.
+endchoice
+
+config FH_L2MEM
+	tristate "FH L2MEM allocator"
+	default n
+
+config FH_PINCTRL_MISC_DEV
+	tristate "FH Pinctrl misc device support"
+	default n
+	depends on ! PINCTRL_FULLHAN
+	help
+	  To compile this driver as a module, choose M here: the module will
+	  be called.
+	  
+config FH_CLK_MISC
+	tristate "FH clk miscdev support"
+	default n
+	help
+	  To compile this driver as a module, choose M here: the module will
+	  be called.
+
+if ARCH_FH885xV200 || ARCH_FH865x || ARCH_FH8636 || ARCH_FH8852V101
+config FH_PERF_MON
+        tristate "FH performance monitor"
+        default y
+        help
+                fh performance monitor
+endif
+
+config FH_TSENSOR
+        depends on !(MACH_FH8856 || MACH_FH8852) && RTC_DRV_FH
+        tristate "FH TSENSOR suppport"
+        default n
+        help
+          fullhan tsensor driver, used to get the chip temperature
+
+
 config SENSORS_LIS3LV02D
 	tristate
 	depends on INPUT

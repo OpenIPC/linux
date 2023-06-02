@@ -72,7 +72,8 @@ apply_relocate(Elf32_Shdr *sechdrs, const char *strtab, unsigned int symindex,
 #endif
 
 		offset = ELF32_R_SYM(rel->r_info);
-		if (offset < 0 || offset > (symsec->sh_size / sizeof(Elf32_Sym))) {
+		if (offset < 0 || offset > (symsec->sh_size / sizeof(Elf32_Sym))
+				) {
 			pr_err("%s: section %u reloc %u: bad relocation sym offset\n",
 				module->name, relindex, i);
 			return -ENOEXEC;
@@ -81,7 +82,8 @@ apply_relocate(Elf32_Shdr *sechdrs, const char *strtab, unsigned int symindex,
 		sym = ((Elf32_Sym *)symsec->sh_addr) + offset;
 		symname = strtab + sym->st_name;
 
-		if (rel->r_offset < 0 || rel->r_offset > dstsec->sh_size - sizeof(u32)) {
+		if (rel->r_offset < 0 || rel->r_offset >
+				dstsec->sh_size - sizeof(u32)) {
 			pr_err("%s: section %u reloc %u sym '%s': out of bounds relocation, offset %d size %u\n",
 			       module->name, relindex, i, symname,
 			       rel->r_offset, dstsec->sh_size);
@@ -145,14 +147,14 @@ apply_relocate(Elf32_Shdr *sechdrs, const char *strtab, unsigned int symindex,
 			*(u32 *)loc |= __opcode_to_mem_arm(offset);
 			break;
 
-	       case R_ARM_V4BX:
+			case R_ARM_V4BX:
 		       /* Preserve Rm and the condition code. Alter
 			* other bits to re-code instruction as
 			* MOV PC,Rm.
 			*/
-		       *(u32 *)loc &= __opcode_to_mem_arm(0xf000000f);
-		       *(u32 *)loc |= __opcode_to_mem_arm(0x01a0f000);
-		       break;
+				*(u32 *)loc &= __opcode_to_mem_arm(0xf000000f);
+				*(u32 *)loc |= __opcode_to_mem_arm(0x01a0f000);
+				break;
 
 		case R_ARM_PREL31:
 			offset = *(u32 *)loc + sym->st_value - loc;
@@ -364,9 +366,9 @@ int module_finalize(const Elf32_Ehdr *hdr, const Elf_Shdr *sechdrs,
 		if (maps[i].unw_sec && maps[i].txt_sec)
 			mod->arch.unwind[i] =
 				unwind_table_add(maps[i].unw_sec->sh_addr,
-					         maps[i].unw_sec->sh_size,
-					         maps[i].txt_sec->sh_addr,
-					         maps[i].txt_sec->sh_size);
+						maps[i].unw_sec->sh_size,
+						maps[i].txt_sec->sh_addr,
+						maps[i].txt_sec->sh_size);
 #endif
 #ifdef CONFIG_ARM_PATCH_PHYS_VIRT
 	s = find_mod_section(hdr, sechdrs, ".pv_table");

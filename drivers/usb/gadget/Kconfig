@@ -481,4 +481,24 @@ source "drivers/usb/gadget/legacy/Kconfig"
 
 endchoice
 
+config USB_G_WEBCAM_PATCH
+	bool "UVC fix upgrade"
+	depends on USB_G_WEBCAM
+	default y
+
+config UVC_ACM_COM
+	bool "enable acm vcom driver(serial)"
+	depends on USB_G_WEBCAM
+	default n
+
+config UVC_INS_UAC
+	bool "enable uac driver"
+	depends on USB_G_WEBCAM
+	default y
+
+config ENABLE_SPEAKER_DESC
+	bool "enable uac speaker driver"
+	depends on USB_G_WEBCAM && UVC_INS_UAC
+	default y
+
 endif # USB_GADGET

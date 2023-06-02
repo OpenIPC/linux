@@ -161,6 +161,12 @@ dtb-$(CONFIG_ARCH_EXYNOS5) += \
 	exynos5440-sd5v1.dtb \
 	exynos5440-ssdk5440.dtb \
 	exynos5800-peach-pi.dtb
+dtb-$(CONFIG_MACH_FH8856V200) += fh8856v200.dtb
+dtb-$(CONFIG_MACH_FH8852V200) += fh8852v200.dtb
+dtb-$(CONFIG_MACH_FH8858V200) += fh8858v200.dtb
+dtb-$(CONFIG_MACH_FH8856V210) += fh8856v210.dtb
+dtb-$(CONFIG_MACH_FH8852V210) += fh8852v210.dtb
+dtb-$(CONFIG_MACH_FH8858V210) += fh8858v210.dtb
 dtb-$(CONFIG_ARCH_HI3xxx) += \
 	hi3620-hi4511.dtb
 dtb-$(CONFIG_ARCH_HIGHBANK) += \

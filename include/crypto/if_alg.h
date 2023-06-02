@@ -20,7 +20,7 @@
 #include <linux/types.h>
 #include <net/sock.h>
 
-#define ALG_MAX_PAGES			16
+#define ALG_MAX_PAGES			128
 
 struct crypto_async_request;
 
@@ -46,6 +46,7 @@ struct af_alg_control {
 	struct af_alg_iv *iv;
 	int op;
 	unsigned int aead_assoclen;
+	struct af_alg_usr_def usr_def;
 };
 
 struct af_alg_type {

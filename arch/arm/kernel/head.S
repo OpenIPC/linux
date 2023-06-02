@@ -447,6 +447,12 @@ __secondary_data:
  *  r13 = *virtual* address to jump to upon completion
  */
 __enable_mmu:
+#if defined (CONFIG_CPU_V7)
+	/* remember in arm cortex-a7 all mmu facility is based on SMP bit */
+	mrc     p15, 0, r5, c1, c0, 1
+	orr     r5, #(1 << 6)
+	mcr     p15, 0, r5, c1, c0, 1
+#endif
 #if defined(CONFIG_ALIGNMENT_TRAP) && __LINUX_ARM_ARCH__ < 6
 	orr	r0, r0, #CR_A
 #else

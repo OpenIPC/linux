@@ -834,6 +834,14 @@ config GEODE_WDT
 	  You can compile this driver directly into the kernel, or use
 	  it as a module.  The module will be called geodewdt.
 
+
+config FH_WATCHDOG
+	tristate "fullhan  watchdog driver"
+
+	help
+	  A software monitoring watchdog and NMI sourcing driver.
+
+
 config SC520_WDT
 	tristate "AMD Elan SC520 processor Watchdog"
 	depends on MELAN

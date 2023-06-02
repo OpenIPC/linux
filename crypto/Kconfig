@@ -1649,7 +1649,7 @@ config CRYPTO_DRBG_CTR
 
 config CRYPTO_DRBG
 	tristate
-	default CRYPTO_DRBG_MENU
+	default n
 	select CRYPTO_RNG
 	select CRYPTO_JITTERENTROPY
 

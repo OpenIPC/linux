@@ -1,0 +1,6 @@
+
+config CRYPTODEV
+tristate "Support cryptodev"
+default n
+help
+	Support \dev\crypto

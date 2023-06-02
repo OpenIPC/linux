@@ -366,6 +366,13 @@ int dwc2_hcd_qh_init_ddma(struct dwc2_hsotg *hsotg, struct dwc2_qh *qh,
 	}
 
 	qh->ntd = 0;
+#if IS_ENABLED(CONFIG_USB_DWC2_HOST_DMA_DESC_NUM_DYNAMIC)
+	if (hsotg->core_params->dma_desc_enable
+		&& qh->ep_type == USB_ENDPOINT_XFER_BULK
+		&& qh->ep_is_in) {
+		qh->max_dma_desc_num_lastime = 1;
+	}
+#endif
 	return 0;
 
 err1:
@@ -744,6 +751,71 @@ static void dwc2_init_non_isoc_dma_desc(struct dwc2_hsotg *hsotg,
 	struct dwc2_host_chan *chan = qh->channel;
 	int n_desc = 0;
 
+#if IS_ENABLED(CONFIG_USB_DWC2_HOST_DMA_DESC_NUM_DYNAMIC)
+	int max_dma_desc_num_dynamic;
+	static int qtd_inc_statistic;
+
+	if (hsotg->core_params->dma_desc_enable
+	    && chan->ep_type == USB_ENDPOINT_XFER_BULK
+	    && chan->ep_is_in) {
+		if (qh->qh_dura.tv_sec != 0
+		    || qh->qh_dura.tv_usec != 0) {
+			if (qh->qh_dura.tv_sec > 0) {
+				qtd_inc_statistic = 0;
+
+				max_dma_desc_num_dynamic
+				    = qh->max_dma_desc_num_lastime
+				    /qh->qh_dura.tv_sec;
+				if (max_dma_desc_num_dynamic == 0) {
+					if (qh->max_dma_desc_num_lastime > 2)
+						max_dma_desc_num_dynamic
+						= qh->max_dma_desc_num_lastime
+						/ 2;
+					else
+						max_dma_desc_num_dynamic = 1;
+				}
+			} else if (qh->qh_dura.tv_usec > 0
+			    && qh->qh_dura.tv_usec < 10000) {
+				qtd_inc_statistic++;
+				if (qtd_inc_statistic > 10) {
+					max_dma_desc_num_dynamic
+					    = qh->max_dma_desc_num_lastime + 1;
+					if (max_dma_desc_num_dynamic
+					    > MAX_DMA_DESC_NUM_GENERIC)
+						max_dma_desc_num_dynamic
+						    = MAX_DMA_DESC_NUM_GENERIC;
+				} else {
+					max_dma_desc_num_dynamic
+					    = qh->max_dma_desc_num_lastime;
+				}
+			} else {
+				qtd_inc_statistic = 0;
+
+				max_dma_desc_num_dynamic
+				    = qh->max_dma_desc_num_lastime;
+			}
+
+			qh->qh_dura.tv_sec = 0;
+			qh->qh_dura.tv_usec = 0;
+		} else {
+			max_dma_desc_num_dynamic = MAX_DMA_DESC_NUM_GENERIC;
+			if (chan->qh_start.tv_sec != 0
+			    || chan->qh_start.tv_usec != 0
+			    || chan->qh_end.tv_sec != 0
+			    || chan->qh_end.tv_usec != 0
+			) {
+				chan->qh_start.tv_sec = 0;
+				chan->qh_start.tv_usec = 0;
+				chan->qh_end.tv_sec = 0;
+				chan->qh_end.tv_usec = 0;
+				WARN_ON(1);
+			}
+		}
+	} else {
+		max_dma_desc_num_dynamic = MAX_DMA_DESC_NUM_GENERIC;
+	}
+#endif
+
 	dev_vdbg(hsotg->dev, "%s(): qh=%p dma=%08lx len=%d\n", __func__, qh,
 		 (unsigned long)chan->xfer_dma, chan->xfer_len);
 
@@ -791,13 +863,21 @@ static void dwc2_init_non_isoc_dma_desc(struct dwc2_hsotg *hsotg,
 			qtd->n_desc++;
 			n_desc++;
 		} while (chan->xfer_len > 0 &&
-			 n_desc != MAX_DMA_DESC_NUM_GENERIC);
+#if IS_ENABLED(CONFIG_USB_DWC2_HOST_DMA_DESC_NUM_DYNAMIC)
+			n_desc != max_dma_desc_num_dynamic);
+#else
+			n_desc != MAX_DMA_DESC_NUM_GENERIC);
+#endif
 
 		dev_vdbg(hsotg->dev, "n_desc=%d\n", n_desc);
 		qtd->in_process = 1;
 		if (qh->ep_type == USB_ENDPOINT_XFER_CONTROL)
 			break;
+#if IS_ENABLED(CONFIG_USB_DWC2_HOST_DMA_DESC_NUM_DYNAMIC)
+		if (n_desc == max_dma_desc_num_dynamic)
+#else
 		if (n_desc == MAX_DMA_DESC_NUM_GENERIC)
+#endif
 			break;
 	}
 
@@ -821,6 +901,9 @@ static void dwc2_init_non_isoc_dma_desc(struct dwc2_hsotg *hsotg,
 					DMA_TO_DEVICE);
 		}
 		chan->ntd = n_desc;
+#if IS_ENABLED(CONFIG_USB_DWC2_HOST_DMA_DESC_NUM_DYNAMIC)
+		qh->max_dma_desc_num_lastime = n_desc;
+#endif
 	}
 }
 
@@ -853,6 +936,22 @@ void dwc2_hcd_start_xfer_ddma(struct dwc2_hsotg *hsotg, struct dwc2_qh *qh)
 	case USB_ENDPOINT_XFER_CONTROL:
 	case USB_ENDPOINT_XFER_BULK:
 		dwc2_init_non_isoc_dma_desc(hsotg, qh);
+#if IS_ENABLED(CONFIG_USB_DWC2_HOST_DMA_DESC_NUM_DYNAMIC)
+		if (hsotg->core_params->dma_desc_enable
+			&& chan->ep_type == USB_ENDPOINT_XFER_BULK
+			&& chan->ep_is_in) {
+			if (chan->qh_start.tv_sec == 0
+				&& chan->qh_start.tv_usec == 0
+				&& chan->qh_end.tv_sec == 0
+				&& chan->qh_end.tv_usec == 0) {
+				do_gettimeofday(&chan->qh_start);
+			} else {
+				chan->qh_start.tv_sec = 0;
+				chan->qh_start.tv_usec = 0;
+				WARN_ON(1);
+			}
+		}
+#endif
 		dwc2_hc_start_transfer_ddma(hsotg, chan);
 		break;
 	case USB_ENDPOINT_XFER_INT:
@@ -1302,6 +1401,32 @@ void dwc2_hcd_complete_xfer_ddma(struct dwc2_hsotg *hsotg,
 	struct dwc2_qh *qh = chan->qh;
 	int continue_isoc_xfer = 0;
 	enum dwc2_transaction_type tr_type;
+
+#if IS_ENABLED(CONFIG_USB_DWC2_HOST_DMA_DESC_NUM_DYNAMIC)
+	if (hsotg->core_params->dma_desc_enable
+	    && chan->ep_type == USB_ENDPOINT_XFER_BULK
+	    && chan->ep_is_in) {
+		if ((chan->qh_start.tv_sec != 0
+			|| chan->qh_start.tv_usec != 0)
+		    &&
+		    (chan->qh_end.tv_sec == 0
+		    && chan->qh_end.tv_usec == 0)) {
+			do_gettimeofday(&chan->qh_end);
+			qh->qh_dura.tv_sec
+			    = chan->qh_end.tv_sec - chan->qh_start.tv_sec;
+			qh->qh_dura.tv_usec
+			    = chan->qh_end.tv_usec - chan->qh_start.tv_usec;
+			chan->qh_start.tv_sec = 0;
+			chan->qh_start.tv_usec = 0;
+			chan->qh_end.tv_sec = 0;
+			chan->qh_end.tv_usec = 0;
+		} else {
+			qh->qh_dura.tv_sec = 0;
+			qh->qh_dura.tv_usec = 0;
+			WARN_ON(1);
+		}
+	}
+#endif
 
 	if (chan->ep_type == USB_ENDPOINT_XFER_ISOC) {
 		dwc2_complete_isoc_xfer_ddma(hsotg, chan, halt_status);

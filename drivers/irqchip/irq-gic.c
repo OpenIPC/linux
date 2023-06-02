@@ -290,15 +290,14 @@ static int gic_irq_get_irqchip_state(struct irq_data *d,
 	return 0;
 }
 
+
 static int gic_set_type(struct irq_data *d, unsigned int type)
 {
 	void __iomem *base = gic_dist_base(d);
 	unsigned int gicirq = gic_irq(d);
-
 	/* Interrupt configuration for SGIs can't be changed */
 	if (gicirq < 16)
 		return -EINVAL;
-
 	/* SPIs have restrictions on the supported types */
 	if (gicirq >= 32 && type != IRQ_TYPE_LEVEL_HIGH &&
 			    type != IRQ_TYPE_EDGE_RISING)
@@ -956,6 +955,9 @@ static int gic_irq_domain_map(struct irq_domain *d, unsigned int irq,
 				irq_hw_number_t hw)
 {
 	struct gic_chip_data *gic = d->host_data;
+#ifdef CONFIG_ARCH_FULLHAN
+	struct irq_data *data;
+#endif
 
 	if (hw < 32) {
 		irq_set_percpu_devid(irq);
@@ -967,6 +969,13 @@ static int gic_irq_domain_map(struct irq_domain *d, unsigned int irq,
 				    handle_fasteoi_irq, NULL, NULL);
 		irq_set_probe(irq);
 	}
+
+#ifdef CONFIG_ARCH_FULLHAN
+	/* give a default trigger type */
+	data = irq_domain_get_irq_data(d, irq);
+	irqd_set_trigger_type(data, IRQF_TRIGGER_HIGH);
+#endif
+
 	return 0;
 }
 
@@ -1034,6 +1043,8 @@ static int gic_irq_domain_alloc(struct irq_domain *domain, unsigned int virq,
 }
 
 static const struct irq_domain_ops gic_irq_domain_hierarchy_ops = {
+	.map = gic_irq_domain_map,
+	.unmap = gic_irq_domain_unmap,
 	.translate = gic_irq_domain_translate,
 	.alloc = gic_irq_domain_alloc,
 	.free = irq_domain_free_irqs_top,
@@ -1148,6 +1159,8 @@ static int gic_init_bases(struct gic_chip_data *gic, int irq_start,
 		ret = -ENODEV;
 		goto error;
 	}
+
+	irq_set_default_host(gic->domain);
 
 	gic_dist_init(gic);
 	ret = gic_cpu_init(gic);

@@ -100,6 +100,7 @@ everspin	Everspin Technologies, Inc.
 excito	Excito
 ezchip	EZchip Semiconductor
 fcs	Fairchild Semiconductor
+fh      Fullhan Microelectronic Co.,Ltd
 firefly	Firefly
 focaltech	FocalTech Systems Co.,Ltd
 friendlyarm	Guangzhou FriendlyARM Computer Tech Co., Ltd

@@ -387,7 +387,7 @@ void asix_set_multicast(struct net_device *net)
 {
 	struct usbnet *dev = netdev_priv(net);
 	struct asix_data *data = (struct asix_data *)&dev->data;
-	u16 rx_ctl = AX_DEFAULT_RX_CTL;
+	u16 rx_ctl = AX_DEFAULT_RX_CTL | AX_RX_CTL_SO;
 
 	if (net->flags & IFF_PROMISC) {
 		rx_ctl |= AX_RX_CTL_PRO;

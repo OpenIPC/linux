@@ -17,22 +17,22 @@
 #define PROC_INFO							\
 	. = ALIGN(4);							\
 	VMLINUX_SYMBOL(__proc_info_begin) = .;				\
-	*(.proc.info.init)						\
+	KEEP(*(.proc.info.init))						\
 	VMLINUX_SYMBOL(__proc_info_end) = .;
 
 #define HYPERVISOR_TEXT							\
 	VMLINUX_SYMBOL(__hyp_text_start) = .;				\
-	*(.hyp.text)							\
+	KEEP(*(.hyp.text))							\
 	VMLINUX_SYMBOL(__hyp_text_end) = .;
 
 #define IDMAP_TEXT							\
 	ALIGN_FUNCTION();						\
 	VMLINUX_SYMBOL(__idmap_text_start) = .;				\
-	*(.idmap.text)							\
+	KEEP(*(.idmap.text))							\
 	VMLINUX_SYMBOL(__idmap_text_end) = .;				\
 	. = ALIGN(PAGE_SIZE);						\
 	VMLINUX_SYMBOL(__hyp_idmap_text_start) = .;			\
-	*(.hyp.idmap.text)						\
+	KEEP(*(.hyp.idmap.text))						\
 	VMLINUX_SYMBOL(__hyp_idmap_text_end) = .;
 
 #ifdef CONFIG_HOTPLUG_CPU
@@ -134,7 +134,7 @@ SECTIONS
 	__ex_table : AT(ADDR(__ex_table) - LOAD_OFFSET) {
 		__start___ex_table = .;
 #ifdef CONFIG_MMU
-		*(__ex_table)
+		KEEP(*(__ex_table))
 #endif
 		__stop___ex_table = .;
 	}
@@ -171,14 +171,14 @@ SECTIONS
 	 */
 	__vectors_start = .;
 	.vectors 0xffff0000 : AT(__vectors_start) {
-		*(.vectors)
+		KEEP(*(.vectors))
 	}
 	. = __vectors_start + SIZEOF(.vectors);
 	__vectors_end = .;
 
 	__stubs_start = .;
 	.stubs ADDR(.vectors) + 0x1000 : AT(__stubs_start) {
-		*(.stubs)
+		KEEP(*(.stubs))
 	}
 	. = __stubs_start + SIZEOF(.stubs);
 	__stubs_end = .;
@@ -194,24 +194,24 @@ SECTIONS
 	}
 	.init.arch.info : {
 		__arch_info_begin = .;
-		*(.arch.info.init)
+		KEEP(*(.arch.info.init))
 		__arch_info_end = .;
 	}
 	.init.tagtable : {
 		__tagtable_begin = .;
-		*(.taglist.init)
+		KEEP(*(.taglist.init))
 		__tagtable_end = .;
 	}
 #ifdef CONFIG_SMP_ON_UP
 	.init.smpalt : {
 		__smpalt_begin = .;
-		*(.alt.smp.init)
+		KEEP(*(.alt.smp.init))
 		__smpalt_end = .;
 	}
 #endif
 	.init.pv_table : {
 		__pv_table_begin = .;
-		*(.pv_table)
+		KEEP(*(.pv_table))
 		__pv_table_end = .;
 	}
 	.init.data : {

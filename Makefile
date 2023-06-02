@@ -638,9 +638,18 @@ KBUILD_CFLAGS	+= $(call cc-disable-warning, format-overflow)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, int-in-bool-context)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, attribute-alias)
 
+ifneq ($(findstring -DCONFIG_EMULATION, $(EXTRA_CFLAGS)),)
+$(info ### EMULATION ENVIRONMENT, use EXTRA_CFLAGS: $(EXTRA_CFLAGS))
+export CONFIG_EMULATION := y
+export CONFIG_KERNEL_NO_COMPRESS := y
+endif
+
 ifdef CONFIG_LD_DEAD_CODE_DATA_ELIMINATION
+# only enable these options when build kernel
+ifeq ($(KBUILD_EXTMOD),)
 KBUILD_CFLAGS	+= $(call cc-option,-ffunction-sections,)
 KBUILD_CFLAGS	+= $(call cc-option,-fdata-sections,)
+endif
 endif
 
 ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
@@ -1600,7 +1609,7 @@ export_report:
 endif #ifeq ($(config-targets),1)
 endif #ifeq ($(mixed-targets),1)
 
-PHONY += checkstack kernelrelease kernelversion image_name
+PHONY += checkstack kernelrelease kernelversion image_name fhdtbimage
 
 # UML needs a little special treatment here.  It wants to use the host
 # toolchain, so needs $(SUBARCH) passed to checkstack.pl.  Everyone
@@ -1611,6 +1620,14 @@ CHECKSTACK_ARCH := $(SUBARCH)
 else
 CHECKSTACK_ARCH := $(ARCH)
 endif
+
+PROJECT_NAME=$(shell grep -e '^CONFIG_MACH_FH.*' .config|sed 's/CONFIG_MACH_\(.*\)=y/\1/'|awk '{print tolower($$0)}')
+
+fhdtbimage: dtbs uImage
+	echo $(PROJECT_NAME)
+	cat arch/arm/boot/uImage arch/arm/boot/dts/${PROJECT_NAME}.dtb > arch/arm/boot/uImage_${PROJECT_NAME}
+
+
 checkstack:
 	$(OBJDUMP) -d vmlinux $$(find . -name '*.ko') | \
 	$(PERL) $(src)/scripts/checkstack.pl $(CHECKSTACK_ARCH)

@@ -1006,3 +1006,9 @@ eco5_bx2		MACH_ECO5_BX2		ECO5_BX2		4572
 eukrea_cpuimx28sd	MACH_EUKREA_CPUIMX28SD	EUKREA_CPUIMX28SD	4573
 domotab			MACH_DOMOTAB		DOMOTAB			4574
 pfla03			MACH_PFLA03		PFLA03			4575
+fh8856v200              MACH_FH8856V200         FH8856V200              9999
+fh8852v200              MACH_FH8852V200         FH8852V200              9999
+fh8858v200              MACH_FH8858V200         FH8858V200              9999
+fh8856v210              MACH_FH8856V210         FH8856V210              9999
+fh8852v210              MACH_FH8852V210         FH8852V210              9999
+fh8858v210              MACH_FH8858V210         FH8858V210              9999

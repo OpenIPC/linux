@@ -359,6 +359,23 @@ static int crypto_init_ablkcipher_ops(struct crypto_tfm *tfm, u32 type,
 	return 0;
 }
 
+struct crypto_ablkcipher *crypto_alloc_ablkcipher(const char *alg_name,
+						  u32 type, u32 mask)
+{
+	struct crypto_tfm *t_crytfm = 0;
+	struct crypto_ablkcipher *tfm = 0;
+	int err;
+
+	t_crytfm = crypto_alloc_base(alg_name, type, mask);
+	if (IS_ERR(t_crytfm)) {
+		pr_err("failed to alloc t_crytfm!\n");
+		err = PTR_ERR(t_crytfm);
+		return err;
+	}
+	tfm = __crypto_ablkcipher_cast(t_crytfm);
+	return tfm;
+}
+EXPORT_SYMBOL_GPL(crypto_alloc_ablkcipher);
 #ifdef CONFIG_NET
 static int crypto_ablkcipher_report(struct sk_buff *skb, struct crypto_alg *alg)
 {

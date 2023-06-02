@@ -47,17 +47,16 @@ static void smp_task_timedout(unsigned long _task)
 	unsigned long flags;
 
 	spin_lock_irqsave(&task->task_state_lock, flags);
-	if (!(task->task_state_flags & SAS_TASK_STATE_DONE))
+	if (!(task->task_state_flags & SAS_TASK_STATE_DONE)) {
 		task->task_state_flags |= SAS_TASK_STATE_ABORTED;
+		complete(&task->slow_task->completion);
+	}
 	spin_unlock_irqrestore(&task->task_state_lock, flags);
-
-	complete(&task->slow_task->completion);
 }
 
 static void smp_task_done(struct sas_task *task)
 {
-	if (!del_timer(&task->slow_task->timer))
-		return;
+	del_timer(&task->slow_task->timer);
 	complete(&task->slow_task->completion);
 }
 
@@ -121,8 +120,7 @@ static int smp_execute_task(struct domain_device *dev, void *req, int req_size,
 		}
 		if (task->task_status.resp == SAS_TASK_COMPLETE &&
 		    task->task_status.stat == SAS_DATA_UNDERRUN) {
-			/* no error, but return the number of bytes of
-			 * underrun */
+			/* no error, but return the number of bytes of underrun */
 			res = task->task_status.residual;
 			break;
 		}
@@ -556,7 +554,7 @@ static int sas_ex_manuf_info(struct domain_device *dev)
 
 	mi_req[1] = SMP_REPORT_MANUF_INFO;
 
-	res = smp_execute_task(dev, mi_req, MI_REQ_SIZE, mi_resp,MI_RESP_SIZE);
+	res = smp_execute_task(dev, mi_req, MI_REQ_SIZE, mi_resp, MI_RESP_SIZE);
 	if (res) {
 		SAS_DPRINTK("MI: ex %016llx failed:0x%x\n",
 			    SAS_ADDR(dev->sas_addr), res);
@@ -597,7 +595,7 @@ int sas_smp_phy_control(struct domain_device *dev, int phy_id,
 
 	pc_req[1] = SMP_PHY_CONTROL;
 	pc_req[9] = phy_id;
-	pc_req[10]= phy_func;
+	pc_req[10] = phy_func;
 	if (rates) {
 		pc_req[32] = rates->minimum_linkrate << 4;
 		pc_req[33] = rates->maximum_linkrate << 4;

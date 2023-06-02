@@ -30,7 +30,60 @@ if PWM
 
 config PWM_SYSFS
 	bool
-	default y if SYSFS
+	default n
+
+config DEBUG_PWM_FS
+	bool
+	prompt "Enable PWM DEBUG Interface"
+	default n
+	depends on DEBUG_FS
+
+config PWM_FULLHAN
+	tristate "FH PWM support"
+	help
+	  To compile this driver as a module, choose M here: the module will
+	  be called fh_pwm.
+
+if PWM_FULLHAN
+if (ARCH_FH885xV200 || ARCH_FH865x)
+config FH_PWM_NUM
+	int
+	prompt "Number of PWMs, range: 1~14"
+	default 14
+	range 1 14
+	help
+	  Number of PWMs
+endif
+
+if MACH_FH8626V100
+config FH_PWM_NUM
+	int
+	prompt "Number of PWMs, range: 1~14"
+	default 14
+	range 1 14
+	help
+	  Number of PWMs
+
+config PWM_FULLHAN_V21
+	bool
+	default y
+endif
+
+if (MACH_FH8856 || MACH_FH8852)
+config FH_PWM_NUM
+	int
+	prompt "Number of PWMs, range: 1~8"
+	default 8
+	range 1 8
+	help
+	  Number of PWMs
+
+config PWM_FULLHAN_V20
+	bool
+	default y
+endif
+
+endif
 
 config PWM_AB8500
 	tristate "AB8500 PWM support"

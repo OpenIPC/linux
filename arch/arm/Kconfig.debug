@@ -270,6 +270,12 @@ choice
 		help
 		  Say Y here if you want the debug print routines to direct
 		  their output to the 8250 at PCI COM1.
+	config DEBUG_FH_UART
+		bool "Fullhan Debug UART"
+		depends on ARCH_FULLHAN
+		help
+		  Say Y here if you want kernel low-level debugging support
+		  on FULLHAN UART.
 
 	config DEBUG_GEMINI
 		bool "Kernel low-level debugging messages via Cortina Systems Gemini UART"
@@ -1432,6 +1438,8 @@ config DEBUG_LL_INCLUDE
 	default "debug/bcm63xx.S" if DEBUG_BCM63XX_UART
 	default "debug/digicolor.S" if DEBUG_DIGICOLOR_UA0
 	default "debug/brcmstb.S" if DEBUG_BRCMSTB_UART
+	default "debug/fh.S" if DEBUG_FH_UART
+
 	default "mach/debug-macro.S"
 
 # Compatibility options for PL01x
@@ -1528,6 +1536,7 @@ config DEBUG_UART_PHYS
 	default 0xf8020000 if DEBUG_AT91_SAMA5D2_UART1
 	default 0xf8b00000 if DEBUG_HIX5HD2_UART
 	default 0xf991e000 if DEBUG_QCOM_UARTDM
+	default 0xf0700000 if DEBUG_FH_UART
 	default 0xfc00c000 if DEBUG_AT91_SAMA5D4_USART3
 	default 0xfcb00000 if DEBUG_HI3620_UART
 	default 0xfd883000 if DEBUG_ALPINE_UART0
@@ -1559,7 +1568,7 @@ config DEBUG_UART_PHYS
 		DEBUG_S3C64XX_UART || \
 		DEBUG_BCM63XX_UART || DEBUG_ASM9260_UART || \
 		DEBUG_SIRFSOC_UART || DEBUG_DIGICOLOR_UA0 || \
-		DEBUG_AT91_UART
+		DEBUG_AT91_UART || DEBUG_FH_UART
 
 config DEBUG_UART_VIRT
 	hex "Virtual base address of debug UART"
@@ -1618,6 +1627,7 @@ config DEBUG_UART_VIRT
 	default 0xfe230000 if DEBUG_PICOXCELL_UART
 	default 0xfe300000 if DEBUG_BCM_KONA_UART
 	default 0xfe800000 if ARCH_IOP32X
+	default 0xfe020000 if DEBUG_FH_UART
 	default 0xfeb00000 if DEBUG_HI3620_UART || DEBUG_HIX5HD2_UART
 	default 0xfeb24000 if DEBUG_RK3X_UART0
 	default 0xfeb26000 if DEBUG_RK3X_UART1
@@ -1658,7 +1668,7 @@ config DEBUG_UART_VIRT
 		DEBUG_S3C64XX_UART || \
 		DEBUG_BCM63XX_UART || DEBUG_ASM9260_UART || \
 		DEBUG_SIRFSOC_UART || DEBUG_DIGICOLOR_UA0 || \
-		DEBUG_AT91_UART
+		DEBUG_AT91_UART || DEBUG_FH_UART
 
 config DEBUG_UART_8250_SHIFT
 	int "Register offset shift for the 8250 debug UART"
@@ -1712,7 +1722,7 @@ config DEBUG_UNCOMPRESS
 config UNCOMPRESS_INCLUDE
 	string
 	default "debug/uncompress.h" if ARCH_MULTIPLATFORM || ARCH_MSM || \
-					PLAT_SAMSUNG || ARM_SINGLE_ARMV7M
+					PLAT_SAMSUNG || ARM_SINGLE_ARMV7M || ARCH_FULLHAN
 	default "mach/uncompress.h"
 
 config EARLY_PRINTK

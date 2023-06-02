@@ -1,0 +1,956 @@
+/*
+ * Copyright (C) 2017 Fullhan Micorelectonics Co.,Ltd.
+ *
+ * The code contained herein is licensed under the GNU General Public
+ * License. You may obtain a copy of the GNU General Public License
+ * Version 2 or later at the following locations:
+ *
+ * http://www.opensource.org/licenses/gpl-license.html
+ * http://www.gnu.org/copyleft/gpl.html
+ */
+
+/dts-v1/;
+/include/ "skeleton.dtsi"
+/include/ "fh8852v200_pinctrl.dtsi"
+/ {
+
+
+		model = "FULLHAN FH8852V200";
+		compatible = "fh,fh8852v200";
+		interrupt-parent = <&intc>;
+		aliases {
+			i2c0 = &i2cbus0;
+			i2c1 = &i2cbus1;
+			i2c2 = &i2cbus2;
+			spi0 = &spi_bus0;
+			spi1 = &spi_bus1;
+			ttyS0 = &serial0;
+			ttyS1 = &serial1;
+			ttyS2 = &serial2;
+		};
+
+		cpus {
+			cpu@0 {
+				device_type = "cpu";
+				compatible = "arm,arm1176jzf-s";
+			};
+		};
+
+		chosen {
+			bootargs = "coherent_pool=2M";
+		};
+
+		intc: interrupt-controller@E0200000 {
+			compatible = "fh,fh-intc";
+			interrupt-controller;
+			#interrupt-cells = <1>;
+		reg = <0xE0200000 0x1000>;
+		};
+
+		soc {
+			compatible = "simple-bus";
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges;
+
+			pmu@f0000000 {
+				compatible = "fh,fh-pmu";
+				reg = <0xf0000000 0x2100>;
+				SWRST_MAIN_CTRL = <0x40>;
+			};
+			timer0: timer@f0c00000 {
+				compatible = "fh,fh-timer";
+				interrupts = <3>;
+				clock-frequency = <1000000>;
+				reg = <0xf0c00000 0x14>;
+			};
+
+			timer1: timer@f0c00014 {
+				compatible = "fh,fh-timer";
+				interrupts = <3>;
+				clock-frequency = <1000000>;
+				reg = <0xf0c00014 0x14>;
+			};
+
+			gpio0: gpio@f0300000 {
+				compatible = "fh,fh-gpio";
+				reg = <0xf0300000 0x1000>;
+				#gpio_controller;
+				interrupt-controller;
+				interrupt-parent = <&intc>;
+				interrupts = <26>;
+				id = <0>;
+				ngpio = <32>;
+				base = <0>;
+			};
+
+			gpio1: gpio@f4000000 {
+				compatible = "fh,fh-gpio";
+				reg = <0xf4000000 0x1000>;
+				#gpio_controller;
+				interrupt-controller;
+				interrupt-parent = <&intc>;
+				interrupts = <40>;
+				id = <1>;
+				ngpio = <32>;
+				base = <32>;
+			};
+			
+			fhdma0: dma@e0300000 {
+				compatible = "fh,fh-axi-dmac";
+				reg = <0xe0300000 0x1000>;
+				interrupts = <23>;
+				chan_allocation_order = <0>;
+				chan_priority = <1>;
+				block_size = <0x800>;
+				data_width = <2 0 0 0>;
+				clocks = <&ahb_clk>;
+			};
+
+			aes: aes@0xe8200000 {
+				compatible = "fh,fh-aes";
+				reg = <0xe8200000 0x1000>;
+				interrupts = <16>;
+			};
+			rtc: rtc@f1500000 {
+				compatible = "fh,fh_rtc";
+				reg = <0xf1500000 0x1000>;
+				interrupts = <33>;
+				clocks = <&rtc_hclk_gate>;
+				lut_cof = <58>;
+				lut_offset = <0xff>;
+				tsensor_cp_default_out = <0x993>;
+			};
+			sadc: sadc@f1200000 {
+				compatible = "fh,fh-sadc";
+				reg = <0xf1200000 0x1000>;
+				interrupts = <20>;
+				ref-vol = <1800>;
+				active-bit = <0xfff>;
+			};
+			efuse: efuse@0xf1600000 {
+				compatible = "fh,fh-efuse";
+				reg = <0xf1600000 0x1000>;
+				key_switch = "enable";
+				indep_power = "enable";
+			};
+			fh_perf: fh_perf@0xf0002018 {
+				compatible = "fh,fh-perf";
+				reg = <0xf0000000 0x4000>;
+				interrupts = < 5 >;
+			
+			};
+		spi_bus0: spi@f0500000 {
+			#address-cells = <1>;
+			#size-cells = <1>;
+			status = "okay";
+			compatible = "fh,fh-spi";
+			reg = <0xf0500000 0x4000>;
+			clk_in = <100000000>;
+			clock_source = <100000000>;
+			clock_source_num = <1>;
+			num-cs = <2>;
+			cs0_gpio = <6>;
+			cs1_gpio = <55>;
+			dma_enable = "disable";
+			swap_support = "enable";
+			rx_hs_no = <4>;
+			tx_hs_no = <5>;
+			bus_no = <0>;
+			multi_wire_size = <2>;
+			clk_name = "spi0_clk";
+			rx_dma_channel = <0>;
+			tx_dma_channel = <1>;
+			increase_support = "disable";
+			data_field_size = <0x1000>;
+			data_reg_offset = <0x1000>;
+			dma_protctl_enable = "disable";
+			dma_protctl_data = <6>;
+			dma_master_sel_enable = "disable";
+			dma_master_ctl_sel = <0>;
+			dma_master_mem_sel = <0>;
+			spidma_xfer_mode = "rx_only";
+			interrupts = <28>;
+				flash@0 {
+					#address-cells = <1>;
+					#size-cells = <1>;
+					compatible = "fh,m25p80";
+					spi-max-frequency = <50000000>;
+					spi-tx-bus-width = <1>;
+					spi-rx-bus-width = <4>;
+					reg = <0x0 0>;	//first value means which slave bind to the master. 0 means chip 0. 1 means chip 1
+					partition@0 {
+						reg = <0x0 0x40000>;
+						label = "bootstrap";
+					};
+					partition@40000 {
+						reg = <0x40000 0x10000>;
+						label = "uboot-env";
+					};
+					partition@50000 {
+						reg = <0x50000 0x30000>;
+						label = "uboot";
+					};
+					partition@80000 {
+						reg = <0x80000 0x400000>;
+						label = "kernel";
+					};
+					partition@480000 {
+						reg = <0x480000 0x80000>;
+						label = "rootfs";
+					};
+					partition@500000 {
+						reg = <0x500000 0x300000>;
+						label = "app";
+					};
+
+				};
+				spidev0: spi@0 {
+				compatible = "rohm,dh2228fv";
+					reg = <0x1 0>;
+					spi-max-frequency = <50000000>;
+				};
+			};
+		spi_bus1: spi@f0600000 {
+			#address-cells = <1>;
+			#size-cells = <1>;
+			status = "okay";
+			compatible = "fh,fh-spi";
+			reg = <0xf0600000 0x4000>;
+			clk_in = <100000000>;
+			clock_source = <100000000>;
+			clock_source_num = <1>;
+			num-cs = <2>;
+			cs0_gpio = <14>;
+			cs1_gpio = <57>;
+			dma_enable = "disable";
+			swap_support = "disable";
+			rx_hs_no = <2>;
+			tx_hs_no = <3>;
+			bus_no = <1>;
+			clk_name = "spi1_clk";
+			rx_dma_channel = <2>;
+			tx_dma_channel = <3>;
+			increase_support = "disable";
+			data_field_size = <0x1000>;
+			data_reg_offset = <0x1000>;
+			dma_protctl_enable = "disable";
+			dma_protctl_data = <6>;
+			dma_master_sel_enable = "disable";
+			dma_master_ctl_sel = <0>;
+			dma_master_mem_sel = <0>;
+			spidma_xfer_mode = "rx_only";
+			interrupts = <21>;
+				spidev1: spi@1 {
+					compatible = "rohm,dh2228fv";
+					reg = <0x0 0>;
+					spi-max-frequency = <50000000>;
+				};
+				spidev2: spi@2 {
+					compatible = "rohm,dh2228fv";
+					reg = <0x1 0>;
+					spi-max-frequency = <50000000>;
+				};
+			};
+			fhdwi2s: i2s@f0900000 {
+				compatible = "fh,fh-dw_i2s";
+				reg = <0xf0900000 0x1000>;
+				interrupts = <25>;
+				clocks = <&i2s_clk>, <&ac_clk>;
+				clock-names = "i2s_clk", "acodec_mclk";
+				rx_dma_channel = <2>;
+				tx_dma_channel = <3>;
+				dma_master = <0>;
+				dma_rx_hs_num = <10>;
+				dma_tx_hs_num = <11>;
+			};
+
+			fhacw: acw@f0a00000 {
+				compatible = "fh,fh-acw";
+				reg = <0xf0a00000 0x1000>;
+				interrupts = <19>;
+				clocks = <&ac_clk>;
+				clock-names = "ac_clk";
+				rx_dma_channel = <4>;
+				tx_dma_channel = <5>;
+				dma_master = <0>;
+				dma_rx_hs_num = <0>;
+				dma_tx_hs_num = <1>;
+			};
+
+			pwm: pwm@f0400000{
+				compatible = "fh,fh-pwm";
+				reg = <0xf0400000 0x1000>;
+				interrupts = <36>;
+				npwm = <14>;
+			};
+			serial0: serial@f0700000 {
+				compatible = "fh,fh-serial";
+				reg = <0xf0700000 0x1000>;
+				interrupts = <30>;
+				clock-frequency = <16666667>;
+				fifo-size = <32>;
+			};
+			serial1: serial@f0800000 {
+				compatible = "fh,fh-serial";
+				reg = <0xf0800000 0x1000>;
+				interrupts = <31>;
+				clock-frequency = <16666667>;
+				fifo-size = <64>;
+			};
+			serial2: serial@f1300000 {
+				compatible = "fh,fh-serial";
+				reg = <0xf1300000 0x1000>;
+				interrupts = <41>;
+				clock-frequency = <16666667>;
+				fifo-size = <64>;
+			};
+			gmac0: gmac@e0600000 {
+				compatible = "fh,fh-gmac";
+				reg = <0xe0600000 0x2000>;
+				interrupts = <44>;
+				phyreset-gpio = <29>;
+			};
+			sdc0: sdc0@e2000000 {
+				compatible = "fh,fh-sdc";
+				reg = <0xe2000000 0x4000>;
+				interrupts = <42>;
+				id = <0>;
+				buswidth = <4>;
+				wp-fixed = <1>;
+				cd-fixed = <0>;
+				drv-degree = <8>;
+				sam-degree = <0>;
+				scan-mux = <0>;
+			};
+			sdc1: sdc1@e2200000 {
+				compatible = "fh,fh-sdc";
+				reg = <0xe2200000 0x4000>;
+				interrupts = <43>;
+				id = <1>;
+				buswidth = <4>;
+				wp-fixed = <1>;
+				cd-fixed = <1>;
+				drv-degree = <8>;
+				sam-degree = <0>;
+				scan-mux = <2>;
+			};
+			wdt: wdt@f0d00000{
+				compatible = "fh,fh-wdt";
+				reg = <0xf0d00000 0x1000>;
+				interrupts    = <2>;
+				mode          = <1>;
+			};
+			i2cbus0: i2c@f0200000 {
+				compatible = "fh,fh-i2c";
+				reg = <0xf0200000 0x2000>;
+				interrupts = <11>;
+			};
+			i2cbus1: i2c@f0b00000 {
+				compatible = "fh,fh-i2c";
+				reg = <0xf0b00000 0x2000>;
+				interrupts = <12>;
+			};
+			i2cbus2: i2c@0xF0100000 {
+				compatible = "fh,fh-i2c";
+				reg = <0xF0100000 0x2000>;
+				interrupts = <46>;
+			};
+			clocks: src_clk@0xf0000000{
+				compatible = "fh,fh-clk";
+				#address-cells = <1>;
+				#size-cells = <1>;
+				reg = <0xf0000000 0x80>;
+				ranges;
+
+			osc_clk: mxtal@24M {
+				#clock-cells = <0>;
+				compatible = "fixed-clock";
+				clock-frequency = <24000000>;
+				clock-output-names = "osc_clk";
+			  };
+
+			pll_ddr_rclk: pllddrr{
+				#clock-cells = <0>;
+				compatible = "fh pll-ddr-rclk";
+				reg = <0xf0000010 0x4>,<0xf0000018 0x4>;
+				m = <0x7f>;
+				n = <0x1f00>;
+				pr = <0x3f000000>;
+				divcop = <0xf000>;
+				clocks = <&osc_clk>;
+				clock-output-names = "pll_ddr_rclk";
+			  };
+			 pll_cpu_pclk: pllcpup{
+					#clock-cells = <0>;
+					compatible = "fh pll-cpu-pclk";
+					reg = <0xf0000014 0x4>,<0xf000006c 0x4>;
+					m = <0x7f>;
+					n = <0x1f00>;
+					pr = <0x3f0000>;
+					divcop = <0xf00>;
+					clocks = <&osc_clk>;
+					clock-output-names = "pll_cpu_pclk";
+				};
+				pll_cpu_rclk: pllcpur{
+					#clock-cells = <0>;
+					compatible = "fh pll-cpu-rclk";
+					reg = <0xf0000014 0x4>,<0xf000006c 0x4>;
+					m = <0x7f>;
+					n = <0x1f00>;
+					pr = <0x3f000000>;
+					divcop = <0xf000>;
+					clocks = <&osc_clk>;
+					clock-output-names = "pll_cpu_rclk";
+				};
+				pll_sys_pclk: pllsysp{
+					#clock-cells = <0>;
+					compatible = "fh pll-sys-pclk";
+					reg = <0xf0000064 0x4>,<0xf0000068 0x4>;
+					m = <0x7f>;
+					n = <0x1f00>;
+					pr = <0x3f0000>;
+					divcop = <0xf00>;
+					clocks = <&osc_clk>;
+					clock-output-names = "pll_sys_pclk";
+				};
+				pll_sys_rclk: pllsysr{
+					#clock-cells = <0>;
+					compatible = "fh pll-sys-rclk";
+					reg = <0xf0000064 0x4>,<0xf0000068 0x4>;
+					m = <0x7f>;
+					n = <0x1f00>;
+					pr = <0x3f000000>;
+					divcop = <0xf000>;
+					clocks = <&osc_clk>;
+					clock-output-names = "pll_sys_rclk";
+				};
+				sysp_div12_clk: syspdiv12clk{
+					#clock-cells = <0>;
+					compatible = "fh sysp-div12-clk";
+					reg = <0xf0000038 0x4>,<0x0 0x4>,<0x0 0x4>;
+          div = <0xf000000>;
+					clocks = <&pll_sys_pclk>;
+					clock-output-names = "sysp_div12_clk";
+				};
+				ddr_clk: ddrclk{
+					#clock-cells = <0>;
+					compatible = "fh fh-ddr-clk";
+					reg = <0x0 0x4>,<0xf0000020 0x4>,<0x0 0x4>;
+          gate = <0x4000000>;
+					clocks = <&pll_ddr_rclk>;
+					clock-output-names = "ddr_clk";
+				};
+				arm_clk: armclk{
+					#clock-cells = <0>;
+					compatible = "fh fh-arm-clk";
+					reg = <0x0 0x4>,<0x0 0x4>,<0xf000000c 0x4>;
+					mux = <0x1>;
+					clocks = <&osc_clk>,<&pll_cpu_pclk>;
+					clock-output-names = "arm_clk";
+				};
+				arc_clk: arcclk{
+					#clock-cells = <0>;
+					compatible = "fh fh-arc-clk";
+					reg = <0x0 0x4>,<0xf000001c 0x4>,<0xf000000c 0x4>;
+					gate = <0x4000000>;
+					mux = <0x1>;
+					clocks = <&osc_clk>,<&pll_cpu_rclk>;
+					clock-output-names = "arc_clk";
+				};
+				ahb_clk: ahbclk{
+					#clock-cells = <0>;
+					compatible = "fh fh-ahb-clk";
+					reg = <0xf0000024 0x4>,<0x0 0x4>,<0xf000000c 0x4>;
+					div = <0xf0000>;
+					mux = <0x1>;
+					clocks = <&osc_clk>,<&pll_sys_pclk>;
+					clock-output-names = "ahb_clk";
+				};
+				isp_aclk: ispaclk{
+					#clock-cells = <0>;
+					compatible = "fh fh-ispa-clk";
+					reg = <0xf0000024 0x4>,<0xf000001c 0x4>,<0x0 0x4>;
+					div = <0xf00>;
+					gate = <0x1>;
+					clocks = <&pll_sys_pclk>;
+					clock-output-names = "isp_aclk";
+				};
+				ispb_aclk: ispbclk{
+					#clock-cells = <0>;
+					compatible = "fh fh-ispb-clk";
+					reg = <0x0 0x4>,<0xf000001c 0x4>,<0x0 0x4>;
+					gate = <0x4>;
+					clocks = <&isp_aclk>;
+					clock-output-names = "ispb_aclk";
+				};
+				vpu_clk: vpuclk{
+					#clock-cells = <0>;
+					compatible = "fh fh-vpu-clk";
+					reg = <0x0 0x4>,<0xf0000020 0x4>,<0x0 0x4>;
+					gate = <0x80000000>;
+					clocks = <&isp_aclk>;
+					clock-output-names = "vpu_clk";
+				};
+				pix_clk: pixclk{
+					#clock-cells = <0>;
+					compatible = "fh fh-pix-clk";
+					reg = <0xf000002c 0x4>,<0x0 0x4>,<0x0 0x4>;
+					div = <0xf000000>;
+					clocks = <&pll_sys_pclk>;
+					clock-output-names = "pix_clk";
+				};
+				jpeg_clk: jpegclk{
+					#clock-cells = <0>;
+					compatible = "fh fh-jpeg-clk";
+					reg = <0xf000005c 0x4>,<0xf0000020 0x4>,<0x0 0x4>;
+					div = <0xf00000>;
+					gate = <0x40000000>;
+					clocks = <&pll_sys_pclk>;
+					clock-output-names = "jpeg_clk";
+				};
+				bgm_clk: bgmclk{
+					#clock-cells = <0>;
+					compatible = "fh fh-bgm-clk";
+					reg = <0xf000005c 0x4>,<0xf000001c 0x4>,<0x0 0x4>;
+					div = <0xf00000>;
+					gate = <0x40000>;
+					clocks = <&pll_sys_pclk>;
+					clock-output-names = "bgm_clk";
+				};
+				jpeg_adapt_clk: jpegadaptclk{
+					#clock-cells = <0>;
+					compatible = "fh fh-jpeg-adapt-clk";
+					reg = <0x0 0x4>,<0xf0000020 0x4>,<0x0 0x4>;
+					gate = <0x2>;
+					clocks = <&jpeg_clk>;
+					clock-output-names = "jpeg_adapt_clk";
+				};
+				spi0_clk: spi0clk{
+					#clock-cells = <0>;
+					compatible = "fh fh-spi0-clk";
+					reg = <0xf0000030 0x4>,<0xf000001c 0x4>,<0x0 0x4>;
+					div = <0xff>;
+					gate = <0x80>;
+					clocks = <&pll_sys_pclk>;
+					clock-output-names = "spi0_clk";
+				};
+				sdc0_clk: sdc0clk{
+					#clock-cells = <0>;
+					compatible = "fh fh-sdc0-clk";
+					reg = <0xf0000030 0x4>,<0xf000001c 0x4>,<0x0 0x4>;
+					prediv =<8>;
+					div = <0xf00>;
+					gate = <0x200>;
+					clocks = <&pll_sys_pclk>;
+					clock-output-names = "sdc0_clk";
+				};
+				spi2_clk: spi2clk{
+					#clock-cells = <0>;
+					compatible = "fh fh-spi2-clk";
+					reg = <0xf0000030 0x4>,<0xf000001c 0x4>,<0x0 0x4>;
+					div = <0xf000>;
+					gate = <0x2>;
+					clocks = <&pll_sys_pclk>;
+					clock-output-names = "spi2_clk";
+				};
+				spi1_clk: spi1clk{
+					#clock-cells = <0>;
+					compatible = "fh fh-spi1-clk";
+					reg = <0xf0000030 0x4>,<0xf000001c 0x4>,<0x0 0x4>;
+					div = <0xff0000>;
+					gate = <0x100>;
+					clocks = <&pll_sys_pclk>;
+					clock-output-names = "spi1_clk";
+				};
+				sdc1_clk: sdc1clk{
+					#clock-cells = <0>;
+					compatible = "fh fh-sdc1-clk";
+					reg = <0xf0000030 0x4>,<0xf000001c 0x4>,<0x0 0x4>;
+					prediv =<8>;
+					div = <0xf000000>;
+					gate = <0x400>;
+					clocks = <&pll_sys_pclk>;
+					clock-output-names = "sdc1_clk";
+				};
+				veu_clk: veuclk{
+					#clock-cells = <0>;
+					compatible = "fh fh-veu-clk";
+					reg = <0xf0000024 0x4>,<0xf000001c 0x4>,<0xf000000c 0x4>;
+					div = <0x7000000>;
+					gate = <0x10>;
+					mux = <0x4>;
+					clocks = <&pll_sys_pclk>,<&pll_sys_rclk>;
+					clock-output-names = "veu_clk";
+				};
+				veu_adapt_clk: veuadaptclk{
+					#clock-cells = <0>;
+					compatible = "fh fh-veu-adapt-clk";
+					reg = <0x0 0x4>,<0xf000001c 0x4>,<0x0 0x4>;
+					gate = <0x20000000>;
+					clocks = <&veu_clk>;
+					clock-output-names = "veu_adapt_clk";
+				};
+				cis_clk_out: cisclk{
+					#clock-cells = <0>;
+					compatible = "fh fh-cis-clk-out";
+					reg = <0xf0000028 0x4>,<0xf000001c 0x4>,<0x0 0x4>;
+					div = <0xff0000>;
+					gate = <0x800000>;
+					clocks = <&pll_sys_pclk>;
+					clock-output-names = "cis_clk_out";
+				};
+				eth_clk: ethclk{
+					#clock-cells = <0>;
+					compatible = "fh fh-eth-clk";
+					reg = <0xf000003c 0x4>,<0xf000001c 0x4>,<0x0 0x4>;
+					div = <0xf000000>;
+					gate = <0x2000000>;
+					clocks = <&sysp_div12_clk>;
+					clock-output-names = "eth_clk";
+				};
+			  eth_rmii_clk: ethrmiiclk {
+					#clock-cells = <0>;
+					compatible = "fh fh-ethrmii-clk";
+					reg = <0x0 0x4>,<0xf000001c 0x4>,<0x0 0x4>;
+					gate = <0x10000000>;
+					clock-output-names = "eth_rmii_clk";
+				};
+				i2c0_clk: i2c0clk {
+				#clock-cells = <0>;
+				compatible = "fh fh-i2c0-clk";
+				reg = <0xf0000034 0x4>,<0xf000001c 0x4>,<0x0 0x4>;
+				div = <0x3f0000>;
+				gate = <0x1000>;
+				clocks = <&sysp_div12_clk>;
+				clock-output-names = "i2c0_clk";
+			  };
+
+				i2c1_clk: i2c1clk {
+					#clock-cells = <0>;
+					compatible = "fh fh-i2c1-clk";
+					reg = <0xf0000034 0x4>,<0xf000001c 0x4>,<0x0 0x4>;
+					div = <0x3f000000>;
+					gate = <0x8000000>;
+					clocks = <&sysp_div12_clk>;
+					clock-output-names = "i2c1_clk";
+				};
+				i2c2_clk: i2c2clk {
+					#clock-cells = <0>;
+					compatible = "fh fh-i2c2-clk";
+					reg = <0xf000005c 0x4>,<0xf000001c 0x4>,<0x0 0x4>;
+					div = <0x3f00>;
+					gate = <0x00000008>;
+					clocks = <&sysp_div12_clk>;
+					clock-output-names = "i2c2_clk";
+				};
+	
+				uart0_clk: uart0clk {
+					#clock-cells = <0>;
+					compatible = "fh fh-uart0-clk";
+					reg = <0xf0000034 0x4>,<0xf000001c 0x4>,<0x0 0x4>;
+					div = <0x1f>;
+					gate = <0x2000>;
+					clocks = <&sysp_div12_clk>;
+					clock-output-names = "uart0_clk";
+				};
+	
+				uart1_clk: uart1clk {
+					#clock-cells = <0>;
+					compatible = "fh fh-uart1-clk";
+					reg = <0xf0000034 0x4>,<0xf000001c 0x4>,<0x0 0x4>;
+					div = <0x1f00>;
+					gate = <0x4000>;
+					clocks = <&sysp_div12_clk>;
+					clock-output-names = "uart1_clk";
+				};
+				uart2_clk: uart2clk {
+					#clock-cells = <0>;
+					compatible = "fh fh-uart2-clk";
+					reg = <0xf000005c 0x4>,<0xf000001c 0x4>,<0x0 0x4>;
+					div = <0x7f>;
+					gate = <0x8000>;
+					clocks = <&sysp_div12_clk>;
+					clock-output-names = "uart2_clk";
+				};
+				pwm_clk: pwmclk {
+					#clock-cells = <0>;
+					compatible = "fh fh-pwm-clk";
+					reg = <0xf0000038 0x4>,<0xf000001c 0x4>,<0x0 0x4>;
+					div = <0xff>;
+					gate = <0x10000>;
+					clocks = <&sysp_div12_clk>;
+					clock-output-names = "pwm_clk";
+				};
+				efuse_clk: efuseclk {
+					#clock-cells = <0>;
+					compatible = "fh fh-efuse-clk";
+					reg = <0xf0000028 0x4>,<0xf000001c 0x4>,<0x0 0x4>;
+					div = <0x3f000000>;
+					gate = <0x200000>;
+					clocks = <&sysp_div12_clk>;
+					clock-output-names = "efuse_clk";
+				};
+				pts_clk: ptsclk {
+					#clock-cells = <0>;
+					compatible = "fh fh-pts-clk";
+					reg = <0xf000002c 0x4>,<0xf000001c 0x4>,<0x0 0x4>;
+					div = <0x1ff>;
+					gate = <0x80000>;
+					clocks = <&sysp_div12_clk>;
+					clock-output-names = "pts_clk";
+				};
+				tmr0_clk: tmr0clk {
+					#clock-cells = <0>;
+					compatible = "fh fh-tmr0-clk";
+					reg = <0xf0000038 0x4>,<0xf000001c 0x4>,<0x0 0x4>;
+					div = <0xff0000>;
+					gate = <0x20000>;
+					clocks = <&sysp_div12_clk>;
+					clock-output-names = "tmr0_clk";
+				};
+	
+				sadc_clk: sadcclk {
+					#clock-cells = <0>;
+					compatible = "fh fh-sadc-clk";
+					reg = <0xf000003c 0x4>,<0xf000001c 0x4>,<0x0 0x4>;
+					div = <0x7f0000>;
+					gate = <0x4000000>;
+					clocks = <&sysp_div12_clk>;
+					clock-output-names = "sadc_clk";
+				};
+				gpio0_dbclk: gpio0dbclk {
+					#clock-cells = <0>;
+					compatible = "fh fh-gpio0-dbclk";
+					reg = <0xf0000060 0x4>,<0xf0000060 0x4>,<0x0 0x4>;
+					div = <0x7fff>;
+					gate = <0x8000>;
+					prediv = <100>;
+					clocks = <&sysp_div12_clk>;
+					clock-output-names = "gpio0_dbclk";
+				};
+				gpio1_dbclk: gpio1dbclk {
+					#clock-cells = <0>;
+					compatible = "fh fh-gpio1-dbclk";
+					reg = <0xf0000060 0x4>,<0xf0000060 0x4>,<0x0 0x4>;
+					div = <0x7fff0000>;
+					gate = <0x80000000>;
+					prediv = <100>;
+					clocks = <&sysp_div12_clk>;
+					clock-output-names = "gpio1_dbclk";
+				};
+				wdt_clk: wdtclk {
+					#clock-cells = <0>;
+					compatible = "fh fh-wdt-clk";
+					reg = <0xf0000038 0x4>,<0xf0000020 0x4>,<0x0 0x4>;
+					div = <0xff00>;
+					gate = <0x8000000>;
+					clocks = <&ahb_clk>;
+					clock-output-names = "wdt_clk";
+				};
+				ac_clk: acclk{
+					#clock-cells = <0>;
+					compatible = "fh fh-ac-clk";
+					reg = <0xf000003c 0x4>,<0xf000001c 0x4>,<0x0 0x4>;
+					div = <0x3f>;
+					gate = <0x800>;
+					clocks = <&osc_clk>;
+					clock-output-names = "ac_clk";
+				};
+				i2s_clk: i2sclk{
+					#clock-cells = <0>;
+					compatible = "fh fh-i2s-clk";
+					reg = <0xf000003c 0x4>,<0xf000001c 0x4>,<0x0 0x4>;
+					div = <0x3f00>;
+					gate = <0x1000000>;
+					clocks = <&ac_clk>;
+					clock-output-names = "i2s_clk";
+				};
+				mipi_dphy_clk: mipidphyclk {
+					#clock-cells = <0>;
+					compatible = "fh fh-mipi-dphy-clk";
+					reg = <0x0 0x4>,<0xf000001c 0x4>,<0x0 0x4>;
+					gate = <0x100000>;
+					clock-output-names = "mipi_dphy_clk";
+				};
+				mipi_wrap_gate: mipiwrapclk {
+					#clock-cells = <0>;
+					compatible = "fh fh-mipi-wrap-clk";
+					reg = <0x0 0x4>,<0xf0000020 0x4>,<0x0 0x4>;
+					gate = <0x20000000>;
+					clock-output-names = "mipi_wrap_gate";
+				};
+				rtc_hclk_gate: rtchclk {
+					#clock-cells = <0>;
+					compatible = "fh fh-rtc-hclk";
+					reg = <0x0 0x4>,<0xf0000020 0x4>,<0x0 0x4>;
+					gate = <0x10000000>;
+					clock-output-names = "rtc_hclk_gate";
+				};
+				emac_hclk_gate: emachclk {
+					#clock-cells = <0>;
+					compatible = "fh fh-emac-hclk";
+					reg = <0x0 0x4>,<0xf0000020 0x4>,<0x0 0x4>;
+					gate = <0x2000000>;
+					clock-output-names = "emac_hclk_gate";
+				};
+				usb_clk: usbclk {
+					#clock-cells = <0>;
+					compatible = "fh fh-usb-clk";
+					reg = <0x0 0x4>,<0xf0000020 0x4>,<0x0 0x4>;
+					gate = <0x1000000>;
+					clock-output-names = "usb_clk";
+				};
+				aes_hclk_gate: aeshclk {
+					#clock-cells = <0>;
+					compatible = "fh fh-aes-hclk";
+					reg = <0x0 0x4>,<0xf0000020 0x4>,<0x0 0x4>;
+					gate = <0x80>;
+					clock-output-names = "aes_hclk_gate";
+				};
+				ephy_clk_gate: ephyclk {
+					#clock-cells = <0>;
+					compatible = "fh fh-ephy-clk";
+					reg = <0x0 0x4>,<0xf0000020 0x4>,<0x0 0x4>;
+					gate = <0x1>;
+					clock-output-names = "ephy_clk_gate";
+				};
+				sdc0_clk8x_gate: sdc08xclk {
+					#clock-cells = <0>;
+					compatible = "fh fh-sdc08x-clk";
+					reg = <0x0 0x4>,<0xf0000020 0x4>,<0x0 0x4>;
+					gate = <0x4>;
+					clock-output-names = "sdc0_clk8x_gate";
+				};
+				sdc1_clk8x_gate: sdc18xclk {
+					#clock-cells = <0>;
+					compatible = "fh fh-sdc18x-clk";
+					reg = <0x0 0x4>,<0xf0000020 0x4>,<0x0 0x4>;
+					gate = <0x8>;
+					clock-output-names = "sdc1_clk8x_gate";
+				};
+				mipic_pclk_gate: mipicpclk {
+					#clock-cells = <0>;
+					compatible = "fh fh-mipic-pclk";
+					reg = <0x0 0x4>,<0xf0000020 0x4>,<0x0 0x4>;
+					gate = <0x10>;
+					clock-output-names = "mipic_pclk_gate";
+				};
+				gpio0_pclk_gate: gpio0pclk {
+					#clock-cells = <0>;
+					compatible = "fh fh-gpio0-pclk";
+					reg = <0x0 0x4>,<0xf0000060 0x4>,<0x0 0x4>;
+					gate = <0x4000>;
+					clock-output-names = "gpio0_pclk_gate";
+				};
+				gpio1_pclk_gate: gpio1pclk {
+					#clock-cells = <0>;
+					compatible = "fh fh-gpio1-pclk";
+					reg = <0x0 0x4>,<0xf0000060 0x4>,<0x0 0x4>;
+					gate = <0x40000000>;
+					clock-output-names = "gpio1_pclk_gate";
+				};
+				isp_hclk_gate: isphclk {
+					#clock-cells = <0>;
+					compatible = "fh fh-isp-hclk";
+					reg = <0x0 0x4>,<0xf000005c 0x4>,<0x0 0x4>;
+					gate = <0x1000000>;
+					clock-output-names = "isp_hclk_gate";
+				};
+				veu_hclk_gate: veuhclk {
+					#clock-cells = <0>;
+					compatible = "fh fh-veu-hclk";
+					reg = <0x0 0x4>,<0xf000005c 0x4>,<0x0 0x4>;
+					gate = <0x2000000>;
+					clock-output-names = "veu_hclk_gate";
+				};
+				bgm_hclk_gate: bgmhclk {
+					#clock-cells = <0>;
+					compatible = "fh fh-bgm-hclk";
+					reg = <0x0 0x4>,<0xf000005c 0x4>,<0x0 0x4>;
+					gate = <0x4000000>;
+					clock-output-names = "bgm_hclk_gate";
+				};
+				adapt_hclk_gate: adapthclk {
+					#clock-cells = <0>;
+					compatible = "fh fh-adapt-hclk";
+					reg = <0x0 0x4>,<0xf000005c 0x4>,<0x0 0x4>;
+					gate = <0x8000000>;
+					clock-output-names = "adapt_hclk_gate";
+				};
+				jpg_hclk_gate: jpghclk {
+					#clock-cells = <0>;
+					compatible = "fh fh-jpg-hclk";
+					reg = <0x0 0x4>,<0xf000005c 0x4>,<0x0 0x4>;
+					gate = <0x10000000>;
+					clock-output-names = "jpg_hclk_gate";
+				};
+				jpg_adapt_gate: jpgadaptclk {
+					#clock-cells = <0>;
+					compatible = "fh fh-jpg-adapt-clk";
+					reg = <0x0 0x4>,<0xf000005c 0x4>,<0x0 0x4>;
+					gate = <0x20000000>;
+					clock-output-names = "jpg_adapt_gate";
+				};
+				vpu_hclk_gate: vpuhclk {
+					#clock-cells = <0>;
+					compatible = "fh fh-vpu-hclk";
+					reg = <0x0 0x4>,<0xf000005c 0x4>,<0x0 0x4>;
+					gate = <0x40000000>;
+					clock-output-names = "vpu_hclk_gate";
+				};
+				sdc0_clk_sample: sdc0clksample {
+					#clock-cells = <0>;
+					compatible = "fh fh-sdc0-clk_sample";
+					reg = <0xf0000020 0x4>;
+					mux = <0xf0000>;
+					clocks = <&sdc0_clk>;
+					clock-output-names = "sdc0_clk_sample";
+				};
+				sdc0_clk_drv: sdc0clkdrv {
+					#clock-cells = <0>;
+					compatible = "fh fh-sdc0-clk_drv";
+					reg = <0xf0000020 0x4>;
+					mux = <0xf00000>;
+					clocks = <&sdc0_clk>;
+					clock-output-names = "sdc0_clk_drv";
+				};
+	
+				sdc1_clk_sample: sdc1clksample {
+					#clock-cells = <0>;
+					compatible = "fh fh-sdc1-clk_sample";
+					reg = <0xf0000020 0x4>;
+					mux = <0xf00>;
+					clocks = <&sdc1_clk>;
+					clock-output-names = "sdc1_clk_sample";
+				};
+	
+				sdc1_clk_drv: sdc1clkdrv {
+					#clock-cells = <0>;
+					compatible = "fh fh-sdc1-clk_drv";
+					reg = <0xf0000020 0x4>;
+					mux = <0xf000>;
+					clocks = <&sdc1_clk>;
+					clock-output-names = "sdc1_clk_drv";
+				};
+			};
+		};
+
+		usb_otg@e0700000 {
+			compatible = "fh_usb";
+			reg = <0xe0700000 100000>;
+			interrupts = <39>;
+			clocks = <&usb_clk>;
+			dr_mode = "host";
+			vbus_pwren = <47>;
+			clock-names = "otg";
+			phys = <&usb2_phy>;
+			phy-names = "usb2-phy";
+		};
+
+		usb2_phy: usbphy {
+			compatible = "fh,fh-usb2-phy";
+			#phy-cells = <0>;
+			status = "okay";
+		};
+};

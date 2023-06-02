@@ -160,7 +160,11 @@ EXPORT_SYMBOL(jiffies_64);
 #define LVL_START(n)	((LVL_SIZE - 1) << (((n) - 1) * LVL_CLK_SHIFT))
 
 /* Size of each clock level */
+#ifdef CONFIG_TINY_KERNEL
+#define LVL_BITS	4
+#else
 #define LVL_BITS	6
+#endif
 #define LVL_SIZE	(1UL << LVL_BITS)
 #define LVL_MASK	(LVL_SIZE - 1)
 #define LVL_OFFS(n)	((n) * LVL_SIZE)

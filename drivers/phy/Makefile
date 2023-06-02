@@ -11,6 +11,7 @@ obj-$(CONFIG_PHY_DA8XX_USB)		+= phy-da8xx-usb.o
 obj-$(CONFIG_PHY_DM816X_USB)		+= phy-dm816x-usb.o
 obj-$(CONFIG_ARMADA375_USBCLUSTER_PHY)	+= phy-armada375-usb2.o
 obj-$(CONFIG_BCM_KONA_USB2_PHY)		+= phy-bcm-kona-usb2.o
+obj-$(CONFIG_FH_USB2_PHY)           += phy-fullhan-usb2.o
 obj-$(CONFIG_PHY_EXYNOS_DP_VIDEO)	+= phy-exynos-dp-video.o
 obj-$(CONFIG_PHY_EXYNOS_MIPI_VIDEO)	+= phy-exynos-mipi-video.o
 obj-$(CONFIG_PHY_LPC18XX_USB_OTG)	+= phy-lpc18xx-usb-otg.o

@@ -53,7 +53,7 @@ static void spidev_release(struct device *dev)
 	spi_master_put(spi->master);
 	kfree(spi);
 }
-
+#ifndef CONFIG_SPI_TINY_MEM
 static ssize_t
 modalias_show(struct device *dev, struct device_attribute *a, char *buf)
 {
@@ -240,7 +240,7 @@ static const struct attribute_group *spi_master_groups[] = {
 	&spi_master_statistics_group,
 	NULL,
 };
-
+#endif
 void spi_statistics_add_transfer_stats(struct spi_statistics *stats,
 				       struct spi_transfer *xfer,
 				       struct spi_master *master)
@@ -325,7 +325,9 @@ static int spi_uevent(struct device *dev, struct kobj_uevent_env *env)
 
 struct bus_type spi_bus_type = {
 	.name		= "spi",
+#ifndef CONFIG_SPI_TINY_MEM
 	.dev_groups	= spi_dev_groups,
+#endif
 	.match		= spi_match_device,
 	.uevent		= spi_uevent,
 };
@@ -338,6 +340,7 @@ static int spi_drv_probe(struct device *dev)
 	struct spi_device		*spi = to_spi_device(dev);
 	int ret;
 
+	spi->sample_delay = 1;
 	ret = of_clk_set_defaults(dev->of_node, false);
 	if (ret)
 		return ret;
@@ -710,6 +713,7 @@ static int spi_map_buf(struct spi_master *master, struct device *dev,
 		       struct sg_table *sgt, void *buf, size_t len,
 		       enum dma_data_direction dir)
 {
+#ifndef CONFIG_SPI_TINY_MEM
 	const bool vmalloced_buf = is_vmalloc_addr(buf);
 	unsigned int max_seg_size = dma_get_max_seg_size(dev);
 #ifdef CONFIG_HIGHMEM
@@ -780,21 +784,24 @@ static int spi_map_buf(struct spi_master *master, struct device *dev,
 	}
 
 	sgt->nents = ret;
-
+#endif
 	return 0;
 }
 
 static void spi_unmap_buf(struct spi_master *master, struct device *dev,
 			  struct sg_table *sgt, enum dma_data_direction dir)
 {
+#ifndef CONFIG_SPI_TINY_MEM
 	if (sgt->orig_nents) {
 		dma_unmap_sg(dev, sgt->sgl, sgt->orig_nents, dir);
 		sg_free_table(sgt);
 	}
+#endif
 }
 
 static int __spi_map_msg(struct spi_master *master, struct spi_message *msg)
 {
+#ifndef CONFIG_SPI_TINY_MEM
 	struct device *tx_dev, *rx_dev;
 	struct spi_transfer *xfer;
 	int ret;
@@ -837,12 +844,13 @@ static int __spi_map_msg(struct spi_master *master, struct spi_message *msg)
 	}
 
 	master->cur_msg_mapped = true;
-
+#endif
 	return 0;
 }
 
 static int __spi_unmap_msg(struct spi_master *master, struct spi_message *msg)
 {
+#ifndef CONFIG_SPI_TINY_MEM
 	struct spi_transfer *xfer;
 	struct device *tx_dev, *rx_dev;
 
@@ -866,6 +874,7 @@ static int __spi_unmap_msg(struct spi_master *master, struct spi_message *msg)
 		spi_unmap_buf(master, rx_dev, &xfer->rx_sg, DMA_FROM_DEVICE);
 		spi_unmap_buf(master, tx_dev, &xfer->tx_sg, DMA_TO_DEVICE);
 	}
+#endif
 
 	return 0;
 }
@@ -1018,7 +1027,7 @@ static int spi_transfer_one_message(struct spi_master *master,
 					ms = UINT_MAX;
 
 				ms = wait_for_completion_timeout(&master->xfer_completion,
-								 msecs_to_jiffies(ms));
+							msecs_to_jiffies(ms));
 			}
 
 			if (ms == 0) {
@@ -1778,7 +1787,9 @@ static struct class spi_master_class = {
 	.name		= "spi_master",
 	.owner		= THIS_MODULE,
 	.dev_release	= spi_master_release,
-	.dev_groups	= spi_master_groups,
+#ifndef CONFIG_SPI_TINY_MEM
+	.dev_groups     = spi_master_groups,
+#endif
 };
 
 

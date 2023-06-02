@@ -17,6 +17,8 @@
 #include <linux/types.h>
 #include <linux/usb/ch9.h>
 
+/* #define UVC_FASTBOOT */
+
 #define UVC_EVENT_FIRST			(V4L2_EVENT_PRIVATE_START + 0)
 #define UVC_EVENT_CONNECT		(V4L2_EVENT_PRIVATE_START + 0)
 #define UVC_EVENT_DISCONNECT		(V4L2_EVENT_PRIVATE_START + 1)
@@ -25,6 +27,24 @@
 #define UVC_EVENT_SETUP			(V4L2_EVENT_PRIVATE_START + 4)
 #define UVC_EVENT_DATA			(V4L2_EVENT_PRIVATE_START + 5)
 #define UVC_EVENT_LAST			(V4L2_EVENT_PRIVATE_START + 5)
+
+struct uvc_frame_info {
+	unsigned int width;
+	unsigned int height;
+	unsigned int intervals[8];
+};
+
+struct uvc_format_info {
+	unsigned int fcc;
+	const struct uvc_frame_info *frames;
+	unsigned int frame_num;
+};
+
+
+struct uvc_fmt_array_info {
+	unsigned int fmt_num;
+	struct uvc_format_info *pFmts;
+};
 
 struct uvc_request_data
 {
@@ -42,6 +62,11 @@ struct uvc_event
 };
 
 #define UVCIOC_SEND_RESPONSE		_IOW('U', 1, struct uvc_request_data)
+// #define VIDIOC_CONNECT_NOW			_IOW('U', 3, struct uvc_device)
+#define VIDIOC_RESET_DESC		 0x445566
+#define VIDIOC_CONNECT_NOW		 0x238956
+#define VIDIOC_UVC_DEMO_READY	 0x445567
+#define VIDIOC_DESC_GET	         0x445568
 
 #define UVC_INTF_CONTROL		0
 #define UVC_INTF_STREAMING		1
@@ -164,6 +189,7 @@ struct uvc_device
 	void *control_buf;
 
 	unsigned int streaming_intf;
+	bool demo_ready;
 
 	/* Events */
 	unsigned int event_length;
@@ -193,6 +219,16 @@ extern void uvc_endpoint_stream(struct uvc_device *dev);
 
 extern void uvc_function_connect(struct uvc_device *uvc);
 extern void uvc_function_disconnect(struct uvc_device *uvc);
+extern void uvc_setup_to_demo(struct uvc_device *uvc);
+
+extern void set_yuv_bpp(int bpp);
+extern struct usb_descriptor_header **
+uvc_copy_descriptors(struct uvc_device *uvc, enum usb_device_speed speed);
+
+#ifdef UVC_FASTBOOT
+extern void uvc_events_process_class(struct uvc_device *uvc,
+	struct usb_ctrlrequest *ctrl);
+#endif
 
 #endif /* __KERNEL__ */
 

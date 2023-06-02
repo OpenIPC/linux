@@ -1,0 +1,7 @@
+menuconfig MTD_SPI_NAND
+	tristate "SPI-NAND device Support"
+	depends on MTD_NAND && SPI
+	help
+	  This is the framework for the SPI NAND which can be used by the SPI
+	  device drivers and the SPI-NAND device drivers.
+

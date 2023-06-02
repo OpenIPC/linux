@@ -511,6 +511,7 @@ struct v4l2_pix_format {
 
 /* Luminance+Chrominance formats */
 #define V4L2_PIX_FMT_YUYV    v4l2_fourcc('Y', 'U', 'Y', 'V') /* 16  YUV 4:2:2     */
+#define V4L2_PIX_FMT_YUY2    v4l2_fourcc('Y', 'U', 'Y', '2') /* 16  YUV 4:2:2     */
 #define V4L2_PIX_FMT_YYUV    v4l2_fourcc('Y', 'Y', 'U', 'V') /* 16  YUV 4:2:2     */
 #define V4L2_PIX_FMT_YVYU    v4l2_fourcc('Y', 'V', 'Y', 'U') /* 16 YVU 4:2:2 */
 #define V4L2_PIX_FMT_UYVY    v4l2_fourcc('U', 'Y', 'V', 'Y') /* 16  YUV 4:2:2     */
@@ -592,6 +593,7 @@ struct v4l2_pix_format {
 #define V4L2_PIX_FMT_DV       v4l2_fourcc('d', 'v', 's', 'd') /* 1394          */
 #define V4L2_PIX_FMT_MPEG     v4l2_fourcc('M', 'P', 'E', 'G') /* MPEG-1/2/4 Multiplexed */
 #define V4L2_PIX_FMT_H264     v4l2_fourcc('H', '2', '6', '4') /* H264 with start codes */
+#define V4L2_PIX_FMT_H265     v4l2_fourcc('H', '2', '6', '5') /* H264 with start codes */
 #define V4L2_PIX_FMT_H264_NO_SC v4l2_fourcc('A', 'V', 'C', '1') /* H264 without start codes */
 #define V4L2_PIX_FMT_H264_MVC v4l2_fourcc('M', '2', '6', '4') /* H264 MVC */
 #define V4L2_PIX_FMT_H263     v4l2_fourcc('H', '2', '6', '3') /* H263          */
@@ -2259,7 +2261,7 @@ struct v4l2_create_buffers {
 #define VIDIOC_G_JPEGCOMP	 _IOR('V', 61, struct v4l2_jpegcompression)
 #define VIDIOC_S_JPEGCOMP	 _IOW('V', 62, struct v4l2_jpegcompression)
 #define VIDIOC_QUERYSTD      	 _IOR('V', 63, v4l2_std_id)
-#define VIDIOC_TRY_FMT      	_IOWR('V', 64, struct v4l2_format)
+#define VIDIOC_TRY_FMT	_IOWR('V', 64, struct v4l2_format)
 #define VIDIOC_ENUMAUDIO	_IOWR('V', 65, struct v4l2_audio)
 #define VIDIOC_ENUMAUDOUT	_IOWR('V', 66, struct v4l2_audioout)
 #define VIDIOC_G_PRIORITY	 _IOR('V', 67, __u32) /* enum v4l2_priority */
@@ -2280,8 +2282,8 @@ struct v4l2_create_buffers {
  * Only implemented if CONFIG_VIDEO_ADV_DEBUG is defined.
  * You must be root to use these ioctls. Never use these in applications!
  */
-#define	VIDIOC_DBG_S_REGISTER 	 _IOW('V', 79, struct v4l2_dbg_register)
-#define	VIDIOC_DBG_G_REGISTER 	_IOWR('V', 80, struct v4l2_dbg_register)
+#define	VIDIOC_DBG_S_REGISTER	_IOW('V', 79, struct v4l2_dbg_register)
+#define	VIDIOC_DBG_G_REGISTER	_IOWR('V', 80, struct v4l2_dbg_register)
 
 #define VIDIOC_S_HW_FREQ_SEEK	 _IOW('V', 82, struct v4l2_hw_freq_seek)
 #define	VIDIOC_S_DV_TIMINGS	_IOWR('V', 87, struct v4l2_dv_timings)

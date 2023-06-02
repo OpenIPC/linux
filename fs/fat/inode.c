@@ -664,7 +664,7 @@ static void fat_set_state(struct super_block *sb,
 	if (sbi->dirty) {
 		/* warn only on set (mount). */
 		if (set)
-			fat_msg(sb, KERN_WARNING, "Volume was not properly "
+			fat_msg(sb, KERN_NOTICE, "Volume was not properly "
 				"unmounted. Some data may be corrupt. "
 				"Please run fsck.");
 		return;

@@ -34,6 +34,14 @@ struct m25p {
 	u8			command[MAX_CMD_SIZE];
 };
 
+static void m25p80_scan_delay(struct spi_nor *nor)
+{
+	struct m25p *flash = nor->priv;
+	struct spi_device *spi = flash->spi;
+
+	spi->sample_delay++;
+}
+
 static int m25p80_read_reg(struct spi_nor *nor, u8 code, u8 *val, int len)
 {
 	struct m25p *flash = nor->priv;
@@ -213,6 +221,7 @@ static int m25p_probe(struct spi_device *spi)
 	nor->write = m25p80_write;
 	nor->write_reg = m25p80_write_reg;
 	nor->read_reg = m25p80_read_reg;
+	nor->scan_delay = m25p80_scan_delay;
 
 	nor->dev = &spi->dev;
 	spi_nor_set_flash_node(nor, spi->dev.of_node);
@@ -226,8 +235,13 @@ static int m25p_probe(struct spi_device *spi)
 	else if (spi->mode & SPI_RX_DUAL)
 		mode = SPI_NOR_DUAL;
 
-	if (data && data->name)
+	if (data && data->name) {
+		sprintf(data->name, "spi%d.%d",
+				spi->master->bus_num,
+				spi->chip_select);
+
 		nor->mtd.name = data->name;
+	}
 
 	/* For some (historical?) reason many platforms provide two different
 	 * names in flash_platform_data: "name" and "type". Quite often name is
@@ -245,6 +259,9 @@ static int m25p_probe(struct spi_device *spi)
 	if (ret)
 		return ret;
 
+	if (nor->info->max_speed_hz)
+		spi->max_speed_hz = nor->info->max_speed_hz;
+
 	return mtd_device_register(&nor->mtd, data ? data->parts : NULL,
 				   data ? data->nr_parts : 0);
 }
@@ -256,6 +273,13 @@ static int m25p_remove(struct spi_device *spi)
 
 	/* Clean up MTD stuff. */
 	return mtd_device_unregister(&flash->spi_nor.mtd);
+}
+
+static void m25p_shutdown(struct spi_device *spi)
+{
+	struct m25p	*flash = spi_get_drvdata(spi);
+
+	spi_nor_restore(&flash->spi_nor);
 }
 
 /*
@@ -328,6 +352,7 @@ static struct spi_driver m25p80_driver = {
 	.id_table	= m25p_ids,
 	.probe	= m25p_probe,
 	.remove	= m25p_remove,
+	.shutdown = m25p_shutdown,
 
 	/* REVISIT: many of these chips have deep power-down modes, which
 	 * should clearly be entered on suspend() to minimize power use.

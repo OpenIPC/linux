@@ -152,8 +152,17 @@ static inline unsigned long change_pmd_range(struct vm_area_struct *vma,
 		unsigned long this_pages;
 
 		next = pmd_addr_end(addr, end);
-		if (!pmd_trans_huge(*pmd) && !pmd_devmap(*pmd)
-				&& pmd_none_or_clear_bad(pmd))
+
+		/*
+		 * Automatic NUMA balancing walks the tables with mmap_sem
+		 * held for read. It's possible a parallel udate
+		 * to occur between pmd_trans_huge and a pmd_none_or_clear_bad
+		 * check leading to a false positive and clearing. Hence, it's
+		 * necessary to atomically read the PMD value for all the
+		 * checks.
+		 */
+		if (!pmd_devmap(*pmd) &&
+			pmd_none_or_clear_bad_unless_trans_huge(pmd))
 			continue;
 
 		/* invoke the mmu notifier if the pmd is populated */

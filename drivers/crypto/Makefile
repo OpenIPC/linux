@@ -32,3 +32,7 @@ obj-$(CONFIG_CRYPTO_DEV_VMX) += vmx/
 obj-$(CONFIG_CRYPTO_DEV_SUN4I_SS) += sunxi-ss/
 obj-$(CONFIG_CRYPTO_DEV_ROCKCHIP) += rockchip/
 obj-$(CONFIG_CRYPTO_DEV_CHELSIO) += chelsio/
+obj-$(CONFIG_CRYPTO_DEV_FH_AES)		+= fh_aes.o
+obj-$(CONFIG_CRYPTO_DEV_FH_AES_TEE)		+= fh_aes_tee.o
+obj-$(CONFIG_FH_AES_SELF_TEST)		+= fh_aes_test.o
+ccflags-y += -I$(srctree)/drivers/tee/tee_api

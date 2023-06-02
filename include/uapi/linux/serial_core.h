@@ -270,4 +270,6 @@
 /* MPS2 UART */
 #define PORT_MPS2UART	116
 
+#define PORT_FH	9999
+
 #endif /* _UAPILINUX_SERIAL_CORE_H */

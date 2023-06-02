@@ -24,7 +24,7 @@
 #include <linux/slab.h>
 #include <linux/string.h>
 #include <linux/uaccess.h>
-
+#include <linux/if_alg.h>
 /*
  * Autoloaded crypto modules should only use a prefixed name to avoid allowing
  * arbitrary modules to be loaded. Loading from userspace may still need the
@@ -182,7 +182,8 @@ struct ablkcipher_request {
 
 	struct scatterlist *src;
 	struct scatterlist *dst;
-
+	/* bind to tfm.. */
+	struct af_alg_usr_def *usr_def;
 	void *__ctx[] CRYPTO_MINALIGN_ATTR;
 };
 
@@ -724,6 +725,8 @@ static inline u32 crypto_skcipher_mask(u32 mask)
  * which operation just finished if it invoked multiple in parallel. This
  * state information is unused by the kernel crypto API.
  */
+struct crypto_ablkcipher *crypto_alloc_ablkcipher(const char *alg_name,
+						u32 type, u32 mask);
 
 static inline struct crypto_tfm *crypto_ablkcipher_tfm(
 	struct crypto_ablkcipher *tfm)
@@ -969,6 +972,11 @@ static inline void ablkcipher_request_free(struct ablkcipher_request *req)
 	kzfree(req);
 }
 
+static inline void ablkcipher_request_set_usrdef(
+	struct ablkcipher_request *req, struct af_alg_usr_def *p_usrdef)
+{
+	req->usr_def = p_usrdef;
+}
 /**
  * ablkcipher_request_set_callback() - set asynchronous callback function
  * @req: request handle

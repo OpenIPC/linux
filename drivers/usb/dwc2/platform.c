@@ -46,14 +46,55 @@
 #include <linux/phy/phy.h>
 #include <linux/platform_data/s3c-hsotg.h>
 #include <linux/reset.h>
-
+#include <linux/gpio.h>
 #include <linux/usb/of.h>
+
+#include <mach/pmu.h>
 
 #include "core.h"
 #include "hcd.h"
 #include "debug.h"
 
-static const char dwc2_driver_name[] = "dwc2";
+static const struct dwc2_core_params params_fh = {
+	.otg_cap            = 0,    /* HNP/SRP capable */
+	.otg_ver            = 0,    /* 1.3 */
+#ifdef CONFIG_USB_DWC2_DMA
+	.dma_enable         = 1,
+#else
+	.dma_enable         = 0,
+#endif
+#ifdef CONFIG_USB_DWC2_DMA_DESC
+	.dma_desc_enable    = 1,
+#else
+	.dma_desc_enable    = 0,
+#endif
+	.speed              = 0,    /* High Speed */
+	.enable_dynamic_fifo        = 1,
+	.en_multiple_tx_fifo        = 1,
+	.host_rx_fifo_size      = 542,   /* 542 DWORDs */
+	.host_nperio_tx_fifo_size   = 256,   /* 256 DWORDs */
+	.host_perio_tx_fifo_size    = 512,  /* 512 DWORDs */
+	.max_transfer_size      = 65535,
+	.max_packet_count       = 511,
+	.host_channels          = 8,
+	.phy_type           = 1,    /* UTMI */
+#ifdef CONFIG_FPGA
+	.phy_utmi_width         = 8,    /* 8 bits */
+#else
+	.phy_utmi_width         = 16,    /* 16 bits */
+#endif
+	.phy_ulpi_ddr           = 0,    /* Single */
+	.phy_ulpi_ext_vbus      = 0,
+	.i2c_enable         = 0,
+	.ulpi_fs_ls         = 0,
+	.host_support_fs_ls_low_power   = 0,
+	.host_ls_low_power_phy_clk  = 0,    /* 48 MHz */
+	.ts_dline           = 0,
+	.reload_ctl         = 0,
+	.ahbcfg				= GAHBCFG_HBSTLEN_INCR16 <<
+					  GAHBCFG_HBSTLEN_SHIFT,
+	.uframe_sched           = 0,
+};
 
 static const struct dwc2_core_params params_hi6220 = {
 	.otg_cap			= 2,	/* No HNP/SRP capable */
@@ -214,6 +255,50 @@ static const struct dwc2_core_params params_amlogic = {
 	.hibernation			= -1,
 };
 
+/*usb*/
+static void fh_usb_utmi_rst(void)
+{
+	fh_pmu_usb_utmi_rst();
+}
+
+static void fh_usb_phy_rst(void)
+{
+	fh_pmu_usb_phy_rst();
+}
+
+static void fh_usb_resume(void)
+{
+	fh_pmu_usb_resume();
+}
+
+/*usb vbus  power on*/
+static void fh_usb_pwr_on(struct dwc2_hsotg *hsotg)
+{
+	uint32_t pwren_gpio = 0;
+
+	pwren_gpio = usb_get_vbus_pwren_gpio(hsotg->dev);
+
+	if (pwren_gpio == 0xFFFFFFFF) {
+		dev_warn(hsotg->dev,
+			"Can't find usb vbus pwren gpio\n");
+		return;
+	}
+
+	if (hsotg->dr_mode == USB_DR_MODE_HOST) {
+		gpio_request(pwren_gpio, "usb_pwren");
+		gpio_direction_output(pwren_gpio, 1);
+		mdelay(1);
+		gpio_free(pwren_gpio);
+	}
+
+	if (hsotg->dr_mode == USB_DR_MODE_PERIPHERAL) {
+		gpio_request(pwren_gpio, "usb_pwren");
+		gpio_direction_output(pwren_gpio, 0);
+		mdelay(1);
+		gpio_free(pwren_gpio);
+	}
+}
+
 /*
  * Check the dr_mode against the module configuration and hardware
  * capabilities.
@@ -281,7 +366,6 @@ static int dwc2_get_dr_mode(struct dwc2_hsotg *hsotg)
 
 static int __dwc2_lowlevel_hw_enable(struct dwc2_hsotg *hsotg)
 {
-	struct platform_device *pdev = to_platform_device(hsotg->dev);
 	int ret;
 
 	ret = regulator_bulk_enable(ARRAY_SIZE(hsotg->supplies),
@@ -291,19 +375,23 @@ static int __dwc2_lowlevel_hw_enable(struct dwc2_hsotg *hsotg)
 
 	if (hsotg->clk) {
 		ret = clk_prepare_enable(hsotg->clk);
-		if (ret)
+		if (ret) {
+			dev_dbg(hsotg->dev, "usb clock enable failed and result usb driver probe ending!\n");
 			return ret;
+		}
 	}
 
-	if (hsotg->uphy)
-		ret = usb_phy_init(hsotg->uphy);
-	else if (hsotg->plat && hsotg->plat->phy_init)
-		ret = hsotg->plat->phy_init(pdev, hsotg->plat->phy_type);
-	else {
-		ret = phy_power_on(hsotg->phy);
-		if (ret == 0)
-			ret = phy_init(hsotg->phy);
+	if (hsotg->clk2) {
+		ret = clk_prepare_enable(hsotg->clk2);
+		if (ret) {
+			dev_dbg(hsotg->dev, "usb clock2 enable failed and result usb driver probe ending!\n");
+			return ret;
+		}
 	}
+
+	fh_usb_phy_rst();
+	fh_usb_utmi_rst();
+	fh_usb_resume();
 
 	return ret;
 }
@@ -326,23 +414,13 @@ int dwc2_lowlevel_hw_enable(struct dwc2_hsotg *hsotg)
 
 static int __dwc2_lowlevel_hw_disable(struct dwc2_hsotg *hsotg)
 {
-	struct platform_device *pdev = to_platform_device(hsotg->dev);
 	int ret = 0;
-
-	if (hsotg->uphy)
-		usb_phy_shutdown(hsotg->uphy);
-	else if (hsotg->plat && hsotg->plat->phy_exit)
-		ret = hsotg->plat->phy_exit(pdev, hsotg->plat->phy_type);
-	else {
-		ret = phy_exit(hsotg->phy);
-		if (ret == 0)
-			ret = phy_power_off(hsotg->phy);
-	}
-	if (ret)
-		return ret;
 
 	if (hsotg->clk)
 		clk_disable_unprepare(hsotg->clk);
+
+	if (hsotg->clk2)
+		clk_disable_unprepare(hsotg->clk2);
 
 	ret = regulator_bulk_disable(ARRAY_SIZE(hsotg->supplies),
 				     hsotg->supplies);
@@ -370,6 +448,7 @@ static int dwc2_lowlevel_hw_init(struct dwc2_hsotg *hsotg)
 {
 	int i, ret;
 
+#if 0
 	hsotg->reset = devm_reset_control_get_optional(hsotg->dev, "dwc2");
 	if (IS_ERR(hsotg->reset)) {
 		ret = PTR_ERR(hsotg->reset);
@@ -387,65 +466,21 @@ static int dwc2_lowlevel_hw_init(struct dwc2_hsotg *hsotg)
 
 	if (hsotg->reset)
 		reset_control_deassert(hsotg->reset);
-
-	/* Set default UTMI width */
-	hsotg->phyif = GUSBCFG_PHYIF16;
-
-	/*
-	 * Attempt to find a generic PHY, then look for an old style
-	 * USB PHY and then fall back to pdata
-	 */
-	hsotg->phy = devm_phy_get(hsotg->dev, "usb2-phy");
-	if (IS_ERR(hsotg->phy)) {
-		ret = PTR_ERR(hsotg->phy);
-		switch (ret) {
-		case -ENODEV:
-		case -ENOSYS:
-			hsotg->phy = NULL;
-			break;
-		case -EPROBE_DEFER:
-			return ret;
-		default:
-			dev_err(hsotg->dev, "error getting phy %d\n", ret);
-			return ret;
-		}
-	}
-
-	if (!hsotg->phy) {
-		hsotg->uphy = devm_usb_get_phy(hsotg->dev, USB_PHY_TYPE_USB2);
-		if (IS_ERR(hsotg->uphy)) {
-			ret = PTR_ERR(hsotg->uphy);
-			switch (ret) {
-			case -ENODEV:
-			case -ENXIO:
-				hsotg->uphy = NULL;
-				break;
-			case -EPROBE_DEFER:
-				return ret;
-			default:
-				dev_err(hsotg->dev, "error getting usb phy %d\n",
-					ret);
-				return ret;
-			}
-		}
-	}
+#endif
 
 	hsotg->plat = dev_get_platdata(hsotg->dev);
 
-	if (hsotg->phy) {
-		/*
-		 * If using the generic PHY framework, check if the PHY bus
-		 * width is 8-bit and set the phyif appropriately.
-		 */
-		if (phy_get_bus_width(hsotg->phy) == 8)
-			hsotg->phyif = GUSBCFG_PHYIF8;
-	}
-
 	/* Clock */
-	hsotg->clk = devm_clk_get(hsotg->dev, "otg");
+	hsotg->clk = clk_get(NULL, "usb_clk");
 	if (IS_ERR(hsotg->clk)) {
 		hsotg->clk = NULL;
 		dev_dbg(hsotg->dev, "cannot get otg clock\n");
+	}
+
+	hsotg->clk2 = clk_get(NULL, "usb_hclk");
+	if (IS_ERR(hsotg->clk2)) {
+		hsotg->clk2 = NULL;
+		dev_dbg(hsotg->dev, "cannot get otg clock2\n");
 	}
 
 	/* Regulators */
@@ -488,6 +523,16 @@ static int dwc2_driver_remove(struct platform_device *dev)
 	if (hsotg->reset)
 		reset_control_assert(hsotg->reset);
 
+	if (hsotg->clk) {
+		clk_put(hsotg->clk);
+		hsotg->clk = NULL;
+	}
+
+	if (hsotg->clk2) {
+		clk_put(hsotg->clk2);
+		hsotg->clk2 = NULL;
+	}
+
 	return 0;
 }
 
@@ -517,12 +562,15 @@ static const struct of_device_id dwc2_of_match_table[] = {
 	{ .compatible = "lantiq,arx100-usb", .data = &params_ltq },
 	{ .compatible = "lantiq,xrx200-usb", .data = &params_ltq },
 	{ .compatible = "snps,dwc2", .data = NULL },
+	{ .compatible = "fh_usb", .data = &params_fh },
 	{ .compatible = "samsung,s3c6400-hsotg", .data = NULL},
 	{ .compatible = "amlogic,meson8b-usb", .data = &params_amlogic },
 	{ .compatible = "amlogic,meson-gxbb-usb", .data = &params_amlogic },
 	{},
 };
 MODULE_DEVICE_TABLE(of, dwc2_of_match_table);
+
+
 
 /**
  * dwc2_driver_probe() - Called when the DWC_otg core is bound to the DWC_otg
@@ -538,13 +586,18 @@ MODULE_DEVICE_TABLE(of, dwc2_of_match_table);
  */
 static int dwc2_driver_probe(struct platform_device *dev)
 {
+#ifdef CONFIG_USE_OF
 	const struct of_device_id *match;
+#else
+	int tbl_idx, tbl_size = ARRAY_SIZE(dwc2_of_match_table);
+#endif
 	const struct dwc2_core_params *params;
 	struct dwc2_core_params defparams;
 	struct dwc2_hsotg *hsotg;
 	struct resource *res;
 	int retval;
 
+#ifdef CONFIG_USE_OF
 	match = of_match_device(dwc2_of_match_table, &dev->dev);
 	if (match && match->data) {
 		params = match->data;
@@ -561,7 +614,28 @@ static int dwc2_driver_probe(struct platform_device *dev)
 		defparams.dma_desc_enable = 0;
 		defparams.dma_desc_fs_enable = 0;
 	}
+#else
+	for (tbl_idx = 0; tbl_idx < tbl_size; tbl_idx++)
+		if (strcmp(dev->name, dwc2_of_match_table[tbl_idx].compatible)
+			== 0)
+			break;
 
+	if (tbl_idx < tbl_size)
+		params = dwc2_of_match_table[tbl_idx].data;
+	else {
+		/* Default all params to autodetect */
+		dwc2_set_all_params(&defparams, -1);
+		params = &defparams;
+
+		/*
+		 * Disable descriptor dma mode by default as the HW can support
+		 * it, but does not support it for SPLIT transactions.
+		 * Disable it for FS devices as well.
+		 */
+		defparams.dma_desc_enable = 0;
+		defparams.dma_desc_fs_enable = 0;
+	}
+#endif
 	hsotg = devm_kzalloc(&dev->dev, sizeof(*hsotg), GFP_KERNEL);
 	if (!hsotg)
 		return -ENOMEM;
@@ -598,7 +672,11 @@ static int dwc2_driver_probe(struct platform_device *dev)
 
 	dwc2_set_all_params(hsotg->core_params, -1);
 
+#ifdef CONFIG_USE_OF
 	hsotg->irq = platform_get_irq(dev, 0);
+#else
+	hsotg->irq = irq_create_mapping(NULL, platform_get_irq(dev, 0));
+#endif
 	if (hsotg->irq < 0) {
 		dev_err(&dev->dev, "missing IRQ resource\n");
 		return hsotg->irq;
@@ -619,6 +697,8 @@ static int dwc2_driver_probe(struct platform_device *dev)
 	retval = dwc2_get_dr_mode(hsotg);
 	if (retval)
 		goto error;
+
+	fh_usb_pwr_on(hsotg);
 
 	/*
 	 * Reset before dwc2_get_hwparams() then it could get power-on real
@@ -705,7 +785,7 @@ static const struct dev_pm_ops dwc2_dev_pm_ops = {
 
 static struct platform_driver dwc2_platform_driver = {
 	.driver = {
-		.name = dwc2_driver_name,
+		.name = "fh_usb",
 		.of_match_table = dwc2_of_match_table,
 		.pm = &dwc2_dev_pm_ops,
 	},
@@ -714,7 +794,11 @@ static struct platform_driver dwc2_platform_driver = {
 	.shutdown = dwc2_driver_shutdown,
 };
 
+#ifdef CONFIG_DEFERRED_INIICALLS_USB
+deferred_module_platform_driver(dwc2_platform_driver);
+#else
 module_platform_driver(dwc2_platform_driver);
+#endif
 
 MODULE_DESCRIPTION("DESIGNWARE HS OTG Platform Glue");
 MODULE_AUTHOR("Matthijs Kooijman <matthijs@stdin.nl>");

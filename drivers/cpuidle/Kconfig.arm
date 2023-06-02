@@ -11,6 +11,12 @@ config ARM_CPUIDLE
           initialized by calling the CPU operations init idle hook
           provided by architecture code.
 
+config ARM_FULLHAN_CPUIDLE
+	bool "Fullhan CPU Idle Driver"
+	depends on ARCH_FULLHAN
+	help
+	  Select this to enable cpuidle for Fullhan processors
+
 config ARM_BIG_LITTLE_CPUIDLE
 	bool "Support for ARM big.LITTLE processors"
 	depends on ARCH_VEXPRESS_TC2_PM || ARCH_EXYNOS

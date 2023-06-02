@@ -98,7 +98,7 @@
 #endif
 
 #ifndef END_MEM
-#define END_MEM     		(UL(CONFIG_DRAM_BASE) + CONFIG_DRAM_SIZE)
+#define END_MEM			(UL(CONFIG_DRAM_BASE) + CONFIG_DRAM_SIZE)
 #endif
 
 /*
@@ -143,8 +143,8 @@
  */
 #define PHYS_RELATIVE(v_data, v_text) \
 	(((v_data) - PAGE_OFFSET + PLAT_PHYS_OFFSET) - \
-	 ((v_text) - XIP_VIRT_ADDR(CONFIG_XIP_PHYS_ADDR) + \
-          CONFIG_XIP_PHYS_ADDR))
+		((v_text) - XIP_VIRT_ADDR(CONFIG_XIP_PHYS_ADDR) + \
+		CONFIG_XIP_PHYS_ADDR))
 #else
 #define PHYS_RELATIVE(v_data, v_text) ((v_data) - (v_text))
 #endif
@@ -171,13 +171,13 @@
 
 extern unsigned long __pv_phys_pfn_offset;
 extern u64 __pv_offset;
-extern void fixup_pv_table(const void *, unsigned long);
+extern void fixup_pv_table(const void *addr, unsigned long size);
 extern const void *__pv_table_begin, *__pv_table_end;
 
 #define PHYS_OFFSET	((phys_addr_t)__pv_phys_pfn_offset << PAGE_SHIFT)
 #define PHYS_PFN_OFFSET	(__pv_phys_pfn_offset)
 
-#define __pv_stub(from,to,instr,type)			\
+#define __pv_stub(from, to, instr, type)			\
 	__asm__("@ __pv_stub\n"				\
 	"1:	" instr "	%0, %1, %2\n"		\
 	"	.pushsection .pv_table,\"a\"\n"		\

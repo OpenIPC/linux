@@ -17,7 +17,6 @@ obj-y				+= pwm/
 obj-$(CONFIG_PCI)		+= pci/
 obj-$(CONFIG_PARISC)		+= parisc/
 obj-$(CONFIG_RAPIDIO)		+= rapidio/
-obj-y				+= video/
 obj-y				+= idle/
 
 # IPMI must come before ACPI in order to provide IPMI opregion support
@@ -34,7 +33,7 @@ obj-y				+= clk/
 # Many drivers will want to use DMA so this has to be made available
 # really early.
 obj-$(CONFIG_DMADEVICES)	+= dma/
-
+obj-$(CONFIG_CRYPTODEV)	+= cryptodev-linux-master/
 # SOC specific infrastructure drivers.
 obj-y				+= soc/
 
@@ -175,3 +174,5 @@ obj-$(CONFIG_STM)		+= hwtracing/stm/
 obj-$(CONFIG_ANDROID)		+= android/
 obj-$(CONFIG_NVMEM)		+= nvmem/
 obj-$(CONFIG_FPGA)		+= fpga/
+obj-$(CONFIG_TEE)       += tee/
+

@@ -75,6 +75,61 @@ config AMCC_PPC440SPE_ADMA
 	help
 	  Enable support for the AMCC PPC440SPe RAID engines.
 
+config DW_DMAC
+	tristate "Synopsys DesignWare AHB DMA support"
+	depends on HAVE_CLK
+	select DMA_ENGINE
+	default y if CPU_AT32AP7000
+	help
+	  Support the Synopsys DesignWare AHB DMA controller.  This
+	  can be integrated in chips such as the Atmel AT32ap7000.
+
+config CHANNEL_ALLOC_MEM_CLASSICS
+       bool "chose malloc desc with classics, not from dma pool"
+       help
+	   the pool size default is 256KB.
+       default y
+
+config FH_DMAC
+	tristate "FH DesignWare AHB DMA support"
+	depends on HAVE_CLK
+	select CHANNEL_ALLOC_MEM_CLASSICS
+	select DMA_ENGINE
+
+	help
+	  Support the Synopsys DesignWare AHB DMA controller.  This
+	  can be integrated in chips such as the FullHan.
+
+
+if !FH_DMAC
+    config FH_AXI_DMAC
+	tristate "FH DesignWare AXI DMA support"
+	depends on HAVE_CLK
+	select CHANNEL_ALLOC_MEM_CLASSICS
+	select DMA_ENGINE
+
+	help
+	  Support the Synopsys DesignWare AHB DMA controller.  This
+	  can be integrated in chips such as the FullHan.
+endif
+
+if FH_DMAC || FH_AXI_DMAC
+
+config FH_DMAC_MISC
+	bool "FH DMAC Misc Device Enable"
+	default y
+	help
+	  FH DMAC Misc Device Enable
+
+menu "dma tinyconfig"
+
+config CHANNEL_ALLOC_DESC_NUM
+	int "CHANNEL_ALLOC_DESC_NUM"
+	default 256
+endmenu
+
+endif
+
 config AT_HDMAC
 	tristate "Atmel AHB DMA support"
 	depends on ARCH_AT91

@@ -325,7 +325,7 @@ static int ax88772_link_reset(struct usbnet *dev)
 		   ethtool_cmd_speed(&ecmd), ecmd.duplex, mode);
 
 	asix_write_medium_mode(dev, mode, 0);
-
+	asix_write_rx_ctl(dev, AX_DEFAULT_RX_CTL | AX_RX_CTL_SO, 0);
 	return 0;
 }
 

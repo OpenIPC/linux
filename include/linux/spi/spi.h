@@ -141,6 +141,7 @@ struct spi_device {
 	struct device		dev;
 	struct spi_master	*master;
 	u32			max_speed_hz;
+	u32			sample_delay;
 	u8			chip_select;
 	u8			bits_per_word;
 	u16			mode;

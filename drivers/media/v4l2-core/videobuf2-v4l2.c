@@ -683,6 +683,8 @@ unsigned int vb2_poll(struct vb2_queue *q, struct file *file, poll_table *wait)
 			res = POLLPRI;
 		else if (req_events & POLLPRI)
 			poll_wait(file, &fh->wait, wait);
+		if (v4l2_event_pending(fh))
+			res = POLLPRI;
 	}
 
 	return res | vb2_core_poll(q, file, wait);

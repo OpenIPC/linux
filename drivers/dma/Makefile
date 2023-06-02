@@ -67,6 +67,8 @@ obj-$(CONFIG_TI_DMA_CROSSBAR) += ti-dma-crossbar.o
 obj-$(CONFIG_TI_EDMA) += edma.o
 obj-$(CONFIG_XGENE_DMA) += xgene-dma.o
 obj-$(CONFIG_ZX_DMA) += zx296702_dma.o
+obj-$(CONFIG_FH_DMAC) += fh_dmac.o
+obj-$(CONFIG_FH_AXI_DMAC) += fh_axi_dma_driver.o fh_axi_dma_adapt.o
 
 obj-y += qcom/
 obj-y += xilinx/

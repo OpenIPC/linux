@@ -1,0 +1,6 @@
+Example:
+	rtc: rtc@f1500000 {
+		compatible = "fh,fh_rtc";
+		reg = <0xf1500000 0xc00>;
+
+	};

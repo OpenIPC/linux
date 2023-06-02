@@ -150,21 +150,26 @@ static int skcipher_setkey_ablkcipher(struct crypto_skcipher *tfm,
 static int skcipher_crypt_ablkcipher(struct skcipher_request *req,
 				     int (*crypt)(struct ablkcipher_request *))
 {
+
+
 	struct crypto_skcipher *tfm = crypto_skcipher_reqtfm(req);
 	struct crypto_ablkcipher **ctx = crypto_skcipher_ctx(tfm);
 	struct ablkcipher_request *subreq = skcipher_request_ctx(req);
 
+	/* bind to the tfm usr def... and then driver will parse it */
+	subreq->usr_def = crypto_skcipher_usr_def(tfm);
 	ablkcipher_request_set_tfm(subreq, *ctx);
 	ablkcipher_request_set_callback(subreq, skcipher_request_flags(req),
 					req->base.complete, req->base.data);
 	ablkcipher_request_set_crypt(subreq, req->src, req->dst, req->cryptlen,
 				     req->iv);
-
+	/* call aes driver.. */
 	return crypt(subreq);
 }
 
 static int skcipher_encrypt_ablkcipher(struct skcipher_request *req)
 {
+
 	struct crypto_skcipher *skcipher = crypto_skcipher_reqtfm(req);
 	struct crypto_tfm *tfm = crypto_skcipher_tfm(skcipher);
 	struct ablkcipher_alg *alg = &tfm->__crt_alg->cra_ablkcipher;

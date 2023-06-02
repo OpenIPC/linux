@@ -465,9 +465,13 @@ static u32 check_ppi_trigger(int irq)
 	u32 flags = irq_get_trigger_type(irq);
 
 	if (flags != IRQF_TRIGGER_HIGH && flags != IRQF_TRIGGER_LOW) {
+#if defined(CONFIG_ARCH_FULLHAN) && !defined(CONFIG_USE_OF)
+		flags = IRQF_TRIGGER_HIGH;
+#else
 		pr_warn("WARNING: Invalid trigger for IRQ%d, assuming level low\n", irq);
 		pr_warn("WARNING: Please fix your firmware\n");
 		flags = IRQF_TRIGGER_LOW;
+#endif
 	}
 
 	return flags;
@@ -870,12 +874,32 @@ static int __init arch_timer_init(void)
 	ret = arch_timer_common_init();
 	if (ret)
 		return ret;
-
 	arch_timer_kvm_info.virtual_irq = arch_timer_ppi[VIRT_PPI];
 	
 	return 0;
 }
+#if defined(CONFIG_ARCH_FULLHAN) && !defined(CONFIG_USE_OF)
+int  arch_timer_noof_init(
+	u32 freq, u32 ppilist[4], int alwayson, int suspendstop)
+{
+	int i;
 
+	arch_timer_rate = freq;
+	arch_timers_present |= ARCH_CP15_TIMER;
+
+	for (i = PHYS_SECURE_PPI; i < MAX_TIMER_PPI; i++) {
+		arch_timer_ppi[i] = irq_create_mapping(NULL,
+			ppilist[i]);
+	}
+
+	arch_timer_c3stop = alwayson;
+	arch_timer_uses_ppi = PHYS_SECURE_PPI;
+	arch_counter_suspend_stop = suspendstop;
+	arch_timer_init();
+	return 0;
+
+}
+#endif
 static int __init arch_timer_of_init(struct device_node *np)
 {
 	int i;

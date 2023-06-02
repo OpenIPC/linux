@@ -218,6 +218,12 @@ not_angel:
 		addcc	r0, r0, pc
 		cmpcc	r4, r0
 		orrcc	r4, r4, #1		@ remember we skipped cache_on
+#if defined (CONFIG_CPU_V7)
+		/* remember in arm cortex-a7 all mmu facility is based on SMP bit */
+		mrc     p15, 0, r0, c1, c0, 1
+		orr     r0, #(1 << 6)
+		mcr     p15, 0, r0, c1, c0, 1
+#endif
 		blcs	cache_on
 
 restart:	adr	r0, LC0

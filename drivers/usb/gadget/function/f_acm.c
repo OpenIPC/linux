@@ -491,7 +491,7 @@ static void acm_disable(struct usb_function *f)
  * about the only notification we issue:  SerialState change.
  */
 static int acm_cdc_notify(struct f_acm *acm, u8 type, u16 value,
-		void *data, unsigned length)
+		void *data, unsigned int length)
 {
 	struct usb_ep			*ep = acm->notify;
 	struct usb_request		*req;
@@ -819,5 +819,7 @@ static struct usb_function_instance *acm_alloc_instance(void)
 			&acm_func_type);
 	return &opts->func_inst;
 }
+
 DECLARE_USB_FUNCTION_INIT(acm, acm_alloc_instance, acm_alloc_func);
+
 MODULE_LICENSE("GPL");

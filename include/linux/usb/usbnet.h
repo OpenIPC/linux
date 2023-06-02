@@ -80,6 +80,7 @@ struct usbnet {
 #		define EVENT_LINK_CHANGE	11
 #		define EVENT_SET_RX_MODE	12
 #		define EVENT_NO_IP_ALIGN	13
+	struct delayed_work status_work;
 };
 
 static inline struct usb_driver *driver_of(struct usb_interface *intf)

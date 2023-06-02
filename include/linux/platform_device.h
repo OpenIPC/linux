@@ -227,6 +227,23 @@ static inline void platform_set_drvdata(struct platform_device *pdev,
 #define module_platform_driver(__platform_driver) \
 	module_driver(__platform_driver, platform_driver_register, \
 			platform_driver_unregister)
+#ifdef CONFIG_DEFERRED_INIICALLS
+#define deferred_module_driver(__driver, __register, __unregister, ...) \
+static int __init __driver##_init(void) \
+{ \
+	return __register(&(__driver), ##__VA_ARGS__); \
+} \
+deferred_module_init(__driver##_init); \
+static void __exit __driver##_exit(void) \
+{ \
+	__unregister(&(__driver), ##__VA_ARGS__); \
+} \
+module_exit(__driver##_exit);
+
+#define deferred_module_platform_driver(__platform_driver) \
+	deferred_module_driver(__platform_driver, platform_driver_register, \
+			platform_driver_unregister)
+#endif
 
 /* builtin_platform_driver() - Helper macro for builtin drivers that
  * don't do anything special in driver init.  This eliminates some

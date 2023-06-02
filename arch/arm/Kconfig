@@ -68,6 +68,7 @@ config ARM
 	select HAVE_KPROBES if !XIP_KERNEL && !CPU_ENDIAN_BE32 && !CPU_V7M
 	select HAVE_KRETPROBES if (HAVE_KPROBES)
 	select HAVE_MEMBLOCK
+	select HAVE_LD_DEAD_CODE_DATA_ELIMINATION if !FUNCTION_TRACER
 	select HAVE_MOD_ARCH_SPECIFIC
 	select HAVE_NMI
 	select HAVE_OPROFILE if (HAVE_PERF_EVENTS)
@@ -402,6 +403,17 @@ config ARCH_FOOTBRIDGE
 	help
 	  Support for systems based on the DC21285 companion chip
 	  ("FootBridge"), such as the Simtec CATS and the Rebel NetWinder.
+	  
+config ARCH_FULLHAN
+	select SPARSE_IRQ
+	select MULTI_IRQ_HANDLER
+	select COMMON_CLK
+	select GENERIC_CLOCKEVENTS
+	select CLKSRC_OF if OF
+	select ARM_PATCH_PHYS_VIRT
+	bool "Fullhan SoC Support"
+	select ARCH_WANT_OPTIONAL_GPIOLIB
+	select ARCH_REQUIRE_GPIOLIB
 
 config ARCH_NETX
 	bool "Hilscher NetX based"
@@ -740,6 +752,7 @@ source "arch/arm/mach-dove/Kconfig"
 source "arch/arm/mach-ep93xx/Kconfig"
 
 source "arch/arm/mach-footbridge/Kconfig"
+source "arch/arm/mach-fh/Kconfig"
 
 source "arch/arm/mach-gemini/Kconfig"
 
@@ -947,7 +960,7 @@ endif
 
 config PJ4B_ERRATA_4742
 	bool "PJ4B Errata 4742: IDLE Wake Up Commands can Cause the CPU Core to Cease Operation"
-	depends on CPU_PJ4B && MACH_ARMADA_370
+	depends on CPU_PJ4B && MACH_ARMADA_370 || ARCH_FULLHAN
 	default y
 	help
 	  When coming out of either a Wait for Interrupt (WFI) or a Wait for

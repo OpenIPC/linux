@@ -28,7 +28,13 @@
 #define SNOR_MFR_SPANSION	CFI_MFR_AMD
 #define SNOR_MFR_SST		CFI_MFR_SST
 #define SNOR_MFR_WINBOND	0xef /* Also used by some Spansion */
-
+#define SNOR_MFR_XMC		0x20
+#define SNOR_MFR_EON		0x1c
+#define SNOR_MFR_FM			0xa1
+#define SNOR_MFR_NM			0x52
+#define SNOR_MFR_XTX		0x0B
+#define SNOR_MFR_ZB			0x5e
+#define SNOR_MFR_BY			0x68
 /*
  * Note on opcode nomenclature: some opcodes have a format like
  * SPINOR_OP_FUNCTION{4,}_x_y_z. The numbers x, y, and z stand for the number
@@ -100,6 +106,10 @@
 /* Configuration Register bits. */
 #define CR_QUAD_EN_SPAN		BIT(1)	/* Spansion Quad I/O */
 
+/* Used for GD flash only. */
+#define SPINOR_OP_GD_WR2      0x31    /* GD write status2 */
+
+
 enum read_mode {
 	SPI_NOR_NORMAL = 0,
 	SPI_NOR_FAST,
@@ -157,6 +167,7 @@ struct spi_nor {
 	struct mtd_info		mtd;
 	struct mutex		lock;
 	struct device		*dev;
+	struct flash_info *info;
 	u32			page_size;
 	u8			addr_width;
 	u8			erase_opcode;
@@ -172,6 +183,7 @@ struct spi_nor {
 	void (*unprepare)(struct spi_nor *nor, enum spi_nor_ops ops);
 	int (*read_reg)(struct spi_nor *nor, u8 opcode, u8 *buf, int len);
 	int (*write_reg)(struct spi_nor *nor, u8 opcode, u8 *buf, int len);
+	void (*scan_delay)(struct spi_nor *nor);
 
 	ssize_t (*read)(struct spi_nor *nor, loff_t from,
 			size_t len, u_char *read_buf);
@@ -184,6 +196,47 @@ struct spi_nor {
 	int (*flash_is_locked)(struct spi_nor *nor, loff_t ofs, uint64_t len);
 
 	void *priv;
+};
+
+#define SPI_NOR_MAX_ID_LEN	6
+#define SPI_NOR_MAX_ADDR_WIDTH	4
+
+struct flash_info {
+	char		*name;
+
+	/*
+	 * This array stores the ID bytes.
+	 * The first three bytes are the JEDIC ID.
+	 * JEDEC ID zero means "no ID" (mostly older chips).
+	 */
+	u8		id[SPI_NOR_MAX_ID_LEN];
+	u8		id_len;
+
+	/* The size listed here is what works with SPINOR_OP_SE, which isn't
+	 * necessarily called a "sector" by the vendor.
+	 */
+	unsigned int sector_size;
+	u16		n_sectors;
+
+	u16		page_size;
+	u16		addr_width;
+
+	u16		flags;
+#define SECT_4K			BIT(0)	/* SPINOR_OP_BE_4K works uniformly */
+#define SPI_NOR_NO_ERASE	BIT(1)	/* No erase command needed */
+#define SST_WRITE		BIT(2)	/* use SST byte programming */
+#define SPI_NOR_NO_FR		BIT(3)	/* Can't do fastread */
+#define SECT_4K_PMC		BIT(4)/* SPINOR_OP_BE_4K_PMC works uniformly */
+#define SPI_NOR_DUAL_READ	BIT(5)	/* Flash supports Dual Read */
+#define SPI_NOR_QUAD_READ	BIT(6)	/* Flash supports Quad Read */
+#define USE_FSR			BIT(7)	/* use flag status register */
+#define SPI_NOR_HAS_LOCK	BIT(8)	/* Flash supports lock/unlock via SR */
+#define SPI_NOR_HAS_TB		BIT(9)	/*
+					 * Flash SR has Top/Bottom (TB) protect
+					 * bit. Must be used with
+					 * SPI_NOR_HAS_LOCK.
+					 */
+	u32 max_speed_hz;
 };
 
 static inline void spi_nor_set_flash_node(struct spi_nor *nor,
@@ -212,5 +265,6 @@ static inline struct device_node *spi_nor_get_flash_node(struct spi_nor *nor)
  * Return: 0 for success, others for failure.
  */
 int spi_nor_scan(struct spi_nor *nor, const char *name, enum read_mode mode);
+void spi_nor_restore(struct spi_nor *nor);
 
 #endif

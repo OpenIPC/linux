@@ -61,7 +61,7 @@ struct crypto_skcipher {
 	unsigned int ivsize;
 	unsigned int reqsize;
 	unsigned int keysize;
-
+	struct af_alg_usr_def usr_def;
 	struct crypto_tfm base;
 };
 
@@ -275,6 +275,13 @@ static inline unsigned int crypto_skcipher_ivsize(struct crypto_skcipher *tfm)
 {
 	return tfm->ivsize;
 }
+
+static inline struct af_alg_usr_def*
+crypto_skcipher_usr_def(struct crypto_skcipher *tfm)
+{
+	return &tfm->usr_def;
+}
+
 
 static inline unsigned int crypto_skcipher_alg_chunksize(
 	struct skcipher_alg *alg)

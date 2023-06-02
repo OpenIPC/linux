@@ -2065,8 +2065,8 @@ unsigned int vb2_core_poll(struct vb2_queue *q, struct file *file,
 	 * error flag is set.
 	 */
 	if (!vb2_is_streaming(q) || q->error)
-		return POLLERR;
-
+		/* return POLLERR; */
+		return 0; /* mengqx */
 	/*
 	 * If this quirk is set and QBUF hasn't been called yet then
 	 * return POLLERR as well. This only affects capture queues, output
@@ -2324,7 +2324,7 @@ static size_t __vb2_perform_fileio(struct vb2_queue *q, char __user *data, size_
 	 * else is able to provide this information with the write() operation.
 	 */
 	bool copy_timestamp = !read && q->copy_timestamp;
-	unsigned index;
+	unsigned int index;
 	int ret;
 
 	dprintk(3, "mode %s, offset %ld, count %zd, %sblocking\n",

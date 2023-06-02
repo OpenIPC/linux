@@ -1594,6 +1594,7 @@ fail:
 }
 module_init(userial_init);
 
+
 static void userial_cleanup(void)
 {
 	tty_unregister_driver(gs_tty_driver);

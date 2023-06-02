@@ -1187,6 +1187,10 @@ void dwc2_set_param_phy_utmi_width(struct dwc2_hsotg *hsotg, int val)
 	}
 
 	hsotg->core_params->phy_utmi_width = val;
+	if (val == 8)
+		hsotg->phyif = GUSBCFG_PHYIF8;
+	else
+		hsotg->phyif = GUSBCFG_PHYIF16;
 }
 
 void dwc2_set_param_ulpi_fs_ls(struct dwc2_hsotg *hsotg, int val)
@@ -1518,7 +1522,8 @@ int dwc2_get_hwparams(struct dwc2_hsotg *hsotg)
 	 */
 	hw->snpsid = dwc2_readl(hsotg->regs + GSNPSID);
 	if ((hw->snpsid & 0xfffff000) != 0x4f542000 &&
-	    (hw->snpsid & 0xfffff000) != 0x4f543000) {
+	    (hw->snpsid & 0xfffff000) != 0x4f543000 &&
+	    (hw->snpsid & 0xfffff000) != 0x4f544000) {
 		dev_err(hsotg->dev, "Bad value for GSNPSID: 0x%08x\n",
 			hw->snpsid);
 		return -ENODEV;

@@ -89,6 +89,13 @@ config POWER_RESET_HISI
 	help
 	  Reboot support for Hisilicon boards.
 
+config POWER_RESET_FH
+	bool "Fullhan power-off driver"
+	depends on ARCH_FULLHAN
+	help
+	  Reboot support for Fullhan boards.
+
+
 config POWER_RESET_IMX
 	bool "IMX6 power-off driver"
 	depends on POWER_RESET && SOC_IMX6

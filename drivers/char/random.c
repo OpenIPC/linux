@@ -1791,10 +1791,10 @@ urandom_read(struct file *file, char __user *buf, size_t nbytes, loff_t *ppos)
 	static int maxwarn = 10;
 	int ret;
 
-	if (!crng_ready() && maxwarn > 0) {
+	if (crng_init == 0 && maxwarn > 0) {
 		maxwarn--;
 		if (__ratelimit(&urandom_warning))
-			printk(KERN_NOTICE "random: %s: uninitialized "
+			printk_once(KERN_NOTICE "random: %s: uninitialized "
 			       "urandom read (%zd bytes read)\n",
 			       current->comm, nbytes);
 		spin_lock_irqsave(&primary_crng.lock, flags);

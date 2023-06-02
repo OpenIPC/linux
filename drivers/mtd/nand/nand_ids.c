@@ -52,6 +52,8 @@ struct nand_flash_dev nand_flash_ids[] = {
 		{ .id = {0xad, 0xde, 0x94, 0xda, 0x74, 0xc4} },
 		  SZ_8K, SZ_8K, SZ_2M, NAND_NEED_SCRAMBLING, 6, 640,
 		  NAND_ECC_INFO(40, SZ_1K), 4 },
+	{"GD5F1GQ4UB", {.id = {0xD1, 0xc8,} }, SZ_2K, 128, SZ_128K, 0, 2, 128,
+	NAND_ECC_INFO(0, 0), 4 },
 
 	LEGACY_ID_NAND("NAND 4MiB 5V 8-bit",   0x6B, 4, SZ_8K, SP_OPTIONS),
 	LEGACY_ID_NAND("NAND 4MiB 3,3V 8-bit", 0xE3, 4, SZ_8K, SP_OPTIONS),
@@ -182,6 +184,8 @@ struct nand_manufacturers nand_manuf_ids[] = {
 	{NAND_MFR_SANDISK, "SanDisk"},
 	{NAND_MFR_INTEL, "Intel"},
 	{NAND_MFR_ATO, "ATO"},
+	{NAND_MFR_WINBOND, "WINBOND"},
+	{NAND_MFR_GD, "GD"},
 	{0x0, "Unknown"}
 };
 

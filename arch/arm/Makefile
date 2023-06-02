@@ -167,6 +167,7 @@ machine-$(CONFIG_ARCH_EFM32)		+= efm32
 machine-$(CONFIG_ARCH_EP93XX)		+= ep93xx
 machine-$(CONFIG_ARCH_EXYNOS)		+= exynos
 machine-$(CONFIG_ARCH_FOOTBRIDGE)	+= footbridge
+machine-$(CONFIG_ARCH_FULLHAN)		+= fh
 machine-$(CONFIG_ARCH_GEMINI)		+= gemini
 machine-$(CONFIG_ARCH_HIGHBANK)		+= highbank
 machine-$(CONFIG_ARCH_HISI)		+= hisi
@@ -258,12 +259,23 @@ endif
 machdirs := $(patsubst %,arch/arm/mach-%/,$(machine-y))
 platdirs := $(patsubst %,arch/arm/plat-%/,$(sort $(plat-y)))
 
+ifeq ($(CONFIG_ARCH_FULLHAN),y)
+CONFIG_FH_CHIP_NAME 	:= $(subst ",,$(CONFIG_FH_CHIP_NAME))
+fhdirs := $(patsubst %,arch/arm/mach-fh/%,$(CONFIG_FH_CHIP_NAME))
+endif
+
 ifneq ($(CONFIG_ARCH_MULTIPLATFORM),y)
 ifneq ($(CONFIG_ARM_SINGLE_ARMV7M),y)
 ifeq ($(KBUILD_SRC),)
 KBUILD_CPPFLAGS += $(patsubst %,-I%include,$(machdirs) $(platdirs))
+ifeq ($(CONFIG_ARCH_FULLHAN),y)
+KBUILD_CPPFLAGS += $(patsubst %,-I%,$(fhdirs))
+endif
 else
 KBUILD_CPPFLAGS += $(patsubst %,-I$(srctree)/%include,$(machdirs) $(platdirs))
+ifeq ($(CONFIG_ARCH_FULLHAN),y)
+KBUILD_CPPFLAGS += $(patsubst %,-I$(srctree)/%,$(fhdirs))
+endif
 endif
 endif
 endif

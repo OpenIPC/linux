@@ -27,6 +27,9 @@
 #include "uvc_queue.h"
 #include "uvc_video.h"
 #include "uvc_v4l2.h"
+#include "uvc_format.h"
+
+#include <uapi/linux/videodev2.h>
 
 /* --------------------------------------------------------------------------
  * Requests handling
@@ -60,8 +63,11 @@ struct uvc_format
 };
 
 static struct uvc_format uvc_formats[] = {
-	{ 16, V4L2_PIX_FMT_YUYV  },
-	{ 0,  V4L2_PIX_FMT_MJPEG },
+	{ 16, V4L2_PIX_FMT_YUY2 },
+	{ 12, V4L2_PIX_FMT_NV12 },
+	{ 0, V4L2_PIX_FMT_MJPEG },
+	{ 0, V4L2_PIX_FMT_H264 },
+	{ 0, V4L2_PIX_FMT_H265 },
 };
 
 static int
@@ -119,7 +125,7 @@ uvc_v4l2_set_format(struct file *file, void *fh, struct v4l2_format *fmt)
 	}
 
 	if (i == ARRAY_SIZE(uvc_formats)) {
-		printk(KERN_INFO "Unsupported format 0x%08x.\n",
+		printk(KERN_ERR "Unsupported format 0x%08x.\n",
 			fmt->fmt.pix.pixelformat);
 		return -EINVAL;
 	}
@@ -257,6 +263,23 @@ uvc_v4l2_ioctl_default(struct file *file, void *fh, bool valid_prio,
 	case UVCIOC_SEND_RESPONSE:
 		return uvc_send_response(uvc, arg);
 
+	case VIDIOC_RESET_DESC:
+		change_usb_support_fmt(uvc, arg);
+		return 0;
+
+#ifdef UVC_FASTBOOT
+	case VIDIOC_DESC_GET:
+		return usb_fmt_to_usr(uvc, arg);
+#endif
+
+	case VIDIOC_CONNECT_NOW:
+		uvc_function_connect(uvc);
+		return 0;
+
+	case VIDIOC_UVC_DEMO_READY:
+		uvc_setup_to_demo(uvc);
+		return 0;
+
 	default:
 		return -ENOIOCTLCMD;
 	}
@@ -297,6 +320,8 @@ uvc_v4l2_open(struct file *file)
 
 	handle->device = &uvc->video;
 	file->private_data = &handle->vfh;
+
+	return 0;
 
 	uvc_function_connect(uvc);
 	return 0;

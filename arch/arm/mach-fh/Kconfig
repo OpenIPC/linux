@@ -1,0 +1,142 @@
+
+if ARCH_FULLHAN
+
+menu "Fullhan platform type"
+
+
+menuconfig FH_FASTBOOT
+    bool "Fastboot configurations"
+    default n
+    help
+      Fullhan Fastboot configurations
+
+if FH_FASTBOOT
+config DEFERRED_INIICALLS
+    bool "Enable deferred initcalls support"
+    default n
+    help
+      enable deferred initcalls, use deferred_initcall() to deferred some initcalls,
+      after kernel boot, use cat /proc/deferred_initcalls to run all deferred initcalls
+
+if DEFERRED_INIICALLS
+config DEFERRED_INIICALLS_DEBUG
+    bool "Debug deferred initcalls"
+    default n
+
+config DEFERRED_INIICALLS_SLAB_SYSFS
+    bool "defer slab_sysfs_init"
+    default n
+    depends on SYSFS
+
+config DEFERRED_INIICALLS_IRQ_SYSFS
+    bool "defer irq_sysfs_init"
+    default n
+    depends on SYSFS
+
+config DEFERRED_INIICALLS_PARAM_SYSFS
+    bool "defer param_sysfs_init"
+    depends on SYSFS
+    default n
+
+config DEFERRED_INIICALLS_GMAC
+    bool "defer gmac driver init"
+    default n
+    depends on FH_GMAC=y
+
+config DEFERRED_INIICALLS_SPI
+    bool "defer spi driver init"
+    default n
+    depends on SPI_FH=y
+
+config DEFERRED_INIICALLS_MMC
+    bool "defer mmc driver init"
+    default n
+    depends on MMC_FH=y
+
+config DEFERRED_INIICALLS_USB
+    bool "defer usb driver init"
+    default n
+    depends on USB_DWC2=y
+
+config DEFERRED_INIICALLS_RTC
+    bool "defer rtc driver init"
+    default n
+    depends on RTC_DRV_FH=y
+endif
+
+endif
+
+choice
+prompt "Board"
+config ARCH_FH885xV200
+        bool "Fullhan FH885xV200"
+        select CPU_V6
+        select FULLHAN_INTC
+        select FULLHAN_TIMER
+        select PINCTRL if USE_OF
+        help
+          Support for Fullhan FH885xV200 SoC
+
+endchoice
+config FH_CHIP_NAME
+        string
+        prompt "Select chip name, keep default"
+        default "fh8856v200" if MACH_FH8856V200
+        default "fh8852v200" if MACH_FH8852V200
+        default "fh8858v200" if MACH_FH8858V200
+        default "fh8856v210" if MACH_FH8856V210
+        default "fh8852v210" if MACH_FH8852V210
+        default "fh8858v210" if MACH_FH8858V210
+
+config MACH_FH8856V200
+    bool "FullHan FH8856V200 board"
+    default n
+    depends on ARCH_FH885xV200
+    help
+      Configure this option to specify the whether the board used
+      for development is FH8856V200
+
+config MACH_FH8852V200
+    bool "FullHan FH8852V200 board"
+    default n
+    depends on ARCH_FH885xV200
+    help
+      Configure this option to specify the whether the board used
+      for development is FH8852V200
+
+config MACH_FH8858V200
+    bool "FullHan FH8858V200 board"
+    default n
+    depends on ARCH_FH885xV200
+    help
+      Configure this option to specify the whether the board used
+      for development is FH8858V200
+
+config MACH_FH8856V210
+    bool "FullHan FH8856V210 board"
+    default n
+    depends on ARCH_FH885xV200
+    help
+      Configure this option to specify the whether the board used
+      for development is FH8856V210
+
+config MACH_FH8852V210
+    bool "FullHan FH8852V210 board"
+    default n
+    depends on ARCH_FH885xV210
+    help
+      Configure this option to specify the whether the board used
+      for development is FH8852V200
+
+config MACH_FH8858V210
+    bool "FullHan FH8858V210 board"
+    default n
+    depends on ARCH_FH885xV200
+    help
+      Configure this option to specify the whether the board used
+      for development is FH8858V210
+
+
+endmenu
+
+endif

@@ -60,6 +60,16 @@ config DW_APB_TIMER_OF
 	select DW_APB_TIMER
 	select CLKSRC_OF
 
+config FULLHAN_TIMER
+	bool
+
+config FH_SIMPLE_TIMER
+	bool "Fullhan simple timer"
+	default n
+	help
+	  Enables Fullhan simple timer.
+
+
 config ROCKCHIP_TIMER
 	bool "Rockchip timer driver" if COMPILE_TEST
 	depends on ARM || ARM64

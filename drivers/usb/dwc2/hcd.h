@@ -160,6 +160,10 @@ struct dwc2_host_chan {
 	dma_addr_t desc_list_addr;
 	u32 desc_list_sz;
 	struct list_head split_order_list_entry;
+#if IS_ENABLED(CONFIG_USB_DWC2_HOST_DMA_DESC_NUM_DYNAMIC)
+	struct timeval qh_start;
+	struct timeval qh_end;
+#endif
 };
 
 struct dwc2_hcd_pipe_info {
@@ -358,6 +362,10 @@ struct dwc2_qh {
 	unsigned tt_buffer_dirty:1;
 	unsigned unreserve_pending:1;
 	unsigned schedule_low_speed:1;
+#if IS_ENABLED(CONFIG_USB_DWC2_HOST_DMA_DESC_NUM_DYNAMIC)
+	struct timeval qh_dura;
+	int max_dma_desc_num_lastime;
+#endif
 };
 
 /**

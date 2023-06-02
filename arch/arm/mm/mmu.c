@@ -63,15 +63,14 @@ pmdval_t user_pmd_table = _PAGE_USER_TABLE;
 #define CPOLICY_WRITEALLOC	4
 
 static unsigned int cachepolicy __initdata = CPOLICY_WRITEBACK;
-static unsigned int ecc_mask __initdata = 0;
+static unsigned int ecc_mask __initdata;
 pgprot_t pgprot_user;
+EXPORT_SYMBOL(pgprot_user);
 pgprot_t pgprot_kernel;
+EXPORT_SYMBOL(pgprot_kernel);
 pgprot_t pgprot_hyp_device;
 pgprot_t pgprot_s2;
 pgprot_t pgprot_s2_device;
-
-EXPORT_SYMBOL(pgprot_user);
-EXPORT_SYMBOL(pgprot_kernel);
 
 struct cachepolicy {
 	const char	policy[16];
@@ -122,7 +121,7 @@ static struct cachepolicy cache_policies[] __initdata = {
 };
 
 #ifdef CONFIG_CPU_CP15
-static unsigned long initial_pmd_value __initdata = 0;
+static unsigned long initial_pmd_value __initdata;
 
 /*
  * Initialise the cache_policy variable with the initial state specified
@@ -185,6 +184,7 @@ static int __init early_cachepolicy(char *p)
 
 	if (selected != cachepolicy) {
 		unsigned long cr = __clear_cr(cache_policies[selected].cr_mask);
+
 		cachepolicy = selected;
 		flush_cache_all();
 		set_cr(cr);
@@ -196,6 +196,7 @@ early_param("cachepolicy", early_cachepolicy);
 static int __init early_nocache(char *__unused)
 {
 	char *p = "buffered";
+
 	pr_warn("nocache is deprecated; use cachepolicy=%s\n", p);
 	early_cachepolicy(p);
 	return 0;
@@ -653,6 +654,7 @@ static void __init build_mem_type_table(void)
 
 	for (i = 0; i < 16; i++) {
 		pteval_t v = pgprot_val(protection_map[i]);
+
 		protection_map[i] = __pgprot(v | user_pgprot);
 	}
 
@@ -690,6 +692,7 @@ static void __init build_mem_type_table(void)
 
 	for (i = 0; i < ARRAY_SIZE(mem_types); i++) {
 		struct mem_type *t = &mem_types[i];
+
 		if (t->prot_l1)
 			t->prot_l1 |= PMD_DOMAIN(t->domain);
 		if (t->prot_sect)
@@ -715,6 +718,7 @@ EXPORT_SYMBOL(phys_mem_access_prot);
 static void __init *early_alloc_aligned(unsigned long sz, unsigned long align)
 {
 	void *ptr = __va(memblock_alloc(sz, align));
+
 	memset(ptr, 0, sz);
 	return ptr;
 }
@@ -739,6 +743,7 @@ static pte_t * __init arm_pte_alloc(pmd_t *pmd, unsigned long addr,
 {
 	if (pmd_none(*pmd)) {
 		pte_t *pte = alloc(PTE_HWTABLE_OFF + PTE_HWTABLE_SIZE);
+
 		__pmd_populate(pmd, __pa(pte), prot);
 	}
 	BUG_ON(pmd_bad(*pmd));
@@ -758,6 +763,7 @@ static void __init alloc_init_pte(pmd_t *pmd, unsigned long addr,
 				  bool ng)
 {
 	pte_t *pte = arm_pte_alloc(pmd, addr, type->prot_l1, alloc);
+
 	do {
 		set_pte_ext(pte, pfn_pte(pfn, __pgprot(type->prot_pte)),
 			    ng ? PTE_EXT_NG : 0);
@@ -974,6 +980,7 @@ void __init create_mapping_late(struct mm_struct *mm, struct map_desc *md,
 {
 #ifdef CONFIG_ARM_LPAE
 	pud_t *pud = pud_alloc(mm, pgd_offset(mm, md->virtual), md->virtual);
+
 	if (WARN_ON(!pud))
 		return;
 	pmd_alloc(mm, pud, 0);

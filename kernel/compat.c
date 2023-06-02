@@ -30,7 +30,8 @@
 
 #include <asm/uaccess.h>
 
-static int compat_get_timex(struct timex *txc, struct compat_timex __user *utp)
+static int __maybe_unused compat_get_timex(struct timex *txc,
+				struct compat_timex __user *utp)
 {
 	memset(txc, 0, sizeof(struct timex));
 
@@ -60,7 +61,8 @@ static int compat_get_timex(struct timex *txc, struct compat_timex __user *utp)
 	return 0;
 }
 
-static int compat_put_timex(struct compat_timex __user *utp, struct timex *txc)
+static int __maybe_unused compat_put_timex(struct compat_timex __user *utp,
+				struct timex *txc)
 {
 	if (!access_ok(VERIFY_WRITE, utp, sizeof(struct compat_timex)) ||
 			__put_user(txc->modes, &utp->modes) ||
@@ -770,7 +772,7 @@ COMPAT_SYSCALL_DEFINE2(clock_gettime, clockid_t, which_clock,
 		return -EFAULT;
 	return err;
 }
-
+#ifdef CONFIG_NTP
 COMPAT_SYSCALL_DEFINE2(clock_adjtime, clockid_t, which_clock,
 		       struct compat_timex __user *, utp)
 {
@@ -793,7 +795,7 @@ COMPAT_SYSCALL_DEFINE2(clock_adjtime, clockid_t, which_clock,
 
 	return ret;
 }
-
+#endif
 COMPAT_SYSCALL_DEFINE2(clock_getres, clockid_t, which_clock,
 		       struct compat_timespec __user *, tp)
 {
@@ -1064,7 +1066,7 @@ COMPAT_SYSCALL_DEFINE1(stime, compat_time_t __user *, tptr)
 }
 
 #endif /* __ARCH_WANT_COMPAT_SYS_TIME */
-
+#ifdef CONFIG_NTP
 COMPAT_SYSCALL_DEFINE1(adjtimex, struct compat_timex __user *, utp)
 {
 	struct timex txc;
@@ -1082,7 +1084,7 @@ COMPAT_SYSCALL_DEFINE1(adjtimex, struct compat_timex __user *, utp)
 
 	return ret;
 }
-
+#endif
 #ifdef CONFIG_NUMA
 COMPAT_SYSCALL_DEFINE6(move_pages, pid_t, pid, compat_ulong_t, nr_pages,
 		       compat_uptr_t __user *, pages32,

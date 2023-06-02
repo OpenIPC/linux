@@ -992,6 +992,7 @@ struct kobj_type module_ktype = {
 	.sysfs_ops =	&module_sysfs_ops,
 };
 
+
 /*
  * param_sysfs_init - wrapper for built-in params support
  */
@@ -1006,10 +1007,20 @@ static int __init param_sysfs_init(void)
 	module_sysfs_initialized = 1;
 
 	version_sysfs_builtin();
+#ifndef CONFIG_DEFERRED_INIICALLS_PARAM_SYSFS
 	param_sysfs_builtin();
-
+#endif
 	return 0;
 }
+
+#ifdef CONFIG_DEFERRED_INIICALLS_PARAM_SYSFS
+static int __init param_sysfs_init_later(void)
+{
+	param_sysfs_builtin();
+	return 0;
+}
+deferred_initcall(param_sysfs_init_later);
+#endif
 subsys_initcall(param_sysfs_init);
 
 #endif /* CONFIG_SYSFS */

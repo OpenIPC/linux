@@ -25,7 +25,7 @@
 #include <linux/initrd.h>
 #include <linux/bootmem.h>
 #include <linux/acpi.h>
-#include <linux/tty.h>
+#include <linux/console.h>
 #include <linux/percpu.h>
 #include <linux/kmod.h>
 #include <linux/vmalloc.h>
@@ -946,7 +946,9 @@ static int __ref kernel_init(void *unused)
 	kernel_init_freeable();
 	/* need to finish all async __init code before freeing the memory */
 	async_synchronize_full();
+#ifndef CONFIG_DEFERRED_INIICALLS
 	free_initmem();
+#endif
 	mark_readonly();
 	system_state = SYSTEM_RUNNING;
 	numa_default_policy();
@@ -1048,3 +1050,36 @@ static noinline void __init kernel_init_freeable(void)
 	integrity_load_keys();
 	load_default_modules();
 }
+
+#ifdef CONFIG_DEFERRED_INIICALLS
+extern initcall_t __deferred_initcall_start[], \
+		__deferred_initcall_end[];
+
+/* call deferred init routines */
+void do_deferred_initcalls(void)
+{
+	initcall_t *call;
+	static int already_run;
+
+	if (already_run) {
+		pr_err("do_deferred_initcalls() has already run\n");
+		return;
+	}
+
+	already_run = 1;
+
+	pr_info("Running do_deferred_initcalls()\n");
+
+	for (call = __deferred_initcall_start;
+			call < __deferred_initcall_end; call++) {
+#ifdef CONFIG_DEFERRED_INIICALLS_DEBUG
+		pr_err("deferred calling  %pF\n", *call);
+#endif
+		do_one_initcall(*call);
+	}
+
+	flush_scheduled_work();
+
+	free_initmem();
+}
+#endif

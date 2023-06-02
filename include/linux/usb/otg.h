@@ -128,4 +128,6 @@ enum usb_dr_mode {
  */
 extern enum usb_dr_mode usb_get_dr_mode(struct device *dev);
 
+extern u32 usb_get_vbus_pwren_gpio(struct device *dev);
+
 #endif /* __LINUX_USB_OTG_H */

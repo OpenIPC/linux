@@ -18,7 +18,7 @@ config CRYPTO_DEV_PADLOCK
 	  (so called VIA PadLock ACE, Advanced Cryptography Engine)
 	  that provides instructions for very fast cryptographic
 	  operations with supported algorithms.
-	  
+
 	  The instructions are used only when the CPU supports them.
 	  Otherwise software encryption is used.
 
@@ -202,6 +202,10 @@ config CRYPTO_DEV_MARVELL_CESA
 	  This driver is aimed at replacing the mv_cesa driver. This will only
 	  happen once it has received proper testing.
 
+config FH_CESA_SELF_TEST
+	bool "fh cesa self test"
+	depends on CRYPTO_DEV_FH_CESA
+	
 config CRYPTO_DEV_NIAGARA2
        tristate "Niagara2 Stream Processing Unit driver"
        select CRYPTO_DES
@@ -554,5 +558,40 @@ config CRYPTO_DEV_ROCKCHIP
 	  Supporting cbc/ecb chainmode, and aes/des/des3_ede cipher mode.
 
 source "drivers/crypto/chelsio/Kconfig"
+
+choice
+	bool "FH AES driver select"
+	default CRYPTO_DEV_FH_AES
+
+config CRYPTO_DEV_FH_AES
+	tristate "FH AES support(original)"
+#	select CRYPTO_BLKCIPHER
+#	select CRYPTO_SEQIV
+
+	help
+	  To compile this driver as a module, choose M here: the module will
+	  be called fh_aes.
+
+config CRYPTO_DEV_FH_AES_TEE
+	tristate "FH AES driver for tee"
+	depends on TEE
+
+	select CRYPTO_BLKCIPHER
+	select CRYPTO_SEQIV
+	help
+	  the FH_AES_TEE driver can be chosen when tee is on.
+
+endchoice
+
+config CRYPTO_FH_AES_SUPPORT_DIRECT_MEM
+	bool "direct mem support"
+	depends on CRYPTO_DEV_FH_AES || CRYPTO_DEV_FH_AES_TEE
+	help
+	  usr send direct mem to driver.
+
+
+config FH_AES_SELF_TEST
+	bool "fh aes self test"
+	depends on CRYPTO_DEV_FH_AES || CRYPTO_DEV_FH_AES_TEE
 
 endif # CRYPTO_HW

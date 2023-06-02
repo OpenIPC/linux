@@ -474,6 +474,8 @@ config USB_G_WEBCAM
 	select USB_LIBCOMPOSITE
 	select VIDEOBUF2_VMALLOC
 	select USB_F_UVC
+	select USB_F_ACM
+	select USB_U_SERIAL
 	help
 	  The Webcam Gadget acts as a composite USB Audio and Video Class
 	  device. It provides a userspace API to process UVC control requests

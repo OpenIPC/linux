@@ -690,14 +690,14 @@ static ssize_t mmc_dsr_show(struct device *dev,
                            struct device_attribute *attr,
                            char *buf)
 {
-       struct mmc_card *card = mmc_dev_to_card(dev);
-       struct mmc_host *host = card->host;
+	struct mmc_card *card = mmc_dev_to_card(dev);
+	struct mmc_host *host = card->host;
 
-       if (card->csd.dsr_imp && host->dsr_req)
-               return sprintf(buf, "0x%x\n", host->dsr);
-       else
-               /* return default DSR value */
-               return sprintf(buf, "0x%x\n", 0x404);
+	if (card->csd.dsr_imp && host->dsr_req)
+			return sprintf(buf, "0x%x\n", host->dsr);
+	else
+			/* return default DSR value */
+			return sprintf(buf, "0x%x\n", 0x404);
 }
 
 static DEVICE_ATTR(dsr, S_IRUGO, mmc_dsr_show, NULL);
@@ -765,8 +765,9 @@ try_again:
 	 * to switch to 1.8V signaling level. If the card has failed
 	 * repeatedly to switch however, skip this.
 	 */
-	if (retries && mmc_host_uhs(host))
+	if (retries && mmc_host_uhs(host)) {
 		ocr |= SD_OCR_S18R;
+		}
 
 	/*
 	 * If the host can supply more than 150mA at current voltage,
@@ -779,6 +780,7 @@ try_again:
 	err = mmc_send_app_op_cond(host, ocr, rocr);
 	if (err)
 		return err;
+
 
 	/*
 	 * In case CCS and S18A in the response is set, start Signal Voltage
@@ -855,7 +857,6 @@ int mmc_sd_setup_card(struct mmc_host *host, struct mmc_card *card,
 		err = mmc_app_send_scr(card, card->raw_scr);
 		if (err)
 			return err;
-
 		err = mmc_decode_scr(card);
 		if (err)
 			return err;
@@ -866,7 +867,6 @@ int mmc_sd_setup_card(struct mmc_host *host, struct mmc_card *card,
 		err = mmc_read_ssr(card);
 		if (err)
 			return err;
-
 		/* Erase init depends on CSD and SSR */
 		mmc_init_erase(card);
 
@@ -895,7 +895,6 @@ int mmc_sd_setup_card(struct mmc_host *host, struct mmc_card *card,
 	 */
 	if (!reinit) {
 		int ro = mmc_sd_get_ro(host);
-
 		if (ro < 0) {
 			pr_warn("%s: host does not support reading read-only switch, assuming write-enable\n",
 				mmc_hostname(host));
@@ -966,6 +965,7 @@ static int mmc_sd_init_card(struct mmc_host *host, u32 ocr,
 	if (host->ops->init_card)
 		host->ops->init_card(host, card);
 
+
 	/*
 	 * For native busses:  get card RCA and quit open drain mode.
 	 */
@@ -974,7 +974,6 @@ static int mmc_sd_init_card(struct mmc_host *host, u32 ocr,
 		if (err)
 			goto free_card;
 	}
-
 	if (!oldcard) {
 		err = mmc_sd_get_csd(host, card);
 		if (err)
@@ -998,11 +997,9 @@ static int mmc_sd_init_card(struct mmc_host *host, u32 ocr,
 		if (err)
 			goto free_card;
 	}
-
 	err = mmc_sd_setup_card(host, card, oldcard != NULL);
 	if (err)
 		goto free_card;
-
 	/* Initialization sequence for UHS-I cards */
 	if (rocr & SD_ROCR_S18A) {
 		err = mmc_sd_init_uhs_card(card);
@@ -1265,8 +1262,9 @@ int mmc_attach_sd(struct mmc_host *host)
 	 * Detect and init the card.
 	 */
 	err = mmc_sd_init_card(host, rocr, NULL);
-	if (err)
+	if (err) {
 		goto err;
+		}
 
 	mmc_release_host(host);
 	err = mmc_add_card(host->card);

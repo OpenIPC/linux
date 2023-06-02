@@ -770,11 +770,7 @@ endif # SPI_MASTER
 #
 config RTC_I2C_AND_SPI
 	tristate
-	default m if I2C=m
-	default y if I2C=y
-	default y if SPI_MASTER=y
-	select REGMAP_I2C if I2C
-	select REGMAP_SPI if SPI_MASTER
+	default n
 
 comment "SPI and I2C RTC drivers"
 
@@ -1706,6 +1702,24 @@ config RTC_DRV_PIC32
 	   This driver can also be built as a module. If so, the module
 	   will be called rtc-pic32
 
+config RTC_DRV_FH
+	tristate "FH On-Chip RTC"
+	depends on RTC_CLASS
+	help
+	  Say Y here to enable support for the on-chip RTC found in
+	  FH processors.
+
+ 	  To compile this driver as a module, choose M here: the
+	  module will be called rtc-fh.
+if 	RTC_DRV_FH
+	config USE_TSENSOR
+	bool 'USE TSENSOR'
+	default n
+	
+	config USE_TSENSOR_OFFSET
+	bool 'USE ENHANCEMENT TSENSOR'
+	default n
+endif
 comment "HID Sensor RTC drivers"
 
 config RTC_DRV_HID_SENSOR_TIME

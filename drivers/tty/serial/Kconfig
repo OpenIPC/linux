@@ -2,7 +2,17 @@
 # Serial device configuration
 #
 
-if TTY
+config MINITTY_SERIAL
+	bool "Enable mini TTY for serial ports"
+	depends on !TTY
+	default y
+	help
+	  This enables a much smaller TTY implementation that only supports
+	  serial ports in a limited capacity. This is however sufficient for
+	  many embedded use cases that use serial ports mainly as a debug
+	  console where the saving in kernel code size is welcome.
+
+if TTY || MINITTY_SERIAL
 
 menu "Serial drivers"
 	depends on HAS_IOMEM
@@ -1311,6 +1321,12 @@ config SERIAL_GRLIB_GAISLER_APBUART
 	select SERIAL_CORE
 	---help---
 	Add support for the GRLIB APBUART serial port.
+config SERIAL_FULLHAN
+	tristate "FULLHAN serial support"
+	select SERIAL_CORE
+	select SERIAL_CORE_CONSOLE
+	---help---
+	Add support for the FULLHAN serial port.
 
 config SERIAL_GRLIB_GAISLER_APBUART_CONSOLE
 	bool "Console on GRLIB APBUART serial port"

@@ -63,6 +63,23 @@ config CROSS_COMPILE
 	  need to set this unless you want the configured kernel build
 	  directory to select the cross-compiler automatically.
 
+config TINY_KERNEL
+	bool "Fullhan Tiny Kernel Option"
+	default n
+	help
+	  Fullhan Tiny Kernel Option.Use this option to optimize Linux Kernel.
+
+config NTP
+	bool "Enable NTP functionality and corresponding syscalls" if EXPERT
+	default y
+	help
+	  This option enables NTP functionality and two syscalls used for
+	  system clock synchronization: adjtimex and clock_adjtime syscalls.
+	  If building an embedded system which doesn't need to synchronize its
+	  system clock to an NTP server, you can disable this option to save
+	  space.
+
+
 config COMPILE_TEST
 	bool "Compile also drivers which will not load"
 	depends on !UML
@@ -208,6 +225,11 @@ config KERNEL_LZ4
 	  Its compression ratio is worse than LZO. The size of the kernel
 	  is about 8% bigger than LZO. But the decompression speed is
 	  faster than LZO.
+
+config KERNEL_NO_COMPRESS
+	bool "NONE"
+	help
+	  Do not compress kernel image
 
 endchoice
 
@@ -1119,6 +1141,7 @@ config CGROUP_HUGETLB
 
 config CPUSETS
 	bool "Cpuset controller"
+	depends on SMP
 	help
 	  This option will let you create and manage CPUSETs which
 	  allow dynamically partitioning a system into sets of CPUs and
@@ -1247,7 +1270,15 @@ config SCHED_AUTOGROUP
 	  of workloads isolates aggressive CPU burners (like build jobs) from
 	  desktop applications.  Task group autogeneration is currently based
 	  upon task session.
-
+	  
+config SCHED_DL
+	bool "Deadline Task Scheduling" if EXPERT
+	default y
+	help
+	  This adds the sched_dl scheduling class to the kernel providing
+	  support for the SCHED_DEADLINE policy. You might want to disable
+	  this to reduce the kernel size. If unsure say y.
+	  
 config SYSFS_DEPRECATED
 	bool "Enable deprecated sysfs features to support old userspace tools"
 	depends on SYSFS
@@ -1341,6 +1372,33 @@ config CC_OPTIMIZE_FOR_SIZE
 
 endchoice
 
+config HAVE_LD_DEAD_CODE_DATA_ELIMINATION
+	bool
+	help
+	  This requires that the arch annotates or otherwise protects
+	  its external entry points from being discarded. Linker scripts
+	  must also merge .text.*, .data.*, and .bss.* correctly into
+	  output sections. Care must be taken not to pull in unrelated
+	  sections (e.g., '.text.init'). Typically '.' in section names
+	  is used to distinguish them from label names / C identifiers.
+
+config LD_DEAD_CODE_DATA_ELIMINATION
+	bool "Dead code and data elimination (EXPERIMENTAL)"
+	depends on HAVE_LD_DEAD_CODE_DATA_ELIMINATION
+	depends on EXPERT
+	help
+	  Select this if the architecture wants to do dead code and
+	  data elimination with the linker by compiling with
+	  -ffunction-sections -fdata-sections, and linking with
+	  --gc-sections.
+
+	  This can reduce on disk and in-memory size of the kernel
+	  code and static data, particularly for small configs and
+	  on small systems. This has the possibility of introducing
+	  silently broken kernel if the required annotations are not
+	  present. This option is not well tested yet, so use at your
+	  own risk.
+
 config SYSCTL
 	bool
 
@@ -1380,7 +1438,6 @@ config BPF
 menuconfig EXPERT
 	bool "Configure standard kernel features (expert users)"
 	# Unhide debug options, to make the on-by-default options visible
-	select DEBUG_KERNEL
 	help
 	  This option allows certain base kernel options and settings
           to be disabled or tweaked. This is for specialized
@@ -2101,6 +2158,19 @@ config TRIM_UNUSED_KSYMS
 	  binary size.  This might have some security advantages as well.
 
 	  If unsure, or if you need to build out-of-tree modules, say N.
+
+config UNUSED_KSYMS_WHITELIST
+	string "Whitelist of symbols to keep in ksymtab"
+	depends on TRIM_UNUSED_KSYMS
+	help
+	  By default, all unused exported symbols will be un-exported from the
+	  build when TRIM_UNUSED_KSYMS is selected.
+
+	  UNUSED_KSYMS_WHITELIST allows to whitelist symbols that must be kept
+	  exported at all times, even in absence of in-tree users. The value to
+	  set here is the path to a text file containing the list of symbols,
+	  one per line. The path can be absolute, or relative to the kernel
+	  source tree.
 
 endif # MODULES
 

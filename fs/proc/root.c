@@ -117,6 +117,38 @@ static struct file_system_type proc_fs_type = {
 	.fs_flags	= FS_USERNS_MOUNT,
 };
 
+#ifdef CONFIG_DEFERRED_INIICALLS
+extern void do_deferred_initcalls(void);
+
+static ssize_t deferred_initcalls_read_proc(struct file *file, char __user *buf,
+					   size_t nbytes, loff_t *ppos)
+{
+	static int deferred_initcalls_done;
+	int len, ret;
+	char tmp[3] = "1\n";
+
+	if (*ppos >= 3)
+		return 0;
+
+	if ((!deferred_initcalls_done) && !(*ppos)) {
+		tmp[0] = '0';
+		do_deferred_initcalls();
+		deferred_initcalls_done = 1;
+	}
+
+	len = min_t(size_t, nbytes, (size_t)3);
+	ret = copy_to_user(buf, tmp, len);
+	if (ret)
+		return -EFAULT;
+	*ppos += len;
+	return len;
+}
+
+static const struct file_operations deferred_initcalls_fops = {
+	.read           = deferred_initcalls_read_proc,
+};
+#endif
+
 void __init proc_root_init(void)
 {
 	int err;
@@ -128,6 +160,9 @@ void __init proc_root_init(void)
 
 	proc_self_init();
 	proc_thread_self_init();
+#ifdef CONFIG_DEFERRED_INIICALLS
+	proc_create("deferred_initcalls", 0644, NULL, &deferred_initcalls_fops);
+#endif
 	proc_symlink("mounts", NULL, "self/mounts");
 
 	proc_net_init();
@@ -167,6 +202,7 @@ static int proc_root_readdir(struct file *file, struct dir_context *ctx)
 {
 	if (ctx->pos < FIRST_PROCESS_ENTRY) {
 		int error = proc_readdir(file, ctx);
+
 		if (unlikely(error <= 0))
 			return error;
 		ctx->pos = FIRST_PROCESS_ENTRY;
