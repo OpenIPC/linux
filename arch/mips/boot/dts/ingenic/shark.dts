@@ -118,7 +118,7 @@
 	ingenic,rst-ms = <10>;
 	ingenic,mac-mode = <RMII>;
 	ingenic,mode-reg = <0xb00000e4>;
-	ingenic,phy-clk-freq = <50000000>;
+	ingenic,phy-clk-freq = <25000000>;
 };
 
 &sfc {
