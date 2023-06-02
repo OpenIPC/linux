@@ -129,7 +129,7 @@
 };
 
 &mmc1 {
-	status = "okay";
+	status = "disabled";
 };
 
 &gpio_chip0 {
