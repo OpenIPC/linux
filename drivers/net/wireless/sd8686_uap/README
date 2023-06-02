@@ -1,0 +1,76 @@
+http://github.com/chrisw957/sd8686_uap
+
+
+Update:  For gumstix users, I have a single patch which can be added to your kernel recipe
+which will add this driver.  See: 
+https://github.com/chrisw957/meta-gumstix/commit/d0dbc51e1643860f9066c5e817db023fb062362c
+
+Original Posting:
+
+This module works well with my 3.5.0 kernel (I'm using Angstrom on an Overo IronStorm).
+
+It is based on the GPL'ed marvell code and patches at:
+
+  https://github.com/bauermann/dreamplug
+ 
+  and 
+
+  http://www.xilka.com/sheeva/kernel/3/3.2/3.2.9/source/linux-3.0-SDIO-micro-AP.patch
+
+You do need sdio interrupt support in your kernel.  I'm using:
+
+ http://www.sakoman.com/cgi-bin/gitweb.cgi?p=linux.git;a=commitdiff_plain;h=010810d22f6f49ac03da4ba384969432e0320453
+
+
+Building...
+
+ I'm building outside of bitbake/openembedded, no particular reason.
+
+   # ARM_TOOLCHAIN_PATH=~/setup-scripts/build/tmp-angstrom_v2012_05-eglibc/sysroots/x86_64-linux/usr/bin/armv7a-angstrom-linux-gnueabi
+   # PATH=$ARM_TOOLCHAIN_PATH:$PATH
+   # export ARCH=arm
+   # export CROSS_COMPILE=arm-angstrom-linux-gnueabi-
+   # make
+
+
+
+Getting the firmware...
+
+ The uap firmware can be found on the internet in the Palm Pre jar files...
+
+   # wget http://downloads.help.palm.com/webosdoctor/rom/pre/p1411r0d03312010/sr1ntp1411rod/webosdoctorp100ewwsprint.jar
+   # fastjar xfv ./webosdoctorp100ewwsprint.jar
+   # cd resources
+   # tar -xvf ./webOS.tar ./nova-cust-image-castle.rootfs.tar.gz
+   # tar -zxvf ./nova-cust-image-castle.rootfs.tar.gz ./lib/firmware
+
+
+
+Using...
+
+ On the target, put helper_sd.bin and sd8686_ap.bin in /lib/firmware/mrvl
+ then...
+   # insmod ./uap8xxx.ko
+   # ifconfig uap0 192.168.3.1 up
+   # ./wpa.sh
+ (also need to start a dhcp server)
+
+
+
+
+Example wpa.sh...
+
+ ./uaputl sys_cfg_ssid "marvell_wpa2"                                            
+ ./uaputl sys_cfg_protocol 32                                                    
+ ./uaputl sys_cfg_wpa_passphrase "abcdefgh"                                      
+ ./uaputl sys_cfg_cipher 8 8                                                     
+ ./uaputl sys_cfg_channel 0 1                                                    
+ ./uaputl bss_start
+
+
+
+Binaries...
+ 
+ Are in the "binaries" directory, and are for the gumstix overos.
+ Module is for my 3.5.0 kernel.
+

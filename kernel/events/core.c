@@ -4596,7 +4596,6 @@ void perf_event_comm(struct task_struct *task)
 	struct perf_event_context *ctx;
 	int ctxn;
 
-	rcu_read_lock();
 	for_each_task_context_nr(ctxn) {
 		ctx = task->perf_event_ctxp[ctxn];
 		if (!ctx)
@@ -4604,7 +4603,6 @@ void perf_event_comm(struct task_struct *task)
 
 		perf_event_enable_on_exec(ctx);
 	}
-	rcu_read_unlock();
 
 	if (!atomic_read(&nr_comm_events))
 		return;
@@ -4739,8 +4737,7 @@ static void perf_event_mmap_event(struct perf_mmap_event *mmap_event)
 	} else {
 		if (arch_vma_name(mmap_event->vma)) {
 			name = strncpy(tmp, arch_vma_name(mmap_event->vma),
-				       sizeof(tmp) - 1);
-			tmp[sizeof(tmp) - 1] = '\0';
+				       sizeof(tmp));
 			goto got_name;
 		}
 
@@ -5333,7 +5330,7 @@ static void sw_perf_event_destroy(struct perf_event *event)
 
 static int perf_swevent_init(struct perf_event *event)
 {
-	u64 event_id = event->attr.config;
+	int event_id = event->attr.config;
 
 	if (event->attr.type != PERF_TYPE_SOFTWARE)
 		return -ENOENT;
@@ -5989,7 +5986,6 @@ skip_type:
 	if (pmu->pmu_cpu_context)
 		goto got_cpu_context;
 
-	ret = -ENOMEM;
 	pmu->pmu_cpu_context = alloc_percpu(struct perf_cpu_context);
 	if (!pmu->pmu_cpu_context)
 		goto free_dev;

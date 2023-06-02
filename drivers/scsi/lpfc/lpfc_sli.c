@@ -438,12 +438,11 @@ lpfc_sli4_rq_put(struct lpfc_queue *hq, struct lpfc_queue *dq,
 	struct lpfc_rqe *temp_hrqe;
 	struct lpfc_rqe *temp_drqe;
 	struct lpfc_register doorbell;
-	int put_index;
+	int put_index = hq->host_index;
 
 	/* sanity check on queue memory */
 	if (unlikely(!hq) || unlikely(!dq))
 		return -ENOMEM;
-	put_index = hq->host_index;
 	temp_hrqe = hq->qe[hq->host_index].rqe;
 	temp_drqe = dq->qe[dq->host_index].rqe;
 

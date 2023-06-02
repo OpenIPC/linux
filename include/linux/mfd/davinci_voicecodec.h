@@ -26,8 +26,7 @@
 #include <linux/kernel.h>
 #include <linux/platform_device.h>
 #include <linux/mfd/core.h>
-
-#include <mach/edma.h>
+#include <linux/platform_data/edma.h>
 
 /*
  * Register values.
@@ -42,8 +41,15 @@
 #define DAVINCI_VC_WFIFO		0x24
 #define DAVINCI_VC_FIFOSTAT		0x28
 #define DAVINCI_VC_TST_CTRL		0x2C
+#define DAVINCI_VC_REG00		0x80
+#define DAVINCI_VC_REG01		0x84
+#define DAVINCI_VC_REG02		0x88
+#define DAVINCI_VC_REG03		0x8C
+#define DAVINCI_VC_REG04		0x90
 #define DAVINCI_VC_REG05		0x94
+#define DAVINCI_VC_REG06		0x98
 #define DAVINCI_VC_REG09		0xA4
+#define DAVINCI_VC_REG10		0xA8
 #define DAVINCI_VC_REG12		0xB0
 
 /* DAVINCI_VC_CTRL bit fields */

@@ -5,7 +5,7 @@
 
 # Common objects
 obj-y 			:= time.o clock.o serial.o psc.o \
-			   dma.o usb.o common.o sram.o aemif.o
+			   usb.o common.o sram.o aemif.o
 
 obj-$(CONFIG_DAVINCI_MUX)		+= mux.o
 
@@ -29,7 +29,7 @@ obj-$(CONFIG_MACH_NEUROS_OSD2)		+= board-neuros-osd2.o
 obj-$(CONFIG_MACH_DAVINCI_DM355_EVM)	+= board-dm355-evm.o
 obj-$(CONFIG_MACH_DM355_LEOPARD)	+= board-dm355-leopard.o
 obj-$(CONFIG_MACH_DAVINCI_DM6467_EVM)	+= board-dm646x-evm.o cdce949.o
-obj-$(CONFIG_MACH_DAVINCI_DM365_EVM)	+= board-dm365-evm.o
+obj-$(CONFIG_MACH_DAVINCI_DM365_EVM)	+= board-dm365-evm.o dm365_spi.o
 obj-$(CONFIG_MACH_DAVINCI_DA830_EVM)	+= board-da830-evm.o
 obj-$(CONFIG_MACH_DAVINCI_DA850_EVM)	+= board-da850-evm.o
 obj-$(CONFIG_MACH_TNETV107X)		+= board-tnetv107x-evm.o

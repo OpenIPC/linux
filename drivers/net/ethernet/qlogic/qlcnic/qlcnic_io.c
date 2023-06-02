@@ -358,7 +358,8 @@ set_flags:
 		memcpy(&first_desc->eth_addr, skb->data, ETH_ALEN);
 	}
 	opcode = TX_ETHER_PKT;
-	if (skb_is_gso(skb)) {
+	if ((adapter->netdev->features & (NETIF_F_TSO | NETIF_F_TSO6)) &&
+	    skb_shinfo(skb)->gso_size > 0) {
 		hdr_len = skb_transport_offset(skb) + tcp_hdrlen(skb);
 		first_desc->mss = cpu_to_le16(skb_shinfo(skb)->gso_size);
 		first_desc->total_hdr_length = hdr_len;

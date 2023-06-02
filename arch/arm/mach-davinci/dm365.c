@@ -18,11 +18,11 @@
 #include <linux/platform_device.h>
 #include <linux/dma-mapping.h>
 #include <linux/spi/spi.h>
+#include <linux/platform_data/edma.h>
 
 #include <asm/mach/map.h>
 
 #include <mach/cputype.h>
-#include <mach/edma.h>
 #include <mach/psc.h>
 #include <mach/mux.h>
 #include <mach/irqs.h>
@@ -32,23 +32,21 @@
 #include <linux/platform_data/keyscan-davinci.h>
 #include <linux/platform_data/spi-davinci.h>
 #include <mach/gpio-davinci.h>
-
 #include "davinci.h"
+
 #include "clock.h"
 #include "mux.h"
 #include "asp.h"
 
+
 #define DM365_REF_FREQ		24000000	/* 24 MHz on the DM365 EVM */
-
-/* Base of key scan register bank */
-#define DM365_KEYSCAN_BASE		0x01c69400
-
 #define DM365_RTC_BASE			0x01c69000
-
+#define DM365_KEYSCAN_BASE		0x01c69400
+#define DM365_OSD_BASE			0x01c71c00
+#define DM365_VENC_BASE			0x01c71e00
 #define DAVINCI_DM365_VC_BASE		0x01d0c000
 #define DAVINCI_DMA_VC_TX		2
 #define DAVINCI_DMA_VC_RX		3
-
 #define DM365_EMAC_BASE			0x01d07000
 #define DM365_EMAC_MDIO_BASE		(DM365_EMAC_BASE + 0x4000)
 #define DM365_EMAC_CNTRL_OFFSET		0x0000
@@ -248,6 +246,7 @@ static struct clk vpss_dac_clk = {
 	.name		= "vpss_dac",
 	.parent		= &pll1_sysclk3,
 	.lpsc		= DM365_LPSC_DAC_CLK,
+	.flags		= ALWAYS_ENABLED,
 };
 
 static struct clk vpss_master_clk = {
@@ -256,6 +255,12 @@ static struct clk vpss_master_clk = {
 	.lpsc		= DM365_LPSC_VPSSMSTR,
 	.flags		= CLK_PSC,
 };
+
+/*static struct clk vpss_slave_clk = {
+	.name		= "vpss_slave",
+	.parent		= &pll1_sysclk5,
+	.lpsc		= DAVINCI_LPSC_VPSSSLV,
+};*/
 
 static struct clk arm_clk = {
 	.name		= "arm_clk",
@@ -356,10 +361,16 @@ static struct clk pwm2_clk = {
 
 static struct clk pwm3_clk = {
 	.name		= "pwm3",
-	.parent		= &ref_clk,
+	.parent		= &pll1_aux_clk,
 	.lpsc		= DM365_LPSC_PWM3,
 };
-
+/*
+static struct clk rto_clk = {
+	.name		= "rto",
+	.parent		= &pll1_aux_clk,
+	.lpsc		= DM365_LPSC_RTO,
+};
+*/
 static struct clk timer0_clk = {
 	.name		= "timer0",
 	.parent		= &pll1_aux_clk,
@@ -454,8 +465,8 @@ static struct clk_lookup dm365_clks[] = {
 	CLK(NULL, "uart0", &uart0_clk),
 	CLK(NULL, "uart1", &uart1_clk),
 	CLK("i2c_davinci.1", NULL, &i2c_clk),
-	CLK("davinci_mmc.0", NULL, &mmcsd0_clk),
-	CLK("davinci_mmc.1", NULL, &mmcsd1_clk),
+	CLK("dm365-mmc.0", NULL, &mmcsd0_clk),
+	CLK("dm365-mmc.1", NULL, &mmcsd1_clk),
 	CLK("spi_davinci.0", NULL, &spi0_clk),
 	CLK("spi_davinci.1", NULL, &spi1_clk),
 	CLK("spi_davinci.2", NULL, &spi2_clk),
@@ -467,6 +478,7 @@ static struct clk_lookup dm365_clks[] = {
 	CLK(NULL, "pwm1", &pwm1_clk),
 	CLK(NULL, "pwm2", &pwm2_clk),
 	CLK(NULL, "pwm3", &pwm3_clk),
+	//CLK(NULL, "rto", &rto_clk),
 	CLK(NULL, "timer0", &timer0_clk),
 	CLK(NULL, "timer1", &timer1_clk),
 	CLK("watchdog", NULL, &timer2_clk),
@@ -482,6 +494,11 @@ static struct clk_lookup dm365_clks[] = {
 
 /*----------------------------------------------------------------------*/
 
+#define PINMUX0		0x00
+#define PINMUX1		0x04
+#define PINMUX2		0x08
+#define PINMUX3		0x0c
+#define PINMUX4		0x10
 #define INTMUX		0x18
 #define EVTMUX		0x1c
 
@@ -500,21 +517,9 @@ MUX_CFG(DM365,	SD1_DATA0,	4,   22,    3,	  1,	 false)
 MUX_CFG(DM365,	I2C_SDA,	3,   23,    3,	  2,	 false)
 MUX_CFG(DM365,	I2C_SCL,	3,   21,    3,	  2,	 false)
 
-MUX_CFG(DM365,	AEMIF_AR_A14,	2,   0,     3,	  1,	 false)
-MUX_CFG(DM365,	AEMIF_AR_BA0,	2,   0,     3,	  2,	 false)
-MUX_CFG(DM365,	AEMIF_A3,	2,   2,     3,	  1,	 false)
-MUX_CFG(DM365,	AEMIF_A7,	2,   4,     3,	  1,	 false)
-MUX_CFG(DM365,	AEMIF_D15_8,	2,   6,     1,	  1,	 false)
 MUX_CFG(DM365,	AEMIF_CE0,	2,   7,     1,	  0,	 false)
-MUX_CFG(DM365,	AEMIF_CE1,	2,   8,     1,    0,     false)
-MUX_CFG(DM365,	AEMIF_WE_OE,	2,   9,     1,    0,     false)
+MUX_CFG(DM365,	AEMIF_CE1,	2,   8,     1,	  0,	 false)
 
-MUX_CFG(DM365,	MCBSP0_BDX,	0,   23,    1,	  1,	 false)
-MUX_CFG(DM365,	MCBSP0_X,	0,   22,    1,	  1,	 false)
-MUX_CFG(DM365,	MCBSP0_BFSX,	0,   21,    1,	  1,	 false)
-MUX_CFG(DM365,	MCBSP0_BDR,	0,   20,    1,	  1,	 false)
-MUX_CFG(DM365,	MCBSP0_R,	0,   19,    1,	  1,	 false)
-MUX_CFG(DM365,	MCBSP0_BFSR,	0,   18,    1,	  1,	 false)
 
 MUX_CFG(DM365,	SPI0_SCLK,	3,   28,    1,    1,	 false)
 MUX_CFG(DM365,	SPI0_SDI,	3,   26,    3,    1,	 false)
@@ -546,8 +551,6 @@ MUX_CFG(DM365,  EMAC_RX_ER,	3,   3,     1,    1,     false)
 MUX_CFG(DM365,  EMAC_CRS,	3,   2,     1,    1,     false)
 MUX_CFG(DM365,  EMAC_MDIO,	3,   1,     1,    1,     false)
 MUX_CFG(DM365,  EMAC_MDCLK,	3,   0,     1,    1,     false)
-
-MUX_CFG(DM365,	KEYSCAN,	2,   0,     0x3f, 0x3f,  false)
 
 MUX_CFG(DM365,	PWM0,		1,   0,     3,    2,     false)
 MUX_CFG(DM365,	PWM0_G23,	3,   26,    3,    3,     false)
@@ -583,31 +586,146 @@ MUX_CFG(DM365,	SPI3_SDENA1,	0,   6,     3,    3,	 false)
 MUX_CFG(DM365,	SPI4_SCLK,	4,   18,    3,    1,	 false)
 MUX_CFG(DM365,	SPI4_SDI,	4,   14,    3,    1,	 false)
 MUX_CFG(DM365,	SPI4_SDO,	4,   16,    3,    1,	 false)
-MUX_CFG(DM365,	SPI4_SDENA0,	4,   20,    3,    1,	 false)
+MUX_CFG(DM365,	SPI4_SDENA0,	4,   20,    3,    0,	 false)
 MUX_CFG(DM365,	SPI4_SDENA1,	4,   16,    3,    2,	 false)
 
 MUX_CFG(DM365,	CLKOUT0,	4,   20,    3,    3,     false)
+MUX_CFG(DM365,	GPIO37,		4,   20,    0,    0,	 false)
 MUX_CFG(DM365,	CLKOUT1,	4,   16,    3,    3,     false)
 MUX_CFG(DM365,	CLKOUT2,	4,   8,     3,    3,     false)
 
-MUX_CFG(DM365,	GPIO20,		3,   21,    3,    0,	 false)
-MUX_CFG(DM365,	GPIO30,		4,   6,     3,	  0,	 false)
-MUX_CFG(DM365,	GPIO31,		4,   8,     3,	  0,	 false)
-MUX_CFG(DM365,	GPIO32,		4,   10,    3,	  0,	 false)
-MUX_CFG(DM365,	GPIO33,		4,   12,    3,	  0,	 false)
-MUX_CFG(DM365,	GPIO40,		4,   26,    3,	  0,	 false)
-MUX_CFG(DM365,	GPIO64_57,	2,   6,     1,	  0,	 false)
+// added by Gol
+MUX_CFG(DM365,	GPIO1,		3,   0,     1,    0,	 false)
+MUX_CFG(DM365,	GPIO2,		3,   1,     1,    0,	 false)
+MUX_CFG(DM365,	GPIO3,		3,   2,     1,    0,	 false)
+MUX_CFG(DM365,	GPIO4,		3,   3,     1,    0,	 false)
+MUX_CFG(DM365,	GPIO5,		3,   4,     1,    0,	 false)
+MUX_CFG(DM365,	GPIO6,		3,   5,     1,    0,	 false)
+MUX_CFG(DM365,	GPIO7,		3,   6,     1,    0,	 false)
+MUX_CFG(DM365,	GPIO8,		3,   7,     1,    0,	 false)
+MUX_CFG(DM365,	GPIO9,		3,   8,     1,    0,	 false)
+MUX_CFG(DM365,	GPIO10,		3,   9,     1,    0,	 false)
+MUX_CFG(DM365,	GPIO11,		3,   10,     1	,    0,	 false)
+MUX_CFG(DM365,	GPIO12,		3,   11,     1,    0,	 false)
+MUX_CFG(DM365,	GPIO13,		3,   12,     1,    0,	 false)
+MUX_CFG(DM365,	GPIO14,		3,   13,     1,    0,	 false)
+MUX_CFG(DM365,	GPIO15,		3,   14,     1,    0,	 false)
+MUX_CFG(DM365,	GPIO16,		3,   15,     3,    0,	 false)
+MUX_CFG(DM365,	GPIO17,		3,   17,     3,    0,	 false)
+MUX_CFG(DM365,	GPIO18,		3,   19,     1,    0,	 false)
+MUX_CFG(DM365,	GPIO19,		3,   20,     1,    0,	 false)
 
-MUX_CFG(DM365,	VOUT_FIELD,	1,   18,    3,	  1,	 false)
-MUX_CFG(DM365,	VOUT_FIELD_G81,	1,   18,    3,	  0,	 false)
-MUX_CFG(DM365,	VOUT_HVSYNC,	1,   16,    1,	  0,	 false)
-MUX_CFG(DM365,	VOUT_COUTL_EN,	1,   0,     0xff, 0x55,  false)
-MUX_CFG(DM365,	VOUT_COUTH_EN,	1,   8,     0xff, 0x55,  false)
-MUX_CFG(DM365,	VIN_CAM_WEN,	0,   14,    3,	  0,	 false)
+MUX_CFG(DM365,	GPIO21,		3,   23,     0,    0,	 false)
+
+MUX_CFG(DM365,	GPIO36,		4,   18,     3,    0,	 false)
+MUX_CFG(DM365,	GPIO37,		4,   20,     3,    0,	 false)
+MUX_CFG(DM365,	GPIO38,		4,   22,     3,    0,	 false)
+MUX_CFG(DM365,	GPIO39,		4,   24,     3,    0,	 false)
+MUX_CFG(DM365,	GPIO40,		4,   26,     3,    0,	 false)
+MUX_CFG(DM365,	GPIO41,		4,   28,     3,    0,	 false)
+MUX_CFG(DM365,	GPIO42,		4,   30,     3,    0,	 false)
+MUX_CFG(DM365,	GPIO43,		0,   16,     3,    0,	 false)
+
+MUX_CFG(DM365,	GPIO52,		2,   10,     1,    0,	 false)
+MUX_CFG(DM365,	GPIO53,		2,   9,      1,    0,	 false)
+MUX_CFG(DM365,	GPIO54,		2,   9,      1,    0,	 false)
+MUX_CFG(DM365,	GPIO55,		2,   8,      1,    0,	 false)
+MUX_CFG(DM365,	GPIO56,		2,   7,      1,    0,	 false)
+
+MUX_CFG(DM365,	GPIO57,		0,   0,      0,    0,	 false) // unknown
+MUX_CFG(DM365,	GPIO58,		0,   0,      0,    0,	 false) // unknown
+MUX_CFG(DM365,	GPIO59,		0,   0,      0,    0,	 false) // unknown
+MUX_CFG(DM365,	GPIO60,		0,   0,      0,    0,	 false) // unknown
+MUX_CFG(DM365,	GPIO61,		0,   0,      0,    0,	 false) // unknown
+MUX_CFG(DM365,	GPIO62,		0,   0,      0,    0,	 false) // unknown
+MUX_CFG(DM365,	GPIO63,		0,   0,      0,    0,	 false) // unknown
+MUX_CFG(DM365,	GPIO64,		0,   0,      0,    0,	 false) // unknown
+
+MUX_CFG(DM365,	GPIO65,		0,   0,     0,    0,	 false) // unknown
+
+MUX_CFG(DM365,	GPIO68,		2,   2,     0,    0,	 false)
+MUX_CFG(DM365,	GPIO69,		2,   0,     0,    0,	 false)
+MUX_CFG(DM365,	GPIO70,		2,   0,     0,    0,	 false)
+MUX_CFG(DM365,	GPIO71,		2,   0,     0,    0,	 false)
+
+MUX_CFG(DM365,	GPIO72,		2,   4,     0,    0,	 false)
+
+MUX_CFG(DM365,	GPIO73,		2,   0,     0,    0,	 false) // unknown
+MUX_CFG(DM365,	GPIO74,		2,   0,     0,    0,	 false) // unknown
+MUX_CFG(DM365,	GPIO75,		2,   0,     0,    0,	 false) // unknown
+MUX_CFG(DM365,	GPIO76,		2,   0,     0,    0,	 false) // unknown
+MUX_CFG(DM365,	GPIO77,		2,   0,     0,    0,	 false) // unknown
+MUX_CFG(DM365,	GPIO78,		2,   0,     0,    0,	 false) // unknown
+
+MUX_CFG(DM365,	GPIO93,		0,   14,    1,    0,	 false)
+MUX_CFG(DM365,	GPIO94,		0,   13,    1,    0,	 false)
+MUX_CFG(DM365,	GPIO95,		0,   12,    1,    0,	 false)
+MUX_CFG(DM365,	GPIO96,		0,   11,    1,    0,	 false)
+MUX_CFG(DM365,	GPIO97,		0,   10,    1,    0,	 false)
+MUX_CFG(DM365,	GPIO98,		0,   9,    1,    0,	 false)
+MUX_CFG(DM365,	GPIO99,		0,   8,    1,    0,	 false)
+
+
+
+// end added by Gol
+
+MUX_CFG(DM365,	GPIO20,		3,   21,    3,    0,	 false)
+MUX_CFG(DM365,	GPIO22,		3,   25,    1,    0,	 false)
+MUX_CFG(DM365,	GPIO23,		3,   26,    3,    0,	 false)
+MUX_CFG(DM365,	GPIO24,		3,   28,    1,    0,	 false)
+MUX_CFG(DM365,	GPIO25,		3,   29,    3,    0,	 false)
+MUX_CFG(DM365,	GPIO26,		3,   31,    1,    0,	 false)
+MUX_CFG(DM365,	GPIO27,		4,    0,    3,    0,	 false)
+MUX_CFG(DM365,	GPIO28,		4,    2,    3,    0,	 false)
+MUX_CFG(DM365,	GPIO29,		4,    4,    3,    0,	 false)
+MUX_CFG(DM365,	GPIO30,		4,    6,    3,    0,	 false)
+MUX_CFG(DM365,	GPIO31,		4,    8,    3,    0,	 false)
+MUX_CFG(DM365,	GPIO32,		4,   10,    3,    0,	 false)
+MUX_CFG(DM365,	GPIO33,		4,   12,    3,    0,	 false)
+MUX_CFG(DM365,	GPIO34,		4,   14,    3,    0,	 false)
+MUX_CFG(DM365,	GPIO35,		4,   16,    3,    0,	 false)
+MUX_CFG(DM365,	GPIO44,		0,   18,    1,    0,	 false)
+MUX_CFG(DM365,	GPIO45,		0,   19,    1,    0,	 false)
+MUX_CFG(DM365,	GPIO46,		0,   20,    1,    0,	 false)
+MUX_CFG(DM365,	GPIO47,		0,   21,    1,    0,	 false)
+MUX_CFG(DM365,	GPIO48,		0,   22,    1,    0,	 false)
+MUX_CFG(DM365,	GPIO49,		0,   23,    1,    0,	 false)
+MUX_CFG(DM365,	GPIO50,		2,   12,    1,    1,	 false)
+MUX_CFG(DM365,	GPIO51,		2,   11,    1,    1,	 false)
+MUX_CFG(DM365,	GPIO66,		2,   0,     3,	  0,	 false)
+MUX_CFG(DM365,	GPIO67,		2,    0,    3,    0,	 false)
+MUX_CFG(DM365,	GPIO79,		1,   22,    1,    1,	 false)
+MUX_CFG(DM365,	GPIO80,		1,   20,    3,    0,	 false)
+MUX_CFG(DM365,	GPIO81,		1,   18,    3,    0,	 false)
+MUX_CFG(DM365,	GPIO82,		1,   17,    1,    1,	 false)
+MUX_CFG(DM365,	GPIO83,		1,   16,    1,    1,	 false)
+MUX_CFG(DM365,	GPIO84,		1,   16,    1,    1,	 false)
+MUX_CFG(DM365,	GPIO85,		1,   14,    3,    0,	 false)
+MUX_CFG(DM365,	GPIO86,		1,   12,    3,    0,	 false)
+MUX_CFG(DM365,	GPIO87,		1,   10,    3,    0,	 false)
+MUX_CFG(DM365,	GPIO88,		1,    8,    3,    0,	 false)
+MUX_CFG(DM365,	GPIO89,		1,    6,    3,    0,	 false)
+
+MUX_CFG(DM365,	GPIO90,		1,    4,    3,    0,	 false)
+//added by dlinyj
+//(soc, desc, muxreg, mode_offset, mode_mask, mux_mode, dbg)
+MUX_CFG(DM365,	RTO0,		1,    4,    3,    3,	 false)
+MUX_CFG(DM365,	RTO1,		1,    6,    3,    3,	 false)
+MUX_CFG(DM365,	RTO2,		1,    8,    3,    3,	 false)
+MUX_CFG(DM365,	RTO3,		1,    10,    3,    3,	 false)
+//end added by dlinyj
+MUX_CFG(DM365,	GPIO91,		1,    2,    3,    0,	 false)
+MUX_CFG(DM365,	GPIO92,		1,    0,    3,    0,	 false)
+MUX_CFG(DM365,	GPIO100,	0,    6,    3,    1,	 false)
+MUX_CFG(DM365,	GPIO101,	0,    4,    3,    1,	 false)
+MUX_CFG(DM365,	GPIO102,	0,    2,    3,    1,	 false)
+MUX_CFG(DM365,	GPIO103,	0,    0,    3,    1,	 false)
+
 MUX_CFG(DM365,	VIN_CAM_VD,	0,   13,    1,	  0,	 false)
 MUX_CFG(DM365,	VIN_CAM_HD,	0,   12,    1,	  0,	 false)
-MUX_CFG(DM365,	VIN_YIN4_7_EN,	0,   0,     0xff, 0,	 false)
-MUX_CFG(DM365,	VIN_YIN0_3_EN,	0,   8,     0xf,  0,	 false)
+MUX_CFG(DM365,  EXTCLK,         0,   14,    0x03, 2,     false)//GPIO93 - CAMERA CLK
+MUX_CFG(DM365,	CAM_OFF,	0,   9,    1,	  1,	 false)
+MUX_CFG(DM365,	CAM_RESET,	0,   8,    1,	  1,	 false)
 
 INT_CFG(DM365,  INT_EDMA_CC,         2,     1,    1,     false)
 INT_CFG(DM365,  INT_EDMA_TC0_ERR,    3,     1,    1,     false)
@@ -627,71 +745,19 @@ INT_CFG(DM365,  INT_IMX1_ENABLE,     24,    1,    1,     false)
 INT_CFG(DM365,  INT_IMX1_DISABLE,    24,    1,    0,     false)
 INT_CFG(DM365,  INT_NSF_ENABLE,      25,    1,    1,     false)
 INT_CFG(DM365,  INT_NSF_DISABLE,     25,    1,    0,     false)
+INT_CFG(DM365,  INT_VCIF_ENABLE,     7,     1,    1,     false)
+INT_CFG(DM365,  INT_VCIF_DISABLE,    7,     1,    0,     false)
+INT_CFG(DM365,  INT_SPI3,            13,    1,    1,     false)
 
 EVT_CFG(DM365,	EVT2_ASP_TX,         0,     1,    0,     false)
 EVT_CFG(DM365,	EVT3_ASP_RX,         1,     1,    0,     false)
 EVT_CFG(DM365,	EVT2_VC_TX,          0,     1,    1,     false)
 EVT_CFG(DM365,	EVT3_VC_RX,          1,     1,    1,     false)
+EVT_CFG(DM365,	EVT18_SPI3_TX, 3,     1,    1,     false)
+EVT_CFG(DM365,	EVT19_SPI3_RX, 4,     1,    1,     false)
 #endif
 };
 
-static u64 dm365_spi0_dma_mask = DMA_BIT_MASK(32);
-
-static struct davinci_spi_platform_data dm365_spi0_pdata = {
-	.version 	= SPI_VERSION_1,
-	.num_chipselect = 2,
-	.dma_event_q	= EVENTQ_3,
-};
-
-static struct resource dm365_spi0_resources[] = {
-	{
-		.start = 0x01c66000,
-		.end   = 0x01c667ff,
-		.flags = IORESOURCE_MEM,
-	},
-	{
-		.start = IRQ_DM365_SPIINT0_0,
-		.flags = IORESOURCE_IRQ,
-	},
-	{
-		.start = 17,
-		.flags = IORESOURCE_DMA,
-	},
-	{
-		.start = 16,
-		.flags = IORESOURCE_DMA,
-	},
-};
-
-static struct platform_device dm365_spi0_device = {
-	.name = "spi_davinci",
-	.id = 0,
-	.dev = {
-		.dma_mask = &dm365_spi0_dma_mask,
-		.coherent_dma_mask = DMA_BIT_MASK(32),
-		.platform_data = &dm365_spi0_pdata,
-	},
-	.num_resources = ARRAY_SIZE(dm365_spi0_resources),
-	.resource = dm365_spi0_resources,
-};
-
-void __init dm365_init_spi0(unsigned chipselect_mask,
-		const struct spi_board_info *info, unsigned len)
-{
-	davinci_cfg_reg(DM365_SPI0_SCLK);
-	davinci_cfg_reg(DM365_SPI0_SDI);
-	davinci_cfg_reg(DM365_SPI0_SDO);
-
-	/* not all slaves will be wired up */
-	if (chipselect_mask & BIT(0))
-		davinci_cfg_reg(DM365_SPI0_SDENA0);
-	if (chipselect_mask & BIT(1))
-		davinci_cfg_reg(DM365_SPI0_SDENA1);
-
-	spi_register_board_info(info, len);
-
-	platform_device_register(&dm365_spi0_device);
-}
 
 static struct emac_platform_data dm365_emac_pdata = {
 	.ctrl_reg_offset	= DM365_EMAC_CNTRL_OFFSET,
@@ -738,7 +804,6 @@ static struct platform_device dm365_emac_device = {
 	.num_resources	= ARRAY_SIZE(dm365_emac_resources),
 	.resource	= dm365_emac_resources,
 };
-
 static struct resource dm365_mdio_resources[] = {
 	{
 		.start	= DM365_EMAC_MDIO_BASE,
@@ -752,6 +817,87 @@ static struct platform_device dm365_mdio_device = {
 	.id		= 0,
 	.num_resources	= ARRAY_SIZE(dm365_mdio_resources),
 	.resource	= dm365_mdio_resources,
+};
+
+
+
+/* IPIPEIF device configuration */
+static u64 dm365_ipipeif_dma_mask = DMA_BIT_MASK(32);
+static struct resource dm365_ipipeif_resources[] = {
+	{
+		.start          = 0x01C71200,
+		.end            = 0x01C71200 + 0x60,
+		.flags          = IORESOURCE_MEM,
+	},
+};
+
+static struct platform_device dm365_ipipeif_dev = {
+	.name		= "dm3xx_ipipeif",
+	.id		= -1,
+	.num_resources	= ARRAY_SIZE(dm365_ipipeif_resources),
+	.resource	= dm365_ipipeif_resources,
+	.dev = {
+		.dma_mask		= &dm365_ipipeif_dma_mask,
+		.coherent_dma_mask	= DMA_BIT_MASK(32),
+		/* For IPIPEIF device type. 1 - DM365 */
+		.platform_data		= (void *)1,
+	},
+};
+
+static u64 dm365_osd_dma_mask = DMA_BIT_MASK(32);
+
+static struct davinci_osd_platform_data dm365_osd_pdata = {
+	.invert_field = false,
+};
+
+static struct resource dm365_osd_resources[] = {
+	{
+		.start          = IRQ_VENCINT,
+		.end            = IRQ_VENCINT,
+		.flags          = IORESOURCE_IRQ,
+	},
+	{
+		.start          = DM365_OSD_REG_BASE,
+		.end            = DM365_OSD_REG_BASE + OSD_REG_SIZE,
+		.flags          = IORESOURCE_MEM,
+	},
+};
+
+static struct platform_device dm365_osd_dev = {
+	.name		= "davinci_osd",
+	.id		= -1,
+	.num_resources	= ARRAY_SIZE(dm365_osd_resources),
+	.resource	= dm365_osd_resources,
+	.dev = {
+		.dma_mask		= &dm365_osd_dma_mask,
+		.coherent_dma_mask	= DMA_BIT_MASK(32),
+		.platform_data		= &dm365_osd_pdata,
+	},
+};
+
+static u64 dm365_venc_dma_mask = DMA_BIT_MASK(32);
+
+
+static struct davinci_venc_platform_data dm365_venc_pdata = {
+	.invert_field = false,
+};
+static struct resource dm365_venc_resources[] = {
+	{
+		.start          = DM365_VENC_REG_BASE,
+		.end            = DM365_VENC_REG_BASE + 0x180,
+		.flags          = IORESOURCE_MEM,
+	},
+};
+static struct platform_device dm365_venc_dev = {
+	.name		= "davinci_venc",
+	.id		= -1,
+	.num_resources	= ARRAY_SIZE(dm365_venc_resources),
+	.resource	= dm365_venc_resources,
+	.dev = {
+		.dma_mask		= &dm365_venc_dma_mask,
+		.coherent_dma_mask	= DMA_BIT_MASK(32),
+		.platform_data		= &dm365_venc_pdata,
+	},
 };
 
 static u8 dm365_default_priorities[DAVINCI_N_AINTC_IRQ] = {
@@ -770,7 +916,8 @@ static u8 dm365_default_priorities[DAVINCI_N_AINTC_IRQ] = {
 	[IRQ_USBINT]			= 4,
 	[IRQ_DM365_RTOINT]		= 7,
 	[IRQ_DM365_TINT5]		= 7,
-	[IRQ_DM365_TINT6]		= 5,
+//	[IRQ_DM365_TINT6]		= 5,
+	[IRQ_DM365_TINT6]		= 0,
 	[IRQ_CCINT0]			= 5,
 	[IRQ_CCERRINT]			= 5,
 	[IRQ_TCERRINT0]			= 5,
@@ -832,7 +979,7 @@ dm365_queue_tc_mapping[][2] = {
 	{-1, -1},
 };
 
-static const s8
+static /*const*/ s8
 dm365_queue_priority_mapping[][2] = {
 	/* {event queue no, Priority} */
 	{0, 7},
@@ -985,6 +1132,12 @@ static struct map_desc dm365_io_desc[] = {
 		.length		= IO_SIZE,
 		.type		= MT_DEVICE
 	},
+	{
+		.virtual	= SRAM_VIRT,
+		.pfn		= __phys_to_pfn(0x00010000),
+		.length		= SZ_32K,
+		.type		= MT_MEMORY_NONCACHED,
+	},
 };
 
 static struct resource dm365_ks_resources[] = {
@@ -1023,7 +1176,7 @@ static struct davinci_id dm365_ids[] = {
 		.part_no	= 0xb83e,
 		.manufacturer	= 0x017,
 		.cpu_id		= DAVINCI_CPU_ID_DM365,
-		.name		= "dm365_rev1.2",
+		.name		= "dm36x_rev1.2",
 	},
 };
 
@@ -1045,6 +1198,7 @@ static struct plat_serial8250_port dm365_serial_platform_data[] = {
 				  UPF_IOREMAP,
 		.iotype		= UPIO_MEM,
 		.regshift	= 2,
+		.uartclk	= 24000000,
 	},
 	{
 		.mapbase	= DM365_UART1_BASE,
@@ -1053,6 +1207,7 @@ static struct plat_serial8250_port dm365_serial_platform_data[] = {
 				  UPF_IOREMAP,
 		.iotype		= UPIO_MEM,
 		.regshift	= 2,
+		.uartclk	= 86250000,
 	},
 	{
 		.flags		= 0
@@ -1093,6 +1248,7 @@ static struct davinci_soc_info davinci_soc_info_dm365 = {
 	.emac_pdata		= &dm365_emac_pdata,
 	.sram_dma		= 0x00010000,
 	.sram_len		= SZ_32K,
+	//.reset_device		= &davinci_wdt_device,
 };
 
 void __init dm365_init_asp(struct snd_platform_data *pdata)
@@ -1109,10 +1265,370 @@ void __init dm365_init_asp(struct snd_platform_data *pdata)
 	platform_device_register(&dm365_asp_device);
 }
 
+ void ShowClocksInfo(void) {
+ 	static void __iomem *SystemRegisters; //access to system registers via memory remap
+ 	u32 regval; //Register value
+ 	char str[40]; //short strings container
+ 	char strEn[3]; //string "en" container
+ 	char strDis[4]; //string "dis" container
+ 	char vcCfg;
+ 
+ 	u32 mCLOCKOUT0EN;
+ 	u32 mCLOCKOUT1EN;
+ 	u32 mCLOCKOUT2EN;
+ 	u32 mDIV1;
+ 	u32 mDIV2;
+ 	u32 mDIV3;
+ 	u32 mHDVICPCLKS;
+ 	u32 mDDRCLKS;
+ 	u32 mKEYSCLKS;
+ 	u32 mARMCLKS;
+ 	u32 mPRTCCLKS;
+ 
+ 	u32 mIsPLL1en;
+ 	u32 mPLL1PreDiv;
+ 	u32 mPLL1Mul;
+ 	u32 mPLL1PostDiv;
+ 	u32 mIsPLL1PostDiv;
+ 	u32 mPLL1Clk;
+ 	u32 mPLL1DIV1;
+ 	u32 mPLL1DIV1en;
+ 	u32 mPLL1DIV2;
+ 	u32 mPLL1DIV2en;
+ 	u32 mPLL1DIV3;
+ 	u32 mPLL1DIV3en;
+ 	u32 mPLL1DIV4;
+ 	u32 mPLL1DIV4en;
+ 	u32 mPLL1DIV5;
+ 	u32 mPLL1DIV5en;
+ 	u32 mPLL1DIV6;
+ 	u32 mPLL1DIV6en;
+ 	u32 mPLL1DIV7;
+ 	u32 mPLL1DIV7en;
+ 	u32 mPLL1DIV8;
+ 	u32 mPLL1DIV8en;
+ 	u32 mPLL1DIV9;
+ 	u32 mPLL1DIV9en;
+ 
+ 	u32 mIsPLL2en;
+ 	u32 mPLL2PreDiv;
+ 	u32 mPLL2Mul;
+ 	u32 mPLL2PostDiv;
+ 	u32 mIsPLL2PostDiv;
+ 	u32 mPLL2Clk;
+ 	u32 mPLL2DIV1;
+ 	u32 mPLL2DIV1en;
+ 	u32 mPLL2DIV2;
+ 	u32 mPLL2DIV2en;
+ 	u32 mPLL2DIV3;
+ 	u32 mPLL2DIV3en;
+ 	u32 mPLL2DIV4;
+ 	u32 mPLL2DIV4en;
+ 	u32 mPLL2DIV5;
+ 	u32 mPLL2DIV5en;
+ 
+ 	u32 mARMCORECLK;
+ 	u32 mHDVICPCORECLK;
+ 	u32 mDDRCORECLK;
+ 
+ 	u32 mVoiceCodecCLK;
+ 
+ 
+ #ifndef CONFIG_SND_DM365_SHOWFREQ //if undefined
+ //This is applicable only if VoiceCodec selected in Linux Config
+ //if no (for example, if AIC codec used) exit now.
+ 	return;
+ #endif
+ 
+ 	strcpy(str,"unknown");
+ 	vcCfg=0;
+ 
+ #ifdef CONFIG_SND_DM365_VOICE_CODEC_8KHZ
+ 	vcCfg=1;
+ 	strcpy(str,"8 kHz");
+ #endif
+ 
+ #ifdef CONFIG_SND_DM365_VOICE_CODEC_16KHZ
+ 	vcCfg=2;
+ 	strcpy(str,"16 kHz");
+ #endif
+ 
+ 	printk("*** VOICECODEC CONFIGURATION is %s\n",str);
+ 
+ 	if(vcCfg==0) return;
+ 
+         SystemRegisters=ioremap(DAVINCI_SYSTEM_MODULE_BASE,SECTION_SIZE); //try remap
+         if(!SystemRegisters) {//if bad
+ 	  release_mem_region(DAVINCI_SYSTEM_MODULE_BASE,SECTION_SIZE);
+ 	  pr_err("ERROR: can't map DAVINCI_SYSTEM_MODULE_BASE\n");
+ 	  return; //EXIT
+         }//if bad
+ 
+ 	//else remap is good
+ 
+ 	if(vcCfg==1) {//if Fs=8kHz
+ // Fs ~= 8000 Hz  ; Actual Fs = 594000000/29/10/256=8001 ; Err=0.013%, 125ppm
+ 	  __raw_writel(0x801C,SystemRegisters+0xC00+0x160); //PLL2DIV4=28(29)
+           __raw_writel(0x243f04fc,SystemRegisters+0x48);    //div2=9(10)
+ 	}//if Fs=8kHz
+ 
+ 	if(vcCfg==2) {//if Fs=16kHz
+ // Fs ~= 16000 Hz ; Actual Fs = 594000000/29/5/256=16002 ; Err=0.013%, 125ppm
+ 	  __raw_writel(0x801C,SystemRegisters+0xC00+0x160); //PLL2DIV4=28(29)
+           __raw_writel(0x243f027c,SystemRegisters+0x48);    //div2=4(5)
+ 	}//if Fs=16kHz
+ 
+ // WARNING!!! 'Fs' is derived from PLL2 Clock. 
+ // It is assumed that the PLL2 frequency is equal to 594000000 Hz in your system.
+ // If not, you need to change PLL2DIV4 and div2 (see above).
+ // See "TMS320DM36x Digital Media System-on-Chip (DMSoC) ARM Subsystem User's Guide"
+ // chapter 5 "Device Clocking" and chapter 6 "PLL Controllers (PLLCs)"
+ 
+ 
+ 
+ 	strEn[0]='e'; 	strEn[1]='n'; 	strEn[2]=0; 			//"en"
+ 	strDis[0]='d'; 	strDis[1]='i'; 	strDis[2]='s';	strDis[3]=0;	//"dis"
+ 
+         printk("*** Board Clocks:\n");
+ 
+         regval= __raw_readl(SystemRegisters+0x48); //Read PERI_CLKCTL
+         printk("* PERI_CLKCTL=0x%08X\n",regval);
+ 
+ 	mCLOCKOUT0EN 	= (regval&0x00000001)>>0;
+ 	mCLOCKOUT1EN 	= (regval&0x00000002)>>1;
+ 	mCLOCKOUT2EN 	= (regval&0x00000004)>>2;
+ 	mDIV1        	= (regval&0x00000078)>>3;
+ 	mDIV2        	= (regval&0x0000FF80)>>7;
+ 	mDIV3        	= (regval&0x03FF0000)>>16;
+ 	mHDVICPCLKS  	= (regval&0x04000000)>>26;
+ 	mDDRCLKS     	= (regval&0x08000000)>>27;
+ 	mKEYSCLKS    	= (regval&0x10000000)>>28;
+ 	mARMCLKS     	= (regval&0x20000000)>>29;
+ 	mPRTCCLKS    	= (regval&0x40000000)>>30;
+ 
+         strcpy(str,strEn); if(mCLOCKOUT0EN!=0) strcpy(str,strDis);
+         printk("* CLOCKOUT0EN is %2d = %s\n",mCLOCKOUT0EN,str);
+ 
+         strcpy(str,strEn); if(mCLOCKOUT1EN!=0) strcpy(str,strDis);
+         printk("* CLOCKOUT1EN is %2d = %s\n",mCLOCKOUT1EN,str);
+ 
+         strcpy(str,strEn); if(mCLOCKOUT2EN!=0) strcpy(str,strDis);
+         printk("* CLOCKOUT2EN is %2d = %s\n",mCLOCKOUT2EN,str);
+ 
+         printk("* DIV1        is %2d = %d\n",mDIV1,mDIV1+1);
+ 
+         printk("* DIV2        is %2d = %d\n",mDIV2,mDIV2+1);
+ 
+         printk("* DIV3        is %2d = %d\n",mDIV3,mDIV3+1);
+ 
+         strcpy(str,"PLLC1SYSCLK2"); if(mHDVICPCLKS!=0) strcpy(str,"PLLC2SYSCLK2");
+         printk("* HDVICPCLKS  is %2d = %s\n",mHDVICPCLKS,str);
+ 
+         strcpy(str,"PLLC1SYSCLK7"); if(mDDRCLKS!=0) strcpy(str,"PLLC2SYSCLK3");
+         printk("* DDRCLKS     is %2d = %s\n",mDDRCLKS,str);
+ 
+         strcpy(str,"RTCXI (MXI)"); if(mKEYSCLKS!=0) strcpy(str,"PLLC1AUXCLK");
+         printk("* KEYSCLKS    is %2d = %s\n",mKEYSCLKS,str);
+ 
+         strcpy(str,"PLLC1SYSCLK2"); if(mARMCLKS!=0) strcpy(str,"PLLC2SYSCLK2");
+         printk("* ARMCLKS     is %2d = %s\n",mARMCLKS,str);
+ 
+         strcpy(str,"RTCXI (OSC)"); if(mPRTCCLKS!=0) strcpy(str,"PLLC1AUXCLK");
+         printk("* PRTCCLKS    is %2d = %s\n",mPRTCCLKS,str);
+ 
+         printk("* CLKIN       = %d Hz\n",DM365_REF_FREQ);
+ 
+         regval= __raw_readl(SystemRegisters+0x800+0x110); //Read PLL1CTL
+ 	mIsPLL1en		= (regval&0x00000001)>>0;
+ 
+         regval= __raw_readl(SystemRegisters+0x800+0x114); //Read PLL1PreDiv
+ 	mPLL1PreDiv		= (regval&0x0000001F)>>0;
+ 
+         printk("* PLL1PreDiv  is %2d = %2d\n",mPLL1PreDiv,mPLL1PreDiv+1);
+ 
+         regval= __raw_readl(SystemRegisters+0x800+0x110); //Read PLL1Mul
+ 	mPLL1Mul		= (regval&0x000003FF)>>0;
+         printk("* PLL1Mul     is %4d = %4d\n",mPLL1Mul,mPLL1Mul*2);
+ 
+         regval= __raw_readl(SystemRegisters+0x800+0x128); //Read PLL1PostDiv
+ 	mPLL1PostDiv		= (regval&0x0000001F)>>0;
+ 	mIsPLL1PostDiv		= (regval&0x00008000)>>15;
+ 	strcpy(str,strDis); if(mIsPLL1PostDiv!=0) strcpy(str,strEn);
+         printk("* PLL1PostDiv is %2d = %2d -- %s\n",mPLL1PostDiv,mPLL1PostDiv+1,str);
+         if(mIsPLL1PostDiv==0) mPLL1PostDiv=0;
+ 
+ 	strcpy(str,"bypass"); if(mIsPLL1en!=0) strcpy(str,strEn);
+ 	mPLL1Clk = ( (DM365_REF_FREQ / (mPLL1PreDiv+1)) * (2*mPLL1Mul) ) / (mPLL1PostDiv+1);
+         if(mIsPLL1en==0) mPLL1Clk=DM365_REF_FREQ;
+         printk("* PLL1 CLK    = %d Hz -- %s\n",mPLL1Clk,str);
+ 
+         regval= __raw_readl(SystemRegisters+0x800+0x118); //Read PLL1DIV1
+ 	mPLL1DIV1		= (regval&0x0000001F)>>0;
+ 	mPLL1DIV1en		= (regval&0x00008000)>>15;
+ 	strcpy(str,strDis); if(mPLL1DIV1en!=0) strcpy(str,strEn);
+         printk("* PLL1DIV1    is %2d = %2d -- %s\n",mPLL1DIV1,mPLL1DIV1+1,str);
+ 	if(mPLL1DIV1en==0) mPLL1DIV1=0;
+ 
+         regval= __raw_readl(SystemRegisters+0x800+0x11C); //Read PLL1DIV2
+ 	mPLL1DIV2		= (regval&0x0000001F)>>0;
+ 	mPLL1DIV2en		= (regval&0x00008000)>>15;
+ 	strcpy(str,strDis); if(mPLL1DIV2en!=0) strcpy(str,strEn);
+         printk("* PLL1DIV2    is %2d = %2d -- %s\n",mPLL1DIV2,mPLL1DIV2+1,str);
+ 	if(mPLL1DIV2en==0) mPLL1DIV2=0;
+ 
+         regval= __raw_readl(SystemRegisters+0x800+0x120); //Read PLL1DIV3
+ 	mPLL1DIV3		= (regval&0x0000001F)>>0;
+ 	mPLL1DIV3en		= (regval&0x00008000)>>15;
+ 	strcpy(str,strDis); if(mPLL1DIV3en!=0) strcpy(str,strEn);
+         printk("* PLL1DIV3    is %2d = %2d -- %s\n",mPLL1DIV3,mPLL1DIV3+1,str);
+ 	if(mPLL1DIV3en==0) mPLL1DIV3=0;
+ 
+         regval= __raw_readl(SystemRegisters+0x800+0x160); //Read PLL1DIV4
+ 	mPLL1DIV4		= (regval&0x0000001F)>>0;
+ 	mPLL1DIV4en		= (regval&0x00008000)>>15;
+ 	strcpy(str,strDis); if(mPLL1DIV4en!=0) strcpy(str,strEn);
+         printk("* PLL1DIV4    is %2d = %2d -- %s\n",mPLL1DIV4,mPLL1DIV4+1,str);
+ 	if(mPLL1DIV4en==0) mPLL1DIV4=0;
+ 
+         regval= __raw_readl(SystemRegisters+0x800+0x164); //Read PLL1DIV5
+ 	mPLL1DIV5		= (regval&0x0000001F)>>0;
+ 	mPLL1DIV5en		= (regval&0x00008000)>>15;
+ 	strcpy(str,strDis); if(mPLL1DIV5en!=0) strcpy(str,strEn);
+ 	printk("* PLL1DIV5    is %2d = %2d -- %s\n",mPLL1DIV5,mPLL1DIV5+1,str);
+ 	if(mPLL1DIV5en==0) mPLL1DIV5=0;
+ 
+         regval= __raw_readl(SystemRegisters+0x800+0x168); //Read PLL1DIV6
+ 	mPLL1DIV6		= (regval&0x0000001F)>>0;
+ 	mPLL1DIV6en	= (regval&0x00008000)>>15;
+ 	strcpy(str,strDis); if(mPLL1DIV6en!=0) strcpy(str,strEn);
+         printk("* PLL1DIV6    is %2d = %2d -- %s\n",mPLL1DIV6,mPLL1DIV6+1,str);
+ 	if(mPLL1DIV6en==0) mPLL1DIV6=0;
+ 
+         regval= __raw_readl(SystemRegisters+0x800+0x16C); //Read PLL1DIV7
+ 	mPLL1DIV7		= (regval&0x0000001F)>>0;
+ 	mPLL1DIV7en	= (regval&0x00008000)>>15;
+ 	strcpy(str,strDis); if(mPLL1DIV7en!=0) strcpy(str,strEn);
+         printk("* PLL1DIV7    is %2d = %2d -- %s\n",mPLL1DIV7,mPLL1DIV7+1,str);
+ 	if(mPLL1DIV7en==0) mPLL1DIV7=0;
+ 
+         regval= __raw_readl(SystemRegisters+0x800+0x170); //Read PLL1DIV8
+ 	mPLL1DIV8		= (regval&0x0000001F)>>0;
+ 	mPLL1DIV8en	= (regval&0x00008000)>>15;
+ 	strcpy(str,strDis); if(mPLL1DIV8en!=0) strcpy(str,strEn);
+         printk("* PLL1DIV8    is %2d = %2d -- %s\n",mPLL1DIV8,mPLL1DIV8+1,str);
+ 	if(mPLL1DIV8en==0) mPLL1DIV8=0;
+ 
+         regval= __raw_readl(SystemRegisters+0x800+0x174); //Read PLL1DIV9
+ 	mPLL1DIV9		= (regval&0x0000001F)>>0;
+ 	mPLL1DIV9en	= (regval&0x00008000)>>15;
+ 	strcpy(str,strDis); if(mPLL1DIV9en!=0) strcpy(str,strEn);
+         printk("* PLL1DIV9    is %2d = %2d -- %s\n",mPLL1DIV9,mPLL1DIV9+1,str);
+ 	if(mPLL1DIV9en==0) mPLL1DIV9=0;
+ 
+         regval= __raw_readl(SystemRegisters+0xC00+0x110); //Read PLL2CTL
+ 	mIsPLL2en		= (regval&0x00000001)>>0;
+ 
+         regval= __raw_readl(SystemRegisters+0xC00+0x114); //Read PLL2PreDiv
+ 	mPLL2PreDiv		= (regval&0x0000001F)>>0;
+         printk("* PLL2PreDiv  is %2d = %2d\n",mPLL2PreDiv,mPLL2PreDiv+1);
+ 
+         regval= __raw_readl(SystemRegisters+0xC00+0x110); //Read PLL2Mul
+ 	mPLL2Mul		= (regval&0x000003FF)>>0;
+         printk("* PLL2Mul     is %4d = %4d\n",mPLL2Mul,mPLL2Mul*2);
+ 
+         regval= __raw_readl(SystemRegisters+0xC00+0x128); //Read PLL2PostDiv
+ 	mPLL2PostDiv		= (regval&0x0000001F)>>0;
+ 	mIsPLL2PostDiv		= (regval&0x00008000)>>15;
+ 	strcpy(str,strDis); if(mIsPLL2PostDiv!=0) strcpy(str,strEn);
+         printk("* PLL2PostDiv is %2d = %2d -- %s\n",mPLL2PostDiv,mPLL2PostDiv+1,str);
+ 	if(mIsPLL2PostDiv==0) mPLL2PostDiv=0;
+ 
+ 	strcpy(str,"bypass"); if(mIsPLL2en!=0) strcpy(str,strEn);
+ 	mPLL2Clk = ( (DM365_REF_FREQ / (mPLL2PreDiv+1)) * (2*mPLL2Mul) ) / (mPLL2PostDiv+1);
+ 	if(mIsPLL2en==0) mPLL2Clk=DM365_REF_FREQ;
+         printk("* PLL2 CLK    = %d Hz -- %s\n",mPLL2Clk,str);
+ 
+         regval= __raw_readl(SystemRegisters+0xC00+0x118); //Read PLL2DIV1
+ 	mPLL2DIV1		= (regval&0x0000001F)>>0;
+ 	mPLL2DIV1en		= (regval&0x00008000)>>15;
+ 	strcpy(str,strDis); if(mPLL2DIV1en!=0) strcpy(str,strEn);
+         printk("* PLL2DIV1    is %2d = %2d -- %s\n",mPLL2DIV1,mPLL2DIV1+1,str);
+ 	if(mPLL2DIV1en==0) mPLL2DIV1=0;
+ 
+         regval= __raw_readl(SystemRegisters+0xC00+0x11C); //Read PLL2DIV2
+ 	mPLL2DIV2		= (regval&0x0000001F)>>0;
+ 	mPLL2DIV2en	= (regval&0x00008000)>>15;
+ 	strcpy(str,strDis); if(mPLL2DIV2en!=0) strcpy(str,strEn);
+         printk("* PLL2DIV2    is %2d = %2d -- %s\n",mPLL2DIV2,mPLL2DIV2+1,str);
+ 	if(mPLL2DIV2en==0) mPLL2DIV2=0;
+ 
+         regval= __raw_readl(SystemRegisters+0xC00+0x120); //Read PLL2DIV3
+ 	mPLL2DIV3		= (regval&0x0000001F)>>0;
+ 	mPLL2DIV3en	= (regval&0x00008000)>>15;
+ 	strcpy(str,strDis); if(mPLL2DIV3en!=0) strcpy(str,strEn);
+         printk("* PLL2DIV3    is %2d = %2d -- %s\n",mPLL2DIV3,mPLL2DIV3+1,str);
+ 	if(mPLL2DIV3en==0) mPLL2DIV3=0;
+ 
+         regval= __raw_readl(SystemRegisters+0xC00+0x160); //Read PLL2DIV4
+ 	mPLL2DIV4		= (regval&0x0000001F)>>0;
+ 	mPLL2DIV4en	= (regval&0x00008000)>>15;
+ 	strcpy(str,strDis); if(mPLL2DIV4en!=0) strcpy(str,strEn);
+         printk("* PLL2DIV4    is %2d = %2d -- %s\n",mPLL2DIV4,mPLL2DIV4+1,str);
+ 	if(mPLL2DIV4en==0) mPLL2DIV4=0;
+ 
+         regval= __raw_readl(SystemRegisters+0xC00+0x164); //Read PLL2DIV5
+ 	mPLL2DIV5		= (regval&0x0000001F)>>0;
+ 	mPLL2DIV5en	= (regval&0x00008000)>>15;
+ 	strcpy(str,strDis); if(mPLL2DIV5en!=0) strcpy(str,strEn);
+         printk("* PLL2DIV5    is %2d = %2d -- %s\n",mPLL2DIV5,mPLL2DIV5+1,str);
+ 	if(mPLL2DIV5en==0) mPLL2DIV5=0;
+ 
+ 	//check ARM CLOCK source
+ 	if(mARMCLKS==0) {
+         	mARMCORECLK = mPLL1Clk / (mPLL1DIV2+1);
+         }
+ 	else {
+         	mARMCORECLK = mPLL2Clk / (mPLL2DIV2+1);
+ 	}
+ 	printk("* ARM CORE CLK           = %d Hz\n",mARMCORECLK);
+ 
+ 
+ 	//check HDVICP CLOCK source
+ 	if(mHDVICPCLKS==0) {
+         	mHDVICPCORECLK = mPLL1Clk / (mPLL1DIV2+1);
+         }
+ 	else {
+         	mHDVICPCORECLK = mPLL2Clk / (mPLL2DIV2+1);
+ 	}
+ 	printk("* HDVICP CLK             = %d Hz\n",mHDVICPCORECLK);
+ 
+         //check DDR CLOCK source
+ 	if(mDDRCLKS==0) {
+         	mDDRCORECLK = mPLL1Clk / (mPLL1DIV7+1);
+         }
+ 	else {
+         	mDDRCORECLK = mPLL2Clk / (mPLL2DIV3+1);
+ 	}
+ 	printk("* DDR CLK supply for PHY = %d Hz ; Real DDR clk = %d Hz\n",mDDRCORECLK,mDDRCORECLK/2);
+ 
+ 	//calc VoiceCodec Clock	
+ 	mVoiceCodecCLK=(mPLL2Clk/(mPLL2DIV4+1))/(mDIV2+1);
+ 	printk("* VoiceCodec CLK         = %d Hz ; Sample Freq = %d Hz\n",mVoiceCodecCLK,mVoiceCodecCLK/256);
+ 
+ 	if(mPLL2Clk!=594000000) {
+ 		printk("*** WARNING!!! Your PPL2 clock is not 594Mhz. Check VoiceCodec sampling frequency (see above).\n");
+ 		printk("*** The VoiceCodec can work with Fs at range from 8kHz to 16kHz.\n");
+ 		printk("*** Maybe you need to change the divider in 'dm365.c' ('arch/arm/mach-davinci').\n");
+ 	}
+ 
+ }
+
+
 void __init dm365_init_vc(struct snd_platform_data *pdata)
 {
 	davinci_cfg_reg(DM365_EVT2_VC_TX);
 	davinci_cfg_reg(DM365_EVT3_VC_RX);
+	davinci_cfg_reg(DM365_INT_VCIF_ENABLE);
 	dm365_vc_device.dev.platform_data = pdata;
 	platform_device_register(&dm365_vc_device);
 }
@@ -1132,13 +1648,16 @@ void __init dm365_init_rtc(void)
 void __init dm365_init(void)
 {
 	davinci_common_init(&davinci_soc_info_dm365);
+	ShowClocksInfo(); //Show Board Clocks
 	davinci_map_sysmod();
 }
+
+#define DM365_ISP5_REG_BASE		0x01C70000
 
 static struct resource dm365_vpss_resources[] = {
 	{
 		/* VPSS ISP5 Base address */
-		.name           = "isp5",
+		.name           = "vpss",
 		.start          = 0x01c70000,
 		.end            = 0x01c70000 + 0xff,
 		.flags          = IORESOURCE_MEM,
@@ -1153,11 +1672,11 @@ static struct resource dm365_vpss_resources[] = {
 };
 
 static struct platform_device dm365_vpss_device = {
-       .name                   = "vpss",
-       .id                     = -1,
-       .dev.platform_data      = "dm365_vpss",
-       .num_resources          = ARRAY_SIZE(dm365_vpss_resources),
-       .resource               = dm365_vpss_resources,
+	.name			= "vpss",
+	.id			= -1,
+	.dev.platform_data	= "dm365_vpss",
+	.num_resources		= ARRAY_SIZE(dm365_vpss_resources),
+	.resource		= dm365_vpss_resources,
 };
 
 static struct resource vpfe_resources[] = {
@@ -1185,15 +1704,6 @@ static struct platform_device vpfe_capture_dev = {
 	},
 };
 
-static void dm365_isif_setup_pinmux(void)
-{
-	davinci_cfg_reg(DM365_VIN_CAM_WEN);
-	davinci_cfg_reg(DM365_VIN_CAM_VD);
-	davinci_cfg_reg(DM365_VIN_CAM_HD);
-	davinci_cfg_reg(DM365_VIN_YIN4_7_EN);
-	davinci_cfg_reg(DM365_VIN_YIN0_3_EN);
-}
-
 static struct resource isif_resource[] = {
 	/* ISIF Base address */
 	{
@@ -1215,14 +1725,13 @@ static struct resource isif_resource[] = {
 	},
 };
 static struct platform_device dm365_isif_dev = {
-	.name           = "isif",
+	.name           = "dm365_isif",
 	.id             = -1,
 	.num_resources  = ARRAY_SIZE(isif_resource),
 	.resource       = isif_resource,
 	.dev = {
 		.dma_mask               = &vpfe_capture_dma_mask,
 		.coherent_dma_mask      = DMA_BIT_MASK(32),
-		.platform_data		= dm365_isif_setup_pinmux,
 	},
 };
 
@@ -1234,16 +1743,26 @@ static int __init dm365_init_devices(void)
 	davinci_cfg_reg(DM365_INT_EDMA_CC);
 	platform_device_register(&dm365_edma_device);
 
+	/*
+	* setup Mux configuration for vpfe input and register
+	* vpfe capture platform device
+	*/
+	platform_device_register(&dm365_vpss_device);
+	platform_device_register(&dm365_ipipeif_dev);
+	platform_device_register(&dm365_isif_dev);
+	platform_device_register(&vpfe_capture_dev);
+
+	/* Register OSD device */
+	platform_device_register(&dm365_osd_dev);
+
+	/* Register VENC device */
+	platform_device_register(&dm365_venc_dev);
+
 	platform_device_register(&dm365_mdio_device);
 	platform_device_register(&dm365_emac_device);
 	clk_add_alias(NULL, dev_name(&dm365_mdio_device.dev),
-		      NULL, &dm365_emac_device.dev);
+			NULL, &dm365_emac_device.dev);
 
-	/* Add isif clock alias */
-	clk_add_alias("master", dm365_isif_dev.name, "vpss_master", NULL);
-	platform_device_register(&dm365_vpss_device);
-	platform_device_register(&dm365_isif_dev);
-	platform_device_register(&vpfe_capture_dev);
 	return 0;
 }
 postcore_initcall(dm365_init_devices);

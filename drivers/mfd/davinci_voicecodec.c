@@ -29,7 +29,7 @@
 #include <linux/clk.h>
 
 #include <sound/pcm.h>
-
+#include <mach/hardware.h>
 #include <linux/mfd/davinci_voicecodec.h>
 
 u32 davinci_vc_read(struct davinci_vc *davinci_vc, int reg)

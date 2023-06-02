@@ -406,7 +406,7 @@ static irqreturn_t mpc512x_psc_spi_isr(int irq, void *dev_id)
 }
 
 /* bus_num is used only for the case dev->platform_data == NULL */
-static int mpc512x_psc_spi_do_probe(struct device *dev, u32 regaddr,
+static int __devinit mpc512x_psc_spi_do_probe(struct device *dev, u32 regaddr,
 					      u32 size, unsigned int irq,
 					      s16 bus_num)
 {
@@ -493,7 +493,7 @@ free_master:
 	return ret;
 }
 
-static int mpc512x_psc_spi_do_remove(struct device *dev)
+static int __devexit mpc512x_psc_spi_do_remove(struct device *dev)
 {
 	struct spi_master *master = spi_master_get(dev_get_drvdata(dev));
 	struct mpc512x_psc_spi *mps = spi_master_get_devdata(master);
@@ -509,7 +509,7 @@ static int mpc512x_psc_spi_do_remove(struct device *dev)
 	return 0;
 }
 
-static int mpc512x_psc_spi_of_probe(struct platform_device *op)
+static int __devinit mpc512x_psc_spi_of_probe(struct platform_device *op)
 {
 	const u32 *regaddr_p;
 	u64 regaddr64, size64;
@@ -534,7 +534,7 @@ static int mpc512x_psc_spi_of_probe(struct platform_device *op)
 				irq_of_parse_and_map(op->dev.of_node, 0), id);
 }
 
-static int mpc512x_psc_spi_of_remove(struct platform_device *op)
+static int __devexit mpc512x_psc_spi_of_remove(struct platform_device *op)
 {
 	return mpc512x_psc_spi_do_remove(&op->dev);
 }
@@ -548,7 +548,7 @@ MODULE_DEVICE_TABLE(of, mpc512x_psc_spi_of_match);
 
 static struct platform_driver mpc512x_psc_spi_of_driver = {
 	.probe = mpc512x_psc_spi_of_probe,
-	.remove = mpc512x_psc_spi_of_remove,
+	.remove = __devexit_p(mpc512x_psc_spi_of_remove),
 	.driver = {
 		.name = "mpc512x-psc-spi",
 		.owner = THIS_MODULE,

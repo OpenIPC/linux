@@ -87,16 +87,7 @@ hash_net4_data_copy(struct hash_net4_elem *dst,
 static inline void
 hash_net4_data_flags(struct hash_net4_elem *dst, u32 flags)
 {
-	dst->nomatch = !!(flags & IPSET_FLAG_NOMATCH);
-}
-
-static inline void
-hash_net4_data_reset_flags(struct hash_net4_elem *dst, u32 *flags)
-{
-	if (dst->nomatch) {
-		*flags = IPSET_FLAG_NOMATCH;
-		dst->nomatch = 0;
-	}
+	dst->nomatch = flags & IPSET_FLAG_NOMATCH;
 }
 
 static inline int
@@ -317,16 +308,7 @@ hash_net6_data_copy(struct hash_net6_elem *dst,
 static inline void
 hash_net6_data_flags(struct hash_net6_elem *dst, u32 flags)
 {
-	dst->nomatch = !!(flags & IPSET_FLAG_NOMATCH);
-}
-
-static inline void
-hash_net6_data_reset_flags(struct hash_net6_elem *dst, u32 *flags)
-{
-	if (dst->nomatch) {
-		*flags = IPSET_FLAG_NOMATCH;
-		dst->nomatch = 0;
-	}
+	dst->nomatch = flags & IPSET_FLAG_NOMATCH;
 }
 
 static inline int

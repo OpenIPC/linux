@@ -27,8 +27,8 @@ struct videobuf_dma_contig_memory {
 	u32 magic;
 	void *vaddr;
 	dma_addr_t dma_handle;
-	bool cached;
 	unsigned long size;
+	int is_userptr;
 };
 
 #define MAGIC_DC_MEM 0x0733ac61
@@ -38,58 +38,8 @@ struct videobuf_dma_contig_memory {
 		BUG();							    \
 	}
 
-static int __videobuf_dc_alloc(struct device *dev,
-			       struct videobuf_dma_contig_memory *mem,
-			       unsigned long size, gfp_t flags)
-{
-	mem->size = size;
-	if (mem->cached) {
-		mem->vaddr = alloc_pages_exact(mem->size, flags | GFP_DMA);
-		if (mem->vaddr) {
-			int err;
-
-			mem->dma_handle = dma_map_single(dev, mem->vaddr,
-							 mem->size,
-							 DMA_FROM_DEVICE);
-			err = dma_mapping_error(dev, mem->dma_handle);
-			if (err) {
-				dev_err(dev, "dma_map_single failed\n");
-
-				free_pages_exact(mem->vaddr, mem->size);
-				mem->vaddr = NULL;
-				return err;
-			}
-		}
-	} else
-		mem->vaddr = dma_alloc_coherent(dev, mem->size,
-						&mem->dma_handle, flags);
-
-	if (!mem->vaddr) {
-		dev_err(dev, "memory alloc size %ld failed\n", mem->size);
-		return -ENOMEM;
-	}
-
-	dev_dbg(dev, "dma mapped data is at %p (%ld)\n", mem->vaddr, mem->size);
-
-	return 0;
-}
-
-static void __videobuf_dc_free(struct device *dev,
-			       struct videobuf_dma_contig_memory *mem)
-{
-	if (mem->cached) {
-		if (!mem->vaddr)
-			return;
-		dma_unmap_single(dev, mem->dma_handle, mem->size,
-				 DMA_FROM_DEVICE);
-		free_pages_exact(mem->vaddr, mem->size);
-	} else
-		dma_free_coherent(dev, mem->size, mem->vaddr, mem->dma_handle);
-
-	mem->vaddr = NULL;
-}
-
-static void videobuf_vm_open(struct vm_area_struct *vma)
+static void
+videobuf_vm_open(struct vm_area_struct *vma)
 {
 	struct videobuf_mapping *map = vma->vm_private_data;
 
@@ -105,15 +55,15 @@ static void videobuf_vm_close(struct vm_area_struct *vma)
 	struct videobuf_queue *q = map->q;
 	int i;
 
-	dev_dbg(q->dev, "vm_close %p [count=%u,vma=%08lx-%08lx]\n",
+	dev_dbg(map->q->dev, "vm_close %p [count=%u,vma=%08lx-%08lx]\n",
 		map, map->count, vma->vm_start, vma->vm_end);
 
 	map->count--;
 	if (0 == map->count) {
 		struct videobuf_dma_contig_memory *mem;
 
-		dev_dbg(q->dev, "munmap %p q=%p\n", map, q);
-		videobuf_queue_lock(q);
+		dev_dbg(map->q->dev, "munmap %p q=%p\n", map, q);
+		mutex_lock(&q->vb_lock);
 
 		/* We need first to cancel streams, before unmapping */
 		if (q->streaming)
@@ -139,26 +89,27 @@ static void videobuf_vm_close(struct vm_area_struct *vma)
 				/* vfree is not atomic - can't be
 				   called with IRQ's disabled
 				 */
-				dev_dbg(q->dev, "buf[%d] freeing %p\n",
+				dev_dbg(map->q->dev, "buf[%d] freeing %p\n",
 					i, mem->vaddr);
 
-				__videobuf_dc_free(q->dev, mem);
+				dma_free_coherent(q->dev, mem->size,
+						  mem->vaddr, mem->dma_handle);
 				mem->vaddr = NULL;
 			}
 
-			q->bufs[i]->map = NULL;
+			q->bufs[i]->map   = NULL;
 			q->bufs[i]->baddr = 0;
 		}
 
 		kfree(map);
 
-		videobuf_queue_unlock(q);
+		mutex_unlock(&q->vb_lock);
 	}
 }
 
 static const struct vm_operations_struct videobuf_vm_ops = {
-	.open	= videobuf_vm_open,
-	.close	= videobuf_vm_close,
+	.open     = videobuf_vm_open,
+	.close    = videobuf_vm_close,
 };
 
 /**
@@ -169,6 +120,7 @@ static const struct vm_operations_struct videobuf_vm_ops = {
  */
 static void videobuf_dma_contig_user_put(struct videobuf_dma_contig_memory *mem)
 {
+	mem->is_userptr = 0;
 	mem->dma_handle = 0;
 	mem->size = 0;
 }
@@ -195,6 +147,7 @@ static int videobuf_dma_contig_user_get(struct videobuf_dma_contig_memory *mem,
 
 	offset = vb->baddr & ~PAGE_MASK;
 	mem->size = PAGE_ALIGN(vb->size + offset);
+	mem->is_userptr = 0;
 	ret = -EINVAL;
 
 	down_read(&mm->mmap_sem);
@@ -228,39 +181,30 @@ static int videobuf_dma_contig_user_get(struct videobuf_dma_contig_memory *mem,
 		pages_done++;
 	}
 
-out_up:
+	if (!ret)
+		mem->is_userptr = 1;
+
+ out_up:
 	up_read(&current->mm->mmap_sem);
 
 	return ret;
 }
 
-static struct videobuf_buffer *__videobuf_alloc_vb(size_t size, bool cached)
+static void *__videobuf_alloc(size_t size)
 {
 	struct videobuf_dma_contig_memory *mem;
 	struct videobuf_buffer *vb;
 
 	vb = kzalloc(size + sizeof(*mem), GFP_KERNEL);
 	if (vb) {
-		vb->priv = ((char *)vb) + size;
-		mem = vb->priv;
+		mem = vb->priv = ((char *)vb) + size;
 		mem->magic = MAGIC_DC_MEM;
-		mem->cached = cached;
 	}
 
 	return vb;
 }
 
-static struct videobuf_buffer *__videobuf_alloc_uncached(size_t size)
-{
-	return __videobuf_alloc_vb(size, false);
-}
-
-static struct videobuf_buffer *__videobuf_alloc_cached(size_t size)
-{
-	return __videobuf_alloc_vb(size, true);
-}
-
-static void *__videobuf_to_vaddr(struct videobuf_buffer *buf)
+static void *__videobuf_to_vmalloc(struct videobuf_buffer *buf)
 {
 	struct videobuf_dma_contig_memory *mem = buf->priv;
 
@@ -283,6 +227,7 @@ static int __videobuf_iolock(struct videobuf_queue *q,
 	case V4L2_MEMORY_MMAP:
 		dev_dbg(q->dev, "%s memory method MMAP\n", __func__);
 
+
 		/* All handling should be done by __videobuf_mmap_mapper() */
 		if (!mem->vaddr) {
 			dev_err(q->dev, "memory is not alloced/mmapped.\n");
@@ -297,115 +242,121 @@ static int __videobuf_iolock(struct videobuf_queue *q,
 			return videobuf_dma_contig_user_get(mem, vb);
 
 		/* allocate memory for the read() method */
-		if (__videobuf_dc_alloc(q->dev, mem, PAGE_ALIGN(vb->size),
-					GFP_KERNEL))
+		mem->size = PAGE_ALIGN(vb->size);
+		mem->vaddr = dma_alloc_coherent(q->dev, mem->size,
+						&mem->dma_handle, GFP_KERNEL);
+		if (!mem->vaddr) {
+			dev_err(q->dev, "dma_alloc_coherent %ld failed\n",
+					 mem->size);
 			return -ENOMEM;
+		}
+
+		dev_dbg(q->dev, "dma_alloc_coherent data is at %p (%ld)\n",
+			mem->vaddr, mem->size);
 		break;
 	case V4L2_MEMORY_OVERLAY:
 	default:
-		dev_dbg(q->dev, "%s memory method OVERLAY/unknown\n", __func__);
+		dev_dbg(q->dev, "%s memory method OVERLAY/unknown\n",
+			__func__);
 		return -EINVAL;
 	}
 
 	return 0;
 }
 
-static int __videobuf_sync(struct videobuf_queue *q,
-			   struct videobuf_buffer *buf)
+static int __videobuf_mmap_free(struct videobuf_queue *q)
 {
-	struct videobuf_dma_contig_memory *mem = buf->priv;
-	BUG_ON(!mem);
-	MAGIC_CHECK(mem->magic, MAGIC_DC_MEM);
+	unsigned int i;
 
-	dma_sync_single_for_cpu(q->dev, mem->dma_handle, mem->size,
-				DMA_FROM_DEVICE);
+	dev_dbg(q->dev, "%s\n", __func__);
+	for (i = 0; i < VIDEO_MAX_FRAME; i++) {
+		if (q->bufs[i] && q->bufs[i]->map)
+			return -EBUSY;
+	}
 
 	return 0;
 }
 
 static int __videobuf_mmap_mapper(struct videobuf_queue *q,
-				  struct videobuf_buffer *buf,
 				  struct vm_area_struct *vma)
 {
 	struct videobuf_dma_contig_memory *mem;
 	struct videobuf_mapping *map;
+	unsigned int first;
 	int retval;
-	unsigned long size;
-	unsigned long pos, start = vma->vm_start;
-	struct page *page;
+	unsigned long size, offset = vma->vm_pgoff << PAGE_SHIFT;
 
 	dev_dbg(q->dev, "%s\n", __func__);
+	if (!(vma->vm_flags & VM_WRITE) || !(vma->vm_flags & VM_SHARED))
+		return -EINVAL;
+
+	/* look for first buffer to map */
+	for (first = 0; first < VIDEO_MAX_FRAME; first++) {
+		if (!q->bufs[first])
+			continue;
+
+		if (V4L2_MEMORY_MMAP != q->bufs[first]->memory)
+			continue;
+		if (q->bufs[first]->boff == offset)
+			break;
+	}
+	if (VIDEO_MAX_FRAME == first) {
+		dev_dbg(q->dev, "invalid user space offset [offset=0x%lx]\n",
+			offset);
+		return -EINVAL;
+	}
 
 	/* create mapping + update buffer list */
 	map = kzalloc(sizeof(struct videobuf_mapping), GFP_KERNEL);
 	if (!map)
 		return -ENOMEM;
 
-	buf->map = map;
+	q->bufs[first]->map = map;
+	map->start = vma->vm_start;
+	map->end = vma->vm_end;
 	map->q = q;
 
-	buf->baddr = vma->vm_start;
+	q->bufs[first]->baddr = vma->vm_start;
 
-	mem = buf->priv;
+	mem = q->bufs[first]->priv;
 	BUG_ON(!mem);
 	MAGIC_CHECK(mem->magic, MAGIC_DC_MEM);
 
-	if (__videobuf_dc_alloc(q->dev, mem, PAGE_ALIGN(buf->bsize),
-				GFP_KERNEL | __GFP_COMP))
+	mem->size = PAGE_ALIGN(q->bufs[first]->bsize);
+	mem->vaddr = dma_alloc_coherent(q->dev, mem->size,
+					&mem->dma_handle, GFP_KERNEL);
+	if (!mem->vaddr) {
+		dev_err(q->dev, "dma_alloc_coherent size %ld failed\n",
+			mem->size);
 		goto error;
+	}
+	dev_dbg(q->dev, "dma_alloc_coherent data is at addr %p (size %ld)\n",
+		mem->vaddr, mem->size);
 
 	/* Try to remap memory */
 
 	size = vma->vm_end - vma->vm_start;
 	size = (size < mem->size) ? size : mem->size;
 
-	if (!mem->cached) {
-		vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
-		retval = remap_pfn_range(vma, vma->vm_start,
-			 mem->dma_handle >> PAGE_SHIFT,
+	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+	retval = remap_pfn_range(vma, vma->vm_start,
+				 mem->dma_handle >> PAGE_SHIFT,
 				 size, vma->vm_page_prot);
-		if (retval) {
-			dev_err(q->dev, "mmap: remap failed with error %d. ",
-								retval);
-			dma_free_coherent(q->dev, mem->size,
-					mem->vaddr, mem->dma_handle);
-			goto error;
-		}
-	} else {
-		pos = (unsigned long)mem->vaddr;
-
-		while (size > 0) {
-			page = virt_to_page((void *)pos);
-			if (NULL == page) {
-				dev_err(q->dev, "mmap: virt_to_page failed\n");
-				__videobuf_dc_free(q->dev, mem);
-				goto error;
-			}
-			retval = vm_insert_page(vma, start, page);
-			if (retval) {
-				dev_err(q->dev, "mmap: insert failed with error %d\n",
-					retval);
-				__videobuf_dc_free(q->dev, mem);
-				goto error;
-			}
-			start += PAGE_SIZE;
-			pos += PAGE_SIZE;
-
-			if (size > PAGE_SIZE)
-				size -= PAGE_SIZE;
-			else
-				size = 0;
-		}
+	if (retval) {
+		dev_err(q->dev, "mmap: remap failed with error %d. ", retval);
+		dma_free_coherent(q->dev, mem->size,
+				  mem->vaddr, mem->dma_handle);
+		goto error;
 	}
 
-	vma->vm_ops = &videobuf_vm_ops;
-	vma->vm_flags |= VM_DONTEXPAND;
+	vma->vm_ops          = &videobuf_vm_ops;
+	vma->vm_flags       |= VM_DONTEXPAND;
 	vma->vm_private_data = map;
 
 	dev_dbg(q->dev, "mmap %p: q=%p %08lx-%08lx (%lx) pgoff %08lx buf %d\n",
 		map, q, vma->vm_start, vma->vm_end,
-		(long int)buf->bsize, vma->vm_pgoff, buf->i);
-
+		(long int) q->bufs[first]->bsize,
+		vma->vm_pgoff, first);
 	videobuf_vm_open(vma);
 
 	return 0;
@@ -415,51 +366,85 @@ error:
 	return -ENOMEM;
 }
 
-static struct videobuf_qtype_ops qops = {
-	.magic		= MAGIC_QTYPE_OPS,
-	.alloc_vb	= __videobuf_alloc_uncached,
-	.iolock		= __videobuf_iolock,
-	.mmap_mapper	= __videobuf_mmap_mapper,
-	.vaddr		= __videobuf_to_vaddr,
-};
+static int __videobuf_copy_to_user(struct videobuf_queue *q,
+				   char __user *data, size_t count,
+				   int nonblocking)
+{
+	struct videobuf_dma_contig_memory *mem = q->read_buf->priv;
+	void *vaddr;
 
-static struct videobuf_qtype_ops qops_cached = {
-	.magic		= MAGIC_QTYPE_OPS,
-	.alloc_vb	= __videobuf_alloc_cached,
-	.iolock		= __videobuf_iolock,
-	.sync		= __videobuf_sync,
-	.mmap_mapper	= __videobuf_mmap_mapper,
-	.vaddr		= __videobuf_to_vaddr,
+	BUG_ON(!mem);
+	MAGIC_CHECK(mem->magic, MAGIC_DC_MEM);
+	BUG_ON(!mem->vaddr);
+
+	/* copy to userspace */
+	if (count > q->read_buf->size - q->read_off)
+		count = q->read_buf->size - q->read_off;
+
+	vaddr = mem->vaddr;
+
+	if (copy_to_user(data, vaddr + q->read_off, count))
+		return -EFAULT;
+
+	return count;
+}
+
+static int __videobuf_copy_stream(struct videobuf_queue *q,
+				  char __user *data, size_t count, size_t pos,
+				  int vbihack, int nonblocking)
+{
+	unsigned int  *fc;
+	struct videobuf_dma_contig_memory *mem = q->read_buf->priv;
+
+	BUG_ON(!mem);
+	MAGIC_CHECK(mem->magic, MAGIC_DC_MEM);
+
+	if (vbihack) {
+		/* dirty, undocumented hack -- pass the frame counter
+			* within the last four bytes of each vbi data block.
+			* We need that one to maintain backward compatibility
+			* to all vbi decoding software out there ... */
+		fc = (unsigned int *)mem->vaddr;
+		fc += (q->read_buf->size >> 2) - 1;
+		*fc = q->read_buf->field_count >> 1;
+		dev_dbg(q->dev, "vbihack: %d\n", *fc);
+	}
+
+	/* copy stuff using the common method */
+	count = __videobuf_copy_to_user(q, data, count, nonblocking);
+
+	if ((count == -EFAULT) && (pos == 0))
+		return -EFAULT;
+
+	return count;
+}
+
+static struct videobuf_qtype_ops qops = {
+	.magic        = MAGIC_QTYPE_OPS,
+
+	.alloc        = __videobuf_alloc,
+	.iolock       = __videobuf_iolock,
+	.mmap_free    = __videobuf_mmap_free,
+	.mmap_mapper  = __videobuf_mmap_mapper,
+	.video_copy_to_user = __videobuf_copy_to_user,
+	.copy_stream  = __videobuf_copy_stream,
+	.vmalloc      = __videobuf_to_vmalloc,
 };
 
 void videobuf_queue_dma_contig_init(struct videobuf_queue *q,
-				    const struct videobuf_queue_ops *ops,
+				    struct videobuf_queue_ops *ops,
 				    struct device *dev,
 				    spinlock_t *irqlock,
 				    enum v4l2_buf_type type,
 				    enum v4l2_field field,
 				    unsigned int msize,
-				    void *priv,
-				    struct mutex *ext_lock)
+				    void *priv)
 {
+	//printk("videobuf_queue_dma_contig_init %x\r\n", msize);
 	videobuf_queue_core_init(q, ops, dev, irqlock, type, field, msize,
-				 priv, &qops, ext_lock);
+				 priv, &qops);
 }
 EXPORT_SYMBOL_GPL(videobuf_queue_dma_contig_init);
-
-void videobuf_queue_dma_contig_init_cached(struct videobuf_queue *q,
-					   const struct videobuf_queue_ops *ops,
-					   struct device *dev,
-					   spinlock_t *irqlock,
-					   enum v4l2_buf_type type,
-					   enum v4l2_field field,
-					   unsigned int msize,
-					   void *priv, struct mutex *ext_lock)
-{
-	videobuf_queue_core_init(q, ops, dev, irqlock, type, field, msize,
-				 priv, &qops_cached, ext_lock);
-}
-EXPORT_SYMBOL_GPL(videobuf_queue_dma_contig_init_cached);
 
 dma_addr_t videobuf_to_dma_contig(struct videobuf_buffer *buf)
 {
@@ -498,10 +483,8 @@ void videobuf_dma_contig_free(struct videobuf_queue *q,
 	}
 
 	/* read() method */
-	if (mem->vaddr) {
-		__videobuf_dc_free(q->dev, mem);
-		mem->vaddr = NULL;
-	}
+	dma_free_coherent(q->dev, mem->size, mem->vaddr, mem->dma_handle);
+	mem->vaddr = NULL;
 }
 EXPORT_SYMBOL_GPL(videobuf_dma_contig_free);
 

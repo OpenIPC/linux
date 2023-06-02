@@ -1,20 +1,20 @@
 /*
- * Copyright (C) 2008-2009 Texas Instruments Inc
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
+* Copyright (C) 2008-2009 Texas Instruments Inc
+*
+* This program is free software; you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation; either version 2 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program; if not, write to the Free Software
+* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*/
 
 #ifndef _VPFE_CAPTURE_H
 #define _VPFE_CAPTURE_H
@@ -47,6 +47,8 @@ struct vpfe_pixel_format {
 	struct v4l2_fmtdesc fmtdesc;
 	/* bytes per pixel */
 	int bpp;
+	/* decoder format */
+	u32 subdev_pix_fmt;
 };
 
 struct vpfe_std_info {
@@ -54,6 +56,7 @@ struct vpfe_std_info {
 	int active_lines;
 	/* current frame format */
 	int frame_format;
+	struct v4l2_fract fps;
 };
 
 struct vpfe_route {
@@ -61,9 +64,18 @@ struct vpfe_route {
 	u32 output;
 };
 
+enum vpfe_subdev_id {
+	VPFE_SUBDEV_TVP5146 = 1,
+	VPFE_SUBDEV_MT9T031 = 2,
+	VPFE_SUBDEV_TVP7002 = 3,
+	VPFE_SUBDEV_MT9P031 = 4,
+	VPFE_SUBDEV_OV2643 = 5,
+	VPFE_SUBDEV_OV7690 = 6
+};
+
 struct vpfe_subdev_info {
-	/* Sub device name */
-	char name[32];
+	/* Sub device module name */
+	char module_name[32];
 	/* Sub device group id */
 	int grp_id;
 	/* Number of inputs supported */
@@ -72,30 +84,40 @@ struct vpfe_subdev_info {
 	struct v4l2_input *inputs;
 	/* Sub dev routing information for each input */
 	struct vpfe_route *routes;
-	/* check if sub dev supports routing */
-	int can_route;
 	/* ccdc bus/interface configuration */
 	struct vpfe_hw_if_param ccdc_if_params;
 	/* i2c subdevice board info */
 	struct i2c_board_info board_info;
+	/* Is this a camera sub device ? */
+	unsigned is_camera:1;
+	/* check if sub dev supports routing */
+	unsigned can_route:1;
+	/* registered ? */
+	unsigned registered:1;
 };
 
 struct vpfe_config {
 	/* Number of sub devices connected to vpfe */
 	int num_subdevs;
-	/* i2c bus adapter no */
-	int i2c_adapter_id;
 	/* information about each subdev */
 	struct vpfe_subdev_info *sub_devs;
 	/* evm card info */
 	char *card_name;
 	/* ccdc name */
 	char *ccdc;
-	/* vpfe clock */
-	struct clk *vpssclk;
-	struct clk *slaveclk;
-	/* Function for Clearing the interrupt */
-	void (*clr_intr)(int vdint);
+	/* setup function for the input path */
+	int (*setup_input)(enum vpfe_subdev_id id);
+	/* number of clocks */
+	int num_clocks;
+	/* clocks used for vpfe capture */
+	char *clocks[];
+};
+
+/* TODO - revisit for MC */
+enum output_src {
+	VPFE_CCDC_OUT,
+	VPFE_IMP_PREV_OUT,
+	VPFE_IMP_RSZ_OUT
 };
 
 struct vpfe_device {
@@ -106,6 +128,8 @@ struct vpfe_device {
 	struct v4l2_subdev **sd;
 	/* vpfe cfg */
 	struct vpfe_config *cfg;
+	/* clock ptrs for vpfe capture */
+	struct clk **clks;
 	/* V4l2 device */
 	struct v4l2_device v4l2_dev;
 	/* parent device */
@@ -118,8 +142,27 @@ struct vpfe_device {
 	u32 field_id;
 	/* flag to indicate whether decoder is initialized */
 	u8 initialized;
-	/* current interface type */
-	struct vpfe_hw_if_param vpfe_if_params;
+	/* TODO for MC. Previewer is always present if IMP is chained */
+	unsigned char imp_chained;
+	/* Resizer is chained at the output of previewer */
+	unsigned char rsz_present;
+	/* if second resolution output is present */
+	unsigned char second_output;
+	/* offset where second buffer starts from the starting of
+	 * the buffer. This is for storing the second IPIPE resizer
+	 * output
+	 */
+	u32 second_off;
+	/* Size of second output image */
+	int second_out_img_sz;
+	/* output from CCDC or IPIPE */
+	enum output_src out_from;
+	/* skip frame count */
+	u8 skip_frame_count;
+	/* skip frame count init value */
+	u8 skip_frame_count_init;
+	/* time per frame for skipping */
+	struct v4l2_fract timeperframe;
 	/* ptr to currently selected sub device */
 	struct vpfe_subdev_info *current_subdev;
 	/* current input at the sub device */
@@ -128,6 +171,10 @@ struct vpfe_device {
 	struct vpfe_std_info std_info;
 	/* std index into std table */
 	int std_index;
+	/* IRQ number for DMA transfer completion at the image processor */
+	unsigned int imp_dma_irq;
+	/* IRQ number for Update resizer imp registers */
+	unsigned int imp_update_irq;
 	/* CCDC IRQs used when CCDC/ISIF output to SDRAM */
 	unsigned int ccdc_irq0;
 	unsigned int ccdc_irq1;
@@ -167,7 +214,7 @@ struct vpfe_device {
 	u8 started;
 	/*
 	 * offset where second field starts from the starting of the
-	 * buffer for field separated YCbCr formats
+	 * buffer for field seperated YCbCr formats
 	 */
 	u32 field_off;
 };
@@ -186,6 +233,7 @@ struct vpfe_config_params {
 	u8 numbuffers;
 	u32 min_bufsize;
 	u32 device_bufsize;
+	u32 video_limit;
 };
 
 #endif				/* End of __KERNEL__ */
@@ -199,4 +247,7 @@ struct vpfe_config_params {
  **/
 #define VPFE_CMD_S_CCDC_RAW_PARAMS _IOW('V', BASE_VIDIOC_PRIVATE + 1, \
 					void *)
+#define VPFE_CMD_G_CCDC_RAW_PARAMS _IOR('V', BASE_VIDIOC_PRIVATE + 2, \
+					void *)
+
 #endif				/* _DAVINCI_VPFE_H */

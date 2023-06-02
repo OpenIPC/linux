@@ -1,37 +1,38 @@
 /*
- * Copyright (C) 2009 Texas Instruments Inc
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * vpss - video processing subsystem module header file.
- *
- * Include this header file if a driver needs to configure vpss system
- * module. It exports a set of library functions  for video drivers to
- * configure vpss system module functions such as clock enable/disable,
- * vpss interrupt mux to arm, and other common vpss system module
- * functions.
- */
+* Copyright (C) 2009 Texas Instruments Inc
+*
+* This program is free software; you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation; either version 2 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program; if not, write to the Free Software
+* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*
+* vpss - video processing subsystem module header file.
+*
+* Include this header file if a driver needs to configure vpss system
+* module. It exports a set of library functions  for video drivers to
+* configure vpss system module functions such as clock enable/disable,
+* vpss interrupt mux to arm, and other common vpss system module
+* functions.
+*/
 #ifndef _VPSS_H
 #define _VPSS_H
+
 
 /* selector for ccdc input selection on DM355 */
 enum vpss_ccdc_source_sel {
 	VPSS_CCDCIN,
 	VPSS_HSSIIN,
-	VPSS_PGLPBK,	/* for DM365 only */
-	VPSS_CCDCPG	/* for DM365 only */
+	VPSS_PGLPBK,
+	VPSS_CCDCPG
 };
 
 struct vpss_sync_pol {
@@ -44,7 +45,7 @@ struct vpss_pg_frame_size {
 	short pplen;
 };
 
-/* Used for enable/disable VPSS Clock */
+/* Used for enable/diable VPSS Clock */
 enum vpss_clock_sel {
 	/* DM355/DM365 */
 	VPSS_CCDC_CLOCK,
@@ -87,10 +88,10 @@ enum vpss_clock_sel {
 int vpss_select_ccdc_source(enum vpss_ccdc_source_sel src_sel);
 /* enable/disable a vpss clock, 0 - success, -1 - failure */
 int vpss_enable_clock(enum vpss_clock_sel clock_sel, int en);
-/* set sync polarity, only for DM365*/
-void dm365_vpss_set_sync_pol(struct vpss_sync_pol);
-/* set the PG_FRAME_SIZE register, only for DM365 */
-void dm365_vpss_set_pg_frame_size(struct vpss_pg_frame_size);
+/* set sync polarity, only applicable for DM365*/
+void vpss_set_sync_pol(struct vpss_sync_pol);
+/* set the PG_FRAME_SIZE register, only implemented for DM365 */
+void vpss_set_pg_frame_size(struct vpss_pg_frame_size);
 
 /* wbl reset for dm644x */
 enum vpss_wbl_sel {
@@ -106,17 +107,38 @@ enum vpss_wbl_sel {
 /* clear wbl overflow flag for DM6446 */
 int vpss_clear_wbl_overflow(enum vpss_wbl_sel wbl_sel);
 
-/* set sync polarity*/
-void vpss_set_sync_pol(struct vpss_sync_pol sync);
-/* set the PG_FRAME_SIZE register */
-void vpss_set_pg_frame_size(struct vpss_pg_frame_size frame_size);
-/*
+enum dm355_int_mem_sel {
+	DM355_INT_MEM_IPIPE,
+	DM355_INT_MEM_CFALD,
+};
+void vpss_dm355_assign_int_memory_master(enum dm355_int_mem_sel master);
+
+enum dm355_dfc_mem_sel {
+	DM355_DFC_MEM_IPIPE,
+	DM355_DFC_MEM_CCDC,
+};
+void vpss_dm355_assign_dfc_memory_master(enum dm355_dfc_mem_sel master);
+
+enum dm355_rblctrl {
+	DM355_RBLCTRL_IPIPEIF,
+	DM355_RBLCTRL_CFALD,
+	DM355_RBLCTRL_H3A,
+};
+void vpss_dm355_assign_rblctrl_master(enum dm355_rblctrl master);
+
+enum dm355_wblctrl {
+	DM355_WBLCTRL_IPIPE,
+	DM355_WBLCTRL_CFALD,
+};
+void vpss_dm355_assign_wblctrl_master(enum dm355_wblctrl master);
+void vpss_dm355_ipipe_enable_any_address(int en);
+/**
  * vpss_check_and_clear_interrupt - check and clear interrupt
  * @irq - common enumerator for IRQ
  *
  * Following return values used:-
- * 0 - interrupt occurred and cleared
- * 1 - interrupt not occurred
+ * 0 - interrupt occured and cleared
+ * 1 - interrupt not occured
  * 2 - interrupt status not available
  */
 int vpss_dma_complete_interrupt(void);

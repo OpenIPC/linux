@@ -9,9 +9,8 @@
  */
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
-#include <linux/hardirq.h>
 #include <linux/slab.h>
-#include <linux/export.h>
+#include <linux/module.h>
 
 #include "libertas_tf.h"
 
@@ -103,7 +102,7 @@ int lbtf_update_hw_spec(struct lbtf_private *priv)
 	priv->fwrelease = (priv->fwrelease << 8) |
 		(priv->fwrelease >> 24 & 0xff);
 
-	printk(KERN_INFO "libertastf: %pM, fw %u.%u.%up%u, cap 0x%08x\n",
+	printk(KERN_INFO "libertas_tf: %pM, fw %u.%u.%up%u, cap 0x%08x\n",
 		cmd.permanentaddr,
 		priv->fwrelease >> 24 & 0xff,
 		priv->fwrelease >> 16 & 0xff,
@@ -254,7 +253,7 @@ static void lbtf_submit_command(struct lbtf_private *priv,
 
 	lbtf_deb_cmd("DNLD_CMD: command 0x%04x, seq %d, size %d\n",
 		     command, le16_to_cpu(cmd->seqnum), cmdsize);
-	lbtf_deb_hex(LBTF_DEB_CMD, "DNLD_CMD", (void *) cmdnode->cmdbuf, cmdsize);
+	lbtf_deb_hex(LBTF_DEB_CMD, "DNLD_CMD ", (void *) cmdnode->cmdbuf, cmdsize);
 
 	ret = priv->hw_host_to_card(priv, MVMS_CMD, (u8 *) cmd, cmdsize);
 	spin_unlock_irqrestore(&priv->driver_lock, flags);
@@ -349,6 +348,7 @@ void lbtf_set_mode(struct lbtf_private *priv, enum lbtf_mode mode)
 	lbtf_deb_wext("Switching to mode: 0x%x\n", mode);
 	lbtf_cmd_async(priv, CMD_802_11_SET_MODE, &cmd.hdr, sizeof(cmd));
 
+	priv->mode = mode;
 	lbtf_deb_leave(LBTF_DEB_WEXT);
 }
 
@@ -356,7 +356,7 @@ void lbtf_set_bssid(struct lbtf_private *priv, bool activate, const u8 *bssid)
 {
 	struct cmd_ds_set_bssid cmd;
 	lbtf_deb_enter(LBTF_DEB_CMD);
-
+	lbtf_deb_cmd("Set BSSID: %pM a: %d", bssid, activate);
 	cmd.hdr.size = cpu_to_le16(sizeof(cmd));
 	cmd.activate = activate ? 1 : 0;
 	if (activate)
@@ -366,19 +366,34 @@ void lbtf_set_bssid(struct lbtf_private *priv, bool activate, const u8 *bssid)
 	lbtf_deb_leave(LBTF_DEB_CMD);
 }
 
-int lbtf_set_mac_address(struct lbtf_private *priv, uint8_t *mac_addr)
+int _lbtf_change_mac_address(struct lbtf_private *priv, uint8_t *mac_addr, int action)
 {
 	struct cmd_ds_802_11_mac_address cmd;
 	lbtf_deb_enter(LBTF_DEB_CMD);
 
 	cmd.hdr.size = cpu_to_le16(sizeof(cmd));
-	cmd.action = cpu_to_le16(CMD_ACT_SET);
+	cmd.action = cpu_to_le16(action);
 
 	memcpy(cmd.macadd, mac_addr, ETH_ALEN);
 
 	lbtf_cmd_async(priv, CMD_802_11_MAC_ADDRESS, &cmd.hdr, sizeof(cmd));
 	lbtf_deb_leave(LBTF_DEB_CMD);
 	return 0;
+}
+
+int lbtf_set_mac_address(struct lbtf_private *priv, uint8_t *mac_addr)
+{
+	return _lbtf_change_mac_address( priv, mac_addr, CMD_ACT_SET );
+}
+
+int lbtf_add_mac_address(struct lbtf_private *priv, uint8_t *mac_addr)
+{
+	return _lbtf_change_mac_address( priv, mac_addr, CMD_ACT_ADD );
+}
+
+int lbtf_remove_mac_address(struct lbtf_private *priv, uint8_t *mac_addr)
+{
+	return _lbtf_change_mac_address( priv, mac_addr, CMD_ACT_REMOVE );
 }
 
 int lbtf_set_radio_control(struct lbtf_private *priv)
@@ -674,6 +689,12 @@ int __lbtf_cmd(struct lbtf_private *priv, uint16_t command,
 
 	lbtf_deb_enter(LBTF_DEB_HOST);
 
+	if (priv->surpriseremoved) {
+		lbtf_deb_host("CMD: card removed\n");
+		cmdnode = ERR_PTR(-ENOENT);
+		goto done;
+	}
+
 	cmdnode = __lbtf_cmd_async(priv, command, in_cmd, in_cmd_size,
 				  callback, callback_arg);
 	if (IS_ERR(cmdnode)) {
@@ -737,10 +758,13 @@ int lbtf_process_rx_command(struct lbtf_private *priv)
 	respcmd = le16_to_cpu(resp->command);
 	result = le16_to_cpu(resp->result);
 
+#ifdef CONFIG_LIBERTAS_THINFIRM_DEBUG
 	if (net_ratelimit())
-		pr_info("libertastf: cmd response 0x%04x, seq %d, size %d\n",
+		pr_info("libertastf: cmd response 0x%04x, seq %d, size %d, result %d\n",
 			respcmd, le16_to_cpu(resp->seqnum),
-			le16_to_cpu(resp->size));
+			le16_to_cpu(resp->size),
+			result);
+#endif
 
 	if (resp->seqnum != priv->cur_cmd->cmdbuf->seqnum) {
 		spin_unlock_irqrestore(&priv->driver_lock, flags);

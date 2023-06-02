@@ -45,6 +45,16 @@ config LIBERTAS_THINFIRM_DEBUG
 	---help---
 	  Debugging support.
 
+config LIBERTAS_THINFIRM_SDIO
+        tristate "Marvell Libertas 8686 SDIO 802.11b/g cards"
+        depends on LIBERTAS_THINFIRM && MMC
+        ---help---
+          A driver for Marvell Libertas 8686 SDIO devices and those that include
+          the 88W8686 core, such as the Wi2Wi devices.  Special SDIO specific
+          firmware is required to use this driver, see the OLPC site for details:
+
+          <http://wiki.laptop.org/go/Thinfirm_1.5>
+
 config LIBERTAS_THINFIRM_USB
 	tristate "Marvell Libertas 8388 USB 802.11b/g cards with thin firmware"
 	depends on LIBERTAS_THINFIRM && USB
@@ -277,6 +287,7 @@ source "drivers/net/wireless/orinoco/Kconfig"
 source "drivers/net/wireless/p54/Kconfig"
 source "drivers/net/wireless/rt2x00/Kconfig"
 source "drivers/net/wireless/rtlwifi/Kconfig"
+source "drivers/net/wireless/sd8686_uap/Kconfig"
 source "drivers/net/wireless/ti/Kconfig"
 source "drivers/net/wireless/zd1211rw/Kconfig"
 source "drivers/net/wireless/mwifiex/Kconfig"

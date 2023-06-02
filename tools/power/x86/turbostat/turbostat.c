@@ -1421,7 +1421,6 @@ int has_nehalem_turbo_ratio_limit(unsigned int family, unsigned int model)
 	case 0x3C:	/* HSW */
 	case 0x3F:	/* HSW */
 	case 0x45:	/* HSW */
-	case 0x46:	/* HSW */
 		return 1;
 	case 0x2E:	/* Nehalem-EX Xeon - Beckton */
 	case 0x2F:	/* Westmere-EX Xeon - Eagleton */
@@ -1516,7 +1515,6 @@ void rapl_probe(unsigned int family, unsigned int model)
 	case 0x3C:	/* HSW */
 	case 0x3F:	/* HSW */
 	case 0x45:	/* HSW */
-	case 0x46:	/* HSW */
 		do_rapl = RAPL_PKG | RAPL_CORES | RAPL_GFX;
 		break;
 	case 0x2D:
@@ -1756,7 +1754,6 @@ int is_snb(unsigned int family, unsigned int model)
 	case 0x3C:	/* HSW */
 	case 0x3F:	/* HSW */
 	case 0x45:	/* HSW */
-	case 0x46:	/* HSW */
 		return 1;
 	}
 	return 0;
@@ -2279,7 +2276,7 @@ int main(int argc, char **argv)
 	cmdline(argc, argv);
 
 	if (verbose)
-		fprintf(stderr, "turbostat v3.3 March 15, 2013"
+		fprintf(stderr, "turbostat v3.2 February 11, 2013"
 			" - Len Brown <lenb@kernel.org>\n");
 
 	turbostat_init();

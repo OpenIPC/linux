@@ -2174,6 +2174,21 @@ config FB_IBM_GXT4500
 	  found on some IBM System P (pSeries) machines. This driver
 	  doesn't use Geometry Engine GT1000.
 
+config FB_DAVINCI
+	bool "Davinci Framebuffer support"
+	depends on FB && ARCH_DAVINCI
+	select FB_CFB_FILLRECT
+	select FB_CFB_COPYAREA
+	select FB_CFB_IMAGEBLIT
+	help
+	  This is the frame buffer device driver for the DaVinci video
+	  hardware found on the TI DaVinci EVM.	 If
+	  unsure, say N.
+
+config FB_VIRTUAL
+	tristate "Virtual Frame Buffer support (ONLY FOR TESTING!)"
+	depends on FB
+
 config FB_PS3
 	tristate "PS3 GPU framebuffer driver"
 	depends on FB && PS3_PS3AV

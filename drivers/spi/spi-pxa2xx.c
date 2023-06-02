@@ -1033,8 +1033,7 @@ static void cleanup(struct spi_device *spi)
 	kfree(chip);
 }
 
-#ifdef CONFIG_ACPI
-static int pxa2xx_spi_acpi_add_dma(struct acpi_resource *res, void *data)
+static int __devinit init_queue(struct driver_data *drv_data)
 {
 	struct pxa2xx_spi_master *pdata = data;
 
@@ -1126,7 +1125,7 @@ pxa2xx_spi_acpi_get_pdata(struct platform_device *pdev)
 }
 #endif
 
-static int pxa2xx_spi_probe(struct platform_device *pdev)
+static int __devinit pxa2xx_spi_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct pxa2xx_spi_master *platform_info;

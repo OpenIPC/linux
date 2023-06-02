@@ -5165,8 +5165,7 @@ static void b43_nphy_pmu_spur_avoid(struct b43_wldev *dev, bool avoid)
 #endif
 #ifdef CONFIG_B43_SSB
 	case B43_BUS_SSB:
-		ssb_pmu_spuravoid_pllupdate(&dev->dev->sdev->bus->chipco,
-					    avoid);
+		/* FIXME */
 		break;
 #endif
 	}

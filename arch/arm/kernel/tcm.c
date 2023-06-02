@@ -17,6 +17,7 @@
 #include <asm/mach/map.h>
 #include <asm/memory.h>
 #include <asm/system_info.h>
+#include "tcm.h"
 
 static struct gen_pool *tcm_pool;
 static bool dtcm_present;

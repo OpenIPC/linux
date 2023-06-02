@@ -1084,10 +1084,10 @@ __setup_irq(unsigned int irq, struct irq_desc *desc, struct irqaction *new)
 		 * has. The type flags are unreliable as the
 		 * underlying chip implementation can override them.
 		 */
-		pr_err("Threaded irq requested with handler=NULL and !ONESHOT for irq %d\n",
-		       irq);
-		ret = -EINVAL;
-		goto out_mask;
+		//pr_err("Threaded irq requested with handler=NULL and !ONESHOT for irq %d\n",
+		//       irq);
+		//ret = -EINVAL;
+		//goto out_mask;
 	}
 
 	if (!shared) {

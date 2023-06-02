@@ -61,6 +61,9 @@ struct rndis_request {
 
 static void rndis_filter_send_completion(void *ctx);
 
+static void rndis_filter_send_request_completion(void *ctx);
+
+
 
 static struct rndis_device *get_rndis_device(void)
 {
@@ -238,7 +241,10 @@ static int rndis_filter_send_request(struct rndis_device *dev,
 			packet->page_buf[0].len;
 	}
 
-	packet->completion.send.send_completion = NULL;
+	packet->completion.send.send_completion_ctx = req;/* packet; */
+	packet->completion.send.send_completion =
+		rndis_filter_send_request_completion;
+	packet->completion.send.send_completion_tid = (unsigned long)dev;
 
 	ret = netvsc_send(dev->net_dev->dev, packet);
 	return ret;
@@ -992,4 +998,10 @@ static void rndis_filter_send_completion(void *ctx)
 
 	/* Pass it back to the original handler */
 	filter_pkt->completion(filter_pkt->completion_ctx);
+}
+
+
+static void rndis_filter_send_request_completion(void *ctx)
+{
+	/* Noop */
 }

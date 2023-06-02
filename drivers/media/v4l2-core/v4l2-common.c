@@ -51,16 +51,14 @@
 #include <linux/string.h>
 #include <linux/errno.h>
 #include <linux/i2c.h>
-#if defined(CONFIG_SPI)
-#include <linux/spi/spi.h>
-#endif
 #include <asm/uaccess.h>
+#include <asm/system.h>
 #include <asm/pgtable.h>
 #include <asm/io.h>
 #include <asm/div64.h>
+#define __OLD_VIDIOC_ /* To allow fixing old calls*/
 #include <media/v4l2-common.h>
 #include <media/v4l2-device.h>
-#include <media/v4l2-ctrls.h>
 #include <media/v4l2-chip-ident.h>
 
 #include <linux/videodev2.h>
@@ -79,13 +77,80 @@ MODULE_LICENSE("GPL");
  *  Video Standard Operations (contributed by Michael Schimek)
  */
 
+
+/* ----------------------------------------------------------------- */
+/* priority handling                                                 */
+
+#define V4L2_PRIO_VALID(val) (val == V4L2_PRIORITY_BACKGROUND   || \
+			      val == V4L2_PRIORITY_INTERACTIVE  || \
+			      val == V4L2_PRIORITY_RECORD)
+
+int v4l2_prio_init(struct v4l2_prio_state *global)
+{
+	memset(global,0,sizeof(*global));
+	return 0;
+}
+EXPORT_SYMBOL(v4l2_prio_init);
+
+int v4l2_prio_change(struct v4l2_prio_state *global, enum v4l2_priority *local,
+		     enum v4l2_priority new)
+{
+	if (!V4L2_PRIO_VALID(new))
+		return -EINVAL;
+	if (*local == new)
+		return 0;
+
+	atomic_inc(&global->prios[new]);
+	if (V4L2_PRIO_VALID(*local))
+		atomic_dec(&global->prios[*local]);
+	*local = new;
+	return 0;
+}
+EXPORT_SYMBOL(v4l2_prio_change);
+
+int v4l2_prio_open(struct v4l2_prio_state *global, enum v4l2_priority *local)
+{
+	return v4l2_prio_change(global,local,V4L2_PRIORITY_DEFAULT);
+}
+EXPORT_SYMBOL(v4l2_prio_open);
+
+int v4l2_prio_close(struct v4l2_prio_state *global, enum v4l2_priority *local)
+{
+	if (V4L2_PRIO_VALID(*local))
+		atomic_dec(&global->prios[*local]);
+	return 0;
+}
+EXPORT_SYMBOL(v4l2_prio_close);
+
+enum v4l2_priority v4l2_prio_max(struct v4l2_prio_state *global)
+{
+	if (atomic_read(&global->prios[V4L2_PRIORITY_RECORD]) > 0)
+		return V4L2_PRIORITY_RECORD;
+	if (atomic_read(&global->prios[V4L2_PRIORITY_INTERACTIVE]) > 0)
+		return V4L2_PRIORITY_INTERACTIVE;
+	if (atomic_read(&global->prios[V4L2_PRIORITY_BACKGROUND]) > 0)
+		return V4L2_PRIORITY_BACKGROUND;
+	return V4L2_PRIORITY_UNSET;
+}
+EXPORT_SYMBOL(v4l2_prio_max);
+
+int v4l2_prio_check(struct v4l2_prio_state *global, enum v4l2_priority *local)
+{
+	if (*local < v4l2_prio_max(global))
+		return -EBUSY;
+	return 0;
+}
+EXPORT_SYMBOL(v4l2_prio_check);
+
+/* ----------------------------------------------------------------- */
+
 /* Helper functions for control handling			     */
 
 /* Check for correctness of the ctrl's value based on the data from
    struct v4l2_queryctrl and the available menu items. Note that
    menu_items may be NULL, in that case it is ignored. */
 int v4l2_ctrl_check(struct v4l2_ext_control *ctrl, struct v4l2_queryctrl *qctrl,
-		const char * const *menu_items)
+		const char **menu_items)
 {
 	if (qctrl->flags & V4L2_CTRL_FLAG_DISABLED)
 		return -EINVAL;
@@ -104,24 +169,468 @@ int v4l2_ctrl_check(struct v4l2_ext_control *ctrl, struct v4l2_queryctrl *qctrl,
 		    menu_items[ctrl->value][0] == '\0')
 			return -EINVAL;
 	}
-	if (qctrl->type == V4L2_CTRL_TYPE_BITMASK &&
-			(ctrl->value & ~qctrl->maximum))
-		return -ERANGE;
 	return 0;
 }
 EXPORT_SYMBOL(v4l2_ctrl_check);
 
+/* Returns NULL or a character pointer array containing the menu for
+   the given control ID. The pointer array ends with a NULL pointer.
+   An empty string signifies a menu entry that is invalid. This allows
+   drivers to disable certain options if it is not supported. */
+const char **v4l2_ctrl_get_menu(u32 id)
+{
+	static const char *mpeg_audio_sampling_freq[] = {
+		"44.1 kHz",
+		"48 kHz",
+		"32 kHz",
+		NULL
+	};
+	static const char *mpeg_audio_encoding[] = {
+		"MPEG-1/2 Layer I",
+		"MPEG-1/2 Layer II",
+		"MPEG-1/2 Layer III",
+		"MPEG-2/4 AAC",
+		"AC-3",
+		NULL
+	};
+	static const char *mpeg_audio_l1_bitrate[] = {
+		"32 kbps",
+		"64 kbps",
+		"96 kbps",
+		"128 kbps",
+		"160 kbps",
+		"192 kbps",
+		"224 kbps",
+		"256 kbps",
+		"288 kbps",
+		"320 kbps",
+		"352 kbps",
+		"384 kbps",
+		"416 kbps",
+		"448 kbps",
+		NULL
+	};
+	static const char *mpeg_audio_l2_bitrate[] = {
+		"32 kbps",
+		"48 kbps",
+		"56 kbps",
+		"64 kbps",
+		"80 kbps",
+		"96 kbps",
+		"112 kbps",
+		"128 kbps",
+		"160 kbps",
+		"192 kbps",
+		"224 kbps",
+		"256 kbps",
+		"320 kbps",
+		"384 kbps",
+		NULL
+	};
+	static const char *mpeg_audio_l3_bitrate[] = {
+		"32 kbps",
+		"40 kbps",
+		"48 kbps",
+		"56 kbps",
+		"64 kbps",
+		"80 kbps",
+		"96 kbps",
+		"112 kbps",
+		"128 kbps",
+		"160 kbps",
+		"192 kbps",
+		"224 kbps",
+		"256 kbps",
+		"320 kbps",
+		NULL
+	};
+	static const char *mpeg_audio_ac3_bitrate[] = {
+		"32 kbps",
+		"40 kbps",
+		"48 kbps",
+		"56 kbps",
+		"64 kbps",
+		"80 kbps",
+		"96 kbps",
+		"112 kbps",
+		"128 kbps",
+		"160 kbps",
+		"192 kbps",
+		"224 kbps",
+		"256 kbps",
+		"320 kbps",
+		"384 kbps",
+		"448 kbps",
+		"512 kbps",
+		"576 kbps",
+		"640 kbps",
+		NULL
+	};
+	static const char *mpeg_audio_mode[] = {
+		"Stereo",
+		"Joint Stereo",
+		"Dual",
+		"Mono",
+		NULL
+	};
+	static const char *mpeg_audio_mode_extension[] = {
+		"Bound 4",
+		"Bound 8",
+		"Bound 12",
+		"Bound 16",
+		NULL
+	};
+	static const char *mpeg_audio_emphasis[] = {
+		"No Emphasis",
+		"50/15 us",
+		"CCITT J17",
+		NULL
+	};
+	static const char *mpeg_audio_crc[] = {
+		"No CRC",
+		"16-bit CRC",
+		NULL
+	};
+	static const char *mpeg_video_encoding[] = {
+		"MPEG-1",
+		"MPEG-2",
+		"MPEG-4 AVC",
+		NULL
+	};
+	static const char *mpeg_video_aspect[] = {
+		"1x1",
+		"4x3",
+		"16x9",
+		"2.21x1",
+		NULL
+	};
+	static const char *mpeg_video_bitrate_mode[] = {
+		"Variable Bitrate",
+		"Constant Bitrate",
+		NULL
+	};
+	static const char *mpeg_stream_type[] = {
+		"MPEG-2 Program Stream",
+		"MPEG-2 Transport Stream",
+		"MPEG-1 System Stream",
+		"MPEG-2 DVD-compatible Stream",
+		"MPEG-1 VCD-compatible Stream",
+		"MPEG-2 SVCD-compatible Stream",
+		NULL
+	};
+	static const char *mpeg_stream_vbi_fmt[] = {
+		"No VBI",
+		"Private packet, IVTV format",
+		NULL
+	};
+	static const char *camera_power_line_frequency[] = {
+		"Disabled",
+		"50 Hz",
+		"60 Hz",
+		NULL
+	};
+	static const char *camera_exposure_auto[] = {
+		"Auto Mode",
+		"Manual Mode",
+		"Shutter Priority Mode",
+		"Aperture Priority Mode",
+		NULL
+	};
+	static const char *colorfx[] = {
+		"None",
+		"Black & White",
+		"Sepia",
+		NULL
+	};
+	static const char *tune_preemphasis[] = {
+		"No preemphasis",
+		"50 useconds",
+		"75 useconds",
+		NULL,
+	};
+
+	switch (id) {
+		case V4L2_CID_MPEG_AUDIO_SAMPLING_FREQ:
+			return mpeg_audio_sampling_freq;
+		case V4L2_CID_MPEG_AUDIO_ENCODING:
+			return mpeg_audio_encoding;
+		case V4L2_CID_MPEG_AUDIO_L1_BITRATE:
+			return mpeg_audio_l1_bitrate;
+		case V4L2_CID_MPEG_AUDIO_L2_BITRATE:
+			return mpeg_audio_l2_bitrate;
+		case V4L2_CID_MPEG_AUDIO_L3_BITRATE:
+			return mpeg_audio_l3_bitrate;
+		case V4L2_CID_MPEG_AUDIO_AC3_BITRATE:
+			return mpeg_audio_ac3_bitrate;
+		case V4L2_CID_MPEG_AUDIO_MODE:
+			return mpeg_audio_mode;
+		case V4L2_CID_MPEG_AUDIO_MODE_EXTENSION:
+			return mpeg_audio_mode_extension;
+		case V4L2_CID_MPEG_AUDIO_EMPHASIS:
+			return mpeg_audio_emphasis;
+		case V4L2_CID_MPEG_AUDIO_CRC:
+			return mpeg_audio_crc;
+		case V4L2_CID_MPEG_VIDEO_ENCODING:
+			return mpeg_video_encoding;
+		case V4L2_CID_MPEG_VIDEO_ASPECT:
+			return mpeg_video_aspect;
+		case V4L2_CID_MPEG_VIDEO_BITRATE_MODE:
+			return mpeg_video_bitrate_mode;
+		case V4L2_CID_MPEG_STREAM_TYPE:
+			return mpeg_stream_type;
+		case V4L2_CID_MPEG_STREAM_VBI_FMT:
+			return mpeg_stream_vbi_fmt;
+		case V4L2_CID_POWER_LINE_FREQUENCY:
+			return camera_power_line_frequency;
+		case V4L2_CID_EXPOSURE_AUTO:
+			return camera_exposure_auto;
+		case V4L2_CID_COLORFX:
+			return colorfx;
+		case V4L2_CID_TUNE_PREEMPHASIS:
+			return tune_preemphasis;
+		default:
+			return NULL;
+	}
+}
+EXPORT_SYMBOL(v4l2_ctrl_get_menu);
+
+/* Return the control name. */
+const char *v4l2_ctrl_get_name(u32 id)
+{
+	switch (id) {
+	/* USER controls */
+	case V4L2_CID_USER_CLASS: 		return "User Controls";
+	case V4L2_CID_BRIGHTNESS: 		return "Brightness";
+	case V4L2_CID_CONTRAST: 		return "Contrast";
+	case V4L2_CID_SATURATION: 		return "Saturation";
+	case V4L2_CID_HUE: 			return "Hue";
+	case V4L2_CID_AUDIO_VOLUME: 		return "Volume";
+	case V4L2_CID_AUDIO_BALANCE: 		return "Balance";
+	case V4L2_CID_AUDIO_BASS: 		return "Bass";
+	case V4L2_CID_AUDIO_TREBLE: 		return "Treble";
+	case V4L2_CID_AUDIO_MUTE: 		return "Mute";
+	case V4L2_CID_AUDIO_LOUDNESS: 		return "Loudness";
+	case V4L2_CID_BLACK_LEVEL:		return "Black Level";
+	case V4L2_CID_AUTO_WHITE_BALANCE:	return "White Balance, Automatic";
+	case V4L2_CID_DO_WHITE_BALANCE:		return "Do White Balance";
+	case V4L2_CID_RED_BALANCE:		return "Red Balance";
+	case V4L2_CID_BLUE_BALANCE:		return "Blue Balance";
+	case V4L2_CID_GAMMA:			return "Gamma";
+	case V4L2_CID_EXPOSURE:			return "Exposure";
+	case V4L2_CID_AUTOGAIN:			return "Gain, Automatic";
+	case V4L2_CID_GAIN:			return "Gain";
+	case V4L2_CID_HFLIP:			return "Horizontal Flip";
+	case V4L2_CID_VFLIP:			return "Vertical Flip";
+	case V4L2_CID_HCENTER:			return "Horizontal Center";
+	case V4L2_CID_VCENTER:			return "Vertical Center";
+	case V4L2_CID_POWER_LINE_FREQUENCY:	return "Power Line Frequency";
+	case V4L2_CID_HUE_AUTO:			return "Hue, Automatic";
+	case V4L2_CID_WHITE_BALANCE_TEMPERATURE: return "White Balance Temperature";
+	case V4L2_CID_SHARPNESS:		return "Sharpness";
+	case V4L2_CID_BACKLIGHT_COMPENSATION:	return "Backlight Compensation";
+	case V4L2_CID_CHROMA_AGC:		return "Chroma AGC";
+	case V4L2_CID_COLOR_KILLER:		return "Color Killer";
+	case V4L2_CID_COLORFX:			return "Color Effects";
+
+	/* MPEG controls */
+	case V4L2_CID_MPEG_CLASS: 		return "MPEG Encoder Controls";
+	case V4L2_CID_MPEG_AUDIO_SAMPLING_FREQ: return "Audio Sampling Frequency";
+	case V4L2_CID_MPEG_AUDIO_ENCODING: 	return "Audio Encoding";
+	case V4L2_CID_MPEG_AUDIO_L1_BITRATE: 	return "Audio Layer I Bitrate";
+	case V4L2_CID_MPEG_AUDIO_L2_BITRATE: 	return "Audio Layer II Bitrate";
+	case V4L2_CID_MPEG_AUDIO_L3_BITRATE: 	return "Audio Layer III Bitrate";
+	case V4L2_CID_MPEG_AUDIO_AAC_BITRATE: 	return "Audio AAC Bitrate";
+	case V4L2_CID_MPEG_AUDIO_AC3_BITRATE: 	return "Audio AC-3 Bitrate";
+	case V4L2_CID_MPEG_AUDIO_MODE: 		return "Audio Stereo Mode";
+	case V4L2_CID_MPEG_AUDIO_MODE_EXTENSION: return "Audio Stereo Mode Extension";
+	case V4L2_CID_MPEG_AUDIO_EMPHASIS: 	return "Audio Emphasis";
+	case V4L2_CID_MPEG_AUDIO_CRC: 		return "Audio CRC";
+	case V4L2_CID_MPEG_AUDIO_MUTE: 		return "Audio Mute";
+	case V4L2_CID_MPEG_VIDEO_ENCODING: 	return "Video Encoding";
+	case V4L2_CID_MPEG_VIDEO_ASPECT: 	return "Video Aspect";
+	case V4L2_CID_MPEG_VIDEO_B_FRAMES: 	return "Video B Frames";
+	case V4L2_CID_MPEG_VIDEO_GOP_SIZE: 	return "Video GOP Size";
+	case V4L2_CID_MPEG_VIDEO_GOP_CLOSURE: 	return "Video GOP Closure";
+	case V4L2_CID_MPEG_VIDEO_PULLDOWN: 	return "Video Pulldown";
+	case V4L2_CID_MPEG_VIDEO_BITRATE_MODE: 	return "Video Bitrate Mode";
+	case V4L2_CID_MPEG_VIDEO_BITRATE: 	return "Video Bitrate";
+	case V4L2_CID_MPEG_VIDEO_BITRATE_PEAK: 	return "Video Peak Bitrate";
+	case V4L2_CID_MPEG_VIDEO_TEMPORAL_DECIMATION: return "Video Temporal Decimation";
+	case V4L2_CID_MPEG_VIDEO_MUTE: 		return "Video Mute";
+	case V4L2_CID_MPEG_VIDEO_MUTE_YUV:	return "Video Mute YUV";
+	case V4L2_CID_MPEG_STREAM_TYPE: 	return "Stream Type";
+	case V4L2_CID_MPEG_STREAM_PID_PMT: 	return "Stream PMT Program ID";
+	case V4L2_CID_MPEG_STREAM_PID_AUDIO: 	return "Stream Audio Program ID";
+	case V4L2_CID_MPEG_STREAM_PID_VIDEO: 	return "Stream Video Program ID";
+	case V4L2_CID_MPEG_STREAM_PID_PCR: 	return "Stream PCR Program ID";
+	case V4L2_CID_MPEG_STREAM_PES_ID_AUDIO: return "Stream PES Audio ID";
+	case V4L2_CID_MPEG_STREAM_PES_ID_VIDEO: return "Stream PES Video ID";
+	case V4L2_CID_MPEG_STREAM_VBI_FMT:	return "Stream VBI Format";
+
+	/* CAMERA controls */
+	case V4L2_CID_CAMERA_CLASS:		return "Camera Controls";
+	case V4L2_CID_EXPOSURE_AUTO:		return "Auto Exposure";
+	case V4L2_CID_EXPOSURE_ABSOLUTE:	return "Exposure Time, Absolute";
+	case V4L2_CID_EXPOSURE_AUTO_PRIORITY:	return "Exposure, Dynamic Framerate";
+	case V4L2_CID_PAN_RELATIVE:		return "Pan, Relative";
+	case V4L2_CID_TILT_RELATIVE:		return "Tilt, Relative";
+	case V4L2_CID_PAN_RESET:		return "Pan, Reset";
+	case V4L2_CID_TILT_RESET:		return "Tilt, Reset";
+	case V4L2_CID_PAN_ABSOLUTE:		return "Pan, Absolute";
+	case V4L2_CID_TILT_ABSOLUTE:		return "Tilt, Absolute";
+	case V4L2_CID_FOCUS_ABSOLUTE:		return "Focus, Absolute";
+	case V4L2_CID_FOCUS_RELATIVE:		return "Focus, Relative";
+	case V4L2_CID_FOCUS_AUTO:		return "Focus, Automatic";
+	case V4L2_CID_ZOOM_ABSOLUTE:		return "Zoom, Absolute";
+	case V4L2_CID_ZOOM_RELATIVE:		return "Zoom, Relative";
+	case V4L2_CID_ZOOM_CONTINUOUS:		return "Zoom, Continuous";
+	case V4L2_CID_PRIVACY:			return "Privacy";
+
+	/* FM Radio Modulator control */
+	case V4L2_CID_FM_TX_CLASS:		return "FM Radio Modulator Controls";
+	case V4L2_CID_RDS_TX_DEVIATION:		return "RDS Signal Deviation";
+	case V4L2_CID_RDS_TX_PI:		return "RDS Program ID";
+	case V4L2_CID_RDS_TX_PTY:		return "RDS Program Type";
+	case V4L2_CID_RDS_TX_PS_NAME:		return "RDS PS Name";
+	case V4L2_CID_RDS_TX_RADIO_TEXT:	return "RDS Radio Text";
+	case V4L2_CID_AUDIO_LIMITER_ENABLED:	return "Audio Limiter Feature Enabled";
+	case V4L2_CID_AUDIO_LIMITER_RELEASE_TIME: return "Audio Limiter Release Time";
+	case V4L2_CID_AUDIO_LIMITER_DEVIATION:	return "Audio Limiter Deviation";
+	case V4L2_CID_AUDIO_COMPRESSION_ENABLED: return "Audio Compression Feature Enabled";
+	case V4L2_CID_AUDIO_COMPRESSION_GAIN:	return "Audio Compression Gain";
+	case V4L2_CID_AUDIO_COMPRESSION_THRESHOLD: return "Audio Compression Threshold";
+	case V4L2_CID_AUDIO_COMPRESSION_ATTACK_TIME: return "Audio Compression Attack Time";
+	case V4L2_CID_AUDIO_COMPRESSION_RELEASE_TIME: return "Audio Compression Release Time";
+	case V4L2_CID_PILOT_TONE_ENABLED:	return "Pilot Tone Feature Enabled";
+	case V4L2_CID_PILOT_TONE_DEVIATION:	return "Pilot Tone Deviation";
+	case V4L2_CID_PILOT_TONE_FREQUENCY:	return "Pilot Tone Frequency";
+	case V4L2_CID_TUNE_PREEMPHASIS:	return "Pre-emphasis settings";
+	case V4L2_CID_TUNE_POWER_LEVEL:		return "Tune Power Level";
+	case V4L2_CID_TUNE_ANTENNA_CAPACITOR:	return "Tune Antenna Capacitor";
+
+	default:
+		return NULL;
+	}
+}
+EXPORT_SYMBOL(v4l2_ctrl_get_name);
+
 /* Fill in a struct v4l2_queryctrl */
 int v4l2_ctrl_query_fill(struct v4l2_queryctrl *qctrl, s32 min, s32 max, s32 step, s32 def)
 {
-	const char *name;
+	const char *name = v4l2_ctrl_get_name(qctrl->id);
 
-	v4l2_ctrl_fill(qctrl->id, &name, &qctrl->type,
-		       &min, &max, &step, &def, &qctrl->flags);
-
+	qctrl->flags = 0;
 	if (name == NULL)
 		return -EINVAL;
 
+	switch (qctrl->id) {
+	case V4L2_CID_AUDIO_MUTE:
+	case V4L2_CID_AUDIO_LOUDNESS:
+	case V4L2_CID_AUTO_WHITE_BALANCE:
+	case V4L2_CID_AUTOGAIN:
+	case V4L2_CID_HFLIP:
+	case V4L2_CID_VFLIP:
+	case V4L2_CID_HUE_AUTO:
+	case V4L2_CID_CHROMA_AGC:
+	case V4L2_CID_COLOR_KILLER:
+	case V4L2_CID_MPEG_AUDIO_MUTE:
+	case V4L2_CID_MPEG_VIDEO_MUTE:
+	case V4L2_CID_MPEG_VIDEO_GOP_CLOSURE:
+	case V4L2_CID_MPEG_VIDEO_PULLDOWN:
+	case V4L2_CID_EXPOSURE_AUTO_PRIORITY:
+	case V4L2_CID_FOCUS_AUTO:
+	case V4L2_CID_PRIVACY:
+	case V4L2_CID_AUDIO_LIMITER_ENABLED:
+	case V4L2_CID_AUDIO_COMPRESSION_ENABLED:
+	case V4L2_CID_PILOT_TONE_ENABLED:
+		qctrl->type = V4L2_CTRL_TYPE_BOOLEAN;
+		min = 0;
+		max = step = 1;
+		break;
+	case V4L2_CID_PAN_RESET:
+	case V4L2_CID_TILT_RESET:
+		qctrl->type = V4L2_CTRL_TYPE_BUTTON;
+		qctrl->flags |= V4L2_CTRL_FLAG_WRITE_ONLY;
+		min = max = step = def = 0;
+		break;
+	case V4L2_CID_POWER_LINE_FREQUENCY:
+	case V4L2_CID_MPEG_AUDIO_SAMPLING_FREQ:
+	case V4L2_CID_MPEG_AUDIO_ENCODING:
+	case V4L2_CID_MPEG_AUDIO_L1_BITRATE:
+	case V4L2_CID_MPEG_AUDIO_L2_BITRATE:
+	case V4L2_CID_MPEG_AUDIO_L3_BITRATE:
+	case V4L2_CID_MPEG_AUDIO_AC3_BITRATE:
+	case V4L2_CID_MPEG_AUDIO_MODE:
+	case V4L2_CID_MPEG_AUDIO_MODE_EXTENSION:
+	case V4L2_CID_MPEG_AUDIO_EMPHASIS:
+	case V4L2_CID_MPEG_AUDIO_CRC:
+	case V4L2_CID_MPEG_VIDEO_ENCODING:
+	case V4L2_CID_MPEG_VIDEO_ASPECT:
+	case V4L2_CID_MPEG_VIDEO_BITRATE_MODE:
+	case V4L2_CID_MPEG_STREAM_TYPE:
+	case V4L2_CID_MPEG_STREAM_VBI_FMT:
+	case V4L2_CID_EXPOSURE_AUTO:
+	case V4L2_CID_COLORFX:
+	case V4L2_CID_TUNE_PREEMPHASIS:
+		qctrl->type = V4L2_CTRL_TYPE_MENU;
+		step = 1;
+		break;
+	case V4L2_CID_RDS_TX_PS_NAME:
+	case V4L2_CID_RDS_TX_RADIO_TEXT:
+		qctrl->type = V4L2_CTRL_TYPE_STRING;
+		break;
+	case V4L2_CID_USER_CLASS:
+	case V4L2_CID_CAMERA_CLASS:
+	case V4L2_CID_MPEG_CLASS:
+	case V4L2_CID_FM_TX_CLASS:
+		qctrl->type = V4L2_CTRL_TYPE_CTRL_CLASS;
+		qctrl->flags |= V4L2_CTRL_FLAG_READ_ONLY;
+		min = max = step = def = 0;
+		break;
+	default:
+		qctrl->type = V4L2_CTRL_TYPE_INTEGER;
+		break;
+	}
+	switch (qctrl->id) {
+	case V4L2_CID_MPEG_AUDIO_ENCODING:
+	case V4L2_CID_MPEG_AUDIO_MODE:
+	case V4L2_CID_MPEG_VIDEO_BITRATE_MODE:
+	case V4L2_CID_MPEG_VIDEO_B_FRAMES:
+	case V4L2_CID_MPEG_STREAM_TYPE:
+		qctrl->flags |= V4L2_CTRL_FLAG_UPDATE;
+		break;
+	case V4L2_CID_AUDIO_VOLUME:
+	case V4L2_CID_AUDIO_BALANCE:
+	case V4L2_CID_AUDIO_BASS:
+	case V4L2_CID_AUDIO_TREBLE:
+	case V4L2_CID_BRIGHTNESS:
+	case V4L2_CID_CONTRAST:
+	case V4L2_CID_SATURATION:
+	case V4L2_CID_HUE:
+	case V4L2_CID_RED_BALANCE:
+	case V4L2_CID_BLUE_BALANCE:
+	case V4L2_CID_GAMMA:
+	case V4L2_CID_SHARPNESS:
+	case V4L2_CID_RDS_TX_DEVIATION:
+	case V4L2_CID_AUDIO_LIMITER_RELEASE_TIME:
+	case V4L2_CID_AUDIO_LIMITER_DEVIATION:
+	case V4L2_CID_AUDIO_COMPRESSION_GAIN:
+	case V4L2_CID_AUDIO_COMPRESSION_THRESHOLD:
+	case V4L2_CID_AUDIO_COMPRESSION_ATTACK_TIME:
+	case V4L2_CID_AUDIO_COMPRESSION_RELEASE_TIME:
+	case V4L2_CID_PILOT_TONE_DEVIATION:
+	case V4L2_CID_PILOT_TONE_FREQUENCY:
+	case V4L2_CID_TUNE_POWER_LEVEL:
+	case V4L2_CID_TUNE_ANTENNA_CAPACITOR:
+		qctrl->flags |= V4L2_CTRL_FLAG_SLIDER;
+		break;
+	case V4L2_CID_PAN_RELATIVE:
+	case V4L2_CID_TILT_RELATIVE:
+	case V4L2_CID_FOCUS_RELATIVE:
+	case V4L2_CID_ZOOM_RELATIVE:
+		qctrl->flags |= V4L2_CTRL_FLAG_WRITE_ONLY;
+		break;
+	}
 	qctrl->minimum = min;
 	qctrl->maximum = max;
 	qctrl->step = step;
@@ -137,7 +646,7 @@ EXPORT_SYMBOL(v4l2_ctrl_query_fill);
    If menu_items is NULL, then the menu items are retrieved using
    v4l2_ctrl_get_menu. */
 int v4l2_ctrl_query_menu(struct v4l2_querymenu *qmenu, struct v4l2_queryctrl *qctrl,
-	       const char * const *menu_items)
+	       const char **menu_items)
 {
 	int i;
 
@@ -160,7 +669,7 @@ EXPORT_SYMBOL(v4l2_ctrl_query_menu);
    Use this if there are 'holes' in the list of valid menu items. */
 int v4l2_ctrl_query_menu_valid_items(struct v4l2_querymenu *qmenu, const u32 *ids)
 {
-	const char * const *menu_items = v4l2_ctrl_get_menu(qmenu->id);
+	const char **menu_items = v4l2_ctrl_get_menu(qmenu->id);
 
 	qmenu->reserved = 0;
 	if (menu_items == NULL || ids == NULL)
@@ -238,7 +747,7 @@ int v4l2_chip_match_host(const struct v4l2_dbg_match *match)
 }
 EXPORT_SYMBOL(v4l2_chip_match_host);
 
-#if IS_ENABLED(CONFIG_I2C)
+#if defined(CONFIG_I2C) || (defined(CONFIG_I2C_MODULE) && defined(MODULE))
 int v4l2_chip_match_i2c_client(struct i2c_client *c, const struct v4l2_dbg_match *match)
 {
 	int len;
@@ -306,20 +815,20 @@ EXPORT_SYMBOL_GPL(v4l2_i2c_subdev_init);
 
 /* Load an i2c sub-device. */
 struct v4l2_subdev *v4l2_i2c_new_subdev_board(struct v4l2_device *v4l2_dev,
-		struct i2c_adapter *adapter, struct i2c_board_info *info,
-		const unsigned short *probe_addrs)
+		struct i2c_adapter *adapter, const char *module_name,
+		struct i2c_board_info *info, const unsigned short *probe_addrs)
 {
 	struct v4l2_subdev *sd = NULL;
 	struct i2c_client *client;
 
 	BUG_ON(!v4l2_dev);
 
-	request_module(I2C_MODULE_PREFIX "%s", info->type);
+	if (module_name)
+		request_module(module_name);
 
 	/* Create the i2c client */
 	if (info->addr == 0 && probe_addrs)
-		client = i2c_new_probed_device(adapter, info, probe_addrs,
-					       NULL);
+		client = i2c_new_probed_device(adapter, info, probe_addrs, 0);
 	else
 		client = i2c_new_device(adapter, info);
 
@@ -345,6 +854,18 @@ struct v4l2_subdev *v4l2_i2c_new_subdev_board(struct v4l2_device *v4l2_dev,
 	/* Decrease the module use count to match the first try_module_get. */
 	module_put(client->driver->driver.owner);
 
+	if (sd) {
+		/* We return errors from v4l2_subdev_call only if we have the
+		   callback as the .s_config is not mandatory */
+		int err = v4l2_subdev_call(sd, core, s_config,
+				info->irq, info->platform_data);
+
+		if (err && err != -ENOIOCTLCMD) {
+			v4l2_device_unregister_subdev(sd);
+			sd = NULL;
+		}
+	}
+
 error:
 	/* If we have a client but no subdev, then something went wrong and
 	   we must unregister the client. */
@@ -354,8 +875,10 @@ error:
 }
 EXPORT_SYMBOL_GPL(v4l2_i2c_new_subdev_board);
 
-struct v4l2_subdev *v4l2_i2c_new_subdev(struct v4l2_device *v4l2_dev,
-		struct i2c_adapter *adapter, const char *client_type,
+struct v4l2_subdev *v4l2_i2c_new_subdev_cfg(struct v4l2_device *v4l2_dev,
+		struct i2c_adapter *adapter,
+		const char *module_name, const char *client_type,
+		int irq, void *platform_data,
 		u8 addr, const unsigned short *probe_addrs)
 {
 	struct i2c_board_info info;
@@ -365,10 +888,13 @@ struct v4l2_subdev *v4l2_i2c_new_subdev(struct v4l2_device *v4l2_dev,
 	memset(&info, 0, sizeof(info));
 	strlcpy(info.type, client_type, sizeof(info.type));
 	info.addr = addr;
+	info.irq = irq;
+	info.platform_data = platform_data;
 
-	return v4l2_i2c_new_subdev_board(v4l2_dev, adapter, &info, probe_addrs);
+	return v4l2_i2c_new_subdev_board(v4l2_dev, adapter, module_name,
+			&info, probe_addrs);
 }
-EXPORT_SYMBOL_GPL(v4l2_i2c_new_subdev);
+EXPORT_SYMBOL_GPL(v4l2_i2c_new_subdev_cfg);
 
 /* Return i2c client address of v4l2_subdev. */
 unsigned short v4l2_i2c_subdev_addr(struct v4l2_subdev *sd)
@@ -384,7 +910,7 @@ EXPORT_SYMBOL_GPL(v4l2_i2c_subdev_addr);
 const unsigned short *v4l2_i2c_tuner_addrs(enum v4l2_i2c_tuner_type type)
 {
 	static const unsigned short radio_addrs[] = {
-#if IS_ENABLED(CONFIG_MEDIA_TUNER_TEA5761)
+#if defined(CONFIG_MEDIA_TUNER_TEA5761) || defined(CONFIG_MEDIA_TUNER_TEA5761_MODULE)
 		0x10,
 #endif
 		0x60,
@@ -415,66 +941,6 @@ const unsigned short *v4l2_i2c_tuner_addrs(enum v4l2_i2c_tuner_type type)
 EXPORT_SYMBOL_GPL(v4l2_i2c_tuner_addrs);
 
 #endif /* defined(CONFIG_I2C) */
-
-#if defined(CONFIG_SPI)
-
-/* Load an spi sub-device. */
-
-void v4l2_spi_subdev_init(struct v4l2_subdev *sd, struct spi_device *spi,
-		const struct v4l2_subdev_ops *ops)
-{
-	v4l2_subdev_init(sd, ops);
-	sd->flags |= V4L2_SUBDEV_FL_IS_SPI;
-	/* the owner is the same as the spi_device's driver owner */
-	sd->owner = spi->dev.driver->owner;
-	/* spi_device and v4l2_subdev point to one another */
-	v4l2_set_subdevdata(sd, spi);
-	spi_set_drvdata(spi, sd);
-	/* initialize name */
-	strlcpy(sd->name, spi->dev.driver->name, sizeof(sd->name));
-}
-EXPORT_SYMBOL_GPL(v4l2_spi_subdev_init);
-
-struct v4l2_subdev *v4l2_spi_new_subdev(struct v4l2_device *v4l2_dev,
-		struct spi_master *master, struct spi_board_info *info)
-{
-	struct v4l2_subdev *sd = NULL;
-	struct spi_device *spi = NULL;
-
-	BUG_ON(!v4l2_dev);
-
-	if (info->modalias[0])
-		request_module(info->modalias);
-
-	spi = spi_new_device(master, info);
-
-	if (spi == NULL || spi->dev.driver == NULL)
-		goto error;
-
-	if (!try_module_get(spi->dev.driver->owner))
-		goto error;
-
-	sd = spi_get_drvdata(spi);
-
-	/* Register with the v4l2_device which increases the module's
-	   use count as well. */
-	if (v4l2_device_register_subdev(v4l2_dev, sd))
-		sd = NULL;
-
-	/* Decrease the module use count to match the first try_module_get. */
-	module_put(spi->dev.driver->owner);
-
-error:
-	/* If we have a client but no subdev, then something went wrong and
-	   we must unregister the client. */
-	if (spi && sd == NULL)
-		spi_unregister_device(spi);
-
-	return sd;
-}
-EXPORT_SYMBOL_GPL(v4l2_spi_new_subdev);
-
-#endif /* defined(CONFIG_SPI) */
 
 /* Clamp x to be between min and max, aligned to a multiple of 2^align.  min
  * and max don't have to be aligned, but there must be at least one valid
@@ -549,442 +1015,3 @@ void v4l_bound_align_image(u32 *w, unsigned int wmin, unsigned int wmax,
 	}
 }
 EXPORT_SYMBOL_GPL(v4l_bound_align_image);
-
-/**
- * v4l_fill_dv_preset_info - fill description of a digital video preset
- * @preset - preset value
- * @info - pointer to struct v4l2_dv_enum_preset
- *
- * drivers can use this helper function to fill description of dv preset
- * in info.
- */
-int v4l_fill_dv_preset_info(u32 preset, struct v4l2_dv_enum_preset *info)
-{
-	static const struct v4l2_dv_preset_info {
-		u16 width;
-		u16 height;
-		const char *name;
-	} dv_presets[] = {
-		{ 0, 0, "Invalid" },		/* V4L2_DV_INVALID */
-		{ 720,  480, "480p@59.94" },	/* V4L2_DV_480P59_94 */
-		{ 720,  576, "576p@50" },	/* V4L2_DV_576P50 */
-		{ 1280, 720, "720p@24" },	/* V4L2_DV_720P24 */
-		{ 1280, 720, "720p@25" },	/* V4L2_DV_720P25 */
-		{ 1280, 720, "720p@30" },	/* V4L2_DV_720P30 */
-		{ 1280, 720, "720p@50" },	/* V4L2_DV_720P50 */
-		{ 1280, 720, "720p@59.94" },	/* V4L2_DV_720P59_94 */
-		{ 1280, 720, "720p@60" },	/* V4L2_DV_720P60 */
-		{ 1920, 1080, "1080i@29.97" },	/* V4L2_DV_1080I29_97 */
-		{ 1920, 1080, "1080i@30" },	/* V4L2_DV_1080I30 */
-		{ 1920, 1080, "1080i@25" },	/* V4L2_DV_1080I25 */
-		{ 1920, 1080, "1080i@50" },	/* V4L2_DV_1080I50 */
-		{ 1920, 1080, "1080i@60" },	/* V4L2_DV_1080I60 */
-		{ 1920, 1080, "1080p@24" },	/* V4L2_DV_1080P24 */
-		{ 1920, 1080, "1080p@25" },	/* V4L2_DV_1080P25 */
-		{ 1920, 1080, "1080p@30" },	/* V4L2_DV_1080P30 */
-		{ 1920, 1080, "1080p@50" },	/* V4L2_DV_1080P50 */
-		{ 1920, 1080, "1080p@60" },	/* V4L2_DV_1080P60 */
-	};
-
-	if (info == NULL || preset >= ARRAY_SIZE(dv_presets))
-		return -EINVAL;
-
-	info->preset = preset;
-	info->width = dv_presets[preset].width;
-	info->height = dv_presets[preset].height;
-	strlcpy(info->name, dv_presets[preset].name, sizeof(info->name));
-	return 0;
-}
-EXPORT_SYMBOL_GPL(v4l_fill_dv_preset_info);
-
-/**
- * v4l_match_dv_timings - check if two timings match
- * @t1 - compare this v4l2_dv_timings struct...
- * @t2 - with this struct.
- * @pclock_delta - the allowed pixelclock deviation.
- *
- * Compare t1 with t2 with a given margin of error for the pixelclock.
- */
-bool v4l_match_dv_timings(const struct v4l2_dv_timings *t1,
-			  const struct v4l2_dv_timings *t2,
-			  unsigned pclock_delta)
-{
-	if (t1->type != t2->type || t1->type != V4L2_DV_BT_656_1120)
-		return false;
-	if (t1->bt.width == t2->bt.width &&
-	    t1->bt.height == t2->bt.height &&
-	    t1->bt.interlaced == t2->bt.interlaced &&
-	    t1->bt.polarities == t2->bt.polarities &&
-	    t1->bt.pixelclock >= t2->bt.pixelclock - pclock_delta &&
-	    t1->bt.pixelclock <= t2->bt.pixelclock + pclock_delta &&
-	    t1->bt.hfrontporch == t2->bt.hfrontporch &&
-	    t1->bt.vfrontporch == t2->bt.vfrontporch &&
-	    t1->bt.vsync == t2->bt.vsync &&
-	    t1->bt.vbackporch == t2->bt.vbackporch &&
-	    (!t1->bt.interlaced ||
-		(t1->bt.il_vfrontporch == t2->bt.il_vfrontporch &&
-		 t1->bt.il_vsync == t2->bt.il_vsync &&
-		 t1->bt.il_vbackporch == t2->bt.il_vbackporch)))
-		return true;
-	return false;
-}
-EXPORT_SYMBOL_GPL(v4l_match_dv_timings);
-
-/*
- * CVT defines
- * Based on Coordinated Video Timings Standard
- * version 1.1 September 10, 2003
- */
-
-#define CVT_PXL_CLK_GRAN	250000	/* pixel clock granularity */
-
-/* Normal blanking */
-#define CVT_MIN_V_BPORCH	7	/* lines */
-#define CVT_MIN_V_PORCH_RND	3	/* lines */
-#define CVT_MIN_VSYNC_BP	550	/* min time of vsync + back porch (us) */
-
-/* Normal blanking for CVT uses GTF to calculate horizontal blanking */
-#define CVT_CELL_GRAN		8	/* character cell granularity */
-#define CVT_M			600	/* blanking formula gradient */
-#define CVT_C			40	/* blanking formula offset */
-#define CVT_K			128	/* blanking formula scaling factor */
-#define CVT_J			20	/* blanking formula scaling factor */
-#define CVT_C_PRIME (((CVT_C - CVT_J) * CVT_K / 256) + CVT_J)
-#define CVT_M_PRIME (CVT_K * CVT_M / 256)
-
-/* Reduced Blanking */
-#define CVT_RB_MIN_V_BPORCH    7       /* lines  */
-#define CVT_RB_V_FPORCH        3       /* lines  */
-#define CVT_RB_MIN_V_BLANK   460     /* us     */
-#define CVT_RB_H_SYNC         32       /* pixels */
-#define CVT_RB_H_BPORCH       80       /* pixels */
-#define CVT_RB_H_BLANK       160       /* pixels */
-
-/** v4l2_detect_cvt - detect if the given timings follow the CVT standard
- * @frame_height - the total height of the frame (including blanking) in lines.
- * @hfreq - the horizontal frequency in Hz.
- * @vsync - the height of the vertical sync in lines.
- * @polarities - the horizontal and vertical polarities (same as struct
- *		v4l2_bt_timings polarities).
- * @fmt - the resulting timings.
- *
- * This function will attempt to detect if the given values correspond to a
- * valid CVT format. If so, then it will return true, and fmt will be filled
- * in with the found CVT timings.
- */
-bool v4l2_detect_cvt(unsigned frame_height, unsigned hfreq, unsigned vsync,
-		u32 polarities, struct v4l2_dv_timings *fmt)
-{
-	int  v_fp, v_bp, h_fp, h_bp, hsync;
-	int  frame_width, image_height, image_width;
-	bool reduced_blanking;
-	unsigned pix_clk;
-
-	if (vsync < 4 || vsync > 7)
-		return false;
-
-	if (polarities == V4L2_DV_VSYNC_POS_POL)
-		reduced_blanking = false;
-	else if (polarities == V4L2_DV_HSYNC_POS_POL)
-		reduced_blanking = true;
-	else
-		return false;
-
-	/* Vertical */
-	if (reduced_blanking) {
-		v_fp = CVT_RB_V_FPORCH;
-		v_bp = (CVT_RB_MIN_V_BLANK * hfreq + 999999) / 1000000;
-		v_bp -= vsync + v_fp;
-
-		if (v_bp < CVT_RB_MIN_V_BPORCH)
-			v_bp = CVT_RB_MIN_V_BPORCH;
-	} else {
-		v_fp = CVT_MIN_V_PORCH_RND;
-		v_bp = (CVT_MIN_VSYNC_BP * hfreq + 999999) / 1000000 - vsync;
-
-		if (v_bp < CVT_MIN_V_BPORCH)
-			v_bp = CVT_MIN_V_BPORCH;
-	}
-	image_height = (frame_height - v_fp - vsync - v_bp + 1) & ~0x1;
-
-	/* Aspect ratio based on vsync */
-	switch (vsync) {
-	case 4:
-		image_width = (image_height * 4) / 3;
-		break;
-	case 5:
-		image_width = (image_height * 16) / 9;
-		break;
-	case 6:
-		image_width = (image_height * 16) / 10;
-		break;
-	case 7:
-		/* special case */
-		if (image_height == 1024)
-			image_width = (image_height * 5) / 4;
-		else if (image_height == 768)
-			image_width = (image_height * 15) / 9;
-		else
-			return false;
-		break;
-	default:
-		return false;
-	}
-
-	image_width = image_width & ~7;
-
-	/* Horizontal */
-	if (reduced_blanking) {
-		pix_clk = (image_width + CVT_RB_H_BLANK) * hfreq;
-		pix_clk = (pix_clk / CVT_PXL_CLK_GRAN) * CVT_PXL_CLK_GRAN;
-
-		h_bp = CVT_RB_H_BPORCH;
-		hsync = CVT_RB_H_SYNC;
-		h_fp = CVT_RB_H_BLANK - h_bp - hsync;
-
-		frame_width = image_width + CVT_RB_H_BLANK;
-	} else {
-		int h_blank;
-		unsigned ideal_duty_cycle = CVT_C_PRIME - (CVT_M_PRIME * 1000) / hfreq;
-
-		h_blank = (image_width * ideal_duty_cycle + (100 - ideal_duty_cycle) / 2) /
-						(100 - ideal_duty_cycle);
-		h_blank = h_blank - h_blank % (2 * CVT_CELL_GRAN);
-
-		if (h_blank * 100 / image_width < 20) {
-			h_blank = image_width / 5;
-			h_blank = (h_blank + 0x7) & ~0x7;
-		}
-
-		pix_clk = (image_width + h_blank) * hfreq;
-		pix_clk = (pix_clk / CVT_PXL_CLK_GRAN) * CVT_PXL_CLK_GRAN;
-
-		h_bp = h_blank / 2;
-		frame_width = image_width + h_blank;
-
-		hsync = (frame_width * 8 + 50) / 100;
-		hsync = hsync - hsync % CVT_CELL_GRAN;
-		h_fp = h_blank - hsync - h_bp;
-	}
-
-	fmt->bt.polarities = polarities;
-	fmt->bt.width = image_width;
-	fmt->bt.height = image_height;
-	fmt->bt.hfrontporch = h_fp;
-	fmt->bt.vfrontporch = v_fp;
-	fmt->bt.hsync = hsync;
-	fmt->bt.vsync = vsync;
-	fmt->bt.hbackporch = frame_width - image_width - h_fp - hsync;
-	fmt->bt.vbackporch = frame_height - image_height - v_fp - vsync;
-	fmt->bt.pixelclock = pix_clk;
-	fmt->bt.standards = V4L2_DV_BT_STD_CVT;
-	if (reduced_blanking)
-		fmt->bt.flags |= V4L2_DV_FL_REDUCED_BLANKING;
-	return true;
-}
-EXPORT_SYMBOL_GPL(v4l2_detect_cvt);
-
-/*
- * GTF defines
- * Based on Generalized Timing Formula Standard
- * Version 1.1 September 2, 1999
- */
-
-#define GTF_PXL_CLK_GRAN	250000	/* pixel clock granularity */
-
-#define GTF_MIN_VSYNC_BP	550	/* min time of vsync + back porch (us) */
-#define GTF_V_FP		1	/* vertical front porch (lines) */
-#define GTF_CELL_GRAN		8	/* character cell granularity */
-
-/* Default */
-#define GTF_D_M			600	/* blanking formula gradient */
-#define GTF_D_C			40	/* blanking formula offset */
-#define GTF_D_K			128	/* blanking formula scaling factor */
-#define GTF_D_J			20	/* blanking formula scaling factor */
-#define GTF_D_C_PRIME ((((GTF_D_C - GTF_D_J) * GTF_D_K) / 256) + GTF_D_J)
-#define GTF_D_M_PRIME ((GTF_D_K * GTF_D_M) / 256)
-
-/* Secondary */
-#define GTF_S_M			3600	/* blanking formula gradient */
-#define GTF_S_C			40	/* blanking formula offset */
-#define GTF_S_K			128	/* blanking formula scaling factor */
-#define GTF_S_J			35	/* blanking formula scaling factor */
-#define GTF_S_C_PRIME ((((GTF_S_C - GTF_S_J) * GTF_S_K) / 256) + GTF_S_J)
-#define GTF_S_M_PRIME ((GTF_S_K * GTF_S_M) / 256)
-
-/** v4l2_detect_gtf - detect if the given timings follow the GTF standard
- * @frame_height - the total height of the frame (including blanking) in lines.
- * @hfreq - the horizontal frequency in Hz.
- * @vsync - the height of the vertical sync in lines.
- * @polarities - the horizontal and vertical polarities (same as struct
- *		v4l2_bt_timings polarities).
- * @aspect - preferred aspect ratio. GTF has no method of determining the
- *		aspect ratio in order to derive the image width from the
- *		image height, so it has to be passed explicitly. Usually
- *		the native screen aspect ratio is used for this. If it
- *		is not filled in correctly, then 16:9 will be assumed.
- * @fmt - the resulting timings.
- *
- * This function will attempt to detect if the given values correspond to a
- * valid GTF format. If so, then it will return true, and fmt will be filled
- * in with the found GTF timings.
- */
-bool v4l2_detect_gtf(unsigned frame_height,
-		unsigned hfreq,
-		unsigned vsync,
-		u32 polarities,
-		struct v4l2_fract aspect,
-		struct v4l2_dv_timings *fmt)
-{
-	int pix_clk;
-	int  v_fp, v_bp, h_fp, hsync;
-	int frame_width, image_height, image_width;
-	bool default_gtf;
-	int h_blank;
-
-	if (vsync != 3)
-		return false;
-
-	if (polarities == V4L2_DV_VSYNC_POS_POL)
-		default_gtf = true;
-	else if (polarities == V4L2_DV_HSYNC_POS_POL)
-		default_gtf = false;
-	else
-		return false;
-
-	/* Vertical */
-	v_fp = GTF_V_FP;
-	v_bp = (GTF_MIN_VSYNC_BP * hfreq + 999999) / 1000000 - vsync;
-	image_height = (frame_height - v_fp - vsync - v_bp + 1) & ~0x1;
-
-	if (aspect.numerator == 0 || aspect.denominator == 0) {
-		aspect.numerator = 16;
-		aspect.denominator = 9;
-	}
-	image_width = ((image_height * aspect.numerator) / aspect.denominator);
-
-	/* Horizontal */
-	if (default_gtf)
-		h_blank = ((image_width * GTF_D_C_PRIME * hfreq) -
-					(image_width * GTF_D_M_PRIME * 1000) +
-			(hfreq * (100 - GTF_D_C_PRIME) + GTF_D_M_PRIME * 1000) / 2) /
-			(hfreq * (100 - GTF_D_C_PRIME) + GTF_D_M_PRIME * 1000);
-	else
-		h_blank = ((image_width * GTF_S_C_PRIME * hfreq) -
-					(image_width * GTF_S_M_PRIME * 1000) +
-			(hfreq * (100 - GTF_S_C_PRIME) + GTF_S_M_PRIME * 1000) / 2) /
-			(hfreq * (100 - GTF_S_C_PRIME) + GTF_S_M_PRIME * 1000);
-
-	h_blank = h_blank - h_blank % (2 * GTF_CELL_GRAN);
-	frame_width = image_width + h_blank;
-
-	pix_clk = (image_width + h_blank) * hfreq;
-	pix_clk = pix_clk / GTF_PXL_CLK_GRAN * GTF_PXL_CLK_GRAN;
-
-	hsync = (frame_width * 8 + 50) / 100;
-	hsync = hsync - hsync % GTF_CELL_GRAN;
-
-	h_fp = h_blank / 2 - hsync;
-
-	fmt->bt.polarities = polarities;
-	fmt->bt.width = image_width;
-	fmt->bt.height = image_height;
-	fmt->bt.hfrontporch = h_fp;
-	fmt->bt.vfrontporch = v_fp;
-	fmt->bt.hsync = hsync;
-	fmt->bt.vsync = vsync;
-	fmt->bt.hbackporch = frame_width - image_width - h_fp - hsync;
-	fmt->bt.vbackporch = frame_height - image_height - v_fp - vsync;
-	fmt->bt.pixelclock = pix_clk;
-	fmt->bt.standards = V4L2_DV_BT_STD_GTF;
-	if (!default_gtf)
-		fmt->bt.flags |= V4L2_DV_FL_REDUCED_BLANKING;
-	return true;
-}
-EXPORT_SYMBOL_GPL(v4l2_detect_gtf);
-
-/** v4l2_calc_aspect_ratio - calculate the aspect ratio based on bytes
- *	0x15 and 0x16 from the EDID.
- * @hor_landscape - byte 0x15 from the EDID.
- * @vert_portrait - byte 0x16 from the EDID.
- *
- * Determines the aspect ratio from the EDID.
- * See VESA Enhanced EDID standard, release A, rev 2, section 3.6.2:
- * "Horizontal and Vertical Screen Size or Aspect Ratio"
- */
-struct v4l2_fract v4l2_calc_aspect_ratio(u8 hor_landscape, u8 vert_portrait)
-{
-	struct v4l2_fract aspect = { 16, 9 };
-	u32 tmp;
-	u8 ratio;
-
-	/* Nothing filled in, fallback to 16:9 */
-	if (!hor_landscape && !vert_portrait)
-		return aspect;
-	/* Both filled in, so they are interpreted as the screen size in cm */
-	if (hor_landscape && vert_portrait) {
-		aspect.numerator = hor_landscape;
-		aspect.denominator = vert_portrait;
-		return aspect;
-	}
-	/* Only one is filled in, so interpret them as a ratio:
-	   (val + 99) / 100 */
-	ratio = hor_landscape | vert_portrait;
-	/* Change some rounded values into the exact aspect ratio */
-	if (ratio == 79) {
-		aspect.numerator = 16;
-		aspect.denominator = 9;
-	} else if (ratio == 34) {
-		aspect.numerator = 4;
-		aspect.numerator = 3;
-	} else if (ratio == 68) {
-		aspect.numerator = 15;
-		aspect.numerator = 9;
-	} else {
-		aspect.numerator = hor_landscape + 99;
-		aspect.denominator = 100;
-	}
-	if (hor_landscape)
-		return aspect;
-	/* The aspect ratio is for portrait, so swap numerator and denominator */
-	tmp = aspect.denominator;
-	aspect.denominator = aspect.numerator;
-	aspect.numerator = tmp;
-	return aspect;
-}
-EXPORT_SYMBOL_GPL(v4l2_calc_aspect_ratio);
-
-const struct v4l2_frmsize_discrete *v4l2_find_nearest_format(
-		const struct v4l2_discrete_probe *probe,
-		s32 width, s32 height)
-{
-	int i;
-	u32 error, min_error = UINT_MAX;
-	const struct v4l2_frmsize_discrete *size, *best = NULL;
-
-	if (!probe)
-		return best;
-
-	for (i = 0, size = probe->sizes; i < probe->num_sizes; i++, size++) {
-		error = abs(size->width - width) + abs(size->height - height);
-		if (error < min_error) {
-			min_error = error;
-			best = size;
-		}
-		if (!error)
-			break;
-	}
-
-	return best;
-}
-EXPORT_SYMBOL_GPL(v4l2_find_nearest_format);
-
-void v4l2_get_timestamp(struct timeval *tv)
-{
-	struct timespec ts;
-
-	ktime_get_ts(&ts);
-	tv->tv_sec = ts.tv_sec;
-	tv->tv_usec = ts.tv_nsec / NSEC_PER_USEC;
-}
-EXPORT_SYMBOL_GPL(v4l2_get_timestamp);

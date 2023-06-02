@@ -501,7 +501,7 @@ static int orion_spi_remove(struct platform_device *pdev)
 
 MODULE_ALIAS("platform:" DRIVER_NAME);
 
-static const struct of_device_id orion_spi_of_match_table[] = {
+static const struct of_device_id orion_spi_of_match_table[] __devinitdata = {
 	{ .compatible = "marvell,orion-spi", },
 	{}
 };

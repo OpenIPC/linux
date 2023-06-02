@@ -99,6 +99,7 @@
 /* BW_RATE Bits */
 #define LOW_POWER	(1 << 4)
 #define RATE(x)		((x) & 0xF)
+#define RATE2USEC(x)    (10240000 >> RATE(x))
 
 /* POWER_CTL Bits */
 #define PCTL_LINK	(1 << 5)
@@ -206,6 +207,10 @@ struct adxl34x {
 	int irq;
 	unsigned model;
 	unsigned int_mask;
+
+#if defined(CONFIG_INPUT_ADXL34X_ALLOW_POLLING)
+	struct delayed_work work;
+#endif /* defined(CONFIG_INPUT_ADXL34X_ALLOW_POLLING) */
 
 	const struct adxl34x_bus_ops *bops;
 };
@@ -398,6 +403,36 @@ static irqreturn_t adxl34x_irq(int irq, void *handle)
 
 	return IRQ_HANDLED;
 }
+
+#if defined(CONFIG_INPUT_ADXL34X_ALLOW_POLLING)
+static void adxl34x_poll_reschedule(struct adxl34x *ac)
+{
+    unsigned long delay_usecs;
+    unsigned long delay_jiffies;
+
+    delay_usecs = RATE2USEC(ac->pdata.data_rate);
+    delay_jiffies = usecs_to_jiffies(delay_usecs);
+    if (delay_jiffies >= HZ)
+	delay_jiffies = round_jiffies_relative(delay_jiffies);
+    schedule_delayed_work(&ac->work, delay_jiffies);
+}
+
+static void adxl34x_poll_cancel(struct adxl34x *ac)
+{
+    cancel_delayed_work(&ac->work);
+}
+
+static void adxl34x_poll(struct work_struct *work)
+{
+    struct delayed_work *dw = container_of(work, struct delayed_work, work);
+    struct adxl34x *ac = container_of(dw, struct adxl34x, work);
+
+    adxl34x_irq(ac->irq, ac);
+
+    adxl34x_poll_reschedule(ac);
+}
+#endif /* defined(CONFIG_INPUT_ADXL34X_ALLOW_POLLING) */
+
 
 static void __adxl34x_disable(struct adxl34x *ac)
 {
@@ -672,6 +707,12 @@ static int adxl34x_input_open(struct input_dev *input)
 
 	mutex_unlock(&ac->mutex);
 
+#if defined(CONFIG_INPUT_ADXL34X_ALLOW_POLLING)
+	if (!ac->irq) {
+	adxl34x_poll_reschedule(ac);
+}
+#endif /* defined(CONFIG_INPUT_ADXL34X_ALLOW_POLLING) */
+
 	return 0;
 }
 
@@ -687,6 +728,13 @@ static void adxl34x_input_close(struct input_dev *input)
 	ac->opened = false;
 
 	mutex_unlock(&ac->mutex);
+
+#if defined(CONFIG_INPUT_ADXL34X_ALLOW_POLLING)
+	if (!ac->irq) {
+	    adxl34x_poll_cancel(ac);
+	}
+#endif /* defined(CONFIG_INPUT_ADXL34X_ALLOW_POLLING) */
+
 }
 
 struct adxl34x *adxl34x_probe(struct device *dev, int irq,
@@ -700,9 +748,17 @@ struct adxl34x *adxl34x_probe(struct device *dev, int irq,
 	unsigned char revid;
 
 	if (!irq) {
+
+#if defined(CONFIG_INPUT_ADXL34X_ALLOW_POLLING)
+	dev_dbg(dev, "no IRQ, switch to poll mode\n");
+#else
+
 		dev_err(dev, "no IRQ?\n");
 		err = -ENODEV;
 		goto err_out;
+
+#endif /* defined(CONFIG_INPUT_ADXL34X_ALLOW_POLLING) */
+
 	}
 
 	ac = kzalloc(sizeof(*ac), GFP_KERNEL);
@@ -811,13 +867,21 @@ struct adxl34x *adxl34x_probe(struct device *dev, int irq,
 
 	AC_WRITE(ac, POWER_CTL, 0);
 
-	err = request_threaded_irq(ac->irq, NULL, adxl34x_irq,
-				   IRQF_TRIGGER_HIGH | IRQF_ONESHOT,
-				   dev_name(dev), ac);
-	if (err) {
-		dev_err(dev, "irq %d busy?\n", ac->irq);
-		goto err_free_mem;
+	if (ac->irq) {
+		err = request_threaded_irq(ac->irq, NULL, adxl34x_irq,
+					   IRQF_TRIGGER_HIGH | IRQF_ONESHOT,
+					   dev_name(dev), ac);
+		if (err) {
+			dev_err(dev, "irq %d busy?\n", ac->irq);
+			goto err_free_mem;
+		}
 	}
+
+#if defined(CONFIG_INPUT_ADXL34X_ALLOW_POLLING)
+	else {
+	    INIT_DELAYED_WORK(&ac->work, &adxl34x_poll);
+	}
+#endif /* defined(CONFIG_INPUT_ADXL34X_ALLOW_POLLING) */
 
 	err = sysfs_create_group(&dev->kobj, &adxl34x_attr_group);
 	if (err)
@@ -888,7 +952,8 @@ struct adxl34x *adxl34x_probe(struct device *dev, int irq,
  err_remove_attr:
 	sysfs_remove_group(&dev->kobj, &adxl34x_attr_group);
  err_free_irq:
-	free_irq(ac->irq, ac);
+	if (ac->irq)
+		free_irq(ac->irq, ac);
  err_free_mem:
 	input_free_device(input_dev);
 	kfree(ac);
@@ -900,7 +965,8 @@ EXPORT_SYMBOL_GPL(adxl34x_probe);
 int adxl34x_remove(struct adxl34x *ac)
 {
 	sysfs_remove_group(&ac->dev->kobj, &adxl34x_attr_group);
-	free_irq(ac->irq, ac);
+	if (ac->irq)
+		free_irq(ac->irq, ac);
 	input_unregister_device(ac->input);
 	dev_dbg(ac->dev, "unregistered accelerometer\n");
 	kfree(ac);

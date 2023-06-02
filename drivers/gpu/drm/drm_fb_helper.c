@@ -34,6 +34,7 @@
 #include <linux/slab.h>
 #include <linux/fb.h>
 #include <linux/module.h>
+#include <linux/kgdb.h>
 #include <drm/drmP.h>
 #include <drm/drm_crtc.h>
 #include <drm/drm_fb_helper.h>
@@ -1544,10 +1545,10 @@ int drm_fb_helper_hotplug_event(struct drm_fb_helper *fb_helper)
 	if (!fb_helper->fb)
 		return 0;
 
-	mutex_lock(&fb_helper->dev->mode_config.mutex);
+	drm_modeset_lock_all(dev);
 	if (!drm_fb_helper_is_bound(fb_helper)) {
 		fb_helper->delayed_hotplug = true;
-		mutex_unlock(&fb_helper->dev->mode_config.mutex);
+		drm_modeset_unlock_all(dev);
 		return 0;
 	}
 	DRM_DEBUG_KMS("\n");
@@ -1558,11 +1559,9 @@ int drm_fb_helper_hotplug_event(struct drm_fb_helper *fb_helper)
 
 	count = drm_fb_helper_probe_connector_modes(fb_helper, max_width,
 						    max_height);
-	mutex_unlock(&fb_helper->dev->mode_config.mutex);
-
-	drm_modeset_lock_all(dev);
 	drm_setup_crtcs(fb_helper);
 	drm_modeset_unlock_all(dev);
+
 	drm_fb_helper_set_par(fb_helper->fbdev);
 
 	return 0;

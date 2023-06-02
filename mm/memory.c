@@ -216,7 +216,6 @@ void tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm, bool fullmm)
 	tlb->mm = mm;
 
 	tlb->fullmm     = fullmm;
-	tlb->need_flush_all = 0;
 	tlb->start	= -1UL;
 	tlb->end	= 0;
 	tlb->need_flush = 0;
@@ -1748,8 +1747,10 @@ long __get_user_pages(struct task_struct *tsk, struct mm_struct *mm,
 			pte_t *pte;
 
 			/* user gate pages are read-only */
-			if (gup_flags & FOLL_WRITE)
+			if (gup_flags & FOLL_WRITE){
+				printk("get user pages error 1\r\n");
 				return i ? : -EFAULT;
+			}
 			if (pg > TASK_SIZE)
 				pgd = pgd_offset_k(pg);
 			else
@@ -1758,12 +1759,15 @@ long __get_user_pages(struct task_struct *tsk, struct mm_struct *mm,
 			pud = pud_offset(pgd, pg);
 			BUG_ON(pud_none(*pud));
 			pmd = pmd_offset(pud, pg);
-			if (pmd_none(*pmd))
+			if (pmd_none(*pmd)){
+				printk("get user pages error 2\r\n");
 				return i ? : -EFAULT;
+			}
 			VM_BUG_ON(pmd_trans_huge(*pmd));
 			pte = pte_offset_map(pmd, pg);
 			if (pte_none(*pte)) {
 				pte_unmap(pte);
+				printk("get user pages error 3\r\n");
 				return i ? : -EFAULT;
 			}
 			vma = get_gate_vma(mm);
@@ -1777,6 +1781,7 @@ long __get_user_pages(struct task_struct *tsk, struct mm_struct *mm,
 						page = pte_page(*pte);
 					else {
 						pte_unmap(pte);
+						printk("get user pages error 4\r\n");
 						return i ? : -EFAULT;
 					}
 				}
@@ -1791,7 +1796,14 @@ long __get_user_pages(struct task_struct *tsk, struct mm_struct *mm,
 		if (!vma ||
 		    (vma->vm_flags & (VM_IO | VM_PFNMAP)) ||
 		    !(vm_flags & vma->vm_flags))
+		{
+			//printk("VMA PTR=%x\r\n", vma);
+			//if (vma) printk("VMA->VM_FLAGS=%x\r\n", vma->vm_flags);
+			//printk("VM FLAGS=%x\r\n", vm_flags);
+
+			//printk("get user pages error 5 %d\r\n", i);
 			return i ? : -EFAULT;
+		}
 
 		if (is_vm_hugetlb_page(vma)) {
 			i = follow_hugetlb_page(mm, vma, pages, vmas,
@@ -1808,8 +1820,10 @@ long __get_user_pages(struct task_struct *tsk, struct mm_struct *mm,
 			 * If we have a pending SIGKILL, don't keep faulting
 			 * pages and potentially allocating memory.
 			 */
-			if (unlikely(fatal_signal_pending(current)))
+			if (unlikely(fatal_signal_pending(current))){
+				printk("get user pages error 6\r\n");
 				return i ? i : -ERESTARTSYS;
+			}
 
 			cond_resched();
 			while (!(page = follow_page_mask(vma, start,
@@ -1839,13 +1853,19 @@ long __get_user_pages(struct task_struct *tsk, struct mm_struct *mm,
 						   VM_FAULT_HWPOISON_LARGE)) {
 						if (i)
 							return i;
-						else if (gup_flags & FOLL_HWPOISON)
+						else if (gup_flags & FOLL_HWPOISON){
+							printk("get user pages error 7\r\n");
 							return -EHWPOISON;
-						else
+						}
+						else {
+							printk("get user pages error 8\r\n");
 							return -EFAULT;
+						}
 					}
-					if (ret & VM_FAULT_SIGBUS)
+					if (ret & VM_FAULT_SIGBUS){
+						printk("get user pages error 9\r\n");
 						return i ? i : -EFAULT;
+					}
 					BUG();
 				}
 
@@ -2362,11 +2382,19 @@ int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
 	 * un-COW'ed pages by matching them up with "vma->vm_pgoff".
 	 * See vm_normal_page() for details.
 	 */
+	//printk("remap_pfn_mem %x, %x, %x, %x", addr, vma->vm_start, end, vma->vm_end);
+	if (addr == vma->vm_start && end == vma->vm_end) {
+		vma->vm_pgoff = pfn;
+		//vma->vm_flags |= VM_PFN_AT_MMAP;
+	} else if (is_cow_mapping(vma->vm_flags))
+		return -EINVAL;
+/*
 	if (is_cow_mapping(vma->vm_flags)) {
 		if (addr != vma->vm_start || end != vma->vm_end)
 			return -EINVAL;
 		vma->vm_pgoff = pfn;
 	}
+*/
 
 	err = track_pfn_remap(vma, &prot, pfn, addr, PAGE_ALIGN(size));
 	if (err)
@@ -2392,53 +2420,6 @@ int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
 	return err;
 }
 EXPORT_SYMBOL(remap_pfn_range);
-
-/**
- * vm_iomap_memory - remap memory to userspace
- * @vma: user vma to map to
- * @start: start of area
- * @len: size of area
- *
- * This is a simplified io_remap_pfn_range() for common driver use. The
- * driver just needs to give us the physical memory range to be mapped,
- * we'll figure out the rest from the vma information.
- *
- * NOTE! Some drivers might want to tweak vma->vm_page_prot first to get
- * whatever write-combining details or similar.
- */
-int vm_iomap_memory(struct vm_area_struct *vma, phys_addr_t start, unsigned long len)
-{
-	unsigned long vm_len, pfn, pages;
-
-	/* Check that the physical memory area passed in looks valid */
-	if (start + len < start)
-		return -EINVAL;
-	/*
-	 * You *really* shouldn't map things that aren't page-aligned,
-	 * but we've historically allowed it because IO memory might
-	 * just have smaller alignment.
-	 */
-	len += start & ~PAGE_MASK;
-	pfn = start >> PAGE_SHIFT;
-	pages = (len + ~PAGE_MASK) >> PAGE_SHIFT;
-	if (pfn + pages < pfn)
-		return -EINVAL;
-
-	/* We start the mapping 'vm_pgoff' pages into the area */
-	if (vma->vm_pgoff > pages)
-		return -EINVAL;
-	pfn += vma->vm_pgoff;
-	pages -= vma->vm_pgoff;
-
-	/* Can we fit all of the mapping? */
-	vm_len = vma->vm_end - vma->vm_start;
-	if (vm_len >> PAGE_SHIFT > pages)
-		return -EINVAL;
-
-	/* Ok, let it rip */
-	return io_remap_pfn_range(vma, vma->vm_start, pfn, vm_len, vma->vm_page_prot);
-}
-EXPORT_SYMBOL(vm_iomap_memory);
 
 static int apply_to_pte_range(struct mm_struct *mm, pmd_t *pmd,
 				     unsigned long addr, unsigned long end,

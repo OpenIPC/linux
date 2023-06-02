@@ -1,34 +1,103 @@
 config VIDEO_DAVINCI_VPIF_DISPLAY
-	tristate "DM646x/DA850/OMAPL138 EVM Video Display"
+	tristate "DaVinci Video VPIF Display"
 	depends on VIDEO_DEV && (MACH_DAVINCI_DM6467_EVM || MACH_DAVINCI_DA850_EVM)
-	select VIDEOBUF2_DMA_CONTIG
+	select VIDEOBUF_DMA_CONTIG
 	select VIDEO_DAVINCI_VPIF
-	select VIDEO_ADV7343 if MEDIA_SUBDRV_AUTOSELECT
-	select VIDEO_THS7303 if MEDIA_SUBDRV_AUTOSELECT
+	select VIDEO_ADV7343
+	select VIDEO_THS7303
 	help
-	  Enables Davinci VPIF module used for display devices.
-	  This module is common for following DM6467/DA850/OMAPL138
-	  based display devices.
-
+	  Support for DaVinci VPIF Display on DM6467 EVM and/or DA850/OMAP-L138/AM18xx EVM.
 	  To compile this driver as a module, choose M here: the
 	  module will be called vpif_display.
 
+config VIDEO_DM355_AF
+	tristate "DM355 Auto Focus Driver"
+	depends on ARCH_DAVINCI_DM355
+	default y
+	help
+	   Support for dm355 AF hardware.
+
+	   Auto Focus programming functions which are used to support
+	   control loop for Auto Focus. It collects metrics about the
+	   image or video data,
+
+config VIDEO_DM355_AEW
+	tristate "DM355 Auto exposure /White Balance Driver"
+	depends on ARCH_DAVINCI_DM355
+	help
+	  Support for dm355 hardware.
+
+	  DM355 Auto Exposure and Auto White Balance programming functions
+	  which are used to support the control loops for Auto Exposure and
+	  Auto White Balance. It collects metrics about the image or video data
+
+config VIDEO_DM365_3A_HW
+	tristate "DM365 Auto Focus, Auto Exposure/ White Balance HW module"
+	depends on ARCH_DAVINCI_DM365
+	help
+	  DM365 Auto Focus, Auto Exposure and Auto White Balancing HW module
+
+	  This module has functions which configure AEW/AF hardware, high level
+	  AF module and AEW module use these functionalities. It collects metrics
+	  about the image or video data
+
+config VIDEO_DM365_AF
+	tristate "DM365 Auto Focus Driver"
+	depends on ARCH_DAVINCI_DM365
+	select VIDEO_DM365_3A_HW
+	help
+	  DM365 Auto Focus hardware module.
+
+	  Auto Focus driver is used to support control loop for Auto Focus.
+	  It collects metrics about the image or video data. This provides
+	  hooks to AF subdevice driver.
+
+config VIDEO_DM365_AEW
+	tristate "DM365 Auto exposure /White Balance Driver"
+	depends on ARCH_DAVINCI_DM365
+	select VIDEO_DM365_3A_HW
+	help
+	  DM365 Auto Exposure and Auto White Balance hardware module.
+
+	  This is used to support the control loops for Auto Exposure
+	  and Auto White Balance. It collects metrics about the image
+	  or video data
+
+config DM365_IPIPE
+	depends on ARCH_DAVINCI && ARCH_DAVINCI_DM365
+	tristate "DM365 IPIPE"
+	help
+	  dm365 IPIPE hardware module.
+
+	  This is the hardware module that implements imp_hw_interface
+	  for DM365. This hardware module provides previewer and resizer
+	  functionality for image processing.
+
+config IMP_DEBUG
+	depends on (DM355_IPIPE || DM365_IPIPE)
+	bool "IMP Debug support"
+	default n
+	help
+	  Enable dumping of Image PIPE configuration to console
+
+	  This option enables debug information to be dumped onto console,
+	  helps user in finding the contents of registers during the failing
+	  case and rootcause the issue.
+
 config VIDEO_DAVINCI_VPIF_CAPTURE
-	tristate "DM646x/DA850/OMAPL138 EVM Video Capture"
+	tristate "DaVinci Video VPIF Capture"
 	depends on VIDEO_DEV && (MACH_DAVINCI_DM6467_EVM || MACH_DAVINCI_DA850_EVM)
-	select VIDEOBUF2_DMA_CONTIG
+	select VIDEOBUF_DMA_CONTIG
 	select VIDEO_DAVINCI_VPIF
 	help
-	  Enables Davinci VPIF module used for captur devices.
-	  This module is common for following DM6467/DA850/OMAPL138
-	  based capture devices.
+	  Support for DaVinci VPIF Capture on DM6467 EVM and/or DA850/OMAP-L138/AM18xx EVM.
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called vpif_capture.
 
 config VIDEO_DAVINCI_VPIF
 	tristate "DaVinci VPIF Driver"
-	depends on VIDEO_DAVINCI_VPIF_DISPLAY || VIDEO_DAVINCI_VPIF_CAPTURE
+	depends on VIDEO_DAVINCI_VPIF_DISPLAY
 	help
 	  Support for DaVinci VPIF Driver.
 
@@ -44,7 +113,6 @@ config VIDEO_VPSS_SYSTEM
 config VIDEO_VPFE_CAPTURE
 	tristate "VPFE Video Capture Driver"
 	depends on VIDEO_V4L2 && (ARCH_DAVINCI || ARCH_OMAP3)
-	depends on I2C
 	select VIDEOBUF_DMA_CONTIG
 	help
 	  Support for DMx/AMx VPFE based frame grabber. This is the
@@ -53,10 +121,20 @@ config VIDEO_VPFE_CAPTURE
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called vpfe-capture.
+	  
+config VIDEO_YCBCR
+	depends on (VIDEO_VPFE_CAPTURE)
+	bool "VPFE YCBCR format support"
+	default y
+	help
+	  Enables support for YCbCr camera
 
+	  This is temporary option that enables to support YCbCr camera with resolution 640x480.
+	  Later image format will be detected automatically
+	  
 config VIDEO_DM6446_CCDC
 	tristate "DM6446 CCDC HW module"
-	depends on VIDEO_VPFE_CAPTURE
+	depends on VIDEO_VPFE_CAPTURE && ARCH_DAVINCI_DM644x
 	select VIDEO_VPSS_SYSTEM
 	default y
 	help
@@ -83,9 +161,28 @@ config VIDEO_DM355_CCDC
 
 	   To compile this driver as a module, choose M here: the
 	   module will be called vpfe.
+	   
+config VIDEO_DM365_ISIF
+	tristate "DM365 CCDC/ISIF HW module"
+	depends on ARCH_DAVINCI_DM365 && VIDEO_VPFE_CAPTURE
+	default y
+	help
+	   Enables DM365 ISIF hw module. This is the hardware module for
+	   configuring ISIF in VPFE to capture Raw Bayer RGB data  from
+	   a image sensor or YUV data from a YUV source.
+
+config DM355_IPIPE
+	depends on ARCH_DAVINCI && ARCH_DAVINCI_DM355
+	tristate "DM355 IPIPE"
+	help
+	  dm355 IPIPE hw programming module.
+
+	  This is the hardware module that implements imp_hw_interface
+	  for DM355. This hardware module provides previewer and resizer
+	  configuration functionality for image processing.
 
 config VIDEO_ISIF
-	tristate "ISIF HW module"
+	tristate "DM365 ISIF HW module"
 	depends on ARCH_DAVINCI_DM365 && VIDEO_VPFE_CAPTURE
 	select VIDEO_VPSS_SYSTEM
 	default y
@@ -97,15 +194,63 @@ config VIDEO_ISIF
 	   To compile this driver as a module, choose M here: the
 	   module will be called vpfe.
 
-config VIDEO_DAVINCI_VPBE_DISPLAY
-	tristate "DM644X/DM365/DM355 VPBE HW module"
-	depends on ARCH_DAVINCI_DM644x || ARCH_DAVINCI_DM355 || ARCH_DAVINCI_DM365
+config VIDEO_DM644X_VPBE
+	tristate "DM644X VPBE HW module"
 	select VIDEO_VPSS_SYSTEM
-	select VIDEOBUF2_DMA_CONTIG
+	select VIDEOBUF_DMA_CONTIG
 	help
-	    Enables Davinci VPBE module used for display devices.
-	    This module is common for following DM644x/DM365/DM355
-	    based display devices.
+	    Enables VPBE modules used for display on a DM644x
+	    SoC.
 
 	    To compile this driver as a module, choose M here: the
 	    module will be called vpbe.
+config VIDEO_DAVINCI_DISPLAY
+	tristate "Davinci V4L2 Video Display"
+	depends on VIDEO_DEV && ARCH_DAVINCI
+	select VIDEOBUF_VMALLOC
+	select DAVINCI_OSD
+	help
+	  V4L2 Display driver support for davinci.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called davinci_display.
+
+config DAVINCI_ENC_MNGR
+	tristate "Davinci Encoder Manager support"
+	depends on ARCH_DAVINCI
+	default y
+	help
+	  Enable support for the DaVinci Encoder Manager. This is responsible
+	  for managing output and video/graphics modes for davinci video drivers.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called davinci_enc_mngr
+
+config ENC_MNGR_MAX_CHANNELS
+	int "Max number of channels for Encoder Manager"
+	depends on DAVINCI_ENC_MNGR
+	default "2"
+	help
+	  Used to give max number of channels supported by encoder manager
+	  driver.
+
+config DAVINCI_OSD
+	tristate "Davinci Display Manager"
+	help
+	  Support for Davinci On-Screen Display Manager.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called davinci_osd.
+
+config DAVINCI_VPBE_ENCODER
+	tristate "Davinci VPBE Encoder support"
+	depends on DAVINCI_ENC_MNGR
+	default y
+	help
+	  Enable support for the DaVinci VPBE internal encoder. DaVinci VPBE
+	  has internal VENC and DAC to output analog SD outputs (composite,
+	  S-Video and Component video outputs).
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called vpbe_encoder.
+	    

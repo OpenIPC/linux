@@ -8,6 +8,9 @@
 #include "host.h"
 #include "dev.h"
 
+// added by Gol
+#define HZ 1000 
+
 
 /* Command & response transfer between host and card */
 

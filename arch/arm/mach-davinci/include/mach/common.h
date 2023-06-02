@@ -81,6 +81,10 @@ extern struct davinci_soc_info davinci_soc_info;
 
 extern void davinci_common_init(struct davinci_soc_info *soc_info);
 extern void davinci_init_ide(void);
+/* standard place to map on-chip SRAMs; they *may* support DMA */
+
+#define SRAM_VIRT	0xfffe0000
+
 void davinci_restart(char mode, const char *cmd);
 void davinci_init_late(void);
 

@@ -18,24 +18,12 @@
 static bool perf_output_space(struct ring_buffer *rb, unsigned long tail,
 			      unsigned long offset, unsigned long head)
 {
-	unsigned long sz = perf_data_size(rb);
-	unsigned long mask = sz - 1;
+	unsigned long mask;
 
-	/*
-	 * check if user-writable
-	 * overwrite : over-write its own tail
-	 * !overwrite: buffer possibly drops events.
-	 */
-	if (rb->overwrite)
+	if (!rb->writable)
 		return true;
 
-	/*
-	 * verify that payload is not bigger than buffer
-	 * otherwise masking logic may fail to detect
-	 * the "not enough space" condition
-	 */
-	if ((head - offset) > sz)
-		return false;
+	mask = perf_data_size(rb) - 1;
 
 	offset = (offset - tail) & mask;
 	head   = (head   - tail) & mask;
@@ -224,9 +212,7 @@ ring_buffer_init(struct ring_buffer *rb, long watermark, int flags)
 		rb->watermark = max_size / 2;
 
 	if (flags & RING_BUFFER_WRITABLE)
-		rb->overwrite = 0;
-	else
-		rb->overwrite = 1;
+		rb->writable = 1;
 
 	atomic_set(&rb->refcount, 1);
 

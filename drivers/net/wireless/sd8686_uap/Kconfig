@@ -1,0 +1,6 @@
+config SD8686_UAP
+	tristate "Marvell 8xxx UAP support"
+	default y
+	---help---
+	  A User Access Point driver for Marvell sd8686 devices.
+

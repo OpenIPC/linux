@@ -524,6 +524,15 @@ config INPUT_DM355EVM
 	  To compile this driver as a module, choose M here: the
 	  module will be called dm355evm_keys.
 
+config INPUT_DM365EVM
+	tristate "TI DaVinci DM365 EVM IR Remote"
+	depends on MACH_DAVINCI_DM365_EVM
+	help
+	  Supports the IR remote used with the DM365 EVM board.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called dm365evm_keys.
+
 config INPUT_BFIN_ROTARY
 	tristate "Blackfin Rotary support"
 	depends on BF54x || BF52x
@@ -589,6 +598,14 @@ config INPUT_ADXL34X_SPI
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called adxl34x-spi.
+
+config INPUT_ADXL34X_ALLOW_POLLING
+	bool "allow to fallback to polling mode"
+	depends on INPUT_ADXL34X
+	default y
+	help
+	Say Y here if the int lines of your ADXL345/6 are unused.
+
 
 config INPUT_CMA3000
 	tristate "VTI CMA3000 Tri-axis accelerometer"

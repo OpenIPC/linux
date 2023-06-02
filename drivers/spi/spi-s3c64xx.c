@@ -1060,6 +1060,49 @@ static void s3c64xx_spi_hwinit(struct s3c64xx_spi_driver_data *sdd, int channel)
 	flush_fifo(sdd);
 }
 
+static int __devinit s3c64xx_spi_get_dmares(
+			struct s3c64xx_spi_driver_data *sdd, bool tx)
+{
+	struct platform_device *pdev = sdd->pdev;
+	struct s3c64xx_spi_dma_data *dma_data;
+	struct property *prop;
+	struct resource *res;
+	char prop_name[15], *chan_str;
+
+	if (tx) {
+		dma_data = &sdd->tx_dma;
+		dma_data->direction = DMA_MEM_TO_DEV;
+		chan_str = "tx";
+	} else {
+		dma_data = &sdd->rx_dma;
+		dma_data->direction = DMA_DEV_TO_MEM;
+		chan_str = "rx";
+	}
+
+	if (!sdd->pdev->dev.of_node) {
+		res = platform_get_resource(pdev, IORESOURCE_DMA, tx ? 0 : 1);
+		if (!res) {
+			dev_err(&pdev->dev, "Unable to get SPI-%s dma "
+					"resource\n", chan_str);
+			return -ENXIO;
+		}
+		dma_data->dmach = res->start;
+		return 0;
+	}
+
+	sprintf(prop_name, "%s-dma-channel", chan_str);
+	prop = of_find_property(pdev->dev.of_node, prop_name, NULL);
+	if (!prop) {
+		dev_err(&pdev->dev, "%s dma channel property not specified\n",
+					chan_str);
+		return -ENXIO;
+	}
+
+	dma_data->dmach = DMACH_DT_PROP;
+	dma_data->dma_prop = prop;
+	return 0;
+}
+
 #ifdef CONFIG_OF
 static int s3c64xx_spi_parse_dt_gpio(struct s3c64xx_spi_driver_data *sdd)
 {
@@ -1096,7 +1139,8 @@ static void s3c64xx_spi_dt_gpio_free(struct s3c64xx_spi_driver_data *sdd)
 		gpio_free(sdd->gpios[idx]);
 }
 
-static struct s3c64xx_spi_info *s3c64xx_spi_parse_dt(struct device *dev)
+static struct __devinit s3c64xx_spi_info * s3c64xx_spi_parse_dt(
+						struct device *dev)
 {
 	struct s3c64xx_spi_info *sci;
 	u32 temp;

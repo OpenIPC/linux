@@ -57,7 +57,7 @@ struct ccdc_hw_ops {
 	 */
 	int (*get_params) (void *params);
 	/* Pointer to function to configure ccdc */
-	int (*configure) (void);
+	int (*configure) (int mode);
 
 	/* Pointer to function to set buffer type */
 	int (*set_buftype) (enum ccdc_buftype buf_type);
@@ -91,6 +91,8 @@ struct ccdc_hw_ops {
 	void (*setfbaddr) (unsigned long addr);
 	/* Pointer to function to get field id */
 	int (*getfid) (void);
+	/* Dump configuration registers */
+	void (*isif_dump_hw_config) (void);
 };
 
 struct ccdc_hw_device {

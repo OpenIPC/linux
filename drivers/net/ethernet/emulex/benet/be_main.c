@@ -759,9 +759,8 @@ static struct sk_buff *be_insert_vlan_in_pkt(struct be_adapter *adapter,
 
 	if (vlan_tx_tag_present(skb)) {
 		vlan_tag = be_get_tx_vlan_tag(adapter, skb);
-		skb = __vlan_put_tag(skb, vlan_tag);
-		if (skb)
-			skb->vlan_tci = 0;
+		__vlan_put_tag(skb, vlan_tag);
+		skb->vlan_tci = 0;
 	}
 
 	return skb;

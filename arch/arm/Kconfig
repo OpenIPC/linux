@@ -956,8 +956,10 @@ config ARCH_DAVINCI
 	select GENERIC_IRQ_CHIP
 	select HAVE_IDE
 	select NEED_MACH_GPIO_H
+	select TI_PRIV_EDMA
 	select USE_OF
 	select ZONE_DMA
+	select FIQ
 	help
 	  Support for TI's DaVinci platform.
 
@@ -1031,119 +1033,8 @@ endmenu
 # Kconfigs may be included either alphabetically (according to the
 # plat- suffix) or along side the corresponding mach-* source.
 #
-source "arch/arm/mach-mvebu/Kconfig"
-
-source "arch/arm/mach-at91/Kconfig"
-
-source "arch/arm/mach-bcm/Kconfig"
-
-source "arch/arm/mach-clps711x/Kconfig"
-
-source "arch/arm/mach-cns3xxx/Kconfig"
 
 source "arch/arm/mach-davinci/Kconfig"
-
-source "arch/arm/mach-dove/Kconfig"
-
-source "arch/arm/mach-ep93xx/Kconfig"
-
-source "arch/arm/mach-footbridge/Kconfig"
-
-source "arch/arm/mach-gemini/Kconfig"
-
-source "arch/arm/mach-h720x/Kconfig"
-
-source "arch/arm/mach-highbank/Kconfig"
-
-source "arch/arm/mach-integrator/Kconfig"
-
-source "arch/arm/mach-iop32x/Kconfig"
-
-source "arch/arm/mach-iop33x/Kconfig"
-
-source "arch/arm/mach-iop13xx/Kconfig"
-
-source "arch/arm/mach-ixp4xx/Kconfig"
-
-source "arch/arm/mach-kirkwood/Kconfig"
-
-source "arch/arm/mach-ks8695/Kconfig"
-
-source "arch/arm/mach-msm/Kconfig"
-
-source "arch/arm/mach-mv78xx0/Kconfig"
-
-source "arch/arm/mach-imx/Kconfig"
-
-source "arch/arm/mach-mxs/Kconfig"
-
-source "arch/arm/mach-netx/Kconfig"
-
-source "arch/arm/mach-nomadik/Kconfig"
-
-source "arch/arm/plat-omap/Kconfig"
-
-source "arch/arm/mach-omap1/Kconfig"
-
-source "arch/arm/mach-omap2/Kconfig"
-
-source "arch/arm/mach-orion5x/Kconfig"
-
-source "arch/arm/mach-picoxcell/Kconfig"
-
-source "arch/arm/mach-pxa/Kconfig"
-source "arch/arm/plat-pxa/Kconfig"
-
-source "arch/arm/mach-mmp/Kconfig"
-
-source "arch/arm/mach-realview/Kconfig"
-
-source "arch/arm/mach-sa1100/Kconfig"
-
-source "arch/arm/plat-samsung/Kconfig"
-
-source "arch/arm/mach-socfpga/Kconfig"
-
-source "arch/arm/plat-spear/Kconfig"
-
-source "arch/arm/mach-s3c24xx/Kconfig"
-
-if ARCH_S3C64XX
-source "arch/arm/mach-s3c64xx/Kconfig"
-endif
-
-source "arch/arm/mach-s5p64x0/Kconfig"
-
-source "arch/arm/mach-s5pc100/Kconfig"
-
-source "arch/arm/mach-s5pv210/Kconfig"
-
-source "arch/arm/mach-exynos/Kconfig"
-
-source "arch/arm/mach-shmobile/Kconfig"
-
-source "arch/arm/mach-sunxi/Kconfig"
-
-source "arch/arm/mach-prima2/Kconfig"
-
-source "arch/arm/mach-tegra/Kconfig"
-
-source "arch/arm/mach-u300/Kconfig"
-
-source "arch/arm/mach-ux500/Kconfig"
-
-source "arch/arm/mach-versatile/Kconfig"
-
-source "arch/arm/mach-vexpress/Kconfig"
-source "arch/arm/plat-versatile/Kconfig"
-
-source "arch/arm/mach-virt/Kconfig"
-
-source "arch/arm/mach-vt8500/Kconfig"
-
-source "arch/arm/mach-w90x900/Kconfig"
-
-source "arch/arm/mach-zynq/Kconfig"
 
 # Definitions to make life easier
 config ARCH_ACORN
@@ -1182,18 +1073,6 @@ config ARM_NR_BANKS
 	default 16 if ARCH_EP93XX
 	default 8
 
-config IWMMXT
-	bool "Enable iWMMXt support" if !CPU_PJ4
-	depends on CPU_XSCALE || CPU_XSC3 || CPU_MOHAWK || CPU_PJ4
-	default y if PXA27x || PXA3xx || ARCH_MMP || CPU_PJ4
-	help
-	  Enable support for iWMMXt context switching at run time if
-	  running on a CPU that supports it.
-
-config XSCALE_PMU
-	bool
-	depends on CPU_XSCALE
-	default y
 
 config MULTI_IRQ_HANDLER
 	bool
@@ -1627,7 +1506,7 @@ config PAGE_OFFSET
 	hex
 	default 0x40000000 if VMSPLIT_1G
 	default 0x80000000 if VMSPLIT_2G
-	default 0xC0000000
+	default 0x80000000
 
 config NR_CPUS
 	int "Maximum number of CPUs (2-32)"
@@ -1668,11 +1547,6 @@ config LOCAL_TIMERS
 # selected platforms.
 config ARCH_NR_GPIO
 	int
-	default 1024 if ARCH_SHMOBILE || ARCH_TEGRA
-	default 512 if SOC_OMAP5
-	default 355 if ARCH_U8500
-	default 288 if ARCH_VT8500 || ARCH_SUNXI
-	default 264 if MACH_H4700
 	default 0
 	help
 	  Maximum number of GPIOs in the system.
@@ -1683,11 +1557,7 @@ source kernel/Kconfig.preempt
 
 config HZ
 	int
-	default 200 if ARCH_EBSA110 || ARCH_S3C24XX || ARCH_S5P64X0 || \
-		ARCH_S5PV210 || ARCH_EXYNOS4
-	default AT91_TIMER_HZ if ARCH_AT91
-	default SHMOBILE_TIMER_HZ if ARCH_SHMOBILE
-	default 100
+	default 1000
 
 config SCHED_HRTICK
 	def_bool HIGH_RES_TIMERS
@@ -1819,9 +1689,6 @@ source "mm/Kconfig"
 
 config FORCE_MAX_ZONEORDER
 	int "Maximum zone order" if ARCH_SHMOBILE
-	range 11 64 if ARCH_SHMOBILE
-	default "12" if SOC_AM33XX
-	default "9" if SA1111
 	default "11"
 	help
 	  The kernel memory allocator divides physically contiguous memory
@@ -2158,89 +2025,6 @@ config AUTO_ZRELADDR
 endmenu
 
 menu "CPU Power Management"
-
-if ARCH_HAS_CPUFREQ
-
-source "drivers/cpufreq/Kconfig"
-
-config CPU_FREQ_IMX
-	tristate "CPUfreq driver for i.MX CPUs"
-	depends on ARCH_MXC && CPU_FREQ
-	select CPU_FREQ_TABLE
-	help
-	  This enables the CPUfreq driver for i.MX CPUs.
-
-config CPU_FREQ_SA1100
-	bool
-
-config CPU_FREQ_SA1110
-	bool
-
-config CPU_FREQ_INTEGRATOR
-	tristate "CPUfreq driver for ARM Integrator CPUs"
-	depends on ARCH_INTEGRATOR && CPU_FREQ
-	default y
-	help
-	  This enables the CPUfreq driver for ARM Integrator CPUs.
-
-	  For details, take a look at <file:Documentation/cpu-freq>.
-
-	  If in doubt, say Y.
-
-config CPU_FREQ_PXA
-	bool
-	depends on CPU_FREQ && ARCH_PXA && PXA25x
-	default y
-	select CPU_FREQ_DEFAULT_GOV_USERSPACE
-	select CPU_FREQ_TABLE
-
-config CPU_FREQ_S3C
-	bool
-	help
-	  Internal configuration node for common cpufreq on Samsung SoC
-
-config CPU_FREQ_S3C24XX
-	bool "CPUfreq driver for Samsung S3C24XX series CPUs (EXPERIMENTAL)"
-	depends on ARCH_S3C24XX && CPU_FREQ
-	select CPU_FREQ_S3C
-	help
-	  This enables the CPUfreq driver for the Samsung S3C24XX family
-	  of CPUs.
-
-	  For details, take a look at <file:Documentation/cpu-freq>.
-
-	  If in doubt, say N.
-
-config CPU_FREQ_S3C24XX_PLL
-	bool "Support CPUfreq changing of PLL frequency (EXPERIMENTAL)"
-	depends on CPU_FREQ_S3C24XX
-	help
-	  Compile in support for changing the PLL frequency from the
-	  S3C24XX series CPUfreq driver. The PLL takes time to settle
-	  after a frequency change, so by default it is not enabled.
-
-	  This also means that the PLL tables for the selected CPU(s) will
-	  be built which may increase the size of the kernel image.
-
-config CPU_FREQ_S3C24XX_DEBUG
-	bool "Debug CPUfreq Samsung driver core"
-	depends on CPU_FREQ_S3C24XX
-	help
-	  Enable s3c_freq_dbg for the Samsung S3C CPUfreq core
-
-config CPU_FREQ_S3C24XX_IODEBUG
-	bool "Debug CPUfreq Samsung driver IO timing"
-	depends on CPU_FREQ_S3C24XX
-	help
-	  Enable s3c_freq_iodbg for the Samsung S3C CPUfreq core
-
-config CPU_FREQ_S3C24XX_DEBUGFS
-	bool "Export debugfs for CPUFreq"
-	depends on CPU_FREQ_S3C24XX && DEBUG_FS
-	help
-	  Export status information via debugfs.
-
-endif
 
 source "drivers/cpuidle/Kconfig"
 

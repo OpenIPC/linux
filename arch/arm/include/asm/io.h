@@ -399,3 +399,5 @@ extern void register_isa_ports(unsigned int mmio, unsigned int io,
 
 #endif	/* __KERNEL__ */
 #endif	/* __ASM_ARM_IO_H */
+
+#define davinci_writel(v,a)    (*(volatile unsigned int   *)IO_ADDRESS(a) = (v))

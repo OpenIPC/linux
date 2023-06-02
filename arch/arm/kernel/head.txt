@@ -1,0 +1,251 @@
+
+head.o:     file format elf32-littlearm
+
+
+Disassembly of section .text:
+
+00000000 <__do_fixup_smp_on_up>:
+   0:	e1540005 	cmp	r4, r5
+   4:	21a0f00e 	movcs	pc, lr
+   8:	e8b40041 	ldm	r4!, {r0, r6}
+   c:	e7806003 	str	r6, [r0, r3]
+  10:	eafffffa 	b	0 <__do_fixup_smp_on_up>
+
+00000014 <fixup_smp>:
+  14:	e92d4070 	push	{r4, r5, r6, lr}
+  18:	e1a04000 	mov	r4, r0
+  1c:	e0805001 	add	r5, r0, r1
+  20:	e3a03000 	mov	r3, #0
+  24:	ebfffff5 	bl	0 <__do_fixup_smp_on_up>
+  28:	e8bd8070 	pop	{r4, r5, r6, pc}
+
+0000002c <__fixup_a_pv_table>:
+  2c:	ea000003 	b	40 <__fixup_a_pv_table+0x14>
+  30:	e797c003 	ldr	ip, [r7, r3]
+  34:	e3ccc0ff 	bic	ip, ip, #255	; 0xff
+  38:	e18cc006 	orr	ip, ip, r6
+  3c:	e787c003 	str	ip, [r7, r3]
+  40:	e1540005 	cmp	r4, r5
+  44:	34947004 	ldrcc	r7, [r4], #4
+  48:	3afffff8 	bcc	30 <__fixup_a_pv_table+0x4>
+  4c:	e1a0f00e 	mov	pc, lr
+
+00000050 <fixup_pv_table>:
+  50:	e92d40f0 	push	{r4, r5, r6, r7, lr}
+  54:	e59f2014 	ldr	r2, [pc, #20]	; 70 <fixup_pv_table+0x20>
+  58:	e3a03000 	mov	r3, #0
+  5c:	e1a04000 	mov	r4, r0
+  60:	e0805001 	add	r5, r0, r1
+  64:	e5926004 	ldr	r6, [r2, #4]
+  68:	ebffffef 	bl	2c <__fixup_a_pv_table>
+  6c:	e8bd80f0 	pop	{r4, r5, r6, r7, pc}
+  70:	00000000 	.word	0x00000000
+
+Disassembly of section .head.text:
+
+00000000 <stext>:
+   0:	e321f0d3 	msr	CPSR_c, #211	; 0xd3
+   4:	ee109f10 	mrc	15, 0, r9, cr0, cr0, {0}
+   8:	ebfffffe 	bl	0 <stext>
+   c:	e1b0a005 	movs	sl, r5
+  10:	0afffffe 	beq	44 <stext+0x44>
+  14:	e28f302c 	add	r3, pc, #44	; 0x2c
+  18:	e8930110 	ldm	r3, {r4, r8}
+  1c:	e0434004 	sub	r4, r3, r4
+  20:	e0888004 	add	r8, r8, r4
+  24:	eb00004d 	bl	160 <__vet_atags>
+  28:	eb00003c 	bl	120 <__fixup_pv_table>
+  2c:	eb000007 	bl	50 <__create_page_tables>
+  30:	e59fd00c 	ldr	sp, [pc, #12]	; 44 <stext+0x44>
+  34:	e28fe004 	add	lr, pc, #4
+  38:	e1a08004 	mov	r8, r4
+  3c:	e28af010 	add	pc, sl, #16
+  40:	ea00002d 	b	fc <__enable_mmu>
+  44:	00000000 	.word	0x00000000
+  48:	00000048 	.word	0x00000048
+  4c:	80000000 	.word	0x80000000
+
+00000050 <__create_page_tables>:
+  50:	e2884901 	add	r4, r8, #16384	; 0x4000
+  54:	e1a00004 	mov	r0, r4
+  58:	e3a03000 	mov	r3, #0
+  5c:	e2806901 	add	r6, r0, #16384	; 0x4000
+  60:	e4803004 	str	r3, [r0], #4
+  64:	e4803004 	str	r3, [r0], #4
+  68:	e4803004 	str	r3, [r0], #4
+  6c:	e4803004 	str	r3, [r0], #4
+  70:	e1300006 	teq	r0, r6
+  74:	1afffff9 	bne	60 <__create_page_tables+0x10>
+  78:	e59a7008 	ldr	r7, [sl, #8]
+  7c:	e28f006c 	add	r0, pc, #108	; 0x6c
+  80:	e8900068 	ldm	r0, {r3, r5, r6}
+  84:	e0400003 	sub	r0, r0, r3
+  88:	e0855000 	add	r5, r5, r0
+  8c:	e0866000 	add	r6, r6, r0
+  90:	e1a05a25 	lsr	r5, r5, #20
+  94:	e1a06a26 	lsr	r6, r6, #20
+  98:	e1873a05 	orr	r3, r7, r5, lsl #20
+  9c:	e7843105 	str	r3, [r4, r5, lsl #2]
+  a0:	e1550006 	cmp	r5, r6
+  a4:	32855001 	addcc	r5, r5, #1
+  a8:	3afffffa 	bcc	98 <__create_page_tables+0x48>
+  ac:	e2840a02 	add	r0, r4, #8192	; 0x2000
+  b0:	e59f6034 	ldr	r6, [pc, #52]	; ec <__create_page_tables+0x9c>
+  b4:	e1883007 	orr	r3, r8, r7
+  b8:	e0846926 	add	r6, r4, r6, lsr #18
+  bc:	e4803004 	str	r3, [r0], #4
+  c0:	e2833601 	add	r3, r3, #1048576	; 0x100000
+  c4:	e1500006 	cmp	r0, r6
+  c8:	9afffffb 	bls	bc <__create_page_tables+0x6c>
+  cc:	e1a00a22 	lsr	r0, r2, #20
+  d0:	e1b00a00 	lsls	r0, r0, #20
+  d4:	10403008 	subne	r3, r0, r8
+  d8:	12833102 	addne	r3, r3, #-2147483648	; 0x80000000
+  dc:	10843923 	addne	r3, r4, r3, lsr #18
+  e0:	11876000 	orrne	r6, r7, r0
+  e4:	15836000 	strne	r6, [r3]
+  e8:	e1a0f00e 	mov	pc, lr
+  ec:	ffffffff 	.word	0xffffffff
+
+000000f0 <__turn_mmu_on_loc>:
+  f0:	000000f0 	.word	0x000000f0
+  f4:	00000000 	.word	0x00000000
+  f8:	00000018 	.word	0x00000018
+
+000000fc <__enable_mmu>:
+  fc:	e3800002 	orr	r0, r0, #2
+ 100:	e3a0501f 	mov	r5, #31
+ 104:	ee035f10 	mcr	15, 0, r5, cr3, cr0, {0}
+ 108:	ee024f10 	mcr	15, 0, r4, cr2, cr0, {0}
+ 10c:	eafffffe 	b	0 <stext>
+ 110:	e1a00000 	nop			; (mov r0, r0)
+ 114:	e1a00000 	nop			; (mov r0, r0)
+ 118:	e1a00000 	nop			; (mov r0, r0)
+ 11c:	e1a00000 	nop			; (mov r0, r0)
+
+00000120 <__fixup_pv_table>:
+ 120:	e28f0028 	add	r0, pc, #40	; 0x28
+ 124:	e89000b8 	ldm	r0, {r3, r4, r5, r7}
+ 128:	e0403003 	sub	r3, r0, r3
+ 12c:	e0844003 	add	r4, r4, r3
+ 130:	e0855003 	add	r5, r5, r3
+ 134:	e0877003 	add	r7, r7, r3
+ 138:	e5878000 	str	r8, [r7]
+ 13c:	e1a06c23 	lsr	r6, r3, #24
+ 140:	e1330c06 	teq	r3, r6, lsl #24
+ 144:	1afffffe 	bne	44 <stext+0x44>
+ 148:	e5876004 	str	r6, [r7, #4]
+ 14c:	eafffffe 	b	2c <stext+0x2c>
+ 150:	00000150 	.word	0x00000150
+	...
+
+00000160 <__vet_atags>:
+ 160:	e3120003 	tst	r2, #3
+ 164:	1a00000b 	bne	198 <__vet_atags+0x38>
+ 168:	e5925000 	ldr	r5, [r2]
+ 16c:	e59f602c 	ldr	r6, [pc, #44]	; 1a0 <__vet_atags+0x40>
+ 170:	e1550006 	cmp	r5, r6
+ 174:	0a000006 	beq	194 <__vet_atags+0x34>
+ 178:	e3550005 	cmp	r5, #5
+ 17c:	13550002 	cmpne	r5, #2
+ 180:	1a000004 	bne	198 <__vet_atags+0x38>
+ 184:	e5925004 	ldr	r5, [r2, #4]
+ 188:	e59f6014 	ldr	r6, [pc, #20]	; 1a4 <__vet_atags+0x44>
+ 18c:	e1550006 	cmp	r5, r6
+ 190:	1a000000 	bne	198 <__vet_atags+0x38>
+ 194:	e1a0f00e 	mov	pc, lr
+ 198:	e3a02000 	mov	r2, #0
+ 19c:	e1a0f00e 	mov	pc, lr
+ 1a0:	edfe0dd0 	.word	0xedfe0dd0
+ 1a4:	54410001 	.word	0x54410001
+ 1a8:	e1a00000 	nop			; (mov r0, r0)
+ 1ac:	e1a00000 	nop			; (mov r0, r0)
+ 1b0:	e1a00000 	nop			; (mov r0, r0)
+ 1b4:	e1a00000 	nop			; (mov r0, r0)
+ 1b8:	e1a00000 	nop			; (mov r0, r0)
+ 1bc:	e1a00000 	nop			; (mov r0, r0)
+
+Disassembly of section .idmap.text:
+
+00000000 <__turn_mmu_on>:
+   0:	e1a00000 	nop			; (mov r0, r0)
+   4:	ee010f10 	mcr	15, 0, r0, cr1, cr0, {0}
+   8:	ee103f10 	mrc	15, 0, r3, cr0, cr0, {0}
+   c:	e1a03003 	mov	r3, r3
+  10:	e1a0300d 	mov	r3, sp
+  14:	e1a0f003 	mov	pc, r3
+
+Disassembly of section .init.text:
+
+00000000 <__mmap_switched>:
+   0:	e59f3004 	ldr	r3, [pc, #4]	; c <__mmap_switched+0xc>
+   4:	e3a02038 	mov	r2, #56	; 0x38
+   8:	e5832000 	str	r2, [r3]
+   c:	01c20000 	.word	0x01c20000
+  10:	e59f3004 	ldr	r3, [pc, #4]	; 1c <__mmap_switched+0x1c>
+  14:	e3a02038 	mov	r2, #56	; 0x38
+  18:	e5832000 	str	r2, [r3]
+  1c:	fec20000 	.word	0xfec20000
+  20:	e28f3064 	add	r3, pc, #100	; 0x64
+  24:	e8b300f0 	ldm	r3!, {r4, r5, r6, r7}
+  28:	e1540005 	cmp	r4, r5
+  2c:	11550006 	cmpne	r5, r6
+  30:	1494b004 	ldrne	fp, [r4], #4
+  34:	1485b004 	strne	fp, [r5], #4
+  38:	1afffffb 	bne	2c <__mmap_switched+0x2c>
+  3c:	e3a0b000 	mov	fp, #0
+  40:	e1560007 	cmp	r6, r7
+  44:	3486b004 	strcc	fp, [r6], #4
+  48:	3afffffc 	bcc	40 <__mmap_switched+0x40>
+  4c:	e89320f0 	ldm	r3, {r4, r5, r6, r7, sp}
+  50:	e5849000 	str	r9, [r4]
+  54:	e5851000 	str	r1, [r5]
+  58:	e5862000 	str	r2, [r6]
+  5c:	e3c04002 	bic	r4, r0, #2
+  60:	e8870011 	stm	r7, {r0, r4}
+  64:	e59f3004 	ldr	r3, [pc, #4]	; 70 <__mmap_switched+0x70>
+  68:	e3a02038 	mov	r2, #56	; 0x38
+  6c:	e5832000 	str	r2, [r3]
+  70:	01c20000 	.word	0x01c20000
+  74:	e59f3004 	ldr	r3, [pc, #4]	; 80 <__mmap_switched+0x80>
+  78:	e3a02038 	mov	r2, #56	; 0x38
+  7c:	e5832000 	str	r2, [r3]
+  80:	fec20000 	.word	0xfec20000
+  84:	e28f3000 	add	r3, pc, #0
+  88:	eafffffe 	b	0 <start_kernel>
+
+0000008c <__mmap_switched_data>:
+	...
+  ac:	00001ff8                                ....
+
+000000b0 <lookup_processor_type>:
+  b0:	e92d4270 	push	{r4, r5, r6, r9, lr}
+  b4:	e1a09000 	mov	r9, r0
+  b8:	ebfffffe 	bl	0 <__mmap_switched>
+  bc:	e1a00005 	mov	r0, r5
+  c0:	e8bd8270 	pop	{r4, r5, r6, r9, pc}
+
+Disassembly of section .cpuinit.text:
+
+00000000 <__lookup_processor_type>:
+   0:	e28f3030 	add	r3, pc, #48	; 0x30
+   4:	e8930070 	ldm	r3, {r4, r5, r6}
+   8:	e0433004 	sub	r3, r3, r4
+   c:	e0855003 	add	r5, r5, r3
+  10:	e0866003 	add	r6, r6, r3
+  14:	e8950018 	ldm	r5, {r3, r4}
+  18:	e0044009 	and	r4, r4, r9
+  1c:	e1330004 	teq	r3, r4
+  20:	0a000003 	beq	34 <__lookup_processor_type+0x34>
+  24:	e2855034 	add	r5, r5, #52	; 0x34
+  28:	e1550006 	cmp	r5, r6
+  2c:	3afffff8 	bcc	14 <__lookup_processor_type+0x14>
+  30:	e3a05000 	mov	r5, #0
+  34:	e1a0f00e 	mov	pc, lr
+
+00000038 <__lookup_processor_type_data>:
+  38:	00000038 00000000 00000000              8...........
+
+00000044 <__error>:
+  44:	e1a00000 	nop			; (mov r0, r0)
+  48:	eafffffd 	b	44 <__error>

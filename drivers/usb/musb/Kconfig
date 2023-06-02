@@ -34,6 +34,8 @@ choice
 config USB_MUSB_DAVINCI
 	tristate "DaVinci"
 	depends on ARCH_DAVINCI_DMx
+config USB_MUSB_SOC
+        default y
 
 config USB_MUSB_DA8XX
 	tristate "DA8xx/OMAP-L1x"

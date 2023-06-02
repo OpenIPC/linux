@@ -183,7 +183,7 @@ int serial8250_request_dma(struct uart_8250_port *p)
 					UART_XMIT_SIZE,
 					DMA_TO_DEVICE);
 
-	dev_dbg_ratelimited(p->port.dev, "got both dma channels\n");
+	//dev_dbg_ratelimited(p->port.dev, "got both dma channels\n");
 
 	return 0;
 }
@@ -211,6 +211,6 @@ void serial8250_release_dma(struct uart_8250_port *p)
 	dma->txchan = NULL;
 	dma->tx_running = 0;
 
-	dev_dbg_ratelimited(p->port.dev, "dma channels released\n");
+	//dev_dbg_ratelimited(p->port.dev, "dma channels released\n");
 }
 EXPORT_SYMBOL_GPL(serial8250_release_dma);

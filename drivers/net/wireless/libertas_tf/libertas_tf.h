@@ -46,6 +46,8 @@
 
 #define CMD_ACT_GET			0x0000
 #define CMD_ACT_SET			0x0001
+#define CMD_ACT_ADD			0x0002
+#define CMD_ACT_REMOVE		0x0004
 
 /* Define action or option for CMD_802_11_RESET */
 #define CMD_ACT_HALT			0x0003
@@ -80,6 +82,7 @@ enum lbtf_mode {
 	LBTF_PASSIVE_MODE,
 	LBTF_STA_MODE,
 	LBTF_AP_MODE,
+	LBTF_FULLMAC_MODE,
 };
 
 /** Card Event definition */
@@ -103,6 +106,7 @@ enum lbtf_mode {
 #define LBS_CMD_BUFFER_SIZE             (2 * 1024)
 #define MRVDRV_MAX_CHANNEL_SIZE		14
 #define MRVDRV_SNAP_HEADER_LEN          8
+#define LBS_NUM_BUFFERS				7
 
 #define	LBS_UPLD_SIZE			2312
 #define DEV_NAME_LEN			32
@@ -185,14 +189,20 @@ struct lbtf_private {
 	   bit1 1/0=cmd_sent/cmd_tx_done,
 	   all other bits reserved 0 */
 	struct ieee80211_vif *vif;
+	struct ieee80211_vif *sec_vif;  /* only allow a single secondary vif */
+	enum lbtf_mode mode;
 
 	struct work_struct cmd_work;
 	struct work_struct tx_work;
 	/** Hardware access */
 	int (*hw_host_to_card) (struct lbtf_private *priv, u8 type, u8 *payload, u16 nb);
-	int (*hw_prog_firmware) (struct if_usb_card *cardp);
-	int (*hw_reset_device) (struct if_usb_card *cardp);
-
+	int (*hw_prog_firmware) (void *cardp);
+	int (*hw_reset_device) (void *cardp);
+	int (*enter_deep_sleep) (struct lbtf_private *priv);
+	int (*exit_deep_sleep) (struct lbtf_private *priv);
+	int (*reset_deep_sleep_wakeup) (struct lbtf_private *priv);
+	int (*enable_interrupts) (struct lbtf_private *priv);
+	int (*disable_interrupts) (struct lbtf_private *priv);
 
 	/** Wlan adapter data structure*/
 	/** STATUS variables */
@@ -236,6 +246,8 @@ struct lbtf_private {
 
 	struct sk_buff *skb_to_tx;
 	struct sk_buff *tx_skb;
+	struct sk_buff *tx_skb_old;
+	struct sk_buff_head tx_skb_buf;
 
 	/** NIC Operation characteristics */
 	u16 mac_control;
@@ -256,6 +268,17 @@ struct lbtf_private {
 
 	/* Most recently reported noise in dBm */
 	s8 noise;
+
+	/* Command responses sent from the hardware to the driver */
+	int cur_cmd_retcode;
+	u8 resp_idx;
+	u8 resp_buf[2][LBS_UPLD_SIZE];
+	u32 resp_len[2];
+
+	/* beacon status info */
+	bool beacon_enable;
+	u16 beacon_int;
+
 };
 
 /* 802.11-related definitions */
@@ -470,6 +493,8 @@ int lbtf_cmd_set_mac_multicast_addr(struct lbtf_private *priv);
 void lbtf_set_mode(struct lbtf_private *priv, enum lbtf_mode mode);
 void lbtf_set_bssid(struct lbtf_private *priv, bool activate, const u8 *bssid);
 int lbtf_set_mac_address(struct lbtf_private *priv, uint8_t *mac_addr);
+int lbtf_add_mac_address(struct lbtf_private *priv, uint8_t *mac_addr);
+int lbtf_remove_mac_address(struct lbtf_private *priv, uint8_t *mac_addr);
 
 int lbtf_set_channel(struct lbtf_private *priv, u8 channel);
 
@@ -486,11 +511,11 @@ void lbtf_cmd_response_rx(struct lbtf_private *priv);
 /* main.c */
 struct chan_freq_power *lbtf_get_region_cfp_table(u8 region,
 	int *cfp_no);
-struct lbtf_private *lbtf_add_card(void *card, struct device *dmdev);
+struct lbtf_private *lbtf_add_card(void *card, struct device *dmdev, u8 mac_addr[ETH_ALEN]);
 int lbtf_remove_card(struct lbtf_private *priv);
-int lbtf_start_card(struct lbtf_private *priv);
 int lbtf_rx(struct lbtf_private *priv, struct sk_buff *skb);
 void lbtf_send_tx_feedback(struct lbtf_private *priv, u8 retrycnt, u8 fail);
+void lbtf_host_to_card_done(struct lbtf_private *priv );
 void lbtf_bcn_sent(struct lbtf_private *priv);
 
 /* support functions for cmd.c */

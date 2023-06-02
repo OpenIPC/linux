@@ -70,6 +70,11 @@ struct if_usb_card {
 	uint8_t fwfinalblk;
 
 	__le16 boot2_version;
+
+	int cmdresp;
+	u8 hw_addr[ETH_ALEN];
+	u32 fwrelease;
+	u32 fwcapinfo;
 };
 
 /** fwheader */

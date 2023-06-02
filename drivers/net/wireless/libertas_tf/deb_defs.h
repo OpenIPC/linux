@@ -11,6 +11,9 @@
 
 #include <linux/spinlock.h>
 
+#undef pr_fmt
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #ifdef CONFIG_LIBERTAS_THINFIRM_DEBUG
 #define DEBUG
 #define PROC_DEBUG
@@ -40,6 +43,9 @@
 #define LBTF_DEB_HEX	0x00200000
 #define LBTF_DEB_SDIO	0x00400000
 #define LBTF_DEB_MACOPS	0x00800000
+#define LBTF_DEB_STATS	0x01000000
+#define LBTF_DEB_INT    0x02000000
+#define LBTF_DEB_SCRATCH 0x04000000
 
 extern unsigned int lbtf_debug;
 
@@ -82,8 +88,10 @@ do { if ((lbtf_debug & (grp)) == (grp)) \
 #define lbtf_deb_usbd(dev, fmt, args...) LBTF_DEB_LL(LBTF_DEB_USB, " usbd", "%s:" fmt, dev_name(dev), ##args)
 #define lbtf_deb_cs(fmt, args...)        LBTF_DEB_LL(LBTF_DEB_CS, " cs", fmt, ##args)
 #define lbtf_deb_thread(fmt, args...)    LBTF_DEB_LL(LBTF_DEB_THREAD, " thread", fmt, ##args)
-#define lbtf_deb_sdio(fmt, args...)      LBTF_DEB_LL(LBTF_DEB_SDIO, " thread", fmt, ##args)
+#define lbtf_deb_sdio(fmt, args...)      LBTF_DEB_LL(LBTF_DEB_SDIO, " sdio", fmt, ##args)
 #define lbtf_deb_macops(fmt, args...)      LBTF_DEB_LL(LBTF_DEB_MACOPS, " thread", fmt, ##args)
+#define lbtf_deb_stats(fmt, args...)      LBTF_DEB_LL(LBTF_DEB_STATS, " statistics", fmt, ##args)
+#define lbtf_deb_int(fmt, args...)      LBTF_DEB_LL(LBTF_DEB_INT, " int", fmt, ##args)
 
 #ifdef DEBUG
 static inline void lbtf_deb_hex(unsigned int grp, const char *prompt, u8 *buf, int len)

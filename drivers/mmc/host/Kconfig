@@ -379,6 +379,14 @@ config MMC_GOLDFISH
 	  This selects the Goldfish Multimedia card Interface emulation
 	  found on the Goldfish Android virtual device emulation.
 
+config MMC_DONT_POLL_FOR_REMOVAL
+	bool "Don't Poll for SD card removals"
+	depends on MMC_DAVINCI
+	help
+	This turns off the periodic poll for the SD card removal.
+	Only enable this if it is impossible to remove the SD
+	card at runtime.  If unsure, say N.
+
 config MMC_SPI
 	tristate "MMC/SD/SDIO over SPI"
 	depends on SPI_MASTER && !HIGHMEM && HAS_DMA

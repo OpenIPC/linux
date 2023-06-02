@@ -1007,7 +1007,7 @@ int _dev_info(const struct device *dev, const char *fmt, ...)
  * Note that the definition of dev_info below is actually _dev_info
  * and a macro is used to avoid redefining dev_info
  */
-
+//#define DEBUG
 #define dev_info(dev, fmt, arg...) _dev_info(dev, fmt, ##arg)
 
 #if defined(CONFIG_DYNAMIC_DEBUG)

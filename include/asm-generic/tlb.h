@@ -99,12 +99,7 @@ struct mmu_gather {
 	unsigned int		need_flush : 1,	/* Did free PTEs */
 				fast_mode  : 1; /* No batching   */
 
-	/* we are in the middle of an operation to clear
-	 * a full mm and can make some optimizations */
-	unsigned int		fullmm : 1,
-	/* we have performed an operation which
-	 * requires a complete flush of the tlb */
-				need_flush_all : 1;
+	unsigned int		fullmm;
 
 	struct mmu_gather_batch *active;
 	struct mmu_gather_batch	local;

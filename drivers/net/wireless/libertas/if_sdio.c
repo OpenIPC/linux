@@ -1088,9 +1088,11 @@ static void if_sdio_reset_card_worker(struct work_struct *work)
 	 * instance for that reason.
 	 */
 
-	pr_info("Resetting card...");
-	mmc_remove_host(reset_host);
-	mmc_add_host(reset_host);
+	/* turn off card reset */
+
+	// pr_info("Resetting card...");
+	//mmc_remove_host(reset_host);
+	//mmc_add_host(reset_host);
 }
 static DECLARE_WORK(card_reset_work, if_sdio_reset_card_worker);
 

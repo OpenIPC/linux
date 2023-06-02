@@ -49,6 +49,12 @@ static const u8 iprm_shutdown[8] =
 
 #define TRGCLS_SIZE	(sizeof(((struct iucv_message *)0)->class))
 
+/* macros to set/get socket control buffer at correct offset */
+#define CB_TAG(skb)	((skb)->cb)		/* iucv message tag */
+#define CB_TAG_LEN	(sizeof(((struct iucv_message *) 0)->tag))
+#define CB_TRGCLS(skb)	((skb)->cb + CB_TAG_LEN) /* iucv msg target class */
+#define CB_TRGCLS_LEN	(TRGCLS_SIZE)
+
 #define __iucv_sock_wait(sk, condition, timeo, ret)			\
 do {									\
 	DEFINE_WAIT(__wait);						\
@@ -1135,7 +1141,7 @@ static int iucv_sock_sendmsg(struct kiocb *iocb, struct socket *sock,
 
 	/* increment and save iucv message tag for msg_completion cbk */
 	txmsg.tag = iucv->send_tag++;
-	IUCV_SKB_CB(skb)->tag = txmsg.tag;
+	memcpy(CB_TAG(skb), &txmsg.tag, CB_TAG_LEN);
 
 	if (iucv->transport == AF_IUCV_TRANS_HIPER) {
 		atomic_inc(&iucv->msg_sent);
@@ -1218,7 +1224,7 @@ static int iucv_fragment_skb(struct sock *sk, struct sk_buff *skb, int len)
 			return -ENOMEM;
 
 		/* copy target class to control buffer of new skb */
-		IUCV_SKB_CB(nskb)->class = IUCV_SKB_CB(skb)->class;
+		memcpy(CB_TRGCLS(nskb), CB_TRGCLS(skb), CB_TRGCLS_LEN);
 
 		/* copy data fragment */
 		memcpy(nskb->data, skb->data + copied, size);
@@ -1250,7 +1256,7 @@ static void iucv_process_message(struct sock *sk, struct sk_buff *skb,
 
 	/* store msg target class in the second 4 bytes of skb ctrl buffer */
 	/* Note: the first 4 bytes are reserved for msg tag */
-	IUCV_SKB_CB(skb)->class = msg->class;
+	memcpy(CB_TRGCLS(skb), &msg->class, CB_TRGCLS_LEN);
 
 	/* check for special IPRM messages (e.g. iucv_sock_shutdown) */
 	if ((msg->flags & IUCV_IPRMDATA) && len > 7) {
@@ -1286,7 +1292,6 @@ static void iucv_process_message(struct sock *sk, struct sk_buff *skb,
 		}
 	}
 
-	IUCV_SKB_CB(skb)->offset = 0;
 	if (sock_queue_rcv_skb(sk, skb))
 		skb_queue_head(&iucv_sk(sk)->backlog_skb_q, skb);
 }
@@ -1322,9 +1327,6 @@ static int iucv_sock_recvmsg(struct kiocb *iocb, struct socket *sock,
 	unsigned int copied, rlen;
 	struct sk_buff *skb, *rskb, *cskb;
 	int err = 0;
-	u32 offset;
-
-	msg->msg_namelen = 0;
 
 	if ((sk->sk_state == IUCV_DISCONN) &&
 	    skb_queue_empty(&iucv->backlog_skb_q) &&
@@ -1344,14 +1346,13 @@ static int iucv_sock_recvmsg(struct kiocb *iocb, struct socket *sock,
 		return err;
 	}
 
-	offset = IUCV_SKB_CB(skb)->offset;
-	rlen   = skb->len - offset;		/* real length of skb */
+	rlen   = skb->len;		/* real length of skb */
 	copied = min_t(unsigned int, rlen, len);
 	if (!rlen)
 		sk->sk_shutdown = sk->sk_shutdown | RCV_SHUTDOWN;
 
 	cskb = skb;
-	if (skb_copy_datagram_iovec(cskb, offset, msg->msg_iov, copied)) {
+	if (skb_copy_datagram_iovec(cskb, 0, msg->msg_iov, copied)) {
 		if (!(flags & MSG_PEEK))
 			skb_queue_head(&sk->sk_receive_queue, skb);
 		return -EFAULT;
@@ -1369,8 +1370,7 @@ static int iucv_sock_recvmsg(struct kiocb *iocb, struct socket *sock,
 	 * get the trgcls from the control buffer of the skb due to
 	 * fragmentation of original iucv message. */
 	err = put_cmsg(msg, SOL_IUCV, SCM_IUCV_TRGCLS,
-		       sizeof(IUCV_SKB_CB(skb)->class),
-		       (void *)&IUCV_SKB_CB(skb)->class);
+			CB_TRGCLS_LEN, CB_TRGCLS(skb));
 	if (err) {
 		if (!(flags & MSG_PEEK))
 			skb_queue_head(&sk->sk_receive_queue, skb);
@@ -1382,8 +1382,9 @@ static int iucv_sock_recvmsg(struct kiocb *iocb, struct socket *sock,
 
 		/* SOCK_STREAM: re-queue skb if it contains unreceived data */
 		if (sk->sk_type == SOCK_STREAM) {
-			if (copied < rlen) {
-				IUCV_SKB_CB(skb)->offset = offset + copied;
+			skb_pull(skb, copied);
+			if (skb->len) {
+				skb_queue_head(&sk->sk_receive_queue, skb);
 				goto done;
 			}
 		}
@@ -1402,7 +1403,6 @@ static int iucv_sock_recvmsg(struct kiocb *iocb, struct socket *sock,
 		spin_lock_bh(&iucv->message_q.lock);
 		rskb = skb_dequeue(&iucv->backlog_skb_q);
 		while (rskb) {
-			IUCV_SKB_CB(rskb)->offset = 0;
 			if (sock_queue_rcv_skb(sk, rskb)) {
 				skb_queue_head(&iucv->backlog_skb_q,
 						rskb);
@@ -1830,7 +1830,7 @@ static void iucv_callback_txdone(struct iucv_path *path,
 		spin_lock_irqsave(&list->lock, flags);
 
 		while (list_skb != (struct sk_buff *)list) {
-			if (msg->tag != IUCV_SKB_CB(list_skb)->tag) {
+			if (!memcmp(&msg->tag, CB_TAG(list_skb), CB_TAG_LEN)) {
 				this = list_skb;
 				break;
 			}
@@ -2091,7 +2091,6 @@ static int afiucv_hs_callback_rx(struct sock *sk, struct sk_buff *skb)
 	skb_pull(skb, sizeof(struct af_iucv_trans_hdr));
 	skb_reset_transport_header(skb);
 	skb_reset_network_header(skb);
-	IUCV_SKB_CB(skb)->offset = 0;
 	spin_lock(&iucv->message_q.lock);
 	if (skb_queue_empty(&iucv->backlog_skb_q)) {
 		if (sock_queue_rcv_skb(sk, skb)) {
@@ -2196,7 +2195,8 @@ static int afiucv_hs_rcv(struct sk_buff *skb, struct net_device *dev,
 		/* fall through and receive zero length data */
 	case 0:
 		/* plain data frame */
-		IUCV_SKB_CB(skb)->class = trans_hdr->iucv_hdr.class;
+		memcpy(CB_TRGCLS(skb), &trans_hdr->iucv_hdr.class,
+		       CB_TRGCLS_LEN);
 		err = afiucv_hs_callback_rx(sk, skb);
 		break;
 	default:

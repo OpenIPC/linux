@@ -62,3 +62,21 @@ obj-$(CONFIG_JS_RTC)		+= js-rtc.o
 js-rtc-y = rtc.o
 
 obj-$(CONFIG_TILE_SROM)		+= tile-srom.o
+
+davinci_rsz_driver-objs	:= davinci_resizer_hw.o davinci_resizer.o
+obj-$(CONFIG_RESIZER)	+= davinci_rsz_driver.o
+
+dm355_imp-objs			:= dm355_ipipe.o dm355_def_para.o \
+					dm355_ipipe_hw.o
+obj-$(CONFIG_DM355_IPIPE)	+= dm355_imp.o
+
+dm365_imp-objs			:= dm365_ipipe.o dm365_def_para.o \
+					dm365_ipipe_hw.o dm3xx_ipipe.o
+obj-$(CONFIG_DM365_IPIPE)	+= dm365_imp.o
+
+imp_prev_driver-objs		:= imp_previewer.o
+imp_rsz_driver-objs		:= imp_resizer.o
+obj-$(CONFIG_DM355_IPIPE)	+= imp_common.o
+obj-$(CONFIG_DM365_IPIPE)	+= imp_common.o
+obj-$(CONFIG_IMP_PREVIEWER)	+= imp_prev_driver.o
+obj-$(CONFIG_IMP_RESIZER)	+= imp_rsz_driver.o

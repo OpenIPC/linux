@@ -585,6 +585,16 @@ config DEVPORT
 	default y
 
 source "drivers/s390/char/Kconfig"
+config RESIZER
+	tristate "DaVinci Resizer Driver"
+	default n
+	depends on ARCH_DAVINCI_DM646x
+	help
+	  Resizer Driver for dm644x.
+
+	  This driver helps user configure Resizer in a single shot mode
+	  only for dm644x. Various private ioctls help user to configure
+	  resizer, allocate memory for buffers etc.
 
 config MSM_SMD_PKT
 	bool "Enable device interface for some SMD packet ports"
@@ -604,6 +614,58 @@ config TILE_SROM
 	  in /dev/srom/.  The Tilera hypervisor makes the flash
 	  device appear much like a simple EEPROM, and knows
 	  how to partition a single ROM for multiple purposes.
+
+config VDCE
+        tristate "DaVinci VDCE Driver"
+        default n
+        depends on ARCH_DAVINCI_DM646x
+        help
+                DaVinci VDCE Driver.
+
+	   
+config DM365_IPIPE
+	depends on ARCH_DAVINCI && ARCH_DAVINCI_DM365
+	tristate "DM365 IPIPE"
+	help
+	   DM365 IPIPE driver. This is the hardware module that
+	   implements imp_hw_interface for DM365. This hardware module provides
+	   previewer and resizer functionality for image processing.
+
+config IMP_PREVIEWER
+	depends on (DM355_IPIPE || DM365_IPIPE)
+	default n
+	tristate "IMP Previewer"
+	help
+	   Image Pipe (IMP) Previewer Driver. This previewer
+	   driver is used for converting Bayer RGB image to UYVY format. It also
+	   provides image tuning functionality by using different tuning modules
+	   available in the VPFE. This can be configured either in continuous
+	   mode or single shot mode. In continous mode, Bayer RGB data from CCDC is
+	   tuned on the fly and converted to UYVY format. In Single shot mode
+	   image is first captured from CCDC to SDRAM and then given to the
+	   previewer device for further processing as mentioned above.
+
+
+config IMP_RESIZER
+	depends on (DM355_IPIPE || DM365_IPIPE)
+	default n
+	tristate "IMP Resizer"
+	help
+	   Image Pipe (IMP) resizer driver. This resizer driver
+	   is needed to generate scaled up/down UYVY images. When chained
+	   with previewer, this can resize a Bayer RGB image/UYVY image.
+	   In standalone mode, this can resize only UYVY image. This device
+	   can be chained with the previewer device to configure the resizer
+	   at the output of the previewer hardware. This can also work in
+	   continuous and single shot mode similar to the previewer.
+
+
+config IMP_DEBUG
+	depends on (DM355_IPIPE || DM365_IPIPE)
+	bool "IMP Debug support"
+	default n
+	help
+	  Enable dumping of Image PIPE configuration to console
 
 endmenu
 

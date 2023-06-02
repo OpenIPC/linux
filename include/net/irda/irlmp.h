@@ -256,8 +256,7 @@ static inline __u32 irlmp_get_daddr(const struct lsap_cb *self)
 	return (self && self->lap) ? self->lap->daddr : 0;
 }
 
-const char *irlmp_reason_str(LM_REASON reason);
-
+extern const char *irlmp_reasons[];
 extern int sysctl_discovery_timeout;
 extern int sysctl_discovery_slots;
 extern int sysctl_discovery;

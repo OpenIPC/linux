@@ -44,6 +44,26 @@ config SND_DM365_VOICE_CODEC
 	  Say Y if you want to add support for SoC On-chip voice codec
 endchoice
 
+choice
+ 	prompt "Voice Codec Sampling Frequency"
+ 	depends on SND_DM365_VOICE_CODEC
+ 	default SND_DM365_VOICE_CODEC_16KHZ
+config SND_DM365_VOICE_CODEC_8KHZ
+ 	bool "Fs=8kHz"
+config SND_DM365_VOICE_CODEC_16KHZ
+ 	bool "Fs=16kHz"
+ 
+endchoice
+ 
+config SND_DM365_SHOWFREQ
+ 	bool "Show clocks at Linux startup (Debug feature)"
+ 	depends on SND_DM365_VOICE_CODEC
+ 	help
+ 	  Select this item if you want to see very useful clock info at Linux startup.
+           This info printout show PLL1 and PLL2 controller configuration. You can see VoiceCodec, ARMcore, HDVICP, DDR clocks etc.
+           It is useful for first startups. If you're tired of looking at this listing then simply unmark this config item.
+
+
 config  SND_DM6467_SOC_EVM
 	tristate "SoC Audio support for DaVinci DM6467 EVM"
 	depends on SND_DAVINCI_SOC && MACH_DAVINCI_DM6467_EVM

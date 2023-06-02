@@ -55,7 +55,7 @@ int __init_or_module davinci_cfg_reg(const unsigned long index)
 	cfg = &soc_info->pinmux_pins[index];
 
 	if (cfg->name == NULL) {
-		printk(KERN_ERR "No entry for the specified index\n");
+		printk(KERN_ERR "No entry for the specified index %d\n", index);
 		return -ENODEV;
 	}
 

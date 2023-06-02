@@ -755,41 +755,6 @@ void pde_put(struct proc_dir_entry *pde)
 		free_proc_entry(pde);
 }
 
-static void entry_rundown(struct proc_dir_entry *de)
-{
-	spin_lock(&de->pde_unload_lock);
-	/*
-	 * Stop accepting new callers into module. If you're
-	 * dynamically allocating ->proc_fops, save a pointer somewhere.
-	 */
-	de->proc_fops = NULL;
-	/* Wait until all existing callers into module are done. */
-	if (de->pde_users > 0) {
-		DECLARE_COMPLETION_ONSTACK(c);
-
-		if (!de->pde_unload_completion)
-			de->pde_unload_completion = &c;
-
-		spin_unlock(&de->pde_unload_lock);
-
-		wait_for_completion(de->pde_unload_completion);
-
-		spin_lock(&de->pde_unload_lock);
-	}
-
-	while (!list_empty(&de->pde_openers)) {
-		struct pde_opener *pdeo;
-
-		pdeo = list_first_entry(&de->pde_openers, struct pde_opener, lh);
-		list_del(&pdeo->lh);
-		spin_unlock(&de->pde_unload_lock);
-		pdeo->release(pdeo->inode, pdeo->file);
-		kfree(pdeo);
-		spin_lock(&de->pde_unload_lock);
-	}
-	spin_unlock(&de->pde_unload_lock);
-}
-
 /*
  * Remove a /proc entry and free it if it's not currently in use.
  */
@@ -821,7 +786,37 @@ void remove_proc_entry(const char *name, struct proc_dir_entry *parent)
 		return;
 	}
 
-	entry_rundown(de);
+	spin_lock(&de->pde_unload_lock);
+	/*
+	 * Stop accepting new callers into module. If you're
+	 * dynamically allocating ->proc_fops, save a pointer somewhere.
+	 */
+	de->proc_fops = NULL;
+	/* Wait until all existing callers into module are done. */
+	if (de->pde_users > 0) {
+		DECLARE_COMPLETION_ONSTACK(c);
+
+		if (!de->pde_unload_completion)
+			de->pde_unload_completion = &c;
+
+		spin_unlock(&de->pde_unload_lock);
+
+		wait_for_completion(de->pde_unload_completion);
+
+		spin_lock(&de->pde_unload_lock);
+	}
+
+	while (!list_empty(&de->pde_openers)) {
+		struct pde_opener *pdeo;
+
+		pdeo = list_first_entry(&de->pde_openers, struct pde_opener, lh);
+		list_del(&pdeo->lh);
+		spin_unlock(&de->pde_unload_lock);
+		pdeo->release(pdeo->inode, pdeo->file);
+		kfree(pdeo);
+		spin_lock(&de->pde_unload_lock);
+	}
+	spin_unlock(&de->pde_unload_lock);
 
 	if (S_ISDIR(de->mode))
 		parent->nlink--;
@@ -832,57 +827,3 @@ void remove_proc_entry(const char *name, struct proc_dir_entry *parent)
 	pde_put(de);
 }
 EXPORT_SYMBOL(remove_proc_entry);
-
-int remove_proc_subtree(const char *name, struct proc_dir_entry *parent)
-{
-	struct proc_dir_entry **p;
-	struct proc_dir_entry *root = NULL, *de, *next;
-	const char *fn = name;
-	unsigned int len;
-
-	spin_lock(&proc_subdir_lock);
-	if (__xlate_proc_name(name, &parent, &fn) != 0) {
-		spin_unlock(&proc_subdir_lock);
-		return -ENOENT;
-	}
-	len = strlen(fn);
-
-	for (p = &parent->subdir; *p; p=&(*p)->next ) {
-		if (proc_match(len, fn, *p)) {
-			root = *p;
-			*p = root->next;
-			root->next = NULL;
-			break;
-		}
-	}
-	if (!root) {
-		spin_unlock(&proc_subdir_lock);
-		return -ENOENT;
-	}
-	de = root;
-	while (1) {
-		next = de->subdir;
-		if (next) {
-			de->subdir = next->next;
-			next->next = NULL;
-			de = next;
-			continue;
-		}
-		spin_unlock(&proc_subdir_lock);
-
-		entry_rundown(de);
-		next = de->parent;
-		if (S_ISDIR(de->mode))
-			next->nlink--;
-		de->nlink = 0;
-		if (de == root)
-			break;
-		pde_put(de);
-
-		spin_lock(&proc_subdir_lock);
-		de = next;
-	}
-	pde_put(root);
-	return 0;
-}
-EXPORT_SYMBOL(remove_proc_subtree);

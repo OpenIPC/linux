@@ -22,11 +22,13 @@
 #include <linux/leds.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
+#include <linux/mtd/physmap.h>
 #include <linux/slab.h>
 #include <linux/mtd/nand.h>
 #include <linux/input.h>
 #include <linux/spi/spi.h>
 #include <linux/spi/eeprom.h>
+#include <linux/delay.h>
 
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
@@ -38,62 +40,100 @@
 #include <linux/platform_data/mmc-davinci.h>
 #include <linux/platform_data/mtd-davinci.h>
 #include <linux/platform_data/keyscan-davinci.h>
-
-#include <media/tvp514x.h>
+#include <linux/platform_data/usb-davinci.h>
+#include <mach/time.h>
+#include <mach/gpio.h>
+#include <mach/rto.h>
 
 #include "davinci.h"
+#include "dm365_spi.h"
+
+bool lan0_run; // LAN init flag
+bool lan1_run; // EMAC LAN init flag
+
+bool wlan_run; // WLAN init flag
+bool spi0_run; // SPI0 init flag
+bool camera_run; // camera init flag
+bool uart1_run; // UART1 init flag
+
+static void v2r_parse_cmdline(char * string);
+
+static struct i2c_board_info i2c_info[] = {
+
+};
+
+static struct davinci_i2c_platform_data i2c_pdata = {
+	.bus_freq	= 100	/* kHz */, //was 400
+	.bus_delay	= 0	/* usec */,
+	.sda_pin        = 21,
+	.scl_pin        = 20,
+};
+
+/* Input available at the ov7690 */
+static struct v4l2_input ov2643_inputs[] = {
+	{
+		.index = 0,
+		.name = "Camera",
+		.type = V4L2_INPUT_TYPE_CAMERA,
+	}
+};
+
+
+static struct vpfe_subdev_info vpfe_sub_devs[] = {
+	{
+		.module_name = "ov2643",
+		.is_camera = 1,
+		.grp_id = VPFE_SUBDEV_OV2643,
+		.num_inputs = ARRAY_SIZE(ov2643_inputs),
+		.inputs = ov2643_inputs,
+		.ccdc_if_params = {
+#ifdef CONFIG_VIDEO_YCBCR
+			.if_type = VPFE_YCBCR_SYNC_8,
+#else
+			.if_type = VPFE_RAW_BAYER,
+#endif
+			.hdpol = VPFE_PINPOL_POSITIVE,
+			.vdpol = VPFE_PINPOL_POSITIVE,
+		},
+		.board_info = {
+			I2C_BOARD_INFO("ov2643", 0x30),
+			/* this is for PCLK rising edge */
+			.platform_data = (void *)1,
+		},
+	}
+};
+
+static struct vpfe_config vpfe_cfg = {
+       .num_subdevs = ARRAY_SIZE(vpfe_sub_devs),
+       .sub_devs = vpfe_sub_devs,
+       .card_name = "DM365 Leopard",
+       .ccdc = "DM365 ISIF",
+       .num_clocks = 1,
+       .clocks = {"vpss_master"},
+};
+
+static void w1_enable_external_pullup(int enable);
 
 static inline int have_imager(void)
 {
-	/* REVISIT when it's supported, trigger via Kconfig */
+#if defined(CONFIG_SOC_CAMERA_OV2643) || \
+	defined(CONFIG_SOC_CAMERA_OV2643_MODULE)
+	return 1;
+#else
 	return 0;
+#endif
 }
 
-static inline int have_tvp7002(void)
-{
-	/* REVISIT when it's supported, trigger via Kconfig */
-	return 0;
+static void dm365_camera_configure(void){
+	davinci_cfg_reg(DM365_CAM_OFF);
+	gpio_request(98, "CAMERA_OFF");
+	gpio_direction_output(98, 0);
+	davinci_cfg_reg(DM365_CAM_RESET);
+	gpio_request(99, "CAMERA_RESET");
+	gpio_direction_output(99, 1);
+	davinci_cfg_reg(DM365_GPIO37);
+	davinci_cfg_reg(DM365_EXTCLK);
 }
-
-#define DM365_EVM_PHY_ID		"davinci_mdio-0:01"
-/*
- * A MAX-II CPLD is used for various board control functions.
- */
-#define CPLD_OFFSET(a13a8,a2a1)		(((a13a8) << 10) + ((a2a1) << 3))
-
-#define CPLD_VERSION	CPLD_OFFSET(0,0)	/* r/o */
-#define CPLD_TEST	CPLD_OFFSET(0,1)
-#define CPLD_LEDS	CPLD_OFFSET(0,2)
-#define CPLD_MUX	CPLD_OFFSET(0,3)
-#define CPLD_SWITCH	CPLD_OFFSET(1,0)	/* r/o */
-#define CPLD_POWER	CPLD_OFFSET(1,1)
-#define CPLD_VIDEO	CPLD_OFFSET(1,2)
-#define CPLD_CARDSTAT	CPLD_OFFSET(1,3)	/* r/o */
-
-#define CPLD_DILC_OUT	CPLD_OFFSET(2,0)
-#define CPLD_DILC_IN	CPLD_OFFSET(2,1)	/* r/o */
-
-#define CPLD_IMG_DIR0	CPLD_OFFSET(2,2)
-#define CPLD_IMG_MUX0	CPLD_OFFSET(2,3)
-#define CPLD_IMG_MUX1	CPLD_OFFSET(3,0)
-#define CPLD_IMG_DIR1	CPLD_OFFSET(3,1)
-#define CPLD_IMG_MUX2	CPLD_OFFSET(3,2)
-#define CPLD_IMG_MUX3	CPLD_OFFSET(3,3)
-#define CPLD_IMG_DIR2	CPLD_OFFSET(4,0)
-#define CPLD_IMG_MUX4	CPLD_OFFSET(4,1)
-#define CPLD_IMG_MUX5	CPLD_OFFSET(4,2)
-
-#define CPLD_RESETS	CPLD_OFFSET(4,3)
-
-#define CPLD_CCD_DIR1	CPLD_OFFSET(0x3e,0)
-#define CPLD_CCD_IO1	CPLD_OFFSET(0x3e,1)
-#define CPLD_CCD_DIR2	CPLD_OFFSET(0x3e,2)
-#define CPLD_CCD_IO2	CPLD_OFFSET(0x3e,3)
-#define CPLD_CCD_DIR3	CPLD_OFFSET(0x3f,0)
-#define CPLD_CCD_IO3	CPLD_OFFSET(0x3f,1)
-
-static void __iomem *cpld;
-
 
 /* NOTE:  this is geared for the standard config, with a socketed
  * 2 GByte Micron NAND (MT29F16G08FAA) using 128KB sectors.  If you
@@ -101,48 +141,58 @@ static void __iomem *cpld;
  * need to be changed. This NAND chip MT29F16G08FAA is the default
  * NAND shipped with the Spectrum Digital DM365 EVM
  */
-#define NAND_BLOCK_SIZE		SZ_128K
+/*define NAND_BLOCK_SIZE		SZ_128K*/
+
+/* For Samsung 4K NAND (K9KAG08U0M) with 256K sectors */
+/*#define NAND_BLOCK_SIZE		SZ_256K*/
+
+/* For Micron 4K NAND with 512K sectors */
+#define NAND_BLOCK_SIZE		SZ_512K
+
+#define DM365_ASYNC_EMIF_CONTROL_BASE	0x01d10000
 
 static struct mtd_partition davinci_nand_partitions[] = {
 	{
-		/* UBL (a few copies) plus U-Boot */
-		.name		= "bootloader",
+		.name		= "uboot",
 		.offset		= 0,
-		.size		= 30 * NAND_BLOCK_SIZE,
-		.mask_flags	= MTD_WRITEABLE, /* force read-only */
-	}, {
-		/* U-Boot environment */
-		.name		= "params",
-		.offset		= MTDPART_OFS_APPEND,
-		.size		= 2 * NAND_BLOCK_SIZE,
+		.size		= 0x100000,
 		.mask_flags	= 0,
-	}, {
+	},
+	{
+		.name		= "wtf",
+		.offset		= 0x200000,
+		.size		= 0x100000,
+		.mask_flags	= 0,
+	},
+	{
 		.name		= "kernel",
-		.offset		= MTDPART_OFS_APPEND,
-		.size		= SZ_4M,
+		.offset		= 0x300000,
+		.size		= 0x300000,
 		.mask_flags	= 0,
 	}, {
-		.name		= "filesystem1",
-		.offset		= MTDPART_OFS_APPEND,
-		.size		= SZ_512M,
+		.name		= "rootfs",
+		.offset		= 0x600000,
+		.size		= 0x500000,
 		.mask_flags	= 0,
 	}, {
-		.name		= "filesystem2",
-		.offset		= MTDPART_OFS_APPEND,
+		.name		= "rootfs_data",
+		.offset		= 0xb00000,
 		.size		= MTDPART_SIZ_FULL,
 		.mask_flags	= 0,
 	}
-	/* two blocks with bad block table (and mirror) at the end */
 };
 
 static struct davinci_nand_pdata davinci_nand_data = {
-	.mask_chipsel		= BIT(14),
-	.parts			= davinci_nand_partitions,
-	.nr_parts		= ARRAY_SIZE(davinci_nand_partitions),
+	.mask_chipsel		= 0,
+//	.parts			= davinci_nand_partitions,
+//	.nr_parts		= ARRAY_SIZE(davinci_nand_partitions),
 	.ecc_mode		= NAND_ECC_HW,
 	.bbt_options		= NAND_BBT_USE_FLASH,
-	.ecc_bits		= 4,
+	// .ecc_bits		= 4,
 };
+
+#define DM365_ASYNC_EMIF_DATA_CE0_BASE	0x02000000
+#define DM365_ASYNC_EMIF_DATA_CE1_BASE	0x04000000
 
 static struct resource davinci_nand_resources[] = {
 	{
@@ -166,94 +216,70 @@ static struct platform_device davinci_nand_device = {
 	},
 };
 
-static struct at24_platform_data eeprom_info = {
-	.byte_len       = (256*1024) / 8,
-	.page_size      = 64,
-	.flags          = AT24_FLAG_ADDR16,
-	.setup          = davinci_get_mac_addr,
-	.context	= (void *)0x7f00,
+static struct physmap_flash_data davinci_nor_data = {
+		.width		= 2,
+};
+
+static struct resource davinci_nor_resources[] = {
+	{
+		.start		= DM365_ASYNC_EMIF_DATA_CE0_BASE,
+		.end		= DM365_ASYNC_EMIF_DATA_CE0_BASE + SZ_16M - 1,
+		.flags		= IORESOURCE_MEM,
+	}, {
+		.start		= DM365_ASYNC_EMIF_CONTROL_BASE,
+		.end		= DM365_ASYNC_EMIF_CONTROL_BASE + SZ_4K - 1,
+		.flags		= IORESOURCE_MEM,
+	},
+};
+
+static struct platform_device davinci_nor_device = {
+	.name			= "physmap-flash",
+	.id			= 0,
+	.num_resources		= ARRAY_SIZE(davinci_nor_resources),
+	.dev			= {
+		.platform_data = &davinci_nor_data,
+	},
+	.resource		= &davinci_nor_resources,
 };
 
 static struct snd_platform_data dm365_evm_snd_data = {
 	.asp_chan_q = EVENTQ_3,
+	.ram_chan_q = EVENTQ_3,
+	//.sram_size_capture = 0x100000000,    /* CMEM/H.264 uses TCM from 0x1000 */
 };
 
-static struct i2c_board_info i2c_info[] = {
-	{
-		I2C_BOARD_INFO("24c256", 0x50),
-		.platform_data	= &eeprom_info,
-	},
-	{
-		I2C_BOARD_INFO("tlv320aic3x", 0x18),
-	},
-};
 
-static struct davinci_i2c_platform_data i2c_pdata = {
-	.bus_freq	= 400	/* kHz */,
-	.bus_delay	= 0	/* usec */,
-};
 
-static int dm365evm_keyscan_enable(struct device *dev)
+//SD card configuration functions
+//May be used dynamically
+static int mmc_get_cd(int module)
 {
-	return davinci_cfg_reg(DM365_KEYSCAN);
+	//1 = card present
+	//0 = card not present
+	return 1;
 }
 
-static unsigned short dm365evm_keymap[] = {
-	KEY_KP2,
-	KEY_LEFT,
-	KEY_EXIT,
-	KEY_DOWN,
-	KEY_ENTER,
-	KEY_UP,
-	KEY_KP1,
-	KEY_RIGHT,
-	KEY_MENU,
-	KEY_RECORD,
-	KEY_REWIND,
-	KEY_KPMINUS,
-	KEY_STOP,
-	KEY_FASTFORWARD,
-	KEY_KPPLUS,
-	KEY_PLAYPAUSE,
-	0
-};
-
-static struct davinci_ks_platform_data dm365evm_ks_data = {
-	.device_enable	= dm365evm_keyscan_enable,
-	.keymap		= dm365evm_keymap,
-	.keymapsize	= ARRAY_SIZE(dm365evm_keymap),
-	.rep		= 1,
-	/* Scan period = strobe + interval */
-	.strobe		= 0x5,
-	.interval	= 0x2,
-	.matrix_type	= DAVINCI_KEYSCAN_MATRIX_4X4,
-};
-
-static int cpld_mmc_get_cd(int module)
+static int mmc_get_ro(int module)
 {
-	if (!cpld)
-		return -ENXIO;
-
-	/* low == card present */
-	return !(__raw_readb(cpld + CPLD_CARDSTAT) & BIT(module ? 4 : 0));
-}
-
-static int cpld_mmc_get_ro(int module)
-{
-	if (!cpld)
-		return -ENXIO;
-
-	/* high == card's write protect switch active */
-	return !!(__raw_readb(cpld + CPLD_CARDSTAT) & BIT(module ? 5 : 1));
+	//1 = device is read-only
+	//0 = device is mot read only
+	return 0;
 }
 
 static struct davinci_mmc_config dm365evm_mmc_config = {
-	.get_cd		= cpld_mmc_get_cd,
-	.get_ro		= cpld_mmc_get_ro,
+	.get_cd		= mmc_get_cd,
+	.get_ro		= mmc_get_ro,
 	.wires		= 4,
 	.max_freq	= 50000000,
 	.caps		= MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED,
-	.version	= MMC_CTLR_VERSION_2,
+};
+
+static struct davinci_mmc_config dm365evm_mmc1_config = {
+	//.get_cd		= mmc_get_cd,
+	//.get_ro		= mmc_get_ro,
+	.wires		= 4,
+	.max_freq	= 50000000,
+	.caps		= MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED | MMC_CAP_SDIO_IRQ | MMC_BUS_WIDTH_4 | MMC_CAP_NONREMOVABLE | MMC_CAP_4_BIT_DATA,
 };
 
 static void dm365evm_emac_configure(void)
@@ -290,6 +316,15 @@ static void dm365evm_emac_configure(void)
 	davinci_cfg_reg(DM365_INT_EMAC_RXPULSE);
 	davinci_cfg_reg(DM365_INT_EMAC_TXPULSE);
 	davinci_cfg_reg(DM365_INT_EMAC_MISCPULSE);
+
+	davinci_cfg_reg(DM365_GPIO29);
+	printk("reseting EMAC\n");
+	gpio_request(29, "emac-reset");
+	gpio_direction_output(29, 1);
+	msleep(20);
+	gpio_direction_output(29, 0);
+	msleep(100);
+	gpio_direction_output(29, 1);
 }
 
 static void dm365evm_mmc_configure(void)
@@ -307,75 +342,29 @@ static void dm365evm_mmc_configure(void)
 	davinci_cfg_reg(DM365_SD1_DATA0);
 }
 
-static struct tvp514x_platform_data tvp5146_pdata = {
-	.clk_polarity = 0,
-	.hs_polarity = 1,
-	.vs_polarity = 1
-};
-
-#define TVP514X_STD_ALL        (V4L2_STD_NTSC | V4L2_STD_PAL)
-/* Inputs available at the TVP5146 */
-static struct v4l2_input tvp5146_inputs[] = {
-	{
-		.index = 0,
-		.name = "Composite",
-		.type = V4L2_INPUT_TYPE_CAMERA,
-		.std = TVP514X_STD_ALL,
-	},
-	{
-		.index = 1,
-		.name = "S-Video",
-		.type = V4L2_INPUT_TYPE_CAMERA,
-		.std = TVP514X_STD_ALL,
-	},
-};
-
-/*
- * this is the route info for connecting each input to decoder
- * ouput that goes to vpfe. There is a one to one correspondence
- * with tvp5146_inputs
- */
-static struct vpfe_route tvp5146_routes[] = {
-	{
-		.input = INPUT_CVBS_VI2B,
-		.output = OUTPUT_10BIT_422_EMBEDDED_SYNC,
-	},
+__init static void dm365_usb_configure(void)
 {
-		.input = INPUT_SVIDEO_VI2C_VI1C,
-		.output = OUTPUT_10BIT_422_EMBEDDED_SYNC,
-	},
-};
+	davinci_cfg_reg(DM365_GPIO66);
+	gpio_request(66, "usb");
+	gpio_direction_output(66, 1);
+	davinci_setup_usb(500, 8);
+}
 
-static struct vpfe_subdev_info vpfe_sub_devs[] = {
-	{
-		.name = "tvp5146",
-		.grp_id = 0,
-		.num_inputs = ARRAY_SIZE(tvp5146_inputs),
-		.inputs = tvp5146_inputs,
-		.routes = tvp5146_routes,
-		.can_route = 1,
-		.ccdc_if_params = {
-			.if_type = VPFE_BT656,
-			.hdpol = VPFE_PINPOL_POSITIVE,
-			.vdpol = VPFE_PINPOL_POSITIVE,
-		},
-		.board_info = {
-			I2C_BOARD_INFO("tvp5146", 0x5d),
-			.platform_data = &tvp5146_pdata,
-		},
-	},
-};
 
-static struct vpfe_config vpfe_cfg = {
-	.num_subdevs = ARRAY_SIZE(vpfe_sub_devs),
-	.sub_devs = vpfe_sub_devs,
-	.i2c_adapter_id = 1,
-	.card_name = "DM365 EVM",
-	.ccdc = "ISIF",
-};
+static void dm365_ks8851_init(void){
+	gpio_request(0, "KSZ8851");
+	gpio_direction_input(0);
+	davinci_cfg_reg(DM365_INT_SPI3);
+	davinci_cfg_reg(DM365_EVT18_SPI3_TX);
+	davinci_cfg_reg(DM365_EVT19_SPI3_RX);
+}
 
-static void __init evm_init_i2c(void)
+static void __init init_i2c(void)
 {
+	davinci_cfg_reg(DM365_GPIO20);
+	gpio_request(20, "i2c-scl");
+	gpio_direction_output(20, 0);
+	davinci_cfg_reg(DM365_I2C_SCL);
 	davinci_init_i2c(&i2c_pdata);
 	i2c_register_board_info(1, i2c_info, ARRAY_SIZE(i2c_info));
 }
@@ -384,182 +373,12 @@ static struct platform_device *dm365_evm_nand_devices[] __initdata = {
 	&davinci_nand_device,
 };
 
-static inline int have_leds(void)
-{
-#ifdef CONFIG_LEDS_CLASS
-	return 1;
-#else
-	return 0;
-#endif
-}
-
-struct cpld_led {
-	struct led_classdev	cdev;
-	u8			mask;
+static struct platform_device *dm365_evm_nor_devices[] __initdata = {
+	&davinci_nor_device,
 };
-
-static const struct {
-	const char *name;
-	const char *trigger;
-} cpld_leds[] = {
-	{ "dm365evm::ds2", },
-	{ "dm365evm::ds3", },
-	{ "dm365evm::ds4", },
-	{ "dm365evm::ds5", },
-	{ "dm365evm::ds6", "nand-disk", },
-	{ "dm365evm::ds7", "mmc1", },
-	{ "dm365evm::ds8", "mmc0", },
-	{ "dm365evm::ds9", "heartbeat", },
-};
-
-static void cpld_led_set(struct led_classdev *cdev, enum led_brightness b)
-{
-	struct cpld_led *led = container_of(cdev, struct cpld_led, cdev);
-	u8 reg = __raw_readb(cpld + CPLD_LEDS);
-
-	if (b != LED_OFF)
-		reg &= ~led->mask;
-	else
-		reg |= led->mask;
-	__raw_writeb(reg, cpld + CPLD_LEDS);
-}
-
-static enum led_brightness cpld_led_get(struct led_classdev *cdev)
-{
-	struct cpld_led *led = container_of(cdev, struct cpld_led, cdev);
-	u8 reg = __raw_readb(cpld + CPLD_LEDS);
-
-	return (reg & led->mask) ? LED_OFF : LED_FULL;
-}
-
-static int __init cpld_leds_init(void)
-{
-	int	i;
-
-	if (!have_leds() ||  !cpld)
-		return 0;
-
-	/* setup LEDs */
-	__raw_writeb(0xff, cpld + CPLD_LEDS);
-	for (i = 0; i < ARRAY_SIZE(cpld_leds); i++) {
-		struct cpld_led *led;
-
-		led = kzalloc(sizeof(*led), GFP_KERNEL);
-		if (!led)
-			break;
-
-		led->cdev.name = cpld_leds[i].name;
-		led->cdev.brightness_set = cpld_led_set;
-		led->cdev.brightness_get = cpld_led_get;
-		led->cdev.default_trigger = cpld_leds[i].trigger;
-		led->mask = BIT(i);
-
-		if (led_classdev_register(NULL, &led->cdev) < 0) {
-			kfree(led);
-			break;
-		}
-	}
-
-	return 0;
-}
-/* run after subsys_initcall() for LEDs */
-fs_initcall(cpld_leds_init);
-
-
-static void __init evm_init_cpld(void)
-{
-	u8 mux, resets;
-	const char *label;
-	struct clk *aemif_clk;
-
-	/* Make sure we can configure the CPLD through CS1.  Then
-	 * leave it on for later access to MMC and LED registers.
-	 */
-	aemif_clk = clk_get(NULL, "aemif");
-	if (IS_ERR(aemif_clk))
-		return;
-	clk_prepare_enable(aemif_clk);
-
-	if (request_mem_region(DM365_ASYNC_EMIF_DATA_CE1_BASE, SECTION_SIZE,
-			"cpld") == NULL)
-		goto fail;
-	cpld = ioremap(DM365_ASYNC_EMIF_DATA_CE1_BASE, SECTION_SIZE);
-	if (!cpld) {
-		release_mem_region(DM365_ASYNC_EMIF_DATA_CE1_BASE,
-				SECTION_SIZE);
-fail:
-		pr_err("ERROR: can't map CPLD\n");
-		clk_disable_unprepare(aemif_clk);
-		return;
-	}
-
-	/* External muxing for some signals */
-	mux = 0;
-
-	/* Read SW5 to set up NAND + keypad _or_ OneNAND (sync read).
-	 * NOTE:  SW4 bus width setting must match!
-	 */
-	if ((__raw_readb(cpld + CPLD_SWITCH) & BIT(5)) == 0) {
-		/* external keypad mux */
-		mux |= BIT(7);
-
-		platform_add_devices(dm365_evm_nand_devices,
-				ARRAY_SIZE(dm365_evm_nand_devices));
-	} else {
-		/* no OneNAND support yet */
-	}
-
-	/* Leave external chips in reset when unused. */
-	resets = BIT(3) | BIT(2) | BIT(1) | BIT(0);
-
-	/* Static video input config with SN74CBT16214 1-of-3 mux:
-	 *  - port b1 == tvp7002 (mux lowbits == 1 or 6)
-	 *  - port b2 == imager (mux lowbits == 2 or 7)
-	 *  - port b3 == tvp5146 (mux lowbits == 5)
-	 *
-	 * Runtime switching could work too, with limitations.
-	 */
-	if (have_imager()) {
-		label = "HD imager";
-		mux |= 2;
-
-		/* externally mux MMC1/ENET/AIC33 to imager */
-		mux |= BIT(6) | BIT(5) | BIT(3);
-	} else {
-		struct davinci_soc_info *soc_info = &davinci_soc_info;
-
-		/* we can use MMC1 ... */
-		dm365evm_mmc_configure();
-		davinci_setup_mmc(1, &dm365evm_mmc_config);
-
-		/* ... and ENET ... */
-		dm365evm_emac_configure();
-		soc_info->emac_pdata->phy_id = DM365_EVM_PHY_ID;
-		resets &= ~BIT(3);
-
-		/* ... and AIC33 */
-		resets &= ~BIT(1);
-
-		if (have_tvp7002()) {
-			mux |= 1;
-			resets &= ~BIT(2);
-			label = "tvp7002 HD";
-		} else {
-			/* default to tvp5146 */
-			mux |= 5;
-			resets &= ~BIT(0);
-			label = "tvp5146 SD";
-		}
-	}
-	__raw_writeb(mux, cpld + CPLD_MUX);
-	__raw_writeb(resets, cpld + CPLD_RESETS);
-	pr_info("EVM: %s video input\n", label);
-
-	/* REVISIT export switches: NTSC/PAL (SW5.6), EXTRA1 (SW5.2), etc */
-}
 
 static struct davinci_uart_config uart_config __initdata = {
-	.enabled_uarts = (1 << 0),
+	.enabled_uarts = (1 << 0) | (1 << 1),
 };
 
 static void __init dm365_evm_map_io(void)
@@ -569,51 +388,196 @@ static void __init dm365_evm_map_io(void)
 	dm365_init();
 }
 
-static struct spi_eeprom at25640 = {
-	.byte_len	= SZ_64K / 8,
-	.name		= "at25640",
-	.page_size	= 32,
-	.flags		= EE_ADDR2,
+static struct davinci_spi_config ksz8851_mcspi_config = {
+		.io_type = SPI_IO_TYPE_DMA,
+		.c2tdelay = 0,
+		.t2cdelay = 0
 };
 
-static struct spi_board_info dm365_evm_spi_info[] __initconst = {
+static struct spi_board_info ksz8851_snl_info[] __initdata = {
 	{
-		.modalias	= "at25",
-		.platform_data	= &at25640,
-		.max_speed_hz	= 10 * 1000 * 1000,
-		.bus_num	= 0,
+		.modalias	= "ks8851",
+		.bus_num	= 3,
 		.chip_select	= 0,
-		.mode		= SPI_MODE_0,
-	},
+		.max_speed_hz	= 40000000,
+		.controller_data = &ksz8851_mcspi_config,
+		.irq		= IRQ_DM365_GPIO0
+     }
+};
+
+static struct davinci_spi_unit_desc dm365_evm_spi_udesc_KSZ8851 = {
+	.spi_hwunit	= 3,
+	.chipsel	= BIT(0),
+	.irq		= IRQ_DM365_SPIINT3_0,
+	.dma_tx_chan	= 18,
+	.dma_rx_chan	= 19,
+	.dma_evtq	= EVENTQ_3,
+	.pdata		= {
+		.version 	= SPI_VERSION_1,
+		.num_chipselect = 2,
+		.intr_line = 0,
+		.chip_sel = 0,
+		.cshold_bug = 0,
+		.dma_event_q	= EVENTQ_3,
+	}
 };
 
 static __init void dm365_evm_init(void)
 {
-	evm_init_i2c();
+	struct davinci_soc_info *soc_info = &davinci_soc_info;
+	struct clk *aemif_clk;
+
+	lan0_run = 0;
+	lan1_run = 1;
+	wlan_run = 0;
+	spi0_run = 0;
+	camera_run = 0;
+	uart1_run = 0;
+
+	v2r_parse_cmdline(saved_command_line);
+
+	aemif_clk = clk_get(NULL, "aemif");
+	if (IS_ERR(aemif_clk))	return;
+	clk_prepare_enable(aemif_clk);
+
+	// NAND & NOR init
+	platform_add_devices(dm365_evm_nand_devices, ARRAY_SIZE(dm365_evm_nand_devices));
+	//platform_add_devices(dm365_evm_nor_devices, ARRAY_SIZE(dm365_evm_nor_devices));
+
+	init_i2c();
+
+	// try to init camera
+	if (camera_run) dm365_camera_configure();
+
+	// set up UART1 GPIO
+	if (uart1_run) {
+	    davinci_cfg_reg(DM365_UART1_RXD);
+	    davinci_cfg_reg(DM365_UART1_TXD);
+	}
+
+	// try to init UARTs
 	davinci_serial_init(&uart_config);
 
-	dm365evm_emac_configure();
-	dm365evm_mmc_configure();
+	//dm365evm_mmc_configure();
 
+	// try to init MMC0 (microSD)
 	davinci_setup_mmc(0, &dm365evm_mmc_config);
 
-	/* maybe setup mmc1/etc ... _after_ mmc0 */
-	evm_init_cpld();
-
-#ifdef CONFIG_SND_DM365_AIC3X_CODEC
-	dm365_init_asp(&dm365_evm_snd_data);
-#elif defined(CONFIG_SND_DM365_VOICE_CODEC)
+	// try to init VoiceCodec
 	dm365_init_vc(&dm365_evm_snd_data);
-#endif
-	dm365_init_rtc();
-	dm365_init_ks(&dm365evm_ks_data);
 
-	dm365_init_spi0(BIT(0), dm365_evm_spi_info,
-			ARRAY_SIZE(dm365_evm_spi_info));
+	// try to init USB
+	dm365_usb_configure();
+
+	// try to init LAN module
+	if (lan0_run) {
+	    dm365_ks8851_init();
+	    davinci_init_spi(&dm365_evm_spi_udesc_KSZ8851, ARRAY_SIZE(ksz8851_snl_info), ksz8851_snl_info);
+	}
+
+	dm365evm_emac_configure();
+
+	// try to init wlan
+	if (wlan_run) {
+	    gpio_request(59, "wlan-pwdn");
+	    gpio_direction_output(59, 1);
+	    msleep(20);
+	    gpio_request(59, "wlan-reset");
+	    gpio_direction_output(60, 1);
+	    msleep(20);
+	    gpio_direction_output(60, 0);
+	    msleep(1000);
+	    gpio_direction_output(60, 1);
+	    davinci_setup_mmc(1, &dm365evm_mmc1_config);
+	}
+
+	// set USB prioruty, 
+	// see http://e2e.ti.com/support/embedded/linux/f/354/t/94930.aspx 
+	// and http://e2e.ti.com/support/dsp/davinci_digital_media_processors/f/100/t/150995.aspx
+	// davinci_writel(0x0, 0x1c40040); //master priority1 register1 - to set USB
+
+	return;
+}
+
+static void v2r_parse_cmdline(char * string)
+{
+
+    char *p;
+    char *temp_string;
+    char *temp_param;
+    char *param_name;
+    char *param_value;
+    printk(KERN_INFO "Parse kernel cmdline:\n");
+    temp_string = kstrdup(string, GFP_KERNEL);
+
+    do
+    {
+	p = strsep(&temp_string, " ");
+	if (p) {
+	    // split param string into two parts
+	    temp_param = kstrdup(p, GFP_KERNEL);
+	    param_name = strsep(&temp_param, "=");
+	    if (!param_name) continue;
+	    param_value = strsep(&temp_param, " ");
+	    if (!param_value) continue;
+
+
+	    if (!strcmp(param_name, "wifi")) {
+		if (!strcmp(param_value, "on")) {
+		    printk(KERN_INFO "Wi-Fi board enabled\n");
+		    wlan_run = 1;
+		}
+	    }
+
+	    if (!strcmp(param_name, "lan0")) {
+		if (!strcmp(param_value, "on")) {
+		    printk(KERN_INFO "LAN enabled\n");
+		    lan0_run = 1;
+		}
+	    }
+
+	    if (!strcmp(param_name, "spi0")) {
+		if (!strcmp(param_value, "on")) {
+		    printk(KERN_INFO "SPI0 enabled\n");
+		    spi0_run = 1;
+		}
+	    }
+
+	    if (!strcmp(param_name, "uart1")) {
+		if (!strcmp(param_value, "on")) {
+		    printk(KERN_INFO "UART1 enabled\n");
+		    uart1_run = 1;
+		}
+	    }
+
+	    if (!strcmp(param_name, "camera")) {
+		if (!strcmp(param_value, "ov2643")) {
+		    printk(KERN_INFO "Use camera OmniVision OV2643\n");
+		    camera_run = 1;
+		}
+		if (!strcmp(param_value, "ov5642")) {
+		    printk(KERN_INFO "Use camera OmniVision OV5642\n");
+		    camera_run = 1;
+		}
+		if (!strcmp(param_value, "ov7675")) {
+		    printk(KERN_INFO "Use camera OmniVision OV7675\n");
+		    camera_run = 1;
+		}
+		if (!strcmp(param_value, "ov9710")) {
+		    printk(KERN_INFO "Use camera OmniVision OV9710\n");
+		    camera_run = 1;
+		}
+	    }
+
+	}
+
+    } while(p);
+
 }
 
 MACHINE_START(DAVINCI_DM365_EVM, "DaVinci DM365 EVM")
 	.atag_offset	= 0x100,
+	.nr			= 0x00000793,
 	.map_io		= dm365_evm_map_io,
 	.init_irq	= davinci_irq_init,
 	.init_time	= davinci_timer_init,
@@ -622,4 +586,3 @@ MACHINE_START(DAVINCI_DM365_EVM, "DaVinci DM365 EVM")
 	.dma_zone_size	= SZ_128M,
 	.restart	= davinci_restart,
 MACHINE_END
-

@@ -19,7 +19,7 @@
 #ifndef __ARCH_ARM_DAVINCI_SPI_H
 #define __ARCH_ARM_DAVINCI_SPI_H
 
-#include <mach/edma.h>
+#include <linux/platform_data/edma.h>
 
 #define SPI_INTERN_CS	0xFF
 
@@ -52,7 +52,10 @@ struct davinci_spi_platform_data {
 	bool			cshold_bug;
 	enum dma_event_q	dma_event_q;
 };
-
+/* resource flags for IORESOURCE_DMA resources */
+#define IORESOURCE_DMA_RX_CHAN		0x01
+#define IORESOURCE_DMA_TX_CHAN		0x02
+#define IORESOURCE_DMA_EVENT_Q		0x04
 /**
  * davinci_spi_config - Per-chip-select configuration for SPI slave devices
  *

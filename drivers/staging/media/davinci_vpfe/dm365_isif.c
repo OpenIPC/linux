@@ -21,6 +21,7 @@
 
 #include "dm365_isif.h"
 #include "vpfe_mc_capture.h"
+#include <linux/delay.h>
 
 #define MAX_WIDTH	4096
 #define MAX_HEIGHT	4096

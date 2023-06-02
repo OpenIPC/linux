@@ -16,6 +16,7 @@
 
 /* Integrated highspeed/otg PHY */
 #define USBPHY_CTL_PADDR	0x01c40034
+#define USBPHY_CLKFREQ_24MHZ   BIT(13)
 #define USBPHY_DATAPOL		BIT(11)	/* (dm355) switch D+/D- */
 #define USBPHY_PHYCLKGD		BIT(8)
 #define USBPHY_SESNDEN		BIT(7)	/* v(sess_end) comparator */

@@ -1002,7 +1002,6 @@ static void fec_enet_adjust_link(struct net_device *ndev)
 	} else {
 		if (fep->link) {
 			fec_stop(ndev);
-			fep->link = phy_dev->link;
 			status_change = 1;
 		}
 	}

@@ -17,7 +17,7 @@
 #define DA8XX_USB0_BASE 	0x01e00000
 #define DA8XX_USB1_BASE 	0x01e25000
 
-#if defined(CONFIG_USB_MUSB_HDRC) || defined(CONFIG_USB_MUSB_HDRC_MODULE)
+#if 1
 static struct musb_hdrc_eps_bits musb_eps[] = {
 	{ "ep1_tx", 8, },
 	{ "ep1_rx", 8, },
@@ -40,10 +40,16 @@ static struct musb_hdrc_config musb_config = {
 	.ram_bits	= 10,
 	.eps_bits	= musb_eps,
 };
-
+#define CONFIG_USB_MUSB_OTG
 static struct musb_hdrc_platform_data usb_data = {
+#if defined(CONFIG_USB_MUSB_OTG)
 	/* OTG requires a Mini-AB connector */
 	.mode           = MUSB_OTG,
+#elif defined(CONFIG_USB_MUSB_PERIPHERAL)
+	.mode           = MUSB_PERIPHERAL,
+#elif defined(CONFIG_USB_MUSB_HOST)
+	.mode           = MUSB_HOST,
+#endif
 	.clock		= "usb",
 	.config		= &musb_config,
 };
@@ -96,46 +102,11 @@ void __init davinci_setup_usb(unsigned mA, unsigned potpgt_ms)
 	platform_device_register(&usb_dev);
 }
 
-#ifdef CONFIG_ARCH_DAVINCI_DA8XX
-static struct resource da8xx_usb20_resources[] = {
-	{
-		.start		= DA8XX_USB0_BASE,
-		.end		= DA8XX_USB0_BASE + SZ_64K - 1,
-		.flags		= IORESOURCE_MEM,
-	},
-	{
-		.start		= IRQ_DA8XX_USB_INT,
-		.flags		= IORESOURCE_IRQ,
-		.name		= "mc",
-	},
-};
-
-int __init da8xx_register_usb20(unsigned mA, unsigned potpgt)
-{
-	usb_data.clock  = "usb20";
-	usb_data.power	= mA > 510 ? 255 : mA / 2;
-	usb_data.potpgt = (potpgt + 1) / 2;
-
-	usb_dev.resource = da8xx_usb20_resources;
-	usb_dev.num_resources = ARRAY_SIZE(da8xx_usb20_resources);
-	usb_dev.name = "musb-da8xx";
-
-	return platform_device_register(&usb_dev);
-}
-#endif	/* CONFIG_DAVINCI_DA8XX */
-
 #else
 
 void __init davinci_setup_usb(unsigned mA, unsigned potpgt_ms)
 {
 }
-
-#ifdef CONFIG_ARCH_DAVINCI_DA8XX
-int __init da8xx_register_usb20(unsigned mA, unsigned potpgt)
-{
-	return 0;
-}
-#endif
 
 #endif  /* CONFIG_USB_MUSB_HDRC */
 

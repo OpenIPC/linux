@@ -122,6 +122,7 @@ static int w1_gpio_probe(struct platform_device *pdev)
 		}
 	}
 
+
 	master->data = pdata;
 	master->read_bit = w1_gpio_read_bit;
 

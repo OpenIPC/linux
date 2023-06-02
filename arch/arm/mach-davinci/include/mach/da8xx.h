@@ -20,8 +20,8 @@
 #include <linux/videodev2.h>
 
 #include <mach/serial.h>
-#include <mach/edma.h>
 #include <mach/pm.h>
+#include <linux/platform_data/edma.h>
 #include <linux/platform_data/i2c-davinci.h>
 #include <linux/platform_data/mmc-davinci.h>
 #include <linux/platform_data/usb-davinci.h>
@@ -55,6 +55,7 @@ extern unsigned int da850_max_speed;
 #define DA8XX_SYSCFG0_VIRT(x)	(da8xx_syscfg0_base + (x))
 #define DA8XX_JTAG_ID_REG	0x18
 #define DA8XX_CFGCHIP0_REG	0x17c
+#define DA8XX_CFGCHIP1_REG	0x180
 #define DA8XX_CFGCHIP2_REG	0x184
 #define DA8XX_CFGCHIP3_REG	0x188
 

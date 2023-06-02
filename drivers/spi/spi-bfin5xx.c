@@ -1386,7 +1386,7 @@ out_error_get_res:
 }
 
 /* stop hardware and remove the driver */
-static int bfin_spi_remove(struct platform_device *pdev)
+static int __devexit bfin_spi_remove(struct platform_device *pdev)
 {
 	struct bfin_spi_master_data *drv_data = platform_get_drvdata(pdev);
 	int status = 0;
@@ -1476,7 +1476,7 @@ static struct platform_driver bfin_spi_driver = {
 	},
 	.suspend	= bfin_spi_suspend,
 	.resume		= bfin_spi_resume,
-	.remove		= bfin_spi_remove,
+	.remove		= __devexit_p(bfin_spi_remove),
 };
 
 static int __init bfin_spi_init(void)

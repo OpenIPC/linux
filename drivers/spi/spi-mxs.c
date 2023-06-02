@@ -512,7 +512,7 @@ static const struct of_device_id mxs_spi_dt_ids[] = {
 };
 MODULE_DEVICE_TABLE(of, mxs_spi_dt_ids);
 
-static int mxs_spi_probe(struct platform_device *pdev)
+static int __devinit mxs_spi_probe(struct platform_device *pdev)
 {
 	const struct of_device_id *of_id =
 			of_match_device(mxs_spi_dt_ids, &pdev->dev);
@@ -639,7 +639,7 @@ out_master_free:
 	return ret;
 }
 
-static int mxs_spi_remove(struct platform_device *pdev)
+static int __devexit mxs_spi_remove(struct platform_device *pdev)
 {
 	struct spi_master *master;
 	struct mxs_spi *spi;
@@ -662,7 +662,7 @@ static int mxs_spi_remove(struct platform_device *pdev)
 
 static struct platform_driver mxs_spi_driver = {
 	.probe	= mxs_spi_probe,
-	.remove	= mxs_spi_remove,
+	.remove	= __devexit_p(mxs_spi_remove),
 	.driver	= {
 		.name	= DRIVER_NAME,
 		.owner	= THIS_MODULE,

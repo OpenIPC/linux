@@ -400,7 +400,7 @@ static int mcfqspi_setup(struct spi_device *spi)
 	return 0;
 }
 
-static int mcfqspi_probe(struct platform_device *pdev)
+static int __devinit mcfqspi_probe(struct platform_device *pdev)
 {
 	struct spi_master *master;
 	struct mcfqspi *mcfqspi;
@@ -514,7 +514,7 @@ fail0:
 	return status;
 }
 
-static int mcfqspi_remove(struct platform_device *pdev)
+static int __devexit mcfqspi_remove(struct platform_device *pdev)
 {
 	struct spi_master *master = platform_get_drvdata(pdev);
 	struct mcfqspi *mcfqspi = spi_master_get_devdata(master);
@@ -593,7 +593,7 @@ static struct platform_driver mcfqspi_driver = {
 	.driver.owner	= THIS_MODULE,
 	.driver.pm	= &mcfqspi_pm,
 	.probe		= mcfqspi_probe,
-	.remove		= mcfqspi_remove,
+	.remove		= __devexit_p(mcfqspi_remove),
 };
 module_platform_driver(mcfqspi_driver);
 

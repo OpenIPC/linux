@@ -8,7 +8,50 @@
 #include <linux/module.h>
 #include <linux/spi/pxa2xx_spi.h>
 
-static int ce4100_spi_probe(struct pci_dev *dev,
+struct ce4100_info {
+	struct ssp_device ssp;
+	struct platform_device *spi_pdev;
+};
+
+static DEFINE_MUTEX(ssp_lock);
+static LIST_HEAD(ssp_list);
+
+struct ssp_device *pxa_ssp_request(int port, const char *label)
+{
+	struct ssp_device *ssp = NULL;
+
+	mutex_lock(&ssp_lock);
+
+	list_for_each_entry(ssp, &ssp_list, node) {
+		if (ssp->port_id == port && ssp->use_count == 0) {
+			ssp->use_count++;
+			ssp->label = label;
+			break;
+		}
+	}
+
+	mutex_unlock(&ssp_lock);
+
+	if (&ssp->node == &ssp_list)
+		return NULL;
+
+	return ssp;
+}
+EXPORT_SYMBOL_GPL(pxa_ssp_request);
+
+void pxa_ssp_free(struct ssp_device *ssp)
+{
+	mutex_lock(&ssp_lock);
+	if (ssp->use_count) {
+		ssp->use_count--;
+		ssp->label = NULL;
+	} else
+		dev_err(&ssp->pdev->dev, "device already free\n");
+	mutex_unlock(&ssp_lock);
+}
+EXPORT_SYMBOL_GPL(pxa_ssp_free);
+
+static int __devinit ce4100_spi_probe(struct pci_dev *dev,
 		const struct pci_device_id *ent)
 {
 	struct platform_device_info pi;
@@ -55,7 +98,7 @@ static int ce4100_spi_probe(struct pci_dev *dev,
 	return 0;
 }
 
-static void ce4100_spi_remove(struct pci_dev *dev)
+static void __devexit ce4100_spi_remove(struct pci_dev *dev)
 {
 	struct platform_device *pdev = pci_get_drvdata(dev);
 
@@ -72,7 +115,7 @@ static struct pci_driver ce4100_spi_driver = {
 	.name           = "ce4100_spi",
 	.id_table       = ce4100_spi_devices,
 	.probe          = ce4100_spi_probe,
-	.remove         = ce4100_spi_remove,
+	.remove         = __devexit_p(ce4100_spi_remove),
 };
 
 module_pci_driver(ce4100_spi_driver);
