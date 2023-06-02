@@ -9,6 +9,22 @@ source "drivers/tty/serial/8250/Kconfig"
 
 comment "Non-8250 serial port support"
 
+config SERIAL_GOKE
+	tristate "Goke ipc Soc serial port support"
+	depends on GK_UART
+	select SERIAL_CORE
+	help
+	  If you have a machine based on an Goke ipc Soc you
+	  can enable its onboard serial ports by enabling this option.
+
+config SERIAL_GOKE_CONSOLE
+	bool "Console on Goke ipc SoC serial port"
+	depends on SERIAL_GOKE=y
+	select SERIAL_CORE_CONSOLE
+	help
+	  If you have enabled the serial port on the Goke ipc Soc
+	  you can make it the console by answering Y to this option.
+
 config SERIAL_AMBA_PL010
 	tristate "ARM AMBA PL010 serial port support"
 	depends on ARM_AMBA && (BROKEN || !ARCH_VERSATILE)

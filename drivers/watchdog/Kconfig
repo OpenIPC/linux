@@ -84,6 +84,13 @@ config WM8350_WATCHDOG
 
 # ARM Architecture
 
+config WATCHDOG_GOKE
+	tristate "goke ipc watchdog"
+	depends on GK_WDT
+	help
+	  Watchdog timer embedded into goke ipc. This will reboot your
+	  system when the timeout is reached.
+	  
 config ARM_SP805_WATCHDOG
 	tristate "ARM SP805 Watchdog"
 	depends on ARM_AMBA

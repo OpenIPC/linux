@@ -4,6 +4,21 @@
 
 menu "Misc devices"
 
+config ADC_GOKE
+	tristate "goke ipc ADC support"
+	depends on GK_ADC
+	help
+	  This driver exports functions to choose ADC channel and read ADC
+	  data.
+
+config PWM_GOKE
+	tristate "goke ipc PWM support"
+	depends on GK_PWM
+	help
+	  This driver exports functions to enable/disble/config/free Pulse
+	  Width Modulation in the GOKE IPC Chip.
+	  It is used by led and backlight driver to control the intensity.
+	  
 config SENSORS_LIS3LV02D
 	tristate
 	depends on INPUT

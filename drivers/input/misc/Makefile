@@ -4,6 +4,10 @@
 
 # Each configuration option enables a list of files.
 
+ifdef CONFIG_INPUT_GOKE_IR
+obj-$(CONFIG_GK_IR_V1_00)	+= gk_ir_v1_00.o
+endif
+
 obj-$(CONFIG_INPUT_88PM860X_ONKEY)	+= 88pm860x_onkey.o
 obj-$(CONFIG_INPUT_AB8500_PONKEY)	+= ab8500-ponkey.o
 obj-$(CONFIG_INPUT_AD714X)		+= ad714x.o

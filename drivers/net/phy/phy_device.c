@@ -181,6 +181,7 @@ static struct phy_device* phy_device_create(struct mii_bus *bus,
 
 	dev->state = PHY_DOWN;
 
+    bus->phy_used = dev;
 	mutex_init(&dev->lock);
 	INIT_DELAYED_WORK(&dev->state_queue, phy_state_machine);
 

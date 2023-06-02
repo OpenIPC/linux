@@ -1,0 +1,38 @@
+#
+# arch/arm/mach-gk710x/Kconfig
+#
+# History:
+#  2014/06/18 - [Kewell Liu] created file
+#
+# Copyright (C) 2002-2016, Goke Microelectronics China.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+#
+
+if ARCH_GK710XS
+
+config GK710XS_SDIO2
+	bool "Gk710xs select SDIO2 enable"
+    default n
+	help
+		select SDIO2 enable.
+
+#config MACH_GK7102S_ELEC_SC1135_V1_00
+#	depends on MACH_GK7102S
+#	bool "GK7102S Elec Board"
+#        help
+#		select ELEC GK7102S + SC1135 Board
+endif
+

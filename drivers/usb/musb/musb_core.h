@@ -517,6 +517,7 @@ static inline int musb_read_fifosize(struct musb *musb,
 		hw_ep->max_packet_sz_rx = 1 << ((reg & 0xf0) >> 4);
 		hw_ep->is_shared_fifo = false;
 	}
+	//printk("epnum %d tx %d rx %d\n",epnum,hw_ep->max_packet_sz_tx ,hw_ep->max_packet_sz_rx);
 
 	return 0;
 }

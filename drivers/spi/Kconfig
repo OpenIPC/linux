@@ -452,6 +452,12 @@ config SPI_TLE62X0
 # Add new SPI protocol masters in alphabetical order above this line
 #
 
+config SPI_GOKE
+        tristate "GOKE IPC SPI Controller"
+	depends on GK_SPI
+        help
+          This selects a driver for the GOKE SPI Controller.
+
 endif # SPI_MASTER
 
 # (slave support would go here)

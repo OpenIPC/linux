@@ -1,6 +1,9 @@
 #
 # linux/drivers/mtd/devices/Makefile
 #
+ifdef CONFIG_MTD_SFLASH_GOKE
+obj-$(CONFIG_GK_SFLASH_V1_00)	+= gk_sflash_v1_00.o
+endif
 
 obj-$(CONFIG_MTD_DOC2000)	+= doc2000.o
 obj-$(CONFIG_MTD_DOC2001)	+= doc2001.o

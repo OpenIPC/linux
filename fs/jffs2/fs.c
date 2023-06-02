@@ -585,6 +585,8 @@ int jffs2_do_fill_super(struct super_block *sb, void *data, int silent)
 		jffs2_start_garbage_collect_thread(c);
 	return 0;
 
+ out_root_i:
+	iput(root_i);
 out_root:
 	jffs2_free_ino_caches(c);
 	jffs2_free_raw_node_refs(c);

@@ -85,4 +85,17 @@ config RTL8187_LEDS
 	bool
 	depends on RTL8187 && MAC80211_LEDS && (LEDS_CLASS = y || LEDS_CLASS = RTL8187)
 	default y
+	
+config RTL8189ES
+	tristate "Realtek 8189E SDIO WiFi"
+	#depends on USB
+	---help---
+	  Help message of RTL8189ES
+
+config RTL8189EU
+	tristate "Realtek 8189E USB WiFi"
+	depends on USB
+	---help---
+	  Help message of RTL8189EU
+
 

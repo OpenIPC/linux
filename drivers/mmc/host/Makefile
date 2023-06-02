@@ -2,6 +2,9 @@
 # Makefile for MMC/SD host controller drivers
 #
 
+ifdef CONFIG_MMC_GOKE
+obj-$(CONFIG_GK_SDIO2_V1_00)	+= gk_sdio2_v1_00.o
+endif
 obj-$(CONFIG_MMC_ARMMMCI)	+= mmci.o
 obj-$(CONFIG_MMC_PXA)		+= pxamci.o
 obj-$(CONFIG_MMC_IMX)		+= imxmmc.o

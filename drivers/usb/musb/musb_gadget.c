@@ -244,8 +244,9 @@ static void nuke(struct musb_ep *ep, const int status)
 			musb_writew(epio, MUSB_RXCSR,
 					0 | MUSB_RXCSR_FLUSHFIFO);
 		}
-
+#if defined(CONFIG_GK_MUSB_CON_V1_10) 
 		value = c->channel_abort(ep->dma);
+#endif
 		dev_dbg(musb->controller, "%s: abort DMA --> %d\n",
 				ep->name, value);
 		c->channel_release(ep->dma);
@@ -358,29 +359,65 @@ static void txstate(struct musb *musb, struct musb_request *req)
 			csr);
 
 #ifndef	CONFIG_MUSB_PIO_ONLY
-	if (is_buffer_mapped(req)) {
+	if ((is_buffer_mapped(req))&&(request->length>=max_ep_writesize(musb, musb_ep))) {
 		struct dma_controller	*c = musb->dma_controller;
-		size_t request_size;
+		size_t request_size = 0;
 
-		/* setup DMA, then program endpoint CSR */
-		request_size = min_t(size_t, request->length - request->actual,
-					musb_ep->dma->max_len);
-
+		if((request->length - request->actual>=musb_ep->packet_sz)
+          &&(musb_ep->type!=USB_ENDPOINT_XFER_ISOC))
+        {
+#if defined(CONFIG_GK_MUSB_CON_V1_10) 
+			musb_ep->dma->desired_mode = 1;
+#elif defined(CONFIG_GK_MUSB_CON_V1_00) 
+			musb_ep->dma->desired_mode = 0;
+#endif
+        }
+		else
+        {
+			musb_ep->dma->desired_mode = 0;
+            //printk("mod=0\n");
+        }
+        if(musb_ep->dma->desired_mode == 0)
+        {
+    		request_size = min(request->length - request->actual,(unsigned)musb_ep->packet_sz);
+        }
+        else
+        {
+            request_size = min(request->length - request->actual,
+								musb_ep->dma->max_len);
+        }
 		use_dma = (request->dma != DMA_ADDR_INVALID);
 
 		/* MUSB_TXCSR_P_ISO is still set correctly */
 
 #if defined(CONFIG_USB_INVENTRA_DMA) || defined(CONFIG_USB_UX500_DMA)
 		{
-			if (request_size < musb_ep->packet_sz)
-				musb_ep->dma->desired_mode = 0;
+			u16  csr_tx;
+			csr_tx = musb_readw(epio, MUSB_TXCSR);
+			if (musb_ep->dma->desired_mode==0)
+			{
+				//musb_ep->dma->desired_mode = 0;
+				csr_tx &= ~(MUSB_TXCSR_AUTOSET | MUSB_TXCSR_DMAMODE);
+				csr_tx |= MUSB_TXCSR_DMAENAB; /* against programmer's guide */
+			}
 			else
-				musb_ep->dma->desired_mode = 1;
-
-			use_dma = use_dma && c->channel_program(
+			{
+				//musb_ep->dma->desired_mode = 1;
+				//printk("lsk:csr_tx=0x%x\n",csr_tx);
+				//csr_tx &= ~(MUSB_TXCSR_P_UNDERRUN | MUSB_TXCSR_TXPKTRDY);
+                csr_tx |= MUSB_TXCSR_AUTOSET;
+                csr_tx &=~MUSB_TXCSR_DMAENAB;
+                musb_writew(epio, MUSB_TXCSR, csr_tx);
+                csr_tx |= MUSB_TXCSR_DMAMODE;
+                musb_writew(epio, MUSB_TXCSR, csr_tx);
+				csr_tx |=  MUSB_TXCSR_DMAENAB;
+			}
+			musb_writew(epio, MUSB_TXCSR, csr_tx);
+			use_dma = use_dma && musb_ep->dma && c->channel_program(
 					musb_ep->dma, musb_ep->packet_sz,
 					musb_ep->dma->desired_mode,
 					request->dma + request->actual, request_size);
+#if 0
 			if (use_dma) {
 				if (musb_ep->dma->desired_mode == 0) {
 					/*
@@ -401,6 +438,15 @@ static void txstate(struct musb *musb, struct musb_request *req)
 					csr |= (MUSB_TXCSR_DMAENAB
 							| MUSB_TXCSR_DMAMODE
 							| MUSB_TXCSR_MODE);
+					/*
+					 * Enable Autoset according to table
+					 * below
+					 * bulk_split hb_mult	Autoset_Enable
+					 *	0	0	Yes(Normal)
+					 *	0	>0	No(High BW ISO)
+					 *	1	0	Yes(HS bulk)
+					 *	1	>0	Yes(FS bulk)
+					 */
 					if (!musb_ep->hb_mult)
 						csr |= MUSB_TXCSR_AUTOSET;
 				}
@@ -408,6 +454,7 @@ static void txstate(struct musb *musb, struct musb_request *req)
 
 				musb_writew(epio, MUSB_TXCSR, csr);
 			}
+#endif
 		}
 
 #elif defined(CONFIG_USB_TI_CPPI_DMA)
@@ -463,7 +510,11 @@ static void txstate(struct musb *musb, struct musb_request *req)
 
 		musb_write_fifo(musb_ep->hw_ep, fifo_count,
 				(u8 *) (request->buf + request->actual));
+#if defined(CONFIG_USB_INVENTRA_DMA)
+        musb_ep->dma->actual_len=fifo_count;
+#else
 		request->actual += fifo_count;
+#endif
 		csr |= MUSB_TXCSR_TXPKTRDY;
 		csr &= ~MUSB_TXCSR_P_UNDERRUN;
 		musb_writew(epio, MUSB_TXCSR, csr);
@@ -532,15 +583,15 @@ void musb_g_tx(struct musb *musb, u8 epnum)
 
 	if (request) {
 		u8	is_dma = 0;
-
-		if (dma && (csr & MUSB_TXCSR_DMAENAB)) {
+		//if (dma && (csr & MUSB_TXCSR_DMAENAB)) {
+		if (dma) {
 			is_dma = 1;
-			csr |= MUSB_TXCSR_P_WZC_BITS;
-			csr &= ~(MUSB_TXCSR_DMAENAB | MUSB_TXCSR_P_UNDERRUN |
-				 MUSB_TXCSR_TXPKTRDY | MUSB_TXCSR_AUTOSET);
-			musb_writew(epio, MUSB_TXCSR, csr);
+			//csr |= MUSB_TXCSR_P_WZC_BITS;
+			//csr &= ~(MUSB_TXCSR_DMAENAB | MUSB_TXCSR_P_UNDERRUN |
+			//	 MUSB_TXCSR_TXPKTRDY | MUSB_TXCSR_AUTOSET);
+			//musb_writew(epio, MUSB_TXCSR, csr);
 			/* Ensure writebuffer is empty. */
-			csr = musb_readw(epio, MUSB_TXCSR);
+			//csr = musb_readw(epio, MUSB_TXCSR);
 			request->actual += musb_ep->dma->actual_len;
 			dev_dbg(musb->controller, "TXCSR%d %04x, DMA off, len %zu, req %p\n",
 				epnum, csr, musb_ep->dma->actual_len, request);
@@ -550,6 +601,7 @@ void musb_g_tx(struct musb *musb, u8 epnum)
 		 * First, maybe a terminating short packet. Some DMA
 		 * engines might handle this by themselves.
 		 */
+#if 0
 		if ((request->zero && request->length
 			&& (request->length % musb_ep->packet_sz == 0)
 			&& (request->actual == request->length))
@@ -571,7 +623,7 @@ void musb_g_tx(struct musb *musb, u8 epnum)
 					| MUSB_TXCSR_TXPKTRDY);
 			request->zero = 0;
 		}
-
+#endif
 		if (request->actual == request->length) {
 			musb_g_giveback(musb_ep, request, 0);
 			/*
@@ -649,13 +701,13 @@ static void rxstate(struct musb *musb, struct musb_request *req)
 		musb_ep = &hw_ep->ep_out;
 
 	len = musb_ep->packet_sz;
-
+#if defined(CONFIG_GK_MUSB_CON_V1_10) 
 	/* We shouldn't get here while DMA is active, but we do... */
 	if (dma_channel_status(musb_ep->dma) == MUSB_DMA_STATUS_BUSY) {
 		dev_dbg(musb->controller, "DMA pending...\n");
 		return;
 	}
-
+#endif
 	if (csr & MUSB_RXCSR_P_SENDSTALL) {
 		dev_dbg(musb->controller, "%s stalling, RXCSR %04x\n",
 		    musb_ep->end_point.name, csr);
@@ -697,13 +749,23 @@ static void rxstate(struct musb *musb, struct musb_request *req)
 		 * is set. Currently short_not_ok flag is set only from
 		 * file_storage and f_mass_storage drivers
 		 */
-
-		if (request->short_not_ok && len == musb_ep->packet_sz)
+		//if (request->short_not_ok && len == musb_ep->packet_sz)
+		if((len == musb_ep->packet_sz)
+          &&(request->actual+musb_ep->packet_sz<=request->length)
+          &&(musb_ep->type!=USB_ENDPOINT_XFER_ISOC))
+        {
+#if defined(CONFIG_GK_MUSB_CON_V1_10)  
 			use_mode_1 = 1;
+#elif defined(CONFIG_GK_MUSB_CON_V1_00) 
+			use_mode_1 = 0;
+#endif
+          }
 		else
 			use_mode_1 = 0;
 
 		if (request->actual < request->length) {
+		
+#if defined(CONFIG_GK_MUSB_CON_V1_10)
 #ifdef CONFIG_USB_INVENTRA_DMA
 			if (is_buffer_mapped(req)) {
 				struct dma_controller	*c;
@@ -712,7 +774,6 @@ static void rxstate(struct musb *musb, struct musb_request *req)
 
 				c = musb->dma_controller;
 				channel = musb_ep->dma;
-
 	/* We use DMA Req mode 0 in rx_csr, and DMA controller operates in
 	 * mode 0 only. So we do not get endpoint interrupts due to DMA
 	 * completion. We only get interrupts from DMA controller.
@@ -748,14 +809,17 @@ static void rxstate(struct musb *musb, struct musb_request *req)
 					 */
 					musb_writew(epio, MUSB_RXCSR,
 						csr | MUSB_RXCSR_DMAMODE);
-					musb_writew(epio, MUSB_RXCSR, csr);
+					//musb_writew(epio, MUSB_RXCSR, csr);
 
 				} else {
 					if (!musb_ep->hb_mult &&
 						musb_ep->hw_ep->rx_double_buffered)
 						csr |= MUSB_RXCSR_AUTOCLEAR;
-					csr |= MUSB_RXCSR_DMAENAB;
+					csr &= ~MUSB_RXCSR_DMAENAB;
+                    csr &= ~MUSB_RXCSR_DMAMODE;
 					musb_writew(epio, MUSB_RXCSR, csr);
+                    csr |= MUSB_RXCSR_DMAENAB;
+                    musb_writew(epio, MUSB_RXCSR, csr);
 				}
 
 				if (request->actual < request->length) {
@@ -830,7 +894,7 @@ static void rxstate(struct musb *musb, struct musb_request *req)
 					return;
 			}
 #endif	/* Mentor's DMA */
-
+#endif
 			fifo_count = request->length - request->actual;
 			dev_dbg(musb->controller, "%s OUT/RX pio fifo %d/%d, maxpacket %d\n",
 					musb_ep->end_point.name,
@@ -920,7 +984,10 @@ void musb_g_rx(struct musb *musb, u8 epnum)
 
 	csr = musb_readw(epio, MUSB_RXCSR);
 	dma = is_dma_capable() ? musb_ep->dma : NULL;
-
+    // for gk7101
+#if defined(CONFIG_GK_MUSB_CON_V1_00) 
+	dma = NULL;
+#endif
 	dev_dbg(musb->controller, "<== %s, rxcsr %04x%s %p\n", musb_ep->end_point.name,
 			csr, dma ? " (dma)" : "", request);
 
@@ -944,14 +1011,14 @@ void musb_g_rx(struct musb *musb, u8 epnum)
 		/* REVISIT not necessarily an error */
 		dev_dbg(musb->controller, "%s, incomprx\n", musb_ep->end_point.name);
 	}
-
+#if defined(CONFIG_GK_MUSB_CON_V1_10) 
 	if (dma_channel_status(dma) == MUSB_DMA_STATUS_BUSY) {
 		/* "should not happen"; likely RXPKTRDY pending for DMA */
 		dev_dbg(musb->controller, "%s busy, csr %04x\n",
 			musb_ep->end_point.name, csr);
 		return;
 	}
-
+#endif
 	if (dma && (csr & MUSB_RXCSR_DMAENAB)) {
 		csr &= ~(MUSB_RXCSR_AUTOCLEAR
 				| MUSB_RXCSR_DMAENAB
@@ -1100,11 +1167,15 @@ static int musb_gadget_enable(struct usb_ep *ep,
 		/* Set TXMAXP with the FIFO size of the endpoint
 		 * to disable double buffering mode.
 		 */
-		if (musb->double_buffer_not_ok)
+		if (musb->double_buffer_not_ok) {
 			musb_writew(regs, MUSB_TXMAXP, hw_ep->max_packet_sz_tx);
-		else
+		} else {
+			//if (can_bulk_split(musb, musb_ep->type))
+				//musb_ep->hb_mult = (hw_ep->max_packet_sz_tx /
+							//musb_ep->packet_sz) - 1;
 			musb_writew(regs, MUSB_TXMAXP, musb_ep->packet_sz
 					| (musb_ep->hb_mult << 11));
+		}
 
 		csr = MUSB_TXCSR_MODE | MUSB_TXCSR_CLRDATATOG;
 		if (musb_readw(regs, MUSB_TXCSR)
@@ -1167,12 +1238,24 @@ static int musb_gadget_enable(struct usb_ep *ep,
 	/* NOTE:  all the I/O code _should_ work fine without DMA, in case
 	 * for some reason you run out of channels here.
 	 */
-	if (is_dma_capable() && musb->dma_controller) {
-		struct dma_controller	*c = musb->dma_controller;
+#if defined(CONFIG_GK_MUSB_CON_V1_00) 
+    if(usb_endpoint_dir_in(desc))
+#elif defined(CONFIG_GK_MUSB_CON_V1_10)	
+	if(1)
+#endif
+	{
+		if (is_dma_capable() && musb->dma_controller) {
+			struct dma_controller	*c = musb->dma_controller;
 
-		musb_ep->dma = c->channel_alloc(c, hw_ep,
-				(desc->bEndpointAddress & USB_DIR_IN));
-	} else
+			musb_ep->dma = c->channel_alloc(c, hw_ep,
+					usb_endpoint_dir_in(desc));
+			if (usb_endpoint_dir_in(desc))
+				hw_ep->tx_channel = musb_ep->dma;
+			else
+				hw_ep->rx_channel = musb_ep->dma;
+			    musb_ep->dma->hw_ep = hw_ep;
+		}
+	}else
 		musb_ep->dma = NULL;
 
 	musb_ep->desc = desc;
@@ -1834,12 +1917,12 @@ static inline void __devinit musb_g_init_endpoints(struct musb *musb)
 			init_peripheral_ep(musb, &hw_ep->ep_in, epnum, 0);
 			count++;
 		} else {
-			if (hw_ep->max_packet_sz_tx) {
+			if ((epnum&0x01)&&(hw_ep->max_packet_sz_tx)) {
 				init_peripheral_ep(musb, &hw_ep->ep_in,
 							epnum, 1);
 				count++;
 			}
-			if (hw_ep->max_packet_sz_rx) {
+			else if (hw_ep->max_packet_sz_rx) {
 				init_peripheral_ep(musb, &hw_ep->ep_out,
 							epnum, 0);
 				count++;

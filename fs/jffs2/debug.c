@@ -264,13 +264,11 @@ void __jffs2_dbg_superblock_counts(struct jffs2_sb_info *c)
 	}
 
 #define check(sz)							\
-do {									\
 	if (sz != c->sz##_size) {					\
 		pr_warn("%s_size mismatch counted 0x%x, c->%s_size 0x%x\n", \
 			#sz, sz, #sz, c->sz##_size);			\
-		dump = 1;						\
-	}								\
-} while (0)
+		dump = 1;				\
+	}
 
 	check(free);
 	check(dirty);

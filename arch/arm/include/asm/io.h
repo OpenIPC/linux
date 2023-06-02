@@ -28,6 +28,10 @@
 #include <asm/memory.h>
 #include <asm-generic/pci_iomap.h>
 
+#include CONFIG_GK_CHIP_INCLUDE_FILE
+#include <mach/hardware.h>
+#include <mach/io.h>
+
 /*
  * ISA I/O bus memory addresses are 1:1 with the physical address.
  */
@@ -47,13 +51,15 @@ extern void __raw_readsb(const void __iomem *addr, void *data, int bytelen);
 extern void __raw_readsw(const void __iomem *addr, void *data, int wordlen);
 extern void __raw_readsl(const void __iomem *addr, void *data, int longlen);
 
-#define __raw_writeb(v,a)	(__chk_io_ptr(a), *(volatile unsigned char __force  *)(a) = (v))
-#define __raw_writew(v,a)	(__chk_io_ptr(a), *(volatile unsigned short __force *)(a) = (v))
-#define __raw_writel(v,a)	(__chk_io_ptr(a), *(volatile unsigned int __force   *)(a) = (v))
 
-#define __raw_readb(a)		(__chk_io_ptr(a), *(volatile unsigned char __force  *)(a))
-#define __raw_readw(a)		(__chk_io_ptr(a), *(volatile unsigned short __force *)(a))
-#define __raw_readl(a)		(__chk_io_ptr(a), *(volatile unsigned int __force   *)(a))
+#define __raw_writeb(v,a)	(__chk_io_ptr(a), gk_hw_writeb((u32)a,v))
+#define __raw_writew(v,a)	(__chk_io_ptr(a), gk_hw_writew((u32)a,v))
+#define __raw_writel(v,a)	(__chk_io_ptr(a), gk_hw_writel((u32)a,v))
+
+#define __raw_readb(a)		(__chk_io_ptr(a), gk_hw_readb((u32)a))
+#define __raw_readw(a)		(__chk_io_ptr(a), gk_hw_readw((u32)a))
+#define __raw_readl(a)		(__chk_io_ptr(a), gk_hw_readl((u32)a))
+
 
 /*
  * Architecture ioremap implementation.

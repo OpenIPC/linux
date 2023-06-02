@@ -17,6 +17,17 @@ config I2C_MUX_GPIO
 	  This driver can also be built as a module.  If so, the module
 	  will be called gpio-i2cmux.
 
+config I2C_MUX_GOKE
+        tristate "goke ipc I2C multiplexer"
+        depends on I2C_GOKE
+        help
+          If you say yes to this option, support will be included for a
+          goke ipc I2C multiplexer. This driver provides access to
+          I2C busses with an internal MUX, which is controlled
+          through GPIO pin functions.
+          This driver can also be built as a module.  If so, the module
+          will be called goke-i2cmux_v1_00.
+
 config I2C_MUX_PCA9541
 	tristate "NXP PCA9541 I2C Master Selector"
 	depends on EXPERIMENTAL

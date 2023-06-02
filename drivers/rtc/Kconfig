@@ -1087,4 +1087,26 @@ config RTC_DRV_LOONGSON1
 	  This driver can also be built as a module. If so, the module
 	  will be called rtc-ls1x.
 
+config RTC_DRV_GOKE
+	tristate "goke ipc RTC"
+	depends on GK_RTC
+	help
+	  RTC (Realtime Clock) driver for goke ipc.
+choice
+    prompt "Select RTC clock"
+	depends on RTC_DRV_GOKE
+    default CLOCK_24M
+    help
+        Select board base on goke ipc
+
+config CLOCK_32K
+    bool "32k HZ"
+    help
+        Select Goke goke ipc RTC CLOCK 32k
+
+config CLOCK_24M
+    bool "24M HZ"
+    help
+        Select Goke goke ipc RTC CLOCK 24M
+endchoice
 endif # RTC_CLASS

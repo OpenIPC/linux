@@ -190,6 +190,8 @@ mmc_spi_readbytes(struct mmc_spi_host *host, unsigned len)
 				host->data_dma, sizeof(*host->data),
 				DMA_FROM_DEVICE);
 
+	spi_message_add_tail(&host->status, &host->readback);
+
 	return status;
 }
 
@@ -955,12 +957,22 @@ mmc_spi_data_do(struct mmc_spi_host *host, struct mmc_command *cmd,
 				t->len);
 
 			if (direction == DMA_TO_DEVICE)
+            {
 				status = mmc_spi_writeblock(host, t, timeout);
+                if(length)
+                    spi_message_add_tail(&host->token, &host->m);
+            }
 			else
 				status = mmc_spi_readblock(host, t, timeout);
 			if (status < 0)
 				break;
-
+            if(length)
+            {
+                spi_message_add_tail(t, &host->m);
+                spi_message_add_tail(&host->crc, &host->m);
+		        if (direction == DMA_TO_DEVICE)
+                    spi_message_add_tail(&host->early_status, &host->m);
+            }
 			data->bytes_xfered += t->len;
 			length -= t->len;
 

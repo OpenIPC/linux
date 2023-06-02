@@ -79,3 +79,6 @@ obj-$(CONFIG_SERIAL_XILINX_PS_UART) += xilinx_uartps.o
 obj-$(CONFIG_SERIAL_SIRFSOC) += sirfsoc_uart.o
 obj-$(CONFIG_SERIAL_AR933X)   += ar933x_uart.o
 obj-$(CONFIG_SERIAL_EFM32_UART) += efm32-uart.o
+ifdef CONFIG_SERIAL_GOKE
+obj-$(CONFIG_GK_UART_V1_00)	+= gk_sio_v1_00.o
+endif

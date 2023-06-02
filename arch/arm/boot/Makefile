@@ -54,6 +54,9 @@ $(obj)/compressed/vmlinux: $(obj)/Image FORCE
 $(obj)/zImage:	$(obj)/compressed/vmlinux FORCE
 	$(call if_changed,objcopy)
 	@echo '  Kernel: $@ is ready'
+	@echo '  ZRELADDR = $(ZRELADDR)'
+	@echo '  PARAMS_PHYS = $(PARAMS_PHYS)'
+	@echo '  INITRD_PHYS = $(INITRD_PHYS)'
 
 endif
 

@@ -100,7 +100,7 @@ struct gpio_chip {
 						unsigned offset);
 
 	int			(*direction_input)(struct gpio_chip *chip,
-						unsigned offset);
+						unsigned offset, int value);
 	int			(*get)(struct gpio_chip *chip,
 						unsigned offset);
 	int			(*direction_output)(struct gpio_chip *chip,
@@ -153,7 +153,7 @@ extern struct gpio_chip *gpiochip_find(const void *data,
 extern int gpio_request(unsigned gpio, const char *label);
 extern void gpio_free(unsigned gpio);
 
-extern int gpio_direction_input(unsigned gpio);
+extern int gpio_direction_input(unsigned gpio, int value);
 extern int gpio_direction_output(unsigned gpio, int value);
 
 extern int gpio_set_debounce(unsigned gpio, unsigned debounce);

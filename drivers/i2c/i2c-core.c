@@ -1366,6 +1366,40 @@ int i2c_transfer(struct i2c_adapter *adap, struct i2c_msg *msgs, int num)
 }
 EXPORT_SYMBOL(i2c_transfer);
 
+int i2c_transfer_noevent(struct i2c_adapter *adap, struct i2c_msg *msgs, int num)
+{
+	unsigned long orig_jiffies;
+	int ret, try;
+
+	/* REVISIT the fault reporting model here is weak:
+	 *
+	 *  - When we get an error after receiving N bytes from a slave,
+	 *    there is no way to report "N".
+	 *
+	 *  - When we get a NAK after transmitting N bytes to a slave,
+	 *    there is no way to report "N" ... or to let the master
+	 *    continue executing the rest of this combined message, if
+	 *    that's the appropriate response.
+	 *
+	 *  - When for example "num" is two and we successfully complete
+	 *    the first message but get an error part way through the
+	 *    second, it's unclear whether that should be reported as
+	 *    one (discarding status on the second message) or errno
+	 *    (discarding status on the first one).
+	 */
+		/* Retry automatically on arbitration loss */
+	orig_jiffies = jiffies;
+	for (ret = 0, try = 0; try <= adap->retries; try++) {
+		ret = adap->algo->master_xfer_noevent(adap, msgs, num);
+		if (ret != -EAGAIN)
+			break;
+		if (time_after(jiffies, orig_jiffies + adap->timeout))
+			break;
+	}
+	return ret;
+}
+EXPORT_SYMBOL(i2c_transfer_noevent);
+
 /**
  * i2c_master_send - issue a single I2C message in master transmit mode
  * @client: Handle to slave device

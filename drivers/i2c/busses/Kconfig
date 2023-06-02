@@ -285,6 +285,18 @@ config I2C_POWERMAC
 
 comment "I2C system bus drivers (mostly embedded / system-on-chip)"
 
+config I2C_GOKE
+	tristate "goke ipc I2C bus support"
+	depends on GK_I2C
+	select I2C_MUX if MACH_GK7101_EVB_SUPPORT_I2C_MUX
+	select I2C_MUX_GK7101 if MACH_GK7101_EVB_SUPPORT_I2C_MUX
+	help
+	  This driver supports the goke ipc
+	  I2C Bus master controller
+
+	  This driver can also be built as a module.  If so, the module
+	  will be called goke_i2c_vxx.
+
 config I2C_AT91
 	tristate "Atmel AT91 I2C Two-Wire interface (TWI)"
 	depends on ARCH_AT91 && EXPERIMENTAL && BROKEN

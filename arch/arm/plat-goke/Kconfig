@@ -1,0 +1,734 @@
+#
+# arch/arm/plat-goke/Kconfig
+#
+# History:
+#  2016/04/18 - [Steven Yu] created file
+#
+# Copyright (C) 2002-2016, Goke Microelectronics China.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+#
+
+if ARCH_GK710X || ARCH_GK710XS || ARCH_GK710X_FPGA || ARCH_GK710XS_FPGA || ARCH_GK720X || ARCH_GK720X_FPGA 
+
+choice
+	prompt "Gk710X system flash select"
+	default ONLY_USE_NOR_8M
+
+config ONLY_USE_NOR_8M
+	bool "system only 8Mbytes nor flash"
+	help
+		select Goke GK710X only use 8M nor flash
+
+config ONLY_USE_NOR_16M
+	bool "system only 16Mbytes nor flash"
+	help
+		select Goke GK710X only use 16M nor flash
+
+config ONLY_USE_NOR_32M
+	bool "system only 32Mbytes nor flash"
+	help
+		select Goke GK710X only use 32M nor flash
+
+config ONLY_USE_NAND
+	bool "system only use nand flash"
+	help
+		select Goke GK710X only use nand flash
+
+config USE_NOR_AND_NAND
+	bool "system use nor and nand flash"
+	help
+		select Goke GK710X only use nor and nand flash
+
+endchoice
+
+
+menu "Gk710X select peripheral"
+
+choice
+	prompt "phy clk mode select"
+	default PHY_USE_AO_MCLK
+
+config PHY_USE_AO_MCLK
+	bool "the phy use the audio mclk"
+	help
+		select Goke GK710X phy the phy use audio mclk
+
+config PHY_USE_SD_CLK
+	bool "the phy use the SDIO clk"
+	help
+		select Goke GK710X phy the phy use SDIO mclk
+
+config PHY_USE_EXTERN_CLK
+	bool "the phy use the extern clk"
+	help
+		select Goke GK710X phy the phy use the extern mclk
+
+endchoice
+
+choice
+	prompt "pmu work mode"
+	default PMU_POWER_OFF_CPU
+
+config PMU_POWER_OFF_CPU
+	bool "load mcu code then power off the arm cpu"
+	help
+		select the 51cpu work mode
+
+config PMU_ALWAYS_RUNNING
+	bool "load mcu code do not power off the arm cpu"
+	help
+	select the 51cpu work mode, must use a gpio connect to pmu gpio 3 to get the pmu controller
+
+config PMU_AUTOMOTIVE
+	bool "work mode for automotive"
+	help
+		select the 51cpu work mode
+
+endchoice
+
+
+config SYSTEM_USE_EXTERN_I2S
+	bool "The soc select extern I2S"
+	help
+		select extern I2S or not.
+
+endmenu
+
+config GK_CHIP_INCLUDE_FILE
+	string
+	default "mach/gk710x.h" if ARCH_GK710X
+	default "mach/gk710xs.h" if ARCH_GK710XS
+	default "mach/gk720x.h" if ARCH_GK720X
+	default "mach/gk720x.h" if ARCH_GK720X_FPGA	
+endif
+
+comment "soc/fpga modules list"
+
+config PLAT_GOKE
+	bool
+	help
+	  Support for .
+
+config GK_CPU_ARM_1176_V1_00
+	bool
+	help
+	  Support for ARM 1176 v1.00.
+
+config GK_CPU_ARM_1176_V1_10
+	bool
+	help
+	  Support for ARM 1176 v1.10.
+
+config GK_CPU_ARM_1176_V1_20
+	bool
+	help
+	  Support for ARM 1176 v1.20.
+
+config GK_CPU_CORTEX_A7_V1_00
+	bool
+	help
+	  Support for CORTEX A7 v1.00.
+
+config GK_PLL_CHIP_V1_00
+	bool
+	help
+	  Support for pll v1.00 soc.
+
+config GK_PLL_CHIP_V1_10
+	bool
+	help
+	  Support for pll v1.10 soc.
+
+config GK_PLL_CHIP_V1_20
+	bool
+	help
+	  Support for pll v1.20 soc.
+
+config GK_PLL_FPGA_V1_00
+	bool
+	help
+	  Support for pll v1.00 fpga.
+
+config GK_PLL_FPGA_V1_10
+	bool
+	help
+	  Support for pll v1.10 fpga.
+
+config GK_PLL_FPGA_V1_20
+	bool
+	help
+	  Support for pll v1.20 fpga.
+
+config GK_EFUSE
+	bool
+	help
+	  Support for efuse v1.00.
+
+config GK_EFUSE_V1_00
+	bool
+	help
+	  Support for efuse v1.00.
+
+config GK_EFUSE_V1_10
+	bool
+	help
+	  Support for efuse v1.10.
+
+config GK_EFUSE_V1_20
+	bool
+	help
+	  Support for efuse v1.20.
+
+config GK_EFUSE_V1_30
+	bool
+	help
+	  Support for efuse v1.30.
+
+config GK_CRYPT
+	bool
+	help
+	  Support for .
+
+config GK_CRYPT_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_CRYPT_V1_10
+	bool
+	help
+	  Support for .
+
+config GK_TIMER
+	bool
+	help
+	  Support for .
+
+config GK_TIMER_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_TIMER_V1_10
+	bool
+	help
+	  Support for .
+
+config GK_WDT
+	bool
+	help
+	  Support for .
+
+config GK_WDT_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_WDT_V1_10
+	bool
+	help
+	  Support for .
+
+config GK_DDR2_CON
+	bool
+	help
+	  Support for .
+
+config GK_DDR2_CON_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_DDR2_CON_V1_10
+	bool
+	help
+	  Support for .
+
+config GK_DDR2_PHY
+	bool
+	help
+	  Support for .
+
+config GK_DDR2_PHY_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_DDR2_PHY_V1_10
+	bool
+	help
+	  Support for .
+
+config GK_GPIO
+	bool
+	help
+	  Support for .
+
+config GK_GPIO_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_GPIO_V1_10
+	bool
+	help
+	  Support for .
+
+config GK_GPIO_V1_20
+	bool
+	help
+	  Support for .
+
+config GK_GPIO_MAX_INPUT_TYPE
+	int
+	default 64 if ARCH_GK710X
+	default 64 if ARCH_GK710X_FPGA
+	default 128 if ARCH_GK710XS
+	default 128 if ARCH_GK710XS_FPGA
+	default 128 if ARCH_GK720X
+	default 128 if ARCH_GK720X_FPGA
+	help
+	  Support for .
+
+config GK_GPIO_INSTANCES
+	int
+	default 1 if ARCH_GK710X
+	default 1 if ARCH_GK710X_FPGA
+	default 1 if ARCH_GK710XS
+	default 1 if ARCH_GK710XS_FPGA
+	default 1 if ARCH_GK720X
+	default 1 if ARCH_GK720X_FPGA
+	help
+	  Support for .
+
+config GK_UART
+	bool
+	help
+	  Support for .
+
+config GK_UART_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_UART_V1_10
+	bool
+	help
+	  Support for .
+
+config GK_UART_V1_20
+	bool
+	help
+	  Support for .
+
+config GK_MUSB
+	bool
+	help
+	  Support for .
+
+config GK_MUSB_CON_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_MUSB_CON_V1_10
+	bool
+	help
+	  Support for .
+
+config GK_USB_DMA
+	bool
+	help
+	  Support for .
+
+config GK_USB_DMA_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_USB_DMA_V1_10
+	bool
+	help
+	  Support for .
+
+config GK_USB_PHY
+	bool
+	help
+	  Support for .
+
+config GK_USB_PHY_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_I2S
+	bool
+	help
+	  Support for .
+
+config GK_I2S_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_AUD_CON
+	bool
+	help
+	  Support for .
+
+config GK_AUD_CON_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_AUD_AD
+	bool
+	help
+	  Support for .
+
+config GK_AUD_AD_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_AUD_DMA
+	bool
+	help
+	  Support for .
+
+config GK_AUD_DMA_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_AUD_DMA_V1_10
+	bool
+	help
+	  Support for .
+
+config GK_ETH
+	bool
+	help
+	  Support for .
+
+config GK_ETH_EMAC
+	bool
+	help
+	  Support for .
+
+config GK_ETH_EMAC_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_ETH_EMAC_V1_01
+	bool
+	help
+	  Support for .
+config GK_ETH_EDMA
+	bool
+	help
+	  Support for .
+
+config GK_ETH_EDMA_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_ETH_EPHY
+	bool
+	help
+	  Support for .
+
+config GK_ETH_EPHY_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_PWM
+	bool
+	help
+	  Support for .
+
+config GK_PWM_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_SDIO
+	bool
+	help
+	  Support for .
+
+config GK_SDIO2
+	bool
+	help
+	  Support for .
+
+config GK_SDIO2_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_SDIO3
+	bool
+	help
+	  Support for .
+
+config GK_SDIO3_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_ADC
+	bool
+	help
+	  Support for .
+
+config GK_ADC_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_ADC_V1_10
+	bool
+	help
+	  Support for .
+
+config GK_I2C
+	bool
+	help
+	  Support for .
+
+config GK_I2C_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_SFLASH
+	bool
+	help
+	  Support for .
+
+config GK_SFLASH_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_SPI
+	bool
+	help
+	  Support for .
+
+config GK_SPI_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_PMU
+	bool
+	help
+	  Support for .
+
+config GK_PMU_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_PMU_V1_10
+	bool
+	help
+	  Support for .
+
+config GK_MCU
+	bool
+	help
+	  Support for .
+
+config GK_MCU_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_RTC
+	bool
+	help
+	  Support for .
+
+config GK_RTC_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_IR
+	bool
+	help
+	  Support for .
+
+config GK_IR_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_VOUT
+	bool
+	help
+	  Support for .
+
+config GK_VOUT_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_VOUT_V1_10
+	bool
+	help
+	  Support for .
+
+config GK_VOUT_V1_20
+	bool
+	help
+	  Support for .
+
+config GK_HDMI
+	bool
+	help
+	  Support for .
+
+config GK_HDMI_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_MIPI
+	bool
+	help
+	  Support for .
+
+config GK_MIPI_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_VIN
+	bool
+	help
+	  Support for .
+
+config GK_VIN_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_VIN_V1_10
+	bool
+	help
+	  Support for .
+
+config GK_VIN_V1_20
+	bool
+	help
+	  Support for .
+
+config GK_MDMA
+	bool
+	help
+	  Support for .
+
+config GK_MDMA_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_SMEM
+	bool
+	help
+	  Support for .
+
+config GK_SMEM_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_SMEM_V1_10
+	bool
+	help
+	  Support for .
+
+config GK_DSP1
+	bool
+	help
+	  Support for .
+
+config GK_DSP1_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_DSP2
+	bool
+	help
+	  Support for .
+
+config GK_DSP2_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_ISP
+	bool
+	help
+	  Support for .
+
+config GK_ISP_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_ISP_V1_10
+	bool
+	help
+	  Support for .
+
+config GK_FW
+	bool
+	help
+	  Support for .
+
+config GK_FW_V1_00
+	bool
+	help
+	  Support for .
+
+config GK_FW_V1_10
+	bool
+	help
+	  Support for .
+
+config GK_FW_V1_20
+	bool
+	help
+	  Support for .
+
+config GK_FB
+	bool
+	help
+	  Support for .
+
+config GK_FB_V1_00
+	bool
+	help
+	  Support for .

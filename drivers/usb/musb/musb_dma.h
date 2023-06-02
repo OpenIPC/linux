@@ -129,6 +129,8 @@ struct dma_channel {
 	size_t			actual_len;
 	enum dma_channel_status	status;
 	bool			desired_mode;
+
+    struct musb_hw_ep *hw_ep;
 };
 
 /*
@@ -180,6 +182,9 @@ extern void musb_dma_completion(struct musb *musb, u8 epnum, u8 transmit);
 
 extern struct dma_controller *__init
 dma_controller_create(struct musb *, void __iomem *);
+
+extern struct dma_controller *
+dma_controller_create_non_init(struct musb *musb, void __iomem *base);
 
 extern void dma_controller_destroy(struct dma_controller *);
 

@@ -131,6 +131,12 @@ endif
 textofs-$(CONFIG_ARCH_MSM7X30) := 0x00208000
 textofs-$(CONFIG_ARCH_MSM8X60) := 0x00208000
 textofs-$(CONFIG_ARCH_MSM8960) := 0x00208000
+textofs-$(CONFIG_ARCH_GK710X)       := $(shell printf "0x%08x" $$(($(CONFIG_TEXT_OFFSET) + 0x8000)))
+textofs-$(CONFIG_ARCH_GK710X_FPGA)  := $(shell printf "0x%08x" $$(($(CONFIG_TEXT_OFFSET) + 0x8000)))
+textofs-$(CONFIG_ARCH_GK710XS)      := $(shell printf "0x%08x" $$(($(CONFIG_TEXT_OFFSET) + 0x8000)))
+textofs-$(CONFIG_ARCH_GK710XS_FPGA) := $(shell printf "0x%08x" $$(($(CONFIG_TEXT_OFFSET) + 0x8000)))
+textofs-$(CONFIG_ARCH_GK720X)      := $(shell printf "0x%08x" $$(($(CONFIG_TEXT_OFFSET) + 0x8000)))
+textofs-$(CONFIG_ARCH_GK720X_FPGA) := $(shell printf "0x%08x" $$(($(CONFIG_TEXT_OFFSET) + 0x8000)))
 
 # Machine directory name.  This list is sorted alphanumerically
 # by CONFIG_* macro name.
@@ -143,6 +149,12 @@ machine-$(CONFIG_ARCH_DOVE)		:= dove
 machine-$(CONFIG_ARCH_EBSA110)		:= ebsa110
 machine-$(CONFIG_ARCH_EP93XX)		:= ep93xx
 machine-$(CONFIG_ARCH_GEMINI)		:= gemini
+machine-$(CONFIG_ARCH_GK710X)		:= gk710x
+machine-$(CONFIG_ARCH_GK710X_FPGA)	:= gk710x_fpga
+machine-$(CONFIG_ARCH_GK710XS)		:= gk710xs
+machine-$(CONFIG_ARCH_GK710XS_FPGA)	:= gk710xs_fpga
+machine-$(CONFIG_ARCH_GK720X)	:= gk720x
+machine-$(CONFIG_ARCH_GK720X_FPGA)	:= gk720x_fpga
 machine-$(CONFIG_ARCH_H720X)		:= h720x
 machine-$(CONFIG_ARCH_HIGHBANK)		:= highbank
 machine-$(CONFIG_ARCH_INTEGRATOR)	:= integrator
@@ -212,6 +224,7 @@ plat-$(CONFIG_PLAT_S3C24XX)	:= s3c24xx samsung
 plat-$(CONFIG_PLAT_S5P)		:= s5p samsung
 plat-$(CONFIG_PLAT_SPEAR)	:= spear
 plat-$(CONFIG_PLAT_VERSATILE)	:= versatile
+plat-$(CONFIG_PLAT_GOKE)	:= goke
 
 ifeq ($(CONFIG_ARCH_EBSA110),y)
 # This is what happens if you forget the IOCS16 line.

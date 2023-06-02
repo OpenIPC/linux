@@ -49,3 +49,9 @@ obj-y				+= carma/
 obj-$(CONFIG_USB_SWITCH_FSA9480) += fsa9480.o
 obj-$(CONFIG_ALTERA_STAPL)	+=altera-stapl/
 obj-$(CONFIG_MAX8997_MUIC)	+= max8997-muic.o
+ifdef CONFIG_ADC_GOKE
+obj-$(CONFIG_GK_ADC_V1_00)	+= gk_adc_v1_00.o
+endif
+ifdef CONFIG_PWM_GOKE
+obj-$(CONFIG_GK_PWM_V1_00)	+= gk_pwm_v1_00.o
+endif

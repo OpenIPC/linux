@@ -59,7 +59,7 @@ config GENERIC_GPIO
 
 config ARCH_USES_GETTIMEOFFSET
 	bool
-	default n
+	default y
 
 config GENERIC_CLOCKEVENTS
 	bool
@@ -240,6 +240,13 @@ config PHYS_OFFSET
 	help
 	  Please provide the physical address corresponding to the
 	  location of main memory in your system.
+
+config TEXT_OFFSET
+        hex "kernel start offset address base on physical address"
+        default 0x00000000
+        help
+          Please provide the physical address corresponding to the
+          kernel start of main memory in your system.
 
 config GENERIC_BUG
 	def_bool y
@@ -471,6 +478,832 @@ config ARCH_MXS
 	select HAVE_CLK_PREPARE
 	help
 	  Support for Freescale MXS-based family of processors
+
+config ARCH_GK710X
+	bool "Goke ipc GK710X family"
+	select CPU_V6
+	select HAVE_PWM
+	select MULTI_IRQ_HANDLER
+	select IRQ_DOMAIN
+	select GENERIC_GPIO
+	select ARCH_REQUIRE_GPIOLIB
+	select GENERIC_CLOCKEVENTS
+	select CLKDEV_LOOKUP
+	select COMMON_CLK
+	select NO_IOPORT
+	select PLAT_GOKE
+	select GK_CPU_ARM_1176_V1_00
+#	select GK_CPU_ARM_1176_V1_10
+#	select GK_CPU_ARM_1176_V1_20
+#	select GK_CPU_CORTEX_A7_V1_00
+	select GK_BUS_NIC_400_V1_00
+#	select GK_BUS_CCN_V1_00
+#	select GK_BUS_NOC_V1_00
+#	select GK_PLL_FPGA_V1_00
+#	select GK_PLL_FPGA_V1_10
+#	select GK_PLL_FPGA_V1_20
+#	select GK_PLL_FPGA_V1_30
+	select GK_PLL_CHIP_V1_00
+#	select GK_PLL_CHIP_V1_10
+#	select GK_PLL_CHIP_V1_20
+#	select GK_PLL_CHIP_V1_30
+	select GK_EFUSE
+	select GK_EFUSE_V1_00
+#	select GK_EFUSE_V1_10
+#	select GK_EFUSE_V1_20
+#	select GK_EFUSE_V1_30
+	select GK_CRYPT
+	select GK_CRYPT_V1_00
+#	select GK_CRYPT_V1_10
+	select GK_TIMER
+	select GK_TIMER_V1_00
+#	select GK_TIMER_V1_10
+	select GK_WDT
+	select GK_WDT_V1_00
+#	select GK_WDT_V1_10
+	select GK_DDR2_CON
+	select GK_DDR2_CON_V1_00
+#	select GK_DDR2_CON_V1_10
+	select GK_DDR2_PHY
+	select GK_DDR2_PHY_V1_00
+#	select GK_DDR2_PHY_V1_10
+	select GK_GPIO
+	select GK_GPIO_V1_00
+#	select GK_GPIO_V1_10
+	select GK_UART
+	select GK_UART_V1_00
+#	select GK_UART_V1_10
+#	select GK_UART_V1_20
+	select GK_MUSB
+	select GK_MUSB_CON_V1_00
+#	select GK_MUSB_CON_V1_10
+	select GK_USB_DMA
+	select GK_USB_DMA_V1_00
+#	select GK_USB_DMA_V1_10
+	select GK_USB_PHY
+	select GK_USB_PHY_V1_00
+	select GK_I2S
+	select GK_I2S_V1_00
+	select GK_AUD_CON
+	select GK_AUD_CON_V1_00
+	select GK_AUD_AD
+	select GK_AUD_AD_V1_00
+	select GK_AUD_DMA
+	select GK_AUD_DMA_V1_00
+#	select GK_AUD_DMA_V1_10
+	select GK_ETH
+	select GK_ETH_EMAC
+	select GK_ETH_EMAC_V1_00
+	select GK_ETH_EDMA
+	select GK_ETH_EDMA_V1_00
+	select GK_ETH_EPHY
+	select GK_ETH_EPHY_V1_00
+	select GK_PWM
+	select GK_PWM_V1_00
+	select GK_SDIO
+	select GK_SDIO2
+	select GK_SDIO2_V1_00
+#	select GK_SDIO3
+#	select GK_SDIO3_V1_00
+	select GK_ADC
+	select GK_ADC_V1_00
+#	select GK_ADC_V1_10
+	select GK_I2C
+	select GK_I2C_V1_00
+	select GK_SFLASH
+	select GK_SFLASH_V1_00
+	select GK_SPI
+	select GK_SPI_V1_00
+	select GK_PMU
+	select GK_PMU_V1_00
+#	select GK_PMU_V1_10
+	select GK_MCU
+	select GK_MCU_V1_00
+	select GK_RTC
+	select GK_RTC_V1_00
+	select GK_IR
+	select GK_IR_V1_00
+	select GK_VOUT
+	select GK_VOUT_V1_00
+#	select GK_VOUT_V1_10
+#	select GK_VOUT_V1_20
+	select GK_HDMI
+	select GK_HDMI_V1_00
+	select GK_MIPI
+	select GK_MIPI_V1_00
+	select GK_VIN
+	select GK_VIN_V1_00
+#	select GK_VIN_V1_10
+#	select GK_VIN_V1_20
+	select GK_MDMA
+	select GK_MDMA_V1_00
+	select GK_SMEM
+	select GK_SMEM_V1_00
+#	select GK_SMEM_V1_10
+	select GK_DSP1
+	select GK_DSP1_V1_00
+	select GK_DSP2
+	select GK_DSP2_V1_00
+	select GK_ISP
+	select GK_ISP_V1_00
+#	select GK_ISP_V1_10
+	select GK_FW
+	select GK_FW_V1_00
+#	select GK_FW_V1_10
+#	select GK_FW_V1_20
+	select GK_FB
+	select GK_FB_V1_00
+	help
+	  Support for Goke GK710X(GK7101/GK7102/GK7103...) Soc
+
+config ARCH_GK710X_FPGA
+	bool "Goke ipc GK710X FPGA"
+	select CPU_V6
+	select HAVE_PWM
+	select MULTI_IRQ_HANDLER
+	select IRQ_DOMAIN
+	select GENERIC_GPIO
+	select ARCH_REQUIRE_GPIOLIB
+	select GENERIC_CLOCKEVENTS
+	select CLKDEV_LOOKUP
+	select COMMON_CLK
+	select NO_IOPORT
+	select PLAT_GOKE
+	select GK_CPU_ARM_1176_V1_00
+#	select GK_CPU_ARM_1176_V1_10
+#	select GK_CPU_ARM_1176_V1_20
+#	select GK_CPU_CORTEX_A7_V1_00
+	select GK_BUS_NIC_400_V1_00
+#	select GK_BUS_CCN_V1_00
+#	select GK_BUS_NOC_V1_00
+#	select GK_PLL_FPGA_V1_00
+#	select GK_PLL_FPGA_V1_10
+#	select GK_PLL_FPGA_V1_20
+#	select GK_PLL_FPGA_V1_30
+	select GK_PLL_CHIP_V1_00
+#	select GK_PLL_CHIP_V1_10
+#	select GK_PLL_CHIP_V1_20
+#	select GK_PLL_CHIP_V1_30
+	select GK_EFUSE
+	select GK_EFUSE_V1_00
+#	select GK_EFUSE_V1_10
+#	select GK_EFUSE_V1_20
+#	select GK_EFUSE_V1_30
+	select GK_CRYPT
+	select GK_CRYPT_V1_00
+#	select GK_CRYPT_V1_10
+	select GK_TIMER
+	select GK_TIMER_V1_00
+#	select GK_TIMER_V1_10
+	select GK_WDT
+	select GK_WDT_V1_00
+#	select GK_WDT_V1_10
+	select GK_DDR2_CON
+	select GK_DDR2_CON_V1_00
+#	select GK_DDR2_CON_V1_10
+	select GK_DDR2_PHY
+	select GK_DDR2_PHY_V1_00
+#	select GK_DDR2_PHY_V1_10
+	select GK_GPIO
+	select GK_GPIO_V1_00
+#	select GK_GPIO_V1_10
+	select GK_UART
+	select GK_UART_V1_00
+#	select GK_UART_V1_10
+#	select GK_UART_V1_20
+	select GK_MUSB
+	select GK_MUSB_CON_V1_00
+#	select GK_MUSB_CON_V1_10
+	select GK_USB_DMA
+	select GK_USB_DMA_V1_00
+#	select GK_USB_DMA_V1_10
+	select GK_USB_PHY
+	select GK_USB_PHY_V1_00
+	select GK_I2S
+	select GK_I2S_V1_00
+	select GK_AUD_CON
+	select GK_AUD_CON_V1_00
+	select GK_AUD_AD
+	select GK_AUD_AD_V1_00
+	select GK_AUD_DMA
+	select GK_AUD_DMA_V1_00
+#	select GK_AUD_DMA_V1_10
+	select GK_ETH
+	select GK_ETH_EMAC
+	select GK_ETH_EMAC_V1_00
+	select GK_ETH_EDMA
+	select GK_ETH_EDMA_V1_00
+	select GK_ETH_EPHY
+	select GK_ETH_EPHY_V1_00
+	select GK_PWM
+	select GK_PWM_V1_00
+	select GK_SDIO
+	select GK_SDIO2
+	select GK_SDIO2_V1_00
+#	select GK_SDIO3
+#	select GK_SDIO3_V1_00
+	select GK_ADC
+	select GK_ADC_V1_00
+#	select GK_ADC_V1_10
+	select GK_I2C
+	select GK_I2C_V1_00
+	select GK_SFLASH
+	select GK_SFLASH_V1_00
+	select GK_SPI
+	select GK_SPI_V1_00
+	select GK_PMU
+	select GK_PMU_V1_00
+#	select GK_PMU_V1_10
+	select GK_MCU
+	select GK_MCU_V1_00
+	select GK_RTC
+	select GK_RTC_V1_00
+	select GK_IR
+	select GK_IR_V1_00
+	select GK_VOUT
+	select GK_VOUT_V1_00
+#	select GK_VOUT_V1_10
+#	select GK_VOUT_V1_20
+	select GK_HDMI
+	select GK_HDMI_V1_00
+	select GK_MIPI
+	select GK_MIPI_V1_00
+	select GK_VIN
+	select GK_VIN_V1_00
+#	select GK_VIN_V1_10
+#	select GK_VIN_V1_20
+	select GK_MDMA
+	select GK_MDMA_V1_00
+	select GK_SMEM
+	select GK_SMEM_V1_00
+#	select GK_SMEM_V1_10
+	select GK_DSP1
+	select GK_DSP1_V1_00
+	select GK_DSP2
+	select GK_DSP2_V1_00
+	select GK_ISP
+	select GK_ISP_V1_00
+#	select GK_ISP_V1_10
+	select GK_FW
+	select GK_FW_V1_00
+#	select GK_FW_V1_10
+#	select GK_FW_V1_20
+	select GK_FB
+	select GK_FB_V1_00
+	help
+	  Support for Goke GK710X(GK7101/GK7102/GK7103...) FPGA
+
+config ARCH_GK710XS
+	bool "Goke ipc GK710XS family"
+	select CPU_V6
+	select HAVE_PWM
+	select MULTI_IRQ_HANDLER
+	select IRQ_DOMAIN
+	select GENERIC_GPIO
+	select ARCH_REQUIRE_GPIOLIB
+	select GENERIC_CLOCKEVENTS
+	select CLKDEV_LOOKUP
+	select COMMON_CLK
+	select NO_IOPORT
+	select PLAT_GOKE
+	select GK_CPU_ARM_1176_V1_00
+#	select GK_CPU_ARM_1176_V1_10
+#	select GK_CPU_ARM_1176_V1_20
+#	select GK_CPU_CORTEX_A7_V1_00
+	select GK_BUS_NIC_400_V1_00
+#	select GK_BUS_CCN_V1_00
+#	select GK_BUS_NOC_V1_00
+#	select GK_PLL_FPGA_V1_00
+#	select GK_PLL_FPGA_V1_10
+#	select GK_PLL_FPGA_V1_20
+#	select GK_PLL_FPGA_V1_30
+	select GK_PLL_CHIP_V1_00
+#	select GK_PLL_CHIP_V1_10
+#	select GK_PLL_CHIP_V1_20
+#	select GK_PLL_CHIP_V1_30
+	select GK_EFUSE
+	select GK_EFUSE_V1_00
+#	select GK_EFUSE_V1_10
+#	select GK_EFUSE_V1_20
+#	select GK_EFUSE_V1_30
+	select GK_CRYPT
+	select GK_CRYPT_V1_00
+#	select GK_CRYPT_V1_10
+	select GK_TIMER
+	select GK_TIMER_V1_00
+#	select GK_TIMER_V1_10
+	select GK_WDT
+	select GK_WDT_V1_00
+#	select GK_WDT_V1_10
+	select GK_DDR2_CON
+	select GK_DDR2_CON_V1_00
+#	select GK_DDR2_CON_V1_10
+	select GK_DDR2_PHY
+	select GK_DDR2_PHY_V1_00
+#	select GK_DDR2_PHY_V1_10
+	select GK_GPIO
+#	select GK_GPIO_V1_00
+#	select GK_GPIO_V1_10
+	select GK_GPIO_V1_20
+	select GK_UART
+	select GK_UART_V1_00
+#	select GK_UART_V1_10
+#	select GK_UART_V1_20
+	select GK_MUSB
+#	select GK_MUSB_CON_V1_00
+	select GK_MUSB_CON_V1_10
+	select GK_USB_DMA
+	select GK_USB_DMA_V1_00
+#	select GK_USB_DMA_V1_10
+	select GK_USB_PHY
+	select GK_USB_PHY_V1_00
+	select GK_I2S
+	select GK_I2S_V1_00
+	select GK_AUD_CON
+	select GK_AUD_CON_V1_00
+	select GK_AUD_AD
+	select GK_AUD_AD_V1_00
+	select GK_AUD_DMA
+	select GK_AUD_DMA_V1_00
+#	select GK_AUD_DMA_V1_10
+	select GK_ETH
+	select GK_ETH_EMAC
+	select GK_ETH_EMAC_V1_00
+	select GK_ETH_EDMA
+	select GK_ETH_EDMA_V1_00
+	select GK_ETH_EPHY
+	select GK_ETH_EPHY_V1_00
+	select GK_PWM
+	select GK_PWM_V1_00
+	select GK_SDIO
+	select GK_SDIO2
+	select GK_SDIO2_V1_00
+#	select GK_SDIO3
+#	select GK_SDIO3_V1_00
+	select GK_ADC
+	select GK_ADC_V1_00
+#	select GK_ADC_V1_10
+	select GK_I2C
+	select GK_I2C_V1_00
+	select GK_SFLASH
+	select GK_SFLASH_V1_00
+	select GK_SPI
+	select GK_SPI_V1_00
+	select GK_PMU
+	select GK_PMU_V1_00
+#	select GK_PMU_V1_10
+	select GK_MCU
+	select GK_MCU_V1_00
+	select GK_RTC
+	select GK_RTC_V1_00
+	select GK_IR
+	select GK_IR_V1_00
+	select GK_VOUT
+	select GK_VOUT_V1_00
+#	select GK_VOUT_V1_10
+#	select GK_VOUT_V1_20
+	select GK_HDMI
+	select GK_HDMI_V1_00
+	select GK_MIPI
+	select GK_MIPI_V1_00
+	select GK_VIN
+	select GK_VIN_V1_00
+#	select GK_VIN_V1_10
+#	select GK_VIN_V1_20
+	select GK_MDMA
+	select GK_MDMA_V1_00
+	select GK_SMEM
+	select GK_SMEM_V1_00
+#	select GK_SMEM_V1_10
+	select GK_DSP1
+	select GK_DSP1_V1_00
+	select GK_DSP2
+	select GK_DSP2_V1_00
+	select GK_ISP
+	select GK_ISP_V1_00
+#	select GK_ISP_V1_10
+	select GK_FW
+	select GK_FW_V1_00
+#	select GK_FW_V1_10
+#	select GK_FW_V1_20
+	select GK_FB
+	select GK_FB_V1_00
+	help
+	  Support for Goke GK710XS(GK7101S/GK7102S/GK7103S...) Soc
+
+config ARCH_GK710XS_FPGA
+	bool "Goke ipc GK710XS FPGA"
+	select CPU_V6
+	select HAVE_PWM
+	select MULTI_IRQ_HANDLER
+	select IRQ_DOMAIN
+	select GENERIC_GPIO
+	select ARCH_REQUIRE_GPIOLIB
+	select GENERIC_CLOCKEVENTS
+	select CLKDEV_LOOKUP
+	select COMMON_CLK
+	select NO_IOPORT
+	select PLAT_GOKE
+	select GK_CPU_ARM_1176_V1_00
+#	select GK_CPU_ARM_1176_V1_10
+#	select GK_CPU_ARM_1176_V1_20
+#	select GK_CPU_CORTEX_A7_V1_00
+	select GK_BUS_NIC_400_V1_00
+#	select GK_BUS_CCN_V1_00
+#	select GK_BUS_NOC_V1_00
+#	select GK_PLL_FPGA_V1_00
+#	select GK_PLL_FPGA_V1_10
+#	select GK_PLL_FPGA_V1_20
+#	select GK_PLL_FPGA_V1_30
+	select GK_PLL_CHIP_V1_00
+#	select GK_PLL_CHIP_V1_10
+#	select GK_PLL_CHIP_V1_20
+#	select GK_PLL_CHIP_V1_30
+	select GK_EFUSE
+	select GK_EFUSE_V1_00
+#	select GK_EFUSE_V1_10
+#	select GK_EFUSE_V1_20
+#	select GK_EFUSE_V1_30
+	select GK_CRYPT
+	select GK_CRYPT_V1_00
+#	select GK_CRYPT_V1_10
+	select GK_TIMER
+	select GK_TIMER_V1_00
+#	select GK_TIMER_V1_10
+	select GK_WDT
+	select GK_WDT_V1_00
+#	select GK_WDT_V1_10
+	select GK_DDR2_CON
+	select GK_DDR2_CON_V1_00
+#	select GK_DDR2_CON_V1_10
+	select GK_DDR2_PHY
+	select GK_DDR2_PHY_V1_00
+#	select GK_DDR2_PHY_V1_10
+	select GK_GPIO
+#	select GK_GPIO_V1_00
+#	select GK_GPIO_V1_10
+	select GK_GPIO_V1_20
+	select GK_UART
+	select GK_UART_V1_00
+#	select GK_UART_V1_10
+#	select GK_UART_V1_20
+	select GK_MUSB
+#	select GK_MUSB_CON_V1_00
+	select GK_MUSB_CON_V1_10
+	select GK_USB_DMA
+	select GK_USB_DMA_V1_00
+#	select GK_USB_DMA_V1_10
+	select GK_USB_PHY
+	select GK_USB_PHY_V1_00
+	select GK_I2S
+	select GK_I2S_V1_00
+	select GK_AUD_CON
+	select GK_AUD_CON_V1_00
+	select GK_AUD_AD
+	select GK_AUD_AD_V1_00
+	select GK_AUD_DMA
+	select GK_AUD_DMA_V1_00
+#	select GK_AUD_DMA_V1_10
+	select GK_ETH
+	select GK_ETH_EMAC
+	select GK_ETH_EMAC_V1_00
+	select GK_ETH_EDMA
+	select GK_ETH_EDMA_V1_00
+	select GK_ETH_EPHY
+	select GK_ETH_EPHY_V1_00
+	select GK_PWM
+	select GK_PWM_V1_00
+	select GK_SDIO
+	select GK_SDIO2
+	select GK_SDIO2_V1_00
+#	select GK_SDIO3
+#	select GK_SDIO3_V1_00
+	select GK_ADC
+	select GK_ADC_V1_00
+#	select GK_ADC_V1_10
+	select GK_I2C
+	select GK_I2C_V1_00
+	select GK_SFLASH
+	select GK_SFLASH_V1_00
+	select GK_SPI
+	select GK_SPI_V1_00
+	select GK_PMU
+	select GK_PMU_V1_00
+#	select GK_PMU_V1_10
+	select GK_MCU
+	select GK_MCU_V1_00
+	select GK_RTC
+	select GK_RTC_V1_00
+	select GK_IR
+	select GK_IR_V1_00
+	select GK_VOUT
+	select GK_VOUT_V1_00
+#	select GK_VOUT_V1_10
+#	select GK_VOUT_V1_20
+	select GK_HDMI
+	select GK_HDMI_V1_00
+	select GK_MIPI
+	select GK_MIPI_V1_00
+	select GK_VIN
+	select GK_VIN_V1_00
+#	select GK_VIN_V1_10
+#	select GK_VIN_V1_20
+	select GK_MDMA
+	select GK_MDMA_V1_00
+	select GK_SMEM
+	select GK_SMEM_V1_00
+#	select GK_SMEM_V1_10
+	select GK_DSP1
+	select GK_DSP1_V1_00
+	select GK_DSP2
+	select GK_DSP2_V1_00
+	select GK_ISP
+	select GK_ISP_V1_00
+#	select GK_ISP_V1_10
+	select GK_FW
+	select GK_FW_V1_00
+#	select GK_FW_V1_10
+#	select GK_FW_V1_20
+	select GK_FB
+	select GK_FB_V1_00
+	help
+	  Support for Goke GK710XS(GK7101S/GK7102S/GK7103S...) FPGA
+
+config ARCH_GK720X
+	bool "Goke ipc GK720X_chip family"
+	select CPU_V6
+	select HAVE_PWM
+	select MULTI_IRQ_HANDLER
+	select IRQ_DOMAIN
+	select GENERIC_GPIO
+	select ARCH_REQUIRE_GPIOLIB
+	select GENERIC_CLOCKEVENTS
+	select CLKDEV_LOOKUP
+	select COMMON_CLK
+	select NO_IOPORT
+#	select PLAT_GOKE
+	select GK_CPU_ARM_1176_V1_00
+#	select GK_CPU_ARM_1176_V1_10
+#	select GK_CPU_ARM_1176_V1_20
+#	select GK_CPU_CORTEX_A7_V1_00
+	select GK_BUS_NIC_400_V1_00
+#	select GK_BUS_CCN_V1_00
+#	select GK_BUS_NOC_V1_00
+#	select GK_PLL_FPGA_V1_00
+#	select GK_PLL_FPGA_V1_10
+#	select GK_PLL_FPGA_V1_20
+#	select GK_PLL_FPGA_V1_30
+	select GK_PLL_CHIP_V1_00
+#	select GK_PLL_CHIP_V1_10
+#	select GK_PLL_CHIP_V1_20
+#	select GK_PLL_CHIP_V1_30
+	select GK_EFUSE
+	select GK_EFUSE_V1_00
+#	select GK_EFUSE_V1_10
+#	select GK_EFUSE_V1_20
+#	select GK_EFUSE_V1_30
+	select GK_CRYPT
+	select GK_CRYPT_V1_00
+#	select GK_CRYPT_V1_10
+	select GK_TIMER
+	select GK_TIMER_V1_00
+#	select GK_TIMER_V1_10
+	select GK_WDT
+	select GK_WDT_V1_00
+#	select GK_WDT_V1_10
+	select GK_DDR2_CON
+	select GK_DDR2_CON_V1_00
+#	select GK_DDR2_CON_V1_10
+	select GK_DDR2_PHY
+	select GK_DDR2_PHY_V1_00
+#	select GK_DDR2_PHY_V1_10
+	select GK_GPIO
+#	select GK_GPIO_V1_00
+#	select GK_GPIO_V1_10
+	select GK_GPIO_V1_20
+	select GK_UART
+	select GK_UART_V1_00
+#	select GK_UART_V1_10
+#	select GK_UART_V1_20
+	select GK_MUSB
+#	select GK_MUSB_CON_V1_00
+	select GK_MUSB_CON_V1_10
+	select GK_USB_DMA
+	select GK_USB_DMA_V1_00
+#	select GK_USB_DMA_V1_10
+	select GK_USB_PHY
+	select GK_USB_PHY_V1_00
+	select GK_I2S
+	select GK_I2S_V1_00
+	select GK_AUD_CON
+	select GK_AUD_CON_V1_00
+	select GK_AUD_AD
+	select GK_AUD_AD_V1_00
+	select GK_AUD_DMA
+	select GK_AUD_DMA_V1_00
+#	select GK_AUD_DMA_V1_10
+	select GK_ETH
+	select GK_ETH_EMAC
+	select GK_ETH_EMAC_V1_00
+	select GK_ETH_EDMA
+	select GK_ETH_EDMA_V1_00
+	select GK_ETH_EPHY
+	select GK_ETH_EPHY_V1_00
+	select GK_PWM
+	select GK_PWM_V1_00
+	select GK_SDIO
+	select GK_SDIO2
+	select GK_SDIO2_V1_00
+#	select GK_SDIO3
+#	select GK_SDIO3_V1_00
+	select GK_ADC
+	select GK_ADC_V1_00
+#	select GK_ADC_V1_10
+	select GK_I2C
+	select GK_I2C_V1_00
+	select GK_SFLASH
+	select GK_SFLASH_V1_00
+	select GK_SPI
+	select GK_SPI_V1_00
+	select GK_PMU
+	select GK_PMU_V1_00
+#	select GK_PMU_V1_10
+	select GK_MCU
+	select GK_MCU_V1_00
+	select GK_RTC
+	select GK_RTC_V1_00
+	select GK_IR
+	select GK_IR_V1_00
+	select GK_VOUT
+	select GK_VOUT_V1_00
+#	select GK_VOUT_V1_10
+#	select GK_VOUT_V1_20
+	select GK_HDMI
+	select GK_HDMI_V1_00
+	select GK_MIPI
+	select GK_MIPI_V1_00
+	select GK_VIN
+	select GK_VIN_V1_00
+#	select GK_VIN_V1_10
+#	select GK_VIN_V1_20
+	select GK_MDMA
+	select GK_MDMA_V1_00
+	select GK_SMEM
+	select GK_SMEM_V1_00
+#	select GK_SMEM_V1_10
+	select GK_DSP1
+	select GK_DSP1_V1_00
+	select GK_DSP2
+	select GK_DSP2_V1_00
+	select GK_ISP
+	select GK_ISP_V1_00
+#	select GK_ISP_V1_10
+	select GK_FW
+	select GK_FW_V1_00
+#	select GK_FW_V1_10
+#	select GK_FW_V1_20
+	select GK_FB
+	select GK_FB_V1_00
+	help
+	  Support for Goke GK720X(GK7201/GK7202/GK7203...) chip
+
+config ARCH_GK720X_FPGA
+	bool "Goke ipc GK720X_FPGA family"
+	select CPU_V6
+	select HAVE_PWM
+	select MULTI_IRQ_HANDLER
+	select IRQ_DOMAIN
+	select GENERIC_GPIO
+	select ARCH_REQUIRE_GPIOLIB
+	select GENERIC_CLOCKEVENTS
+	select CLKDEV_LOOKUP
+	select COMMON_CLK
+	select NO_IOPORT
+#	select PLAT_GOKE
+	select GK_CPU_ARM_1176_V1_00
+#	select GK_CPU_ARM_1176_V1_10
+#	select GK_CPU_ARM_1176_V1_20
+#	select GK_CPU_CORTEX_A7_V1_00
+	select GK_BUS_NIC_400_V1_00
+#	select GK_BUS_CCN_V1_00
+#	select GK_BUS_NOC_V1_00
+#	select GK_PLL_FPGA_V1_00
+#	select GK_PLL_FPGA_V1_10
+#	select GK_PLL_FPGA_V1_20
+#	select GK_PLL_FPGA_V1_30
+	select GK_PLL_CHIP_V1_00
+#	select GK_PLL_CHIP_V1_10
+#	select GK_PLL_CHIP_V1_20
+#	select GK_PLL_CHIP_V1_30
+	select GK_EFUSE
+	select GK_EFUSE_V1_00
+#	select GK_EFUSE_V1_10
+#	select GK_EFUSE_V1_20
+#	select GK_EFUSE_V1_30
+	select GK_CRYPT
+	select GK_CRYPT_V1_00
+#	select GK_CRYPT_V1_10
+	select GK_TIMER
+	select GK_TIMER_V1_00
+#	select GK_TIMER_V1_10
+	select GK_WDT
+	select GK_WDT_V1_00
+#	select GK_WDT_V1_10
+	select GK_DDR2_CON
+	select GK_DDR2_CON_V1_00
+#	select GK_DDR2_CON_V1_10
+	select GK_DDR2_PHY
+	select GK_DDR2_PHY_V1_00
+#	select GK_DDR2_PHY_V1_10
+	select GK_GPIO
+#	select GK_GPIO_V1_00
+#	select GK_GPIO_V1_10
+	select GK_GPIO_V1_20
+	select GK_UART
+	select GK_UART_V1_00
+#	select GK_UART_V1_10
+#	select GK_UART_V1_20
+	select GK_MUSB
+#	select GK_MUSB_CON_V1_00
+	select GK_MUSB_CON_V1_10
+	select GK_USB_DMA
+	select GK_USB_DMA_V1_00
+#	select GK_USB_DMA_V1_10
+	select GK_USB_PHY
+	select GK_USB_PHY_V1_00
+	select GK_I2S
+	select GK_I2S_V1_00
+	select GK_AUD_CON
+	select GK_AUD_CON_V1_00
+	select GK_AUD_AD
+	select GK_AUD_AD_V1_00
+	select GK_AUD_DMA
+	select GK_AUD_DMA_V1_00
+#	select GK_AUD_DMA_V1_10
+	select GK_ETH
+	select GK_ETH_EMAC
+	select GK_ETH_EMAC_V1_01
+	select GK_ETH_EDMA
+	select GK_ETH_EDMA_V1_00
+	select GK_ETH_EPHY
+	select GK_ETH_EPHY_V1_00
+	select GK_PWM
+	select GK_PWM_V1_00
+	select GK_SDIO
+	select GK_SDIO2
+	select GK_SDIO2_V1_00
+#	select GK_SDIO3
+#	select GK_SDIO3_V1_00
+	select GK_ADC
+	select GK_ADC_V1_00
+#	select GK_ADC_V1_10
+	select GK_I2C
+	select GK_I2C_V1_00
+	select GK_SFLASH
+	select GK_SFLASH_V1_00
+	select GK_SPI
+	select GK_SPI_V1_00
+	select GK_PMU
+	select GK_PMU_V1_00
+#	select GK_PMU_V1_10
+	select GK_MCU
+	select GK_MCU_V1_00
+	select GK_RTC
+	select GK_RTC_V1_00
+	select GK_IR
+	select GK_IR_V1_00
+	select GK_VOUT
+	select GK_VOUT_V1_00
+#	select GK_VOUT_V1_10
+#	select GK_VOUT_V1_20
+	select GK_HDMI
+	select GK_HDMI_V1_00
+	select GK_MIPI
+	select GK_MIPI_V1_00
+	select GK_VIN
+	select GK_VIN_V1_00
+#	select GK_VIN_V1_10
+#	select GK_VIN_V1_20
+	select GK_MDMA
+	select GK_MDMA_V1_00
+	select GK_SMEM
+	select GK_SMEM_V1_00
+#	select GK_SMEM_V1_10
+	select GK_DSP1
+	select GK_DSP1_V1_00
+	select GK_DSP2
+	select GK_DSP2_V1_00
+	select GK_ISP
+	select GK_ISP_V1_00
+#	select GK_ISP_V1_10
+	select GK_FW
+	select GK_FW_V1_00
+#	select GK_FW_V1_10
+#	select GK_FW_V1_20
+	select GK_FB
+	select GK_FB_V1_00
+	help
+	  Support for Goke GK720X(GK7201/GK7202/GK7203...) FPGA
 
 config ARCH_NETX
 	bool "Hilscher NetX based"
@@ -1128,6 +1961,14 @@ source "arch/arm/mach-vt8500/Kconfig"
 
 source "arch/arm/mach-w90x900/Kconfig"
 
+source "arch/arm/mach-gk710x/Kconfig"
+
+source "arch/arm/mach-gk710xs/Kconfig"
+
+
+
+source "arch/arm/plat-goke/Kconfig"
+
 # Definitions to make life easier
 config ARCH_ACORN
 	bool
@@ -1618,10 +2459,16 @@ config LOCAL_TIMERS
 	  "thundering herd" at every timer tick.
 
 config ARCH_NR_GPIO
-	int
+	int "gpio numbers"
 	default 1024 if ARCH_SHMOBILE || ARCH_TEGRA
 	default 355 if ARCH_U8500
 	default 264 if MACH_H4700
+	default 55 if ARCH_GK710X
+	default 55 if ARCH_GK710X_FPGA
+	default 64 if ARCH_GK710XS
+	default 64 if ARCH_GK710XS_FPGA
+	default 64 if ARCH_GK720X_FPGA
+	default 64 if ARCH_GK720X
 	default 0
 	help
 	  Maximum number of GPIOs in the system.
@@ -1631,7 +2478,7 @@ config ARCH_NR_GPIO
 source kernel/Kconfig.preempt
 
 config HZ
-	int
+	int "TIME HZ"
 	default 200 if ARCH_EBSA110 || ARCH_S3C24XX || ARCH_S5P64X0 || \
 		ARCH_S5PV210 || ARCH_EXYNOS4
 	default OMAP_32K_TIMER_HZ if ARCH_OMAP && OMAP_32K_TIMER

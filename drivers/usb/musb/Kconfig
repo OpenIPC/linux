@@ -7,7 +7,7 @@
 config USB_MUSB_HDRC
 	tristate 'Inventra Highspeed Dual Role Controller (TI, ADI, ...)'
 	depends on USB && USB_GADGET
-	select NOP_USB_XCEIV if (ARCH_DAVINCI || MACH_OMAP3EVM || BLACKFIN)
+	select NOP_USB_XCEIV if (ARCH_DAVINCI || MACH_OMAP3EVM || BLACKFIN || GK_MUSB)
 	select TWL4030_USB if MACH_OMAP_3430SDP
 	select TWL6030_USB if MACH_OMAP_4430SDP || MACH_OMAP4_PANDA
 	select USB_OTG_UTILS
@@ -32,8 +32,8 @@ config USB_MUSB_HDRC
 
 if USB_MUSB_HDRC
 
-choice
-	prompt "Platform Glue Layer"
+#choice
+#	prompt "Platform Glue Layer"
 
 config USB_MUSB_DAVINCI
 	tristate "DaVinci"
@@ -45,6 +45,50 @@ config USB_MUSB_DA8XX
 
 config USB_MUSB_TUSB6010
 	tristate "TUSB6010"
+	
+config USB_MUSB_GK
+    boolean "GK MUSB support"
+    depends on USB_MUSB_HDRC && !USB_MUSB_SOC
+    depends on GK_MUSB
+    help
+      Say Y here if your system has a dual role high speed USB
+      controller based on the Mentor Graphics silicon IP.
+
+if USB_MUSB_GK
+choice
+    prompt "GK USB work mode"
+    default GK_USB_HOST_MODE if USB_MUSB_GK
+    help
+      Slect GK USB work mode between HOST and SLAVE.
+
+config GK_USB_HOST_MODE
+    bool "USB-MASTER mode"
+    depends on USB_MUSB_GK
+    help
+      GK USB work in HOST mode.
+
+config GK_USB_SLAVE_MODE
+    bool "USB-SALVE mode"
+    depends on USB_MUSB_GK
+    help
+      GK USB work in SLAVE mode.
+
+config GK_USB_OTG_MODE
+    bool "GK USB OTG mode"
+    depends on USB_MUSB_GK
+    select USB_OTG_WHITELIST
+    help
+      GK USB OTG mode.
+endchoice
+
+if GK_USB_OTG_MODE
+config GK_USB_OTG_GPIO
+    int "USB OTG PIN"
+    help
+      GK UUSB OTG pin.
+endif #GK_OTG
+
+endif #USB_MUSB_GK
 
 config USB_MUSB_OMAP2PLUS
 	tristate "OMAP2430 and onwards"
@@ -62,12 +106,12 @@ config USB_MUSB_UX500
 	tristate "U8500 and U5500"
 	depends on (ARCH_U8500 && AB8500_USB)
 
-endchoice
+#endchoice
 
 choice
 	prompt 'MUSB DMA mode'
 	default USB_UX500_DMA if USB_MUSB_UX500
-	default USB_INVENTRA_DMA if USB_MUSB_OMAP2PLUS || USB_MUSB_BLACKFIN
+	default USB_INVENTRA_DMA if USB_MUSB_OMAP2PLUS || USB_MUSB_BLACKFIN || USB_MUSB_GK
 	default USB_TI_CPPI_DMA if USB_MUSB_DAVINCI
 	default USB_TUSB_OMAP_DMA if USB_MUSB_TUSB6010
 	default MUSB_PIO_ONLY if USB_MUSB_TUSB6010 || USB_MUSB_DA8XX || USB_MUSB_AM35X
@@ -83,8 +127,8 @@ config USB_UX500_DMA
 	  Enable DMA transfers on UX500 platforms.
 
 config USB_INVENTRA_DMA
-	bool 'Inventra'
-	depends on USB_MUSB_OMAP2PLUS || USB_MUSB_BLACKFIN
+	bool 'use inventra DMA'
+	depends on USB_MUSB_OMAP2PLUS || USB_MUSB_BLACKFIN || USB_MUSB_GK
 	help
 	  Enable DMA transfers using Mentor's engine.
 

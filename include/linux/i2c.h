@@ -68,6 +68,8 @@ extern int i2c_master_recv(const struct i2c_client *client, char *buf,
  */
 extern int i2c_transfer(struct i2c_adapter *adap, struct i2c_msg *msgs,
 			int num);
+extern int i2c_transfer_noevent(struct i2c_adapter *adap, struct i2c_msg *msgs,
+			int num);
 
 /* This is the very generalized SMBus access routine. You probably do not
    want to use this, though; one of the functions below may be much easier,
@@ -361,6 +363,8 @@ struct i2c_algorithm {
 	int (*smbus_xfer) (struct i2c_adapter *adap, u16 addr,
 			   unsigned short flags, char read_write,
 			   u8 command, int size, union i2c_smbus_data *data);
+	int (*master_xfer_noevent)(struct i2c_adapter *adap, struct i2c_msg *msgs,
+			   int num);
 
 	/* To determine what the adapter supports */
 	u32 (*functionality) (struct i2c_adapter *);

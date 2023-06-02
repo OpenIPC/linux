@@ -1,0 +1,14 @@
+#
+# Acorn Network device configuration
+#  These are for Acorn's Expansion card network interfaces
+#
+
+config ETH_GOKE
+	tristate "Goke 10/100/1000 GMAC Ethernet support"
+	depends on GK_ETH
+	select CRC32
+	select PHYLIB
+	select MII
+	help
+	  This driver supports Goke 10/100/1000 GMAC Ethernet.
+

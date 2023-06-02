@@ -253,8 +253,10 @@ static ssize_t gpio_direction_store(struct device *dev,
 		status = gpio_direction_output(gpio, 1);
 	else if (sysfs_streq(buf, "out") || sysfs_streq(buf, "low"))
 		status = gpio_direction_output(gpio, 0);
-	else if (sysfs_streq(buf, "in"))
-		status = gpio_direction_input(gpio);
+	else if (sysfs_streq(buf, "in") || sysfs_streq(buf, "in0"))
+		status = gpio_direction_input(gpio, 0);
+	else if (sysfs_streq(buf, "in1"))
+		status = gpio_direction_input(gpio, 1);
 	else
 		status = -EINVAL;
 
@@ -1300,7 +1302,7 @@ int gpio_request_one(unsigned gpio, unsigned long flags, const char *label)
 		set_bit(FLAG_OPEN_SOURCE, &gpio_desc[gpio].flags);
 
 	if (flags & GPIOF_DIR_IN)
-		err = gpio_direction_input(gpio);
+		err = gpio_direction_input(gpio, 0);
 	else
 		err = gpio_direction_output(gpio,
 				(flags & GPIOF_INIT_HIGH) ? 1 : 0);
@@ -1386,7 +1388,7 @@ EXPORT_SYMBOL_GPL(gpiochip_is_requested);
  * rely on gpio_request() having been called beforehand.
  */
 
-int gpio_direction_input(unsigned gpio)
+int gpio_direction_input(unsigned gpio, int val)
 {
 	unsigned long		flags;
 	struct gpio_chip	*chip;
@@ -1425,7 +1427,7 @@ int gpio_direction_input(unsigned gpio)
 		}
 	}
 
-	status = chip->direction_input(chip, gpio);
+	status = chip->direction_input(chip, gpio, val);
 	if (status == 0)
 		clear_bit(FLAG_IS_OUT, &desc->flags);
 
@@ -1450,11 +1452,11 @@ int gpio_direction_output(unsigned gpio, int value)
 
 	/* Open drain pin should not be driven to 1 */
 	if (value && test_bit(FLAG_OPEN_DRAIN,  &desc->flags))
-		return gpio_direction_input(gpio);
+		return gpio_direction_input(gpio, 0);
 
 	/* Open source pin should not be driven to 0 */
 	if (!value && test_bit(FLAG_OPEN_SOURCE,  &desc->flags))
-		return gpio_direction_input(gpio);
+		return gpio_direction_input(gpio, 0);
 
 	spin_lock_irqsave(&gpio_lock, flags);
 
@@ -1604,7 +1606,7 @@ static void _gpio_set_open_drain_value(unsigned gpio,
 {
 	int err = 0;
 	if (value) {
-		err = chip->direction_input(chip, gpio - chip->base);
+		err = chip->direction_input(chip, gpio - chip->base, 0);
 		if (!err)
 			clear_bit(FLAG_IS_OUT, &gpio_desc[gpio].flags);
 	} else {
@@ -1633,7 +1635,7 @@ static void _gpio_set_open_source_value(unsigned gpio,
 		if (!err)
 			set_bit(FLAG_IS_OUT, &gpio_desc[gpio].flags);
 	} else {
-		err = chip->direction_input(chip, gpio - chip->base);
+		err = chip->direction_input(chip, gpio - chip->base, 0);
 		if (!err)
 			clear_bit(FLAG_IS_OUT, &gpio_desc[gpio].flags);
 	}

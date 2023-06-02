@@ -100,6 +100,8 @@
 #include <linux/platform_device.h>
 #include <linux/io.h>
 
+#include <mach/gpio.h>
+
 #include "musb_core.h"
 
 #define TA_WAIT_BCON(m) max_t(int, (m)->a_wait_bcon, OTG_TIME_A_WAIT_BCON)
@@ -226,46 +228,28 @@ static struct usb_phy_io_ops musb_ulpi_access = {
 
 #if !defined(CONFIG_USB_MUSB_TUSB6010) && !defined(CONFIG_USB_MUSB_BLACKFIN)
 
+u32 get_epnum_from_fifo(u32 fifo)
+{
+    return (fifo-GK_VA_USB-0x400)/MUSB_FIFO_EP_OFFSET;
+}
+
 /*
  * Load an endpoint's FIFO
  */
 void musb_write_fifo(struct musb_hw_ep *hw_ep, u16 len, const u8 *src)
 {
-	struct musb *musb = hw_ep->musb;
+	//struct musb *musb = hw_ep->musb;
 	void __iomem *fifo = hw_ep->fifo;
+	int i;
+	u32 fifo_addr;
 
-	prefetch((u8 *)src);
-
-	dev_dbg(musb->controller, "%cX ep%d fifo %p count %d buf %p\n",
-			'T', hw_ep->epnum, fifo, len, src);
-
-	/* we can't assume unaligned reads work */
-	if (likely((0x01 & (unsigned long) src) == 0)) {
-		u16	index = 0;
-
-		/* best case is 32bit-aligned source address */
-		if ((0x02 & (unsigned long) src) == 0) {
-			if (len >= 4) {
-				writesl(fifo, src + index, len >> 2);
-				index += len & ~0x03;
-			}
-			if (len & 0x02) {
-				musb_writew(fifo, 0, *(u16 *)&src[index]);
-				index += 2;
-			}
-		} else {
-			if (len >= 2) {
-				writesw(fifo, src + index, len >> 1);
-				index += len & ~0x01;
-			}
-		}
-		if (len & 0x01)
-			musb_writeb(fifo, 0, src[index]);
-	} else  {
-		/* byte aligned */
-		writesb(fifo, src, len);
+	fifo_addr = get_epnum_from_fifo((u32)fifo)*4+0x20+GK_VA_USB;
+	fifo = (void __iomem *)fifo_addr;
+	for (i = 0; i < len; i++) {
+		musb_writeb(fifo, 0, src[i]);
 	}
 }
+
 
 #if !defined(CONFIG_USB_MUSB_AM35X)
 /*
@@ -273,37 +257,21 @@ void musb_write_fifo(struct musb_hw_ep *hw_ep, u16 len, const u8 *src)
  */
 void musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
 {
-	struct musb *musb = hw_ep->musb;
+	//struct musb *musb = hw_ep->musb;
 	void __iomem *fifo = hw_ep->fifo;
 
-	dev_dbg(musb->controller, "%cX ep%d fifo %p count %d buf %p\n",
-			'R', hw_ep->epnum, fifo, len, dst);
+	//printk("%cX ep%d fifo %p count %d buf %p\n",
+	//		'R', hw_ep->epnum, fifo, len, dst);
 
-	/* we can't assume unaligned writes work */
-	if (likely((0x01 & (unsigned long) dst) == 0)) {
-		u16	index = 0;
+	int i;
+	u32 fifo_addr;
 
-		/* best case is 32bit-aligned destination address */
-		if ((0x02 & (unsigned long) dst) == 0) {
-			if (len >= 4) {
-				readsl(fifo, dst, len >> 2);
-				index = len & ~0x03;
-			}
-			if (len & 0x02) {
-				*(u16 *)&dst[index] = musb_readw(fifo, 0);
-				index += 2;
-			}
-		} else {
-			if (len >= 2) {
-				readsw(fifo, dst, len >> 1);
-				index = len & ~0x01;
-			}
-		}
-		if (len & 0x01)
-			dst[index] = musb_readb(fifo, 0);
-	} else  {
-		/* byte aligned */
-		readsb(fifo, dst, len);
+	fifo_addr = get_epnum_from_fifo((u32)fifo)*4+0x20+GK_VA_USB;
+
+	fifo=(void __iomem *)fifo_addr;
+
+	for (i = 0; i < len; i++) {
+		dst[i] = musb_readb(fifo, 0);
 	}
 }
 #endif
@@ -1497,7 +1465,8 @@ static int __devinit musb_core_init(u16 musb_type, struct musb *musb)
 /*-------------------------------------------------------------------------*/
 
 #if defined(CONFIG_SOC_OMAP2430) || defined(CONFIG_SOC_OMAP3430) || \
-	defined(CONFIG_ARCH_OMAP4) || defined(CONFIG_ARCH_U8500)
+	defined(CONFIG_ARCH_OMAP4) || defined(CONFIG_ARCH_U8500) || \
+	defined(CONFIG_GK_MUSB)
 
 static irqreturn_t generic_interrupt(int irq, void *__hci)
 {
@@ -1544,24 +1513,39 @@ irqreturn_t musb_interrupt(struct musb *musb)
 		(devctl & MUSB_DEVCTL_HM) ? "host" : "peripheral",
 		musb->int_usb, musb->int_tx, musb->int_rx);
 
-	/* the core can interrupt us for multiple reasons; docs have
-	 * a generic interrupt flowchart to follow
+	/**
+	 * According to Mentor Graphics' documentation, flowchart on page 98,
+	 * IRQ should be handled as follows:
+	 *
+	 * . Resume IRQ
+	 * . Session Request IRQ
+	 * . VBUS Error IRQ
+	 * . Suspend IRQ
+	 * . Connect IRQ
+	 * . Disconnect IRQ
+	 * . Reset/Babble IRQ
+	 * . SOF IRQ (we're not using this one)
+	 * . Endpoint 0 IRQ
+	 * . TX Endpoints
+	 * . RX Endpoints
+	 *
+	 * We will be following that flowchart in order to avoid any problems
+	 * that might arise with internal Finite State Machine.
 	 */
+
 	if (musb->int_usb)
 		retval |= musb_stage0_irq(musb, musb->int_usb,
 				devctl, power);
 
-	/* "stage 1" is handling endpoint irqs */
-
-	/* handle endpoint 0 first */
 	if (musb->int_tx & 1) {
-		if (devctl & MUSB_DEVCTL_HM)
+		if (is_host_active(musb))
 			retval |= musb_h_ep0_irq(musb);
 		else
 			retval |= musb_g_ep0_irq(musb);
 	}
 
-	/* RX on endpoints 1-15 */
+
+        	/* RX on endpoints 1-15 */
 	reg = musb->int_rx >> 1;
 	ep_num = 1;
 	while (reg) {
@@ -1569,12 +1553,14 @@ irqreturn_t musb_interrupt(struct musb *musb)
 			/* musb_ep_select(musb->mregs, ep_num); */
 			/* REVISIT just retval = ep->rx_irq(...) */
 			retval = IRQ_HANDLED;
-			if (devctl & MUSB_DEVCTL_HM) {
-				if (is_host_capable())
-					musb_host_rx(musb, ep_num);
-			} else {
-				if (is_peripheral_capable())
-					musb_g_rx(musb, ep_num);
+			if (is_host_active(musb))
+			{
+                //printk("IM,R\n");
+				musb_host_rx(musb, ep_num);
+            }
+            else
+            {
+				musb_g_rx(musb, ep_num);
 			}
 		}
 
@@ -1582,20 +1568,23 @@ irqreturn_t musb_interrupt(struct musb *musb)
 		ep_num++;
 	}
 
-	/* TX on endpoints 1-15 */
-	reg = musb->int_tx >> 1;
-	ep_num = 1;
+
+/* TX on endpoints 1-15 */
+	reg            = musb->int_tx >> 1;
+	ep_num         = 1;
 	while (reg) {
 		if (reg & 1) {
 			/* musb_ep_select(musb->mregs, ep_num); */
 			/* REVISIT just retval |= ep->tx_irq(...) */
 			retval = IRQ_HANDLED;
-			if (devctl & MUSB_DEVCTL_HM) {
-				if (is_host_capable())
-					musb_host_tx(musb, ep_num);
-			} else {
-				if (is_peripheral_capable())
-					musb_g_tx(musb, ep_num);
+			if (is_host_active(musb))
+			{
+                //printk("    IM,T\n");
+                musb_host_tx(musb, ep_num);
+			}
+			else
+			{
+				musb_g_tx(musb, ep_num);
 			}
 		}
 		reg >>= 1;
@@ -1642,6 +1631,7 @@ void musb_dma_completion(struct musb *musb, u8 epnum, u8 transmit)
 		} else {
 			/* receive */
 			if (devctl & MUSB_DEVCTL_HM) {
+				//printk("rxdmaint\n");
 				if (is_host_capable())
 					musb_host_rx(musb, epnum);
 			} else {
@@ -1860,8 +1850,12 @@ static void musb_free(struct musb *musb)
 		dma_controller_destroy(c);
 	}
 
-	kfree(musb);
+    // use usb_put_hcd replace kfree(musb)
+	usb_put_hcd(musb_to_hcd(musb));
+    printk("musb_free\n");
+	//kfree(musb);
 }
+
 
 /*
  * Perform generic per-controller initialization.
@@ -1899,7 +1893,20 @@ musb_init_controller(struct device *dev, int nIrq, void __iomem *ctrl)
 	pm_runtime_enable(musb->controller);
 
 	spin_lock_init(&musb->lock);
-	musb->board_mode = plat->mode;
+
+#if defined(CONFIG_GK_USB_OTG_MODE)
+    if (!gk_gpio_get(CONFIG_GK_USB_OTG_GPIO))
+    {
+        musb->board_mode = MUSB_HOST;
+    }
+    else
+    {
+        musb->board_mode = MUSB_PERIPHERAL;
+    }
+#else
+    musb->board_mode = plat->mode;
+#endif
+
 	musb->board_set_power = plat->set_power;
 	musb->min_power = plat->min_power;
 	musb->ops = plat->platform_ops;
@@ -1937,7 +1944,7 @@ musb_init_controller(struct device *dev, int nIrq, void __iomem *ctrl)
 	if (use_dma && dev->dma_mask) {
 		struct dma_controller	*c;
 
-		c = dma_controller_create(musb, musb->mregs);
+		c = dma_controller_create_non_init(musb, musb->mregs);
 		musb->dma_controller = c;
 		if (c)
 			(void) c->start(c);
@@ -1964,7 +1971,7 @@ musb_init_controller(struct device *dev, int nIrq, void __iomem *ctrl)
 	INIT_WORK(&musb->irq_work, musb_irq_work);
 
 	/* attach to the IRQ */
-	if (request_irq(nIrq, musb->isr, 0, dev_name(dev), musb)) {
+	if (request_irq(nIrq, musb->isr, IRQF_SHARED | IRQF_TRIGGER_HIGH, dev_name(dev), musb)) {
 		dev_err(dev, "request_irq %d failed!\n", nIrq);
 		status = -ENODEV;
 		goto fail3;
@@ -1996,6 +2003,7 @@ musb_init_controller(struct device *dev, int nIrq, void __iomem *ctrl)
 			musb_write_ulpi_buscontrol(musb->mregs, busctl);
 		}
 	}
+
 
 	/* For the host-only role, we can activate right away.
 	 * (We expect the ID pin to be forcibly grounded!!)
@@ -2110,28 +2118,32 @@ static int __devinit musb_probe(struct platform_device *pdev)
 	iomem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (!iomem || irq <= 0)
 		return -ENODEV;
-
+#if 0
 	base = ioremap(iomem->start, resource_size(iomem));
 	if (!base) {
 		dev_err(dev, "ioremap failed\n");
 		return -ENOMEM;
 	}
+#else
+	base = (void __iomem *)iomem->start;
+#endif
 
 #ifndef CONFIG_MUSB_PIO_ONLY
 	/* clobbered by use_dma=n */
 	orig_dma_mask = dev->dma_mask;
 #endif
 	status = musb_init_controller(dev, irq, base);
+#if 0
 	if (status < 0)
 		iounmap(base);
-
+#endif
 	return status;
 }
 
 static int __devexit musb_remove(struct platform_device *pdev)
 {
 	struct musb	*musb = dev_to_musb(&pdev->dev);
-	void __iomem	*ctrl_base = musb->ctrl_base;
+	//void __iomem	*ctrl_base = musb->ctrl_base;
 
 	/* this gets called on rmmod.
 	 *  - Host mode: host may still be active
@@ -2142,7 +2154,7 @@ static int __devexit musb_remove(struct platform_device *pdev)
 	musb_shutdown(pdev);
 
 	musb_free(musb);
-	iounmap(ctrl_base);
+	//iounmap(ctrl_base);
 	device_init_wakeup(&pdev->dev, 0);
 #ifndef CONFIG_MUSB_PIO_ONLY
 	pdev->dev.dma_mask = orig_dma_mask;
@@ -2411,3 +2423,28 @@ static void __exit musb_cleanup(void)
 	platform_driver_unregister(&musb_driver);
 }
 module_exit(musb_cleanup);
+
+#ifdef CONFIG_GK_USB_OTG_MODE
+void set_usb_unregister(void)
+{
+    platform_driver_unregister(&musb_driver);
+}
+EXPORT_SYMBOL(set_usb_unregister);
+
+void set_usb_master(void)
+{
+    platform_driver_register(&musb_driver);
+
+    mdelay(10);
+}
+EXPORT_SYMBOL(set_usb_master);
+
+void set_usb_slave(void)
+{
+    platform_driver_register(&musb_driver);
+
+    mdelay(10);
+}
+EXPORT_SYMBOL(set_usb_slave);
+#endif
+

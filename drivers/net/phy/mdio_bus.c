@@ -99,7 +99,7 @@ static struct class mdio_bus_class = {
  */
 int mdiobus_register(struct mii_bus *bus)
 {
-	int i, err;
+	int i, j, err;
 
 	if (NULL == bus || NULL == bus->name ||
 			NULL == bus->read ||
@@ -124,18 +124,32 @@ int mdiobus_register(struct mii_bus *bus)
 
 	if (bus->reset)
 		bus->reset(bus);
+    for(j=0;j<5;j++)
+    {
+        for (i = 0; i < PHY_MAX_ADDR; i++) {
+            if ((bus->phy_mask & (1 << i)) == 0) {
+                struct phy_device *phydev;
 
-	for (i = 0; i < PHY_MAX_ADDR; i++) {
-		if ((bus->phy_mask & (1 << i)) == 0) {
-			struct phy_device *phydev;
+                phydev = mdiobus_scan(bus, i);
+                if (IS_ERR(phydev)) {
+                    err = PTR_ERR(phydev);
+                    goto error;
+                }
+            }
 
-			phydev = mdiobus_scan(bus, i);
-			if (IS_ERR(phydev)) {
-				err = PTR_ERR(phydev);
-				goto error;
-			}
-		}
-	}
+        }
+        for (i = 0; i < PHY_MAX_ADDR; i++)
+        {
+            if(bus->phy_used)
+            {
+                printk("%s: PHY[%d] whose id 0x%08x \n", __func__, j, bus->phy_used->phy_id);
+                goto find_phy;
+            }
+
+        }
+        mdelay(100);
+    }
+find_phy:
 
 	bus->state = MDIOBUS_REGISTERED;
 	pr_info("%s: probed\n", bus->name);

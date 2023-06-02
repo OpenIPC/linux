@@ -96,6 +96,37 @@ config MTD_M25P80
 	  if you want to specify device partitioning or to use a device which
 	  doesn't support the JEDEC ID instruction.
 
+config MTD_SFLASH_GOKE
+      tristate "Support most Serial Flash on goke ipc (S25FL128P,MX25L12845E...)"
+      depends on EXPERIMENTAL
+      depends on GK_SFLASH
+
+if MTD_SFLASH_GOKE
+choice SFLASH_WR_MODE
+	default SFLASH_W_1X_R_1X_MODE 
+	prompt 'SFLASH read write mode'
+	help
+	  SFLASH read write mode.
+config SFLASH_1X_R_1X_W_MODE
+	bool 'USE 1X mode read and 1X mode write'
+	depends on MTD_SFLASH_GOKE
+	help
+	  Enable USE 1X mode read write.
+
+config SFLASH_4X_R_1X_W_MODE
+	bool 'USE 4X mode read and 1X mode write'
+	depends on MTD_SFLASH_GOKE
+	help
+	  Enable USE 4X mode read and 1X mode write.
+
+config SFLASH_4X_R_4X_W_MODE
+	bool 'USE 4X mode read and 4X mode write'
+	depends on MTD_SFLASH_GOKE
+	help
+	  Enable USE 4X mode read and 4X mode write.
+endchoice	  
+endif # if INET
+
 config M25PXX_USE_FAST_READ
 	bool "Use FAST_READ OPCode allowing SPI CLK <= 50MHz"
 	depends on MTD_M25P80

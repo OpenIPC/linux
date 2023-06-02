@@ -1,0 +1,43 @@
+#
+# linux/drivers/mtd/spinand/Kconfig
+#
+
+menuconfig MTD_SPINAND
+	tristate "SPINAND Device Support"
+	depends on MTD
+	help
+	  This enables support for accessing SPI NAND flash device.
+
+if MTD_SPINAND
+
+config MTD_SPINAND_GOKE
+	tristate "SPINAND on goke ipc support"
+	depends on GK_SFLASH
+	help
+		Support for a SPINAND flash device connected to GK7101 EVB.
+
+if MTD_SPINAND_GOKE
+          
+config MTD_SPINAND_INTERECC
+	bool "Use internal ECC"
+	help
+	  Internal ECC
+
+config SELF_START_BLOCK
+	bool "Save BBT to the special block"
+	help
+		save BBT to the special block by user
+		
+config DEBUG_W
+	bool "Open debug mode to write"
+	help
+	  Debug to write spinand
+
+config DEBUG_R
+	bool "Open debug mode to read"
+	help
+	  Debug to read spinand
+	  
+endif
+
+endif

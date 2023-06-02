@@ -33,6 +33,7 @@ source "drivers/net/ethernet/chelsio/Kconfig"
 source "drivers/net/ethernet/cirrus/Kconfig"
 source "drivers/net/ethernet/cisco/Kconfig"
 source "drivers/net/ethernet/davicom/Kconfig"
+source "drivers/net/ethernet/goke/Kconfig"
 
 config DNET
 	tristate "Dave ethernet support (DNET)"

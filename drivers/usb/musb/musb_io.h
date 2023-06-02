@@ -36,6 +36,10 @@
 #define __MUSB_LINUX_PLATFORM_ARCH_H__
 
 #include <linux/io.h>
+#include <mach/hardware.h>
+#include <mach/io.h>
+#include CONFIG_GK_CHIP_INCLUDE_FILE
+
 
 #if !defined(CONFIG_ARM) && !defined(CONFIG_SUPERH) \
 	&& !defined(CONFIG_AVR32) && !defined(CONFIG_PPC32) \
@@ -60,19 +64,18 @@ static inline void writesb(const void __iomem *addr, const void *buf, int len)
 #ifndef CONFIG_BLACKFIN
 
 /* NOTE:  these offsets are all in bytes */
+static inline u16 musb_readw(const void __iomem *addr, unsigned int offset)
+	{ return gk_musb_readw((unsigned int)addr, offset); }
 
-static inline u16 musb_readw(const void __iomem *addr, unsigned offset)
-	{ return __raw_readw(addr + offset); }
-
-static inline u32 musb_readl(const void __iomem *addr, unsigned offset)
-	{ return __raw_readl(addr + offset); }
+static inline u32 musb_readl(const void __iomem *addr, unsigned int offset)
+	{ return gk_musb_readl((unsigned int)addr, offset); }
 
 
-static inline void musb_writew(void __iomem *addr, unsigned offset, u16 data)
-	{ __raw_writew(data, addr + offset); }
+static inline void musb_writew(void __iomem *addr, unsigned int offset, u16 data)
+	{ gk_musb_writew((unsigned int)addr, offset, data); }
 
-static inline void musb_writel(void __iomem *addr, unsigned offset, u32 data)
-	{ __raw_writel(data, addr + offset); }
+static inline void musb_writel(void __iomem *addr, unsigned int offset, u32 data)
+	{ gk_musb_writel((unsigned int)addr, offset, data); }
 
 
 #if defined(CONFIG_USB_MUSB_TUSB6010) || defined (CONFIG_USB_MUSB_TUSB6010_MODULE)
@@ -80,7 +83,7 @@ static inline void musb_writel(void __iomem *addr, unsigned offset, u32 data)
 /*
  * TUSB6010 doesn't allow 8-bit access; 16-bit access is the minimum.
  */
-static inline u8 musb_readb(const void __iomem *addr, unsigned offset)
+static inline u8 musb_readb(const void __iomem *addr, unsigned int offset)
 {
 	u16 tmp;
 	u8 val;
@@ -94,7 +97,7 @@ static inline u8 musb_readb(const void __iomem *addr, unsigned offset)
 	return val;
 }
 
-static inline void musb_writeb(void __iomem *addr, unsigned offset, u8 data)
+static inline void musb_writeb(void __iomem *addr, unsigned int offset, u8 data)
 {
 	u16 tmp;
 
@@ -110,10 +113,11 @@ static inline void musb_writeb(void __iomem *addr, unsigned offset, u8 data)
 #else
 
 static inline u8 musb_readb(const void __iomem *addr, unsigned offset)
-	{ return __raw_readb(addr + offset); }
+	{ return gk_musb_readb((unsigned int)addr, offset); }
 
 static inline void musb_writeb(void __iomem *addr, unsigned offset, u8 data)
-	{ __raw_writeb(data, addr + offset); }
+	{ gk_musb_writeb((unsigned int)addr, offset, data); }
+
 
 #endif	/* CONFIG_USB_MUSB_TUSB6010 */
 

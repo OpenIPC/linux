@@ -747,7 +747,11 @@ config CPU_DCACHE_SIZE
 	hex
 	depends on CPU_ARM740T || CPU_ARM946E
 	default 0x00001000 if CPU_ARM740T
-	default 0x00002000 # default size for ARM946E-S
+	default 0x00002000 if !(PLAT_GOKE) # default size for ARM946E-S
+	default 0x00004000 if ARCH_GK710X
+	default 0x00004000 if ARCH_GK710X_FPGA
+	default 0x00004000 if ARCH_GK710XS
+	default 0x00004000 if ARCH_GK710XS_FPGA
 	help
 	  Some cores are synthesizable to have various sized cache. For
 	  ARM946E-S case, it can vary from 0KB to 1MB.
@@ -890,7 +894,11 @@ config ARM_L1_CACHE_SHIFT_6
 config ARM_L1_CACHE_SHIFT
 	int
 	default 6 if ARM_L1_CACHE_SHIFT_6
-	default 5
+	default 5 if !(PLAT_GOKE)
+	default 4 if ARCH_GK710X
+	default 4 if ARCH_GK710X_FPGA
+	default 4 if ARCH_GK710XS
+	default 4 if ARCH_GK710XS_FPGA
 
 config ARM_DMA_MEM_BUFFERABLE
 	bool "Use non-cacheable memory for DMA" if (CPU_V6 || CPU_V6K) && !CPU_V7
