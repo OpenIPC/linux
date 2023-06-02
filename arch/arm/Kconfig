@@ -879,7 +879,22 @@ config ARCH_VT8500
 	select HAVE_PWM
 	help
 	  Support for VIA/WonderMedia VT8500/WM85xx System-on-Chip.
+
+config ARCH_XM510
+	bool "XM 510"
+	select ARM_AMBA
+	select CLKDEV_LOOKUP
+	select HAVE_CLK
+	select ARM_VIC
+	select HAVE_SCHED_CLOCK
+	select GENERIC_TIME
+	select GENERIC_CLOCKEVENTS
+	select ARCH_HAS_CPUFREQ
+	help 
+		This enables support for XM xm510 platform.
+
 endchoice
+
 
 #
 # This is sorted alphabetically by mach-* pathname.  However, plat-*
@@ -903,6 +918,9 @@ source "arch/arm/mach-ep93xx/Kconfig"
 source "arch/arm/mach-footbridge/Kconfig"
 
 source "arch/arm/mach-gemini/Kconfig"
+if ARCH_XM510
+source "arch/arm/mach-xm510/Kconfig"
+endif
 
 source "arch/arm/mach-h720x/Kconfig"
 

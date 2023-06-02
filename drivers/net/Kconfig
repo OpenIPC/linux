@@ -2540,7 +2540,7 @@ config S6GMAC
 	  To compile this driver as a module, choose M here. The module
 	  will be called s6gmac.
 
-source "drivers/net/stmmac/Kconfig"
+source "drivers/net/xmmac/Kconfig"
 
 config PCH_GBE
 	tristate "Intel EG20T PCH/OKI SEMICONDUCTOR IOH(ML7223/ML7831) GbE"

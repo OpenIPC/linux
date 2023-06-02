@@ -931,6 +931,14 @@ int ieee80211_register_hw(struct ieee80211_hw *hw)
 				   "Failed to add default virtual iface\n");
 	}
 
+	if (local->hw.wiphy->interface_modes & BIT(NL80211_IFTYPE_STATION)) {
+		result = ieee80211_if_add(local, "eth2", NULL,
+					  NL80211_IFTYPE_STATION, NULL);
+		if (result)
+			wiphy_warn(local->hw.wiphy,
+				   "Failed to add default virtual iface\n");
+	}
+
 	rtnl_unlock();
 
 	local->network_latency_notifier.notifier_call =

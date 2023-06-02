@@ -30,7 +30,6 @@
 
 /* platform data for platform device structure's platform_data field */
 
-/* Private data for the STM on-board ethernet driver */
 struct plat_stmmacenet_data {
 	int bus_id;
 	int pbl;

@@ -13,7 +13,7 @@
 #include <linux/amba/serial.h>
 
 		.macro	senduart,rd,rx
-		strb	\rd, [\rx, #UART01x_DR]
+		str	\rd, [\rx, #UART01x_DR]
 		.endm
 
 		.macro	waituart,rd,rx

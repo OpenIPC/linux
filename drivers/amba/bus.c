@@ -632,7 +632,6 @@ int amba_device_register(struct amba_device *dev, struct resource *parent)
 		for (cid = 0, i = 0; i < 4; i++)
 			cid |= (readl(tmp + size - 0x10 + 4 * i) & 255) <<
 				(i * 8);
-
 		amba_put_disable_pclk(dev);
 
 		if (cid == AMBA_CID)

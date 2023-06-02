@@ -115,6 +115,10 @@ struct outer_cache_fns outer_cache __read_mostly;
 EXPORT_SYMBOL(outer_cache);
 #endif
 
+
+struct tag_xminfo xminfo;   
+EXPORT_SYMBOL(xminfo);
+
 struct stack {
 	u32 irq[3];
 	u32 abt[3];
@@ -676,6 +680,23 @@ static int __init parse_tag_cmdline(const struct tag *tag)
 }
 
 __tagtable(ATAG_CMDLINE, parse_tag_cmdline);
+
+
+static int __init parse_tag_xminfo(const struct tag *tag)
+{
+	memset(&xminfo, 0, sizeof(xminfo));
+	xminfo.xmauto = tag->u.xminfo.xmauto;
+	xminfo.xmuart = tag->u.xminfo.xmuart;
+	strcpy(xminfo.ethaddr, tag->u.xminfo.ethaddr);
+	strcpy(xminfo.p_id, tag->u.xminfo.p_id);
+	strcpy(xminfo.hwid, tag->u.xminfo.hwid);
+
+
+	return 0;
+}
+__tagtable(ATAG_XMINFO, parse_tag_xminfo);
+
+
 
 /*
  * Scan the tag table for this tag, and call its parse function.

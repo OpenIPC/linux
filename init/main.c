@@ -454,6 +454,39 @@ static void __init mm_init(void)
 	vmalloc_init();
 }
 
+
+
+static int xminfo_read_proc(char *buf, char **start, off_t offset, int count, int *eof, void *data)
+{
+	extern struct tag_xminfo xminfo;
+	int len = 0;
+
+	len += sprintf(buf + len,  "######XMINFO######\n");
+	len += sprintf(buf + len,  "DATE:%s\n",__DATE__);
+	len += sprintf(buf + len, "HWID:%s\n",  xminfo.hwid);
+	len += sprintf(buf + len, "ethaddr:%s\n", xminfo.ethaddr);
+	len += sprintf(buf + len, "xmauto:%d\n",  xminfo.xmauto);
+	len += sprintf(buf + len, "xmuart:%d\n",  xminfo.xmuart);
+	len += sprintf(buf + len, "ID:%s\n",  xminfo.p_id);
+	len += sprintf(buf + len,  "##################\n");
+	return len;
+}
+
+static int __init  proc_xminfo_create(void)
+{
+	struct proc_dir_entry *pxm_proc = NULL;
+	struct proc_dir_entry *pfile = NULL;
+	pxm_proc = create_proc_entry("xm",  S_IFDIR|S_IRUGO|S_IXUGO, NULL);
+	pfile = create_proc_read_entry("xminfo", 0,pxm_proc,xminfo_read_proc, NULL);
+	if (NULL == pfile){
+		printk("create xminfo proc failed\n");
+		return -1;
+	}
+	return 0;
+}
+
+
+
 asmlinkage void __init start_kernel(void)
 {
 	char * command_line;
@@ -610,6 +643,7 @@ asmlinkage void __init start_kernel(void)
 	page_writeback_init();
 #ifdef CONFIG_PROC_FS
 	proc_root_init();
+	proc_xminfo_create();
 #endif
 	cgroup_init();
 	cpuset_init();

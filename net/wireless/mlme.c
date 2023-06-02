@@ -115,7 +115,7 @@ void cfg80211_send_rx_assoc(struct net_device *dev, const u8 *buf, size_t len)
 		goto out;
 	}
 
-	if (!wdev->conn && wdev->sme_state == CFG80211_SME_IDLE) {
+	if (!wdev->conn && wdev->sme_state != CFG80211_SME_CONNECTING) {
 		/*
 		 * This is for the userspace SME, the CONNECTING
 		 * state will be changed to CONNECTED by

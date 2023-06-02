@@ -123,7 +123,7 @@ static inline void free_desc_list(struct list_head *list)
 {
 	struct dma_pl330_dmac *pdmac;
 	struct dma_pl330_desc *desc;
-	struct dma_pl330_chan *pch;
+	struct dma_pl330_chan *pch = NULL;
 	unsigned long flags;
 
 	if (list_empty(list))
@@ -253,25 +253,50 @@ static int pl330_alloc_chan_resources(struct dma_chan *chan)
 static int pl330_control(struct dma_chan *chan, enum dma_ctrl_cmd cmd, unsigned long arg)
 {
 	struct dma_pl330_chan *pch = to_pchan(chan);
+	struct dma_pl330_peri *peri = pch->chan.private;
 	struct dma_pl330_desc *desc;
+	struct dma_slave_config *slave_config;
 	unsigned long flags;
 
-	/* Only supports DMA_TERMINATE_ALL */
-	if (cmd != DMA_TERMINATE_ALL)
+
+	switch (cmd) {
+	case DMA_TERMINATE_ALL:
+		spin_lock_irqsave(&pch->lock, flags);
+
+		/* FLUSH the PL330 Channel thread */
+		pl330_chan_ctrl(pch->pl330_chid, PL330_OP_FLUSH);
+
+		/* Mark all desc done */
+		list_for_each_entry(desc, &pch->work_list, node)
+			desc->status = DONE;
+
+		spin_unlock_irqrestore(&pch->lock, flags);
+
+		pl330_tasklet((unsigned long) pch);
+		break;
+	case DMA_SLAVE_CONFIG:
+		slave_config = (struct dma_slave_config *)arg;
+
+		if (slave_config->direction == DMA_TO_DEVICE) {
+			if (slave_config->dst_addr)
+				peri->fifo_addr = slave_config->dst_addr;
+			if (slave_config->dst_addr_width)
+				peri->burst_sz = __ffs(slave_config->dst_addr_width);
+			//if (slave_config->dst_maxburst)
+				//pch->chan.mcbuf_sz = slave_config->dst_maxburst;
+		} else if (slave_config->direction == DMA_FROM_DEVICE) {
+			if (slave_config->src_addr)
+				peri->fifo_addr = slave_config->src_addr;
+			if (slave_config->src_addr_width)
+				peri->burst_sz = __ffs(slave_config->src_addr_width);
+			//if (slave_config->src_maxburst)
+				//pch->chan.mcbuf_sz = slave_config->src_maxburst;
+		}
+		break;
+	default:
+		dev_err(pch->dmac->pif.dev, "Not supported command.\n");
 		return -ENXIO;
-
-	spin_lock_irqsave(&pch->lock, flags);
-
-	/* FLUSH the PL330 Channel thread */
-	pl330_chan_ctrl(pch->pl330_chid, PL330_OP_FLUSH);
-
-	/* Mark all desc done */
-	list_for_each_entry(desc, &pch->work_list, node)
-		desc->status = DONE;
-
-	spin_unlock_irqrestore(&pch->lock, flags);
-
-	pl330_tasklet((unsigned long) pch);
+	}
 
 	return 0;
 }
@@ -587,6 +612,7 @@ pl330_prep_slave_sg(struct dma_chan *chan, struct scatterlist *sgl,
 				peri->rqtype != DEVTOMEM)) {
 		dev_err(pch->dmac->pif.dev, "%s:%d Invalid Direction\n",
 				__func__, __LINE__);
+		printk("chan=%d,id =%d", (unsigned int)chan, peri->peri_id);
 		return NULL;
 	}
 
@@ -847,6 +873,22 @@ static struct amba_driver pl330_driver = {
 	.probe = pl330_probe,
 	.remove = pl330_remove,
 };
+
+
+
+bool pl330_filter(struct dma_chan *chan, void *param)
+{
+	u8 *peri_id;
+	struct dma_pl330_chan *pch = to_pchan(chan);
+	struct dma_pl330_peri *peri = pch->chan.private;
+
+	if (chan->device->dev->driver != &pl330_driver.drv)
+		return false;
+
+	peri_id = &(peri->peri_id);
+	return *peri_id == (unsigned)param;
+}
+EXPORT_SYMBOL(pl330_filter);
 
 static int __init pl330_init(void)
 {
