@@ -80,6 +80,10 @@
 #include <linux/netlink.h>
 #include <linux/tcp.h>
 
+#ifdef CONFIG_WLAN_UPDATE_SEQ
+extern int iphdr_updatebywlan(struct sock *sk, struct iphdr *iph);
+#endif
+
 int sysctl_ip_default_ttl __read_mostly = IPDEFTTL;
 EXPORT_SYMBOL(sysctl_ip_default_ttl);
 
@@ -395,6 +399,9 @@ packet_routed:
 	}
 
 	ip_select_ident_segs(skb, sk, skb_shinfo(skb)->gso_segs ?: 1);
+#ifdef CONFIG_WLAN_UPDATE_SEQ
+	iphdr_updatebywlan(sk, iph);
+#endif
 
 	skb->priority = sk->sk_priority;
 	skb->mark = sk->sk_mark;

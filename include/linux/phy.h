@@ -337,6 +337,7 @@ struct phy_device {
 	 * -1 means no interrupt
 	 */
 	int irq;
+	int irq_flags;
 
 	/* private data pointer */
 	/* For use by PHYs to maintain extra state */

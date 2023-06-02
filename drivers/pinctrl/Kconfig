@@ -221,6 +221,12 @@ config PINCTRL_S3C64XX
 	depends on ARCH_S3C64XX
 	select PINCTRL_SAMSUNG
 
+config PINCTRL_AMB
+	bool
+	depends on PLAT_AMBARELLA
+	select PINMUX
+	select PINCONF
+
 source "drivers/pinctrl/mvebu/Kconfig"
 source "drivers/pinctrl/sh-pfc/Kconfig"
 source "drivers/pinctrl/spear/Kconfig"

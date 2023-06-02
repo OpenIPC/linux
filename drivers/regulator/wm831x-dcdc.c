@@ -365,6 +365,16 @@ static int wm831x_buckv_get_current_limit(struct regulator_dev *rdev)
 	return wm831x_dcdc_ilim[val];
 }
 
+static int wm831x_buckv_set_suspend_enable(struct regulator_dev *rdev)
+{
+		return 0;
+}
+
+static int wm831x_buckv_set_suspend_disable(struct regulator_dev *rdev)
+{
+		return 0;
+}
+
 static struct regulator_ops wm831x_buckv_ops = {
 	.set_voltage_sel = wm831x_buckv_set_voltage_sel,
 	.get_voltage_sel = wm831x_buckv_get_voltage_sel,
@@ -381,6 +391,8 @@ static struct regulator_ops wm831x_buckv_ops = {
 	.get_mode = wm831x_dcdc_get_mode,
 	.set_mode = wm831x_dcdc_set_mode,
 	.set_suspend_mode = wm831x_dcdc_set_suspend_mode,
+	.set_suspend_enable = wm831x_buckv_set_suspend_enable,
+	.set_suspend_disable = wm831x_buckv_set_suspend_disable,
 };
 
 /*
@@ -607,6 +619,16 @@ static int wm831x_buckp_set_suspend_voltage(struct regulator_dev *rdev, int uV)
 	return wm831x_set_bits(wm831x, reg, WM831X_DC3_ON_VSEL_MASK, sel);
 }
 
+static int wm831x_buckp_set_suspend_enable(struct regulator_dev *rdev)
+{
+		return 0;
+}
+
+static int wm831x_buckp_set_suspend_disable(struct regulator_dev *rdev)
+{
+		return 0;
+}
+
 static struct regulator_ops wm831x_buckp_ops = {
 	.set_voltage_sel = regulator_set_voltage_sel_regmap,
 	.get_voltage_sel = regulator_get_voltage_sel_regmap,
@@ -621,6 +643,8 @@ static struct regulator_ops wm831x_buckp_ops = {
 	.get_mode = wm831x_dcdc_get_mode,
 	.set_mode = wm831x_dcdc_set_mode,
 	.set_suspend_mode = wm831x_dcdc_set_suspend_mode,
+	.set_suspend_enable = wm831x_buckp_set_suspend_enable,
+	.set_suspend_disable = wm831x_buckp_set_suspend_disable,
 };
 
 static int wm831x_buckp_probe(struct platform_device *pdev)

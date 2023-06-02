@@ -40,16 +40,19 @@ struct wm831x_on {
  */
 static void wm831x_poll_on(struct work_struct *work)
 {
-	struct wm831x_on *wm831x_on = container_of(work, struct wm831x_on,
-						   work.work);
-	struct wm831x *wm831x = wm831x_on->wm831x;
-	int poll, ret;
+	int					ret;
+	struct wm831x_on			*wm831x_on;
+	struct wm831x				*wm831x;
+	int					key;
+	int					poll = 0;
+
+	wm831x_on = container_of(work, struct wm831x_on, work.work);
+	wm831x = wm831x_on->wm831x;
 
 	ret = wm831x_reg_read(wm831x, WM831X_ON_PIN_CONTROL);
 	if (ret >= 0) {
-		poll = !(ret & WM831X_ON_PIN_STS);
-
-		input_report_key(wm831x_on->dev, KEY_POWER, poll);
+		key = !(ret & WM831X_ON_PIN_STS);
+		input_report_key(wm831x_on->dev, KEY_POWER, key);
 		input_sync(wm831x_on->dev);
 	} else {
 		dev_err(wm831x->dev, "Failed to read ON status: %d\n", ret);
@@ -57,7 +60,7 @@ static void wm831x_poll_on(struct work_struct *work)
 	}
 
 	if (poll)
-		schedule_delayed_work(&wm831x_on->work, 100);
+		schedule_delayed_work(&wm831x_on->work, HZ / 10);
 }
 
 static irqreturn_t wm831x_on_irq(int irq, void *data)
@@ -100,8 +103,8 @@ static int wm831x_on_probe(struct platform_device *pdev)
 	wm831x_on->dev->dev.parent = &pdev->dev;
 
 	ret = request_threaded_irq(irq, NULL, wm831x_on_irq,
-				   IRQF_TRIGGER_RISING, "wm831x_on",
-				   wm831x_on);
+		IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
+		"wm831x_on", wm831x_on);
 	if (ret < 0) {
 		dev_err(&pdev->dev, "Unable to request IRQ: %d\n", ret);
 		goto err_input_dev;
@@ -125,8 +128,11 @@ err:
 
 static int wm831x_on_remove(struct platform_device *pdev)
 {
-	struct wm831x_on *wm831x_on = platform_get_drvdata(pdev);
-	int irq = platform_get_irq(pdev, 0);
+	struct wm831x_on			*wm831x_on;
+	int					irq;
+
+	wm831x_on = platform_get_drvdata(pdev);
+	irq = platform_get_irq(pdev, 0);
 
 	free_irq(irq, wm831x_on);
 	cancel_delayed_work_sync(&wm831x_on->work);
@@ -134,9 +140,53 @@ static int wm831x_on_remove(struct platform_device *pdev)
 	return 0;
 }
 
+#ifdef CONFIG_PM
+static int wm831x_on_suspend(struct platform_device *pdev, pm_message_t state)
+{
+	struct wm831x_on			*wm831x_on;
+	int					irq;
+
+	wm831x_on = platform_get_drvdata(pdev);
+	irq = platform_get_irq(pdev, 0);
+
+	disable_irq(irq);
+	cancel_delayed_work_sync(&wm831x_on->work);
+
+	return 0;
+}
+
+static int wm831x_on_resume(struct platform_device *pdev)
+{
+	struct wm831x_on			*wm831x_on;
+	struct wm831x				*wm831x;
+	int					irq;
+	int					ret;
+
+	wm831x_on = platform_get_drvdata(pdev);
+	irq = platform_get_irq(pdev, 0);
+
+	wm831x = wm831x_on->wm831x;
+
+	//TBD: Check resumed form self-referesh.
+	ret = wm831x_reg_read(wm831x, WM831X_ON_SOURCE);
+	if (ret & WM831X_ON_SOURCE_ON_PIN) {
+		input_report_key(wm831x_on->dev, KEY_POWER, 1);
+		input_report_key(wm831x_on->dev, KEY_POWER, 0);
+		input_sync(wm831x_on->dev);
+	}
+	enable_irq(irq);
+
+	return 0;
+}
+#endif /* CONFIG_PM */
+
 static struct platform_driver wm831x_on_driver = {
 	.probe		= wm831x_on_probe,
 	.remove		= wm831x_on_remove,
+#ifdef CONFIG_PM
+	.suspend	= wm831x_on_suspend,
+	.resume		= wm831x_on_resume,
+#endif
 	.driver		= {
 		.name	= "wm831x-on",
 		.owner	= THIS_MODULE,

@@ -1,0 +1,24 @@
+menu "RPMSG Host Programs"
+depends on RPROC_SUPPORT
+source "drivers/rpmsg/ambarella/host/ambxc/Kconfig"
+source "drivers/rpmsg/ambarella/host/aservice/Kconfig"
+source "drivers/rpmsg/ambarella/host/echo/Kconfig"
+source "drivers/rpmsg/ambarella/host/rsh/Kconfig"
+source "drivers/rpmsg/ambarella/host/veth/Kconfig"
+source "drivers/rpmsg/ambarella/host/wnfs/Kconfig"
+source "drivers/rpmsg/ambarella/host/rnfs/Kconfig"
+source "drivers/rpmsg/ambarella/host/vgpio/Kconfig"
+
+endmenu
+
+menu "RPMSG Client Programs"
+depends on RPCLNT_SUPPORT
+
+source "drivers/rpmsg/ambarella/clnt/rsh/Kconfig"
+source "drivers/rpmsg/ambarella/clnt/echo/Kconfig"
+source "drivers/rpmsg/ambarella/clnt/veth/Kconfig"
+
+endmenu
+
+source "drivers/rpmsg/ambarella/common/rsh/Kconfig"
+source "drivers/rpmsg/ambarella/common/veth/Kconfig"

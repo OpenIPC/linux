@@ -33,6 +33,8 @@
 #include <linux/wait.h>
 #include <linux/rpmsg.h>
 #include <linux/mutex.h>
+#include <linux/remoteproc.h>
+#include <plat/remoteproc.h>
 
 /**
  * struct virtproc_info - virtual remote processor state
@@ -62,7 +64,11 @@ struct virtproc_info {
 	void *rbufs, *sbufs;
 	int last_sbuf;
 	dma_addr_t bufs_dma;
+#if defined(CONFIG_RPMSG_TX_SPINLOCK)
+	spinlock_t tx_lock;
+#else
 	struct mutex tx_lock;
+#endif
 	struct idr endpoints;
 	struct mutex endpoints_lock;
 	wait_queue_head_t sendq;
@@ -82,6 +88,13 @@ struct rpmsg_channel_info {
 	u32 dst;
 };
 
+#if defined(CONFIG_RPMSG_TX_SPINLOCK)
+#define rpmsg_tx_lock(x)	spin_lock_irq(x)
+#define rpmsg_tx_unlock(x)	spin_unlock_irq(x)
+#else
+#define rpmsg_tx_lock(x)	mutex_lock(x)
+#define rpmsg_tx_unlock(x)	mutex_unlock(x)
+#endif
 #define to_rpmsg_channel(d) container_of(d, struct rpmsg_channel, dev)
 #define to_rpmsg_driver(d) container_of(d, struct rpmsg_driver, drv)
 
@@ -102,8 +115,14 @@ struct rpmsg_channel_info {
  * can change this without changing anything in the firmware of the remote
  * processor.
  */
-#define RPMSG_NUM_BUFS		(512)
-#define RPMSG_BUF_SIZE		(512)
+
+/*
+ * Keep the following sync'ed to the copy which shared between processors
+ *     arch/arm/plat-ambarella/include/plat/remoteproc_cfg.h
+ */
+#define RPMSG_NUM_BUFS		(CONFIG_RPMSG_NUM_BUFS)
+#define RPMSG_BUF_SIZE		(CONFIG_RPMSG_BUF_SIZE)
+
 #define RPMSG_TOTAL_BUF_SPACE	(RPMSG_NUM_BUFS * RPMSG_BUF_SIZE)
 
 /*
@@ -573,7 +592,7 @@ static void *get_a_tx_buf(struct virtproc_info *vrp)
 	void *ret;
 
 	/* support multiple concurrent senders */
-	mutex_lock(&vrp->tx_lock);
+	rpmsg_tx_lock(&vrp->tx_lock);
 
 	/*
 	 * either pick the next unused tx buffer
@@ -585,7 +604,7 @@ static void *get_a_tx_buf(struct virtproc_info *vrp)
 	else
 		ret = virtqueue_get_buf(vrp->svq, &len);
 
-	mutex_unlock(&vrp->tx_lock);
+	rpmsg_tx_unlock(&vrp->tx_lock);
 
 	return ret;
 }
@@ -609,14 +628,14 @@ static void *get_a_tx_buf(struct virtproc_info *vrp)
 static void rpmsg_upref_sleepers(struct virtproc_info *vrp)
 {
 	/* support multiple concurrent senders */
-	mutex_lock(&vrp->tx_lock);
+	rpmsg_tx_lock(&vrp->tx_lock);
 
 	/* are we the first sleeping context waiting for tx buffers ? */
 	if (atomic_inc_return(&vrp->sleepers) == 1)
 		/* enable "tx-complete" interrupts before dozing off */
 		virtqueue_enable_cb(vrp->svq);
 
-	mutex_unlock(&vrp->tx_lock);
+	rpmsg_tx_unlock(&vrp->tx_lock);
 }
 
 /**
@@ -636,14 +655,14 @@ static void rpmsg_upref_sleepers(struct virtproc_info *vrp)
 static void rpmsg_downref_sleepers(struct virtproc_info *vrp)
 {
 	/* support multiple concurrent senders */
-	mutex_lock(&vrp->tx_lock);
+	rpmsg_tx_lock(&vrp->tx_lock);
 
 	/* are we the last sleeping context waiting for tx buffers ? */
 	if (atomic_dec_and_test(&vrp->sleepers))
 		/* disable "tx-complete" interrupts */
 		virtqueue_disable_cb(vrp->svq);
 
-	mutex_unlock(&vrp->tx_lock);
+	rpmsg_tx_unlock(&vrp->tx_lock);
 }
 
 /**
@@ -749,12 +768,14 @@ int rpmsg_send_offchannel_raw(struct rpmsg_channel *rpdev, u32 src, u32 dst,
 	dev_dbg(dev, "TX From 0x%x, To 0x%x, Len %d, Flags %d, Reserved %d\n",
 					msg->src, msg->dst, msg->len,
 					msg->flags, msg->reserved);
+#if 0
 	print_hex_dump(KERN_DEBUG, "rpmsg_virtio TX: ", DUMP_PREFIX_NONE, 16, 1,
 					msg, sizeof(*msg) + msg->len, true);
+#endif
 
 	sg_init_one(&sg, msg, sizeof(*msg) + len);
 
-	mutex_lock(&vrp->tx_lock);
+	rpmsg_tx_lock(&vrp->tx_lock);
 
 	/* add message to the remote processor's virtqueue */
 	err = virtqueue_add_outbuf(vrp->svq, &sg, 1, msg, GFP_KERNEL);
@@ -771,7 +792,7 @@ int rpmsg_send_offchannel_raw(struct rpmsg_channel *rpdev, u32 src, u32 dst,
 	/* tell the remote processor it has a pending message to read */
 	virtqueue_kick(vrp->svq);
 out:
-	mutex_unlock(&vrp->tx_lock);
+	rpmsg_tx_unlock(&vrp->tx_lock);
 	return err;
 }
 EXPORT_SYMBOL(rpmsg_send_offchannel_raw);
@@ -786,8 +807,10 @@ static int rpmsg_recv_single(struct virtproc_info *vrp, struct device *dev,
 	dev_dbg(dev, "From: 0x%x, To: 0x%x, Len: %d, Flags: %d, Reserved: %d\n",
 					msg->src, msg->dst, msg->len,
 					msg->flags, msg->reserved);
+#if 0
 	print_hex_dump(KERN_DEBUG, "rpmsg_virtio RX: ", DUMP_PREFIX_NONE, 16, 1,
 					msg, sizeof(*msg) + msg->len, true);
+#endif
 
 	/*
 	 * We currently use fixed-sized buffers, so trivially sanitize
@@ -942,6 +965,9 @@ static void rpmsg_ns_cb(struct rpmsg_channel *rpdev, void *data, int len,
 
 static int rpmsg_probe(struct virtio_device *vdev)
 {
+	struct rproc *rproc = vdev_to_rproc(vdev);
+	struct ambarella_rproc_pdata *pdata;
+
 	vq_callback_t *vq_cbs[] = { rpmsg_recv_done, rpmsg_xmit_done };
 	const char *names[] = { "input", "output" };
 	struct virtqueue *vqs[2];
@@ -957,7 +983,11 @@ static int rpmsg_probe(struct virtio_device *vdev)
 
 	idr_init(&vrp->endpoints);
 	mutex_init(&vrp->endpoints_lock);
+#if defined(CONFIG_RPMSG_TX_SPINLOCK)
+	spin_lock_init(&vrp->tx_lock);
+#else
 	mutex_init(&vrp->tx_lock);
+#endif
 	init_waitqueue_head(&vrp->sendq);
 
 	/* We expect two virtqueues, rx and tx (and in this order) */
@@ -968,10 +998,15 @@ static int rpmsg_probe(struct virtio_device *vdev)
 	vrp->rvq = vqs[0];
 	vrp->svq = vqs[1];
 
+#if 0
 	/* allocate coherent memory for the buffers */
 	bufs_va = dma_alloc_coherent(vdev->dev.parent->parent,
 				RPMSG_TOTAL_BUF_SPACE,
 				&vrp->bufs_dma, GFP_KERNEL);
+#else
+	pdata = rproc->priv;
+	bufs_va = (void *)ambarella_phys_to_virt((unsigned long)pdata->buf_addr_pa);
+#endif
 	if (!bufs_va) {
 		err = -ENOMEM;
 		goto vqs_del;

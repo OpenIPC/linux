@@ -435,6 +435,18 @@ config USB_GOKU
 	   dynamically linked module called "goku_udc" and to force all
 	   gadget drivers to also be dynamically linked.
 
+#config USB_GADGET_AMBARELLA
+config USB_AMBARELLA
+	tristate "Ambarella USB Device Controller"
+	depends on PLAT_AMBARELLA
+	help
+	   Many AMBARLLA processors (such as the A2/A5S/iONE/S2...) have a
+	   full/high speed USB Device Controller.
+
+	   Say "y" to link the driver statically, or "m" to build a
+	   dynamically linked module called "ambarella_udc" and force all
+	   gadget drivers to also be dynamically linked.
+
 config USB_EG20T
 	tristate "Intel EG20T PCH/LAPIS Semiconductor IOH(ML7213/ML7831) UDC"
 	depends on PCI && GENERIC_HARDIRQS
@@ -817,6 +829,20 @@ config USB_G_PRINTER
 
 	  For more information, see Documentation/usb/gadget_printer.txt
 	  which includes sample code for accessing the device file.
+
+config USB_AMB_STREAM
+	tristate "Gadget Ambarella Data Streaming"
+	depends on USB_AMBARELLA
+	select USB_LIBCOMPOSITE
+	help
+	  Gadget Ambarella Data Streaming is a single-configuration
+	  single-interface device.
+	  The driver needs two bulk-capable endpoints, and one interrupt-capable
+	  endpoint is optional. It may need special protocol that can be
+	  designed at top layer to transfer data with host.
+
+	  Say "y" to link the driver statically, or "m" to build a
+	  dynamically linked module called "g_amb_stream".
 
 if TTY
 

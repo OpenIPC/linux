@@ -49,6 +49,15 @@ config SPI_MASTER
 	  controller and the protocol drivers for the SPI slave chips
 	  that are connected.
 
+config SPI_SLAVE
+#       boolean "SPI Slave Support"
+        boolean
+        default SPI
+        help
+          If your system has an slave-capable SPI controller (which
+          takes the clock and chipselect), you can enable that
+          controller for the SPI master chips that are connected.
+
 if SPI_MASTER
 
 comment "SPI Master Controller Drivers"
@@ -59,6 +68,12 @@ config SPI_ALTERA
 	select SPI_BITBANG
 	help
 	  This is the driver for the Altera SPI Controller.
+
+config SPI_AMBARELLA
+        tristate "Ambarella SPI Controller"
+        depends on PLAT_AMBARELLA
+        help
+          This selects a driver for the Ambarella SPI Controller.
 
 config SPI_ATH79
 	tristate "Atheros AR71XX/AR724X/AR913X SPI controller driver"
@@ -538,5 +553,17 @@ config SPI_TLE62X0
 endif # SPI_MASTER
 
 # (slave support would go here)
+
+if SPI_SLAVE
+
+comment "SPI Slave Controller Drivers"
+
+config SPI_SLAVE_AMBARELLA
+        tristate "Ambarella SPI Slave Controller"
+        depends on PLAT_AMBARELLA
+        help
+	  This selects a driver for the Ambarella SPI Slave Controller.
+
+endif # SPI_SLAVE
 
 endif # SPI

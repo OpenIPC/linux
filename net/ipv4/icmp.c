@@ -211,17 +211,22 @@ static struct sock *icmp_sk(struct net *net)
 static inline struct sock *icmp_xmit_lock(struct net *net)
 {
 	struct sock *sk;
+	int counter = 0;
 
 	local_bh_disable();
 
 	sk = icmp_sk(net);
 
-	if (unlikely(!spin_trylock(&sk->sk_lock.slock))) {
+	while (unlikely(!spin_trylock(&sk->sk_lock.slock))) {
 		/* This can happen if the output path signals a
 		 * dst_link_failure() for an outgoing ICMP packet.
 		 */
-		local_bh_enable();
-		return NULL;
+		if (counter > 3) {
+			local_bh_enable();
+			pr_debug("%s = %d\n", __func__, counter);
+			return NULL;
+		}
+		counter++;
 	}
 	return sk;
 }

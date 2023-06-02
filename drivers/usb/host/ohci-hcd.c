@@ -1151,6 +1151,11 @@ MODULE_LICENSE ("GPL");
 #define DAVINCI_PLATFORM_DRIVER	ohci_hcd_da8xx_driver
 #endif
 
+#ifdef CONFIG_USB_OHCI_AMBARELLA
+#include "ohci-ambarella.c"
+#define AMBARELLA_PLATFORM_DRIVER		ohci_hcd_ambarella_driver
+#endif
+
 #ifdef CONFIG_USB_OHCI_HCD_PPC_OF
 #include "ohci-ppc-of.c"
 #define OF_PLATFORM_DRIVER	ohci_hcd_ppc_of_driver
@@ -1211,6 +1216,7 @@ MODULE_LICENSE ("GPL");
 	!defined(AT91_PLATFORM_DRIVER) && \
 	!defined(NXP_PLATFORM_DRIVER) && \
 	!defined(DAVINCI_PLATFORM_DRIVER) && \
+	!defined(AMBARELLA_PLATFORM_DRIVER) && \
 	!defined(SPEAR_PLATFORM_DRIVER)
 #error "missing bus glue for ohci-hcd"
 #endif
@@ -1245,6 +1251,12 @@ static int __init ohci_hcd_mod_init(void)
 	retval = platform_driver_register(&PLATFORM_DRIVER);
 	if (retval < 0)
 		goto error_platform;
+#endif
+
+#ifdef AMBARELLA_PLATFORM_DRIVER
+	retval = platform_driver_register(&AMBARELLA_PLATFORM_DRIVER);
+	if (retval < 0)
+		goto error_ambarella_platform;
 #endif
 
 #ifdef OMAP1_PLATFORM_DRIVER
@@ -1394,6 +1406,10 @@ static int __init ohci_hcd_mod_init(void)
 	platform_driver_unregister(&PLATFORM_DRIVER);
  error_platform:
 #endif
+#ifdef AMBARELLA_PLATFORM_DRIVER
+	platform_driver_unregister(&AMBARELLA_PLATFORM_DRIVER);
+ error_ambarella_platform:
+#endif
 #ifdef PS3_SYSTEM_BUS_DRIVER
 	ps3_ohci_driver_unregister(&PS3_SYSTEM_BUS_DRIVER);
  error_ps3:
@@ -1455,6 +1471,9 @@ static void __exit ohci_hcd_mod_exit(void)
 #endif
 #ifdef PLATFORM_DRIVER
 	platform_driver_unregister(&PLATFORM_DRIVER);
+#endif
+#ifdef AMBARELLA_PLATFORM_DRIVER
+	platform_driver_unregister(&AMBARELLA_PLATFORM_DRIVER);
 #endif
 #ifdef PS3_SYSTEM_BUS_DRIVER
 	ps3_ohci_driver_unregister(&PS3_SYSTEM_BUS_DRIVER);

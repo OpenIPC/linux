@@ -47,13 +47,13 @@ struct wm8737_priv {
 };
 
 static const struct reg_default wm8737_reg_defaults[] = {
-	{  0, 0x00C3 },     /* R0  - Left PGA volume */
-	{  1, 0x00C3 },     /* R1  - Right PGA volume */
-	{  2, 0x0007 },     /* R2  - AUDIO path L */
-	{  3, 0x0007 },     /* R3  - AUDIO path R */
+	{  0, 0x01C3 },     /* R0  - Left PGA volume, 0db default */
+	{  1, 0x01C3 },     /* R1  - Right PGA volume, 0db default */
+	{  2, 0x0010 },     /* R2  - AUDIO path L, apply gain immediately. */
+	{  3, 0x0010 },     /* R3  - AUDIO path R, apply gain immediately. */
 	{  4, 0x0000 },     /* R4  - 3D Enhance */
 	{  5, 0x0000 },     /* R5  - ADC Control */
-	{  6, 0x0000 },     /* R6  - Power Management */
+	{  6, 0x01FF },     /* R6  - Power Management, turn on all modules */
 	{  7, 0x000A },     /* R7  - Audio Format */
 	{  8, 0x0000 },     /* R8  - Clocking */
 	{  9, 0x000F },     /* R9  - MIC Preamp Control */

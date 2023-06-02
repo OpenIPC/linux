@@ -150,3 +150,12 @@ config ARM_SPEAR_CPUFREQ
 	default y
 	help
 	  This adds the CPUFreq driver support for SPEAr SOCs.
+
+config ARM_AMBARALLA_CPUFREQ
+	bool "Ambarella CPUFreq Driver"
+	depends on ARCH_AMBARELLA
+	default y
+	help
+	  This adds the CPUFreq driver for Ambarella SoC.
+	  If in doubt, say N.
+

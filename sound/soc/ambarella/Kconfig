@@ -1,0 +1,109 @@
+config SND_AMBARELLA_SOC
+	tristate "SoC Audio for the Ambarella chips"
+	depends on PLAT_AMBARELLA && SND_SOC
+	select SND_SOC_GENERIC_DMAENGINE_PCM
+	help
+	  Say Y or M if you want to add support for codecs attached to
+	  the AMBARELLA I2S interface. You will also need
+	  to select the audio interfaces to support below.
+
+config SND_AMBARELLA_SOC_I2S
+	tristate
+
+menuconfig SND_AMBARELLA_BOARD
+	tristate "Ambarella Board Type"
+	depends on SND_AMBARELLA_SOC
+	help
+	  Say Y or M to select specific ambarella board.
+
+if SND_AMBARELLA_BOARD
+
+config AMBA_BOARD
+	tristate "Ambarella General Board"
+	depends on SND_AMBARELLA_SOC
+	select SND_AMBARELLA_SOC_I2S
+	select SND_SOC_AMBARELLA_DUMMY
+	help
+	  Say Y if you want to use ALSA driver on Ambarella General Board.
+
+endif
+
+menuconfig SND_AMBARELLA_CODEC
+	tristate "Select Codec for Ambarella Platform"
+	depends on SND_AMBARELLA_SOC
+	help
+	  Say Y or M to select specific Codec for Ambarella Platform.
+
+if SND_AMBARELLA_CODEC
+
+config SND_SOC_AK4642_AMB
+	tristate "AK4642 for Ambarella Platform"
+	help
+		Support AK4642 for Ambarella Platform.
+
+config SND_SOC_AK4951_AMB
+	tristate "AK4951 for Ambarella Platform"
+	help
+		Support AK4951 for Ambarella Platform.
+
+config SND_SOC_AK4954_AMB
+	tristate "AK4954 for Ambarella Platform"
+	help
+		Support AK4951 for Ambarella Platform.
+
+config SND_SOC_AK7719_DSP
+	tristate "AK7719_DSP for Ambarella Platform"
+	depends on SND_AMBARELLA_SOC && (SND_SOC_AK4954_AMB || SND_SOC_AK4951_AMB)
+	help
+	  Say Y if you want to add AK7719 DSP support for
+	  SoC audio on Ambarella Board.
+	  and the AK7719_DSP should be modprobed before AK4954/AK4951.
+
+config SND_SOC_AK7755
+	tristate "AK7755 for Ambarella Platform"
+	help
+		Support AK7755 for Ambarella Platform.
+
+config SND_SOC_TLV320ADC3xxx
+	tristate "TLV320ADC3xxx for Ambarella Platform"
+	help
+		Support TLV320ADC3xxx for Ambarella Platform.
+
+config SND_SOC_ES8388
+	tristate "ES8388 for Ambarella Platform"
+	help
+		Support ES8388 Audio Codec for Ambarella Platform.
+
+config SND_SOC_ES8374
+	tristate "ES8374 for Ambarella Platform"
+	help
+		ES8374 Audio Codec for Ambarella Platform.
+
+config SND_SOC_WM8974_AMB
+	tristate "WM8974 for Ambarella Platform"
+	help
+		Support WM8974 Audio Codec for Ambarella Platform.
+
+config SND_SOC_WM8940_AMB
+	tristate "WM8940 for Ambarella Platform"
+	help
+		Support WM8940 Audio Codec for Ambarella Platform
+
+config SND_SOC_ZL380TW
+	tristate "ZL380XX for Ambarella Platform"
+	help
+		Support ZL380XX Audio Codec for Ambarella Platform
+
+config SND_SOC_RT5670
+	tristate "RT5670 for Ambarella Platform"
+	help
+		Support RT5670 Audio Codec for Ambarella Platform
+
+config SND_SOC_AMBARELLA_DUMMY
+	tristate "Dummy Codec for Ambarella Platform"
+	help
+		Support Dummy Codec for Ambarella Platform
+
+endif
+
+

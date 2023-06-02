@@ -17,6 +17,9 @@ struct mdio_gpio_platform_data {
 	/* GPIO numbers for bus pins */
 	unsigned int mdc;
 	unsigned int mdio;
+	unsigned int rst;
+
+	bool rst_active_low;
 
 	unsigned int phy_mask;
 	int irqs[PHY_MAX_ADDR];

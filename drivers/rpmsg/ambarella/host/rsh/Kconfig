@@ -1,0 +1,7 @@
+config RPMSG_RSH
+	tristate "Remote Shell"
+	depends on RPMSG
+	select AMBARELLA_RSH
+	help
+	  A Remote shell client for interacting with Itron on ARM11
+	  and Linux on CA9-B

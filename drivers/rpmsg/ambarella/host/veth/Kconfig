@@ -1,0 +1,6 @@
+config RPMSG_VETH
+	tristate "Virtual Ethernet"
+	depends on RPMSG
+	select AMBARELLA_VETH
+	help
+	  A virtualized ethernet device over RPMSG bus.

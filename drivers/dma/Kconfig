@@ -312,6 +312,17 @@ config MMP_PDMA
 	help
 	  Support the MMP PDMA engine for PXA and MMP platfrom.
 
+config AMBARELLA_DMA
+	tristate "Ambarella DMA Engine System support"
+	depends on PLAT_AMBARELLA
+	select DMA_ENGINE
+	help
+	  Support the Ambarella DMA Engine. This engine is integrated into
+	  Ambarella chip.
+
+	  Say Y here if you have such a chipest.
+	  If unsure,say N.
+
 config DMA_ENGINE
 	bool
 

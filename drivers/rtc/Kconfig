@@ -1092,6 +1092,12 @@ config RTC_DRV_MV
 	  This driver can also be built as a module. If so, the module
 	  will be called rtc-mv.
 
+config RTC_DRV_AMBARELLA
+	tristate "Ambarella SoC RTC"
+	depends on PLAT_AMBARELLA
+	help
+	  RTC (Realtime Clock) driver for Ambarella SoC.
+
 config RTC_DRV_PS3
 	tristate "PS3 RTC"
 	depends on PPC_PS3

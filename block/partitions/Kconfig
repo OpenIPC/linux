@@ -249,3 +249,11 @@ config SYSV68_PARTITION
 	  partition table format used by Motorola Delta machines (using
 	  sysv68).
 	  Otherwise, say N.
+
+config AMBPTB_PARTITION
+	bool "Ambarella partition table support" if PARTITION_ADVANCED
+	default y if ARCH_AMBARELLA
+	help
+	  Say Y here if you would like to be able to read the MMC/SD
+	  partition table format used by Amboot.
+	  Otherwise, say N.

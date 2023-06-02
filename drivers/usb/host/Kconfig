@@ -121,6 +121,14 @@ config USB_EHCI_BIG_ENDIAN_MMIO
 config USB_EHCI_BIG_ENDIAN_DESC
 	bool
 
+config USB_EHCI_AMBARELLA
+	tristate "Ambarella EHCI support"
+	depends on USB_EHCI_HCD && ARCH_AMBARELLA
+	---help---
+	  This driver enables support for EHCI found in Ambarella SoCs.
+	  Root Hub has NO inbuilt TT.
+	  You will need to enable USB_PHY and Ambarella PHY driver as well.
+
 config XPS_USB_HCD_XILINX
 	bool "Use Xilinx usb host EHCI controller core"
 	depends on (PPC32 || MICROBLAZE)
@@ -364,6 +372,14 @@ config USB_OHCI_HCD
 	  module will be called ohci-hcd.
 
 if USB_OHCI_HCD
+
+config USB_OHCI_AMBARELLA
+	boolean "Ambarella OHCI support"
+	depends on ARCH_AMBARELLA
+	---help---
+	  This driver enables support for OHCI found in Ambarella SoCs.
+	  Root Hub has NO inbuilt TT.
+	  You will need to enable USB_PHY and Ambarella PHY driver as well.
 
 config USB_OHCI_HCD_OMAP1
 	bool "OHCI support for OMAP1/2 chips"

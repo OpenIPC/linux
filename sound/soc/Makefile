@@ -10,6 +10,7 @@ snd-soc-core-objs += soc-generic-dmaengine-pcm.o
 endif
 
 obj-$(CONFIG_SND_SOC)	+= snd-soc-core.o
+obj-$(CONFIG_SND_SOC)	+= ambarella/
 obj-$(CONFIG_SND_SOC)	+= codecs/
 obj-$(CONFIG_SND_SOC)	+= generic/
 obj-$(CONFIG_SND_SOC)	+= atmel/

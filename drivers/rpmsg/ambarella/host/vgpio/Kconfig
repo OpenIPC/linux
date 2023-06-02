@@ -1,0 +1,6 @@
+config RPMSG_VGPIO
+	tristate "Virtual GPIO"
+	depends on RPMSG
+	select AMBARELLA_VGPIO
+	help
+	  A virtualized GPIO device over RPMSG bus.

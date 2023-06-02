@@ -1,0 +1,5 @@
+config RPMSG_AUDIOSERVICE
+	tristate "audio service"
+	depends on RPMSG
+	help
+	  A audio service client for interacting with Itron on ARM11

@@ -205,6 +205,8 @@ static int wm831x_backlight_probe(struct platform_device *pdev)
 	}
 
 	bl->props.brightness = max_isel;
+	bl->props.power = FB_BLANK_UNBLANK;
+	bl->props.fb_blank = FB_BLANK_UNBLANK;
 
 	platform_set_drvdata(pdev, bl);
 

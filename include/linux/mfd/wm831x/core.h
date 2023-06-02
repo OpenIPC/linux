@@ -239,6 +239,18 @@
 #define WM831X_ON_PIN_TO_WIDTH                       2  /* ON_PIN_TO - [1:0] */
 
 /*
+ * R16398 (0x400E) - ON Source
+ */
+#define WM831X_ON_SOURCE_ALARM                  0x0020  /* ON_SOURCE_ALARM */
+#define WM831X_ON_SOURCE_ALARM_MASK				0x0020  /* ON_SOURCE_ALARM */
+#define WM831X_ON_SOURCE_ALARM_SHIFT				5  /* ON_SOURCE_ALARM */
+#define WM831X_ON_SOURCE_ALARM_WIDTH				1  /* ON_SOURCE_ALARM */
+#define WM831X_ON_SOURCE_ON_PIN					0x0010  /* ON_SOURCE_ON_PIN */
+#define WM831X_ON_SOURCE_ON_PIN_MASK			0x0010  /* ON_SOURCE_ON_PIN */
+#define WM831X_ON_SOURCE_ON_PIN_SHIFT				4  /* ON_SOURCE_ON_PIN */
+#define WM831X_ON_SOURCE_ON_PIN_WIDTH				1  /* ON_SOURCE_ON_PIN */
+
+/*
  * R16528 (0x4090) - Clock Control 1
  */
 #define WM831X_CLKOUT_ENA                       0x8000  /* CLKOUT_ENA */

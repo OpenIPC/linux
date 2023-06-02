@@ -1661,8 +1661,15 @@ static inline void sk_filter_charge(struct sock *sk, struct sk_filter *fp)
 /* Ungrab socket and destroy it, if it was the last reference. */
 static inline void sock_put(struct sock *sk)
 {
-	if (atomic_dec_and_test(&sk->sk_refcnt))
+	if (atomic_dec_and_test(&sk->sk_refcnt)){
+		#ifdef CONFIG_WLAN_UPDATE_SEQ
+		extern struct sock_sequence_update ipv4_update;
+		if(ipv4_update.sock == sk){
+			ipv4_update.sock = NULL;
+		}
+		#endif
 		sk_free(sk);
+    }
 }
 
 extern int sk_receive_skb(struct sock *sk, struct sk_buff *skb,

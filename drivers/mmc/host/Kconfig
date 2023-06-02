@@ -4,6 +4,21 @@
 
 comment "MMC/SD/SDIO Host Controller Drivers"
 
+config MMC_AMBARELLA
+	tristate "Ambarella Media Processor SD/MMC Host Controller driver"
+	depends on PLAT_AMBARELLA
+	help
+	  This selects the Ambarella Media Processor Multimedia Card
+	  Interface support. If you have an Ambarella Media Processor
+	  platform with a Multimedia Card slot, say Y here.
+
+config AMBARELLA_EMMC_BOOT
+        bool "EMMC Boot for Ambarella Platform"
+        default n
+        help
+          If you want to use ambarella platform to boot from emmc, you must
+          select this item, so it can help emmc reboot.
+
 config MMC_ARMMMCI
 	tristate "ARM AMBA Multimedia Card Interface support"
 	depends on ARM_AMBA

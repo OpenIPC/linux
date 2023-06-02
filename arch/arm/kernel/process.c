@@ -223,6 +223,14 @@ void machine_power_off(void)
 
 	if (pm_power_off)
 		pm_power_off();
+
+	/* Give a grace period for failure to restart of 1s */
+	mdelay(1000);
+
+	/* A workaround for power off failed */
+	printk("Power off -- System halted\n");
+	local_irq_disable();
+	while (1);
 }
 
 /*

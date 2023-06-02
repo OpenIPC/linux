@@ -1,0 +1,63 @@
+config RPROC_SUPPORT
+	bool
+	select REMOTEPROC
+        select RPMSG
+	default n
+
+config RPROC_CA9_A
+	tristate "Enable RPROC Host on CA9-A"
+	depends on MACH_HYACINTH_0
+	select RPROC_SUPPORT
+	help
+	  TBD:
+
+config RPROC_CA9_B
+	tristate "Enable RPROC Host on CA9-B"
+	depends on MACH_HYACINTH_1
+	select RPROC_SUPPORT
+	help
+	  TBD:
+
+config RPROC_S2
+    tristate "Enable RPROC Host on S2"
+    depends on MACH_GINKGO
+    select RPROC_SUPPORT
+    help
+      TBD:
+    default n
+
+config RPCLNT_SUPPORT
+	bool
+	select REMOTEPROC
+        select RPMSG
+	default n
+
+config RPCLNT_CA9_B
+	tristate "Enable RPROC Clnt on CA9-B"
+	depends on MACH_HYACINTH_1
+	select RPCLNT_SUPPORT
+	help
+	  TODO:
+
+config RPMSG_VRING_BASE
+	hex "Base address (Physical) used for the rpmsg & remoteproc"
+	depends on REMOTEPROC
+	default 0x5C000000 if MACH_HYACINTH_0 || MACH_HYACINTH_1
+	default 0x20000000 if MACH_GINKO
+
+config RPMSG_NUM_BUFS
+	int "Number of buffers for each RPMSG bus"
+	depends on REMOTEPROC
+	default 4096
+	help
+	  The buffers are partitioned into dedicated halves for TX
+	  and RX.
+
+config RPMSG_BUF_SIZE
+	int "Buffer size (in bytes) for each RPMSG message"
+	depends on REMOTEPROC
+	default 4096
+	help
+	  The first 16 bytes are used by the rpmsg header internally.
+	  So only N - 16 bytes is available for the message payload.
+

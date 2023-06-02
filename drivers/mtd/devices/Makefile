@@ -16,6 +16,6 @@ obj-$(CONFIG_MTD_NAND_OMAP_BCH)	+= elm.o
 obj-$(CONFIG_MTD_SPEAR_SMI)	+= spear_smi.o
 obj-$(CONFIG_MTD_SST25L)	+= sst25l.o
 obj-$(CONFIG_MTD_BCM47XXSFLASH)	+= bcm47xxsflash.o
-
+obj-$(CONFIG_MTD_AMBARELLA_SPI_NOR)	+= ambarella_spinor.o spinor.o
 
 CFLAGS_docg3.o			+= -I$(src)

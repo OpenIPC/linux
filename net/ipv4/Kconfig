@@ -639,3 +639,5 @@ config TCP_MD5SIG
 	  on the Internet.
 
 	  If unsure, say N.
+config WLAN_UPDATE_SEQ
+	bool "Ambarella cooperate with wlan to update socket sequence"

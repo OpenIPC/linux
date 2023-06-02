@@ -302,6 +302,11 @@ EXPORT_SYMBOL(tcp_memory_allocated);
 struct percpu_counter tcp_sockets_allocated;
 EXPORT_SYMBOL(tcp_sockets_allocated);
 
+#ifdef CONFIG_WLAN_UPDATE_SEQ
+struct sock_sequence_update ipv4_update = {0};
+EXPORT_SYMBOL(ipv4_update);
+#endif
+
 /*
  * TCP splice context
  */
@@ -532,6 +537,9 @@ int tcp_ioctl(struct sock *sk, int cmd, unsigned long arg)
 	struct tcp_sock *tp = tcp_sk(sk);
 	int answ;
 	bool slow;
+#ifdef CONFIG_WLAN_UPDATE_SEQ
+	unsigned int sequence[3];
+#endif
 
 	switch (cmd) {
 	case SIOCINQ:
@@ -576,6 +584,20 @@ int tcp_ioctl(struct sock *sk, int cmd, unsigned long arg)
 		else
 			answ = tp->write_seq - tp->snd_nxt;
 		break;
+
+#ifdef CONFIG_WLAN_UPDATE_SEQ
+	case SOCK_SEQ_UPDATE:
+		if (copy_from_user(sequence, (int __user *)arg, sizeof(sequence)))
+			return -EFAULT;
+
+
+		ipv4_update.sock = sk;
+		ipv4_update.ident = (u16)sequence[0];
+		ipv4_update.seq = sequence[1];
+		ipv4_update.ack = sequence[2];
+
+		return 0;
+#endif
 	default:
 		return -ENOIOCTLCMD;
 	}
@@ -583,6 +605,44 @@ int tcp_ioctl(struct sock *sk, int cmd, unsigned long arg)
 	return put_user(answ, (int __user *)arg);
 }
 EXPORT_SYMBOL(tcp_ioctl);
+
+#ifdef CONFIG_WLAN_UPDATE_SEQ
+int tcphr_updatebywlan(struct sock *sk, struct tcphdr *th, struct sk_buff *skb)
+{
+	if (ipv4_update.sock != sk)
+		return 0;
+
+	if (ipv4_update.seq > 0){
+		ipv4_update.seq_offset = ipv4_update.seq - ntohl(th->seq);
+		ipv4_update.seq = 0;
+	}
+
+	if (ipv4_update.ack > 0){
+		ipv4_update.ack_offset = ipv4_update.ack - ntohl(th->ack_seq);
+		ipv4_update.ack = 0;
+	}
+
+	th->seq = htonl(ipv4_update.seq_offset + ntohl(th->seq));
+	th->ack_seq = htonl(ipv4_update.ack_offset + ntohl(th->ack_seq));
+
+	return 0;
+}
+
+EXPORT_SYMBOL(tcphr_updatebywlan);
+
+int iphdr_updatebywlan(struct sock *sk, struct iphdr *iph)
+{
+	if (ipv4_update.sock != sk)
+		return 0;
+
+	if (ipv4_update.ident > 0) {
+		iph->id = htons(ipv4_update.ident);
+		ipv4_update.ident = 0;
+	}
+	return 0;
+}
+EXPORT_SYMBOL(iphdr_updatebywlan);
+#endif
 
 static inline void tcp_mark_push(struct tcp_sock *tp, struct sk_buff *skb)
 {

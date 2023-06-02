@@ -42,6 +42,10 @@
 #include <linux/gfp.h>
 #include <linux/module.h>
 
+#ifdef CONFIG_WLAN_UPDATE_SEQ
+extern int tcphr_updatebywlan(struct sock *sk, struct tcphdr *th, struct sk_buff *skb);
+#endif
+
 /* People can turn this off for buggy TCP's found in printers etc. */
 int sysctl_tcp_retrans_collapse __read_mostly = 1;
 
@@ -909,6 +913,10 @@ static int tcp_transmit_skb(struct sock *sk, struct sk_buff *skb, int clone_it,
 	th->dest		= inet->inet_dport;
 	th->seq			= htonl(tcb->seq);
 	th->ack_seq		= htonl(tp->rcv_nxt);
+
+#ifdef CONFIG_WLAN_UPDATE_SEQ
+	tcphr_updatebywlan(sk, th, skb);
+#endif
 	*(((__be16 *)th) + 6)	= htons(((tcp_header_size >> 2) << 12) |
 					tcb->tcp_flags);
 

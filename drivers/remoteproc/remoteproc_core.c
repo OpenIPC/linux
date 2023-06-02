@@ -206,7 +206,12 @@ int rproc_alloc_vring(struct rproc_vdev *rvdev, int i)
 	 * Allocate non-cacheable memory for the vring. In the future
 	 * this call will also configure the IOMMU for us
 	 */
+#if 0
 	va = dma_alloc_coherent(dev->parent, size, &dma, GFP_KERNEL);
+#else
+	va = (void*)ambarella_phys_to_virt(rvring->da);
+	dma = rvring->da;
+#endif
 	if (!va) {
 		dev_err(dev->parent, "dma_alloc_coherent failed\n");
 		return -EINVAL;
@@ -271,6 +276,7 @@ rproc_parse_vring(struct rproc_vdev *rvdev, struct fw_rsc_vdev *rsc, int i)
 	rvring->len = vring->num;
 	rvring->align = vring->align;
 	rvring->rvdev = rvdev;
+	rvring->da = vring->da;
 
 	return 0;
 }
@@ -930,7 +936,8 @@ static void rproc_fw_config_virtio(const struct firmware *fw, void *context)
 	ret = rproc_handle_resources(rproc, tablesz, rproc_vdev_handler);
 
 out:
-	release_firmware(fw);
+	rproc_fw_release_firmware(rproc, fw);
+
 	/* allow rproc_del() contexts, if any, to proceed */
 	complete_all(&rproc->firmware_loading_complete);
 }
@@ -950,9 +957,13 @@ static int rproc_add_virtio_devices(struct rproc *rproc)
 	 * We're initiating an asynchronous firmware loading, so we can
 	 * be built-in kernel code, without hanging the boot process.
 	 */
+#if 1
+	ret = rproc_fw_request_firmware_nowait(rproc, rproc_fw_config_virtio);
+#else
 	ret = request_firmware_nowait(THIS_MODULE, FW_ACTION_HOTPLUG,
 				      rproc->firmware, &rproc->dev, GFP_KERNEL,
 				      rproc, rproc_fw_config_virtio);
+#endif
 	if (ret < 0) {
 		dev_err(&rproc->dev, "request_firmware_nowait err: %d\n", ret);
 		complete_all(&rproc->firmware_loading_complete);
@@ -1076,7 +1087,7 @@ int rproc_boot(struct rproc *rproc)
 	dev_info(dev, "powering up %s\n", rproc->name);
 
 	/* load firmware */
-	ret = request_firmware(&firmware_p, rproc->firmware, dev);
+	ret = rproc_fw_request_firmware(rproc, &firmware_p);
 	if (ret < 0) {
 		dev_err(dev, "request_firmware failed: %d\n", ret);
 		goto downref_rproc;
@@ -1084,7 +1095,7 @@ int rproc_boot(struct rproc *rproc)
 
 	ret = rproc_fw_boot(rproc, firmware_p);
 
-	release_firmware(firmware_p);
+	rproc_fw_release_firmware(rproc, firmware_p);
 
 downref_rproc:
 	if (ret) {

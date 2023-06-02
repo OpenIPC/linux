@@ -106,6 +106,13 @@ config MICREL_PHY
 	---help---
 	  Supports the KSZ9021, VSC8201, KS8001 PHYs.
 
+config MICREL_PHY_KSZ80X1R
+	tristate "Driver for Micrel PHYs KSZ80X1R"
+	depends on PLAT_AMBARELLA=y
+	depends on MICREL_PHY=n
+	---help---
+	  Supports the KSZ80X1R PHYs.
+
 config FIXED_PHY
 	bool "Driver for MDIO Bus/PHY emulation with fixed speed/link PHYs"
 	depends on PHYLIB=y

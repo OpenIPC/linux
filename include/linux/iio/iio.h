@@ -13,6 +13,16 @@
 #include <linux/device.h>
 #include <linux/cdev.h>
 #include <linux/iio/types.h>
+
+/**
+ * struct iio_mount_matrix - iio mounting matrix
+ * @rotation: 3 dimensional space rotation matrix defining sensor alignment with
+ *            main hardware
+ */
+struct iio_mount_matrix {
+	const char *rotation[9];
+};
+
 /* IIO TODO LIST */
 /*
  * Provide means of adjusting timer accuracy.

@@ -1,0 +1,781 @@
+/*
+ * Copyright (C) 2013 Ambarella,Inc. - http://www.ambarella.com/
+ * Author: Cao Rongrong <rrcao@ambarella.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ */
+
+/include/ "skeleton.dtsi"
+
+/ {
+	compatible = "ambarella,s3l";
+	interrupt-parent = <&intc>;
+
+	aliases {
+		serial0 = &uart0;
+		serial1 = &uart1;
+		nand = &nand0;
+		spinand = &spinand0;
+		spinor = &spinor0;
+		sd0 = &sdmmc0;
+		sd2 = &sdmmc2;
+		i2c0 = &i2c0;
+		i2c1 = &i2c1;
+		i2c2 = &i2c2;
+		spi0 = &spi0;
+		spi1 = &spi1;
+		ethernet0 = &mac0;
+		mdio-gpio0 = <&mdio0>;
+	};
+
+	/* the memory node will be overwritten in Amboot,
+	 * here is just the default value. */
+	memory {
+		device_type = "memory";
+		reg = <0x00200000 0x07e00000>; /* 126M */
+	};
+
+	chosen {
+		linux,stdout-path = &uart0;
+		/* the gpio used to disconnect RESET signal to
+		 * dram, used for self-refresh, can be overwritten. */
+		ambarella,dram-reset-ctrl = <5>;
+	};
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		clock-latency = <100000>;
+		/* the highest frequency is gotten in runtime */
+		cpufreq_tbl = < /*core_clk	cortex_clk*/
+				24000           96000
+				72000		120000
+				96000		168000
+				108000		504000>;
+
+		cpu@0 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a9";
+			reg = <0>;
+		};
+	};
+
+	apb@e8000000 {	/* APB */
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		reg = <0xe8000000 0x01000000>;
+		ranges;
+
+		timer7: timer@e800b064 {
+			compatible = "ambarella,clock-source";
+			reg = <0xe800b064 0x10 0xe800b030 0x4>;
+			interrupts = <6 0x1>;
+			ctrl-offset = <24>; /* bit offset in timer-ctrl reg */
+		};
+
+		timer8: timer@e800b074 {
+			compatible = "ambarella,clock-event";
+			reg = <0xe800b074 0x10 0xe800b030 0x4>;
+			interrupts = <63 0x1>;
+			ctrl-offset = <28>; /* bit offset in timer-ctrl reg */
+		};
+
+		uart0: uart@e8005000 {
+			compatible = "ambarella,uart";
+			reg = <0xe8005000 0x1000>;
+			interrupts = <61 0x4>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&uart0_pins>;
+			status = "ok";
+			/* amb,tx-fifo-fix; */
+		};
+
+		i2c0: i2c@e8003000 {
+			compatible = "ambarella,i2c";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0xe8003000 0x1000>;
+			interrupts = <83 0x4>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&i2c0_pins>;
+			clock-frequency = <100000>;
+			amb,i2c-class = <0x81>;
+			status = "disabled";
+	        };
+
+		i2c1: i2c@e8001000 {
+			compatible = "ambarella,i2c";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0xe8001000 0x1000>;
+			interrupts = <82 0x4>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&i2c1_pins>;
+			clock-frequency = <100000>;
+			amb,i2c-class = <0x08>;
+			status = "disabled";
+	        };
+
+		i2c2: i2c@e8007000 {
+			compatible = "ambarella,i2c";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0xe8007000 0x1000>;
+			interrupts = <81 0x4>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&i2c2_pins>;
+			clock-frequency = <100000>;
+			amb,i2c-class = <0x81>;
+			status = "disabled";
+	        };
+
+		adc@e801d000 {
+			compatible = "ambarella,adc";
+			reg = <0xe801d000 0x1000>;
+			interrupts = <57 0x4>;
+			clock-frequency = <3000000>;
+		};
+
+		ir@e8006000 {
+			compatible = "ambarella,ir";
+			reg = <0xe8006000 0x1000>;
+			interrupts = <84 0x4>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&ir_pins>;
+		};
+
+		wdt@e800c000 {
+			compatible = "ambarella,wdt";
+			reg = <0xe800c000 0x1000>;
+			/* interrupts = <59 0x4>; */
+			timeout-sec = <15>;
+		};
+
+		rtc@e8015000 {
+			compatible = "ambarella,rtc";
+			reg = <0xe8015000 0x1000>;
+			interrupts = <64 0x1>;
+			rtc,wakeup;
+		};
+
+		pwm: pwm@e8008000 {
+			compatible = "ambarella,pwm";
+			reg = <0xe8008000 0x1000>;
+			#pwm-cells = <3>;
+		};
+
+		pinctrl: pinctrl@e8009000 {
+			compatible = "ambarella,pinctrl", "simple-bus";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0xe8009000 0x1000>,
+			      <0xe800a000 0x1000>,
+			      <0xe800e000 0x1000>,
+			      <0xe8010000 0x1000>,
+			      <0xe8016000 0x1000>;
+			reg-names = "gpio0", "gpio1", "gpio2", "gpio3", "iomux";
+			#gpio-range-cells = <3>;
+
+			gpio: gpio@0 {
+				compatible = "ambarella,gpio";
+				/* gpio interrupts to vic */
+				interrupts = <52 0x4 51 0x4 50 0x4 49 0x4>;
+				gpio-controller;
+				#gpio-cells = <2>;
+				gpio-ranges = <&pinctrl 0 0 128>;
+				interrupt-controller;
+				#interrupt-cells = <2>;
+			};
+
+			uart0_pins: uart0@0 {
+				reg = <0>;
+				amb,pinmux-ids = <0x1028 0x1029>;
+			};
+
+			uart1_pins_a: uart1@0 {
+				reg = <0>;
+				amb,pinmux-ids = <0x2001 0x2002>;
+			};
+
+			uart1_pins_b: uart1@1 {
+				reg = <1>;
+				amb,pinmux-ids = <0x2010 0x2011>;
+			};
+
+			uart1_pins_c: uart1@2 {
+				reg = <2>;
+				amb,pinmux-ids = <0x2014 0x2015>;
+			};
+
+			uart1_pins_d: uart1@3 {
+				reg = <3>;
+				amb,pinmux-ids = <0x3023 0x3024>;
+			};
+
+			uart1_pins_e: uart1@4 {
+				reg = <4>;
+				amb,pinmux-ids = <0x2028 0x2029>;
+			};
+
+			uart1_flow_pins_a: uart1_flow@0 {
+				reg = <0>;
+				amb,pinmux-ids = <0x2003 0x2004>;
+			};
+
+			uart1_flow_pins_b: uart1_flow@1 {
+				reg = <1>;
+				amb,pinmux-ids = <0x5005 0x5006>;
+			};
+
+			uart1_flow_pins_c: uart1_flow@2 {
+				reg = <2>;
+				amb,pinmux-ids = <0x2012 0x2013>;
+			};
+
+			uart1_flow_pins_d: uart1_flow@3 {
+				reg = <3>;
+				amb,pinmux-ids = <0x2016 0x2017>;
+			};
+
+			uart1_flow_pins_e: uart1_flow@4 {
+				reg = <4>;
+				amb,pinmux-ids = <0x3025 0x3026>;
+			};
+
+			nand0_pins: nand0@0 {
+				reg = <0>;
+				amb,pinmux-ids = <0x2037 0x2038 0x2039 0x203e
+						  0x203f 0x2040 0x2041 0x2042
+						  0x2043 0x2044 0x2045 0x2046
+						  0x2047 0x2048 0x2049>;
+			};
+
+			spinor0_pins: spinor0@0 {
+				reg = <0>;
+				amb,pinmux-ids = <0x3038 0x3039 0x303e 0x303f
+						  0x3040 0x3041 0x3042 0x3043
+						  0x3044 0x3045 0x3046 0x3047
+						  0x3048>;
+			};
+
+			sdmmc0_cd_pin: sdmmc0_cd@0 {
+				reg = <0>;
+				amb,pinmux-ids = <0x203c>;
+			};
+
+			sdmmc0_wp_pin: sdmmc0_wp@0 {
+				reg = <0>;
+				amb,pinmux-ids = <0x203d>;
+			};
+
+			sdmmc0_pins_1bit: sdmmc0@0 {
+				reg = <0>;
+				amb,pinmux-ids = <0x203a 0x203b 0x204a>;
+			};
+
+			sdmmc0_pins_4bit: sdmmc0@1 {
+				reg = <1>;
+				amb,pinmux-ids = <0x203a 0x203b 0x204a
+						  0x204b 0x204c 0x204d>;
+			};
+
+			sdmmc0_pins_8bit: sdmmc0@2 {
+				reg = <2>;
+				amb,pinmux-ids = <0x203a 0x203b 0x204a 0x204b 0x204c
+						  0x204d 0x204e 0x204f 0x2050 0x2051>;
+			};
+
+			sdmmc2_cd_pin: sdmmc2_cd@0 {
+				reg = <0>;
+				amb,pinmux-ids = <0x2058>;
+			};
+
+			sdmmc2_wp_pin: sdmmc2_wp@0 {
+				reg = <0>;
+				amb,pinmux-ids = <0x2059>;
+			};
+
+			sdmmc2_pins_1bit: sdmmc2@0 {
+				reg = <0>;
+				amb,pinmux-ids = <0x2052 0x2053 0x2054>;
+			};
+
+			sdmmc2_pins_4bit: sdmmc2@1 {
+				reg = <1>;
+				amb,pinmux-ids = <0x2052 0x2053 0x2054
+						  0x2055 0x2056 0x2057>;
+			};
+
+			sdmmc2_pins_8bit: sdmmc2@2 {
+				reg = <2>;
+				amb,pinmux-ids = <0x2052 0x2053 0x2054 0x2055 0x2056
+						  0x2057 0x205a 0x205b 0x205c 0x205d>;
+			};
+
+			rmii_pins: eth0@0 {
+				reg = <0>;
+				amb,pinmux-ids = <0x102f 0x1030 0x1031 0x1032
+						  0x1033 0x1034 0x1035 0x1036>;
+			};
+
+			mii_pins: eth0@1 {
+				reg = <1>;
+				amb,pinmux-ids = <0x302f 0x3030 0x3031 0x4011
+						  0x4012 0x4013 0x4014 0x4015
+						  0x4016 0x4017 0x4018 0x3032
+						  0x3033 0x3034 0x3035 0x3036>;
+			};
+
+			mdio_gpio_pins: mdio_gpio@0 {
+				reg = <0>;
+				amb,pinmux-ids = <0x401a 0x401b>;
+			};
+
+			i2c0_pins: i2c0@0 {
+				reg = <0>;
+				amb,pinmux-ids = <0x101c 0x101d>;
+			};
+
+			i2c1_pins: i2c1@0 {
+				reg = <0>;
+				amb,pinmux-ids = <0x101e 0x101f>;
+			};
+
+			i2c2_pins: i2c2@0 {
+				reg = <0>;
+				amb,pinmux-ids = <0x1020 0x1021>;
+			};
+
+			ir_pins: ir0@0 {
+				reg = <0>;
+				amb,pinmux-ids = <0x1022>;
+			};
+
+			i2s0_pins: i2s0@0 {
+				reg = <0>;
+				amb,pinmux-ids = <0x102a 0x102b 0x102c 0x102d 0x102e>;
+			};
+
+			usb_host0_pins: uhc0@0 { /* USB0: host/device configurable */
+				reg = <0>;
+				amb,pinmux-ids = <0x1002 0x1004>;
+			};
+
+			pwm0_pins_a: pwm0@0 {
+				reg = <0>;
+				amb,pinmux-ids = <0x4008>;
+			};
+
+			pwm0_pins_b: pwm0@1 {
+				reg = <1>;
+				amb,pinmux-ids = <0x5014>;
+			};
+
+			pwm0_pins_c: pwm0@2 {
+				reg = <2>;
+				amb,pinmux-ids = <0x1078>;
+			};
+
+			pwm1_pins_a: pwm1@0 {
+				reg = <0>;
+				amb,pinmux-ids = <0x1005>;
+			};
+
+			pwm1_pins_b: pwm1@1 {
+				reg = <1>;
+				amb,pinmux-ids = <0x4009>;
+			};
+
+			pwm1_pins_c: pwm1@2 {
+				reg = <2>;
+				amb,pinmux-ids = <0x5015>;
+			};
+
+			pwm1_pins_d: pwm1@3 {
+				reg = <3>;
+				amb,pinmux-ids = <0x5018>;
+			};
+
+			pwm2_pins_a: pwm2@0 {
+				reg = <0>;
+				amb,pinmux-ids = <0x1006>;
+			};
+
+			pwm2_pins_b: pwm2@1 {
+				reg = <1>;
+				amb,pinmux-ids = <0x400a>;
+			};
+
+			pwm2_pins_c: pwm2@2 {
+				reg = <2>;
+				amb,pinmux-ids = <0x5016>;
+			};
+
+			pwm3_pins_a: pwm3@0 {
+				reg = <0>;
+				amb,pinmux-ids = <0x400b>;
+			};
+
+			pwm3_pins_b: pwm3@1 {
+				reg = <1>;
+				amb,pinmux-ids = <0x200f>;
+			};
+
+			pwm3_pins_c: pwm3@2 {
+				reg = <2>;
+				amb,pinmux-ids = <0x5017>;
+			};
+
+			spi_slave_pins_a: spi_slave@0 {
+				reg = <0>;
+				amb,pinmux-ids = <0x3001 0x3002 0x3003 0x3004>;
+			};
+
+			spi_slave_pins_b: spi_slave@1 {
+				reg = <1>;
+				amb,pinmux-ids = <0x3010 0x3011 0x3012 0x3013>;
+			};
+
+			spi_slave_pins_c: spi_slave@2 {
+				reg = <2>;
+				amb,pinmux-ids = <0x3014 0x3015 0x3016 0x3017>;
+			};
+
+			spi_slave_pins_d: spi_slave@3 {
+				reg = <3>;
+				amb,pinmux-ids = <0x4023 0x4024 0x4025 0x4026>;
+			};
+
+			spi_slave_pins_e: spi_slave@4 {
+				reg = <4>;
+				amb,pinmux-ids = <0x504e 0x504f 0x5050 0x5051>;
+			};
+
+			spi_slave_pins_f: spi_slave@5 {
+				reg = <5>;
+				amb,pinmux-ids = <0x5054 0x5055 0x5056 0x5057>;
+			};
+
+			spi0_pins: spi0@0 {
+				reg = <0>;
+				amb,pinmux-ids = <0x1023 0x1024 0x1025>;
+			};
+
+			spi1_pins_a: spi1@0 {
+				reg = <0>;
+				amb,pinmux-ids = <0x2008 0x2009 0x200a>;
+			};
+
+			spi1_pins_b: spi1@1 {
+				reg = <1>;
+				amb,pinmux-ids = <0x402f 0x4030 0x4031>;
+			};
+		};
+	};
+
+	ahb@e0000000 {	/* AHB */
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		reg = <0xe0000000 0x01000000>;
+		ranges;
+
+		intc: interrupt-controller@e0003000 {
+			compatible = "ambarella,vic";
+			interrupt-controller;
+			#interrupt-cells = <2>;
+			reg = <0xe0003000 0x1000>,
+			      <0xe0010000 0x1000>,
+			      <0xe001c000 0x1000>;
+		};
+
+		dma: dma@e0005000 {
+			compatible = "ambarella,dma";
+			reg = <0xe0005000 0x1000>;
+			interrupts = <69 0x4>;
+			#dma-cells = <2>;
+			dma-channels = <8>;
+			dma-requests = <12>;
+			dma-trans-type = <1 1 0 0 1 1 1 1>; /* 0-memcpy ,1-slave*/
+			dma-channel-sel = <4 5 0 0 8 9 11 10>;
+			amb,copy-align = <0>;
+			/* support pause/resume/stop */
+			amb,support-prs;
+		};
+
+		nand0: nand@e0001000 {
+			compatible = "ambarella,nand";
+			#address-cells = <1>;
+			#size-cells = <1>;
+			reg = <0xe0001000 0x1000>, /* fio reg address */
+			      <0xe0012000 0x1000>, /* fdma reg address */
+			      <0xe0000000 0x4>;    /* fifo base */
+			interrupts = <72 0x4>,	/* fio_cmd_irq */
+				     <73 0x4>,	/* fio_dma_irq */
+				     <70 0x4>;	/* fdma_irq */
+			pinctrl-names = "default";
+			pinctrl-0 = <&nand0_pins>;
+			nand-on-flash-bbt;
+			amb,enable-wp;
+			/* amb,soft-ecc = <1>; */
+		};
+
+		spinand0: spinand@e0031000 {
+			compatible = "ambarella,spinand";
+			reg = <0xe0031000 0x2ff>, /* spi nor controller */
+				<0xe0005300 0x20>;  /* dma reg */
+			pinctrl-names = "default";
+			pinctrl-0 = <&spinor0_pins>;
+			status = "disabled";
+			};
+
+		spinor0: spinor@e0031000 {
+			compatible = "ambarella,spinor";
+			reg = <0xe0031000 0x2ff>, /* spi nor controller */
+			      <0xe0005300 0x20>;  /* dma reg */
+			pinctrl-names = "default";
+			pinctrl-0 = <&spinor0_pins>;
+			status = "disabled";
+		};
+
+		uart1: uart@e0032000 {
+			compatible = "ambarella,uart";
+			reg = <0xe0032000 0x1000>;
+			interrupts = <80 0x4>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&uart1_pins_c &uart1_flow_pins_d>;
+			status = "ok";
+			amb,msr-used;	/* use Modem Status Register */
+			amb,txdma-used;
+			amb,rxdma-used;
+			/* amb,tx-fifo-fix; */
+			/* need to select pinctrl setup in board dts */
+		};
+
+		i2s0: i2s@e001a000 {
+			compatible = "ambarella,i2s";
+			reg = <0xe001a000 0x1000>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&i2s0_pins>;
+			amb,i2s-channels = <2>;
+			amb,default-mclk = <12288000>;
+			dmas = <&dma 5 1>, <&dma 4 1>;
+			dma-names = "tx", "rx";
+		};
+
+		udc@e0006000 {
+			compatible = "ambarella,udc";
+			reg = <0xe0006000 0x2000 0xec1702cc 0x4>;
+			interrupts = <68 0x4>;
+			amb,usbphy = <&usbphy>;
+		};
+
+		ehci@e0018000 {
+			compatible = "ambarella,ehci";
+			reg = <0xe0018000 0x1000>;
+			interrupts = <66 0x4>;
+			amb,usbphy = <&usbphy>;
+		};
+
+		ohci@e0019000 {
+			compatible = "ambarella,ohci";
+			reg = <0xe0019000 0x1000>;
+			interrupts = <67 0x4>;
+			amb,usbphy = <&usbphy>;
+		};
+
+		sdmmc0: sdmmc0@e0002000 {
+			compatible = "ambarella,sdmmc";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0xe0002000 0x1000>,
+			      <0xe0001000 0x80>,/* fio reg address */
+			      <0xec1704c0 0x8>;  /* phy timing reg*/
+			interrupts = <75 0x4>;
+			amb,clk-name = "gclk_sd";
+			amb,wait-tmo = <10000>; /* in millisecond */
+			amb,switch-vol-tmo = <100>;
+			amb,max-blk-size = <131072>; /* valid value: 4K<<n */
+			amb,auto-tuning;
+			amb,phy-type = <0>;/*0:rct phy, 1: sd controller phy, 2: for s2e*/
+			amb,phy-timing = <0x0000001f 0x04070000 0x00000000>,
+					/*sdr50 100M,sdr104 120M*/
+					<0x00000060 0x10410400 0x00D04104>,
+					<0x00000080 0x10410400  0x02504104>;/*DDR50 50M*/
+			pinctrl-names = "default";
+			pinctrl-0 = <&sdmmc0_pins_8bit &sdmmc0_cd_pin &sdmmc0_wp_pin>;
+
+			slot@0 {
+				reg = <0>;
+				global-id = <0>;
+				max-frequency = <50000000>;
+				bus-width = <8>;
+				amb,caps-adma;
+				cap-sdio-irq;
+			};
+		};
+
+		sdmmc2: sdmmc2@e001f000 { /* SDXC rather than SDIO */
+			compatible = "ambarella,sdmmc";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0xe001f000 0x1000>,
+			      <0xe0001000 0x80>,/* fio reg address */
+			      <0xec1704c8 0x8>;  /* phy timing reg*/
+			interrupts = <74 0x4>;
+			amb,clk-name = "gclk_sdxc";
+			amb,wait-tmo = <10000>; /* in millisecond */
+			amb,switch-vol-tmo = <100>;
+			amb,max-blk-size = <131072>; /* valid value: 4K<<n */
+			amb,auto-tuning;
+			amb,phy-type = <0>;
+			amb,phy-timing = <0x0000001f 0x04070000 0x00000000>,
+					/*sdr50 100M,sdr104 120M*/
+					<0x00000060 0x10410400 0x00D04104>,
+					<0x00000080 0x10410400  0x02504104>;/*DDR50 50M*/
+			pinctrl-names = "default";
+			pinctrl-0 = <&sdmmc2_pins_8bit &sdmmc2_cd_pin &sdmmc2_wp_pin>;
+
+			slot@0 {
+				reg = <0>;
+				global-id = <1>;
+				max-frequency = <50000000>;
+				bus-width = <8>;
+				amb,caps-adma;
+				cap-sdio-irq;
+			};
+		};
+
+		mac0: ethernet@e000e000 {
+			compatible = "ambarella,eth";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0xe000e000 0x2000>;
+			interrupts = <65 0x4>;
+			amb,tx-ring-size = <32>;
+			amb,rx-ring-size = <64>;
+			amb,ipc-tx;
+			amb,ipc-rx;
+			//amb,mdio-gpio;
+			pinctrl-names = "default";
+			//pinctrl-0 = <&rmii_pins>;
+			pinctrl-0 = <&rmii_pins &mdio_gpio_pins>;
+		};
+
+		spi0: spi@e0020000 {
+			compatible = "ambarella,spi";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0xe0020000 0x1000>;
+			interrupts = <78 0x4>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&spi0_pins>;
+			amb,clk-freq = <54000000>;
+			/* amb,dma-used; */
+			dmas = <&dma 0 1>, <&dma 1 1>;
+			dma-names = "tx", "rx";
+		};
+
+		spi1: spi@e0021000 {
+			compatible = "ambarella,spi";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0xe0021000 0x1000>;
+			interrupts = <77 0x4>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&spi1_pins_a>;
+			amb,clk-freq = <54000000>;
+			status = "disabled";
+		};
+
+		spi_slave@e0026000 {
+			compatible = "ambarella,spi-slave";
+			reg = <0xe0026000 0x1000>;
+			interrupts = <79 0x4>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&spi_slave_pins_a>;
+			status = "disabled";
+		};
+	};
+
+	axi@f0000000 {	/* AXI */
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		reg = <0xf0000000 0x00030000>;
+		ranges;
+
+		crypto@f0020000 {
+			compatible = "ambarella,crypto";
+			reg = <0xf0020000 0x8000>;
+			interrupts = <30 0x1>, <29 0x1>, <28 0x1>, <31 0x1>;
+			interrupt-names = "aes-irq", "des-irq", "md5-irq", "sha1-irq";
+			amb,cap-md5-sha1;
+			amb,data-swap;
+			amb,reg-64bit;
+		};
+
+		l2-cache@f0002000 {
+			compatible = "arm,pl310-cache";
+			reg = <0xf0002000 0x1000>;
+			cache-unified;
+			cache-level = <2>;
+			/* l2 cache latency use default setting */
+			/* arm,tag_latency = <1 2 1>; */
+			/* arm,data_latency = <1 3 1>; */
+		};
+	};
+
+	rct@ec170000 {
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		reg = <0xec170000 0x1000>;
+		ranges;
+
+		usbphy: usbphy@ec170050 {
+			compatible = "ambarella,usbphy";
+			reg = <0xec170050 0x4 0xe001b00c 0x4 0xec1702c0 0x4>;
+			amb,host-phy-num = <1>;
+			amb,owner-mask;
+			amb,owner-invert;
+		};
+	};
+
+	iav {
+		compatible = "ambarella,iav";
+	};
+
+	bogus_bus {
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		dummycodec: codec@0 {
+			compatible = "ambarella,dummycodec";
+		};
+	};
+
+	mdio0: mdio {
+		compatible = "virtual,mdio-gpio";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		gpios = <&gpio 26 0
+			 &gpio 27 0>;
+
+		phy@0{
+			reg = <0>;
+		};
+	};
+
+	amba_lens {
+		compatible = "ambarella,lens";
+		interrupts = <4 0x1>,	/* zoom_timer_irq */
+			   <1 0x1>,	/* focus_timer_irq */
+			   <2 0x1>;	/* iris_timer_irq */
+	};
+
+};

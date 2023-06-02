@@ -1528,6 +1528,13 @@ config SENSORS_MC13783_ADC
         help
           Support for the A/D converter on MC13783 and MC13892 PMIC.
 
+config SENSORS_AMBARELLA_ADC_TEMPER
+	tristate "AMBARELLA ADC temper"
+	help
+	  If you say yes here you get support for the hardware
+	  monitoring functionality of the Ambarella ADC temperature
+	  monitoring functionality.
+
 if ACPI
 
 comment "ACPI drivers"

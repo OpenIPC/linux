@@ -1,0 +1,140 @@
+
+Copyright (C) 2016-2019, Ambarella, Inc.
+Author: Cao Rongrong <rrcao@ambarella.com>
+
+
+Introduction
+============
+
+The kernel supports up to four system sleep states generically.
+From shallowest to deepest, they are:
+1) freeze:   Suspend-To-Idle / ACPI S0
+2) standby:  Standby / Power-On Suspend / ACPI S1
+3) mem:      Suspend-To-RAM / Self-Refresh / STR / ACPI S3
+4) disk:     Suspend-To-Disk / STD / ACPI S4
+
+For details, pelase see Documentation/powr/states.txt
+
+Here we just talk about "mem", i.e., Self-Refresh (abbreviated as SR).
+
+In short words, when system is in SR, all the HWs except for DRAM and PWC are
+powered off.
+
+
+
+SR and DRAM
+============
+
+At present we can support SR with DDR3 and LPDDR3, other DRAM types are not
+tested, yet.
+
+One of the differences between DDR3 and LPDDR3 is that DDR3 has a "RESET" pin
+while LPDDR3 doesn't have. When entering into SR, the "RESET" pin must be pulled
+high. Unfortunately, when in SR state, the SoC will be powered off and pull the
+the "RESET" pin low, so we have to add a workaround with the help of HW design,
+i.e., using a GPIO to control the triode to cut off the "RESET" signal to DRAM.
+
+Different boards design may use different GPIO, and both BST and Kernel need to
+know which GPIO is used to cut off the "RESET" signal.
+1) For BST, we define the GPIO in .ini file by "DRAM_RESET_CTRL_GPIO",
+   please see "ini" section below.
+2) For Kernel, we define the GPIO in .dts file by "ambarella,dram-reset-ctrl",
+   please see "Device Tree" section below.
+
+Note:
+  Although LPDDR3 doesn't have the "RESET" pin, you also need to define the GPIO
+  in .ini file, because this GPIO definition, i.e., "DRAM_RESET_CTRL_GPIO", also
+  acts as another role, that is, tell BST to support SR.
+  In other words, if "DRAM_RESET_CTRL_GPIO" is NOT defined in .ini file, BST will
+  boot system directly, but not check if it's cold boot or resume from SR when
+  powered on.
+  For LPDDR3, you can define "DRAM_RESET_CTRL_GPIO" as any meaningful GPIO as
+  long as this GPIO does not affect system booting.
+
+[!!!IMPORTANT!!!]
+  IF SELF-REFRESH IS NOT USED, "DRAM_RESET_CTRL_GPIO" MUST BE REMOVED FROM .ini
+  FILE, OTHERWISE SYSTEM MAY NOT BOOT UP OR REBOOT SUCCESSFULLY.
+
+
+
+SR and PWC (Power Control)
+==========================
+
+SR must co-work with PWC, and there are two options to use PWC:
+1) internal PWC, but not all SoCs have internal PWC
+2) external PWC (MCU)
+PS: for those SoCs without internal PWC, you have to use external MCU.
+
+If the board design is to use external MCU for power sequence control, the SoC
+needs to communicate with the MCU through a GPIO, and the protocol is:
+1) SoC keeps the GPIO high 100ms to notify MCU to enter self-refresh. After
+100ms, SoC should keep the GPIO low.
+2) MCU notifies SoC the state after powered up:
+2.1) if cold boot, MCU keeps the GPIO high.
+2.2) if resume from SR, MCU keeps the GPIO low.
+
+Different boards design may use different GPIO, and both BST and Kernel need to
+know which GPIO is used to communicate with the external MCU.
+1) For BST, we define the GPIO in .ini file by "MCU_NOTIFY_GPIO",
+   please see "ini" section below.
+2) For Kernel, we define the GPIO in .dts file by "ambarella,gpio-notify-mcu",
+   please see "Device Tree" section below.
+
+Note:
+  It's allowed to either use two separate GPIOs or use one GPIO to communicate
+  between SoC and MCU, it's determined by the MCU firmware.
+
+
+
+Driver Configuration
+====================
+
+Power management options  --->
+         [*] Suspend to RAM and standby
+         [*] User space wakeup sources interface
+         (100) Maximum number of user space wakeup sources (0 = no limit)
+         -*- Device power management core functionality
+
+
+
+Device Tree
+===========
+
+Please see Documentation/devicetree/bindings/arm/ambarella.txt
+               -> 2) - Informational node -> ii) /chosen
+
+
+
+ini
+===
+
+In .ini file, there are two fields related to SR:
+
+1) "DRAM_RESET_CTRL_GPIO", e.g., <DRAM_RESET_CTRL_GPIO value="5"/>
+   No matter DDR3 or LPDDR3, this field has to be set as long as SR is used.
+   Please see the "Note" in "SR and DRAM" section.
+
+2) "MCU_NOTIFY_GPIO", e.g., <MCU_NOTIFY_GPIO value="33"/>
+   This filed need to be set only when external MCU is used. If using internal
+   PWC, this filed must NOT be set.
+
+
+
+Usage
+=====
+
+1) Entering into SR
+root@/#echo mem > /sys/power/state
+
+2) Resume from SR by power button
+Press the button directly
+
+3) Resume from SR by RTC
+root@/#echo enabled > /sys/class/rtc/rtc0/device/power/wakeup
+root@/#rtcwake -s 10 -m mem
+PS: 
+  a) this is available only when using internal PWC.
+  b) rtc,wakeup has to be added into rtc node in DTS.
+
+
+

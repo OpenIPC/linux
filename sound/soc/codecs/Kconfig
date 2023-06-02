@@ -21,12 +21,19 @@ config SND_SOC_ALL_CODECS
 	select SND_SOC_ADAU1373 if I2C
 	select SND_SOC_ADAV80X
 	select SND_SOC_ADS117X
+	select SND_SOC_AMBARELLA_DUMMY
 	select SND_SOC_AK4104 if SPI_MASTER
 	select SND_SOC_AK4535 if I2C
 	select SND_SOC_AK4641 if I2C
 	select SND_SOC_AK4642 if I2C
+	select SND_SOC_AK4642_AMB if I2C
 	select SND_SOC_AK4671 if I2C
 	select SND_SOC_AK5386
+	select SND_SOC_AK4951_AMB if I2C
+	select SND_SOC_AK4954_AMB if I2C
+	select SND_SOC_WM8940_AMB if I2C
+	select SND_SOC_WM8974_AMB if I2C
+	select SND_SOC_AK7755 if SND_SOC_I2C_AND_SPI
 	select SND_SOC_ALC5623 if I2C
 	select SND_SOC_ALC5632 if I2C
 	select SND_SOC_CQ0093VC if MFD_DAVINCI_VOICECODEC
@@ -41,6 +48,9 @@ config SND_SOC_ALL_CODECS
 	select SND_SOC_DA732X if I2C
 	select SND_SOC_DA9055 if I2C
 	select SND_SOC_DFBMCS320
+	select SND_SOC_ES8328 if I2C
+	select SND_SOC_ES8374 if I2C
+	select SND_SOC_ES8388 if I2C
 	select SND_SOC_ISABELLE if I2C
 	select SND_SOC_JZ4740_CODEC
 	select SND_SOC_LM4857 if I2C
@@ -65,6 +75,7 @@ config SND_SOC_ALL_CODECS
 	select SND_SOC_STA529 if I2C
 	select SND_SOC_STAC9766 if SND_SOC_AC97_BUS
 	select SND_SOC_TAS5086 if I2C
+	select SND_SOC_TLV320ADC3xxx if I2C
 	select SND_SOC_TLV320AIC23 if I2C
 	select SND_SOC_TLV320AIC26 if SPI_MASTER
 	select SND_SOC_TLV320AIC32X4 if I2C
@@ -125,6 +136,7 @@ config SND_SOC_ALL_CODECS
 	select SND_SOC_WM9705 if SND_SOC_AC97_BUS
 	select SND_SOC_WM9712 if SND_SOC_AC97_BUS
 	select SND_SOC_WM9713 if SND_SOC_AC97_BUS
+	select SND_SOC_ZL380TW if SND_SOC_I2C_AND_SPI
         help
           Normally ASoC codec drivers are only built if a machine driver which
           uses them is also built since they are only usable with a machine
@@ -190,6 +202,9 @@ config SND_SOC_ADAV80X
 config SND_SOC_ADS117X
 	tristate
 
+config SND_SOC_AMBARELLA_DUMMY
+	tristate
+
 config SND_SOC_AK4104
 	tristate
 
@@ -202,10 +217,28 @@ config SND_SOC_AK4641
 config SND_SOC_AK4642
 	tristate
 
+config SND_SOC_AK4642_AMB
+	tristate
+
 config SND_SOC_AK4671
 	tristate
 
 config SND_SOC_AK5386
+	tristate
+
+config SND_SOC_AK4951_AMB
+	tristate
+
+config SND_SOC_AK4954_AMB
+	tristate
+
+config SND_SOC_WM8940_AMB
+	tristate
+
+config SND_SOC_WM8974_AMB
+	tristate
+
+config SND_SOC_AK7755
 	tristate
 
 config SND_SOC_ALC5623
@@ -267,6 +300,15 @@ config SND_SOC_DFBMCS320
 	tristate
 
 config SND_SOC_DMIC
+	tristate
+
+config SND_SOC_ES8328
+	tristate
+
+config SND_SOC_ES8374
+	tristate
+
+config SND_SOC_ES8388
 	tristate
 
 config SND_SOC_ISABELLE
@@ -524,4 +566,13 @@ config SND_SOC_ML26124
 	tristate
 
 config SND_SOC_TPA6130A2
+	tristate
+
+config SND_SOC_TLV320ADC3xxx
+	tristate
+
+config SND_SOC_ZL380TW
+	tristate
+
+config SND_SOC_RT5670
 	tristate

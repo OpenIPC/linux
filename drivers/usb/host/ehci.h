@@ -664,6 +664,13 @@ ehci_port_speed(struct ehci_hcd *ehci, unsigned int portsc)
 #define writel_be(val, addr)	__raw_writel(val, (__force unsigned *)addr)
 #endif
 
+#if defined(CONFIG_PLAT_AMBARELLA_ADD_REGISTER_LOCK)
+#undef writel
+#undef readl
+#define writel(v, p)		amba_writel(p, v)
+#define readl(p)		amba_readl(p)
+#endif
+
 static inline unsigned int ehci_readl(const struct ehci_hcd *ehci,
 		__u32 __iomem * regs)
 {

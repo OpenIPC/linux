@@ -34,6 +34,8 @@ enum {
 	BLKCIPHER_WALK_SLOW = 1 << 1,
 	BLKCIPHER_WALK_COPY = 1 << 2,
 	BLKCIPHER_WALK_DIFF = 1 << 3,
+	AMBA_CIPHER_COPY = 1 << 4,
+	// add for amba crypto interrupt mode -- cddiao <cddiao@ambarella.com>
 };
 
 static int blkcipher_walk_next(struct blkcipher_desc *desc,

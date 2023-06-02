@@ -18,6 +18,7 @@
 #include <linux/mfd/wm831x/auxadc.h>
 #include <linux/mfd/wm831x/pmu.h>
 #include <linux/mfd/wm831x/pdata.h>
+#include <linux/mfd/wm831x/irq.h>
 
 struct wm831x_power {
 	struct wm831x *wm831x;
@@ -649,8 +650,66 @@ static int wm831x_power_remove(struct platform_device *pdev)
 	power_supply_unregister(&wm831x_power->wall);
 	power_supply_unregister(&wm831x_power->usb);
 	kfree(wm831x_power);
+
 	return 0;
 }
+
+#ifdef CONFIG_PM
+static int wm831x_power_suppend(struct platform_device *pdev,
+	pm_message_t state)
+{
+	int irq, i;
+
+	for (i = 0; i < ARRAY_SIZE(wm831x_bat_irqs); i++) {
+		irq = platform_get_irq_byname(pdev, wm831x_bat_irqs[i]);
+		disable_irq(irq);
+	}
+
+	irq = platform_get_irq_byname(pdev, "PWR SRC");
+	disable_irq(irq);
+
+	irq = platform_get_irq_byname(pdev, "SYSLO");
+	disable_irq(irq);
+
+	return 0;
+}
+
+static int wm831x_power_resume(struct platform_device *pdev)
+{
+	struct wm831x *wm831x = dev_get_drvdata(pdev->dev.parent);
+	struct wm831x_pdata *wm831x_pdata = wm831x->dev->platform_data;
+	int irq, i;
+
+	for (i = 0; i < ARRAY_SIZE(wm831x_bat_irqs); i++) {
+		irq = platform_get_irq_byname(pdev, wm831x_bat_irqs[i]);
+		enable_irq(irq);
+	}
+
+	irq = platform_get_irq_byname(pdev, "PWR SRC");
+	enable_irq(irq);
+
+	irq = platform_get_irq_byname(pdev, "SYSLO");
+	enable_irq(irq);
+
+	if (wm831x_pdata && wm831x_pdata->irq_cmos)
+		i = 0;
+	else
+		i = WM831X_IRQ_OD;
+
+	wm831x_set_bits(wm831x, WM831X_IRQ_CONFIG,
+			WM831X_IRQ_OD, i);
+
+	wm831x_reg_write(wm831x, WM831X_SYSTEM_INTERRUPTS_MASK, 0);
+
+	for(i=0;i<ARRAY_SIZE(wm831x->irq_masks_cur);i++){
+		wm831x_reg_write(wm831x,
+				 WM831X_INTERRUPT_STATUS_1_MASK + i,
+				 wm831x->irq_masks_cache[i]);
+	}
+
+	return 0;
+}
+#endif
 
 static struct platform_driver wm831x_power_driver = {
 	.probe = wm831x_power_probe,
@@ -658,6 +717,10 @@ static struct platform_driver wm831x_power_driver = {
 	.driver = {
 		.name = "wm831x-power",
 	},
+#ifdef CONFIG_PM
+	.suspend = wm831x_power_suppend,
+	.resume = wm831x_power_resume,
+#endif
 };
 
 module_platform_driver(wm831x_power_driver);

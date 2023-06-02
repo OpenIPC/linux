@@ -4218,7 +4218,8 @@ static int wm8994_codec_probe(struct snd_soc_codec *codec)
 		break;
 	}
 
-	wm_hubs_add_analogue_routes(codec, 0, 0);
+	wm_hubs_add_analogue_routes(codec, control->pdata.lineout1_diff,
+				    control->pdata.lineout2_diff);
 	snd_soc_dapm_add_routes(dapm, intercon, ARRAY_SIZE(intercon));
 
 	switch (control->type) {

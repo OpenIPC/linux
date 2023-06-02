@@ -1,0 +1,1434 @@
+Ambarella Platforms Device Tree Bindings
+----------------------------------------
+
+(c) 2013 Cao Rongrong <rrcao@ambarella.com>, Ambarella,Inc.
+
+
+Table of Contents
+=================
+
+  I  - Introduction
+
+  II - Ambarella Node definiton
+    1)  - Root node
+    2)  - Informational node
+    3)  - CPUS node
+    4)  - TWD node
+    5)  - APB/AHB/AXI/RCT node
+    6)  - TIMER node
+    7)  - INTERRUPT node
+    8)  - DMA node
+    9)  - NAND node
+    10) - SPINOR node
+    11) - I2S node
+    12) - UDC node
+    13) - EHCI/OHCI node
+    14) - SD/MMC node
+    15) - ETHERNET node
+    16) - SPI node
+    17) - SLAVE SPI node
+    18) - USBPHY node
+    19) - PINCTRL node
+    20) - GPIO node
+    21) - UART node
+    22) - I2C node
+    23) - I2CMUX node
+    24) - PWM node
+    25) - ADC node
+    26) - IR node
+    27) - WDT node
+    28) - RTC node
+    29) - CRYPTO node
+    30) - IAV node
+    31) - SOUND node
+
+  III - Misc Node definition
+    1)  - BOGUS BUS node
+    2)  - GPIO KEY node
+    3)  - ADC KEY node
+    4)  - PWM BACKLIGHT node
+
+
+
+I - Introduction
+++++++++++++++++
+
+
+1) Reference
+------------
+   a) Documentation/devicetree/booting-without-of.txt
+   b) Documentation/devicetree/usage-model.txt
+   c) http://devicetree.org/Device_Tree_Usage
+   d) https://wiki.freebsd.org/FlattenedDeviceTree
+   e) http://xillybus.com/tutorials/device-tree-zynq-1
+
+2) Abbreviations
+----------------
+   a) FDT: Flattened Device Tree
+   b) OF:  Open Firmware
+   c) DTS: Device Tree Source
+   d) DTB: Device Tree Blob
+   e) DTC: Device Tree Compiler
+
+3) Summary
+----------
+Device Tree is essentially a data structure in byte code format (that is, not
+human-readable) which contains information that is helpful to the kernel when
+booting up. The boot loader copies that chunk of data into a known address in
+the RAM before jumping to the kernel's entry point.
+
+The device tree comes in three forms:
+   DTS: the source of FDT, which is a plain txt file.
+   DTB: the binary blob of FDT, which will be copied to RAM.
+   /proc/device-tree: a file system in a running Linux, normally for debug.
+
+In a normal flow, the DTS file is edited and compiled into a DTB file using a
+special compiler named DTC. You can find DTC in the Linux kernel sources, or
+download it by "git clone git://www.jdl.com/software/dtc.git dtc".
+
+For Ambarella, the DTS for specific board is:
+   $PROJECT/ambarella/boards/$BOARD/bsp/$BOARD.dts
+which will include the DTS for specific ambarella SoC chip:
+   arch/arm/boot/dts/ambarella-$SoC.dtsi
+Normally, it's NOT recommended to modify the DTS for ambarella SoC chip.
+
+
+II - Node definiton
++++++++++++++++++++
+
+
+1) - Root node
+==============
+
+
+i) Properties
+-------------
+Required properties:
+- model: "Ambarella <SoC> <BOARD>", can be modified according to the board.
+- compatible: should be "ambarella,<SoC>";
+- interrupt-parent: <&intc>, or <&gic>, See Interrupt below for more detail.
+
+ii) Example
+----------
+/ {
+	model = "Ambarella S2L Hawthorn Board";
+	compatible = "ambarella,hawthorn", "ambarella,s2l";
+	interrupt-parent = <&intc>;
+  }
+
+
+2) - Informational node
+========================
+
+
+i) /aliases
+-----------
+Please see http://devicetree.org/Device_Tree_Usage#aliases_Node
+
+ii) /chosen
+-----------
+Please see http://devicetree.org/Device_Tree_Usage#chosen_Node
+           Documentation/devicetree/booting-without-of.txt
+
+iii) /memory
+------------
+   Please see Documentation/devicetree/booting-without-of.txt
+   For Ambarella, the /memory node will be overwritten in Amboot.
+
+iv) Example
+-----------
+	aliases {
+		serial0 = &uart0;
+		serial1 = &uart1;
+		nand = &nand0;
+		i2c0 = &i2c0;
+		i2c1 = &i2c1;
+		i2c2 = &i2c2;
+		spi0 = &spi0;
+		spi1 = &spi1;
+		spinor = &spinor0;
+		ethernet0 = &mac0;
+	};
+
+	/* the memory node will be overwritten in Amboot,
+	 * here is just the default value. */
+	memory {
+		device_type = "memory";
+		reg = <0x00200000 0x07e00000>; /* 126M */
+	};
+
+	chosen {
+		bootargs = "console=ttyS0 ubi.mtd=lnx root=ubi0:rootfs rw rootfstype=ubifs init=/linuxrc";
+	};
+
+
+3) - CPUS node
+==============
+
+
+i) Reference
+------------
+Please see Documentation/devicetree/bindings/arm/cpus.txt
+
+ii) Properties
+- amb,core-div: this prop should be 1 or 2, this specified the divide of gclk_core from pll_out_core,
+  for s2e and s5, this value should be 1; and for s2l, s3l, this should be 2. If you don't add this prop,
+  the divide for gclk_core is 2 as default.
+- cpufreq_tbl: Table of frequencies gclk_cortex and gclk_core could be transitioned
+  into, in the unit of nanoseconds.
+- clock-latency: Specify the possible maximum transition latency for clock, in
+  unit of nanoseconds.
+
+
+4) - TWD node
+=============
+
+
+i) Reference
+------------
+Please see Documentation/devicetree/bindings/arm/twd.txt
+
+ii) Description
+---------------
+This node is only available for SoC chip that supports per-cpu local timer,
+i.e., S2.
+
+
+5) - APB/AHB/AXI/RCT node
+=========================
+
+
+i) Summary
+----------
+The apb/ahb/axi/rct nodes represent the BUS inside the SoC, each node may
+contain many device nodes which connect to the corresponding bus.
+PS: RCT is not a real bus, just means a serial of registers address space.
+
+ii) Properties
+--------------
+Required properties:
+- compatible: should be "simple-bus".
+- #address-cells: should be 1.
+- #size-cells: should be 1.
+- reg: address range of the registers in each bus.
+- ranges:
+
+
+6) - TIMER node
+===============
+
+
+i) Properties
+-------------
+Required properties:
+- compatible: should be
+  a) "ambarella,clock-source": for timer used as clock source.
+  b) "ambarella,clock-event":  for timer used as clock event.
+- reg : specifies base physical address and size of the registers. The last
+  pair for the timer-ctrl register which is shared by all of the timers.
+- interrupts: the interrupt for this timer.
+- ctrl-offset: bit offset in timer-ctrl reg for this timer.
+
+ii) Example
+-----------
+	timer7: timer@e800b064 {
+		compatible = "ambarella,clock-source";
+		reg = <0xe800b064 0x10 0xe800b030 0x4>;
+		interrupts = <62 0x1>;
+		ctrl-offset = <24>; /* bit offset in timer-ctrl reg */
+	};
+
+
+7) - INTERRUPT node
+===================
+
+
+i) Reference
+------------
+Please see Documentation/devicetree/bindings/interrupt-control/interrupts.txt
+
+ii) Properties
+--------------
+a) Ambarella VIC:
+Required properties:
+- compatible: should be "ambarella,vic".
+- interrupt-controller: marks the node as an interrupt controller
+- #interrupt-cells: should be 2, specifies the number of cells to define the
+  interrupts. The first cell defines the index of the interrupt within the
+  controller, while the second cell is used to specify any of the following
+  flags:
+    1 = low-to-high edge triggered.
+    2 = high-to-low edge triggered.
+    4 = active high level-sensitive.
+    8 = active low level-sensitive.
+- reg: specifies base physical address and size of the registers.
+
+b) GIC:
+Please see Documentation/devicetree/bindings/arm/gic.txt
+
+iii) Example
+------------
+a) Ambarella VIC:
+	intc: interrupt-controller@e0003000 {
+		compatible = "ambarella,vic";
+		interrupt-controller;
+		#interrupt-cells = <2>;
+		reg = <0xe0003000 0x1000>,
+		      <0xe0010000 0x1000>,
+		      <0xe001c000 0x1000>;
+	};
+
+b) GIC:
+	gic: interrupt-controller@f0001000 {
+		compatible = "arm,cortex-a9-gic";
+		interrupt-controller;
+		#interrupt-cells = <3>;
+		reg = <0xf0001000 0x1000>,
+			  <0xf0000100 0x0100>;
+	};
+
+
+8) - DMA node
+=============
+
+
+i) Properties
+-------------
+Required properties:
+- compatible: should be "ambarella,dma".
+- reg: specifies base physical address and size of the registers.
+- interrupts: the interrupt for the DMA controller.
+- #dma-cells: Must be at least 1. Used to provide DMA controller
+			specific information. See DMA client binding below for
+			more details.
+- dma-channels: 	Number of DMA channels supported by the controller.
+- dma-requests: 	Number of DMA requests signals supported by the
+			controller.
+- dma-trans-type:   specifies the dma channel use type.
+					0 for memcpy, 1 for slave.
+
+Optional properties:
+- amb,copy-align: specifies alignment requirement for previous chips.
+- amb,support-prs: should be specified for SoC that supports PAUSE/RESUME/STOP.
+- dma-channel-sel: should be specified for Soc that support dma channel sel.
+  different value is used for selecting the device.
+  e.g., 0 for ssi0_tx, 1 for ssi0_rx, 10 for i2s_tx, 11 for i2s_rx.
+
+ii) Example
+-----------
+	dma@e0005000 {
+		compatible = "ambarella,dma";
+		reg = <0xe0005000 0x1000>;
+		interrupts = <15 0x4>;
+		#dma-cells = <2>;
+		dma-channels = <8>;
+		dma-requests = <12>;
+		dma-trans-type = <1 1 0 0 1 1 1 1>; /* 0-memcpy ,1-slave*/
+		dma-channel-sel = <4 5 0 0 8 9 11 10>;
+	};
+
+
+9) - NAND node
+==============
+
+
+i) Reference
+------------
+Please see Documentation/devicetree/bindings/mtd/nand.txt
+
+ii) Properties
+--------------
+Required properties:
+- compatible: should be "ambarella,nand".
+- #address-cells: should be 1.
+- #size-cells: should be 1.
+- reg: specifies base physical address and size of the registers.
+- interrupts: the interrupt for the NAND controller.
+
+Optional properties:
+- nand-on-flash-bbt: please see Reference.
+- amb,enable-wp: specifies to enable write protection
+- amb,no-bch: should be specified for SoC without BCH supported.
+- amb,use-2x-pll: should be specified only for A5S.
+- amb,soft-ecc: specifies to use software ECC instead of hardware ECC, the
+  value should be as:
+    1 = 1 bit software ECC
+    6 = 6 bit software ECC
+    8 = 8 bit software ECC
+- amb,timing: an integer array with size 6, the array is used to specify the
+  NAND timing, like tcls/tals/tcs/..., which can be found in NAND datasheet.
+  Please note that this property is provided by Amboot in runtime.
+
+iii) Subnode
+------------
+Please see Documentation/devicetree/bindings/mtd/partition.txt, and please
+note that the subnodes for partitions are provided by Amboot in runtime.
+
+iv) Example
+-----------
+	nand0: nand@e0001000 {
+		compatible = "ambarella,nand";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		reg = <0xe0001000 0x1000>, /* fio reg address */
+		      <0xe0012000 0x1000>, /* fdma reg address */
+		      <0xe0000000 0x4>;    /* fifo base */
+		interrupts = <16 0x4>,	/* fio_cmd_irq */
+			     <17 0x4>,	/* fio_dma_irq */
+			     <33 0x4>;	/* fdma_irq */
+		nand-on-flash-bbt;
+		/* amb,soft-ecc = <1>; */
+		/* amb,enable-wp; */
+	};
+
+
+10) - SPINOR node
+=================
+
+
+i) Properties
+-------------
+Required properties:
+- compatible: should be "ambarella,spinor".
+- reg: specifies base physical address and size of the registers.
+
+ii) Example
+-----------
+	spinor0: spinor@e0031000 {
+		compatible = "ambarella,spinor";
+		reg = <0xe0031000 0x2ff>, /* spi nor controller */
+		      <0xe0005300 0x20>;  /* dma reg */
+	};
+
+
+11) - I2S node
+==============
+
+
+i) Properties
+-------------
+Required properties:
+- compatible: should be "ambarella,i2s".
+- reg: specifies base physical address and size of the registers.
+- pinctrl-names: should contain only one value - "default".
+- pinctrl-0: pin control group to be used for this controller.
+- amb,i2s-channels: should be one of these values: 2, 4, 6.
+- amb,default-mclk: specifies the initial mclk frequency in HZ.
+
+ii) Example
+-----------
+	i2s0: i2s@e001a000 {
+		compatible = "ambarella,i2s";
+		reg = <0xe001a000 0x1000>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&i2s0_pins>;
+		amb,i2s-channels = <2>;
+		amb,default-mclk = <12288000>;
+	};
+
+
+12) - UDC node
+==============
+
+
+i) Properties
+-------------
+Required properties:
+- compatible: should be "ambarella,udc".
+- reg: specifies base physical address and size of the registers.
+- interrupts: the interrupt for the UDC controller.
+- amb,usbphy: specifies the phandle to USB PHY.
+
+Optional properties:
+- amb,dma-addr-fix: should be specified only for S2.
+
+ii) Example
+-----------
+	udc@e0006000 {
+		compatible = "ambarella,udc";
+		reg = <0xe0006000 0x2000 0xec1702cc 0x4>;
+		interrupts = <4 0x4>;
+		amb,usbphy = <&usbphy>;
+	};
+
+
+13) - EHCI/OHCI node
+====================
+
+
+i) Properties
+-------------
+Required properties:
+- compatible: should be "ambarella,ehci", or "ambarella,ohci".
+- reg: specifies base physical address and size of the registers.
+- interrupts: the interrupt for the EHCI/OHCI controller.
+- amb,usbphy: specifies the phandle to USB PHY.
+
+Optional properties:
+- amb,dma-addr-fix: should be specified only for S2.
+
+ii) Example
+-----------
+	ehci@e0018000 {
+		compatible = "ambarella,ehci";
+		reg = <0xe0018000 0x1000>;
+		interrupts = <39 0x4>;
+		amb,usbphy = <&usbphy>;
+	};
+
+	ohci@e0019000 {
+		compatible = "ambarella,ohci";
+		reg = <0xe0019000 0x1000>;
+		interrupts = <44 0x4>;
+		amb,usbphy = <&usbphy>;
+		status = "disabled";
+	};
+
+
+14) - SD/MMC node
+=================
+
+
+i) Reference
+------------
+Please see Documentation/devicetree/bindings/mmc/mmc.txt
+
+ii) Properties
+--------------
+Required properties:
+- compatible: should be "ambarella,sdmmc".
+- reg: specifies base physical address and size of the registers.
+- #address-cells: should be 1.
+- #size-cells: should be 0.
+- interrupts: the interrupt for the SD controller.
+- amb,clk-name: specifies the PLL name of this SD controller, should be one
+  of these strings: "gclk_sd", "gclk_sdio", "gclk_sdxc".
+- amb,wait-tmo: specifies the timeout in millisecond to wait for CMD complete.
+- amb,switch-vol-tmo: specifies the timeout to enable clk after switch voltage
+  from 3.3v to 1.8v.
+- amb,max-blk-size: specifies the maximal block size, should be multiple of 4k.
+
+Optional properties:
+- amb,dma-addr-fix: should be specified only for S2.
+- amb,soft-phy: should be specified for SD controllers to adjust timing base on
+  SD phy.
+- amb,phy-timing: an integer array which is used to specify the SD phy timing,
+  the size of the array is different according to corresponding phy register
+  for each chips or SD controllers, and the values are gotten by SD shmoo in
+  Amboot.
+  For the SD controller to ajust timing base on SD controller, like S3L and later
+  chip, the array is orgnized as: <mode SD_DELAY_SEL_L SD_DELAY_SEL_H>;
+  For the SD controller to ajust timing base on SD phy, like S2E SD0, S2L, S3L, the
+  array is orgnized as: <mode phy_ctrl0_val latency_ctrl_val>;
+  For the SD controller only supporting ms delay mux, like S2E SD1, the array
+  is orgnized as: <mode ms_delay_ctrl_mask ms_delay_ctrl_val>;
+  Here mode is the ORed value of SD card working modes like sdr104, ddr50 and
+  etc., and the later 2 items are values written to corresponding phy registers.
+  Following is the definition of each bits for mode:
+  bit0: specify the default phy timing setting, so bit0 must be reserved as 1, and
+  followed by default phy timing setting. PS: it's a MUST to define the default phy
+  timing setting with bit0 set, and it MUST be placed in the first row.
+  bit1: MMC HS; bit2: SD HS;
+  bit3: SDR12; bit4: SDR25; bit5: SDR50; bit6: SDR104; bit7: DDR50
+  bit8: MMC HS200
+  In fact, the definition for each bit of mode comes from the following
+  definition which are defined in include/linux/mmc/host.h:
+    #define MMC_TIMING_LEGACY	0
+    #define MMC_TIMING_MMC_HS	1
+    #define MMC_TIMING_SD_HS	2
+    #define MMC_TIMING_UHS_SDR12	3
+    #define MMC_TIMING_UHS_SDR25	4
+    #define MMC_TIMING_UHS_SDR50	5
+    #define MMC_TIMING_UHS_SDR104	6
+    #define MMC_TIMING_UHS_DDR50	7
+    #define MMC_TIMING_MMC_HS200	8
+
+Example for ajusting timing base sd controller on s3l platform:
+		sdmmc0: sdmmc0@e0002000 {
+			compatible = "ambarella,sdmmc";
+			reg = <0xe0002000 0x1000>,
+			      <0xe0001000 0x80>;/* fio reg address */
+			amb,max-blk-size = <131072>; /* valid value: 4K<<n */
+			amb,soft-phy;
+			amb,phy-timing = <0x00000007 0x00000000 0x00000000>,/*HS 50M and 25M*/
+					/*sdr25 50M,sdr50 100M,sdr104 120M*/
+					<0x00000078 0x10410400 0x00904104>,
+					<0x00000080 0x38E38E00 0x0238E38E>;/*DDR50 50M*/
+			slot@0 {
+
+			};
+		};
+
+
+Example for ajusting timing base sd phy on s3l platform:
+		sdmmc0: sdmmc0@e0002000 {
+			compatible = "ambarella,sdmmc";
+			reg = <0xe0002000 0x1000>,
+			      <0xe0001000 0x80>;/* fio reg address */
+			      <0xec1704c0 0x8>;/*should specify the phy register*/
+
+			amb,soft-phy;
+			amb,phy-timing = <0x00000001 0x04070000 0x00000000>,
+					/*sdr12 24M,sdr25 50M,sdr50 100M*/
+					<0x00000038 0x00000003 0x00001111>,
+					<0x00000040 0x00000005 0x00002222>,/*sdr104 200M*/
+					<0x00000080 0x000C0005 0x00000000>;/*ddr50 50M*/
+			slot@0 {
+
+			};
+		};
+
+iii) Subnode
+------------
+The SD/MMC node should contain subnodes which represent the slot belong to
+this controller.
+
+The unit address of subnodes should be its index of the slot. And the subnode
+should contain the following properties.
+- reg: index of the slot, normally the same as the unit address.
+- global-id: specify the global id for each slot, it should be unique for all
+  of the slots.
+- amb,fixed-cd: should be specified if no cd pin, 0: no sd card, 1: sd card is
+always present
+- amb,fixed-wp: should be specified if no wp pin, 0: write-able, 1: read-only
+- amb,caps-adma: should be specified if hardware supports ADMA.
+- amb,caps-ddr: should be specified if hardware supports DDR.
+- no-1-8-v: should be specified if the slot don't have 1.8V circuit.
+- v18-gpios: specifies the GPIO to switch to the 1.8V power if existed.
+- pwr-gpios: specifies the GPIO to turn on/off the power for the SD/MMC card.
+- amb,force-gpio: force the SD/MMC pins to switch to GPIO mode when in idle,
+  should be specified only for A5S SDIO slot.
+- pinctrl-names: should contain only one value - "default".
+- pinctrl-0: pin control group to be used for this controller.
+- properties provided by Kernel, please see Reference above.
+
+iv) Example
+-----------
+	sdmmc0@e0002000 {
+		compatible = "ambarella,sdmmc";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0xe0002000 0x1000>,
+		      <0xe0001000 0x80>; /* fio reg address */
+		interrupts = <18 0x4>;
+		amb,clk-name = "gclk_sd";
+		amb,wait-tmo = <2500>; /* in millisecond */
+		amb,max-blk-size = <131072>; /* valid value: 4K<<n */
+
+		slot@0 {
+			reg = <0>;
+			max-frequency = <48000000>;
+			bus-width = <8>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&sdmmc1_pins_8bit>;
+			amb,caps-adma;
+			cap-sdio-irq;
+		};
+	};
+
+
+15) - ETHERNET node
+===================
+
+
+i) Properties
+-------------
+Required properties:
+- compatible: should be "ambarella,eth".
+- #address-cells: should be 1.
+- #size-cells: should be 0.
+- reg: specifies base physical address and size of the registers.
+- interrupts: the interrupt for the ethernet controller.
+
+Optional properties:
+- pwr-gpios: specifies the GPIO to control PHY power.
+- rst-gpios: specifies the GPIO to reset PHY.
+- amb,support-gmii: should be specified if hardware supports GMII.
+- amb,tx-ring-size: specifies the Tx ring buffer size.
+- amb,rx-ring-size: specifies the Rx ring buffer size.
+- amb,fixed-speed: should be specified if connecting without PHY.
+- amb,ipc-tx: should be specified if hardware supports Tx checksum.
+- amb,ipc-rx: should be specified if hardware supports Rx checksum.
+- amb,dump-tx: specifies to dump Tx buffer, for debug purpose.
+- amb,dump-rx: specifies to dump Rx buffer, for debug purpose.
+- amb,dump-rx-free: specifies to free buffer after dumped.
+- amb,dump-rx-all: specifies to dump all buffers without filter.
+- amb,mdio-gpio: specifies using mdio gpio to access phy.
+- amb,clk-src: specifies the clk source for gtx_clk, 0:external clk, 1:internal clk.
+- amb,clk-invert: specifies to invert the clk for ethernet, 0: no invert, 1: invert
+- amb,clk-dir: specifies the ref clk direction from PHY, 1: set direction of xx_enet_clk_rx as output from ambarella chip,
+  0: set direction of xx_enet_clk_rx as output from external phy.
+ii) Example
+-----------
+	mac0: ethernet@e000e000 {
+		compatible = "ambarella,eth";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0xe000e000 0x2000>;
+		interrupts = <27 0x4>;
+		amb,tx-ring-size = <32>;
+		amb,rx-ring-size = <64>;
+		amb,ipc-tx;
+		amb,ipc-rx;
+	};
+
+
+16) - SPI node
+===============
+
+
+i) Reference
+------------
+Please see Documentation/devicetree/bindings/spi/spi-bus.txt
+
+
+ii) Properties
+--------------
+Required properties:
+- compatible: should be "ambarella,spi".
+- #address-cells: should be 1.
+- #size-cells: should be 0.
+- reg: specifies base physical address and size of the registers.
+- interrupts: the interrupt for the SPI controller.
+- amb,clk-freq: specifies the PLL frequence in HZ.
+- amb,msb-first-only: HW only supports msb first tx/rx, for A5S/S2/S2E, please
+  set this flag.
+- cs-gpios: gpios chip select. Please see Reference for detailed.
+
+Optional properties:
+- amb,dma-used: use dma for TX/RX, only can be specified if SPI channel
+  supports dma mode.
+- dmas: specify dma channel
+- dma-names: specify dma channel name.
+
+iii) Subnode
+------------
+The SPI node can contain subnodes which represent the spi devices connected
+to this SPI controller. If any valid subnode are available, the SPI drivers
+will proble them automatically.
+
+The subnodes should contain the following properties.
+- compatible: name of the SPI device, should match the name of its drivers.
+- reg: index of the SPI device, normally the same as the unit address.
+- properties provided by Kernel: please see Reference.
+
+iv) Example
+-----------
+	spi0: spi@e0020000 {
+		compatible = "ambarella,spi";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0xe0020000 0x1000>;
+		interrupts = <35 0x4>;
+		amb,clk-name = "gclk_ssi_ahb";
+		amb,clk-freq = <54000000>;
+		cs-gpios = <&gpio 37 0>, <&gpio 38 0>, <&gpio 23 0>;
+
+		sensor: sensor@0 {
+			compatible = "ambarella,sensor";
+			reg = <0>;
+			spi-max-frequency = <1000000>;
+			spi-cpha;
+			spi-cpol;
+		};
+	};
+
+
+17) - SLAVE SPI node
+====================
+
+
+i) Properties
+-------------
+Required properties:
+- compatible: should be "ambarella,spi-slave".
+- reg: specifies base physical address and size of the registers.
+- interrupts: the interrupt for the slave spi controller.
+
+ii) Example
+-----------
+	spi_slave@e0026000 {
+		compatible = "ambarella,spi-slave";
+		reg = <0xe0026000 0x1000>;
+		interrupts = <38 0x4>;
+	};
+
+
+18) - USBPHY node
+=================
+
+
+i) Properties
+-------------
+Required properties:
+- compatible: should be "ambarella,usbphy".
+- reg: specifies base physical address and size of the registers.
+
+Optional properties:
+- amb,host-phy-num: specifies the PHY number used for host.
+- amb,owner-mask: Mask IDDIG0, should be specified for S2L.
+- amb,owner-invert: the owner bit for USB PHY is inverted, should be specified
+  for S2L.
+- amb,ocp-polarity: specifies the polarity of over current protection pin.
+- id-gpios: specifies the input GPIO used for OTG detection.
+- md-gpios: specifies the output GPIO to control external circuit to switch to
+  host mode or device mode.
+- hub-gpios: specifies the GPIO to reset the usb hub.
+
+ii) Example
+-----------
+	usbphy: usbphy@ec170050 {
+		compatible = "ambarella,usbphy";
+		reg = <0xec170050 0x4 0xe001b00c 0x4 0xec1702c0 0x4>;
+		amb,host-phy-num = <2>;
+		amb,owner-offset = <0x1001>;
+	};
+
+
+19) - PINCTRL node
+==================
+
+
+i) Reference
+------------
+Please see Documentation/devicetree/bindings/pinctrl/pinctrl-bindings.txt
+
+ii) Description
+---------------
+The pins controlled by Ambarella SoC chip are organized in banks, each bank
+has 32 pins.  Each pin has at least 2 multiplexing functions, and generally,
+the first function is GPIO.
+
+The PINCTRL node acts as a container for an arbitrary number of subnodes. And
+these subnodes will fall into two categories.
+One is for GPIO, please see the "GPIO node" section for detail, and another one
+is to set up a group of pins for a function, both pin configurations(TODO) and
+mux selection, and it's called group node in the binding document.
+
+
+iii) Properties
+---------------
+Required properties:
+- compatible: should be "ambarella,pinctrl", "simple-bus".
+- #address-cells: should be 1.
+- #size-cells: should be 0.
+- reg: specifies base physical address and size of the registers.
+- #gpio-range-cells: should be 3.
+
+Optional properties:
+- reg-names: "gpio0", "gpio1", ... , "gpioN", ["iomux"], should be specified
+  if the SoC supports IOMUX, e.g., S2L.
+
+
+iv) Subnode
+-----------
+On Ambarella SoC chip, there is no hardware pin group. The pin group in this
+binding only means a group of pins put together for particular peripheral to
+work in particular function.  That said, the group node should include all the
+pins needed for one function rather than having these pins defined in several
+group nodes.  It also means each of "pinctrl-*" phandle in client device node
+should only have one group node pointed in there.
+
+Required subnode-properties:
+- reg: Should be the index of the group nodes for same function.
+- amb,pinmux-ids: an integer array. Each integer in the array specifies a pin
+  with given mux function, with pin id and mux packed as:
+    mux << 12 | pin id
+  Here mux means function of this pin, and pin id is identical to gpio id. For
+  the SoC supporting IOMUX, like S2L, the maximal value of mux is 5. However,
+  for the SoC not supporting IOMUX, like A5S, S2, the third or fourth function
+  is selected by other "virtual pins" setting. Here the "virtual pins" means
+  there is no real hardware pins mapping to the corresponding register address.
+  So the registers for the "virtual pins" can be used for the selection of 3rd
+  or 4th function for other real pins.
+- amb,pinconf-ids: an integer array. Each integer in the array specifies a pin
+  with given configuration, with pin id and config packed as:
+    config << 16 | pin id
+  Here config is used to configure pull up/down and drive strength of the pin,
+  and it's orgnization is:
+  bit1~0: 00: pull down, 01: pull up, 1x: clear pull up/down
+  bit2:   reserved
+  bit3:   0: leave pull up/down as default value, 1: config pull up/down
+  bit5~4: drive strength value, 0: 2mA, 1: 4mA, 2: 8mA, 3: 12mA
+  bit6:   reserved
+  bit7:   0: leave drive strength as default value, 1: config drive strength
+
+v) Example
+----------
+	pinctrl: pinctrl@e8009000 {
+		compatible = "ambarella,pinctrl", "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0xe8009000 0x1000>,
+		      <0xe800a000 0x1000>,
+		      <0xe800e000 0x1000>,
+		      <0xe8010000 0x1000>,
+		      <0xe8016000 0x1000>;
+		reg-names = "gpio0", "gpio1", "gpio2", "gpio3", "iomux";
+		#gpio-range-cells = <3>;
+
+		uart0_pins: uart0@0 {
+			reg = <0>;
+			amb,pinmux-ids = <0x1027 0x1028>;
+		};
+
+		sdmmc0_pins_4bit: sdmmc0@1 {
+			reg = <1>;
+			amb,pinmux-ids = <0x2039 0x203a 0x203b 0x203c
+							  0x2049 0x204a 0x204b 0x204c>;
+			amb,pinconf-ids = <0x090039 0xb0003a 0xaa003b 0x00003c>;
+		};
+	}
+
+In this example, uart0_pins defines a group of pins used by uart0 controller,
+according to the definition, uart0 uses 2 pins which are pin39(0x27) and
+pin40(0x28), i.e., GPIO39 and GPIO40. And, pin39/pin40 use function 1.
+And, sdmmc0_pins_4bit defines a group of pins used by sd0 controller, according
+to the definition, sd0 uses 8 pins. And pin57 enables pull up, pin58 configure
+drive strength to 12mA, pin59 clear pull up/down and configure drive strength
+to 8mA, pin60 leave pull up/down and drive strength as default value.
+
+
+20) - GPIO node
+===============
+
+
+i) Reference
+------------
+Please see Documentation/devicetree/bindings/gpio/gpio.txt
+
+ii) Description
+---------------
+The Ambarella GPIO controller is part of Ambarella PIN controller. The GPIOs
+are organized in bank. Each port consists of 32 GPIOs.
+
+As the GPIO controller is embedded in the PIN controller and all the GPIO
+ports share the same IO space with PIN controller, the GPIO node will be
+represented as sub-nodes of Ambarella PINCTRL node.
+
+iii) Properties
+---------------
+Required properties:
+- compatible: should be "ambarella,gpio".
+- interrupts: the interrupts for each GPIO bank.
+- gpio-controller : marks the device node as a gpio controller.
+- #gpio-cells : should be two. The first cell is the pin number and the second
+  cell is used to specify the gpio polarity:
+    0 = active high.
+    1 = active low.
+- gpio-ranges: speicify the ranges that may be handled by the pin controller.
+- interrupt-controller: marks the device node as an interrupt controller.
+- #interrupt-cells : should be 2. The first cell is the GPIO number. The second
+  cell bits[3:0] is used to specify trigger type and level flags:
+    1 = low-to-high edge triggered.
+    2 = high-to-low edge triggered.
+    4 = active high level-sensitive.
+    8 = active low level-sensitive.
+
+iv) Example
+-----------
+	gpio: gpio@0 {
+		compatible = "ambarella,gpio";
+		/* gpio interrupts to vic */
+		interrupts = <10 0x4 11 0x4 30 0x4 29 0x4>;
+		gpio-controller;
+		#gpio-cells = <2>;
+		gpio-ranges = <&pinctrl 0 0 128>;
+		interrupt-controller;
+		#interrupt-cells = <2>;
+	};
+
+v) GPIO user nodes example
+--------------------------
+	spi0: spi@e0020000 {
+		......
+		cs-gpios = <&gpio 37 0>, <&gpio 38 0>, <&gpio 23 0>;
+		......
+	};
+
+  DESCRIPTION:
+    cs-gpios = GPIO properties name;
+    &gpio    = phandle to the GPIO controller node;
+    37/38/39 = the GPIO id;
+    0        = normal polarity.
+  Please see Reference for detailed.
+
+
+21) - UART node
+===============
+
+
+i) Properties
+-------------
+Required properties:
+- compatible: should be "ambarella,uart".
+- reg: specifies base physical address and size of the registers.
+- interrupts: the interrupt for this uart.
+- pinctrl-names: should contain only one value - "default".
+- pinctrl-0: pin control group to be used for this controller.
+
+Optional properties:
+- amb,tx-fifo-fix: should be specified for A7L, iONE and A8
+- amb,msr-used: use Modem Status Register, should be specified for non-UART0.
+- amb,less-reg: registers like FIFO status register are NOT provided, should be
+  specified for A5S.
+- amb,txdma-used: use dma for transmitting, should be specified if uart hardware
+  supports dma mode.
+- amb,rxdma-used: use dma for receiving, should be specified if uart hardware
+  supports dma mode.
+
+ii) Example
+-----------
+	uart0: uart@e8005000 {
+		compatible = "ambarella,uart";
+		reg = <0xe8005000 0x1000>;
+		interrupts = <9 0x4>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&uart0_pins>;
+		status = "ok";
+		/* amb,tx-fifo-fix; */
+	};
+
+
+22) - I2C node
+==============
+
+
+i) Properties
+-------------
+Required properties:
+- compatible: should be "ambarella,i2c".
+- #address-cells: should be 1.
+- #size-cells: should be 0.
+- reg: specifies base physical address and size of the registers.
+- interrupts: the interrupt for this i2c.
+- pinctrl-names: should contain only one value - "default".
+- pinctrl-0: pin control group to be used for this controller.
+- clock-frequency: desired I2C bus clock frequency in Hz, [1000, 400000].
+- amb,i2c-class:
+  a) 0x81: normal I2C controller
+  b) 0x08: I2C controller dedicated to HDMI
+- amb,turbo-mode: use turbo(FIFO) write mode, batched data will be write into FIFO
+directly, but there're 2 restriction for this mode:
+  1) FIFO mode will ignore device ACK.
+  2) FIFO mode can only write less than or equal to 61 data(FIFO depth) into FIFO at a time.
+- amb,duty-cycle: the duty cycle of clock, and the value can be:
+    0 = duty cycle 1:1, this is the default setting.
+    1 = duty cycle 2:3.
+    2 = duty cycle 1:2.
+- amb,stretch-scl: extend the SCL clock to tune START/STOP setup and hold timing,
+  the default value is 1 if this option is not specified.
+
+ii) Subnode
+-----------
+The I2C node can contain subnodes which represent the I2C devices connected
+to this I2C controller. If any valid subnode are available, the I2C drivers
+will proble them automatically.
+
+The unit address of subnodes should be its device address in I2C bus. And the
+subnode should contain the following properties.
+- compatible: name of I2C device, should match the name of its drivers.
+- reg: device address in the I2C bus, normally the same as the unit address.
+
+iii) Example
+------------
+	i2c0: i2c@e8003000 {
+		compatible = "ambarella,i2c";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0xe8003000 0x1000>;
+		interrupts = <19 0x4>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&i2c0_pins>;
+		clock-frequency = <100000>;
+		amb,i2c-class = <0x81>;
+		amb,turbo-mode;
+		amb,duty-cycle = <0>;
+		amb,stretch-scl = <1>;
+		status = "ok";
+
+		ak4642: codec@12 {
+			compatible = "ambarella,ak4642";
+			reg = <0x12>;
+			gpios = <&pca9539 4 0x0>;
+		};
+	};
+
+
+23) - I2CMUX node
+=================
+
+
+i) Reference
+------------
+Please see Documentation/devicetree/bindings/i2c/i2c-mux-pinctrl.txt
+
+ii) Description
+---------------
+This node is only available for SoC chip that supports I2C Mux, i.e., A5S.
+
+
+24) - PWM node
+==============
+
+
+i) Reference
+------------
+Please see Documentation/devicetree/bindings/pwm/pwm.txt
+
+ii) Properties
+--------------
+Required properties:
+- compatible: should be "ambarella,pwm".
+- reg: specifies base physical address and size of the registers.
+- #pwm-cells: should be 3.
+
+iii) Example
+----------
+	pwm: pwm@e8008000 {
+		compatible = "ambarella,pwm";
+		reg = <0xe8008000 0x1000>;
+		#pwm-cells = <3>;
+	};
+
+iv) PWM user nodes example
+--------------------------
+	backlight {
+		......
+		pwms = <&pwm 2 40000 0>;
+		......
+	};
+
+  DESCRIPTION:
+    pwms = PWM properties name;
+    &pwm = phandle to the PWM controller node;
+    2    = the PWM number or channel;
+    4000 = the PWM period in nanoseconds.
+    0    = normal polarity
+  Please see Reference for detailed.
+
+
+25) - ADC node
+==============
+
+
+i) Properties
+-------------
+
+Required properties:
+- compatible: should be "ambarella,adc".
+- reg: specifies base physical address and size of the registers.
+- interrupts: the interrupt for adc.
+- clock-frequency: desired ADC clock frequency in Hz.
+- amb,polling-mode: specified if ADC is working in polling mode, must be
+  specified for A5S.
+
+Optional properties:
+- amb,print-key: print Key code when key is pressed, for debug purpose.
+
+ii) Example
+-----------
+	adc@e801d000 {
+		compatible = "ambarella,adc";
+		reg = <0xe801d000 0x1000>;
+		interrupts = <34 0x4>;
+		clock-frequency = <3000000>;
+	};
+
+iii) Note
+---------
+For coding easily purpose, we re-order the channel number for A5S.
+Please see the ADC address definition in PRM for details.
+
+26) - IR node
+=============
+
+
+i) Properties
+-------------
+- compatible: should be "ambarella,ir".
+- reg: specifies base physical address and size of the registers.
+- interrupts: the interrupt for ir.
+- pinctrl-names: should contain only one value - "default".
+- pinctrl-0: pin control group to be used for this controller.
+- amb,keymap: the key-code to be reported when the key is pressed. Each entry
+  is organized as <IRcode Keycode>.
+
+Optional properties:
+- amb,protocol: ir protocol, use NEC protocol if not specified.
+  a) 0: NEC protocol
+  b) 1: PANASONIC protocol
+  c) 2: SONY protocol
+  d) 3: PHILIPS protocol
+- amb,print-key: print IR code when key is pressed, for debug purpose.
+
+ii) Example
+-----------
+	ir@e8006000 {
+		compatible = "ambarella,ir";
+		reg = <0xe8006000 0x1000>;
+		interrupts = <22 0x4>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&ir_pins>;
+		amb,keymap =
+			<0x0100bcbd 116>, /* KEY_POWER */
+			<0x01000405 115>, /* KEY_VOLUMEUP */
+			<0x01008485 114>; /* KEY_VOLUMEDOWN */
+		/* amb,print-key; */
+	};
+
+
+27) - WDT node
+==============
+
+
+i) Properties
+-------------
+Required properties:
+- compatible: should be "ambarella,wdt".
+- reg: specifies base physical address and size of the registers.
+- interrupts: the interrupt for wdt, normally not used.
+- timeout-sec: the watchdog timeout in seconds.
+- amb,non-bootstatus: don't support to report boot status, should be
+  specified only for A5S.
+
+ii) Example
+-----------
+	wdt@e800c000 {
+		compatible = "ambarella,wdt";
+		reg = <0xe800c000 0x1000>;
+		/* interrupts = <21 0x4>; */
+		timeout-sec = <15>;
+	};
+
+
+28) - RTC node
+==============
+
+
+i) Properties
+-------------
+Required properties:
+- compatible: should be "ambarella,rtc".
+- reg: specifies base physical address and size of the registers.
+
+Optional properties:
+- amb,is-limited: should be specified only for A5S.
+
+ii) Example
+-----------
+	rtc@e8015000 {
+		compatible = "ambarella,rtc-v2";
+		reg = <0xe8015000 0x1000>;
+	};
+
+
+29) - CRYPTO node
+=================
+
+
+i) Properties
+-------------
+Required properties:
+- compatible: should be "ambarella,crypto".
+- reg: specifies base physical address and size of the registers.
+- interrupts: the interrupt for crypto.
+- interrupt-names: the name for each interrupt.
+
+Optional properties:
+- amb,cap-md5-sha1: should be specified if hardwar supports md5 and sha1.
+- amb,data-swap: should be specified if hardware needs to swap data.
+- amb,reg-64bit: should be specified if hardware has 64bit register.
+- amb,binary-mode: should be specified if hardware needs binary mode.
+
+ii) Example
+-----------
+	crypto@f0020000 {
+		compatible = "ambarella,crypto";
+		reg = <0xf0020000 0x8000>;
+		interrupts = <88 0x1>, <87 0x1>, <86 0x1>, <89 0x1>;
+		interrupt-names = "aes-irq", "des-irq", "md5-irq", "sha1-irq";
+		amb,cap-md5-sha1;
+		amb,data-swap;
+		amb,reg-64bit;
+	};
+
+
+30) - IAV node
+==============
+
+
+i) Properties
+-------------
+Required properties:
+- compatible: should be "ambarella,iav".
+
+ii) Subnode
+-----------
+The IAV node may contain subnodes which represent the VIN controller, whose
+name must be vincN (N = 0, 1).
+
+And the optional properties of subnodes:
+- vinrst-gpios: specifies the GPIO to reset VIN.
+- vinpwr-gpios: specifies the GPIO to control the power of VIN.
+
+iii) Example
+------------
+	iav {
+		compatible = "ambarella,iav";
+
+		/* node for vin controller */
+		vinc0 {
+			vinrst-gpios = <&pca9539 7 0>;
+			vinpwr-gpios = <&gpio 8 1>, <&gpio 9 1>, <&gpio 10 1>;/
+	};
+
+
+31) - SOUND node
+================
+
+
+i) Properties
+-------------
+Required properties:
+- compatible: board name, should match the name in ALSA board driver.
+- amb,model: board description.
+- amb,i2s-controllers: specifies the phandle to I2S controller.
+- amb,audio-codec: specifies the phandle to audio codec.
+- amb,dai_fmt: specifies the mode of codec and cpu. If it is 0, the mode is I2S, otherwise it is DSP mode.
+- amb,clk_fmt:
+	0 : mclk, bclk provided by cpu
+	1 : bclk provide by cpu, mclk is not used
+	2 : mclk provided by cpu, bclk is provided by codec
+There are four type of connection:
+clk_fmt=0:
+cpu :                   codec:
+	MCLK    ------>  MCKI
+	BCLK    ------>  BICK
+	LRCK    ------>  LRCK
+clk_fmt=1:
+cpu :                   codec:
+	MCLK   is not used
+	BCLK    ------> BICK
+	LRCK    ------> LRCK
+clk_fmt=2:
+cpu :                   codec:
+	MCLK   ------> MCKI
+	BCLK   <------ BICK
+	LRCK   <------ LRCK
+There are one connection we are not used, it is like clk_fmt=0,but power on the codec PLL.
+It is a waster of power, so we do not use it.
+
+- amb,codec-name: specifies the name of the codec.
+- amb,stream-name: specifies the name of the stream.
+- amb,codec-dai-name: specifies the DAI name within the codec, it must be consistent with the codec driver.
+- amb,audio-routing: specifies the route map for audio codec.
+usage:
+	amb,audio-routing = "sink", source",	/*This is route 0*/
+			    "sink", "source";	/*This is route 1*/
+	sink and source dapm widget should be based on codec driver and our board.
+	dapm widget on board:
+	"Mic internal": board internal Mic, used to connect Mic of codec.
+	"Mic external": used to connect Mic of codec with the external Mic of our board.
+	"Line In": used to connect to line in of codec dapm widget.
+	"Line Out": used to connect line out of codec dapm widget.
+	"HP Jack": used to connect the headphone of codec dapm widget.
+	"Speaker": used to connect the speaker of codec dapm widget.
+
+ii) Example
+-----------
+	sound {
+		compatible = "ambarella,audio-board";
+		amb,model = "ak4642 @ Ambarella";
+		amb,i2s-controllers = <&i2s0>;
+		amb,audio-codec = <&ak4642>;
+		amb,dai_fmt = <0>;
+		amb,codec-name = "ak4642";
+		amb,stream-name = "ak4642 PCM";
+		amb,codec-dai-name = "ak4642-hifi";
+		amb,audio-routing = "LIN1",	"Mic internal",
+				    "RIN1",	"Mic internal",
+				    "LIN2",	"Line In",
+				    "RIN2",	"Line In",
+				    "Line Out",	"LOUT",
+				    "Line Out",	"ROUT",
+				    "HP Jack",	"HPL",
+				    "HP Jack",	"HPR",
+				    "Speaker",	"SPP",
+				    "Speaker",	"SPN";
+	};
+
+
+III - Misc Node definition
+++++++++++++++++++++++++++
+
+
+1)  - BOGUS BUS node
+====================
+
+i) Purpose
+----------
+No real meaning, just make the name of devices under bogus bus more reasonable.
+
+
+
+2)  - GPIO KEY node
+===================
+
+i) Reference
+------------
+Please see Documentation/devicetree/bindings/gpio/gpio_keys.txt
+
+
+
+3)  - ADC KEY node
+====================
+
+
+i) Properties
+-------------
+
+Required properties:
+- compatible: should be "ambarella,input_adckey".
+- amb,keymap: the key-code to be reported when the key is pressed. Each entry
+  is organized as <ADC Keycode>, where ADC is packed as:
+    channel << 28 | high_level << 16 | low_level
+  Note: the resolution of ADC is 12 bits. And please see the "Note" in "ADC node".
+
+ii) Example
+-----------
+	input_adckey {
+		compatible = "ambarella,input_adckey";
+		amb,keymap =
+			/* channel 1 */
+			<0x1fff0c1c 0>,   /* KEY_RESERVED */
+			<0x1c1c0a8c 373>, /* KEY_MODE */
+			<0x19600708 111>, /* KEY_DELETE */
+			<0x154603e8 167>, /* KEY_RECORD */
+			<0x1320012c 211>, /* KEY_HP */
+			<0x10c80000 212>, /* KEY_CAMERA */
+			/* channel 3 */
+			<0x3fff0c1c 0>,   /* KEY_RESERVED */
+			<0x3c1c0af0 139>, /* KEY_MENU */
+			<0x3af007d0 106>, /* KEY_RIGHT */
+			<0x37d003e8 105>, /* KEY_LEFT */
+			<0x33e80190 108>, /* KEY_DOWN */
+			<0x31900000 103>; /* KEY_UP */
+	};
+
+
+
+4)  - PWM BACKLIGHT node
+========================
+
+i) Reference
+------------
+Please see Documentation/devicetree/bindings/video/backlight/pwm-backlight.txt
+
+ii) Properties
+--------------
+Required properties:
+- reg: specifies the pwm channel, no real meaning, just make the device name
+  more reasonable. It take effect only when putting the PWM BACKLIGHT node under
+  bogus_bus node.
+

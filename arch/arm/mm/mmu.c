@@ -418,7 +418,9 @@ static void __init build_mem_type_table(void)
 			 * (Uncached Normal memory)
 			 */
 			mem_types[MT_DEVICE].prot_sect |= PMD_SECT_TEX(1);
+#if !defined(CONFIG_PLAT_AMBARELLA_ADD_REGISTER_LOCK)
 			mem_types[MT_DEVICE_NONSHARED].prot_sect |= PMD_SECT_TEX(1);
+#endif
 			mem_types[MT_DEVICE_WC].prot_sect |= PMD_SECT_BUFFERABLE;
 		} else if (cpu_is_xsc3()) {
 			/*

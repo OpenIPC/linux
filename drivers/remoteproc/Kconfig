@@ -63,4 +63,5 @@ config DA8XX_REMOTEPROC
 	  It's safe to say n here if you're not interested in multimedia
 	  offloading.
 
+source "drivers/remoteproc/ambarella/Kconfig"
 endmenu

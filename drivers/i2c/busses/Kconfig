@@ -307,6 +307,18 @@ config I2C_POWERMAC
 
 comment "I2C system bus drivers (mostly embedded / system-on-chip)"
 
+config I2C_AMBARELLA
+	tristate "Ambarella Media Soc I2C bus support"
+	depends on PLAT_AMBARELLA
+	select I2C_MUX if PLAT_AMBARELLA_SUPPORT_I2C_MUX
+	select I2C_MUX_AMBARELLA if PLAT_AMBARELLA_SUPPORT_I2C_MUX
+	help
+	  This driver supports the Ambarella Media Soc
+	  I2C Bus master controller
+
+	  This driver can also be built as a module.  If so, the module
+	  will be called ambarella_i2c.
+
 config I2C_AT91
 	tristate "Atmel AT91 I2C Two-Wire interface (TWI)"
 	depends on ARCH_AT91

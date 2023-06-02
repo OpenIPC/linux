@@ -1,0 +1,5 @@
+config RPMSG_ECHO
+	tristate "Echo"
+	depends on RPMSG
+	help
+	  A sample of rpmsg program which implement an echo server

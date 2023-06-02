@@ -1,0 +1,4 @@
+config AMBARELLA_VETH
+	bool
+	default n
+	depends on RPDEV_VETH || RPMSG_VETH

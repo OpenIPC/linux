@@ -51,6 +51,15 @@ config USB_SERIAL_GENERIC
 	  support" be compiled as a module for this driver to be used
 	  properly.
 
+
+config USB_SERIAL_U1960
+	tristate "USB Serial Driver for U1960"
+	help
+	    Say Y here if you want to use U1960.
+
+	    To compile this driver as a module, choose M here: the module
+	    will be called aircable.
+
 config USB_SERIAL_AIRCABLE
 	tristate "USB AIRcable Bluetooth Dongle Driver"
 	help
@@ -130,7 +139,7 @@ config USB_SERIAL_CYPRESS_M8
 
 	  Supported microcontrollers in the CY4601 family are:
 		CY7C63741 CY7C63742 CY7C63743 CY7C64013
-	
+
 	  To compile this driver as a module, choose M here: the
 	  module will be called cypress_m8.
 

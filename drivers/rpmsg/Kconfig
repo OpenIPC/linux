@@ -6,4 +6,11 @@ config RPMSG
 	select VIRTIO
 	select VIRTUALIZATION
 
+config RPMSG_TX_SPINLOCK
+	bool "Support non-blocking TX in interrupt context"
+	default y
+	depends on RPMSG
+
+source "drivers/rpmsg/ambarella/Kconfig"
+
 endmenu

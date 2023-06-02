@@ -221,6 +221,7 @@ config ARM_PATCH_PHYS_VIRT
 	default y
 	depends on !XIP_KERNEL && MMU
 	depends on !ARCH_REALVIEW || !SPARSEMEM
+	depends on !PLAT_AMBARELLA || PLAT_AMBARELLA_A8
 	help
 	  Patch phys-to-virt and virt-to-phys translation functions at
 	  boot and module load time according to the position of the
@@ -297,6 +298,20 @@ config ARCH_MULTIPLATFORM
 	select MULTI_IRQ_HANDLER
 	select SPARSE_IRQ
 	select USE_OF
+
+config ARCH_AMBARELLA
+	bool "Ambarella"
+	depends on MMU
+	select ARCH_HAS_CPUFREQ
+	select NEED_MACH_GPIO_H
+	select NEED_MACH_IO_H
+	select NEED_MACH_MEMORY_H
+	select PLAT_AMBARELLA
+	select USE_OF
+	select PINCTRL
+	select PINCTRL_AMB
+	help
+	  Support for Ambarella Media Processor.
 
 config ARCH_INTEGRATOR
 	bool "ARM Ltd. Integrator family"
@@ -916,6 +931,8 @@ endmenu
 # plat- suffix) or along side the corresponding mach-* source.
 #
 source "arch/arm/mach-mvebu/Kconfig"
+
+source "arch/arm/mach-ambarella/Kconfig"
 
 source "arch/arm/mach-at91/Kconfig"
 
@@ -1603,6 +1620,7 @@ config HZ
 		ARCH_S5PV210 || ARCH_EXYNOS4
 	default AT91_TIMER_HZ if ARCH_AT91
 	default SHMOBILE_TIMER_HZ if ARCH_SHMOBILE
+	default AMBARELLA_TIMER_HZ if PLAT_AMBARELLA
 	default 100
 
 config SCHED_HRTICK
@@ -2228,6 +2246,9 @@ config ARCH_SUSPEND_POSSIBLE
 
 config ARM_CPU_SUSPEND
 	def_bool PM_SLEEP
+
+config ARCH_HIBERNATION_POSSIBLE
+	def_bool y
 
 endmenu
 

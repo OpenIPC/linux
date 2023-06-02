@@ -1,0 +1,6 @@
+config RPMSG_RNFS
+	tristate "Read from NFS Server"
+	depends on RPMSG
+	depends on !RPMSG_AMBXC
+	help
+		A sample of read file from NFS Server

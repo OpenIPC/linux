@@ -76,6 +76,11 @@
 #include <asm/unaligned.h>
 #include <net/netdma.h>
 
+#ifdef CONFIG_WLAN_UPDATE_SEQ
+extern struct sock_sequence_update ipv4_update;
+struct tcphdr th_copy;
+#endif
+
 int sysctl_tcp_timestamps __read_mostly = 1;
 int sysctl_tcp_window_scaling __read_mostly = 1;
 int sysctl_tcp_sack __read_mostly = 1;
@@ -5114,13 +5119,29 @@ discard:
  *	the rest is checked inline. Fast processing is turned on in
  *	tcp_data_queue when everything is OK.
  */
+
+#ifndef CONFIG_WLAN_UPDATE_SEQ
 int tcp_rcv_established(struct sock *sk, struct sk_buff *skb,
 			const struct tcphdr *th, unsigned int len)
+#else
+int tcp_rcv_established(struct sock *sk, struct sk_buff *skb,
+			const struct tcphdr *t, unsigned int len)
+#endif
 {
 	struct tcp_sock *tp = tcp_sk(sk);
 
+#ifdef CONFIG_WLAN_UPDATE_SEQ
+	struct tcphdr *th = &th_copy;
+	memcpy(th, t, sizeof(struct tcphdr));
+	if (sk == ipv4_update.sock) {
+		th->seq -= ipv4_update.ack_offset;
+		th->ack_seq -= ipv4_update.seq_offset;
+	}
+#endif
+
 	if (unlikely(sk->sk_rx_dst == NULL))
 		inet_csk(sk)->icsk_af_ops->sk_rx_dst_set(sk, skb);
+
 	/*
 	 *	Header prediction.
 	 *	The code loosely follows the one in the famous
@@ -5639,13 +5660,27 @@ reset_and_undo:
  *	address independent.
  */
 
+#ifndef CONFIG_WLAN_UPDATE_SEQ
 int tcp_rcv_state_process(struct sock *sk, struct sk_buff *skb,
 			  const struct tcphdr *th, unsigned int len)
+#else
+int tcp_rcv_state_process(struct sock *sk, struct sk_buff *skb,
+			  const struct tcphdr *t, unsigned int len)
+#endif
 {
 	struct tcp_sock *tp = tcp_sk(sk);
 	struct inet_connection_sock *icsk = inet_csk(sk);
 	struct request_sock *req;
 	int queued = 0;
+
+#ifdef CONFIG_WLAN_UPDATE_SEQ
+	struct tcphdr *th = &th_copy;
+	memcpy(th, t, sizeof(struct tcphdr));
+	if (sk == ipv4_update.sock) {
+		th->seq -= ipv4_update.ack_offset;
+		th->ack_seq -= ipv4_update.seq_offset;
+	}
+#endif
 
 	tp->rx_opt.saw_tstamp = 0;
 

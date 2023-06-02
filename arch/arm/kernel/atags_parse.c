@@ -46,7 +46,11 @@ static struct {
 	{ tag_size(tag_core), ATAG_CORE },
 	{ 1, PAGE_SIZE, 0xff },
 	{ tag_size(tag_mem32), ATAG_MEM },
+#if defined(CONFIG_AMBARELLA_RAW_BOOT)
+	{ CONFIG_AMBARELLA_MEMORY_SIZE, (DEFAULT_MEM_START + CONFIG_AMBARELLA_PPM_SIZE) },
+#else
 	{ MEM_SIZE },
+#endif
 	{ 0, ATAG_NONE }
 };
 

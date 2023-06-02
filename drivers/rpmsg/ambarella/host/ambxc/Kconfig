@@ -1,0 +1,11 @@
+config RPMSG_AMBXC
+	tristate "Ambarella A8 Codec driver"
+	depends on RPMSG
+	select VIDEO_V4L2
+	select V4L2_MEM2MEM_DEV
+	select VIDEOBUF2_CORE
+	select VIDEOBUF2_MEMOPS
+	select VIDEOBUF2_VMALLOC
+	default n
+	---help---
+	  V4L2 Display driver support for Ambarella A8.

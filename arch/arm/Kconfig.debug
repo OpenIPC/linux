@@ -81,6 +81,10 @@ choice
 	prompt "Kernel low-level debugging port"
 	depends on DEBUG_LL
 
+	config AMBARELLA_DEBUG_LL_UART0
+		bool "Kernel low-level debugging on Ambarella UART0"
+		depends on ARCH_AMBARELLA
+
 	config AT91_DEBUG_LL_DBGU0
 		bool "Kernel low-level debugging on rm9200, 9260/9g20, 9261/9g10 and 9rl"
 		depends on HAVE_AT91_DBGU0

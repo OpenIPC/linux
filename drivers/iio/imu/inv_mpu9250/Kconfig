@@ -1,0 +1,30 @@
+#
+# inv-mpu9250 drivers for Invensense MPU devices and combos
+#
+
+config INV_MPU9250_IIO
+	tristate
+	select IIO_BUFFER
+	select IIO_TRIGGERED_BUFFER
+
+config INV_MPU9250_I2C
+	tristate "Invensense MPU9250 devices (I2C)"
+	depends on I2C_MUX
+	select INV_MPU9250_IIO
+	select REGMAP_I2C
+	help
+	  This driver supports the Invensense MPU9250 motion tracking
+	  devices over I2C.
+	  This driver can be built as a module. The module will be called
+	  inv-mpu9250-i2c.
+
+config INV_MPU9250_SPI
+	tristate "Invensense MPU9250 devices (SPI)"
+	depends on SPI_MASTER
+	select INV_MPU9250_IIO
+	select REGMAP_SPI
+	help
+	  This driver supports the Invensense MPU9250 motion tracking
+	  devices over SPI.
+	  This driver can be built as a module. The module will be called
+	  inv-mpu9250-spi.

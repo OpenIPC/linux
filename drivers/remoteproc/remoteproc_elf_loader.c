@@ -329,6 +329,10 @@ rproc_elf_find_loaded_rsc_table(struct rproc *rproc, const struct firmware *fw)
 }
 
 const struct rproc_fw_ops rproc_elf_fw_ops = {
+	.request_firmware = request_firmware,
+	.get_boot_addr = rproc_elf_get_boot_addr,
+	.request_firmware_nowait = request_firmware_nowait,
+	.release_firmware = release_firmware,
 	.load = rproc_elf_load_segments,
 	.find_rsc_table = rproc_elf_find_rsc_table,
 	.find_loaded_rsc_table = rproc_elf_find_loaded_rsc_table,

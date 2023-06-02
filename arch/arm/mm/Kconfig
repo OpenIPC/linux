@@ -878,6 +878,63 @@ config CACHE_PL310
 	  This option enables optimisations for the PL310 cache
 	  controller.
 
+config CACHE_PL310_EARLY_BRESP
+	bool "Enable early write response (BRESP) optmisation"
+	depends on CACHE_PL310
+	default n
+	help
+	  The AXI protocol specifies that the write response can only be
+	  sent back to an AXI master when the last write data has been
+	  accepted. This optimization enables the L2CC (L2C-310) to send
+	  the write response of certain write transactions as soon as the
+	  store buffer accepts the write address
+
+config CACHE_PL310_PREFETCH_OFFSET
+	int "Prefetch offset"
+	range 0 31
+	depends on CACHE_PL310
+	default 0
+	help
+	  When prefetch is enabled, if one of the slave ports receives
+	  a cacheable read transaction, a cache lookup is performed on
+	  the subsequent cache line. Bits [4:0] of the Prefetch Control
+	  Register provide the address of the subsequent cache line.
+	  If a miss occurs, the cache line is fetched from L3, and
+	  allocated to the L2 cache.
+
+config CACHE_PL310_FULL_LINE_OF_ZERO
+	bool "Enable write full line of zero optimisation"
+	depends on CACHE_PL310
+	default n
+	help
+	  When the L2CC (L2C-310) AXI slave ports receive a write
+	  transaction with AWUSERSx[10], it indicates that the write
+	  actually targets a whole cache line and that all data of
+	  this cache line must be reset to zero. The Cortex-A9 processor
+	  is likely to use this feature when a CPU is executing a memset
+	  routine to initialise a particular memory area.
+
+	  When the L2CC (L2C-310) receives such a write transaction it
+	  ignores the AXI attributes attached to the transaction, size,
+	  length, data, and strobes for example, because the whole cache
+	  line must be reset.
+
+config CACHE_PL310_DOUBLE_LINEFILL
+	bool "Enable double linefill optimisation"
+	depends on CACHE_PL310
+	default n
+	help
+	  The L2C-310 cache line length is 32-byte. Therefore, by default,
+	  on each L2 cache miss, L2C-310 issues 32-byte linefills,
+	  4 x 64-bit read bursts, to the L3 memory system. L2C-310 can issue
+	  64-byte linefills, 8 x 64-bit read bursts, on an L2 cache miss.
+
+	  When the L2C-310 is waiting for the data from L3, it performs a
+	  lookup on the second cache line targeted by the 64-byte linefill.
+	  If it misses, data corresponding to the second cache line are
+	  allocated to the L2 cache.  If it hits, data corresponding to the
+	  second cache line are discarded.
+
 config CACHE_TAUROS2
 	bool "Enable the Tauros2 L2 cache controller"
 	depends on (ARCH_DOVE || ARCH_MMP || CPU_PJ4)
@@ -909,7 +966,7 @@ config ARM_L1_CACHE_SHIFT
 config ARM_DMA_MEM_BUFFERABLE
 	bool "Use non-cacheable memory for DMA" if (CPU_V6 || CPU_V6K) && !CPU_V7
 	depends on !(MACH_REALVIEW_PB1176 || REALVIEW_EB_ARM11MP || \
-		     MACH_REALVIEW_PB11MP)
+		     MACH_REALVIEW_PB11MP || PLAT_AMBARELLA)
 	default y if CPU_V6 || CPU_V6K || CPU_V7
 	help
 	  Historically, the kernel has used strongly ordered mappings to

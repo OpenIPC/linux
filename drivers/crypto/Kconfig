@@ -232,6 +232,14 @@ config CRYPTO_DEV_IXP4XX
 	help
 	  Driver for the IXP4xx NPE crypto engine.
 
+config CRYPTO_DEV_AMBARELLA
+	tristate "Driver for Ambarella HW CRYPTO"
+	depends on PLAT_AMBARELLA_SUPPORT_HW_CRYPTO
+	select CRYPTO_AES
+	select CRYPTO_DES
+	help
+	  Driver for Ambarella Soc crypto engine.
+
 config CRYPTO_DEV_PPC4XX
 	tristate "Driver AMCC PPC4xx crypto accelerator"
 	depends on PPC && 4xx

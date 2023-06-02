@@ -1,0 +1,6 @@
+config RPDEV_RSH
+	tristate "Remote Shell"
+	select AMBARELLA_RSH
+	help
+	  A Remote shell server for CA9-B to accept remote
+	  connection from CA9-A

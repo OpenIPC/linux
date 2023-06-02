@@ -971,6 +971,14 @@ static int __init alignment_init(void)
 		set_cr(cr_alignment);
 		ai_usermode = safe_usermode(ai_usermode, false);
 	}
+#if defined(CONFIG_PLAT_AMBARELLA_A5S)
+	cr_alignment |= CR_A;
+	cr_no_alignment |= CR_A;
+	cr_alignment &= ~CR_U;
+	cr_no_alignment &= ~CR_U;
+	set_cr(cr_alignment);
+	ai_usermode = UM_FIXUP;
+#endif
 #endif
 
 	hook_fault_code(FAULT_CODE_ALIGNMENT, do_alignment, SIGBUS, BUS_ADRALN,
