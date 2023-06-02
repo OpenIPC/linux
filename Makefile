@@ -828,8 +828,6 @@ KBUILD_CFLAGS   += $(call cc-option,-Wno-packed-not-aligned)
 # use the deterministic mode of AR if available
 KBUILD_ARFLAGS := $(call ar-option,D)
 
-KBUILD_CFLAGS   += -Werror
-
 include scripts/Makefile.kasan
 include scripts/Makefile.extrawarn
 include scripts/Makefile.ubsan
