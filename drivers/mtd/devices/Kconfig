@@ -73,6 +73,11 @@ config MTD_JZ_SPI_NORFLASH
 	help
 		Now support GD25LQ64C
 
+config MTD_JZ_SFC_NORFLASH
+	bool "Support ingenic spi-mtd"
+	help
+		nothing
+
 config MTD_JZ_SFC
 	tristate "Ingenic JZ series SFC driver"
 	depends on  MACH_XBURST
@@ -93,7 +98,7 @@ config MTD_JZ_SFC_NAND
 
 config SFC_DMA
 	bool "used dma"
-	depends on MTD_JZ_SFC_NOR
+	depends on (MTD_JZ_SFC_NOR || MTD_JZ_SFC_NORFLASH)
 	help
 		used dma
 
@@ -101,13 +106,13 @@ config SFC_SPEED
     int "JZ SFC speed in MHZ"
 	range 10 200
 	default 50
-	depends on MTD_JZ_SFC
+	depends on (MTD_JZ_SFC || MTD_JZ_SFC_NORFLASH)
 	help
 	    Select sfc speed.
 		Examples:
 			50 =>  50 MHZ
 
-if MTD_JZ_SFC
+if (MTD_JZ_SFC || MTD_JZ_SFC_NORFLASH)
 
 choice
 	prompt "sfc Mode"
@@ -116,13 +121,13 @@ choice
 
 config SPI_STARDARD
 	bool "standard spi mode"
-	depends on MTD_JZ_SFC
+	depends on (MTD_JZ_SFC || MTD_JZ_SFC_NORFLASH)
 	help
 	  Say Y here to enable spi STANDARD MODE
 
 config SPI_QUAD
 	bool "quad spi mode"
-	depends on MTD_JZ_SFC
+	depends on (MTD_JZ_SFC || MTD_JZ_SFC_NORFLASH)
 	help
 	  Say Y Here to enable spi QUAD MODE
 endchoice
