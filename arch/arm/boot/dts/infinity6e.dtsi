@@ -577,7 +577,7 @@
 #endif
             sctp_enable = <1>;//rts cts enable is 1
             dma = <1>;
-            pad = <PAD_PM_GPIO0>;//fuart mode3
+            pad = <PAD_FUART_RX>;
             //pad = <PAD_PM_GPIO2>;//fuart mode6
             //pad = <PAD_FUART_RX>;
             //pad = <PAD_FUART_TX>;
