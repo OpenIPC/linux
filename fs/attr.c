@@ -167,6 +167,28 @@ void setattr_copy(struct inode *inode, const struct iattr *attr)
 }
 EXPORT_SYMBOL(setattr_copy);
 
+ /**
+  * setattr_killpriv - remove extended privilege attributes from a file
+  * @dentry: Directory entry passed to the setattr operation
+  * @iattr: New attributes pased to the setattr operation
+  *
+  * All filesystems that can carry extended privilege attributes
+  * should call this from their setattr operation *after* validating
+  * the attribute changes.
+  *
+  * It does nothing if !(iattr->ia_valid & ATTR_KILL_PRIV), so
+  * it is not necessary to call it in that case.
+  */
+int setattr_killpriv(struct dentry *dentry, struct iattr *iattr)
+{
+	if (!(iattr->ia_valid & ATTR_KILL_PRIV))
+		return 0;
+
+	iattr->ia_valid &= ~ATTR_KILL_PRIV;
+	return security_inode_killpriv(dentry);
+}
+EXPORT_SYMBOL(setattr_killpriv);
+
 /**
  * notify_change - modify attributes of a filesytem object
  * @dentry:	object affected
@@ -217,13 +239,13 @@ int notify_change(struct dentry * dentry, struct iattr * attr, struct inode **de
 	if (!(ia_valid & ATTR_MTIME_SET))
 		attr->ia_mtime = now;
 	if (ia_valid & ATTR_KILL_PRIV) {
-		attr->ia_valid &= ~ATTR_KILL_PRIV;
-		ia_valid &= ~ATTR_KILL_PRIV;
 		error = security_inode_need_killpriv(dentry);
-		if (error > 0)
-			error = security_inode_killpriv(dentry);
-		if (error)
+		if (error < 0)
 			return error;
+		if (error == 0) {
+			attr->ia_valid &= ~ATTR_KILL_PRIV;
+			ia_valid &= ~ATTR_KILL_PRIV;
+		}
 	}
 
 	/*

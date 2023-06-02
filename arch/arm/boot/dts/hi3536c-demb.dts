@@ -1,0 +1,199 @@
+/*
+ * Copyright (c) 2013-2014 Linaro Ltd.
+ * Copyright (c) 2015-2017 HiSilicon Technologies Co., Ltd.
+ *
+ * This program is free software; you can redistribute  it and/or modify it
+ * under  the terms of  the GNU General  Public License as published by the
+ * Free Software Foundation;  either version 2 of the  License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+/dts-v1/;
+#include "hi3536c.dtsi"
+
+/ {
+	model = "Hisilicon HI3536C DEMO Board";
+	compatible = "hisilicon,hi3536c";
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		enable-method = "hisilicon,hi3536c-smp";
+
+		cpu@0 {
+			compatible = "arm,cortex-a7";
+			device_type = "cpu";
+			clock-frequency = <HI3536C_FIXED_1500M>;
+			reg = <0>;
+		};
+
+		cpu@1 {
+			compatible = "arm,cortex-a7";
+			device_type = "cpu";
+			clock-frequency = <HI3536C_FIXED_1500M>;
+			reg = <1>;
+		};
+	};
+
+	memory {
+		device_type = "memory";
+		reg = <0x80000000 0x20000000>;
+	};
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&rtc {
+	status = "okay";
+};
+
+&spi_bus0{
+	status = "okay";
+	num-cs = <2>;
+
+	spidev@0 {
+		compatible = "spidev";
+		reg = <0>;
+		pl022,interface = <0>;
+		pl022,com-mode = <0>;
+		spi-max-frequency = <37500000>;
+	};
+
+	spidev@1 {
+		compatible = "spidev";
+		reg = <1>;
+		pl022,interface = <0>;
+		pl022,com-mode = <0>;
+		spi-max-frequency = <37500000>;
+	};
+};
+
+&hisfc {
+	hi_sfc {
+		compatible = "jedec,spi-nor";
+		reg = <0>;
+		spi-max-frequency = <160000000>;
+		m25p,fast-read;
+	};
+};
+
+&hisnfc {
+	hinand {
+		compatible = "jedec,spi-nand";
+		reg = <0>;
+		spi-max-frequency = <160000000>;
+	};
+};
+
+&hidmac {
+    status = "okay";
+};
+
+&mdio {
+	ethphy: ethernet-phy@1 {
+		reg = <1>;
+	};
+};
+&mdio1 {
+	ethphy1: ethernet-phy@2 {
+		reg = <2>;
+	};
+};
+
+&higmac {
+	phy-handle = <&ethphy>;
+	phy-mode = "rgmii";
+};
+&higmac1 {
+	phy-handle = <&ethphy1>;
+	phy-mode = "rgmii";
+};
+
+
+&pmux {
+
+	vo_vga_pmux: vo_vga_pmux{
+		pinctrl-single,pins = <
+			0x0174 0x1
+			0x017c 0x1
+			0x0180 0x1
+		>;
+	};
+
+	vo_hdmi_pmux: vo_hdmi_pmux{
+		pinctrl-single,pins = <
+			0x0098 0x1
+			0x009c 0X1
+		>;
+	};
+
+	i2c0_pmux: i2c0_pmux {
+		pinctrl-single,pins = <
+			0x00e0 0x1
+			0x00e4 0x1
+		>;
+	};
+	
+	i2s0_pmux: i2s0_pmux {
+		pinctrl-single,pins = <
+			0x00a0 0x1
+			0x00a4 0x1
+			0x00a8 0x1
+		>;
+	};
+
+	i2s1_pmux: i2s1_pmux {
+		pinctrl-single,pins = <
+			0x00b0 0x1
+			0x00b4 0x1
+		>;
+	};
+
+	i2s2_sck_pmux: i2s2_sck_pmux {
+		pinctrl-single,pins = <
+			0x00b8 0x1
+			0x00bc 0x1
+			0x00c0 0x1
+			0x00ac 0x2
+		>;
+	};
+};
+
+&sys_config_ctrl {
+	padctrl-ability,demo = <
+		0x120f08a0 0x120
+		0x120f08a4 0x130
+		0x120f08a8 0x130
+		0x120f08ac 0x120
+		0x120f08b0 0x130
+		0x120f08b4 0x130
+		0x120f08b8 0x120
+		0x120f08bc 0x130
+		0x120f08c0 0x130
+		0x120f0898 0x40
+		0x120f089c 0x40
+	>;
+
+	sysctrl-ddr,pins = <
+		0x1212007c 0x35533201
+		0x12120080 0x25335526
+		0x12120084 0x66666666
+		0x12120094 0x65
+	>;
+
+	pinctrl-names =  "demo", "sck", "default";
+	pinctrl-0 = <&i2c0_pmux  &i2s1_pmux  &i2s2_sck_pmux &vo_hdmi_pmux &vo_vga_pmux>;
+	pinctrl-1 = <&i2s0_pmux  &i2s1_pmux  &i2s2_sck_pmux &vo_hdmi_pmux &vo_vga_pmux>;
+	pinctrl-2 = <>;
+};

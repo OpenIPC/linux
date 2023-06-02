@@ -41,7 +41,16 @@ static unsigned int resume_delay;
 static char resume_file[256] = CONFIG_PM_STD_PARTITION;
 dev_t swsusp_resume_device;
 sector_t swsusp_resume_block;
+
+#ifdef CONFIG_HISI_SNAPSHOT_BOOT
+int noshrink;
+char hb_bdev_file[64] = CONFIG_PM_STD_PARTITION;
+//char compress_method[16] = "lzo";
+char compress_method[16] = "gzip";
+volatile unsigned long in_suspend;
+#else
 __visible int in_suspend __nosavedata;
+#endif
 
 enum {
 	HIBERNATION_INVALID,
@@ -668,8 +677,11 @@ int hibernate(void)
 	printk(KERN_INFO "PM: Syncing filesystems ... ");
 	sys_sync();
 	printk("done.\n");
-
+#ifdef	CONFIG_HISI_SNAPSHOT_BOOT
+	error = suspend_freeze_processes();
+#else
 	error = freeze_processes();
+#endif
 	if (error)
 		goto Exit;
 
@@ -708,7 +720,11 @@ int hibernate(void)
 	free_basic_memory_bitmaps();
  Thaw:
 	unlock_device_hotplug();
+#ifdef	CONFIG_HISI_SNAPSHOT_BOOT
+	suspend_thaw_processes();
+#else
 	thaw_processes();
+#endif
 
 	/* Don't bother checking whether freezer_test_done is true */
 	freezer_test_done = false;
@@ -831,7 +847,11 @@ static int software_resume(void)
 		goto Close_Finish;
 
 	pr_debug("PM: Preparing processes for restore.\n");
+#ifdef	CONFIG_HISI_SNAPSHOT_BOOT
+	error = suspend_freeze_processes();
+#else
 	error = freeze_processes();
+#endif
 	if (error)
 		goto Close_Finish;
 
@@ -852,7 +872,11 @@ static int software_resume(void)
 	free_basic_memory_bitmaps();
  Thaw:
 	unlock_device_hotplug();
+#ifdef	CONFIG_HISI_SNAPSHOT_BOOT
+	suspend_thaw_processes();
+#else
 	thaw_processes();
+#endif
  Finish:
 	pm_notifier_call_chain(PM_POST_RESTORE);
 	pm_restore_console();
@@ -866,9 +890,9 @@ static int software_resume(void)
 	swsusp_close(FMODE_READ);
 	goto Finish;
 }
-
+#ifndef CONFIG_HISI_SNAPSHOT_BOOT
 late_initcall_sync(software_resume);
-
+#endif
 
 static const char * const hibernation_modes[] = {
 	[HIBERNATION_PLATFORM]	= "platform",
@@ -1046,6 +1070,33 @@ static ssize_t image_size_store(struct kobject *kobj, struct kobj_attribute *att
 
 power_attr(image_size);
 
+#ifdef CONFIG_HISI_SNAPSHOT_BOOT
+static ssize_t compress_method_show(struct kobject *kobj,
+		struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%s\n", compress_method);
+}
+static ssize_t compress_method_store(struct kobject *kobj,
+		struct kobj_attribute *attr,
+		const char *buf, size_t n)
+{
+	return -EINVAL;
+}
+power_attr(compress_method);
+static ssize_t hb_bdev_file_show(struct kobject *kobj,
+		struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%s\n", hb_bdev_file);
+}
+static ssize_t hb_bdev_file_store(struct kobject *kobj,
+		struct kobj_attribute *attr,
+		const char *buf, size_t n)
+{
+	return -EINVAL;
+}
+power_attr(hb_bdev_file);
+#endif
+
 static ssize_t reserved_size_show(struct kobject *kobj,
 				  struct kobj_attribute *attr, char *buf)
 {
@@ -1073,6 +1124,10 @@ static struct attribute * g[] = {
 	&resume_attr.attr,
 	&image_size_attr.attr,
 	&reserved_size_attr.attr,
+#ifdef CONFIG_HISI_SNAPSHOT_BOOT
+	&compress_method_attr.attr,
+	&hb_bdev_file_attr.attr,
+#endif
 	NULL,
 };
 
@@ -1157,6 +1212,16 @@ static int __init kaslr_nohibernate_setup(char *str)
 {
 	return nohibernate_setup(str);
 }
+
+#ifdef	CONFIG_HISI_SNAPSHOT_BOOT
+static int __init hb_bdev_setup(char *str)
+{
+	strncpy(hb_bdev_file, str, sizeof(hb_bdev_file) - 1);
+	return 1;
+}
+
+__setup("hbcomp=", hb_bdev_setup);
+#endif
 
 __setup("noresume", noresume_setup);
 __setup("resume_offset=", resume_offset_setup);

@@ -29,6 +29,7 @@
 #include <asm/memory.h>
 #include <asm-generic/pci_iomap.h>
 #include <xen/xen.h>
+#include <linux/printk.h>
 
 /*
  * ISA I/O bus memory addresses are 1:1 with the physical address.
@@ -36,6 +37,10 @@
 #define isa_virt_to_bus virt_to_phys
 #define isa_page_to_bus page_to_phys
 #define isa_bus_to_virt phys_to_virt
+
+#include <linux/spinlock_types.h>
+#include <linux/spinlock.h>
+extern raw_spinlock_t hisilcon_lock;
 
 /*
  * Atomic MMIO-wide IO modify
@@ -63,6 +68,10 @@ extern void __raw_readsl(const void __iomem *addr, void *data, int longlen);
  */
 #define __raw_readw(a)         (__chk_io_ptr(a), *(volatile unsigned short __force *)(a))
 #define __raw_writew(v,a)      ((void)(__chk_io_ptr(a), *(volatile unsigned short __force *)(a) = (v)))
+
+#define __hi_raw_readw(a)	__raw_readw(a)
+#define __hi_raw_writew(v,a)	__raw_writew(v,a)
+
 #else
 /*
  * When running under a hypervisor, we want to avoid I/O accesses with
@@ -76,6 +85,23 @@ static inline void __raw_writew(u16 val, volatile void __iomem *addr)
 		     : "r" (val));
 }
 
+static inline void __hi_raw_writew(u16 val, volatile void __iomem *addr)
+{
+#if (defined CONFIG_ARCH_HI3519 || defined CONFIG_ARCH_HI3519V101)
+        unsigned long flags;
+        raw_spin_lock_irqsave(&hisilcon_lock, flags);
+        dsb();
+        isb();
+#endif
+        asm volatile("strh %1, %0"
+                     : "+Q" (*(volatile u16 __force *)addr)
+                     : "r" (val));
+#if (defined CONFIG_ARCH_HI3519 || defined CONFIG_ARCH_HI3519V101)
+        dsb();
+        isb();
+        raw_spin_unlock_irqrestore(&hisilcon_lock, flags);
+#endif
+}
 static inline u16 __raw_readw(const volatile void __iomem *addr)
 {
 	u16 val;
@@ -84,6 +110,27 @@ static inline u16 __raw_readw(const volatile void __iomem *addr)
 		       "=r" (val));
 	return val;
 }
+
+static inline u16 __hi_raw_readw(const volatile void __iomem *addr)
+{
+        u16 val;
+#if (defined CONFIG_ARCH_HI3519 || defined CONFIG_ARCH_HI3519V101)
+        unsigned long flags;
+        raw_spin_lock_irqsave(&hisilcon_lock, flags);
+        dsb();
+        isb();
+#endif
+        asm volatile("ldrh %1, %0"
+                     : "+Q" (*(volatile u16 __force *)addr),
+                       "=r" (val));
+#if (defined CONFIG_ARCH_HI3519 || defined CONFIG_ARCH_HI3519V101)
+        dsb();
+        isb();
+        raw_spin_unlock_irqrestore(&hisilcon_lock, flags);
+#endif
+        return val;
+}
+
 #endif
 
 static inline void __raw_writeb(u8 val, volatile void __iomem *addr)
@@ -93,11 +140,47 @@ static inline void __raw_writeb(u8 val, volatile void __iomem *addr)
 		     : "r" (val));
 }
 
+static inline void __hi_raw_writeb(u8 val, volatile void __iomem *addr)
+{
+#if (defined CONFIG_ARCH_HI3519 || defined CONFIG_ARCH_HI3519V101)
+        unsigned long flags;
+        raw_spin_lock_irqsave(&hisilcon_lock, flags);
+        dsb();
+        isb();
+#endif
+        asm volatile("strb %1, %0"
+                     : "+Qo" (*(volatile u8 __force *)addr)
+                     : "r" (val));
+#if (defined CONFIG_ARCH_HI3519 || defined CONFIG_ARCH_HI3519V101)
+        dsb();
+        isb();
+        raw_spin_unlock_irqrestore(&hisilcon_lock, flags);
+#endif
+}
+
 static inline void __raw_writel(u32 val, volatile void __iomem *addr)
 {
 	asm volatile("str %1, %0"
 		     : "+Qo" (*(volatile u32 __force *)addr)
 		     : "r" (val));
+}
+
+static inline void __hi_raw_writel(u32 val, volatile void __iomem *addr)
+{
+#if (defined CONFIG_ARCH_HI3519 || defined CONFIG_ARCH_HI3519V101)
+        unsigned long flags;
+        raw_spin_lock_irqsave(&hisilcon_lock, flags);
+        dsb();
+        isb();
+#endif
+        asm volatile("str %1, %0"
+                     : "+Qo" (*(volatile u32 __force *)addr)
+                     : "r" (val));
+#if (defined CONFIG_ARCH_HI3519 || defined CONFIG_ARCH_HI3519V101)
+        dsb();
+        isb();
+        raw_spin_unlock_irqrestore(&hisilcon_lock, flags);
+#endif
 }
 
 static inline u8 __raw_readb(const volatile void __iomem *addr)
@@ -109,6 +192,26 @@ static inline u8 __raw_readb(const volatile void __iomem *addr)
 	return val;
 }
 
+static inline u8 __hi_raw_readb(const volatile void __iomem *addr)
+{
+        u8 val;
+#if (defined CONFIG_ARCH_HI3519 || defined CONFIG_ARCH_HI3519V101)
+        unsigned long flags;
+        raw_spin_lock_irqsave(&hisilcon_lock, flags);
+        dsb();
+        isb();
+#endif
+        asm volatile("ldrb %1, %0"
+                     : "+Qo" (*(volatile u8 __force *)addr),
+                       "=r" (val));
+#if (defined CONFIG_ARCH_HI3519 || defined CONFIG_ARCH_HI3519V101)
+        dsb();
+        isb();
+        raw_spin_unlock_irqrestore(&hisilcon_lock, flags);
+#endif
+        return val;
+}
+
 static inline u32 __raw_readl(const volatile void __iomem *addr)
 {
 	u32 val;
@@ -116,6 +219,26 @@ static inline u32 __raw_readl(const volatile void __iomem *addr)
 		     : "+Qo" (*(volatile u32 __force *)addr),
 		       "=r" (val));
 	return val;
+}
+
+static inline u32 __hi_raw_readl(const volatile void __iomem *addr)
+{
+        u32 val;
+#if (defined CONFIG_ARCH_HI3519 || defined CONFIG_ARCH_HI3519V101)
+        unsigned long flags;
+        raw_spin_lock_irqsave(&hisilcon_lock, flags);
+        dsb();
+        isb();
+#endif
+        asm volatile("ldr %1, %0"
+                     : "+Qo" (*(volatile u32 __force *)addr),
+                       "=r" (val));
+#if (defined CONFIG_ARCH_HI3519 || defined CONFIG_ARCH_HI3519V101)
+        dsb();
+        isb();
+        raw_spin_unlock_irqrestore(&hisilcon_lock, flags);
+#endif
+        return val;
 }
 
 /*
@@ -307,17 +430,35 @@ extern void _memset_io(volatile void __iomem *, int, size_t);
 #define readl_relaxed(c) ({ u32 __r = le32_to_cpu((__force __le32) \
 					__raw_readl(c)); __r; })
 
+#define hi_readb_relaxed(c) ({ u8  __r = __hi_raw_readb(c); __r; })
+#define hi_readw_relaxed(c) ({ u16 __r = le16_to_cpu((__force __le16) \
+					__hi_raw_readw(c)); __r; })
+#define hi_readl_relaxed(c) ({ u32 __r = le32_to_cpu((__force __le32) \
+					__hi_raw_readl(c)); __r; })
+
 #define writeb_relaxed(v,c)	__raw_writeb(v,c)
 #define writew_relaxed(v,c)	__raw_writew((__force u16) cpu_to_le16(v),c)
 #define writel_relaxed(v,c)	__raw_writel((__force u32) cpu_to_le32(v),c)
+
+#define hi_writeb_relaxed(v,c)	__hi_raw_writeb(v,c)
+#define hi_writew_relaxed(v,c)	__hi_raw_writew((__force u16) cpu_to_le16(v),c)
+#define hi_writel_relaxed(v,c)	__hi_raw_writel((__force u32) cpu_to_le32(v),c)
 
 #define readb(c)		({ u8  __v = readb_relaxed(c); __iormb(); __v; })
 #define readw(c)		({ u16 __v = readw_relaxed(c); __iormb(); __v; })
 #define readl(c)		({ u32 __v = readl_relaxed(c); __iormb(); __v; })
 
+#define hi_readb(c)		({ u8  __v = hi_readb_relaxed(c); __iormb(); __v; })
+#define hi_readw(c)		({ u16 __v = hi_readw_relaxed(c); __iormb(); __v; })
+#define hi_readl(c)		({ u32 __v = hi_readl_relaxed(c); __iormb(); __v; })
+
 #define writeb(v,c)		({ __iowmb(); writeb_relaxed(v,c); })
 #define writew(v,c)		({ __iowmb(); writew_relaxed(v,c); })
 #define writel(v,c)		({ __iowmb(); writel_relaxed(v,c); })
+
+#define hi_writeb(v,c)		({ __iowmb(); hi_writeb_relaxed(v,c); })
+#define hi_writew(v,c)		({ __iowmb(); hi_writew_relaxed(v,c); })
+#define hi_writel(v,c)		({ __iowmb(); hi_writel_relaxed(v,c); })
 
 #define readsb(p,d,l)		__raw_readsb(p,d,l)
 #define readsw(p,d,l)		__raw_readsw(p,d,l)

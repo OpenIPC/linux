@@ -560,6 +560,10 @@ int f2fs_setattr(struct dentry *dentry, struct iattr *attr)
 	if (err)
 		return err;
 
+	err = setattr_killpriv(dentry, attr);
+	if (err)
+		return err;
+
 	if (attr->ia_valid & ATTR_SIZE) {
 		err = f2fs_convert_inline_data(inode, attr->ia_size, NULL);
 		if (err)

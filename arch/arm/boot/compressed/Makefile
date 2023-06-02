@@ -23,7 +23,11 @@ endif
 
 AFLAGS_head.o += -DTEXT_OFFSET=$(TEXT_OFFSET)
 HEAD	= head.o
+ifeq ($(CONFIG_HW_DECOMPRESS),y)
+OBJS	+= misc.o hw_decompress.o
+else
 OBJS	+= misc.o decompress.o
+endif
 ifeq ($(CONFIG_DEBUG_UNCOMPRESS),y)
 OBJS	+= debug.o
 endif

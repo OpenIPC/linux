@@ -100,6 +100,8 @@ source "drivers/memstick/Kconfig"
 
 source "drivers/leds/Kconfig"
 
+source "drivers/switch/Kconfig"
+
 source "drivers/accessibility/Kconfig"
 
 source "drivers/infiniband/Kconfig"
@@ -181,5 +183,9 @@ source "drivers/mcb/Kconfig"
 source "drivers/ras/Kconfig"
 
 source "drivers/thunderbolt/Kconfig"
+
+source "drivers/hidmac/Kconfig"
+
+source "drivers/hisilicon/Kconfig"
 
 endmenu

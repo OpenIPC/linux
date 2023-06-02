@@ -18,15 +18,76 @@ config SUSPEND_FREEZER
 
 	  Turning OFF this setting is NOT recommended! If in doubt, say Y.
 
+config WAKELOCK
+	bool "Android's method of preventing suspend"
+	default y
+	---help---
+	  This allows applications to prevent the CPU from suspending while
+	  they need it.
+
+	  Say Y if you are running an android userspace.
+
 config HIBERNATE_CALLBACKS
 	bool
 
+config HISI_SNAPSHOT_BOOT
+	bool "snapshot fastboot Support"
+	select HIBERNATION
+	help
+	  Enable the suspend to disk (STD) functionality, which is usually
+	  called "hibernation" in user interfaces.  STD checkpoints the
+	  system and powers it off; and restores that checkpoint on reboot.
+
+	  You can suspend your machine with 'echo disk > /sys/power/state'
+	  after placing resume=/dev/swappartition on the kernel command line
+	  in your bootloader's configuration file.
+
+choice
+	prompt "image store type"
+	depends on HISI_SNAPSHOT_BOOT
+	default DEFAULT_DDR
+	help
+	  Select the I/O scheduler which will be used by default for all
+	  block devices.
+
+	config DEFAULT_MTD
+		bool "use MTD partition"
+		help
+		Note there is currently not a way to specify
+		which device to save the suspended image to.
+		It will simply pick the first available swap
+		device.
+
+	config DEFAULT_DDR
+		bool "use ddr memory"
+		help
+		Note there is currently not a way to specify
+		which device to save the suspended image to.
+		It will save imgae to ddr and then write to
+		mtdblock in uboot.
+
+endchoice
+
+
+if DEFAULT_DDR
+config SNAPSHOT_BUF_START
+	hex "snapshot buffer start addr"
+	default "0x8a000000"
+
+config SNAPSHOT_BUF_SIZE
+	hex "snapshot buffer size"
+	default "0x4000000"
+endif
+
+
+
 config HIBERNATION
 	bool "Hibernation (aka 'suspend to disk')"
-	depends on SWAP && ARCH_HIBERNATION_POSSIBLE
+	depends on SWAP && ARCH_HIBERNATION_POSSIBLE || HISI_SNAPSHOT_BOOT
 	select HIBERNATE_CALLBACKS
 	select LZO_COMPRESS
 	select LZO_DECOMPRESS
+	select GZIP_COMPRESS
 	select CRC32
 	---help---
 	  Enable the suspend to disk (STD) functionality, which is usually
@@ -66,6 +127,14 @@ config HIBERNATION
 
 	  For more information take a look at <file:Documentation/power/swsusp.txt>.
 
+config GZIP_COMPRESS
+	bool
+	depends on HISI_SNAPSHOT_BOOT && HIBERNATION
+	---help---
+	Allow the system to compress the hibernation image by gzip method, so that
+	upon the next boot, the u-boot can use the hardware method to decompress the
+	saved image.
+
 config ARCH_SAVE_PAGE_KEYS
 	bool
 
@@ -83,7 +152,7 @@ config PM_STD_PARTITION
 
 	  The partition specified can be overridden by specifying:
 
-		resume=/dev/<other device> 
+		hbcomp=/dev/<other device>
 
 	  which will set the resume partition to the device specified. 
 
@@ -309,3 +378,10 @@ config PM_GENERIC_DOMAINS_OF
 config CPU_PM
 	bool
 	depends on SUSPEND || CPU_IDLE
+
+config SUSPEND_TIME
+	bool "Log time spent in suspend"
+	---help---
+	  Prints the time spent in suspend in the kernel log, and
+	  keeps statistics on the time spent in suspend in
+	  /sys/kernel/debug/suspend_time

@@ -1185,7 +1185,11 @@ extern int blk_verify_command(unsigned char *cmd, fmode_t has_write_perm);
 enum blk_default_limits {
 	BLK_MAX_SEGMENTS	= 128,
 	BLK_SAFE_MAX_SECTORS	= 255,
+#if defined(CONFIG_ARCH_HI3559) || defined(CONFIG_ARCH_HI3556)
+	BLK_DEF_MAX_SECTORS	= 8192,
+#else
 	BLK_DEF_MAX_SECTORS	= 1024,
+#endif
 	BLK_MAX_SEGMENT_SIZE	= 65536,
 	BLK_SEG_BOUNDARY_MASK	= 0xFFFFFFFFUL,
 };

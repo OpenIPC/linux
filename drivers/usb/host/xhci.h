@@ -33,6 +33,19 @@
 #include	"xhci-ext-caps.h"
 #include "pci-quirks.h"
 
+#if defined(CONFIG_ARCH_HI3519) || defined(CONFIG_ARCH_HI3519V101) || defined(CONFIG_ARCH_HI3516AV200)
+#ifdef readl
+#undef readl
+#undef readl_relaxed
+#undef writel
+#undef writel_relaxed
+#define readl		hi_readl
+#define readl_relaxed	hi_readl_relaxed
+#define writel		hi_writel
+#define writel_relaxed	hi_writel_relaxed
+#endif /* readl */
+#endif /* defined(CONFIG_ARCH_HI3519) || defined(CONFIG_ARCH_HI3519V101) || defined(CONFIG_ARCH_HI3516AV200) */
+
 /* xHCI PCI Configuration Registers */
 #define XHCI_SBRN_OFFSET	(0x60)
 

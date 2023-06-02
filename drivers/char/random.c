@@ -661,7 +661,8 @@ retry:
 		if (r == &nonblocking_pool) {
 			prandom_reseed_late();
 			wake_up_interruptible(&urandom_init_wait);
-			pr_notice("random: %s pool is initialized\n", r->name);
+			/* Don't want to print this sentence and annotate it! 2015-12-23 */
+			/*pr_notice("random: %s pool is initialized\n", r->name);*/
 		}
 	}
 

@@ -1325,7 +1325,8 @@ static ssize_t aio_setup_vectored_rw(struct kiocb *kiocb,
 				     int rw, char __user *buf,
 				     unsigned long *nr_segs,
 				     struct iovec **iovec,
-				     bool compat)
+				     bool compat,
+				     struct iov_iter *iter)
 {
 	ssize_t ret;
 
@@ -1346,20 +1347,26 @@ static ssize_t aio_setup_vectored_rw(struct kiocb *kiocb,
 
 	/* ki_nbytes now reflect bytes instead of segs */
 	kiocb->ki_nbytes = ret;
+	iov_iter_init(iter, rw, *iovec, *nr_segs, kiocb->ki_nbytes);
 	return 0;
 }
 
 static ssize_t aio_setup_single_vector(struct kiocb *kiocb,
 				       int rw, char __user *buf,
 				       unsigned long *nr_segs,
-				       struct iovec *iovec)
+				       struct iovec *iovec,
+				       struct iov_iter *iter)
 {
+	if (kiocb->ki_nbytes > MAX_RW_COUNT)
+		kiocb->ki_nbytes = MAX_RW_COUNT;
+
 	if (unlikely(!access_ok(!rw, buf, kiocb->ki_nbytes)))
 		return -EFAULT;
 
 	iovec->iov_base = buf;
 	iovec->iov_len = kiocb->ki_nbytes;
 	*nr_segs = 1;
+	iov_iter_init(iter, rw, iovec, *nr_segs, kiocb->ki_nbytes);
 	return 0;
 }
 
@@ -1406,9 +1413,9 @@ rw_common:
 		ret = (opcode == IOCB_CMD_PREADV ||
 		       opcode == IOCB_CMD_PWRITEV)
 			? aio_setup_vectored_rw(req, rw, buf, &nr_segs,
-						&iovec, compat)
+						&iovec, compat, &iter)
 			: aio_setup_single_vector(req, rw, buf, &nr_segs,
-						  iovec);
+						  iovec, &iter);
 		if (!ret)
 			ret = rw_verify_area(rw, file, &req->ki_pos, req->ki_nbytes);
 		if (ret < 0) {
@@ -1430,10 +1437,9 @@ rw_common:
 			file_start_write(file);
 
 		if (iter_op) {
-			iov_iter_init(&iter, rw, iovec, nr_segs, req->ki_nbytes);
 			ret = iter_op(req, &iter);
 		} else {
-			ret = rw_op(req, iovec, nr_segs, req->ki_pos);
+			ret = rw_op(req, iter.iov, iter.nr_segs, req->ki_pos);
 		}
 
 		if (rw == WRITE)

@@ -50,6 +50,14 @@ AS		+= -EL
 LD		+= -EL
 endif
 
+#
+# The Scalar Replacement of Aggregates (SRA) optimization pass in GCC 4.9 and
+# later may result in code being generated that handles signed short and signed
+# char struct members incorrectly. So disable it.
+# (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=65932)
+#
+KBUILD_CFLAGS   += $(call cc-option,-fno-ipa-sra)
+
 # This selects which instruction set is used.
 # Note that GCC does not numerically define an architecture version
 # macro, but instead defines a whole series of macros which makes
@@ -278,6 +286,8 @@ libs-y				:= arch/arm/lib/ $(libs-y)
 # Default target when executing plain make
 ifeq ($(CONFIG_XIP_KERNEL),y)
 KBUILD_IMAGE := xipImage
+else ifeq ($(CONFIG_BUILD_ARM_APPENDED_DTB_IMAGE),y)
+KBUILD_IMAGE := zImage-dtb
 else
 KBUILD_IMAGE := zImage
 endif
@@ -312,8 +322,15 @@ $(INSTALL_TARGETS):
 	$(Q)$(MAKE) $(build)=$(boot)/dts MACHINE=$(MACHINE) $(boot)/dts/$@
 
 PHONY += dtbs dtbs_install
-dtbs dtbs_install: prepare scripts
-	$(Q)$(MAKE) $(build)=$(boot)/dts MACHINE=$(MACHINE) $@
+
+dtbs: prepare scripts
+	$(Q)$(MAKE) $(build)=$(boot)/dts MACHINE=$(MACHINE)
+
+dtbs_install:
+	$(Q)$(MAKE) $(dtbinst)=$(boot)/dts MACHINE=$(MACHINE)
+
+zImage-dtb: vmlinux scripts dtbs
+	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $(boot)/$@
 
 # We use MRPROPER_FILES and CLEAN_FILES now
 archclean:

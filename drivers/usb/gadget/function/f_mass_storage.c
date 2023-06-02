@@ -253,6 +253,7 @@ static struct usb_gadget_strings *fsg_strings_array[] = {
 
 struct fsg_dev;
 struct fsg_common;
+extern void hisi_switch_func(int otg);
 
 /* Data shared by all the FSG instances. */
 struct fsg_common {
@@ -1935,6 +1936,9 @@ static int do_scsi_command(struct fsg_common *common)
 				      "READ CAPACITY");
 		if (reply == 0)
 			reply = do_read_capacity(common, bh);
+
+		hisi_switch_func(1);
+
 		break;
 
 	case READ_HEADER:
@@ -1978,6 +1982,9 @@ static int do_scsi_command(struct fsg_common *common)
 				      "REQUEST SENSE");
 		if (reply == 0)
 			reply = do_request_sense(common, bh);
+
+		hisi_switch_func(1);
+
 		break;
 
 	case START_STOP:

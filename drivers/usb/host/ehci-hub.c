@@ -30,7 +30,21 @@
 #include <linux/usb/otg.h>
 
 #define	PORT_WAKE_BITS	(PORT_WKOC_E|PORT_WKDISC_E|PORT_WKCONN_E)
+#if defined(CONFIG_ARCH_HI3519) || defined(CONFIG_ARCH_HI3519V101) \
+	|| defined(CONFIG_ARCH_HI3559) || defined(CONFIG_ARCH_HI3556) \
+	|| defined(CONFIG_ARCH_HI3516AV200)
+#define BASE_REG	0x120100b4
+#define USBPHY_PORT0_TREQ	(0x1 << 2)
+#endif
+#ifdef CONFIG_ARCH_HI3531D
+#define BASE_REG			0x12040000
+#define USBPHY_PORT0_TREQ		0x0134
+#endif
 
+#ifdef CONFIG_ARCH_HI3516CV300
+#define BASE_REG	0x120100b8
+#define USBPHY_PORT0_TREQ	(0x1 << 14)
+#endif
 #ifdef	CONFIG_PM
 
 static int persist_enabled_on_companion(struct usb_device *udev, void *unused)
@@ -1219,7 +1233,32 @@ int ehci_hub_control(
 				ehci->reset_done [wIndex] = jiffies
 						+ msecs_to_jiffies (50);
 			}
+
+			if (!(temp & PORT_CONNECT) && !PORT_USB11 (temp))
+				mdelay(100);
+
+#if defined(CONFIG_ARCH_HI3519) || defined(CONFIG_ARCH_HI3559) || defined(CONFIG_ARCH_HI3556)\
+	|| defined(CONFIG_ARCH_HI3519V101) ||  defined(CONFIG_ARCH_HI3516CV300) || defined(CONFIG_ARCH_HI3516AV200) \
+	|| defined(CONFIG_ARCH_HI3531D)
+			if (ehci_readl(ehci, status_reg) == 0x1005) {
+				unsigned int reg, reg1;
+				void __iomem *base_reg;
+
+				base_reg = ioremap_nocache(BASE_REG, 0x4);
+
+				ehci_writel(ehci, temp, status_reg);
+				reg = reg1 = ehci_readl(ehci, base_reg);
+				reg1 |= USBPHY_PORT0_TREQ;
+				ehci_writel(ehci, reg1, base_reg);
+				ehci_writel(ehci, reg, base_reg);
+
+				iounmap(base_reg);
+			} else
+				ehci_writel(ehci, temp, status_reg);
+
+#else
 			ehci_writel(ehci, temp, status_reg);
+#endif
 			break;
 
 		/* For downstream facing ports (these):  one hub port is put

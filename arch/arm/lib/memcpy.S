@@ -55,7 +55,6 @@
 	.text
 
 /* Prototype: void *memcpy(void *dest, const void *src, size_t n); */
-
 ENTRY(memcpy)
 
 #include "copy_template.S"

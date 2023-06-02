@@ -81,10 +81,21 @@ static struct kobj_attribute _name##_attr = {	\
 extern unsigned long image_size;
 /* Size of memory reserved for drivers (default SPARE_PAGES x PAGE_SIZE) */
 extern unsigned long reserved_size;
+#ifndef	CONFIG_HISI_SNAPSHOT_BOOT
 extern int in_suspend;
+#endif
 extern dev_t swsusp_resume_device;
 extern sector_t swsusp_resume_block;
 
+#ifdef CONFIG_HISI_SNAPSHOT_BOOT
+extern char hb_bdev_file[64];
+extern char compress_method[16];
+extern void *saved_processor_context;
+
+extern volatile unsigned long in_suspend;
+extern int noshrink;
+extern int swsusp_check_storage_all(void);
+#endif
 extern asmlinkage int swsusp_arch_suspend(void);
 extern asmlinkage int swsusp_arch_resume(void);
 
@@ -243,7 +254,7 @@ static inline int suspend_freeze_processes(void)
 	 */
 	if (error)
 		return error;
-
+#ifndef	CONFIG_HISI_SNAPSHOT_BOOT
 	error = freeze_kernel_threads();
 	/*
 	 * freeze_kernel_threads() thaws only kernel threads upon freezing
@@ -252,11 +263,18 @@ static inline int suspend_freeze_processes(void)
 	if (error)
 		thaw_processes();
 
+#else
+	error = pm_notifier_call_chain(PM_POST_FREEZE_PROCESS);
+#endif
+
 	return error;
 }
 
 static inline void suspend_thaw_processes(void)
 {
+#ifdef	CONFIG_HISI_SNAPSHOT_BOOT
+	pm_notifier_call_chain(PM_THAW_PROCESS_PREPARE);
+#endif
 	thaw_processes();
 }
 #else

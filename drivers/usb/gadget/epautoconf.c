@@ -180,8 +180,8 @@ ep_matches (
 		int size = ep->maxpacket_limit;
 
 		/* min() doesn't work on bitfields with gcc-3.5 */
-		if (size > 64)
-			size = 64;
+		if (size > 512)
+			size = 512;
 		desc->wMaxPacketSize = cpu_to_le16(size);
 	}
 	ep->address = desc->bEndpointAddress;

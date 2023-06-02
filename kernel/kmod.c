@@ -496,7 +496,22 @@ static void helper_unlock(void)
 	if (atomic_dec_and_test(&running_helpers))
 		wake_up(&running_helpers_waitq);
 }
+#ifdef	CONFIG_HISI_SNAPSHOT_BOOT
+static void helper_lock_force(void)
+{
+	atomic_inc(&running_helpers);
+	smp_mb();
+}
 
+static void helper_unlock_force(void)
+{
+	int tmp;
+
+	tmp = atomic_dec_and_test(&running_helpers);
+	if (tmp && (usermodehelper_disabled == 0))
+		wake_up(&running_helpers_waitq);
+}
+#endif
 /**
  * call_usermodehelper_setup - prepare to call a usermode helper
  * @path: path to usermode executable
@@ -614,6 +629,47 @@ unlock:
 	return retval;
 }
 EXPORT_SYMBOL(call_usermodehelper_exec);
+
+#ifdef	CONFIG_HISI_SNAPSHOT_BOOT
+int call_usermodehelper_exec_force(struct subprocess_info *sub_info, int wait)
+{
+	DECLARE_COMPLETION_ONSTACK(done);
+	int retval = 0;
+
+	helper_lock_force();
+
+	if (sub_info->path[0] == '\0')
+		goto out;
+
+	if (!khelper_wq) {
+		retval = -EBUSY;
+		goto out;
+	}
+
+	sub_info->complete = &done;
+	sub_info->wait = wait;
+
+	queue_work(khelper_wq, &sub_info->work);
+	if (wait == UMH_NO_WAIT)    /* task has freed sub_info */
+		goto unlock;
+	wait_for_completion(&done);
+	retval = sub_info->retval;
+
+out:
+	call_usermodehelper_freeinfo(sub_info);
+unlock:
+	helper_unlock_force();
+
+	return retval;
+}
+#else
+int call_usermodehelper_exec_force(struct subprocess_info *sub_info, int wait)
+{
+	return 0;
+}
+
+#endif
+EXPORT_SYMBOL(call_usermodehelper_exec_force);
 
 /**
  * call_usermodehelper() - prepare and start a usermode application

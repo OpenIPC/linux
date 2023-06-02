@@ -1139,11 +1139,15 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
 		attr->ia_valid &= ~ATTR_SIZE;
 
 #define OCFS2_VALID_ATTRS (ATTR_ATIME | ATTR_MTIME | ATTR_CTIME | ATTR_SIZE \
-			   | ATTR_GID | ATTR_UID | ATTR_MODE)
+			   | ATTR_GID | ATTR_UID | ATTR_MODE | ATTR_KILL_PRIV)
 	if (!(attr->ia_valid & OCFS2_VALID_ATTRS))
 		return 0;
 
 	status = inode_change_ok(inode, attr);
+	if (status)
+		return status;
+
+	status = setattr_killpriv(dentry, attr);
 	if (status)
 		return status;
 

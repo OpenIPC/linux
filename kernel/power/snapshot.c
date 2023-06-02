@@ -28,6 +28,9 @@
 #include <linux/list.h>
 #include <linux/slab.h>
 #include <linux/compiler.h>
+#ifdef	CONFIG_HISI_SNAPSHOT_BOOT
+#include <linux/writeback.h>
+#endif
 
 #include <asm/uaccess.h>
 #include <asm/mmu_context.h>
@@ -733,6 +736,19 @@ static void memory_bm_clear_current(struct memory_bitmap *bm)
 	clear_bit(bit, bm->cur.node->data);
 }
 
+#ifdef	CONFIG_HISI_SNAPSHOT_BOOT
+static int mem_bm_clear_bit_check(struct memory_bitmap *bm, unsigned long pfn)
+{
+	void *addr;
+	unsigned int bit;
+	int error;
+
+	error = memory_bm_find_bit(bm, pfn, &addr, &bit);
+	if (!error)
+		clear_bit(bit, addr);
+	return error;
+}
+#endif
 static int memory_bm_test_bit(struct memory_bitmap *bm, unsigned long pfn)
 {
 	void *addr;
@@ -828,6 +844,73 @@ struct nosave_region {
 	unsigned long start_pfn;
 	unsigned long end_pfn;
 };
+#ifdef	CONFIG_HISI_SNAPSHOT_BOOT
+/* used for pmem pfn save */
+static LIST_HEAD(save_regions);
+static DEFINE_SPINLOCK(save_spin);
+
+void *register_save_region(unsigned long start_pfn, unsigned long end_pfn)
+{
+	struct nosave_region *region;
+	region = kmalloc(sizeof(*region), GFP_KERNEL);
+	BUG_ON(!region);
+
+	region->start_pfn = start_pfn;
+	region->end_pfn = end_pfn;
+
+	spin_lock(&save_spin);
+	list_add_tail(&region->list, &save_regions);
+	spin_unlock(&save_spin);
+
+	return region;
+}
+EXPORT_SYMBOL(register_save_region);
+
+void unregister_save_region(void *mem)
+{
+	struct nosave_region *region = mem;
+
+	if (!region)
+		return;
+
+	spin_lock(&save_spin);
+	list_del(&region->list);
+	spin_unlock(&save_spin);
+
+	kfree(mem);
+}
+EXPORT_SYMBOL(unregister_save_region);
+
+static LIST_HEAD(nosave_regions_runtime);
+static DEFINE_SPINLOCK(nosave_spin);
+
+void *register_nosave_region_runtime(unsigned long start_pfn,
+		unsigned long end_pfn)
+{
+	struct nosave_region *region;
+	region = kmalloc(sizeof(struct nosave_region), GFP_KERNEL);
+	BUG_ON(!region);
+	region->start_pfn = start_pfn;
+	region->end_pfn = end_pfn;
+	spin_lock(&nosave_spin);
+	list_add_tail(&region->list, &nosave_regions_runtime);
+	spin_unlock(&nosave_spin);
+	return region;
+}
+EXPORT_SYMBOL(register_nosave_region_runtime);
+
+void unregister_nosave_region_runtime(void *mem)
+{
+	struct nosave_region *region = mem;
+	if (!region)
+		return;
+	spin_lock(&nosave_spin);
+	list_del(&region->list);
+	spin_unlock(&nosave_spin);
+	kfree(mem);
+}
+EXPORT_SYMBOL(unregister_nosave_region_runtime);
+#endif
 
 static LIST_HEAD(nosave_regions);
 
@@ -940,8 +1023,11 @@ static void mark_nosave_pages(struct memory_bitmap *bm)
 			 (unsigned long long) region->start_pfn << PAGE_SHIFT,
 			 ((unsigned long long) region->end_pfn << PAGE_SHIFT)
 				- 1);
-
+#ifdef	CONFIG_HISI_SNAPSHOT_BOOT
+		for (pfn = region->start_pfn; pfn <= region->end_pfn; pfn++)
+#else
 		for (pfn = region->start_pfn; pfn < region->end_pfn; pfn++)
+#endif
 			if (pfn_valid(pfn)) {
 				/*
 				 * It is safe to ignore the result of
@@ -953,7 +1039,49 @@ static void mark_nosave_pages(struct memory_bitmap *bm)
 			}
 	}
 }
+#ifdef	CONFIG_HISI_SNAPSHOT_BOOT
+/*used for pmem pages mark. maybe useless for us*/
+static void mark_snapshot_pages_again(void)
+{
+	struct nosave_region *region;
+	struct memory_bitmap *bm = forbidden_pages_map;
 
+	if (list_empty(&save_regions))
+		goto proc_nosave;
+
+	spin_lock(&save_spin);
+	list_for_each_entry(region, &save_regions, list) {
+		unsigned long pfn;
+
+		pr_info("PM: Marking save pages: %016lx - %016lx\n",
+				region->start_pfn << PAGE_SHIFT,
+				region->end_pfn << PAGE_SHIFT);
+
+		for (pfn = region->start_pfn; pfn <= region->end_pfn; pfn++)
+			if (pfn_valid(pfn))
+				mem_bm_clear_bit_check(bm, pfn);
+	}
+	spin_unlock(&save_spin);
+
+proc_nosave:
+	if (list_empty(&nosave_regions_runtime))
+		return;
+
+	spin_lock(&nosave_spin);
+	list_for_each_entry(region, &nosave_regions_runtime, list) {
+		unsigned long pfn;
+
+		pr_info("PM: Marking runtime nosave pages: %016lx - %016lx\n",
+				region->start_pfn << PAGE_SHIFT,
+				region->end_pfn << PAGE_SHIFT);
+
+		for (pfn = region->start_pfn; pfn <= region->end_pfn; pfn++)
+			if (pfn_valid(pfn))
+				mem_bm_set_bit_check(bm, pfn);
+	}
+	spin_unlock(&nosave_spin);
+}
+#endif
 /**
  *	create_basic_memory_bitmaps - create bitmaps needed for marking page
  *	frames that should not be saved and free page frames.  The pointers
@@ -1070,6 +1198,11 @@ static unsigned int count_free_highmem_pages(void)
 	return cnt;
 }
 
+#ifdef CONFIG_CMA
+#ifndef CONFIG_CMA_ADVANCE_SHARE
+extern int hicma_page_free(unsigned long pfn);
+#endif
+#endif
 /**
  *	saveable_highmem_page - Determine whether a highmem page should be
  *	included in the suspend image.
@@ -1096,7 +1229,13 @@ static struct page *saveable_highmem_page(struct zone *zone, unsigned long pfn)
 
 	if (page_is_guard(page))
 		return NULL;
+#ifdef CONFIG_CMA
+#ifndef CONFIG_CMA_ADVANCE_SHARE
+	if (hicma_page_free(pfn))
+		return NULL;
 
+#endif
+#endif
 	return page;
 }
 
@@ -1161,7 +1300,13 @@ static struct page *saveable_page(struct zone *zone, unsigned long pfn)
 
 	if (page_is_guard(page))
 		return NULL;
+#ifdef CONFIG_CMA
+#ifndef CONFIG_CMA_ADVANCE_SHARE
+	if (hicma_page_free(pfn))
+		return NULL;
 
+#endif
+#endif
 	return page;
 }
 
@@ -1452,9 +1597,9 @@ static inline unsigned long preallocate_highmem_fraction(unsigned long nr_pages,
 /**
  * free_unnecessary_pages - Release preallocated pages not needed for the image
  */
-static void free_unnecessary_pages(void)
+static unsigned long free_unnecessary_pages(void)
 {
-	unsigned long save, to_free_normal, to_free_highmem;
+	unsigned long save, to_free_normal, to_free_highmem, free;
 
 	save = count_data_pages();
 	if (alloc_normal >= save) {
@@ -1475,6 +1620,8 @@ static void free_unnecessary_pages(void)
 		else
 			to_free_normal = 0;
 	}
+
+	free = to_free_normal + to_free_highmem;
 
 	memory_bm_position_reset(&copy_bm);
 
@@ -1498,8 +1645,31 @@ static void free_unnecessary_pages(void)
 		swsusp_unset_page_free(page);
 		__free_page(page);
 	}
-}
 
+	return free;
+}
+#ifdef	CONFIG_HISI_SNAPSHOT_BOOT
+/*
+ ** Kick the writeback threads then try to free up some ZONE_NORMAL memory.
+ **/
+static void free_more_memory(void)
+{
+	struct zone *zone;
+	int nid;
+
+	wakeup_flusher_threads(1024, WB_REASON_FREE_MORE_MEM);
+	yield();
+
+	for_each_online_node(nid) {
+		(void)first_zones_zonelist(node_zonelist(nid, GFP_NOFS),
+				gfp_zone(GFP_NOFS), NULL,
+				&zone);
+		if (zone)
+			try_to_free_pages(node_zonelist(nid, GFP_NOFS), 0,
+					GFP_NOFS, NULL);
+	}
+}
+#endif
 /**
  * minimum_image_size - Estimate the minimum acceptable size of an image
  * @saveable: Number of saveable pages in the system.
@@ -1559,7 +1729,15 @@ int hibernate_preallocate_memory(void)
 	unsigned long alloc, save_highmem, pages_highmem, avail_normal;
 	struct timeval start, stop;
 	int error;
+#ifdef	CONFIG_HISI_SNAPSHOT_BOOT
+	bool compress;
+	unsigned long min_image_size, prev_image_size;
 
+	/* this will try to free some pages in the normal zone */
+	free_more_memory();
+
+	mark_snapshot_pages_again();
+#endif
 	printk(KERN_INFO "PM: Preallocating image memory... ");
 	do_gettimeofday(&start);
 
@@ -1573,7 +1751,52 @@ int hibernate_preallocate_memory(void)
 
 	alloc_normal = 0;
 	alloc_highmem = 0;
+#ifdef	CONFIG_HISI_SNAPSHOT_BOOT
+	compress = swsusp_check_storage_all() == 1 ? true : false;
 
+	if (noshrink)
+		goto skip_reclaim;
+
+	/* calculates the snapshot image size */
+	prev_image_size = min_image_size =
+		global_page_state(NR_SLAB_RECLAIMABLE)
+		+ global_page_state(NR_ACTIVE_ANON)
+		+ global_page_state(NR_INACTIVE_ANON)
+		+ global_page_state(NR_ACTIVE_FILE)
+		+ global_page_state(NR_INACTIVE_FILE)
+		- global_page_state(NR_FILE_MAPPED);
+
+	/* Count the number of saveable data pages.
+	 * Does page reclamation till min_image_size becomes constant
+	 */
+	do {
+		save_highmem = count_highmem_pages();
+		saveable = count_data_pages();
+		saveable += save_highmem;
+
+		shrink_all_memory(saveable);
+
+		min_image_size = global_page_state(NR_SLAB_RECLAIMABLE)
+			+ global_page_state(NR_ACTIVE_ANON)
+			+ global_page_state(NR_INACTIVE_ANON)
+			+ global_page_state(NR_ACTIVE_FILE)
+			+ global_page_state(NR_INACTIVE_FILE)
+			- global_page_state(NR_FILE_MAPPED);
+
+		if (prev_image_size == min_image_size)
+			break;
+		else
+			prev_image_size = min_image_size;
+	} while (saveable > min_image_size);
+
+skip_reclaim:
+	/*
+	 * Compute the total number of page frames we can use (count) and the
+	 * number of pages needed for image metadata (size).
+	 */
+	save_highmem = count_highmem_pages();
+	saveable = count_data_pages();
+#else
 	/* Count the number of saveable data pages. */
 	save_highmem = count_highmem_pages();
 	saveable = count_data_pages();
@@ -1582,6 +1805,7 @@ int hibernate_preallocate_memory(void)
 	 * Compute the total number of page frames we can use (count) and the
 	 * number of pages needed for image metadata (size).
 	 */
+#endif
 	count = saveable;
 	saveable += save_highmem;
 	highmem = save_highmem;
@@ -1604,6 +1828,12 @@ int hibernate_preallocate_memory(void)
 	max_size = (count - (size + PAGES_FOR_IO)) / 2
 			- 2 * DIV_ROUND_UP(reserved_size, PAGE_SIZE);
 	/* Compute the desired number of image pages specified by image_size. */
+#ifdef	CONFIG_HISI_SNAPSHOT_BOOT
+	if (compress)
+		/* very rough : may accomplish 40% of original */
+		size = DIV_ROUND_UP(image_size * 5 / 2, PAGE_SIZE);
+	else
+#endif
 	size = DIV_ROUND_UP(image_size, PAGE_SIZE);
 	if (size > max_size)
 		size = max_size;
@@ -1638,8 +1868,16 @@ int hibernate_preallocate_memory(void)
 	 * NOTE: If this is not done, performance will be hurt badly in some
 	 * test cases.
 	 */
+#ifdef	CONFIG_HISI_SNAPSHOT_BOOT
+	/* REVISIT : fail-safe case.
+	 *   *    is this needed ? do you really want this ?
+	 *       *    it may try to free all of page-cache.
+	 *           */
+	if (!noshrink)
+		shrink_all_memory(saveable);
+#else
 	shrink_all_memory(saveable - size);
-
+#endif
 	/*
 	 * The number of saveable pages in memory was too high, so apply some
 	 * pressure to decrease it.  First, make room for the largest possible
@@ -1687,7 +1925,7 @@ int hibernate_preallocate_memory(void)
 	 * pages in memory, but we have allocated more.  Release the excessive
 	 * ones now.
 	 */
-	free_unnecessary_pages();
+	pages -= free_unnecessary_pages();
 
  out:
 	do_gettimeofday(&stop);

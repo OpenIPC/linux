@@ -1,0 +1,558 @@
+/*
+ * Copyright (c) 2013-2014 Linaro Ltd.
+ * Copyright (c) 2015-2017 HiSilicon Technologies Co., Ltd.
+ *
+ * This program is free software; you can redistribute  it and/or modify it
+ * under  the terms of  the GNU General  Public License as published by the
+ * Free Software Foundation;  either version 2 of the  License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+/dts-v1/;
+#include "hi3531d.dtsi"
+
+/ {
+	model = "Hisilicon HI3531D DEMO Board";
+	compatible = "hisilicon,hi3531d";
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		enable-method = "hisilicon,hi3531d-smp";
+
+		cpu@0 {
+			compatible = "arm,cortex-a9";
+			device_type = "cpu";
+			reg = <0>;
+			next-level-cache = <&L2>;
+		};
+
+		cpu@1 {
+			compatible = "arm,cortex-a9";
+			device_type = "cpu";
+			reg = <1>;
+			next-level-cache = <&L2>;
+		};
+	};
+
+	memory {
+		device_type = "memory";
+		reg = <0x40000000 0xc0000000>;
+	};
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&spi_bus0{
+	status = "okay";
+	num-cs = <4>;
+
+	spidev@0 {
+		compatible = "spidev";
+		reg = <0>;
+		pl022,interface = <0>;
+		pl022,com-mode = <0>;
+		spi-max-frequency = <40500000>;
+	};
+
+	spidev@1 {
+		compatible = "spidev";
+		reg = <1>;
+		pl022,interface = <0>;
+		pl022,com-mode = <0>;
+		spi-max-frequency = <40500000>;
+	};
+
+	spidev@2 {
+		compatible = "spidev";
+		reg = <2>;
+		pl022,interface = <0>;
+		pl022,com-mode = <0>;
+		spi-max-frequency = <40500000>;
+	};
+
+	spidev@3 {
+		compatible = "spidev";
+		reg = <3>;
+		pl022,interface = <0>;
+		pl022,com-mode = <0>;
+		spi-max-frequency = <40500000>;
+	};
+};
+
+&hisfc {
+	hi_sfc {
+		compatible = "jedec,spi-nor";
+		reg = <0>;
+		spi-max-frequency = <160000000>;
+		m25p,fast-read;
+	};
+};
+
+&hisnfc {
+	hinand {
+		compatible = "jedec,spi-nand";
+		reg = <0>;
+		spi-max-frequency = <160000000>;
+	};
+};
+
+&hinfc610 {
+	assigned-clocks = <&clock HI3531D_NFC_CLK>;
+	assigned-clock-rates = <200000000>;
+
+	hinand {
+		compatible = "jedec,nand";
+		reg = <0>;
+		nand-max-frequency = <200000000>;
+	};
+};
+
+&hidmac {
+    status = "okay";
+};
+
+&mdio {
+	ethphy: ethernet-phy@1 {
+		reg = <1>;
+	};
+};
+
+&higmac {
+	phy-handle = <&ethphy>;
+	phy-mode = "rgmii";
+};
+
+&pmux {
+	i2c0_pmux: i2c0_pmux {
+		pinctrl-single,pins = <
+			0x01CC 0x1	/*I2C0_SDA*/
+			0x01D0 0x1	/*I2C0_SCL*/
+		>;
+	};
+
+	i2c1_pmux: i2c1_pmux {
+		pinctrl-single,pins = <
+			0x0148 0x2	/*I2C1_SDA*/
+			0x014C 0x2	/*I2C1_SCL*/
+		>;
+	};
+
+	vicap_demob_pmux: vicap_demob_pmux{
+		pinctrl-single,pins = <
+			0x0000 0x0  /*VI0_CLK*/
+			0x0024 0x0  /*VI1_CLK*/
+			0x0048 0x1  /*VI_ADC_REFCLK0*/
+			0x004c 0x0  /*VI2_CLK*/
+			0x0070 0x0  /*VI3_CLK*/
+			0x0094 0x1  /*VI_ADC_REFCLK1*/
+			0x0098 0x0  /*VI4_CLK*/
+			0x00bc 0x0  /*VI5_CLK*/
+			0x00e4 0x0  /*VI6_CLK*/
+			0x0108 0x0  /*VI7_CLK*/
+		>;
+	};
+	vicap_demopro_pmux: vicap_demopro_pmux{
+		pinctrl-single,pins = <
+			0x0000 0x2  /*VI_ADC_REFCLK0*/
+			0x0024 0x2  /*VI0_CLK*/
+			0x0048 0x2  /*VI1_CLK*/
+			0x004c 0x2  /*VI_ADC_REFCLK1*/
+			0x0070 0x2  /*VI2_CLK*/
+			0x0094 0x2  /*VI3_CLK*/
+			0x00bc 0x2  /*VI_ADC_REFCLK2*/
+			0x00E0 0x2  /*VI4_CLK */
+			0x0108 0x2  /*VI_ADC_REFCLK3*/
+			0x012C 0x2  /*VI6_CLK */
+		>;
+	};
+	vicap_cascade_pmux: vicap_cascade_pmux{
+		pinctrl-single,pins = <
+			0x0290 0x1 /*VI8_DAT14*/
+			0x0294 0x1 /*VI8_DAT13*/
+			0x0298 0x1 /*VI8_DAT12*/
+			0x029C 0x1 /*VI8_DAT11*/
+			0x02A0 0x1 /*VI8_DAT10*/
+			0x02A4 0x1 /*VI8_DAT9 */
+			0x02A8 0x1 /*VI8_DAT8 */
+			0x02AC 0x1 /*VI8_DAT7 */
+			0x02B0 0x1 /*VI8_DAT1 */
+			0x02B4 0x1 /*VI8_CLK  */
+			0x02B8 0x1 /*VI8_DAT3 */
+			0x02BC 0x1 /*VI8_DAT4 */
+			0x02C0 0x1 /*VI8_DAT5 */
+			0x02C4 0x1 /*VI8_DAT6 */
+			0x02C8 0x1 /*VI8_DAT2 */
+			0x02CC 0x1 /*VI8_DAT0 */
+			0x02D0 0x1 /*VI8_DAT15*/
+		>;
+	};
+
+	vicap_sck_pmux: vicap_sck_pmux{
+		pinctrl-single,pins = <
+			0x0000 0x2				/* 0: VI0_CLK   1: GPIO21_0        2: VI_ADC_REFCLK0 */
+			0x0024 0x2				/* 0: VI1_CLK   1: GPIO21_1        2: VI0_CLK        */
+			0x0048 0x2				/* 0: GPIO21_2  1: VI_ADC_REFCLK0  2: VI1_CLK */   
+			0x004c 0x2				/* 0: VI2_CLK   1: GPIO21_3        2: VI_ADC_REFCLK1 */
+			0x0070 0x2				/* 0: VI3_CLK   1: GPIO21_4        2: VI2_CLK        */
+			0x0094 0x2				/* 0: GPIO21_5  1: VI_ADC_REFCLK1  2: VI3_CLK        */
+			0x0098 0x2				/* 0: VI4_CLK   1: GPIO21_6        2: VI_ADC_REFCLK2 */
+			0x00bc 0x2				/* 0: VI5_CLK   1: GPIO21_7        2: VI4_CLK        */
+			0x00E0 0x2				/* 0: GPIO12_1  1: VI_ADC_REFCLK2  2: VI5_CLK        */
+			0x00e4 0x2				/* 0: VI6_CLK   1: GPIO12_2        2: VI_ADC_REFCLK3 */
+			0x0108 0x2				/* 0: VI7_CLK   1: GPIO15_7        2: VI6_CLK        */
+			0x012C 0x2				/* 0: GPIO20_6  1: VI_ADC_REFCLK3  2: VI7_CLK        */
+		>;
+	};
+
+	vo_bt1120_pmux_demo: vo_bt1120_pmux_demo{
+		pinctrl-single,pins = <
+			0x0154 0x1	/*VOU_SLV_DAT15*/
+			0x0158 0x1	/*VOU_SLV_DAT1*/
+			0x015C 0x1	/*VOU1120_DAT1*/
+			0x0160 0x1	/*VOU1120_DAT2*/
+			0x0164 0x1	/*VOU1120_DAT3*/
+			0x0168 0x1	/*VOU1120_DAT4*/
+			0x016C 0x1	/*VOU1120_DAT5*/
+			0x0170 0x1	/*VOU1120_DAT6*/
+			0x0174 0x1	/*VOU1120_DAT7*/
+			0x0178 0x1	/*VOU1120_DAT8*/
+			0x017C 0x1	/*VOU1120_DAT9*/
+			0x0180 0x1	/*VOU1120_DAT10*/
+			0x0184 0x1	/*VOU1120_DAT11*/
+			0x0188 0x1	/*VOU1120_DAT12*/
+			0x018C 0x1	/*VOU1120_DAT13*/
+			0x0190 0x1	/*VOU1120_DAT14*/
+			0x0194 0x1	/*VOU1120_DAT15*/
+		>;
+	};
+
+	vo_bt1120_pmux_slave1: vo_bt1120_pmux_slave1{
+		pinctrl-single,pins = <
+			0x01D4 0x1	/*VOU_SLV_DAT15*/
+			0x01D8 0x1	/*VOU_SLV_DAT1*/
+			0x01DC 0x1	/*VOU_SLV_DAT0*/
+			0x01E0 0x1	/*VOU_SLV_DAT9*/
+			0x01E4 0x1	/*VOU_SLV_DAT14*/
+			0x01E8 0x1	/*VOU_SLV_DAT8*/
+			0x01EC 0x1	/*VOU_SLV_CLK*/
+			0x01F0 0x1	/*VOU_SLV_DAT2*/
+			0x01F4 0x1	/*VOU_SLV_DAT3*/
+			0x01F8 0x1	/*VOU_SLV_DAT5 */
+			0x01FC 0x1	/*VOU_SLV_DAT4 */
+			0x0200 0x1	/*VOU_SLV_DAT11*/
+			0x0204 0x1	/*VOU_SLV_DAT10*/
+			0x0208 0x1	/*VOU_SLV_DAT7 */
+			0x020C 0x1	/*VOU_SLV_DAT6 */
+			0x0210 0x1	/*VOU_SLV_DAT12*/
+			0x0214 0x1	/*VOU_SLV_DAT13*/
+		>;
+	};
+
+	vo_bt1120_pmux_slave2: vo_bt1120_pmux_slave2{
+		pinctrl-single,pins = <
+			0x01D4 0x1	/*VOU_SLV_DAT15*/
+			0x01D8 0x1	/*VOU_SLV_DAT1*/
+			0x01DC 0x1	/*VOU_SLV_DAT0*/
+			0x01E0 0x1	/*VOU_SLV_DAT9*/
+			0x01E4 0x1	/*VOU_SLV_DAT14*/
+			0x01E8 0x1	/*VOU_SLV_DAT8*/
+			0x01EC 0x1	/*VOU_SLV_CLK*/
+			0x01F0 0x1	/*VOU_SLV_DAT2*/
+			0x01F4 0x1	/*VOU_SLV_DAT3*/
+			0x01F8 0x1	/*VOU_SLV_DAT5 */
+			0x01FC 0x1	/*VOU_SLV_DAT4 */
+			0x0200 0x1	/*VOU_SLV_DAT11*/
+			0x0204 0x1	/*VOU_SLV_DAT10*/
+			0x0208 0x1	/*VOU_SLV_DAT7 */
+			0x020C 0x1	/*VOU_SLV_DAT6 */
+			0x0210 0x1	/*VOU_SLV_DAT12*/
+			0x0214 0x1	/*VOU_SLV_DAT13*/
+		>;
+	};
+
+
+	vo_vga_pmux: vo_vga_pmux{
+		pinctrl-single,pins = <
+			0x01A4 0x1	/*VGA_HS*/
+			0x01A8 0X1	/*VGA_VS*/
+		>;
+	};
+
+	i2s0_pmux: i2s0_pmux {
+		pinctrl-single,pins = <
+			0x0130 0x1  /*  0: GPIO11_0   1: I2S0_BCLK_RX */
+			0x0134 0x1  /*  0: GPIO11_1   1: I2S0_WS_RX   */
+			0x0138 0x1  /*  0: GPIO11_2   1: I2S0_SD_RX   */
+			0x01B4 0x1  /*  0: GPIO12_0   1: I2S2_SD_RX   */
+			0x01BC 0x1  /*  0: GPIO12_4   1: I2S2_MCLK    */
+		>;
+	};
+
+	i2s1_pmux: i2s1_pmux {
+		pinctrl-single,pins = <
+			0x013c 0x1 /*I2S1_BCLK_RX*/
+			0x0140 0x1 /*I2S1_WS_RX*/
+			0x0144 0x1 /*I2S1_SD_RX*/
+		>;
+	};
+
+	i2s2_pmux: i2s2_pmux {
+		pinctrl-single,pins = <
+			0x01AC 0x1 /*I2S2_BCLK_RX*/
+			0x01B0 0x1 /*I2S2_WS_RX*/
+			0x01B8 0x1 /*I2S2_SD_RX*/
+		>;
+	};
+
+	i2s3_pmux: i2s3_pmux {
+		pinctrl-single,pins = <
+			0x0198 0x1 /*I2S3_BCLK_RX*/
+			0x019C 0x1 /*I2S3_WS_RX*/
+			0x01A0 0x1 /*I2S3_SD_RX*/
+		>;
+	};
+
+	uart0_pmux: uart0_pmux {
+		pinctrl-single,pins = <
+			0x0158 0x2 /*0: GPIO9_0   1: VOU1120_DAT0  2: UART0_RXD*/
+			0x015c 0x2 /*0: GPIO9_1   1: VOU1120_DAT1  2: UART0_TXD*/
+		>;
+	};
+};
+
+&sys_config_ctrl {
+
+	padctrl-ability,demo = <
+		0x120f093c 0x130
+		0x120f0940 0x130
+		0x120f0944 0x130
+		0x120f09bc 0x130
+		0x120f09c0 0x130
+		0x120f09c8 0x530
+		0x120f09a8 0x130
+		0x120f09ac 0x130
+		0x120f09b0 0x530
+		0x120f0b1c 0x130
+		0x120f0b24 0x130
+		0x120f0b28 0x130
+		0x120f0964 0x40
+		0x120f0968 0x210
+		0x120f096c 0x10
+		0x120f0970 0x210
+		0x120f0974 0x10
+		0x120f0978 0x10
+		0x120f097c 0x10
+		0x120f0980 0x210
+		0x120f0984 0x10
+		0x120f0988 0x410
+		0x120f098c 0x410
+		0x120f0990 0x410
+		0x120f0994 0x10
+		0x120f0998 0x10
+		0x120f099c 0x10
+		0x120f09a0 0x10
+		0x120f09a4 0x10
+		0x120f09b4 0x40
+		0x120f09b8 0x40
+	>;
+
+	padctrl-ability,sck = <
+		0x120f093c 0x130
+		0x120f0940 0x130
+		0x120f0944 0x130
+		0x120f09bc 0x130
+		0x120f09c0 0x130
+		0x120f09c8 0x530
+		0x120f09a8 0x130
+		0x120f09ac 0x130
+		0x120f09b0 0x530
+		0x120f0b1c 0x130
+		0x120f0b24 0x130
+		0x120f0b28 0x130
+		0x120f0964 0x40
+		0x120f0968 0x210
+		0x120f096c 0x10
+		0x120f0970 0x210
+		0x120f0974 0x10
+		0x120f0978 0x10
+		0x120f097c 0x10
+		0x120f0980 0x210
+		0x120f0984 0x10
+		0x120f0988 0x410
+		0x120f098c 0x410
+		0x120f0990 0x410
+		0x120f0994 0x10
+		0x120f0998 0x10
+		0x120f099c 0x10
+		0x120f09a0 0x10
+		0x120f09a4 0x10
+		0x120f09b4 0x40
+		0x120f09b8 0x40
+		0x120f0930 0x130/* I2S0_BCLK_RX------I2S0_BCLK_RX  */
+		0x120f0934 0x130/* I2S0_WS_RX------I2S0_WS_RX  */
+		0x120f0938 0x130/* I2S0_SD_RX------I2S0_SD_RX      */
+		0x120f09c4 0x130/* I2S2_SD_RX------I2S2_SD_RX      */
+		0x120f09cc 0x530/* I2S2_MCLK------I2S2_MCLK        */
+	>;
+
+	padctrl-ability,slave1 = <
+		0x120f093c 0x130
+		0x120f0940 0x130
+		0x120f0944 0x130
+		0x120f09bc 0x130
+		0x120f09c0 0x130
+		0x120f09c8 0x530
+		0x120f0b1c 0x130
+		0x120f0b24 0x130
+		0x120f0b28 0x130
+		0x120f0ac4 0x330
+		0x120f0adc 0x130
+		0x120f0ac0 0x330
+		0x120f0ad8 0x130
+		0x120f0ac8 0x130
+		0x120f0acc 0x130
+		0x120f0ad0 0x130
+		0x120f0ad4 0x130
+		0x120f0abc 0x130
+		0x120f0ab8 0x130
+		0x120f0ab4 0x130
+		0x120f0ab0 0x130
+		0x120f0aac 0x130
+		0x120f0aa8 0x130
+		0x120f0aa4 0x130
+		0x120f0aa0 0x130
+		0x120f0ae0 0x130
+		0x120f09b4 0x40
+		0x120f09b8 0x40
+		0x120f09fc 0xD0
+		0x120f09ec 0x20
+		0x120f09e8 0x20
+		0x120f0a00 0x20
+		0x120f0a04 0x20
+		0x120f0a0c 0x20
+		0x120f0a08 0x220
+		0x120f0a1c 0x20
+		0x120f0a18 0x220
+		0x120f09f8 0x20
+		0x120f09f0 0x20
+		0x120f0a14 0x20
+		0x120f0a10 0x20
+		0x120f0a20 0x220
+		0x120f0a24 0x20
+		0x120f09f4 0x20
+		0x120f09e4 0x20
+		0x120f09fc 0xD0
+		0x12040178 0x40
+	>;
+
+padctrl-ability,slave2 = <
+		0x120f093c 0x130
+		0x120f0940 0x130
+		0x120f0944 0x130
+		0x120f09bc 0x130
+		0x120f09c0 0x130
+		0x120f09c8 0x530
+		0x120f09fc 0xD0
+		0x120f09ec 0x20
+		0x120f09e8 0x20
+		0x120f0a00 0x20
+		0x120f0a04 0x20
+		0x120f0a0c 0x20
+		0x120f0a08 0x220
+		0x120f0a1c 0x20
+		0x120f0a18 0x220
+		0x120f09f8 0x20
+		0x120f09f0 0x20
+		0x120f0a14 0x20
+		0x120f0a10 0x20
+		0x120f0a20 0x220
+		0x120f0a24 0x20
+		0x120f09f4 0x20
+		0x120f09e4 0x20
+		0x12040178 0x40
+	>;
+
+	sysctrl-ddr,pins = <
+		0x1212007c 0x35553301
+		0x12120080 0x33355633
+		0x12120084 0x66266623
+		0x12120088 0x66666666
+		0x12120054 0x80018001
+		0x12040094 0x0000FFFF /*PPC*/
+		0x12040098 0x01ffff1f
+	        0x1204009c 0x8888    /*PT clk default 9999*/
+		0x120400a0 0x88888
+		0x12040168 0x00000f55 /*ADC*/
+	>;
+	
+	dllctrl-ddr,pins = <
+		0x120401e0 0x0      /*DLL rst, disable*/
+		0x120401ec 0x0
+		0x120401f8 0x0
+		0x12040204 0x0
+		0x12040210 0x0
+		0x1204021c 0x0
+		0x12040228 0x0
+		0x12040234 0x0	
+	        0x120401e0 0x4      /*DLL rst, disable*/
+		0x120401ec 0x4
+		0x120401f8 0x4
+		0x12040204 0x4
+		0x12040210 0x4
+		0x1204021c 0x4
+		0x12040228 0x4
+		0x12040234 0x4
+		0x120401e0 0x6       /*DLL 150M and DLL rst, disable*/
+		0x120401ec 0x6
+		0x120401f8 0x6
+		0x12040204 0x6
+		0x12040210 0x6
+		0x1204021c 0x6
+		0x12040228 0x6
+		0x12040234 0x6
+	        0x120401e0 0x7       /*DLL 150M and DLL rst, enable*/
+		0x120401ec 0x7
+		0x120401f8 0x7
+		0x12040204 0x7
+		0x12040210 0x7
+		0x1204021c 0x7
+		0x12040228 0x7
+		0x12040234 0x7
+	        0x120401e0 0x3       /*DLL 150M and DLL unrst, enable*/
+		0x120401ec 0x3
+		0x120401f8 0x3
+		0x12040204 0x3
+		0x12040210 0x3
+		0x1204021c 0x3
+		0x12040228 0x3
+		0x12040234 0x3
+		0x120401e4 0x10      /*dll_slave_en:1,dll_stop:0*/
+		0x120401F0 0x10
+		0x120401fC 0x10
+		0x12040208 0x10
+		0x12040214 0x10
+		0x12040220 0x10
+		0x1204022c 0x10
+		0x12040238 0x10
+	>;
+
+	pinctrl-names = "demo", "demopro", "slave1", "slave2", "sck", "default";
+	pinctrl-0 = <&vo_bt1120_pmux_demo   &vo_vga_pmux &vicap_demob_pmux 	     &i2c0_pmux &i2c1_pmux 	&i2s1_pmux 	&i2s2_pmux 	&i2s3_pmux>;
+	pinctrl-1 = <&vo_bt1120_pmux_demo   &vo_vga_pmux &vicap_demopro_pmux 	 &i2c0_pmux &i2c1_pmux 	&i2s1_pmux 	&i2s2_pmux 	&i2s3_pmux>;
+	pinctrl-2 = <&vo_bt1120_pmux_slave1 &vo_vga_pmux &vicap_demob_pmux 	     &i2c0_pmux &i2c1_pmux 	&i2s1_pmux 	&i2s2_pmux 	&i2s3_pmux &vicap_cascade_pmux>;
+	pinctrl-3 = <&vo_bt1120_pmux_slave2 &vo_vga_pmux &vicap_demob_pmux   	     &i2c0_pmux &i2c1_pmux 	&i2s1_pmux 	&i2s2_pmux 	&i2s3_pmux &uart0_pmux>;
+	pinctrl-4 = <&vo_bt1120_pmux_demo   &vo_vga_pmux &vicap_sck_pmux 	     &i2c0_pmux &i2c1_pmux 	&i2s1_pmux 	&i2s2_pmux 	&i2s3_pmux &i2s0_pmux>;
+	pinctrl-5 = <>;
+};

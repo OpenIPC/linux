@@ -12,6 +12,7 @@
 #include <linux/spinlock.h>
 #include <linux/errno.h>
 #include <linux/module.h>
+#include <linux/interrupt.h>
 #include <linux/io.h>
 #include <linux/ioport.h>
 #include <linux/irq.h>
@@ -181,15 +182,12 @@ static int pl061_irq_type(struct irq_data *d, unsigned trigger)
 	return 0;
 }
 
-static void pl061_irq_handler(unsigned irq, struct irq_desc *desc)
+static irqreturn_t pl061_irq_handler(int irq, void *data)
 {
 	unsigned long pending;
 	int offset;
-	struct gpio_chip *gc = irq_desc_get_handler_data(desc);
+	struct gpio_chip *gc = data;
 	struct pl061_gpio *chip = container_of(gc, struct pl061_gpio, gc);
-	struct irq_chip *irqchip = irq_desc_get_chip(desc);
-
-	chained_irq_enter(irqchip, desc);
 
 	pending = readb(chip->base + GPIOMIS);
 	writeb(pending, chip->base + GPIOIC);
@@ -199,7 +197,7 @@ static void pl061_irq_handler(unsigned irq, struct irq_desc *desc)
 							    offset));
 	}
 
-	chained_irq_exit(irqchip, desc);
+	return IRQ_HANDLED;
 }
 
 static void pl061_irq_mask(struct irq_data *d)
@@ -254,7 +252,13 @@ static int pl061_probe(struct amba_device *adev, const struct amba_id *id)
 			return -ENODEV;
 		}
 	} else {
-		chip->gc.base = -1;
+		if (dev->of_node) {
+			i = of_alias_get_id(dev->of_node, "gpio");
+			chip->gc.base = i * PL061_GPIO_NR;
+		}
+
+		if (chip->gc.base < 0)
+			chip->gc.base = -1;
 		irq_base = 0;
 	}
 
@@ -296,8 +300,19 @@ static int pl061_probe(struct amba_device *adev, const struct amba_id *id)
 		dev_info(&adev->dev, "could not add irqchip\n");
 		return ret;
 	}
-	gpiochip_set_chained_irqchip(&chip->gc, &pl061_irqchip,
-				     irq, pl061_irq_handler);
+
+	ret = devm_request_irq(dev, irq, pl061_irq_handler, IRQF_SHARED,
+			dev_name(dev), &chip->gc);
+
+	/* Set the parent IRQ for all affected IRQs */
+	for (i = 0; i < chip->gc.ngpio; i++)
+		irq_set_parent(irq_find_mapping(chip->gc.irqdomain, i), irq);
+
+	if (ret) {
+		dev_info(dev, "request irq failed: %d\n", ret);
+		return ret;
+	}
+
 
 	for (i = 0; i < PL061_GPIO_NR; i++) {
 		if (pdata) {

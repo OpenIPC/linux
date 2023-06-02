@@ -402,6 +402,8 @@ struct address_space {
 	struct rb_root		i_mmap;		/* tree of private and shared mappings */
 	struct list_head	i_mmap_nonlinear;/*list VM_NONLINEAR mappings */
 	struct mutex		i_mmap_mutex;	/* protect tree, count, list */
+	struct rw_semaphore	i_mmap_rwsem;	/* protect tree, count, list */
+
 	/* Protected by tree_lock together with the radix tree */
 	unsigned long		nrpages;	/* number of total pages */
 	unsigned long		nrshadows;	/* number of shadow entries */
@@ -466,6 +468,26 @@ struct block_device {
 #define PAGECACHE_TAG_TOWRITE	2
 
 int mapping_tagged(struct address_space *mapping, int tag);
+
+static inline void i_mmap_lock_write(struct address_space *mapping)
+{
+	down_write(&mapping->i_mmap_rwsem);
+}
+
+static inline void i_mmap_unlock_write(struct address_space *mapping)
+{
+	up_write(&mapping->i_mmap_rwsem);
+}
+
+static inline void i_mmap_lock_read(struct address_space *mapping)
+{
+	down_read(&mapping->i_mmap_rwsem);
+}
+
+static inline void i_mmap_unlock_read(struct address_space *mapping)
+{
+	up_read(&mapping->i_mmap_rwsem);
+}
 
 /*
  * Might pages of this file be mapped into userspace?
@@ -657,6 +679,31 @@ enum inode_i_mutex_lock_class
 	I_MUTEX_PARENT2,
 };
 
+static inline void inode_lock(struct inode *inode)
+{
+	mutex_lock(&inode->i_mutex);
+}
+
+static inline void inode_unlock(struct inode *inode)
+{
+	mutex_unlock(&inode->i_mutex);
+}
+
+static inline int inode_trylock(struct inode *inode)
+{
+	return mutex_trylock(&inode->i_mutex);
+}
+
+static inline int inode_is_locked(struct inode *inode)
+{
+	return mutex_is_locked(&inode->i_mutex);
+}
+
+static inline void inode_lock_nested(struct inode *inode, unsigned subclass)
+{
+	mutex_lock_nested(&inode->i_mutex, subclass);
+}
+
 void lock_two_nondirectories(struct inode *, struct inode*);
 void unlock_two_nondirectories(struct inode *, struct inode*);
 
@@ -790,6 +837,9 @@ struct file {
 	} f_u;
 	struct path		f_path;
 #define f_dentry	f_path.dentry
+#ifdef CONFIG_HISI_SNAPSHOT_BOOT
+#define f_vfsmnt        f_path.mnt
+#endif
 	struct inode		*f_inode;	/* cached value */
 	const struct file_operations	*f_op;
 
@@ -1219,6 +1269,15 @@ struct super_block {
 
 	struct list_head	s_inodes;	/* all inodes */
 	struct hlist_bl_head	s_anon;		/* anonymous dentries for (nfs) exporting */
+#ifdef CONFIG_HISI_SNAPSHOT_BOOT
+
+	/* fix me */
+/*#ifdef CONFIG_SMP
+	struct list_head __percpu *s_files;
+#else*/
+	struct list_head	s_files;
+/*#endif*/
+#endif
 	struct list_head	s_mounts;	/* list of mounts; _not_ for fs use */
 	struct block_device	*s_bdev;
 	struct backing_dev_info *s_bdi;
@@ -2663,6 +2722,7 @@ extern int buffer_migrate_page(struct address_space *,
 extern int inode_change_ok(const struct inode *, struct iattr *);
 extern int inode_newsize_ok(const struct inode *, loff_t offset);
 extern void setattr_copy(struct inode *inode, const struct iattr *attr);
+extern int setattr_killpriv(struct dentry *dentry, struct iattr *attr);
 
 extern int file_update_time(struct file *file);
 

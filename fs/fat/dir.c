@@ -13,13 +13,9 @@
  *  Short name translation 1999, 2001 by Wolfram Pienkoss <wp@bszh.de>
  */
 
-#include <linux/module.h>
 #include <linux/slab.h>
-#include <linux/time.h>
-#include <linux/buffer_head.h>
 #include <linux/compat.h>
 #include <linux/uaccess.h>
-#include <linux/kernel.h>
 #include "fat.h"
 
 /*
@@ -95,7 +91,7 @@ next:
 
 	*bh = NULL;
 	iblock = *pos >> sb->s_blocksize_bits;
-	err = fat_bmap(dir, iblock, &phys, &mapped_blocks, 0);
+	err = fat_bmap(dir, iblock, &phys, &mapped_blocks, 0, false);
 	if (err || !phys)
 		return -1;	/* beyond EOF or error */
 
@@ -614,9 +610,9 @@ parse_record:
 		int status = fat_parse_long(inode, &cpos, &bh, &de,
 					    &unicode, &nr_slots);
 		if (status < 0) {
-			ctx->pos = cpos;
+			bh = NULL;
 			ret = status;
-			goto out;
+			goto end_of_dir;
 		} else if (status == PARSE_INVALID)
 			goto record_end;
 		else if (status == PARSE_NOT_LONGNAME)
@@ -658,8 +654,9 @@ parse_record:
 	fill_len = short_len;
 
 start_filldir:
-	if (!fake_offset)
-		ctx->pos = cpos - (nr_slots + 1) * sizeof(struct msdos_dir_entry);
+	ctx->pos = cpos - (nr_slots + 1) * sizeof(struct msdos_dir_entry);
+	if (fake_offset && ctx->pos < 2)
+		ctx->pos = 2;
 
 	if (!memcmp(de->name, MSDOS_DOT, MSDOS_NAME)) {
 		if (!dir_emit_dot(file, ctx))
@@ -685,14 +682,19 @@ record_end:
 	fake_offset = 0;
 	ctx->pos = cpos;
 	goto get_new;
+
 end_of_dir:
-	ctx->pos = cpos;
+	if (fake_offset && cpos < 2)
+		ctx->pos = 2;
+	else
+		ctx->pos = cpos;
 fill_failed:
 	brelse(bh);
 	if (unicode)
 		__putname(unicode);
 out:
 	mutex_unlock(&sbi->s_lock);
+
 	return ret;
 }
 
@@ -702,10 +704,12 @@ static int fat_readdir(struct file *file, struct dir_context *ctx)
 }
 
 #define FAT_IOCTL_FILLDIR_FUNC(func, dirent_type)			   \
-static int func(void *__buf, const char *name, int name_len,		   \
+static int func(void *_ctx, const char *name, int name_len,   \
 			     loff_t offset, u64 ino, unsigned int d_type)  \
 {									   \
-	struct fat_ioctl_filldir_callback *buf = __buf;			   \
+    struct dir_context * ctx = (struct dir_context *)_ctx; \
+	struct fat_ioctl_filldir_callback *buf =			   \
+		container_of(ctx, struct fat_ioctl_filldir_callback, ctx); \
 	struct dirent_type __user *d1 = buf->dirent;			   \
 	struct dirent_type __user *d2 = d1 + 1;				   \
 									   \
@@ -766,7 +770,7 @@ static int fat_ioctl_readdir(struct inode *inode, struct file *file,
 
 	buf.dirent = dirent;
 	buf.result = 0;
-	mutex_lock(&inode->i_mutex);
+	inode_lock(inode);
 	buf.ctx.pos = file->f_pos;
 	ret = -ENOENT;
 	if (!IS_DEADDIR(inode)) {
@@ -774,10 +778,390 @@ static int fat_ioctl_readdir(struct inode *inode, struct file *file,
 				    short_only, both ? &buf : NULL);
 		file->f_pos = buf.ctx.pos;
 	}
-	mutex_unlock(&inode->i_mutex);
+	inode_unlock(inode);
 	if (ret >= 0)
 		ret = buf.result;
 	return ret;
+}
+
+/*
+ * This is the "fatfilldirall_t" function type,
+ * used by fat_ioctl_filldirall to let
+ * the kernel specify what kind of dirent layout it wants to have.
+ * This allows the kernel to read directories into kernel space or
+ * to have different dirent layouts depending on the binary type.
+ */
+typedef int (*fatfilldirall_t)(void *__buf, const char *name,
+		int name_len, loff_t offset, u64 ino,
+		unsigned int d_type, struct msdos_dir_entry *de,
+		char *d_createtime);
+struct fatdirall_context {
+	const fatfilldirall_t actor;
+	loff_t pos;
+};
+
+struct fat_ioctl_filldirall_callback {
+	struct fatdirall_context ctx;
+	struct fat_direntall __user *current_dir;
+	struct fat_direntall __user *previous;
+	int count;
+	int usecount;
+	int error;
+	int result;
+	const char *longname;
+	int long_len;
+	const char *shortname;
+	int short_len;
+};
+
+static inline bool fat_dir_emit(struct fatdirall_context *ctx,
+		const char *name, int namelen,
+		u64 ino, unsigned type,
+		struct msdos_dir_entry *de,
+		char *d_createtime)
+{
+	return ctx->actor(ctx, name, namelen, ctx->pos, ino,
+			type, de, d_createtime) == 0;
+}
+static inline bool fat_dir_emit_dot(struct file *file,
+					struct fatdirall_context *ctx,
+					struct msdos_dir_entry *de,
+					char *d_createtime)
+{
+	return ctx->actor(ctx, ".", 1, ctx->pos,
+			file->f_path.dentry->d_inode->i_ino,
+			DT_DIR, de, d_createtime) == 0;
+}
+static inline bool fat_dir_emit_dotdot(struct file *file,
+					struct fatdirall_context *ctx,
+					struct msdos_dir_entry *de,
+					char *d_createtime)
+{
+	return ctx->actor(ctx, "..", 2, ctx->pos,
+			parent_ino(file->f_path.dentry),
+			DT_DIR, de, d_createtime) == 0;
+}
+
+static inline bool fat_dir_emit_dots(struct file *file,
+					struct fatdirall_context *ctx,
+					struct msdos_dir_entry *de,
+					char *d_createtime)
+{
+	if (ctx->pos == 0) {
+		if (!fat_dir_emit_dot(file, ctx, de, d_createtime))
+			return false;
+		ctx->pos = 1;
+	}
+	if (ctx->pos == 1) {
+		if (!fat_dir_emit_dotdot(file, ctx, de, d_createtime))
+			return false;
+		ctx->pos = 2;
+	}
+	return true;
+}
+
+
+static int __fat_readdirall(struct inode *inode, struct file *file,
+		struct fatdirall_context *ctx, int short_only,
+		struct fat_ioctl_filldirall_callback *both)
+{
+	struct super_block *sb = inode->i_sb;
+	struct msdos_sb_info *sbi = MSDOS_SB(sb);
+	struct buffer_head *bh;
+	struct msdos_dir_entry *de;
+	unsigned char nr_slots;
+	wchar_t *unicode = NULL;
+	unsigned char bufname[FAT_MAX_SHORT_SIZE];
+	int isvfat = sbi->options.isvfat;
+	const char *fill_name = NULL;
+	int fake_offset = 0;
+	loff_t cpos;
+	int short_len = 0, fill_len = 0;
+	int ret = 0;
+	char d_createtime[8];
+
+	mutex_lock(&sbi->s_lock);
+
+	cpos = ctx->pos;
+	/* Fake . and .. for the root directory. */
+	if (inode->i_ino == MSDOS_ROOT_INO) {
+		if (!fat_dir_emit_dots(file, ctx, NULL, NULL))
+			goto out;
+		if (ctx->pos == 2) {
+			fake_offset = 1;
+			cpos = 0;
+		}
+	}
+	if (cpos & (sizeof(struct msdos_dir_entry) - 1)) {
+		ret = -ENOENT;
+		goto out;
+	}
+
+	bh = NULL;
+get_new:
+	if (fat_get_entry(inode, &cpos, &bh, &de) == -1)
+		goto end_of_dir;
+parse_record:
+	nr_slots = 0;
+	/*
+	 * Check for long filename entry, but if short_only, we don't
+	 * need to parse long filename.
+	 */
+	if (isvfat && !short_only) {
+		if (de->name[0] == DELETED_FLAG)
+			goto record_end;
+		if (de->attr != ATTR_EXT && (de->attr & ATTR_VOLUME))
+			goto record_end;
+		if (de->attr != ATTR_EXT && IS_FREE(de->name))
+			goto record_end;
+	} else {
+		if ((de->attr & ATTR_VOLUME) || IS_FREE(de->name))
+			goto record_end;
+	}
+
+	if (isvfat && de->attr == ATTR_EXT) {
+		int status = fat_parse_long(inode, &cpos, &bh, &de,
+				&unicode, &nr_slots);
+		if (status < 0) {
+			ctx->pos = cpos;
+			ret = status;
+			goto out;
+		} else if (status == PARSE_INVALID)
+			goto record_end;
+		else if (status == PARSE_NOT_LONGNAME)
+			goto parse_record;
+		else if (status == PARSE_EOF)
+			goto end_of_dir;
+
+		if (nr_slots) {
+			void *longname = unicode + FAT_MAX_UNI_CHARS;
+			int size = PATH_MAX - FAT_MAX_UNI_SIZE;
+			int len = fat_uni_to_x8(sb, unicode, longname, size);
+
+			fill_name = longname;
+			fill_len = len;
+
+			short_len = fat_parse_short(sb, de, bufname,
+					sbi->options.dotsOK);
+			if (short_len == 0)
+				goto record_end;
+
+			/* hack for fat_ioctl_filldir() */
+			both->longname = fill_name;
+			both->long_len = fill_len;
+			both->shortname = bufname;
+			both->short_len = short_len;
+			fill_name = NULL;
+			fill_len = 0;
+			goto start_filldir;
+		}
+	}
+
+	short_len = fat_parse_short(sb, de, bufname, sbi->options.dotsOK);
+	if (short_len == 0)
+		goto record_end;
+
+	fill_name = bufname;
+	fill_len = short_len;
+
+start_filldir:
+	if (!fake_offset)
+		ctx->pos = cpos - (nr_slots + 1)
+			* sizeof(struct msdos_dir_entry);
+
+	memset(d_createtime, 0, 8);
+	fat_time_fat2str(sbi, d_createtime, de->ctime,
+			de->cdate, de->ctime_cs);
+
+	if (!memcmp(de->name, MSDOS_DOT, MSDOS_NAME)) {
+		if (!fat_dir_emit_dot(file, ctx, de, d_createtime))
+			goto fill_failed;
+	} else if (!memcmp(de->name, MSDOS_DOTDOT, MSDOS_NAME)) {
+		if (!fat_dir_emit_dotdot(file, ctx, de, d_createtime))
+			goto fill_failed;
+	} else {
+		unsigned long inum;
+		loff_t i_pos = fat_make_i_pos(sb, bh, de);
+		struct inode *tmp = fat_iget(sb, i_pos);
+
+		if (tmp) {
+			inum = tmp->i_ino;
+			iput(tmp);
+		} else
+			inum = iunique(sb, MSDOS_ROOT_INO);
+		if (!fat_dir_emit(ctx, fill_name, fill_len, inum,
+					(de->attr & ATTR_DIR) ? DT_DIR : DT_REG,
+					de, d_createtime))
+			goto fill_failed;
+	}
+
+record_end:
+	fake_offset = 0;
+	ctx->pos = cpos;
+	goto get_new;
+end_of_dir:
+	ctx->pos = cpos;
+fill_failed:
+	brelse(bh);
+	if (unicode)
+		__putname(unicode);
+out:
+	mutex_unlock(&sbi->s_lock);
+	return ret;
+}
+
+static int fat_ioctl_filldirall(void *__buf, const char *name,
+				int name_len, loff_t offset,
+				u64 ino, unsigned int d_type,
+				struct msdos_dir_entry *de,
+				char *d_createtime)
+{
+	struct fat_direntall __user *dirent;
+	struct fat_ioctl_filldirall_callback *buf;
+	unsigned long d_ino;
+	int reclen = 0;
+	const char *longname = NULL;
+	int long_len = 0;
+	const char *shortname = NULL;
+	int short_len = 0;
+
+	buf = (struct fat_ioctl_filldirall_callback *) __buf;
+
+	if (name != NULL) {
+		reclen = ALIGN(offsetof(struct fat_direntall, d_name)
+				+ name_len + 2, sizeof(long));
+	} else {
+		longname = buf->longname;
+		long_len = buf->long_len;
+		shortname = buf->shortname;
+		short_len = buf->short_len;
+		reclen = ALIGN(offsetof(struct fat_direntall, d_name)
+				+ long_len + 2, sizeof(long));
+	}
+
+	buf->error = -EINVAL;   /* only used if we fail.. */
+
+	if (reclen >= buf->count)
+		return -EINVAL;
+
+	d_ino = ino;
+
+	if (sizeof(d_ino) < sizeof(ino) && d_ino != ino) {
+		buf->error = -EOVERFLOW;
+		return -EOVERFLOW;
+	}
+
+	dirent = buf->previous;
+
+	if (dirent) {
+		if (__put_user(offset, &dirent->d_off))
+			goto efault;
+	}
+
+	dirent = buf->current_dir;
+
+	if (__put_user(d_ino, &dirent->d_ino))
+		goto efault;
+
+	if (__put_user(reclen, &dirent->d_reclen))
+		goto efault;
+
+	if (name != NULL) {
+		if (copy_to_user(dirent->d_name, name, name_len))
+			goto efault;
+		if (__put_user(0, dirent->d_name + name_len))
+			goto efault;
+	} else {
+		if (copy_to_user(dirent->d_name, longname, long_len))
+			goto efault;
+		if (__put_user(0, dirent->d_name + long_len))
+			goto efault;
+	}
+
+	if (__put_user(d_type, &dirent->d_type))
+		goto efault;
+
+	if (de != NULL) {
+		u64 u_size = 0;
+		if (copy_to_user(&dirent->d_size, &u_size, sizeof(u64)))
+			goto efault;
+		if (copy_to_user(&dirent->d_size, &de->size, sizeof(u32)))
+			goto efault;
+	}
+
+	if (d_createtime != NULL) {
+		if (copy_to_user(dirent->d_createtime, d_createtime, 8))
+			goto efault;
+	}
+	buf->previous = dirent;
+	dirent = (void __user *)dirent + reclen;
+	buf->current_dir = dirent;
+	buf->count -= reclen;
+	buf->usecount += reclen;
+	return 0;
+efault:
+	buf->error = -EFAULT;
+	return -EFAULT;
+}
+
+
+static int fat_ioctl_readdirall(struct inode *inode, struct file *file,
+		void __user *dirent,
+		int short_only, int both)
+{
+	struct fat_ioctl_filldirall_callback buf = {
+		.ctx.actor = fat_ioctl_filldirall,
+	};
+
+	struct fat_direntall_buf __user *userbuf = dirent;
+	int ret;
+
+	buf.current_dir = &(userbuf->direntall);
+	buf.previous = NULL;
+	buf.error = 0;
+	buf.result = 0;
+	buf.usecount = 0;
+
+	if (get_user(buf.count, &(userbuf->d_count)))
+		return -EFAULT;
+
+	mutex_lock(&inode->i_mutex);
+	buf.ctx.pos = file->f_pos;
+	ret = -ENOENT;
+	if (!IS_DEADDIR(inode)) {
+		ret = __fat_readdirall(inode, file, &buf.ctx,
+				short_only, both ? &buf : NULL);
+		file->f_pos = buf.ctx.pos;
+	}
+	mutex_unlock(&inode->i_mutex);
+
+	if (__put_user(buf.usecount, &(userbuf->d_usecount)))
+		return -EFAULT;
+	if (ret >= 0)
+		ret = buf.result;
+	return ret;
+}
+
+static int fat_dir_ioctl_readdirall(struct file *filp, unsigned int cmd,
+					unsigned long arg)
+{
+	struct inode *inode = filp->f_path.dentry->d_inode;
+	struct fat_direntall_buf __user *direntallbuf;
+	int short_only, both;
+
+	direntallbuf = (struct fat_direntall_buf __user *)arg;
+
+	if (!access_ok(VERIFY_WRITE, direntallbuf,
+			sizeof(struct fat_direntall_buf)))
+		return -EFAULT;
+	if (put_user(0, &(direntallbuf->direntall.d_reclen)))
+		return -EFAULT;
+	if (put_user(0, &(direntallbuf->d_usecount)))
+		return -EFAULT;
+	short_only = 0;
+	both = 1;
+	return fat_ioctl_readdirall(inode, filp, direntallbuf,
+			short_only, both);
 }
 
 static long fat_dir_ioctl(struct file *filp, unsigned int cmd,
@@ -786,6 +1170,9 @@ static long fat_dir_ioctl(struct file *filp, unsigned int cmd,
 	struct inode *inode = file_inode(filp);
 	struct __fat_dirent __user *d1 = (struct __fat_dirent __user *)arg;
 	int short_only, both;
+
+	if (VFAT_IOCTL_READDIR_ALL == cmd)
+		return fat_dir_ioctl_readdirall(filp, cmd, arg);
 
 	switch (cmd) {
 	case VFAT_IOCTL_READDIR_SHORT:

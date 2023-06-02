@@ -1434,6 +1434,10 @@ int ll_setattr_raw(struct dentry *dentry, struct iattr *attr, bool hsm_import)
 		spin_unlock(&lli->lli_lock);
 	}
 
+	rc = setattr_killpriv(dentry, attr);
+	if (rc)
+		return rc;
+
 	/* We always do an MDS RPC, even if we're only changing the size;
 	 * only the MDS knows whether truncate() should fail with -ETXTBUSY */
 

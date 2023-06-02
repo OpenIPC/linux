@@ -199,6 +199,20 @@ config KERNEL_LZ4
 
 endchoice
 
+choice
+    prompt "Kernel decompress mode"
+    default SOFT_DECOMPRESS
+    depends on (ARCH_HI3559 || ARCH_HI3556) && HAVE_KERNEL_GZIP
+    help
+      select the decompress mode.
+config HW_DECOMPRESS
+    bool "hardware decompress"
+    help
+      select hardware decompress mode.
+config SOFT_DECOMPRESS
+    bool "soft decompress"
+endchoice
+
 config DEFAULT_HOSTNAME
 	string "Default hostname"
 	default "(none)"

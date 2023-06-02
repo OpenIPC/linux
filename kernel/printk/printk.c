@@ -2007,8 +2007,11 @@ int update_console_cmdline(char *name, int idx, char *name_new, int idx_new, cha
 	/* not found */
 	return -1;
 }
-
+#ifdef	CONFIG_HISI_SNAPSHOT_BOOT
+bool console_suspend_enabled;
+#else
 bool console_suspend_enabled = true;
+#endif
 EXPORT_SYMBOL(console_suspend_enabled);
 
 static int __init console_suspend_disable(char *str)

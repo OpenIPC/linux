@@ -40,6 +40,9 @@ struct mmc_command {
 #define MMC_RSP_SPI_B4	(1 << 9)		/* four data bytes */
 #define MMC_RSP_SPI_BUSY (1 << 10)		/* card may send busy */
 
+#define MMC_CMD_NON_BLOCKING	(1 << 11)	/* non-blocking cmd flag */
+#define MMC_CMD_TYPE_RW		(1 << 12)	/* general R/W cmd type */
+
 /*
  * These are the native response types, and correspond to valid bit
  * patterns of the above flags.  One additional valid pattern
@@ -135,6 +138,7 @@ struct mmc_request {
 	struct completion	completion;
 	void			(*done)(struct mmc_request *);/* completion function */
 	struct mmc_host		*host;
+	unsigned int		wr_pos;
 };
 
 struct mmc_card;
@@ -154,7 +158,10 @@ extern void mmc_start_bkops(struct mmc_card *card, bool from_exception);
 extern int __mmc_switch(struct mmc_card *, u8, u8, u8, unsigned int, bool,
 			bool, bool);
 extern int mmc_switch(struct mmc_card *, u8, u8, u8, unsigned int);
+extern int mmc_send_tuning(struct mmc_host *host, u32 opcode, int *cmd_error);
 extern int mmc_send_ext_csd(struct mmc_card *card, u8 *ext_csd);
+extern int mmc_send_dll_tuning(struct mmc_host *host);
+extern int __mmc_start_data_req(struct mmc_host *, struct mmc_request *);
 
 #define MMC_ERASE_ARG		0x00000000
 #define MMC_SECURE_ERASE_ARG	0x80000000
@@ -183,6 +190,8 @@ extern int mmc_set_blockcount(struct mmc_card *card, unsigned int blockcount,
 extern int mmc_hw_reset(struct mmc_host *host);
 extern int mmc_hw_reset_check(struct mmc_host *host);
 extern int mmc_can_reset(struct mmc_card *card);
+
+extern int mmc_sw_reset(struct mmc_host *host);
 
 extern void mmc_set_data_timeout(struct mmc_data *, const struct mmc_card *);
 extern unsigned int mmc_align_data_size(struct mmc_card *, unsigned int);

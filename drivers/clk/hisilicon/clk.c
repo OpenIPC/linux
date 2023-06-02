@@ -232,3 +232,25 @@ void __init hisi_clk_register_gate_sep(struct hisi_gate_clock *clks,
 		data->clk_data.clks[clks[i].id] = clk;
 	}
 }
+
+void __init hisi_clk_register_ops(struct hiclk_hw *clks,
+				       int nums, struct hisi_clock_data *data)
+{
+	struct clk *clk;
+	int i;
+
+	for (i = 0; i < nums; i++) {
+		struct hiclk_hw *hihw = &clks[i];
+
+		clk = clk_register_ops_table(NULL, hihw, NULL);
+		if (IS_ERR(clk)) {
+			pr_err("%s: failed to register clock %s\n",
+			       __func__, clks[i].name);
+			continue;
+		}
+
+		clk_register_clkdev(clk, clks[i].name, NULL);
+
+		data->clk_data.clks[clks[i].id] = clk;
+	}
+}

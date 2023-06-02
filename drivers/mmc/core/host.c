@@ -371,7 +371,7 @@ int mmc_of_parse(struct mmc_host *host)
 			if (ret == -EPROBE_DEFER)
 				return ret;
 			if (ret != -ENOENT) {
-				dev_err(host->parent,
+				dev_dbg(host->parent,
 					"Failed to request CD GPIO: %d\n",
 					ret);
 			}
@@ -401,7 +401,7 @@ int mmc_of_parse(struct mmc_host *host)
 		if (ret == -EPROBE_DEFER)
 			goto out;
 		if (ret != -ENOENT) {
-			dev_err(host->parent,
+			dev_dbg(host->parent,
 				"Failed to request WP GPIO: %d\n",
 				ret);
 		}
@@ -560,7 +560,8 @@ int mmc_add_host(struct mmc_host *host)
 	mmc_host_clk_sysfs_init(host);
 
 	mmc_start_host(host);
-	register_pm_notifier(&host->pm_notify);
+	if (!(host->pm_flags & MMC_PM_IGNORE_PM_NOTIFY))
+		register_pm_notifier(&host->pm_notify);
 
 	return 0;
 }
@@ -577,7 +578,9 @@ EXPORT_SYMBOL(mmc_add_host);
  */
 void mmc_remove_host(struct mmc_host *host)
 {
-	unregister_pm_notifier(&host->pm_notify);
+	if (!(host->pm_flags & MMC_PM_IGNORE_PM_NOTIFY))
+		unregister_pm_notifier(&host->pm_notify);
+
 	mmc_stop_host(host);
 
 #ifdef CONFIG_DEBUG_FS
