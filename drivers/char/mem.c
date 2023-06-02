@@ -376,6 +376,46 @@ static int mmap_mem(struct file *file, struct vm_area_struct *vma)
 	return 0;
 }
 
+static int mmap_venc(struct file *file, struct vm_area_struct *vma)
+{
+	size_t size = (vma->vm_end - vma->vm_start)>>1;
+
+	if (!valid_mmap_phys_addr_range(vma->vm_pgoff, size))
+		return -EINVAL;
+
+	if (!private_mapping_ok(vma))
+		return -ENOSYS;
+
+	if (!range_is_allowed(vma->vm_pgoff, size))
+		return -EPERM;
+
+	if (!phys_mem_access_prot_allowed(file, vma->vm_pgoff, size,
+						&vma->vm_page_prot))
+		return -EINVAL;
+
+	vma->vm_page_prot = phys_mem_access_prot(file, vma->vm_pgoff,
+						 size,
+						 vma->vm_page_prot);
+
+	vma->vm_ops = &mmap_mem_ops;
+
+	/* Remap-pfn-range will mark the range VM_IO and VM_RESERVED */
+	if (remap_pfn_range(vma,
+			vma->vm_start,
+			vma->vm_pgoff,
+			size,
+			vma->vm_page_prot))
+		return -EAGAIN;
+
+	if (remap_pfn_range(vma,
+			vma->vm_start + size,
+			vma->vm_pgoff,
+			size,
+			vma->vm_page_prot))
+		return -EAGAIN;
+
+	return 0;
+}
 static int mmap_kmem(struct file *file, struct vm_area_struct *vma)
 {
 	unsigned long pfn;
@@ -784,6 +824,17 @@ static const struct file_operations __maybe_unused mem_fops = {
 #endif
 };
 
+static const struct file_operations venc_fops = {
+	.llseek		= memory_lseek,
+	.read		= read_mem,
+	.write		= write_mem,
+	.mmap		= mmap_venc,
+	.open		= open_mem,
+#ifndef CONFIG_MMU
+	.get_unmapped_area = get_unmapped_area_mem,
+#endif
+};
+
 static const struct file_operations __maybe_unused kmem_fops = {
 	.llseek		= memory_lseek,
 	.read		= read_kmem,
@@ -853,6 +904,7 @@ static const struct memdev {
 #ifdef CONFIG_PRINTK
 	[11] = { "kmsg", 0644, &kmsg_fops, 0 },
 #endif
+	 [13] = { "vencmem", 0, &venc_fops, FMODE_UNSIGNED_OFFSET },
 };
 
 static int memory_open(struct inode *inode, struct file *filp)

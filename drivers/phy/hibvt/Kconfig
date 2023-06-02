@@ -1,0 +1,39 @@
+config PHY_HISI_SATA
+	tristate "Hisilicon sata phy support"
+	depends on (ARCH_HI3536DV100 || ARCH_HI3521A || ARCH_HI3531A) && OF && HAS_IOMEM
+	default n
+	select GENERIC_PHY
+	help
+	  Enable this to support the sata phy that is part of
+	  sata driver for hisilicon
+
+config HISI_SATA_MODE
+	int "Hisi sata interworking speed mode(1.5G:0/3G:1/6G:2)"
+	depends on PHY_HISI_SATA
+	range 0 1 if ARCH_HI3536DV100
+	range 0 2 if (ARCH_HI3521A || ARCH_HI3531A)
+	default "1" if (ARCH_HI3536DV100 || ARCH_HI3521A || ARCH_HI3531A)
+	help
+	  Hisilicon sata interworking speed mode
+
+config PHY_HISI_USB2
+	tristate "HISI USB2 PHY Driver"
+	depends on ARCH_HISI_BVT
+	default y
+	select GENERIC_PHY
+	help
+	Support for PHY on Hisilicon Socs. This Phy supports
+	USB 1.5Mb/s, USB 12Mb/s, USB 480Mb/s speeds. It suppots one
+	USB host port to accept one USB device. Support init the phy
+	and adjust phy Eye Diagram.
+
+config PHY_HISI_USB3
+	tristate "HISI USB3 PHY Driver"
+	depends on ARCH_HI3531A
+	default y
+	select GENERIC_PHY
+	help
+	Support for PHY on Hisilicon Socs. This Phy supports
+	USB3.0 and Compatible with USB2.0. It suppots one
+	USB host port to accept one USB device. Support init the phy
+	and adjust phy Eye Diagram.

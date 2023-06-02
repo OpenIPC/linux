@@ -176,6 +176,17 @@ config MMC_SDHCI_CNS3XXX
 
 	  If unsure, say N.
 
+config MMC_SDHCI_HISI
+	tristate "SDHCI support on the Hisilicon Hi35xx SoC"
+	depends on ARCH_HI3559AV100
+	depends on MMC_SDHCI_PLTFM
+	help
+	  This selects the SDHCI support for Hi35xx System-on-Chip devices.
+
+	  If you have a controller with this interface, say Y or M here.
+
+	  If unsure, say N.
+
 config MMC_SDHCI_ESDHC_IMX
 	tristate "SDHCI support for the Freescale eSDHC/uSDHC i.MX controller"
 	depends on ARCH_MXC
@@ -798,3 +809,5 @@ config MMC_SDHCI_BRCMSTB
 	  Broadcom STB SoCs.
 
 	  If unsure, say Y.
+
+source "drivers/mmc/host/himci/Kconfig"

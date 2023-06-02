@@ -41,7 +41,9 @@
 #include "ufshcd-pltfrm.h"
 
 #define UFSHCD_DEFAULT_LANES_PER_DIRECTION		2
-
+#define UFSHCD_DEFAULT_PWM		FAST_MODE
+#define UFSHCD_DEFAULT_GEAR		UFS_HS_G1
+#define UFSHCD_DEFAULT_RATE		PA_HS_MODE_B
 static int ufshcd_parse_clock_info(struct ufs_hba *hba)
 {
 	int ret = 0;
@@ -209,6 +211,9 @@ static int ufshcd_parse_regulator_info(struct ufs_hba *hba)
 	struct device *dev = hba->dev;
 	struct ufs_vreg_info *info = &hba->vreg_info;
 
+	if (hba->info_skip)
+		return 0;
+
 	err = ufshcd_populate_vreg(dev, "vdd-hba", &info->vdd_hba);
 	if (err)
 		goto out;
@@ -279,6 +284,51 @@ void ufshcd_pltfrm_shutdown(struct platform_device *pdev)
 }
 EXPORT_SYMBOL_GPL(ufshcd_pltfrm_shutdown);
 
+static void ufshcd_init_skip_info(struct ufs_hba *hba)
+{
+	struct device *dev = hba->dev;
+	int ret;
+
+	ret = of_property_read_u32(dev->of_node, "skip-info",
+		&hba->info_skip);
+	if (ret) {
+		dev_dbg(hba->dev,
+			"%s: failed to info skip ret=%d\n",
+			__func__, ret);
+		hba->info_skip = 0;
+	}
+}
+static void ufshcd_init_powermode(struct ufs_hba *hba)
+{
+	struct device *dev = hba->dev;
+	int ret;
+
+	ret = of_property_read_u32(dev->of_node, "power-mode",
+		&hba->hc_pwm);
+	if (ret) {
+		dev_dbg(hba->dev,
+			"%s: failed to powermode, ret=%d\n",
+			__func__, ret);
+		hba->hc_pwm = UFSHCD_DEFAULT_PWM;
+	}
+	ret = of_property_read_u32(dev->of_node, "gear",
+		&hba->hc_gear);
+	if (ret) {
+		dev_dbg(hba->dev,
+			"%s: failed to gear, ret=%d\n",
+			__func__, ret);
+		hba->hc_gear = UFSHCD_DEFAULT_GEAR;
+	}
+	ret = of_property_read_u32(dev->of_node, "rate",
+		&hba->hc_rate);
+	if (ret) {
+		dev_dbg(hba->dev,
+			"%s: failed to rate ret=%d\n",
+			__func__, ret);
+		hba->hc_rate = UFSHCD_DEFAULT_RATE;
+	}
+}
+
 static void ufshcd_init_lanes_per_dir(struct ufs_hba *hba)
 {
 	struct device *dev = hba->dev;
@@ -309,7 +359,6 @@ int ufshcd_pltfrm_init(struct platform_device *pdev,
 	struct resource *mem_res;
 	int irq, err;
 	struct device *dev = &pdev->dev;
-
 	mem_res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	mmio_base = devm_ioremap_resource(dev, mem_res);
 	if (IS_ERR(*(void **)&mmio_base)) {
@@ -331,6 +380,7 @@ int ufshcd_pltfrm_init(struct platform_device *pdev,
 	}
 
 	hba->vops = vops;
+	ufshcd_init_skip_info(hba);
 
 	err = ufshcd_parse_clock_info(hba);
 	if (err) {
@@ -349,7 +399,7 @@ int ufshcd_pltfrm_init(struct platform_device *pdev,
 	pm_runtime_enable(&pdev->dev);
 
 	ufshcd_init_lanes_per_dir(hba);
-
+	ufshcd_init_powermode(hba);
 	err = ufshcd_init(hba, mmio_base, irq);
 	if (err) {
 		dev_err(dev, "Initialization failed\n");

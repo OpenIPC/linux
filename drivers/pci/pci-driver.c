@@ -20,6 +20,7 @@
 #include <linux/pm_runtime.h>
 #include <linux/suspend.h>
 #include <linux/kexec.h>
+#include <linux/of_pci.h>
 #include "pci.h"
 
 struct pci_dynid {
@@ -389,6 +390,9 @@ static int __pci_device_probe(struct pci_driver *drv, struct pci_dev *pci_dev)
 
 int __weak pcibios_alloc_irq(struct pci_dev *dev)
 {
+#ifdef CONFIG_ARCH_HISI_BVT
+	dev->irq = of_irq_parse_and_map_pci(dev, 0, 0);
+#endif
 	return 0;
 }
 

@@ -358,6 +358,17 @@ config MFD_HI655X_PMIC
 	help
 	  Select this option to enable Hisilicon hi655x series pmic driver.
 
+config MFD_HISI_FMC
+	tristate "HiSilicon Flash Memory Controller"
+	depends on OF
+	depends on ARCH_HISI_BVT
+	select MFD_CORE
+	select REGMAP_MMIO
+	help
+	  Select this option to enable the HiSilicon Flash Memory
+	  Controller(FMC) driver.
+
+
 config HTC_PASIC3
 	tristate "HTC PASIC3 LED/DS1WM chip support"
 	select MFD_CORE

@@ -1098,8 +1098,13 @@ static int i2c_check_addr_validity(unsigned addr, unsigned short flags)
 		if (addr > 0x3ff)
 			return -EINVAL;
 	} else {
+		/* we always use dev+RD bit */
 		/* 7-bit address, reject the general call address */
+#ifdef	CONFIG_I2C_HISI
+		if (addr == 0x00 || addr > 0xfe)
+#else
 		if (addr == 0x00 || addr > 0x7f)
+#endif
 			return -EINVAL;
 	}
 	return 0;
@@ -2574,10 +2579,8 @@ int i2c_transfer(struct i2c_adapter *adap, struct i2c_msg *msgs, int num)
 		} else {
 			i2c_lock_bus(adap, I2C_LOCK_SEGMENT);
 		}
-
 		ret = __i2c_transfer(adap, msgs, num);
 		i2c_unlock_bus(adap, I2C_LOCK_SEGMENT);
-
 		return ret;
 	} else {
 		dev_dbg(&adap->dev, "I2C level transfers not supported\n");
@@ -2601,7 +2604,11 @@ int i2c_master_send(const struct i2c_client *client, const char *buf, int count)
 	struct i2c_msg msg;
 
 	msg.addr = client->addr;
+#ifdef CONFIG_I2C_HISI
+	msg.flags = client->flags;
+#else
 	msg.flags = client->flags & I2C_M_TEN;
+#endif
 	msg.len = count;
 	msg.buf = (char *)buf;
 
@@ -2630,7 +2637,11 @@ int i2c_master_recv(const struct i2c_client *client, char *buf, int count)
 	int ret;
 
 	msg.addr = client->addr;
+#ifdef CONFIG_I2C_HISI
+	msg.flags = client->flags;
+#else
 	msg.flags = client->flags & I2C_M_TEN;
+#endif
 	msg.flags |= I2C_M_RD;
 	msg.len = count;
 	msg.buf = buf;

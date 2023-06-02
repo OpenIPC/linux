@@ -59,7 +59,7 @@
 /* Query request retries */
 #define QUERY_REQ_RETRIES 10
 /* Query request timeout */
-#define QUERY_REQ_TIMEOUT 30 /* msec */
+#define QUERY_REQ_TIMEOUT 3000 /* msec */
 /*
  * Query request timeout for fDeviceInit flag
  * fDeviceInit query response time for some devices is too large that default
@@ -232,6 +232,222 @@ static int ufshcd_config_pwr_mode(struct ufs_hba *hba,
 		struct ufs_pa_layer_attr *desired_pwr_mode);
 static int ufshcd_change_power_mode(struct ufs_hba *hba,
 			     struct ufs_pa_layer_attr *pwr_mode);
+void printf_layer_1_5(struct ufs_hba *hba)
+{
+	int i = 0;
+	int value = 0;
+
+	printk("------this for kernel layer_1_5------\n");
+	ufshcd_dme_get(hba,0x15000000,&value);
+	printk("0x15000000: 0x%08x\n",value);
+
+	ufshcd_dme_get(hba,0x15200000,&value);
+	printk("0x15200000: 0x%08x\n",value);
+
+	ufshcd_dme_get(hba,0x15400000,&value);
+	printk("0x15400000: 0x%08x\n",value);
+
+	ufshcd_dme_get(hba,0x15430000,&value);
+	printk("0x15430000: 0x%08x\n",value);
+
+	for(i = 0x52;i<=0x57;i++)
+	{
+		ufshcd_dme_get(hba,0x15000000+i*0x10000,&value);
+		printk("0x15%02x0000: 0x%08x\n",i,value);
+	}
+	for(i = 0x5a;i<=0x61;i++)
+	{
+		ufshcd_dme_get(hba,0x15000000+i*0x10000,&value);
+		printk("0x15%02x0000: 0x%08x\n",i,value);
+	}
+
+	ufshcd_dme_get(hba,0x15640000,&value);
+	printk("0x15640000: 0x%08x\n",value);
+
+	for(i = 0x67;i<=0x6a;i++)
+	{
+		ufshcd_dme_get(hba,0x15000000+i*0x10000,&value);
+		printk("0x15%02x0000: 0x%08x\n",i,value);
+	}
+
+	ufshcd_dme_get(hba,0x15710000,&value);
+	printk("0x15710000: 0x%08x\n",value);
+
+	for(i = 0x80;i<=0x87;i++)
+	{
+		ufshcd_dme_get(hba,0x15000000+i*0x10000,&value);
+		printk("0x15%02x0000: 0x%08x\n",i,value);
+	}
+	for(i = 0x90;i<=0x91;i++)
+	{
+		ufshcd_dme_get(hba,0x15000000+i*0x10000,&value);
+		printk("0x15%02x0000: 0x%08x\n",i,value);
+	}
+	for(i = 0xa0;i<=0xab;i++)
+	{
+		ufshcd_dme_get(hba,0x15000000+i*0x10000,&value);
+		printk("0x15%02x0000: 0x%08x\n",i,value);
+	}
+	for(i = 0xb0;i<=0xbb;i++)
+	{
+		ufshcd_dme_get(hba,0x15000000+i*0x10000,&value);
+		printk("0x15%02x0000: 0x%08x\n",i,value);
+	}
+	for(i = 0xc0;i<=0xc2;i++)
+	{
+		ufshcd_dme_get(hba,0x15000000+i*0x10000,&value);
+		printk("0x15%02x0000: 0x%08x\n",i,value);
+	}
+
+}
+void printf_layer_2(struct ufs_hba *hba)
+{
+	int i = 0;
+	int value = 0;
+	printk("------this for kernel layer_2------\n");
+	for(i = 0x00;i<=0x06;i++)
+	{
+		ufshcd_dme_get(hba,0x20000000+i*0x10000,&value);
+		printk("0x20%02x0000: 0x%08x\n",i,value);
+	}
+	for(i = 0x40;i<=0x47;i++)
+	{
+		ufshcd_dme_get(hba,0x20000000+i*0x10000,&value);
+		printk("0x20%02x0000: 0x%08x\n",i,value);
+	}
+	for(i = 0x60;i<=0x67;i++)
+	{
+		ufshcd_dme_get(hba,0x20000000+i*0x10000,&value);
+		printk("0x20%02x0000: 0x%08x\n",i,value);
+	}
+	ufshcd_dme_get(hba,0x21000000,&value);
+	printk("0x21000000: 0x%08x\n",value);
+}
+void printf_layer_3(struct ufs_hba *hba)
+{
+	int i = 0;
+	int value = 0;
+	printk("------this for kernel layer_3------\n");
+	for(i = 0x00;i<=0x01;i++)
+	{
+		ufshcd_dme_get(hba,0x30000000+i*0x10000,&value);
+		printk("0x30%02x0000: 0x%08x\n",i,value);
+	}
+	for(i = 0x20;i<=0x21;i++)
+	{
+		ufshcd_dme_get(hba,0x30000000+i*0x10000,&value);
+		printk("0x30%02x0000: 0x%08x\n",i,value);
+	}
+}
+void printf_layer_4(struct ufs_hba *hba)
+{
+	int i = 0;
+	int value = 0;
+	printk("------this for kernel layer_4------\n");
+	for(i = 0x00;i<=0x01;i++)
+	{
+		ufshcd_dme_get(hba,0x40000000+i*0x10000,&value);
+		printk("0x40%02x0000: 0x%08x\n",i,value);
+	}
+	for(i = 0x20;i<=0x2b;i++)
+	{
+		ufshcd_dme_get(hba,0x40000000+i*0x10000,&value);
+		printk("0x40%02x0000: 0x%08x\n",i,value);
+	}
+	for(i = 0x60;i<=0x61;i++)
+	{
+		ufshcd_dme_get(hba,0x40000000+i*0x10000,&value);
+		printk("0x40%02x0000: 0x%08x\n",i,value);
+	}
+	for(i = 0x80;i<=0x86;i++)
+	{
+		ufshcd_dme_get(hba,0x40000000+i*0x10000,&value);
+		printk("0x40%02x0000: 0x%08x\n",i,value);
+	}
+	for(i = 0xa1;i<=0xab;i++)
+	{
+		ufshcd_dme_get(hba,0x40000000+i*0x10000,&value);
+		printk("0x40%02x0000: 0x%08x\n",i,value);
+	}
+}
+void ufs_dump(struct ufs_hba *hba)
+{
+	dev_err(hba->dev,"===== UFSHCI REGISTER DUMP ======\n");
+	dev_err(hba->dev,"CAP:        0x%08x||",ufshcd_readl(hba,REG_CONTROLLER_CAPABILITIES));
+	dev_err(hba->dev,"VER:        0x%08x\n",ufshcd_readl(hba,REG_UFS_VERSION));
+	dev_err(hba->dev,"HCPID:      0x%08x||",ufshcd_readl(hba,REG_CONTROLLER_DEV_ID));
+	dev_err(hba->dev,"HCMID:      0x%08x\n",ufshcd_readl(hba,REG_CONTROLLER_PROD_ID));
+	dev_err(hba->dev,"AHIT:       0x%08x||",ufshcd_readl(hba,0x18));
+	dev_err(hba->dev,"IS:         0x%08x\n",ufshcd_readl(hba,REG_INTERRUPT_STATUS));
+	dev_err(hba->dev,"IE:         0x%08x||",ufshcd_readl(hba,REG_INTERRUPT_ENABLE));
+	dev_err(hba->dev,"HCS:        0x%08x\n",ufshcd_readl(hba,REG_CONTROLLER_STATUS));
+	dev_err(hba->dev,"HCE:        0x%08x||",ufshcd_readl(hba,REG_CONTROLLER_ENABLE));
+	dev_err(hba->dev,"UECPA:      0x%08x\n",ufshcd_readl(hba,REG_UIC_ERROR_CODE_PHY_ADAPTER_LAYER));
+	dev_err(hba->dev,"UECDL:      0x%08x||",ufshcd_readl(hba,REG_UIC_ERROR_CODE_DATA_LINK_LAYER));
+	dev_err(hba->dev,"UECN:       0x%08x\n",ufshcd_readl(hba,REG_UIC_ERROR_CODE_NETWORK_LAYER));
+	dev_err(hba->dev,"UECT:       0x%08x||",ufshcd_readl(hba,REG_UIC_ERROR_CODE_TRANSPORT_LAYER));
+	dev_err(hba->dev,"UECDME:     0x%08x\n",ufshcd_readl(hba,REG_UIC_ERROR_CODE_DME));
+	dev_err(hba->dev,"UTRIACR:    0x%08x||",ufshcd_readl(hba,REG_UTP_TRANSFER_REQ_INT_AGG_CONTROL));
+	dev_err(hba->dev,"UTRLBA:     0x%08x\n",ufshcd_readl(hba,REG_UTP_TRANSFER_REQ_LIST_BASE_L));
+	dev_err(hba->dev,"UTRLBAU:    0x%08x||",ufshcd_readl(hba,REG_UTP_TRANSFER_REQ_LIST_BASE_H));
+	dev_err(hba->dev,"UTRLDBR:    0x%08x\n",ufshcd_readl(hba,REG_UTP_TRANSFER_REQ_DOOR_BELL));
+	dev_err(hba->dev,"UTRLCLR:    0x%08x||",ufshcd_readl(hba,REG_UTP_TRANSFER_REQ_LIST_CLEAR));
+	dev_err(hba->dev,"UTRLRSR:    0x%08x\n",ufshcd_readl(hba,REG_UTP_TRANSFER_REQ_LIST_RUN_STOP));
+	dev_err(hba->dev,"UTMRLBA:    0x%08x||",ufshcd_readl(hba,REG_UTP_TASK_REQ_LIST_BASE_L));
+	dev_err(hba->dev,"UTMRLBAU:   0x%08x\n",ufshcd_readl(hba,REG_UTP_TASK_REQ_LIST_BASE_H));
+	dev_err(hba->dev,"UTMRLDBR:   0x%08x||",ufshcd_readl(hba,REG_UTP_TASK_REQ_DOOR_BELL));
+	dev_err(hba->dev,"UTMRLCLR:   0x%08x\n",ufshcd_readl(hba,REG_UTP_TASK_REQ_LIST_CLEAR));
+	dev_err(hba->dev,"UTMRLRSR:   0x%08x||",ufshcd_readl(hba,REG_UTP_TASK_REQ_LIST_RUN_STOP));
+	dev_err(hba->dev,"UICCMD:     0x%08x\n",ufshcd_readl(hba,REG_UIC_COMMAND));
+	dev_err(hba->dev,"UICCMDARG1: 0x%08x||",ufshcd_readl(hba,REG_UIC_COMMAND_ARG_1));
+	dev_err(hba->dev,"UICCMDARG2: 0x%08x\n",ufshcd_readl(hba,REG_UIC_COMMAND_ARG_2));
+	dev_err(hba->dev,"UICCMDARG3: 0x%08x||",ufshcd_readl(hba,REG_UIC_COMMAND_ARG_3));
+	dev_err(hba->dev,"============================\n");
+}
+
+void printf_req_upiu(struct utp_upiu_req *ucd_req_ptr)
+{
+	uint8_t *ptr_b;
+	int i = 0;
+	ptr_b = (uint8_t *)ucd_req_ptr;
+	printk("The byte array dump of req upiu(0x%p) is\n",ptr_b);
+	for (i = 0; (i < (sizeof(struct utp_upiu_req))); i += 4)
+		printk("0x%x 0x%x 0x%x 0x%x\n",ptr_b[i], ptr_b[i + 1], ptr_b[i + 2], ptr_b[i + 3]);
+
+}
+void printf_res_upiu(struct ufs_query_res * ucd_res_ptr)
+{
+	uint8_t *ptr_b;
+	int i = 0;
+	ptr_b = (uint8_t *)ucd_res_ptr;
+	printk("The byte array dump of res upiu(0x%p) is\n",ptr_b);
+	for (i = 0; (i < (sizeof(struct ufs_query_res))); i += 4)
+		printk("0x%x 0x%x 0x%x 0x%x\n",ptr_b[i], ptr_b[i + 1], ptr_b[i + 2], ptr_b[i + 3]);
+
+}
+void printf_prd_table(struct ufshcd_sg_entry *ucd_prdt_ptr)
+{
+	//int i = 0;
+	uint32_t *ptr_dw;
+	ptr_dw = (uint32_t *)ucd_prdt_ptr;
+	printk("The byte array dump of PRD Table(0x%p) is\n", ptr_dw);
+	//for (i = 0; i < 4; i++)
+		//printk("0x%x\n", ptr_dw[i]);
+}
+void printf_utrd_table(struct utp_transfer_req_desc * ucd_utrd_ptr)
+{
+	int i = 0;
+	uint8_t *ptr_b;
+	ptr_b = (uint8_t *)ucd_utrd_ptr;
+	printk("The byte array dump of UTRD Table(0x%p) is\n", ptr_b);
+	for (i = 0; i < (sizeof(struct utp_transfer_req_desc)); i += 4)
+		printk("0x%x 0x%x 0x%x 0x%x\n",ptr_b[i], ptr_b[i + 1], ptr_b[i + 2], ptr_b[i + 3]);
+}
+
+
+
+
+
 static inline bool ufshcd_valid_tag(struct ufs_hba *hba, int tag)
 {
 	return tag >= 0 && tag < hba->nutrs;
@@ -2090,12 +2306,14 @@ static int ufshcd_read_desc_param(struct ufs_hba *hba,
 	    (desc_buf[QUERY_DESC_LENGTH_OFFSET] !=
 	     ufs_query_desc_max_size[desc_id])
 	    || (desc_buf[QUERY_DESC_DESC_TYPE_OFFSET] != desc_id)) {
+/*
 		dev_err(hba->dev, "%s: Failed reading descriptor. desc_id %d param_offset %d buff_len %d ret %d",
 			__func__, desc_id, param_offset, buff_len, ret);
 		if (!ret)
 			ret = -EINVAL;
 
 		goto out;
+*/
 	}
 
 	if (is_kmalloc)
@@ -2751,7 +2969,7 @@ static void ufshcd_init_pwr_info(struct ufs_hba *hba)
 	hba->pwr_info.lane_tx = 1;
 	hba->pwr_info.pwr_rx = SLOWAUTO_MODE;
 	hba->pwr_info.pwr_tx = SLOWAUTO_MODE;
-	hba->pwr_info.hs_rate = 0;
+	hba->pwr_info.hs_rate = 2;
 }
 
 /**
@@ -2761,13 +2979,14 @@ static void ufshcd_init_pwr_info(struct ufs_hba *hba)
 static int ufshcd_get_max_pwr_mode(struct ufs_hba *hba)
 {
 	struct ufs_pa_layer_attr *pwr_info = &hba->max_pwr_info.info;
-
 	if (hba->max_pwr_info.is_valid)
 		return 0;
 
-	pwr_info->pwr_tx = FASTAUTO_MODE;
-	pwr_info->pwr_rx = FASTAUTO_MODE;
-	pwr_info->hs_rate = PA_HS_MODE_B;
+	pwr_info->gear_rx = 0;
+	pwr_info->gear_tx = 0;
+	pwr_info->pwr_rx = hba->hc_pwm;
+	pwr_info->pwr_tx = hba->hc_pwm;
+	pwr_info->hs_rate = hba->hc_rate;
 
 	/* Get the connected lane count */
 	ufshcd_dme_get(hba, UIC_ARG_MIB(PA_CONNECTEDRXDATALANES),
@@ -2782,13 +3001,20 @@ static int ufshcd_get_max_pwr_mode(struct ufs_hba *hba)
 				pwr_info->lane_tx);
 		return -EINVAL;
 	}
+	pwr_info->lane_rx = min_t(u32, pwr_info->lane_rx, hba->lanes_per_direction);
+	pwr_info->lane_tx = min_t(u32, pwr_info->lane_tx, hba->lanes_per_direction);
 
 	/*
 	 * First, get the maximum gears of HS speed.
 	 * If a zero value, it means there is no HSGEAR capability.
 	 * Then, get the maximum gears of PWM speed.
 	 */
-	ufshcd_dme_get(hba, UIC_ARG_MIB(PA_MAXRXHSGEAR), &pwr_info->gear_rx);
+	 /*get gear_tx in fast mode*/
+	 if(( FAST_MODE == pwr_info->pwr_rx) || ( FASTAUTO_MODE == pwr_info->pwr_rx))
+	 {
+		ufshcd_dme_get(hba, UIC_ARG_MIB(PA_MAXRXHSGEAR), &pwr_info->gear_rx);
+	 }
+
 	if (!pwr_info->gear_rx) {
 		ufshcd_dme_get(hba, UIC_ARG_MIB(PA_MAXRXPWMGEAR),
 				&pwr_info->gear_rx);
@@ -2797,11 +3023,12 @@ static int ufshcd_get_max_pwr_mode(struct ufs_hba *hba)
 				__func__, pwr_info->gear_rx);
 			return -EINVAL;
 		}
-		pwr_info->pwr_rx = SLOWAUTO_MODE;
 	}
-
-	ufshcd_dme_peer_get(hba, UIC_ARG_MIB(PA_MAXRXHSGEAR),
-			&pwr_info->gear_tx);
+	/*get gear_tx in fast mode*/
+	if(( FAST_MODE == pwr_info->pwr_tx) || ( FASTAUTO_MODE == pwr_info->pwr_tx))
+	 {
+		ufshcd_dme_peer_get(hba, UIC_ARG_MIB(PA_MAXRXHSGEAR),&pwr_info->gear_tx);
+	 }
 	if (!pwr_info->gear_tx) {
 		ufshcd_dme_peer_get(hba, UIC_ARG_MIB(PA_MAXRXPWMGEAR),
 				&pwr_info->gear_tx);
@@ -2810,8 +3037,9 @@ static int ufshcd_get_max_pwr_mode(struct ufs_hba *hba)
 				__func__, pwr_info->gear_tx);
 			return -EINVAL;
 		}
-		pwr_info->pwr_tx = SLOWAUTO_MODE;
 	}
+	pwr_info->gear_rx = min_t(u32, pwr_info->gear_rx, hba->hc_gear);
+	pwr_info->gear_tx = min_t(u32, pwr_info->gear_tx, hba->hc_gear);
 
 	hba->max_pwr_info.is_valid = true;
 	return 0;
@@ -3843,6 +4071,52 @@ out:
 	return err;
 }
 
+static int ufshcd_set_refclk(struct ufs_hba *hba)
+{
+	int ret = 0;
+	u32 value = 0;
+	u32 target_ref_clk;
+
+	if (0) /*IF_FPGA()*/
+		target_ref_clk = 1; /* 26MHz */
+	else
+		target_ref_clk = 0; /* 19.2MHz */
+
+	ret = ufshcd_query_attr_retry(hba, UPIU_QUERY_OPCODE_READ_ATTR,
+		QUERY_ATTR_IDN_REFCLK_FREQ, 0, 0, &value);
+	if (ret) {
+		dev_err(hba->dev, "%s: read attr fail %d\n",
+				__func__, ret);
+		return ret;
+	}
+
+	if (target_ref_clk == value) {
+		return 0;
+	}
+
+	ret = ufshcd_query_attr_retry(hba, UPIU_QUERY_OPCODE_WRITE_ATTR,
+		QUERY_ATTR_IDN_REFCLK_FREQ, 0, 0, &target_ref_clk);
+	if (ret) {
+		dev_err(hba->dev, "%s: write attr fail %d\n",
+				__func__, ret);
+		return ret;
+	}
+
+	value = 0xff;
+	ret = ufshcd_query_attr_retry(hba, UPIU_QUERY_OPCODE_READ_ATTR,
+		QUERY_ATTR_IDN_REFCLK_FREQ, 0, 0, &value);
+	if (ret) {
+		dev_err(hba->dev, "%s: read attr fail %d\n",
+			__func__, ret);
+		return ret;
+	}
+
+	if (target_ref_clk == value) {
+		return 0;
+	}
+	dev_err(hba->dev, "%s: fail \n", __func__);
+	return -1;
+}
 /**
  * ufshcd_urgent_bkops - handle urgent bkops exception event
  * @hba: per-adapter instance
@@ -4590,6 +4864,8 @@ static int ufshcd_host_reset_and_restore(struct ufs_hba *hba)
 	ufshcd_hba_stop(hba, false);
 	spin_unlock_irqrestore(hba->host->host_lock, flags);
 
+	hba->vops->clk_hareware_init_notify();
+
 	err = ufshcd_hba_enable(hba);
 	if (err)
 		goto out;
@@ -5120,7 +5396,6 @@ static int ufshcd_probe_hba(struct ufs_hba *hba)
 	ret = ufshcd_link_startup(hba);
 	if (ret)
 		goto out;
-
 	ufshcd_init_pwr_info(hba);
 
 	/* set the default level for urgent bkops */
@@ -5150,7 +5425,7 @@ static int ufshcd_probe_hba(struct ufs_hba *hba)
 	ufshcd_set_ufs_dev_active(hba);
 	ufshcd_force_reset_auto_bkops(hba);
 	hba->wlun_dev_clr_ua = true;
-
+	ufshcd_set_refclk(hba);
 	if (ufshcd_get_max_pwr_mode(hba)) {
 		dev_err(hba->dev,
 			"%s: Failed getting max supported power mode\n",
@@ -6522,7 +6797,6 @@ int ufshcd_init(struct ufs_hba *hba, void __iomem *mmio_base, unsigned int irq)
 	int err;
 	struct Scsi_Host *host = hba->host;
 	struct device *dev = hba->dev;
-
 	if (!mmio_base) {
 		dev_err(hba->dev,
 		"Invalid memory reference for mmio_base is NULL\n");
@@ -6532,7 +6806,6 @@ int ufshcd_init(struct ufs_hba *hba, void __iomem *mmio_base, unsigned int irq)
 
 	hba->mmio_base = mmio_base;
 	hba->irq = irq;
-
 	err = ufshcd_hba_init(hba);
 	if (err)
 		goto out_error;

@@ -1,0 +1,596 @@
+/* Copyright (c) 2017 HiSilicon Technologies Co., Ltd.
+ *
+ * This program is free software; you can redistribute  it and/or modify it
+ * under  the terms of  the GNU General  Public License as published by the
+ * Free Software Foundation;  either version 2 of the  License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+/dts-v1/;
+/* reserved for warmreset */
+/* reserved for arm trustedfirmware */
+/* Modify this configuration according to the system framework */
+/memreserve/ 0x47000000 0x00200000;
+#include "hi3559av100.dtsi"
+
+/ {
+	model = "Hisilicon HI3559AV100 DEMO Board";
+	compatible = "hisilicon,hi3559av100";
+
+	aliases {
+		serial0 = &uart0;
+		serial1 = &uart1;
+		serial2 = &uart2;
+		serial3 = &uart3;
+		serial4 = &uart4;
+		serial5 = &uart5;
+		serial6 = &uart6;
+		serial7 = &uart7;
+		serial8 = &uart8;
+		serial9 = &uart9;
+
+		i2c0 = &i2c_bus0;
+		i2c1 = &i2c_bus1;
+		i2c2 = &i2c_bus2;
+		i2c3 = &i2c_bus3;
+		i2c4 = &i2c_bus4;
+		i2c5 = &i2c_bus5;
+		i2c6 = &i2c_bus6;
+		i2c7 = &i2c_bus7;
+		i2c8 = &i2c_bus8;
+		i2c9 = &i2c_bus9;
+		i2c10 = &i2c_bus10;
+		i2c11 = &i2c_bus11;
+		i2c12 = &i2c_bus12;
+		i2c13 = &i2c_bus13;
+		i2c14 = &i2c_bus14;
+		i2c15 = &i2c_bus15;
+		i2c16 = &i2c_bus16;
+		i2c17 = &i2c_bus17;
+		i2c18 = &i2c_bus18;
+		i2c19 = &i2c_bus19;
+
+		spi0 = &spi_bus0;
+		spi1 = &spi_bus1;
+		spi2 = &spi_bus2;
+		spi3 = &spi_bus3;
+		spi4 = &spi_bus4;
+		spi5 = &spi_bus5;
+		spi6 = &spi_bus6;
+		spi7 = &spi_bus7;
+
+        gpio0 = &gpio_chip0;
+		gpio1 = &gpio_chip1;
+		gpio2 = &gpio_chip2;
+		gpio3 = &gpio_chip3;
+		gpio4 = &gpio_chip4;
+		gpio5 = &gpio_chip5;
+		gpio6 = &gpio_chip6;
+		gpio7 = &gpio_chip7;
+		gpio8 = &gpio_chip8;
+		gpio9 = &gpio_chip9;
+		gpio10 = &gpio_chip10;
+		gpio11 = &gpio_chip11;
+		gpio12 = &gpio_chip12;
+		gpio13 = &gpio_chip13;
+		gpio14 = &gpio_chip14;
+		gpio15 = &gpio_chip15;
+		gpio16 = &gpio_chip16;
+		gpio17 = &gpio_chip17;
+		gpio18 = &gpio_chip18;
+	};
+
+	chosen {
+		bootargs = "mem=512M console=ttyAMA0,115200 clk_ignore_unused root=/dev/mtdblock2 rootfstype=yaffs2 rw mtdparts=hinand:1M(boot),9M(kernel),32M(rootfs),1M(this_bootargs_string_is_reserved_for_bootargs_form_uboot!!!_it_must_be_longer_than_bootargs_form_uboot!!!_this_bootargs_string_is_reserved_for_bootargs_form_uboot!!!_it_must_be_longer_than_bootargs_form_uboot!!!_this_bootargs_string_is_reserved_for_bootargs_form_uboot!!!_it_must_be_longer_than_bootargs_form_uboot!!!_this_bootargs_string_is_reserved_for_bootargs_form_uboot!!!_it_must_be_longer_than_bootargs_form_uboot!!!_this_bootargs_string_is_reserved_for_bootargs_form_uboot!!!_it_must_be_longer_than_bootargs_form_uboot!!!)";
+
+		linux,initrd-start = <0x60000040>;
+		linux,initrd-end = <0x61000000>;
+	};
+
+	cpus {
+		#address-cells = <2>;
+		#size-cells = <0>;
+
+		cpu@0 {
+			compatible = "arm,cortex-a53";
+			device_type = "cpu";
+			reg = <0x0 0x0>;
+			enable-method = "psci";
+			cpu-idle-states = <&CPU_POWERDOWN &CPU_STANDBY>;
+		};
+
+		cpu@1 {
+			compatible = "arm,cortex-a53";
+			device_type = "cpu";
+			reg = <0x0 0x1>;
+			enable-method = "psci";
+			cpu-idle-states = <&CPU_POWERDOWN &CPU_STANDBY>;
+		};
+		cpu@2 {
+			compatible = "arm,cortex-a73";
+			device_type = "cpu";
+			reg = <0x0 0x100>;
+			enable-method = "psci";
+			cpu-idle-states = <&CPU_POWERDOWN &CPU_STANDBY>;
+		};
+		cpu@3 {
+			compatible = "arm,cortex-a73";
+			device_type = "cpu";
+			reg = <0x0 0x101>;
+			enable-method = "psci";
+			cpu-idle-states = <&CPU_POWERDOWN &CPU_STANDBY>;
+		};
+
+	};
+
+	memory {
+		device_type = "memory";
+		reg = <0x0 0x44000000 0x0 0x80000000>; /* system memory base */
+	};
+};
+
+&ipcm {
+    status = "okay";
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&uart1 {
+	status = "okay";
+};
+
+&uart2 {
+	status = "okay";
+};
+
+&uart3 {
+	status = "okay";
+};
+
+&uart4 {
+	status = "okay";
+};
+
+&uart5 {
+	status = "disable";
+};
+
+&uart6 {
+	status = "disable";
+};
+
+&uart7 {
+	status = "disable";
+};
+
+&uart8 {
+	status = "disable";
+};
+
+&uart9 {
+	status = "disable";
+};
+
+&i2c_bus0 {
+	status = "okay";
+};
+
+&i2c_bus1 {
+	status = "okay";
+};
+
+&i2c_bus2 {
+	status = "okay";
+};
+
+&i2c_bus3 {
+	status = "okay";
+};
+
+&i2c_bus4 {
+	status = "okay";
+};
+
+&i2c_bus5 {
+	status = "okay";
+};
+
+&i2c_bus6 {
+	status = "okay";
+};
+
+&i2c_bus7 {
+	status = "okay";
+};
+
+&i2c_bus8 {
+	status = "okay";
+};
+
+&i2c_bus9 {
+	status = "okay";
+};
+
+&i2c_bus10 {
+	status = "okay";
+};
+
+&i2c_bus11 {
+	status = "okay";
+};
+
+&i2c_bus12 {
+	status = "disable";
+};
+
+&i2c_bus13 {
+	status = "disable";
+};
+
+&i2c_bus14 {
+	status = "disable";
+};
+
+&i2c_bus15 {
+	status = "disable";
+};
+
+&i2c_bus16 {
+	status = "disable";
+};
+
+&i2c_bus17 {
+	status = "disable";
+};
+
+&i2c_bus18 {
+	status = "disable";
+};
+
+&i2c_bus19 {
+	status = "disable";
+};
+
+&spi_bus0{
+	status = "okay";
+
+	spidev@0 {
+		compatible = "rohm,dh2228fv";
+		reg = <0>;
+		pl022,interface = <0>;
+		pl022,com_mode = <0>;
+		spi-max-frequency = <12000000>;
+	};
+
+	spidev@1 {
+		compatible = "rohm,dh2228fv";
+		reg = <1>;
+		pl022,interface = <0>;
+		pl022,com_mode = <0>;
+		spi-max-frequency = <12000000>;
+	};
+};
+
+&spi_bus1{
+	status = "okay";
+
+	spidev@0 {
+		compatible = "rohm,dh2228fv";
+		reg = <0>;
+		pl022,interface = <0>;
+		pl022,com_mode = <0>;
+		spi-max-frequency = <12000000>;
+	};
+
+	spidev@1 {
+		compatible = "rohm,dh2228fv";
+		reg = <1>;
+		pl022,interface = <0>;
+		pl022,com_mode = <0>;
+		spi-max-frequency = <12000000>;
+	};
+};
+
+&spi_bus2{
+	status = "okay";
+
+	spidev@0 {
+		compatible = "rohm,dh2228fv";
+		reg = <0>;
+		pl022,interface = <0>;
+		pl022,com_mode = <0>;
+		spi-max-frequency = <12000000>;
+	};
+
+	spidev@1 {
+		compatible = "rohm,dh2228fv";
+		reg = <1>;
+		pl022,interface = <0>;
+		pl022,com_mode = <0>;
+		spi-max-frequency = <12000000>;
+	};
+};
+
+&spi_bus3{
+	status = "okay";
+
+	spidev@0 {
+		compatible = "rohm,dh2228fv";
+		reg = <0>;
+		pl022,interface = <0>;
+		pl022,com_mode = <0>;
+		spi-max-frequency = <12000000>;
+	};
+
+	spidev@1 {
+		compatible = "rohm,dh2228fv";
+		reg = <1>;
+		pl022,interface = <0>;
+		pl022,com_mode = <0>;
+		spi-max-frequency = <12000000>;
+	};
+};
+
+&spi_bus4{
+	status = "okay";
+
+	spidev@0 {
+		compatible = "rohm,dh2228fv";
+		reg = <0>;
+		pl022,interface = <0>;
+		pl022,com_mode = <0>;
+		spi-max-frequency = <12000000>;
+	};
+
+	spidev@1 {
+		compatible = "rohm,dh2228fv";
+		reg = <1>;
+		pl022,interface = <0>;
+		pl022,com_mode = <0>;
+		spi-max-frequency = <12000000>;
+	};
+
+	spidev@2 {
+		compatible = "rohm,dh2228fv";
+		reg = <2>;
+		pl022,interface = <0>;
+		pl022,com_mode = <0>;
+		spi-max-frequency = <12000000>;
+	};
+
+	spidev@3 {
+		compatible = "rohm,dh2228fv";
+		reg = <3>;
+		pl022,interface = <0>;
+		pl022,com_mode = <0>;
+		spi-max-frequency = <12000000>;
+	};
+};
+
+&spi_bus5{
+	status = "disable";
+
+	spidev@0 {
+		compatible = "rohm,dh2228fv";
+		reg = <0>;
+		pl022,interface = <0>;
+		pl022,com_mode = <0>;
+		spi-max-frequency = <12000000>;
+	};
+
+	spidev@1 {
+		compatible = "rohm,dh2228fv";
+		reg = <1>;
+		pl022,interface = <0>;
+		pl022,com_mode = <0>;
+		spi-max-frequency = <12000000>;
+	};
+	spidev@2 {
+		compatible = "rohm,dh2228fv";
+		reg = <2>;
+		pl022,interface = <0>;
+		pl022,com_mode = <0>;
+		spi-max-frequency = <12000000>;
+	};
+};
+
+&spi_bus6{
+	status = "disable";
+
+	spidev@0 {
+		compatible = "rohm,dh2228fv";
+		reg = <0>;
+		pl022,interface = <0>;
+		pl022,com_mode = <0>;
+		spi-max-frequency = <12000000>;
+	};
+
+	spidev@1 {
+		compatible = "rohm,dh2228fv";
+		reg = <1>;
+		pl022,interface = <0>;
+		pl022,com_mode = <0>;
+		spi-max-frequency = <12000000>;
+	};
+	spidev@2 {
+		compatible = "rohm,dh2228fv";
+		reg = <2>;
+		pl022,interface = <0>;
+		pl022,com_mode = <0>;
+		spi-max-frequency = <12000000>;
+	};
+};
+
+&spi_bus7{
+	status = "disable";
+
+	spidev@0 {
+		compatible = "rohm,dh2228fv";
+		reg = <0>;
+		pl022,interface = <0>;
+		pl022,com_mode = <0>;
+		spi-max-frequency = <12000000>;
+	};
+};
+
+&gpio_chip0 {
+	status = "okay";
+};
+
+&gpio_chip1 {
+	status = "okay";
+};
+
+&gpio_chip2 {
+	status = "okay";
+};
+
+&gpio_chip3 {
+	status = "okay";
+};
+
+&gpio_chip4 {
+	status = "okay";
+};
+
+&gpio_chip5 {
+	status = "okay";
+};
+
+&gpio_chip6 {
+	status = "okay";
+};
+
+&gpio_chip7 {
+	status = "okay";
+};
+
+&gpio_chip8 {
+	status = "okay";
+};
+
+&gpio_chip9 {
+	status = "okay";
+};
+
+&gpio_chip10 {
+	status = "okay";
+};
+
+&gpio_chip11 {
+	status = "okay";
+};
+
+&gpio_chip12 {
+	status = "okay";
+};
+
+&gpio_chip13 {
+	status = "okay";
+};
+
+&gpio_chip14 {
+	status = "okay";
+};
+
+&gpio_chip15 {
+	status = "okay";
+};
+
+&gpio_chip16 {
+	status = "okay";
+};
+
+&gpio_chip17 {
+	status = "okay";
+};
+
+&gpio_chip18 {
+	status = "okay";
+};
+
+&rtc{
+	status = "okay";
+};
+
+&hisfc {
+	hi_sfc {
+		compatible = "jedec,spi-nor";
+		reg = <0>;
+		spi-max-frequency = <160000000>;
+		m25p,fast-read;
+	};
+};
+
+&hisnfc {
+	hinand {
+		compatible = "jedec,spi-nand";
+		reg = <0>;
+		spi-max-frequency = <160000000>;
+	};
+};
+
+&hinfc {
+	hinand {
+		compatible = "jedec,nand";
+		reg = <0>;
+		nand-max-frequency = <200000000>;
+	};
+};
+
+&mdio {
+	ethphy: ethernet-phy@1 {
+		reg = <1>;
+	};
+};
+
+&mdio1 {
+	ethphy1: ethernet-phy@3 {
+		reg = <3>;
+	};
+};
+
+&higmac {
+	phy-handle = <&ethphy>;
+	phy-mode = "rgmii";
+};
+
+&higmac1 {
+	phy-handle = <&ethphy1>;
+	phy-mode = "rgmii";
+};
+
+&mmc1 {
+	status = "okay";
+};
+
+&mmc2 {
+	status = "okay";
+};
+
+&mmc3 {
+	status = "disable";
+};
+
+&hivdmac {
+	status = "disabled";
+};
+
+&hiedmacv310_0 {
+	status = "okay";
+};
+
+&hiedmacv310_1 {
+	status = "okay";
+};

@@ -1318,6 +1318,9 @@ static int mmc_select_hs400es(struct mmc_card *card)
 
 	/* Set host controller to HS400 timing and frequency */
 	mmc_set_timing(host, MMC_TIMING_MMC_HS400);
+#ifdef CONFIG_MMC_SDHCI_HISI
+	mmc_set_bus_speed(card);
+#endif
 
 	/* Controller enable enhanced strobe function */
 	host->ios.enhanced_strobe = true;
@@ -1690,7 +1693,7 @@ static int mmc_init_card(struct mmc_host *host, u32 ocr,
 		err = mmc_select_hs400(card);
 		if (err)
 			goto free_card;
-	} else {
+	} else if (!mmc_card_hs400es(card)) {
 		/* Select the desired bus width optionally */
 		err = mmc_select_bus_width(card);
 		if (err > 0 && mmc_card_hs(card)) {

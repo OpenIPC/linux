@@ -174,6 +174,16 @@ dtb-$(CONFIG_ARCH_HISI) += \
 	hi3519-demb.dtb
 dtb-$(CONFIG_ARCH_HIX5HD2) += \
 	hisi-x5hd2-dkb.dtb
+dtb-$(CONFIG_ARCH_HI3516A) += \
+	hi3516a-demb.dtb
+dtb-$(CONFIG_ARCH_HI3518EV20X) += \
+	hi3518ev20x-demb.dtb
+dtb-$(CONFIG_ARCH_HI3521A) += \
+	hi3521a-demb.dtb
+dtb-$(CONFIG_ARCH_HI3531A) += \
+	hi3531a-demb.dtb
+dtb-$(CONFIG_ARCH_HI3536DV100) += \
+	hi3536dv100-demb.dtb
 dtb-$(CONFIG_ARCH_INTEGRATOR) += \
 	integratorap.dtb \
 	integratorcp.dtb

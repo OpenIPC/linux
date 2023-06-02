@@ -289,6 +289,7 @@ struct ufs_hba_variant_ops {
 	int     (*resume)(struct ufs_hba *, enum ufs_pm_op);
 	void	(*dbg_register_dump)(struct ufs_hba *hba);
 	int	(*phy_initialization)(struct ufs_hba *);
+	void (*clk_hareware_init_notify)(void);
 };
 
 /* clock gating state  */
@@ -548,6 +549,11 @@ struct ufs_hba {
 	 * CAUTION: Enabling this might reduce overall UFS throughput.
 	 */
 #define UFSHCD_CAP_INTR_AGGR (1 << 4)
+
+	u32 hc_pwm;
+	u32 hc_gear;
+	u32 hc_rate;
+	u32 info_skip;
 
 	struct devfreq *devfreq;
 	struct ufs_clk_scaling clk_scaling;

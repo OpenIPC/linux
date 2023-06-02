@@ -68,6 +68,29 @@ extern int i2c_master_recv(const struct i2c_client *client, char *buf,
  */
 extern int i2c_transfer(struct i2c_adapter *adap, struct i2c_msg *msgs,
 			int num);
+
+#ifdef CONFIG_ARCH_HISI_BVT
+#ifdef CONFIG_I2C_HISI
+extern int hi_i2c_dma_read(const struct i2c_client *client,
+		unsigned int dma_buf, unsigned int reg_addr,
+		unsigned int reg_addr_num, unsigned int length);
+
+extern int hi_i2c_dma_write(const struct i2c_client *client,
+		unsigned int dma_buf, unsigned int reg_addr,
+		unsigned int reg_addr_num, unsigned int length);
+#endif
+
+extern int hi_i2c_master_send(const struct i2c_client *client, const char *buf,
+					int count);
+
+extern int hi_i2c_master_recv(const struct i2c_client *client, char *buf,
+					int count);
+
+extern int hi_i2c_transfer(struct i2c_adapter *adap, struct i2c_msg *msgs,
+					int num);
+
+#endif
+
 /* Unlocked flavor */
 extern int __i2c_transfer(struct i2c_adapter *adap, struct i2c_msg *msgs,
 			  int num);
@@ -553,6 +576,9 @@ struct i2c_adapter {
 	const struct i2c_lock_operations *lock_ops;
 	struct rt_mutex bus_lock;
 	struct rt_mutex mux_lock;
+#ifdef CONFIG_ARCH_HISI_BVT
+	spinlock_t spinlock;
+#endif
 
 	int timeout;			/* in jiffies */
 	int retries;

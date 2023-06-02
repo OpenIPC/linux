@@ -1148,8 +1148,28 @@ static int gic_init_bases(struct gic_chip_data *gic, int irq_start,
 		ret = -ENODEV;
 		goto error;
 	}
-
+#ifndef CONFIG_ARCH_HISI_BVT_AMP
 	gic_dist_init(gic);
+#else
+	{
+		/* 0x47444946('G''D''I''F') is abbreviation of GIC_DIST_INIT_FLAG. */
+		/* If the soc(such as hi3559/hi3556/hi3556av100/hi3559av100 ...) runs 2 OS, another */
+		/* OS distributes the IRQ. When another OS has distributed the IRQ,*/
+		/* sysctrl register(the offset address is 0x130) will be set to 0x47444946.*/
+		/* If another OS did not distribute the IRQ, this OS will do it.    */
+#define GIC_DIST_INIT_FLAG 0x47444946
+#define GIC_DIST_INIT_FLAG_OFFSET 0x0130
+		struct device_node *np;
+		int gic_dist_init_flag;
+
+		np = of_find_compatible_node(NULL, NULL, "hisilicon,sysctrl");
+		gic_dist_init_flag = readl(of_iomap(np, 0) + GIC_DIST_INIT_FLAG_OFFSET);
+
+		if(gic_dist_init_flag != GIC_DIST_INIT_FLAG) {
+			gic_dist_init(gic);
+		}
+	}
+#endif
 	ret = gic_cpu_init(gic);
 	if (ret)
 		goto error;

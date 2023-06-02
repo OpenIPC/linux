@@ -104,6 +104,11 @@ static inline __maybe_unused phys_addr_t cma_early_percent_memory(void)
  * has been activated and all other subsystems have already allocated/reserved
  * memory.
  */
+#ifdef CONFIG_ARCH_HISI_BVT
+#ifdef CONFIG_64BIT
+extern __init int hisi_declare_heap_memory(void);
+#endif
+#endif
 void __init dma_contiguous_reserve(phys_addr_t limit)
 {
 	phys_addr_t selected_size = 0;
@@ -140,6 +145,11 @@ void __init dma_contiguous_reserve(phys_addr_t limit)
 					    &dma_contiguous_default_area,
 					    fixed);
 	}
+#ifdef CONFIG_ARCH_HISI_BVT
+#ifdef CONFIG_64BIT
+	hisi_declare_heap_memory();
+#endif
+#endif
 }
 
 /**
@@ -195,6 +205,7 @@ struct page *dma_alloc_from_contiguous(struct device *dev, size_t count,
 
 	return cma_alloc(dev_get_cma_area(dev), count, align);
 }
+EXPORT_SYMBOL(dma_alloc_from_contiguous);
 
 /**
  * dma_release_from_contiguous() - release allocated pages
@@ -211,6 +222,12 @@ bool dma_release_from_contiguous(struct device *dev, struct page *pages,
 {
 	return cma_release(dev_get_cma_area(dev), pages, count);
 }
+EXPORT_SYMBOL(dma_release_from_contiguous);
+
+#ifdef CONFIG_ARM64
+#include <asm/cacheflush.h>
+EXPORT_SYMBOL(__flush_dcache_area);
+#endif
 
 /*
  * Support for reserved memory regions defined in device tree

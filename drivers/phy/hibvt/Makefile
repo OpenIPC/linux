@@ -1,0 +1,9 @@
+obj-$(CONFIG_PHY_HISI_SATA)			+= phy-hisi-sata.o
+obj-$(CONFIG_PHY_HISI_USB2)			+= phy-hisi-usb.o
+obj-$(CONFIG_PHY_HISI_USB3)			+= phy-hisi-usb3.o
+obj-$(CONFIG_ARCH_HI3516A)			+= phy-hi3516a-usb.o
+obj-$(CONFIG_ARCH_HI3536DV100)			+= phy-hi3536d-usb.o
+obj-$(CONFIG_ARCH_HI3518EV20X)			+= phy-hi3518ev20x-usb.o
+obj-$(CONFIG_ARCH_HI3521A)			+= phy-hi3521a-usb.o
+obj-$(CONFIG_ARCH_HI3531A)			+= hiusb-ehci-hi3531a.o
+obj-$(CONFIG_ARCH_HI3531A)			+= hiusb-xhci-hi3531a.o

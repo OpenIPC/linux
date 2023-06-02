@@ -1,0 +1,28 @@
+menuconfig HIPCIE
+	bool "Hisilicon PCI Express support"
+	depends on PCI && (ARCH_HI3559AV100 || ARCH_HI3531A)
+	default y if PCI
+	default n if ! PCI
+	help
+	Hisilicon PCI Express support
+	Choose this selection to support PCI Express uses.
+
+if HIPCIE
+
+menu "PCI Express configs"
+
+
+config LIMIT_MAX_RD_REQ_SIZE
+	bool "limit pcie max read request size"
+	default y
+	depends on PCI && (ARCH_HI3559AV100 || ARCH_HI3531A)
+	help
+	The default max read request size of pcie device is 512 Byte. When pcie use
+	the card of pcie-to-sata to connect to the sata disk, with the default max read
+	request size value of 512 byte, would cause the low bandwidth of VDP. If you enable
+	the LIMIT_MAX_RD_REQ_SIZE config, the max read request size of pcie device would be
+	set to 128 byte, and the problem of VDP low band width also be avoided.
+
+endmenu
+
+endif
