@@ -1,0 +1,59 @@
+/*
+ * Copyright (c) 2014 MundoReader S.L.
+ * Author: Matthias Brugger <matthias.bgg@gmail.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+/dts-v1/;
+#include "infinity.dtsi"
+
+/ {
+	model = "INFINITY MSC315";
+	compatible = "mstar,infinity";
+	
+
+	chosen {
+		bootargs = "console=ttyS0,115200n8r androidboot.console=ttyS0 root=/dev/ram rootwait";
+		linux,initrd-start = <0x20FE0000>;
+		linux,initrd-end =   <0x21000000>;
+	};
+/*
+        sysp:rammtd@0 {
+                compatible = "mtd-ram";
+                reg= <0x14380000 0x00400000>;
+                bank-width = <1>;
+        };
+*/
+        memory {
+            reg = <0x20000000 0x04000000>;
+        };
+    
+    
+/*!!IMPORTANT!! The reserved memory must be 1MB aligned*/
+    reserved-memory {
+        #address-cells = <1>;
+        #size-cells = <1>;
+        ranges;
+        miu_bist_mem: miu_bist_mem@27F80000 {
+            reg = <0x23F00000 0x00100000>;
+            no-map ;
+            status = "okay";
+        };
+        cma0 {
+            compatible = "shared-dma-pool";
+            reusable;
+            size = <0x02800000>;
+            linux,cma-default;
+        };
+        
+    };
+};

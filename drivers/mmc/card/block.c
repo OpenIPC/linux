@@ -2114,7 +2114,14 @@ static struct mmc_blk_data *mmc_blk_alloc_req(struct mmc_card *card,
 	 * index anymore so we keep track of a name index.
 	 */
 	if (!subname) {
+
+#if defined (CONFIG_MS_SDMMC) ||  defined(CONFIG_MS_SDMMC_MODULE)
+		// Not good way someone modified code to reference ms_sdmmc_lnx.c data to lock the device name for Android disk,
+		// So I replace the way. Also I replace mmc device because they must lock mmc0
+		md->name_idx = (unsigned int)card->host->index;
+#else
 		md->name_idx = find_first_zero_bit(name_use, max_devices);
+#endif
 		__set_bit(md->name_idx, name_use);
 	} else
 		md->name_idx = ((struct mmc_blk_data *)
@@ -2601,6 +2608,20 @@ static void __exit mmc_blk_exit(void)
 	mmc_unregister_driver(&mmc_driver);
 	unregister_blkdev(MMC_BLOCK_MAJOR, "mmc");
 }
+
+struct mmc_card *mmc_blkdev_to_card(struct block_device *blkdev)
+{
+	struct mmc_blk_data *md;
+	md = (struct mmc_blk_data *)(blkdev->bd_disk->private_data);
+	if(md)
+	{
+		return md->queue.card;
+	}
+
+	return NULL;
+}
+
+EXPORT_SYMBOL(mmc_blkdev_to_card);
 
 module_init(mmc_blk_init);
 module_exit(mmc_blk_exit);

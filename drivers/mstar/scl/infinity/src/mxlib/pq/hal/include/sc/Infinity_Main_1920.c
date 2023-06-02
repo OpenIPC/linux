@@ -1,0 +1,31 @@
+
+ unsigned char QMAP_1920_Main[QM_INPUTTYPE_NUM_Main][PQ_IP_NUM_Main]=
+{
+    #if PQ_QM_ISP
+    {//1920 FHD_YUV422, 0
+    PQ_IP_PreSNR_OFF_Main, PQ_IP_DNR_NR_OFF_Main, PQ_IP_DNR_Y_OFF_Main, PQ_IP_DNR_C_OFF_Main, PQ_IP_LDC_OFF_Main,
+    PQ_IP_LDC_422_444_422_md1434_avg_Main, PQ_IP_NLM_OFF_Main, PQ_IP_422to444_OFF_Main, PQ_IP_VIP_OFF_Main, PQ_IP_VIP_pseudo_OFF_Main,
+    PQ_IP_VIP_LineBuffer_OFF_Main, PQ_IP_VIP_HLPF_OFF_Main, PQ_IP_VIP_HLPF_dither_OFF_Main, PQ_IP_VIP_VLPF_coef1_OFF_Main, PQ_IP_VIP_VLPF_coef2_OFF_Main,
+    PQ_IP_VIP_VLPF_dither_OFF_Main, PQ_IP_VIP_Peaking_W2_Main, PQ_IP_VIP_Peaking_band_OFF_Main, PQ_IP_VIP_Peaking_adptive_OFF_Main, PQ_IP_VIP_Peaking_Pcoring_OFF_Main,
+    PQ_IP_VIP_Peaking_Pcoring_ad_Y_OFF_Main, PQ_IP_VIP_Peaking_gain_0x10_Main, PQ_IP_VIP_Peaking_gain_ad_Y_OFF_Main, PQ_IP_VIP_LCE_OFF_Main, PQ_IP_VIP_LCE_dither_OFF_Main,
+    PQ_IP_VIP_LCE_setting_S3_Main, PQ_IP_VIP_LCE_curve_CV1_Main, PQ_IP_VIP_DLC_His_range_OFF_Main, PQ_IP_VIP_DLC_OFF_Main, PQ_IP_VIP_DLC_dither_OFF_Main,
+    PQ_IP_VIP_DLC_His_rangeH_90pa_1920_Main, PQ_IP_VIP_DLC_His_rangeV_90pa_1920_Main, PQ_IP_VIP_DLC_PC_OFF_Main, PQ_IP_VIP_YC_gain_offset_OFF_Main, PQ_IP_VIP_UVC_OFF_Main,
+    PQ_IP_VIP_FCC_full_range_OFF_Main, PQ_IP_VIP_FCC_bdry_dist_OFF_Main, PQ_IP_VIP_FCC_T1_OFF_Main, PQ_IP_VIP_FCC_T2_OFF_Main, PQ_IP_VIP_FCC_T3_OFF_Main,
+    PQ_IP_VIP_FCC_T4_OFF_Main, PQ_IP_VIP_FCC_T5_OFF_Main, PQ_IP_VIP_FCC_T6_OFF_Main, PQ_IP_VIP_FCC_T7_OFF_Main, PQ_IP_VIP_FCC_T8_OFF_Main,
+    PQ_IP_VIP_FCC_T9_OFF_Main, PQ_IP_VIP_IHC_OFF_Main, PQ_IP_VIP_IHC_Ymode_OFF_Main, PQ_IP_VIP_IHC_dither_OFF_Main, PQ_IP_VIP_IHC_CRD_SRAM_15wins3_Main,
+    PQ_IP_VIP_IHC_SETTING_HDMI_HD_Main, PQ_IP_VIP_ICC_OFF_Main, PQ_IP_VIP_ICC_Ymode_HDMI_HD_Main, PQ_IP_VIP_ICC_dither_OFF_Main, PQ_IP_VIP_ICC_CRD_SRAM_15wins3_Main,
+    PQ_IP_VIP_ICC_SETTING_HDMI_HD_Main, PQ_IP_VIP_Ymode_Yvalue_ALL_Y1_Main, PQ_IP_VIP_Ymode_Yvalue_SETTING_Y2_Main, PQ_IP_VIP_IBC_OFF_Main, PQ_IP_VIP_IBC_dither_OFF_Main,
+    PQ_IP_VIP_IBC_SETTING_OFF_Main, PQ_IP_VIP_ACK_OFF_Main, PQ_IP_VIP_YCbCr_Clip_OFF_Main, PQ_IP_VSP_Y_SC1_Bypass_Main, PQ_IP_VSP_C_SC1_Bypass_Main,
+    PQ_IP_VSP_CoRing_SC1_OFF_Main, PQ_IP_VSP_DeRing_SC1_OFF_Main, PQ_IP_VSP_Dither_SC1_OFF_Main, PQ_IP_VSP_PreVBound_SC1_OFF_Main, PQ_IP_AntiPAL_filter_SC1_OFF_Main,
+    PQ_IP_422To444_SC1_ON_Main, PQ_IP_HSP_Y_SC1_Bypass_Main, PQ_IP_HSP_C_SC1_Bypass_Main, PQ_IP_HSP_CoRing_SC1_OFF_Main, PQ_IP_HSP_DeRing_SC1_OFF_Main,
+    PQ_IP_HSP_Dither_SC1_OFF_Main, PQ_IP_HnonLinear_SC1_OFF_Main, PQ_IP_SRAM1_InvSinc4Tc4p4Fc85Fstop134Apass01Astop50G13_Main, PQ_IP_SRAM2_InvSinc4Tc4p4Fc45Apass01Astop40_Main, PQ_IP_SRAM3_OFF_Main,
+    PQ_IP_SRAM4_OFF_Main, PQ_IP_C_SRAM1_C121_Main, PQ_IP_C_SRAM2_C2121_Main, PQ_IP_C_SRAM3_C161_Main, PQ_IP_C_SRAM4_C2121_Main,
+    PQ_IP_VSP_Y_SC2_Bypass_Main, PQ_IP_VSP_C_SC2_Bypass_Main, PQ_IP_VSP_CoRing_SC2_OFF_Main, PQ_IP_VSP_DeRing_SC2_OFF_Main, PQ_IP_VSP_Dither_SC2_OFF_Main,
+    PQ_IP_VSP_PreVBound_SC2_OFF_Main, PQ_IP_AntiPAL_filter_SC2_OFF_Main, PQ_IP_422To444_SC2_ON_Main, PQ_IP_HSP_Y_SC2_Bypass_Main, PQ_IP_HSP_C_SC2_Bypass_Main,
+    PQ_IP_HSP_CoRing_SC2_OFF_Main, PQ_IP_HSP_DeRing_SC2_OFF_Main, PQ_IP_HSP_Dither_SC2_OFF_Main, PQ_IP_HnonLinear_SC2_OFF_Main, PQ_IP_VSP_Y_SC3_Bypass_Main,
+    PQ_IP_VSP_C_SC3_Bypass_Main, PQ_IP_VSP_CoRing_SC3_OFF_Main, PQ_IP_VSP_DeRing_SC3_OFF_Main, PQ_IP_VSP_Dither_SC3_OFF_Main, PQ_IP_VSP_PreVBound_SC3_OFF_Main,
+    PQ_IP_AntiPAL_filter_SC3_OFF_Main, PQ_IP_422To444_SC3_ON_Main, PQ_IP_HSP_Y_SC3_Bypass_Main, PQ_IP_HSP_C_SC3_Bypass_Main, PQ_IP_HSP_CoRing_SC3_OFF_Main,
+    PQ_IP_HSP_DeRing_SC3_OFF_Main, PQ_IP_HSP_Dither_SC3_OFF_Main, PQ_IP_HnonLinear_SC3_OFF_Main, PQ_IP_SWDriver_ON_Main, PQ_IP_SC_End_End_Main,
+    },
+    #endif
+};

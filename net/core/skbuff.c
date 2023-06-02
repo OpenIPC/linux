@@ -444,7 +444,14 @@ struct sk_buff *__netdev_alloc_skb(struct net_device *dev,
 	unsigned int fragsz = SKB_DATA_ALIGN(length + NET_SKB_PAD) +
 			      SKB_DATA_ALIGN(sizeof(struct skb_shared_info));
 
-	if (fragsz <= PAGE_SIZE && !(gfp_mask & (__GFP_WAIT | GFP_DMA))) {
+#ifdef CONFIG_ARCH_MSTAR
+    /* The counts of fragmetation will blow up when application don't free packets.
+         GFP argument adds GFP_ATOMIC to use alloc_skb with kmem.*/
+    if (fragsz <= PAGE_SIZE && !(gfp_mask & (__GFP_WAIT | GFP_DMA | GFP_ATOMIC)))
+#else
+	if (fragsz <= PAGE_SIZE && !(gfp_mask & (__GFP_WAIT | GFP_DMA)))
+#endif
+    {
 		void *data;
 
 		if (sk_memalloc_socks())

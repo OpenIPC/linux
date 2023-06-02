@@ -545,7 +545,11 @@ iwe_stream_add_point(struct iw_request_info *info, char *stream, char *ends,
 		memcpy(stream + lcp_len,
 		       ((char *) &iwe->u) + IW_EV_POINT_OFF,
 		       IW_EV_POINT_PK_LEN - IW_EV_LCP_PK_LEN);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
 		memcpy(stream + point_len, extra, iwe->u.data.length);
+#pragma GCC diagnostic pop
+
 		stream += event_len;
 	}
 	return stream;

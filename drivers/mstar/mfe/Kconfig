@@ -1,0 +1,3 @@
+config MS_MFE
+	tristate "MFE driver"
+	help

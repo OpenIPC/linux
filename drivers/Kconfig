@@ -182,4 +182,16 @@ source "drivers/ras/Kconfig"
 
 source "drivers/thunderbolt/Kconfig"
 
+
+source "drivers/cmem/Kconfig"
+
+menuconfig MSTAR_DRIVERS
+    bool "MStar SoC platform drivers"
+    depends on ARCH_MSTAR
+    default n
+    
+if ( MSTAR_DRIVERS )
+source "drivers/mstar/Kconfig"
+endif    
+
 endmenu

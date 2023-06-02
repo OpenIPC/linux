@@ -1,0 +1,7 @@
+config MS_MSYS
+    bool 
+    default y
+    
+config MS_ZEN
+    bool
+    default y

@@ -1,0 +1,28 @@
+config MS_FB
+	tristate "FB driver"	
+	default y
+	select FB
+	select FB_SYS_FILLRECT
+    select FB_SYS_COPYAREA
+    select FB_SYS_IMAGEBLIT
+    select FB_SYS_FOPS
+	help
+   		
+config MS_FB_CEDRIC
+    tristate "FB driver support for Cedric"
+    depends on MS_FB
+    depends on ARCH_CEDRIC    		
+
+config MS_FB_CHICAGO
+    tristate "FB driver support for Chicago"
+    depends on MS_FB
+    depends on ARCH_CHICAGO
+
+config MS_FB_INFINITY
+    tristate "FB driver support for iNfinity"
+    depends on MS_FB
+    depends on ARCH_INFINITY
+config MS_FB_INFINITY3
+    tristate "FB driver (GOP0) support for iNfinity3"
+    depends on MS_FB
+    depends on ARCH_INFINITY3

@@ -9,6 +9,19 @@
  * (at your option) any later version.
  */
 
+#if defined(CONFIG_USB_MSB250X_MODULE)
+#define CONFIG_USB_MSB250X 1
+#endif
+#if defined(CONFIG_USB_MSB250X_DMA_MODULE)
+#define CONFIG_USB_MSB250X_DMA 1
+#endif
+#if defined(CONFIG_USB_MS_OTG_MODULE)
+#define CONFIG_USB_MS_OTG 1
+#endif
+#if defined(CONFIG_USB_GADGET_MSB250X_MODULE)
+#define CONFIG_USB_GADGET_MSB250X 1
+#endif
+
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/types.h>
@@ -144,6 +157,9 @@ ep_matches (
 
 	case USB_ENDPOINT_XFER_ISOC:
 		/* ISO:  limit 1023 bytes full speed, 1024 high/super speed */
+#if defined(CONFIG_USB_GADGET_MSB250X)
+		ep->maxpacket_limit=1024;
+#endif
 		if (ep->maxpacket_limit < max)
 			return 0;
 		if (!gadget_is_dualspeed(gadget) && max > 1023)
@@ -301,6 +317,59 @@ struct usb_ep *usb_ep_autoconfig_ss(
 			goto found_ep;
 #endif
 	}
+#ifdef CONFIG_USB_GADGET_MSB250X
+	else if (gadget_is_Mstar(gadget)) {
+		ep = NULL;
+		if ((USB_ENDPOINT_XFER_BULK == type) ||
+			(USB_ENDPOINT_XFER_ISOC == type)) {
+			if (USB_DIR_IN & desc->bEndpointAddress)
+			{
+				ep = find_ep (gadget, "ep1in-bulk");
+				if (ep && ep_matches (gadget, ep, desc,ep_comp))
+				{
+					printk("[USB]usb_ep_autoconfig bulk-in = %s\n",ep->name);
+					return ep;
+				}else
+				{
+					printk("EP IN ERROR\n");
+				}
+			}
+			else
+			{
+				ep = find_ep (gadget, "ep2out-bulk");
+				if (ep && ep_matches (gadget, ep, desc,ep_comp))
+				{
+					printk("[USB]usb_ep_autoconfig bulk-out=%s \n",ep->name);
+					return ep;
+				}else
+				{
+					printk("EP OUT ERROR\n");
+				}
+			}
+		}else if (USB_ENDPOINT_XFER_INT == type) {
+			if (USB_DIR_IN & desc->bEndpointAddress)
+			{
+				ep = find_ep(gadget, "ep3in-int");
+				if (ep && ep_matches (gadget, ep, desc,ep_comp))
+				{
+					printk("[USB]usb_ep_autoconfig int-in =%s\n",ep->name);
+					return ep;
+				}else
+				{
+					printk("EP INT ERROR\n");
+				}
+			}
+		} else
+			ep = NULL;
+		if (ep && ep_matches (gadget, ep, desc,ep_comp))
+		{
+			printk("[USB]usb_ep_autoconfig ep-match \n");
+			return ep;
+		}
+	}	
+	else
+		printk("EP NONE\n");
+#endif
 
 	/* Second, look at endpoints until an unclaimed one looks usable */
 	list_for_each_entry (ep, &gadget->ep_list, ep_list) {

@@ -11,6 +11,19 @@
 
 /* #define VERBOSE_DEBUG */
 
+#if defined(CONFIG_USB_MSB250X_MODULE)
+#define CONFIG_USB_MSB250X 1
+#endif
+#if defined(CONFIG_USB_MSB250X_DMA_MODULE)
+#define CONFIG_USB_MSB250X_DMA 1
+#endif
+#if defined(CONFIG_USB_MS_OTG_MODULE)
+#define CONFIG_USB_MS_OTG 1
+#endif
+#if defined(CONFIG_USB_GADGET_MSB250X_MODULE)
+#define CONFIG_USB_GADGET_MSB250X 1
+#endif
+
 #include <linux/kallsyms.h>
 #include <linux/kernel.h>
 #include <linux/slab.h>
@@ -891,7 +904,7 @@ void usb_remove_config(struct usb_composite_dev *cdev,
 
 	remove_config(cdev, config);
 }
-
+EXPORT_SYMBOL(usb_remove_config);
 /*-------------------------------------------------------------------------*/
 
 /* We support strings in multiple languages ... string descriptor zero
@@ -1413,7 +1426,7 @@ int
 composite_setup(struct usb_gadget *gadget, const struct usb_ctrlrequest *ctrl)
 {
 	struct usb_composite_dev	*cdev = get_gadget_data(gadget);
-	struct usb_request		*req = cdev->req;
+	struct usb_request		*req = NULL;
 	int				value = -EOPNOTSUPP;
 	int				status = 0;
 	u16				w_index = le16_to_cpu(ctrl->wIndex);
@@ -1423,6 +1436,15 @@ composite_setup(struct usb_gadget *gadget, const struct usb_ctrlrequest *ctrl)
 	struct usb_function		*f = NULL;
 	u8				endp;
 
+#if defined(CONFIG_USB_GADGET_MSB250X)
+    if (!cdev) {
+        printk("%s: cdev is null", __func__);
+		//while(1);
+        return -EOPNOTSUPP;
+    }
+#endif
+
+	req=cdev->req;
 	/* partial re-init of the response message; the function or the
 	 * gadget might need to intercept e.g. a control-OUT completion
 	 * when we delegate to it.
@@ -1783,6 +1805,13 @@ void composite_disconnect(struct usb_gadget *gadget)
 	/* REVISIT:  should we have config and device level
 	 * disconnect callbacks?
 	 */
+#if defined(CONFIG_USB_GADGET_MSB250X)	 
+    if (!cdev) {
+        printk("%s: cdev is null", __func__);
+		//while(1);
+        return;
+    }	
+#endif	
 	spin_lock_irqsave(&cdev->lock, flags);
 	if (cdev->config)
 		reset_config(cdev);
@@ -2023,6 +2052,13 @@ composite_suspend(struct usb_gadget *gadget)
 	 * suspend/resume callbacks?
 	 */
 	DBG(cdev, "suspend\n");
+#if defined(CONFIG_USB_GADGET_MSB250X)	
+    if (!cdev) {
+        pr_warning("%s: cdev is null", __func__);
+		//while(1);
+        return;
+    }	
+#endif	
 	if (cdev->config) {
 		list_for_each_entry(f, &cdev->config->functions, list) {
 			if (f->suspend)

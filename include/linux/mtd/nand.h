@@ -659,6 +659,9 @@ struct nand_chip {
 			int feature_addr, uint8_t *subfeature_para);
 	int (*setup_read_retry)(struct mtd_info *mtd, int retry_mode);
 
+	int (*mtd_param_init)(struct mtd_info *mtd,struct nand_chip *chip, int *maf_id, int *dev_id,
+                          const struct nand_flash_dev *type);
+
 	int chip_delay;
 	unsigned int options;
 	unsigned int bbt_options;

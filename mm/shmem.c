@@ -3461,4 +3461,5 @@ struct page *shmem_read_mapping_page_gfp(struct address_space *mapping,
 	return read_cache_page_gfp(mapping, index, gfp);
 #endif
 }
+EXPORT_SYMBOL(shmem_zero_setup);
 EXPORT_SYMBOL_GPL(shmem_read_mapping_page_gfp);

@@ -29,6 +29,17 @@
 #include <linux/usb/gadget.h>
 #include <linux/usb.h>
 
+#if defined(CONFIG_USB_MSB250X_MODULE)
+#define CONFIG_USB_MSB250X 1
+#endif
+#if defined(CONFIG_USB_MSB250X_DMA_MODULE)
+#define CONFIG_USB_MSB250X_DMA 1
+#endif
+
+
+void (*ms_udc_probe_usb_driver)(struct usb_gadget_driver *driver)=NULL;
+EXPORT_SYMBOL(ms_udc_probe_usb_driver);
+
 /**
  * struct usb_udc - describes one usb device controller
  * @driver - the gadget driver pointer. For use by the class code
@@ -441,6 +452,9 @@ out:
 }
 EXPORT_SYMBOL_GPL(udc_attach_driver);
 
+
+
+//extern void usb_probe_driver(struct usb_gadget_driver *driver);
 int usb_gadget_probe_driver(struct usb_gadget_driver *driver)
 {
 	struct usb_udc		*udc = NULL;
@@ -456,10 +470,16 @@ int usb_gadget_probe_driver(struct usb_gadget_driver *driver)
 			goto found;
 	}
 
-	pr_debug("couldn't find an available UDC\n");
+	printk("couldn't find an available UDC\n");
 	mutex_unlock(&udc_lock);
 	return -ENODEV;
 found:
+#ifdef CONFIG_USB_MSB250X
+	if( NULL != ms_udc_probe_usb_driver)
+	{
+		ms_udc_probe_usb_driver(driver);
+	}
+#endif	
 	ret = udc_bind_to_driver(udc, driver);
 	mutex_unlock(&udc_lock);
 	return ret;

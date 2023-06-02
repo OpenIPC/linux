@@ -1,0 +1,101 @@
+/*
+ * Copyright (c) 2014 MundoReader S.L.
+ * Author: Matthias Brugger <matthias.bgg@gmail.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+ /*
+ * Memory Layout
+ * 0x20000000-0x24000000 64M Kernel
+ * 0x24000000-0x24800000 8M  system
+ * 0x24800000-0x24900000 1M  data
+ * 0x24900000-0x25000000 7M  temp0
+ * 0x25000000-0x28000000 48M temp1
+ */
+/dts-v1/;
+#include "infinity3-fpga.dtsi"
+
+/ {
+    model = "INFINITY3 FPGA";
+    compatible = "mstar,infinity3";
+
+    memory {
+        reg = <0x20000000 0x05000000>;
+    };
+
+    chosen {
+        bootargs = "console=ttyS0,38400n8r androidboot.console=ttyS0 root=/dev/ram rootwait";
+        linux,initrd-start = <0x23000000>;
+        linux,initrd-end =   <0x23040000>;
+    };
+
+    sysp:rammtd@0 {
+        compatible = "mtd-ram";
+        reg= <0x27000000 0x00400000>;
+        bank-width = <1>;
+        linux,mtd-name = "SYSTEM";
+    };
+
+    /* Size of this partition must be identical to the size of data.jffs2 due to JFFS2 limitation */
+    datap:rammtd@1 {
+        compatible = "mtd-ram";
+        reg= <0x27400000 0x00100000>;
+        bank-width = <1>;
+        linux,mtd-name = "DATA";
+        erase-size = <0x10000>;
+    };
+
+    extp:rammtd@2 {
+        compatible = "mtd-ram";
+        reg= <0x27600000 0x00300000>;
+        bank-width = <1>;
+        linux,mtd-name = "EXT";
+        erase-size = <0x10000>;
+    };
+
+    temp0:rammtd@3 {
+        compatible = "mtd-ram";
+        reg= <0x27900000 0x00700000>;
+        bank-width = <1>;
+        linux,mtd-name = "temp0";
+    };
+
+    temp1:rammtd@4 {
+        compatible = "mtd-ram";
+        reg= <0x25000000 0x01000000>;
+        bank-width = <1>;
+        linux,mtd-name = "temp1";
+    };
+
+    temp2:rammtd@5 {
+        compatible = "mtd-ram";
+        reg= <0x26000000 0x01000000>;
+        bank-width = <1>;
+        linux,mtd-name = "temp2";
+    };
+
+/*!!IMPORTANT!! The reserved memory must be 1MB aligned*/
+    reserved-memory {
+        #address-cells = <1>;
+        #size-cells = <1>;
+        ranges;
+
+        cma0 {
+            compatible = "shared-dma-pool";
+            reusable;
+            size = <0x02000000>;
+            alignment = <0x1000>;
+            linux,cma-default;
+        };
+    };
+
+};

@@ -33,6 +33,7 @@
 #include "cache-tauros3.h"
 #include "cache-aurora-l2.h"
 
+
 struct l2c_init_data {
 	const char *type;
 	unsigned way_size_0;
@@ -53,6 +54,7 @@ static u32 l2x0_size;
 static unsigned long sync_reg_offset = L2X0_CACHE_SYNC;
 
 struct l2x0_regs l2x0_saved_regs;
+
 
 /*
  * Common code for all cache controllers.
@@ -225,6 +227,12 @@ static void l2c_save(void __iomem *base)
 static void __l2c210_cache_sync(void __iomem *base)
 {
 	writel_relaxed(0, base + sync_reg_offset);
+#ifdef CONFIG_MS_L2X0_PATCH
+	if(outer_cache.flush_MIU_pipe)
+	{
+		outer_cache.flush_MIU_pipe();
+	}
+#endif
 }
 
 static void __l2c210_op_pa_range(void __iomem *reg, unsigned long start,
@@ -618,6 +626,13 @@ static void __init l2c310_save(void __iomem *base)
 static void l2c310_resume(void)
 {
 	void __iomem *base = l2x0_base;
+
+#if defined(CONFIG_MS_L2X0_PATCH)
+	if(outer_cache.flush_MIU_pipe)
+	{
+		outer_cache.flush_MIU_pipe();
+	}
+#endif
 
 	if (!(readl_relaxed(base + L2X0_CTRL) & L2X0_CTRL_EN)) {
 		unsigned revision;

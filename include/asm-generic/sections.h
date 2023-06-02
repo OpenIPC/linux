@@ -27,6 +27,9 @@
  */
 extern char _text[], _stext[], _etext[];
 extern char _data[], _sdata[], _edata[];
+#ifdef CONFIG_MS_ARMV7_XIP
+extern char _edata_loc[];
+#endif
 extern char __bss_start[], __bss_stop[];
 extern char __init_begin[], __init_end[];
 extern char _sinittext[], _einittext[];

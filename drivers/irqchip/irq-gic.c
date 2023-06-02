@@ -93,6 +93,8 @@ struct irq_chip gic_arch_extn = {
 	.irq_set_wake	= NULL,
 };
 
+EXPORT_SYMBOL(gic_arch_extn);
+
 #ifndef MAX_GIC_NR
 #define MAX_GIC_NR	1
 #endif
@@ -192,9 +194,13 @@ static int gic_set_type(struct irq_data *d, unsigned int type)
 	/* Interrupt configuration for SGIs can't be changed */
 	if (gicirq < 16)
 		return -EINVAL;
-
+#if !(defined(CONFIG_ARCH_INFINITY) || defined(CONFIG_ARCH_INFINITY3))
 	if (type != IRQ_TYPE_LEVEL_HIGH && type != IRQ_TYPE_EDGE_RISING)
 		return -EINVAL;
+#else
+    if (gicirq < 64 && type != IRQ_TYPE_LEVEL_HIGH)
+        return -EINVAL;
+#endif
 
 	raw_spin_lock(&irq_controller_lock);
 
@@ -346,9 +352,10 @@ static u8 gic_get_cpumask(struct gic_chip_data *gic)
 			break;
 	}
 
+#if !(defined(CONFIG_ARCH_INFINITY) || defined(CONFIG_ARCH_INFINITY3))
 	if (!mask)
 		pr_crit("GIC CPU mask not found - kernel will fail to boot.\n");
-
+#endif
 	return mask;
 }
 
@@ -1040,6 +1047,7 @@ gic_of_init(struct device_node *node, struct device_node *parent)
 	gic_cnt++;
 	return 0;
 }
+
 IRQCHIP_DECLARE(gic_400, "arm,gic-400", gic_of_init);
 IRQCHIP_DECLARE(cortex_a15_gic, "arm,cortex-a15-gic", gic_of_init);
 IRQCHIP_DECLARE(cortex_a9_gic, "arm,cortex-a9-gic", gic_of_init);

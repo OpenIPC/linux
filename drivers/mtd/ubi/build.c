@@ -887,7 +887,11 @@ int ubi_attach_mtd_dev(struct mtd_info *mtd, int ubi_num,
 		if (ubi && mtd->index == ubi->mtd->index) {
 			ubi_err("mtd%d is already attached to ubi%d",
 				mtd->index, i);
+#if defined(CONFIG_MS_NAND) || defined(CONFIG_MS_NAND_MODULE) || defined(CONFIG_MS_SPINAND) || defined(CONFIG_MS_SPINAND_MODULE)
+			return ubi->ubi_num;
+#else
 			return -EEXIST;
+#endif
 		}
 	}
 

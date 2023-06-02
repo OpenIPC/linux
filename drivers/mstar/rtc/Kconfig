@@ -1,0 +1,5 @@
+config MS_RTC
+    select RTC_CLASS
+	tristate "RTC driver"
+	help
+

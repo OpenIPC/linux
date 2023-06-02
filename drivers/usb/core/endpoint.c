@@ -15,6 +15,14 @@
 #include <linux/usb.h>
 #include "usb.h"
 
+
+#include <mstar/mpatch_macro.h>
+
+#if (MP_USB_MSTAR==1)
+#include <linux/usb/hcd.h>
+#include "../host/ehci-mstar.h"
+#endif
+
 struct ep_device {
 	struct usb_endpoint_descriptor *desc;
 	struct usb_device *udev;
@@ -172,12 +180,23 @@ struct device_type usb_ep_device_type = {
 	.release = ep_device_release,
 };
 
+/* improve performace 20120405 */
+#if (MP_USB_MSTAR==1) && defined(ENABLE_12US_EOF1)
+extern void hcd_writeb(struct usb_hcd *, u8, size_t);
+extern u8 hcd_readb(struct usb_hcd *, size_t);
+#endif
+
 int usb_create_ep_devs(struct device *parent,
 			struct usb_host_endpoint *endpoint,
 			struct usb_device *udev)
 {
 	struct ep_device *ep_dev;
 	int retval;
+
+/* improve performace 20120405 */
+#if (MP_USB_MSTAR==1) && defined(ENABLE_12US_EOF1)
+	struct usb_hcd *hcd = bus_to_hcd(udev->bus);
+#endif
 
 	ep_dev = kzalloc(sizeof(*ep_dev), GFP_KERNEL);
 	if (!ep_dev) {
@@ -196,7 +215,17 @@ int usb_create_ep_devs(struct device *parent,
 	if (retval)
 		goto error_register;
 
+/* improve performace 20120405 */
+#if (MP_USB_MSTAR==1) && defined(ENABLE_12US_EOF1)
+	if((hcd->ehc_base != 0) && (udev->speed == USB_SPEED_HIGH) && (usb_endpoint_type(ep_dev->desc) == USB_ENDPOINT_XFER_ISOC))
+	{
+		/* set EOF1 24us to avoid babble for ISOC transfer */
+		hcd_writeb(hcd, hcd_readb(hcd, 0x34) | (BIT3|BIT2), 0x34);
+	}
+#endif
+#if (MP_USB_MSTAR==0)
 	device_enable_async_suspend(&ep_dev->dev);
+#endif
 	endpoint->ep_dev = ep_dev;
 	return retval;
 

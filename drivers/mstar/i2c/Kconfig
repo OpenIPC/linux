@@ -1,0 +1,19 @@
+config MS_I2C
+    tristate "Mstar I2C driver"
+    help
+        MStar I2C driver function
+        
+config MS_I2C_CEDRIC
+    tristate "I2C driver support for Cedric"
+    depends on MS_I2C    
+    depends on ARCH_CEDRIC 		
+
+config MS_I2C_INFINITY
+    tristate "I2C driver support for iNfinity"
+    depends on MS_I2C        
+    depends on ARCH_INFINITY    	
+
+config MS_I2C_INFINITY3
+    tristate "I2C driver support for iNfinity3"
+    depends on MS_I2C
+    depends on ARCH_INFINITY3

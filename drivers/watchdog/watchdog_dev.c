@@ -473,8 +473,9 @@ static int watchdog_release(struct inode *inode, struct file *file)
 		err = 0;
 	else if (test_and_clear_bit(WDOG_ALLOW_RELEASE, &wdd->status) ||
 		 !(wdd->info->options & WDIOF_MAGICCLOSE))
-		err = watchdog_stop(wdd);
-
+    {
+//        err = watchdog_stop(wdd);
+	}
 	/* If the watchdog was not stopped, send a keepalive ping */
 	if (err < 0) {
 		mutex_lock(&wdd->lock);

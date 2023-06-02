@@ -1,0 +1,15 @@
+menuconfig MS_SOUND
+	tristate "Audio driver"
+	select SOUND
+	select SND
+	select SND_SOC
+	select SND_PCM
+	help
+	  Say Y or M if you want to add support for codecs attached to
+	  the iNfinity3e Bach Aduio driver.
+
+
+config MS_SOUND_INFINITY3
+    tristate "Audio support for iNfinity3e"
+    depends on MS_SOUND
+    depends on ARCH_INFINITY3

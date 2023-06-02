@@ -1534,9 +1534,11 @@ int clk_set_rate(struct clk *clk, unsigned long rate)
 	/* prevent racing with updates to the clock topology */
 	clk_prepare_lock();
 
+#ifndef CONFIG_ARCH_MSTAR
 	/* bail early if nothing to do */
 	if (rate == clk_get_rate(clk))
 		goto out;
+#endif
 
 	if ((clk->flags & CLK_SET_RATE_GATE) && clk->prepare_count) {
 		ret = -EBUSY;
@@ -1680,8 +1682,10 @@ int clk_set_parent(struct clk *clk, struct clk *parent)
 	/* prevent racing with updates to the clock topology */
 	clk_prepare_lock();
 
+#ifndef CONFIG_ARCH_MSTAR
 	if (clk->parent == parent)
 		goto out;
+#endif
 
 	/* check that we are allowed to re-parent if the clock is in use */
 	if ((clk->flags & CLK_SET_PARENT_GATE) && clk->prepare_count) {

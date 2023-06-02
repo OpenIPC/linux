@@ -1,0 +1,32 @@
+config MS_ISP
+    boolean "ISP driver"
+    default y
+    help
+    Enable support for ISP Driver
+    
+config MS_ISP_CEDRIC
+    tristate "ISP support for Cedric"
+    depends on MS_ISP
+    depends on ARCH_CEDRIC
+    help
+    To compile this driver as a module, choose M here: the
+    module will be called drv_isp hal_isp.
+    
+    
+config MS_ISP_INFINITY
+    tristate "ISP support for iNfinity"
+    depends on MS_ISP
+    depends on ARCH_INFINITY
+    default y
+    help
+    To compile this driver as a module, choose M here: the
+    module will be called drv_isp hal_isp.
+    
+config MS_ISP_INFINITY3
+    tristate "ISP support for iNfinity3"
+    depends on MS_ISP
+    depends on ARCH_INFINITY3
+    default y
+    help
+    To compile this driver as a module, choose M here: the
+    module will be called drv_isp hal_isp.

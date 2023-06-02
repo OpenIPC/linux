@@ -1,0 +1,19 @@
+config MS_CRYPTO
+	tristate "Support for the iNfinity AES engine"
+	select CRYPTO_AES
+	select CRYPTO_ECB
+	select CRYPTO_CBC
+	select CRYPTO_SHA256
+	select CRYPTO_CTR
+	select CRYPTO_ALGAPI
+	help
+	  Say 'Y' here to use the iNfinity AES
+	  engine for the CryptoAPI AES algorithm.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called infinity-aes.
+
+#config MS_CRYPTO_INFINITY
+#    tristate "CRYPTO driver support for iNfinity"
+#    depends on MS_CRYPTO
+#    depends on ARCH_INFINITY

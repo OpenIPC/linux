@@ -21,6 +21,8 @@
  * 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+
+#include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/types.h>
 #include <linux/mutex.h>
@@ -29,6 +31,10 @@
 #include <linux/usb/gadget.h>
 #include <linux/usb/otg.h>
 #include <linux/usb/otg-fsm.h>
+
+MODULE_DESCRIPTION("usb-otg-fsm");
+MODULE_LICENSE("GPL");
+MODULE_VERSION("1.0");
 
 /* Change USB protocol when there is a protocol change */
 static int otg_set_protocol(struct otg_fsm *fsm, int protocol)

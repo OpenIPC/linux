@@ -1,0 +1,12 @@
+config MS_USB_CEDRIC
+    tristate "USB support for Cedric"
+    depends on ARCH_CEDRIC    		
+
+    
+config MS_USB_CHICAGO
+    tristate "USB support for Chicago"
+    depends on ARCH_CHICAGO
+
+config MS_USB_INFINITY
+    tristate "USB support for INFINITY"
+    depends on ARCH_INFINITY

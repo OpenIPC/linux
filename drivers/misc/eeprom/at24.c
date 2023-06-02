@@ -665,7 +665,7 @@ static int at24_remove(struct i2c_client *client)
 
 static struct i2c_driver at24_driver = {
 	.driver = {
-		.name = "at24",
+		.name = "24c512",
 		.owner = THIS_MODULE,
 	},
 	.probe = at24_probe,

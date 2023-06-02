@@ -16,16 +16,33 @@
 #include <linux/usb.h>
 #include <linux/usb/hcd.h>
 
+#include <mstar/mpatch_macro.h>
+
+#if (MP_USB_MSTAR==1) 
+#include "../host/ehci-mstar.h"
+#endif
 
 /*
  * DMA-Coherent Buffers
  */
 
 /* FIXME tune these based on pool statistics ... */
+#if (MP_USB_MSTAR==1) && (_USB_128_ALIGMENT)
+static size_t pool_max [HCD_BUFFER_POOLS] = {
+	/* platforms without dma-friendly caches might need to
+	 * prevent cacheline sharing...
+	 */
+	128, //Jonas: for 128 cache line alignemnt
+	256,
+	512,
+	PAGE_SIZE / 2
+	/* bigger --> allocate pages */
+};
+#else
 static size_t pool_max[HCD_BUFFER_POOLS] = {
 	32, 128, 512, 2048,
 };
-
+#endif
 void __init usb_init_pool_max(void)
 {
 	/*

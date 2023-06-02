@@ -1,0 +1,7 @@
+config MS_NAND
+	tristate "NAND driver"
+	depends on MTD_NAND
+	default n
+	help
+    		To enable MSTAR UNFD NAND driver.
+

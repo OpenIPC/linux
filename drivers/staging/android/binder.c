@@ -141,23 +141,11 @@ module_param_call(stop_on_user_error, binder_set_stop_on_user_error,
 			binder_stop_on_user_error = 2; \
 	} while (0)
 
-enum binder_stat_types {
-	BINDER_STAT_PROC,
-	BINDER_STAT_THREAD,
-	BINDER_STAT_NODE,
-	BINDER_STAT_REF,
-	BINDER_STAT_DEATH,
-	BINDER_STAT_TRANSACTION,
-	BINDER_STAT_TRANSACTION_COMPLETE,
-	BINDER_STAT_COUNT
-};
 
-struct binder_stats {
-	int br[_IOC_NR(BR_FAILED_REPLY) + 1];
-	int bc[_IOC_NR(BC_DEAD_BINDER_DONE) + 1];
-	int obj_created[BINDER_STAT_COUNT];
-	int obj_deleted[BINDER_STAT_COUNT];
-};
+
+int task_get_unused_fd_flags(struct binder_proc *proc, int flags);
+void task_fd_install(struct binder_proc *proc, unsigned int fd, struct file *file);
+extern long task_close_fd(struct binder_proc *proc, unsigned int fd);
 
 static struct binder_stats binder_stats;
 
@@ -287,41 +275,7 @@ enum binder_deferred_state {
 	BINDER_DEFERRED_RELEASE      = 0x04,
 };
 
-struct binder_proc {
-	struct hlist_node proc_node;
-	struct rb_root threads;
-	struct rb_root nodes;
-	struct rb_root refs_by_desc;
-	struct rb_root refs_by_node;
-	int pid;
-	struct vm_area_struct *vma;
-	struct mm_struct *vma_vm_mm;
-	struct task_struct *tsk;
-	struct files_struct *files;
-	struct hlist_node deferred_work_node;
-	int deferred_work;
-	void *buffer;
-	ptrdiff_t user_buffer_offset;
 
-	struct list_head buffers;
-	struct rb_root free_buffers;
-	struct rb_root allocated_buffers;
-	size_t free_async_space;
-
-	struct page **pages;
-	size_t buffer_size;
-	uint32_t buffer_free;
-	struct list_head todo;
-	wait_queue_head_t wait;
-	struct binder_stats stats;
-	struct list_head delivered_death;
-	int max_threads;
-	int requested_threads;
-	int requested_threads_started;
-	int ready_threads;
-	long default_priority;
-	struct dentry *debugfs_entry;
-};
 
 enum {
 	BINDER_LOOPER_STATE_REGISTERED  = 0x01,
@@ -369,54 +323,57 @@ struct binder_transaction {
 static void
 binder_defer_work(struct binder_proc *proc, enum binder_deferred_state defer);
 
-static int task_get_unused_fd_flags(struct binder_proc *proc, int flags)
-{
-	struct files_struct *files = proc->files;
-	unsigned long rlim_cur;
-	unsigned long irqs;
 
-	if (files == NULL)
-		return -ESRCH;
+//
+//static int task_get_unused_fd_flags(struct binder_proc *proc, int flags)
+//{
+//	struct files_struct *files = proc->files;
+//	unsigned long rlim_cur;
+//	unsigned long irqs;
+//
+//	if (files == NULL)
+//		return -ESRCH;
+//
+//	if (!lock_task_sighand(proc->tsk, &irqs))
+//		return -EMFILE;
+//
+//	rlim_cur = task_rlimit(proc->tsk, RLIMIT_NOFILE);
+//	unlock_task_sighand(proc->tsk, &irqs);
+//
+//	return __alloc_fd(files, 0, rlim_cur, flags);
+//}
+//
+///*
+// * copied from fd_install
+// */
+//static void task_fd_install(
+//	struct binder_proc *proc, unsigned int fd, struct file *file)
+//{
+//	if (proc->files)
+//		__fd_install(proc->files, fd, file);
+//}
+//
+///*
+// * copied from sys_close
+// */
+//static long task_close_fd(struct binder_proc *proc, unsigned int fd)
+//{
+//	int retval;
+//
+//	if (proc->files == NULL)
+//		return -ESRCH;
+//
+//	retval = __close_fd(proc->files, fd);
+//	/* can't restart close syscall because file table entry was cleared */
+//	if (unlikely(retval == -ERESTARTSYS ||
+//		     retval == -ERESTARTNOINTR ||
+//		     retval == -ERESTARTNOHAND ||
+//		     retval == -ERESTART_RESTARTBLOCK))
+//		retval = -EINTR;
+//
+//	return retval;
+//}
 
-	if (!lock_task_sighand(proc->tsk, &irqs))
-		return -EMFILE;
-
-	rlim_cur = task_rlimit(proc->tsk, RLIMIT_NOFILE);
-	unlock_task_sighand(proc->tsk, &irqs);
-
-	return __alloc_fd(files, 0, rlim_cur, flags);
-}
-
-/*
- * copied from fd_install
- */
-static void task_fd_install(
-	struct binder_proc *proc, unsigned int fd, struct file *file)
-{
-	if (proc->files)
-		__fd_install(proc->files, fd, file);
-}
-
-/*
- * copied from sys_close
- */
-static long task_close_fd(struct binder_proc *proc, unsigned int fd)
-{
-	int retval;
-
-	if (proc->files == NULL)
-		return -ESRCH;
-
-	retval = __close_fd(proc->files, fd);
-	/* can't restart close syscall because file table entry was cleared */
-	if (unlikely(retval == -ERESTARTSYS ||
-		     retval == -ERESTARTNOINTR ||
-		     retval == -ERESTARTNOHAND ||
-		     retval == -ERESTART_RESTARTBLOCK))
-		retval = -EINTR;
-
-	return retval;
-}
 
 static inline void binder_lock(const char *tag)
 {

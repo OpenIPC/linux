@@ -604,7 +604,11 @@ usb_ep_align_maybe(struct usb_gadget *g, struct usb_ep *ep, size_t len)
  */
 static inline int gadget_is_dualspeed(struct usb_gadget *g)
 {
+#if defined(CONFIG_USB_GADGET_MSB250X)
+	return g->max_speed = USB_SPEED_HIGH;
+#else
 	return g->max_speed >= USB_SPEED_HIGH;
+#endif
 }
 
 /**

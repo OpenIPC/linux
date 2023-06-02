@@ -15,6 +15,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
+#include <mstar/mpatch_macro.h>
 
 /* this file is part of ehci-hcd.c */
 
@@ -52,6 +53,10 @@ static struct ehci_qtd *ehci_qtd_alloc (struct ehci_hcd *ehci, gfp_t flags)
 	dma_addr_t		dma;
 
 	qtd = dma_pool_alloc (ehci->qtd_pool, flags, &dma);
+/* tony.yu map between PHY addr & BUS addr */
+#if (MP_USB_MSTAR==1) && defined(BUS_PA_PATCH)
+	dma = BUS2PA(dma);
+#endif	
 	if (qtd != NULL) {
 		ehci_qtd_init(ehci, qtd, dma);
 	}
@@ -60,6 +65,10 @@ static struct ehci_qtd *ehci_qtd_alloc (struct ehci_hcd *ehci, gfp_t flags)
 
 static inline void ehci_qtd_free (struct ehci_hcd *ehci, struct ehci_qtd *qtd)
 {
+/* tony.yu map between PHY addr & BUS addr */
+#if (MP_USB_MSTAR==1) && defined(BUS_PA_PATCH)
+	qtd->qtd_dma = PA2BUS(qtd->qtd_dma);
+#endif
 	dma_pool_free (ehci->qtd_pool, qtd, qtd->qtd_dma);
 }
 
@@ -73,6 +82,10 @@ static void qh_destroy(struct ehci_hcd *ehci, struct ehci_qh *qh)
 	}
 	if (qh->dummy)
 		ehci_qtd_free (ehci, qh->dummy);
+/* tony.yu map between PHY addr & BUS addr */
+#if (MP_USB_MSTAR==1) && defined(BUS_PA_PATCH)
+	qh->qh_dma = PA2BUS(qh->qh_dma);
+#endif	
 	dma_pool_free(ehci->qh_pool, qh->hw, qh->qh_dma);
 	kfree(qh);
 }
@@ -87,6 +100,10 @@ static struct ehci_qh *ehci_qh_alloc (struct ehci_hcd *ehci, gfp_t flags)
 		goto done;
 	qh->hw = (struct ehci_qh_hw *)
 		dma_pool_alloc(ehci->qh_pool, flags, &dma);
+/* tony.yu map between PHY addr & BUS addr */
+#if (MP_USB_MSTAR==1) && defined(BUS_PA_PATCH)
+	dma = BUS2PA(dma);
+#endif	
 	if (!qh->hw)
 		goto fail;
 	memset(qh->hw, 0, sizeof *qh->hw);
@@ -104,6 +121,10 @@ static struct ehci_qh *ehci_qh_alloc (struct ehci_hcd *ehci, gfp_t flags)
 done:
 	return qh;
 fail1:
+/* tony.yu map between PHY addr & BUS addr */
+#if (MP_USB_MSTAR==1) && defined(BUS_PA_PATCH)
+	qh->qh_dma = PA2BUS(qh->qh_dma);
+#endif	
 	dma_pool_free(ehci->qh_pool, qh->hw, qh->qh_dma);
 fail:
 	kfree(qh);
@@ -145,7 +166,12 @@ static void ehci_mem_cleanup (struct ehci_hcd *ehci)
 		dma_pool_destroy (ehci->sitd_pool);
 	ehci->sitd_pool = NULL;
 
+/* tony.yu map between PHY addr & BUS addr */
+#if (MP_USB_MSTAR==1) && defined(BUS_PA_PATCH)
 	if (ehci->periodic)
+		ehci->periodic_dma = PA2BUS(ehci->periodic_dma);
+#endif
+	if (ehci->periodic)		
 		dma_free_coherent (ehci_to_hcd(ehci)->self.controller,
 			ehci->periodic_size * sizeof (u32),
 			ehci->periodic, ehci->periodic_dma);
@@ -165,7 +191,11 @@ static int ehci_mem_init (struct ehci_hcd *ehci, gfp_t flags)
 	ehci->qtd_pool = dma_pool_create ("ehci_qtd",
 			ehci_to_hcd(ehci)->self.controller,
 			sizeof (struct ehci_qtd),
+#if (MP_USB_MSTAR==1) && (_USB_128_ALIGMENT)
+			128	/* byte alignment (for hw parts) */,
+#else			
 			32 /* byte alignment (for hw parts) */,
+#endif			
 			4096 /* can't cross 4K */);
 	if (!ehci->qtd_pool) {
 		goto fail;
@@ -175,7 +205,11 @@ static int ehci_mem_init (struct ehci_hcd *ehci, gfp_t flags)
 	ehci->qh_pool = dma_pool_create ("ehci_qh",
 			ehci_to_hcd(ehci)->self.controller,
 			sizeof(struct ehci_qh_hw),
+#if (MP_USB_MSTAR==1) && (_USB_128_ALIGMENT)
+			128	/* byte alignment (for hw parts) */,
+#else			
 			32 /* byte alignment (for hw parts) */,
+#endif			
 			4096 /* can't cross 4K */);
 	if (!ehci->qh_pool) {
 		goto fail;
@@ -189,7 +223,11 @@ static int ehci_mem_init (struct ehci_hcd *ehci, gfp_t flags)
 	ehci->itd_pool = dma_pool_create ("ehci_itd",
 			ehci_to_hcd(ehci)->self.controller,
 			sizeof (struct ehci_itd),
+#if (MP_USB_MSTAR==1) && (_USB_128_ALIGMENT)
+			128	/* byte alignment (for hw parts) */,
+#else			
 			32 /* byte alignment (for hw parts) */,
+#endif			
 			4096 /* can't cross 4K */);
 	if (!ehci->itd_pool) {
 		goto fail;
@@ -199,7 +237,11 @@ static int ehci_mem_init (struct ehci_hcd *ehci, gfp_t flags)
 	ehci->sitd_pool = dma_pool_create ("ehci_sitd",
 			ehci_to_hcd(ehci)->self.controller,
 			sizeof (struct ehci_sitd),
+#if (MP_USB_MSTAR==1) && (_USB_128_ALIGMENT)
+			128	/* byte alignment (for hw parts) */,
+#else			
 			32 /* byte alignment (for hw parts) */,
+#endif			
 			4096 /* can't cross 4K */);
 	if (!ehci->sitd_pool) {
 		goto fail;
@@ -210,6 +252,10 @@ static int ehci_mem_init (struct ehci_hcd *ehci, gfp_t flags)
 		dma_alloc_coherent (ehci_to_hcd(ehci)->self.controller,
 			ehci->periodic_size * sizeof(__le32),
 			&ehci->periodic_dma, flags);
+/* tony.yu map between PHY addr & BUS addr */
+#if (MP_USB_MSTAR==1) && defined(BUS_PA_PATCH)
+	ehci->periodic_dma = BUS2PA(ehci->periodic_dma);
+#endif	
 	if (ehci->periodic == NULL) {
 		goto fail;
 	}

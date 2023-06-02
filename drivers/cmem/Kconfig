@@ -1,0 +1,7 @@
+config TI_CMEM
+    config TI_CMEM
+    tristate "TI Contiguous Memory Manager"
+    select TI_CMEM_STUB
+	help
+
+    

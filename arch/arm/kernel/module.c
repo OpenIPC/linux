@@ -34,7 +34,11 @@
  * recompiling the whole kernel when CONFIG_XIP_KERNEL is turned on/off.
  */
 #undef MODULES_VADDR
-#define MODULES_VADDR	(((unsigned long)_etext + ~PMD_MASK) & PMD_MASK)
+#ifdef CONFIG_MS_ARMV7_XIP
+#define MODULES_VADDR   (((unsigned long)_edata_loc + ~PMD_MASK) & PMD_MASK)
+#else
+#define MODULES_VADDR   (((unsigned long)_etext + ~PMD_MASK) & PMD_MASK)
+#endif
 #endif
 
 #ifdef CONFIG_MMU

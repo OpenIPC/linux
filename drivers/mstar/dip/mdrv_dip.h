@@ -1,0 +1,67 @@
+
+
+#include <asm/io.h>
+#include "ms_platform.h"
+#include <linux/pfn.h>
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/errno.h>
+#include <linux/string.h>
+#include <linux/mm.h>
+#include <linux/slab.h>
+#include <linux/vmalloc.h>          /* seems do not need this */
+#include <linux/delay.h>
+#include <linux/interrupt.h>
+#include <linux/platform_device.h>
+#include <linux/io.h>
+#include <asm/uaccess.h>            /* access_ok(), and VERIFY_WRITE/READ */
+#include <linux/ioctl.h>            /* for _IO() macro */
+#include <linux/fb.h>
+#include <linux/init.h>
+#include <linux/proc_fs.h>
+#include <linux/time.h>             /* do_gettimeofday() */
+
+
+#define DIP_DEBUG 0
+
+#if (DIP_DEBUG==1)
+#define DIPDBG(fmt, arg...) printk(KERN_INFO fmt, ##arg)
+#else
+#define DIPDBG(fmt, arg...)
+#endif
+
+
+//#define  DIPIO_DEBUG_ENABLE
+
+#define DIP_DBG_LV_IOCTL            0
+#define DIP_DBG_LV_0                1
+
+
+#ifdef   DIPIO_DEBUG_ENABLE
+#define DIPIO_ASSERT(_con)   \
+    do {\
+        if (!(_con)) {\
+            printk(KERN_CRIT "BUG at %s:%d assert(%s)\n",\
+                    __FILE__, __LINE__, #_con);\
+            BUG();\
+        }\
+    } while (0)
+
+#define DIP_DBG(dbglv, _fmt, _args...)             \
+    do                                             \
+    if(dbglv)                                      \
+    {                                              \
+        printk(KERN_WARNING _fmt, ## _args);       \
+    }while(0)
+
+#else
+#define     DIPIO_ASSERT(arg)
+#define     DIP_DBG(dbglv, _fmt, _args...)
+
+#endif
+
+
+
+
+
+

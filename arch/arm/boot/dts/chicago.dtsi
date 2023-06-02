@@ -1,0 +1,104 @@
+/*
+ * Copyright (c) 2014 MundoReader S.L.
+ * Author: Matthias Brugger <matthias.bgg@gmail.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+#include <../../../drivers/mstar/include/chicago/irqs.h>
+#include "skeleton.dtsi"
+
+/ {
+    compatible = "mstar,chicago";
+   
+    cpus {
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        cpu@0 {
+            device_type = "cpu";
+            compatible = "arm,cortex-a7";
+            reg = <0x0>;
+            clock-frequency = <800000000>;
+        };
+
+    };
+    
+    xtal: oscillator {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <26000000>;
+	};
+	
+  	aliases {
+    	console = &uart0;
+    	serial0 = &uart0;
+    	//sdmmc0  = &sd0;
+	}; 
+    
+
+   
+    soc {
+    
+        compatible = "simple-bus";   
+        interrupt-parent = <&intrctl>;
+        #address-cells = <1>;
+        #size-cells = <1>;
+        ranges = <0 0 0xFFFFFFFF>;
+        
+        intrctl: interrupt-controller@0 {
+            compatible = "mstar,intrctl-chicago";
+            #interrupt-cells = <1>;
+            interrupt-controller;
+        };
+        /*
+        cpuclk: clk@1F221800 {
+			compatible = "mstar,chicago-cpuclk";
+			#clock-cells = <1>;
+			reg = <0x1F221800 0x100>;
+			clocks = <&xtal>;
+		};*/
+
+        
+       arch_timer {
+           compatible = "arm,cortex-a7-timer", "arm,armv7-timer";
+           /*interrupts = <GIC_PPI 13 (GIC_CPU_MASK_SIMPLE(2) | IRQ_TYPE_LEVEL_LOW)>,
+                        <GIC_PPI 14 (GIC_CPU_MASK_SIMPLE(2) | IRQ_TYPE_LEVEL_LOW)>,
+                        <GIC_PPI 11 (GIC_CPU_MASK_SIMPLE(2) | IRQ_TYPE_LEVEL_LOW)>,
+                        <GIC_PPI 10 (GIC_CPU_MASK_SIMPLE(2) | IRQ_TYPE_LEVEL_LOW)>;*/
+           clock-frequency = <400000000>;  /* arch_timer must use clock-frequency*/
+       };
+        
+        timer_clocksource: timer@1F007780 {
+			compatible = "mstar,piu-clocksource";
+			reg = <0x1F007780 0x40>;
+			clocks = <&xtal>;
+		};
+        
+
+        timer_clockevent: timer@1F0069C0 {
+			compatible = "mstar,piu-clockevent";
+			reg = <0x1F0069C0 0x40>;
+			interrupts=<INT_FIQ_TIMER0>;
+			clocks = <&xtal>;
+		};
+
+		uart0: uart@1F007600 {
+			compatible = "mstar,uart";
+			reg = <0x1F007600 0x100>;
+			interrupts= <INT_IRQ_UART0>;
+            clocks = <&xtal>;
+            tolerance = <2>;
+			status = "ok";
+		};
+   
+    };
+};

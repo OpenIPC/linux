@@ -214,6 +214,9 @@ config FIQ
 config NEED_RET_TO_USER
 	bool
 
+config MULTIPLATFORM_XIP_CAPABLE
+    bool
+
 config ARCH_MTD_XIP
 	bool
 
@@ -310,7 +313,7 @@ config ARCH_MULTIPLATFORM
 	depends on MMU
 	select ARCH_WANT_OPTIONAL_GPIOLIB
 	select ARM_HAS_SG_CHAIN
-	select ARM_PATCH_PHYS_VIRT
+	select ARM_PATCH_PHYS_VIRT if !XIP_KERNEL
 	select AUTO_ZRELADDR
 	select CLKSRC_OF
 	select COMMON_CLK
@@ -897,6 +900,8 @@ source "arch/arm/mach-ks8695/Kconfig"
 source "arch/arm/mach-meson/Kconfig"
 
 source "arch/arm/mach-msm/Kconfig"
+
+source "arch/arm/mach-mstar/Kconfig"
 
 source "arch/arm/mach-moxart/Kconfig"
 
@@ -1712,6 +1717,7 @@ config FORCE_MAX_ZONEORDER
 	range 11 64 if ARCH_SHMOBILE_LEGACY
 	default "12" if SOC_AM33XX
 	default "9" if SA1111 || ARCH_EFM32
+	default "10" if ARCH_MSTAR
 	default "11"
 	help
 	  The kernel memory allocator divides physically contiguous memory
@@ -1973,7 +1979,7 @@ endchoice
 
 config XIP_KERNEL
 	bool "Kernel Execute-In-Place from ROM"
-	depends on !ARM_LPAE && !ARCH_MULTIPLATFORM
+	depends on (!ARM_LPAE && !ARCH_MULTIPLATFORM) || (!ARM_LPAE && MULTIPLATFORM_XIP_CAPABLE)
 	help
 	  Execute-In-Place allows the kernel to run from non-volatile storage
 	  directly addressable by the CPU, such as NOR flash. This saves RAM
@@ -2159,7 +2165,7 @@ config ARCH_HIBERNATION_POSSIBLE
 	bool
 	depends on MMU
 	default y if ARCH_SUSPEND_POSSIBLE
-
+	
 endmenu
 
 source "net/Kconfig"

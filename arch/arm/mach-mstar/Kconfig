@@ -1,0 +1,78 @@
+menuconfig ARCH_MSTAR
+    bool "MStar ARM SoCs"
+
+if ARCH_MSTAR
+config ARCH_CEDRIC
+    bool "SoC Cedric (ARCH_MULTI_V7)" if ARCH_MULTI_V7
+    select SOC_BUS
+    select ARM_GIC        
+    select VFP
+    select VFPv3
+
+    help
+      Support for Cedric SoC
+
+config CEDRIC_MASTER0_ONLY_PATCH
+    bool
+    depends on ARCH_CEDRIC
+    default y
+
+config ARCH_CHICAGO
+    bool "SoC Chicago (ARCH_MULTI_V7)" if ARCH_MULTI_V7
+    select SOC_BUS       
+    select VFP
+    select VFPv3
+
+    help
+      Support for Chicago SoC
+
+config ARCH_INFINITY
+    bool "SoC iNfinity (ARCH_MULTI_V7)" if ARCH_MULTI_V7
+    select SOC_BUS
+    select ARM_GIC        
+    select VFP
+    select VFPv3
+    select WIRELESS_EXT if WIRELESS && NET
+    select WEXT_PRIV    if WIRELESS && NET
+    select MULTIPLATFORM_XIP_CAPABLE
+    help
+      Support for iNfinity SoC
+
+config ARCH_INFINITY3
+    bool "SoC iNfinity3 (ARCH_MULTI_V7)" if ARCH_MULTI_V7
+    select SOC_BUS
+    select ARM_GIC        
+    select VFP
+    select VFPv3
+    select WIRELESS_EXT if WIRELESS && NET
+    select WEXT_PRIV    if WIRELESS && NET
+    help
+      Support for iNfinity3 SoC
+
+comment "Options"
+config MS_BUILTIN_DTB
+    string "Builtin DTB"
+    default ""
+
+config MS_L2X0_PATCH
+    bool "L2X0 patch"
+    depends on CACHE_L2X0
+    default y
+
+config MS_KERNEL_TYPE
+	string 
+	default ""
+	
+config MS_ARMV7_XIP
+    bool
+    default y
+	depends on XIP_KERNEL
+
+config MSTAR_CHIP_NAME
+    string
+    default "infinity3" if ARCH_INFINITY3
+    default "infinity" if ARCH_INFINITY
+    default "chicago" if ARCH_CHICAGO
+
+endif
+

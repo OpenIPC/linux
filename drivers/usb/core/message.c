@@ -18,6 +18,11 @@
 
 #include "usb.h"
 
+#include <mstar/mpatch_macro.h>
+#if (MP_USB_MSTAR==1)
+#include "../host/ehci-mstar.h"
+#endif
+
 static void cancel_async_set_config(struct usb_device *udev);
 
 struct api_context {
@@ -33,6 +38,9 @@ static void usb_api_blocking_completion(struct urb *urb)
 	complete(&ctx->done);
 }
 
+#if (MP_USB_MSTAR==1)
+extern unsigned char hcd_readb(struct usb_hcd *, size_t);
+#endif
 
 /*
  * Starts urb and waits for completion or timeout. Note that this call
@@ -54,6 +62,62 @@ static int usb_start_wait_urb(struct urb *urb, int timeout, int *actual_length)
 		goto out;
 
 	expire = timeout ? msecs_to_jiffies(timeout) : MAX_SCHEDULE_TIMEOUT;
+#if (MP_USB_MSTAR == 1)
+	{
+		#define TIMEOUT_SETP_MS 1000
+		unsigned long timeout_step = msecs_to_jiffies(TIMEOUT_SETP_MS);
+		unsigned long total_time = 0;
+		struct usb_hcd *hcd = bus_to_hcd(urb->dev->bus);
+
+		/* Wait and check CSC by step.
+ 		 * Do't keep waiting, if device has gone.
+ 		 */
+		do {
+			if (!wait_for_completion_timeout(&ctx.done, timeout_step)) {
+				total_time += timeout_step;
+				if(total_time >= expire)
+				{
+					usb_kill_urb(urb);
+					retval = (ctx.status == -ENOENT ? -ETIMEDOUT : ctx.status);
+		
+					dev_dbg(&urb->dev->dev,
+						"%s timed out on ep%d%s len=%u/%u\n",
+						current->comm,
+						usb_endpoint_num(&urb->ep->desc),
+						usb_urb_dir_in(urb) ? "in" : "out",
+						urb->actual_length,
+						urb->transfer_buffer_length);
+					break;
+				}
+
+				if(((urb->dev->parent != NULL) && (urb->dev->parent->parent == NULL) // device on roothub
+					&& (hcd->ehc_base != 0) && (hcd_readb(hcd, 0x30) & BIT1)) // CSC happen on ehci port
+#if defined(CONFIG_SUSPEND) && (MP_USB_STR_PATCH==1)				
+					|| is_suspending())
+#else
+					)
+#endif					
+				{
+					usb_kill_urb(urb);
+					retval = (ctx.status == -ENOENT ? -ETIMEDOUT : ctx.status);
+					dev_dbg(&urb->dev->dev,
+						"[USB] %s CSC happen on ep%d%s len=%u/%u\n",
+						current->comm,
+						usb_endpoint_num(&urb->ep->desc),
+						usb_urb_dir_in(urb) ? "in" : "out",
+						urb->actual_length,
+						urb->transfer_buffer_length);
+					break;
+				}
+			}
+			else
+			{
+				retval = ctx.status;
+				break;
+			}
+		} while (true);
+	}
+#else	
 	if (!wait_for_completion_timeout(&ctx.done, expire)) {
 		usb_kill_urb(urb);
 		retval = (ctx.status == -ENOENT ? -ETIMEDOUT : ctx.status);
@@ -67,6 +131,7 @@ static int usb_start_wait_urb(struct urb *urb, int timeout, int *actual_length)
 			urb->transfer_buffer_length);
 	} else
 		retval = ctx.status;
+#endif	
 out:
 	if (actual_length)
 		*actual_length = urb->actual_length;
@@ -144,6 +209,26 @@ int usb_control_msg(struct usb_device *dev, unsigned int pipe, __u8 request,
 	dr->wValue = cpu_to_le16(value);
 	dr->wIndex = cpu_to_le16(index);
 	dr->wLength = cpu_to_le16(size);
+
+#if (MP_USB_MSTAR==1) //20121029, for logitech webcam, it needs 1.2 secs but timeout value is 1 sec
+		if ( (le16_to_cpu(dev->descriptor.idVendor) == 0x046d) &&
+			(le16_to_cpu(dev->descriptor.idProduct) == 0x0825) &&
+			usb_pipeout(pipe) )
+		{
+			timeout = USB_CTRL_SET_TIMEOUT + 5000;
+		}
+#endif
+	
+#if (MP_USB_MSTAR==1)
+		//20150107, patch for MTK WiFi dongle's problem.
+		if ( ((dev->descriptor.idProduct==0x7603 && dev->descriptor.idVendor ==0x0e8d) ||
+			(dev->descriptor.idProduct==0x7601 && dev->descriptor.idVendor ==0x148f))
+			&& (dr->wLength==0x100) )
+		{
+			printk("[USB] change control transfer length from 256 to 255...\n");
+			dr->wLength=0xff;
+		}
+#endif
 
 	ret = usb_internal_control_msg(dev, pipe, dr, data, size, timeout);
 
@@ -561,8 +646,25 @@ void usb_sg_wait(struct usb_sg_request *io)
 	 * So could the submit loop above ... but it's easier to
 	 * solve neither problem than to solve both!
 	 */
+#if defined(CONFIG_SUSPEND) && (MP_USB_STR_PATCH==1)		
+	while(1)
+	{
+		long timeleft = wait_for_completion_interruptible_timeout(
+				&io->complete, 0.1*HZ);
+		if(timeleft <= 0)
+		{
+			if(is_suspending())
+			{
+				usb_sg_cancel(io);
+				break;
+			}
+		}
+		else
+			break;
+	}
+#else	 
 	wait_for_completion(&io->complete);
-
+#endif
 	sg_clean(io);
 }
 EXPORT_SYMBOL_GPL(usb_sg_wait);
@@ -827,6 +929,11 @@ int usb_string(struct usb_device *dev, int index, char *buf, size_t size)
 	if (err < 0)
 		goto errout;
 
+#if (MP_USB_MSTAR==1) && _USB_FRIENDLY_CUSTOMER_PATCH
+	// timeout occur when requested string descriptor with Yepp-U4.(MP3)	
+	if(le16_to_cpu(dev->descriptor.idVendor) == 0x04E8 && le16_to_cpu(dev->descriptor.idProduct) == 0x5092)
+		goto errout;
+#endif
 	err = usb_string_sub(dev, dev->string_langid, index, tbuf);
 	if (err < 0)
 		goto errout;
@@ -1891,7 +1998,9 @@ free_interfaces:
 			"adding %s (config #%d, interface %d)\n",
 			dev_name(&intf->dev), configuration,
 			intf->cur_altsetting->desc.bInterfaceNumber);
+#if (MP_USB_MSTAR==0)		
 		device_enable_async_suspend(&intf->dev);
+#endif
 		ret = device_add(&intf->dev);
 		if (ret != 0) {
 			dev_err(&dev->dev, "device_add(%s) --> %d\n",

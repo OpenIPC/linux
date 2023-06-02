@@ -106,6 +106,13 @@ static struct resource mem_res[] = {
 #define kernel_code mem_res[0]
 #define kernel_data mem_res[1]
 
+
+#ifdef CONFIG_BUILTIN_DTB
+extern char __dtb_start[];
+extern char __dtb_end[];
+void *builtin_dtb_start = __dtb_start;
+#endif
+
 void __init early_print(const char *str, ...)
 {
 	char buf[256];
@@ -304,16 +311,42 @@ static void __init setup_processor(void)
 
 static void __init setup_machine_fdt(phys_addr_t dt_phys)
 {
+	void *dt_address=NULL;
 	if (!dt_phys || !early_init_dt_scan(phys_to_virt(dt_phys))) {
+#ifdef CONFIG_BUILTIN_DTB
+        early_print("\n"
+                    "Warning: invalid external DTB at physical address 0x%p (virtual address 0x%p)\n"
+                    "Try to load builtin DTB...\n",
+                    dt_phys, phys_to_virt(dt_phys));
+
+        if(early_init_dt_scan(builtin_dtb_start))
+        {
+            dt_address=builtin_dtb_start;
+            goto DT_SCAN_PASS;
+        }
+        else
+        {
+            early_print("\n"
+                        "Error: both external DTB & builtin DTB are invalid.\n"
+                        "\nSystem hang now...881...\n");
+        }
+#else
 		early_print("\n"
 			"Error: invalid device tree blob at physical address 0x%p (virtual address 0x%p)\n"
 			"The dtb must be 8-byte aligned and passed in the first 512MB of memory\n"
 			"\nPlease check your bootloader.\n",
 			dt_phys, phys_to_virt(dt_phys));
-
+#endif
 		while (true)
 			cpu_relax();
 	}
+    else
+    {
+        dt_address=phys_to_virt(dt_phys);
+    }
+
+DT_SCAN_PASS:
+    early_print("DTB loaded success at virtual address 0x%p\n\n",dt_address);
 }
 
 /*

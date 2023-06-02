@@ -58,6 +58,8 @@
 #include "transport.h"
 #include "protocol.h"
 
+#include <mstar/mpatch_macro.h>
+
 /* Vendor IDs for companies that seem to include the READ CAPACITY bug
  * in all their devices
  */
@@ -65,6 +67,10 @@
 #define VENDOR_ID_NIKON		0x04b0
 #define VENDOR_ID_PENTAX	0x0a17
 #define VENDOR_ID_MOTOROLA	0x22b8
+
+#if (MP_USB_MSTAR==1)
+#define HOTPLUG	//tony
+#endif
 
 /***********************************************************************
  * Host functions 
@@ -102,7 +108,14 @@ static int slave_alloc (struct scsi_device *sdev)
 	 * values can be as large as 2048.  To make that work properly
 	 * will require changes to the block layer.
 	 */
+#if defined(HOTPLUG) && (MP_USB_MSTAR==1)	//tony if disconnect, update will cause kernel panic
+	if(us->pusb_dev->devnum1==us->pusb_dev->devnum){
+		//printk("us->pusb_dev->devnum1:%x\n",us->pusb_dev->devnum1);
+		blk_queue_update_dma_alignment(sdev->request_queue, (512 - 1));
+	}
+#else	 
 	blk_queue_update_dma_alignment(sdev->request_queue, (512 - 1));
+#endif
 
 	/* Tell the SCSI layer if we know there is more than one LUN */
 	if (us->protocol == USB_PR_BULK && us->max_lun > 0)
@@ -361,6 +374,16 @@ static int command_abort(struct scsi_cmnd *srb)
 	struct us_data *us = host_to_us(srb->device->host);
 
 	usb_stor_dbg(us, "%s called\n", __func__);
+
+#if (MP_USB_MSTAR==1)
+	// Jonas: add patch for WD USB3.0-HDD 
+	// This device will not response the first TUR command; then fail to response read10 cmd.
+	// It can be fixed by adding more time to let device be ready to response the next SCSI cmd. 
+	if (srb->cmnd[0] == TEST_UNIT_READY)
+	{
+		msleep(1000);
+	}
+#endif
 
 	/* us->srb together with the TIMED_OUT, RESETTING, and ABORTING
 	 * bits are protected by the host lock. */

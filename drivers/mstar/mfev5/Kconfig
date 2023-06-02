@@ -1,0 +1,3 @@
+config MS_MFEV5
+	tristate "MFE-v5 driver"
+	help

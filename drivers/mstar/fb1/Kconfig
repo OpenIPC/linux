@@ -1,0 +1,14 @@
+config MS_FB
+	tristate "FB driver"
+	default y
+	select FB
+	select FB_SYS_FILLRECT
+    select FB_SYS_COPYAREA
+    select FB_SYS_IMAGEBLIT
+    select FB_SYS_FOPS
+	help
+
+config MS_FB1_INFINITY3
+    tristate "FB driver (GOP1) support for iNfinity3"
+    depends on MS_FB
+    depends on ARCH_INFINITY3

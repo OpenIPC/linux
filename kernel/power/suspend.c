@@ -31,8 +31,27 @@
 
 #include "power.h"
 
+#include <mstar/mpatch_macro.h>
+
 const char *pm_labels[] = { "mem", "standby", "freeze", NULL };
 const char *pm_states[PM_SUSPEND_MAX];
+
+#if (MP_USB_STR_PATCH==1)
+typedef enum
+{
+    E_STR_NONE,
+    E_STR_IN_SUSPEND,
+    E_STR_IN_RESUME
+}EN_STR_STATUS;
+
+static EN_STR_STATUS enStrStatus=E_STR_NONE;
+
+bool is_suspending(void)
+{
+    return (enStrStatus == E_STR_IN_SUSPEND);
+}
+EXPORT_SYMBOL_GPL(is_suspending);
+#endif
 
 static const struct platform_suspend_ops *suspend_ops;
 static const struct platform_freeze_ops *freeze_ops;
@@ -329,6 +348,9 @@ static int suspend_enter(suspend_state_t state, bool *wakeup)
 				state, false);
 			events_check_enabled = false;
 		}
+#if (MP_USB_STR_PATCH==1)
+		enStrStatus=E_STR_IN_RESUME;
+#endif		
 		syscore_resume();
 	}
 
@@ -441,8 +463,25 @@ static int enter_state(suspend_state_t state)
 	if (!mutex_trylock(&pm_mutex))
 		return -EBUSY;
 
+#if (MP_USB_STR_PATCH==1)
+	enStrStatus=E_STR_IN_SUSPEND;
+#endif
+
 	if (state == PM_SUSPEND_FREEZE)
 		freeze_begin();
+
+#ifdef CONFIG_MS_XPM
+{
+extern int xpm_prepare_suspend(void);
+
+	if(xpm_prepare_suspend())
+	{
+		error=-EBUSY;
+		goto Unlock;
+	}
+}
+#endif
+
 
 	trace_suspend_resume(TPS("sync_filesystems"), 0, true);
 	printk(KERN_INFO "PM: Syncing filesystems ... ");
@@ -467,7 +506,17 @@ static int enter_state(suspend_state_t state)
  Finish:
 	pr_debug("PM: Finishing wakeup.\n");
 	suspend_finish();
+#ifdef CONFIG_MS_XPM
+{
+extern int xpm_notify_wakeup(void);
+	xpm_notify_wakeup();
+}
+#endif
+
  Unlock:
+ #if (MP_USB_STR_PATCH==1)
+	enStrStatus=E_STR_NONE;
+ #endif 	
 	mutex_unlock(&pm_mutex);
 	return error;
 }

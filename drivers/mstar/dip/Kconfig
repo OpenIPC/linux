@@ -1,0 +1,3 @@
+config MS_DIP
+	tristate "DIP driver"
+	help

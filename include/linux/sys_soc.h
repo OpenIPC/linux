@@ -13,6 +13,9 @@ struct soc_device_attribute {
 	const char *family;
 	const char *revision;
 	const char *soc_id;
+#ifdef CONFIG_ARCH_MSTAR
+	const char *api_version;
+#endif
 };
 
 /**

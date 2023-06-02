@@ -33,6 +33,7 @@
 
 #include <asm/ioctls.h>
 
+#define LOGGER_BUFFER_SIZE		64//k
 /**
  * struct logger_log - represents a specific log, such as 'main' or 'radio'
  * @buffer:	The actual ring buffer
@@ -425,7 +426,7 @@ static ssize_t logger_write_iter(struct kiocb *iocb, struct iov_iter *from)
 	count = min_t(size_t, iocb->ki_nbytes, LOGGER_ENTRY_MAX_PAYLOAD);
 
 	now = current_kernel_time();
-
+	memset(&header, 0, sizeof(header));/*Make coverity happy*/
 	header.pid = current->tgid;
 	header.tid = current->pid;
 	header.sec = now.tv_sec;
@@ -765,21 +766,23 @@ static int __init logger_init(void)
 {
 	int ret;
 
-	ret = create_log(LOGGER_LOG_MAIN, 256*1024);
+	ret = create_log(LOGGER_LOG_MAIN, LOGGER_BUFFER_SIZE*4*1024);
+	if (unlikely(ret))
+		goto out;
+#ifndef CONFIG_ARCH_MSTAR
+
+	ret = create_log(LOGGER_LOG_EVENTS, LOGGER_BUFFER_SIZE*1024);
+	if (unlikely(ret))
+		goto out;
+	ret = create_log(LOGGER_LOG_RADIO, LOGGER_BUFFER_SIZE*1024);
 	if (unlikely(ret))
 		goto out;
 
-	ret = create_log(LOGGER_LOG_EVENTS, 256*1024);
-	if (unlikely(ret))
-		goto out;
 
-	ret = create_log(LOGGER_LOG_RADIO, 256*1024);
+	ret = create_log(LOGGER_LOG_SYSTEM, LOGGER_BUFFER_SIZE*1024);
 	if (unlikely(ret))
 		goto out;
-
-	ret = create_log(LOGGER_LOG_SYSTEM, 256*1024);
-	if (unlikely(ret))
-		goto out;
+#endif
 
 out:
 	return ret;

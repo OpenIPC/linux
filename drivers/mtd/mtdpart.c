@@ -784,3 +784,6 @@ uint64_t mtd_get_device_size(const struct mtd_info *mtd)
 	return PART(mtd)->master->size;
 }
 EXPORT_SYMBOL_GPL(mtd_get_device_size);
+
+EXPORT_SYMBOL(add_mtd_partitions);
+EXPORT_SYMBOL(parse_mtd_partitions);

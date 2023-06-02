@@ -120,7 +120,7 @@ config DRM_RADEON
 
 source "drivers/gpu/drm/radeon/Kconfig"
 
-source "drivers/gpu/drm/nouveau/Kconfig"
+#source "drivers/gpu/drm/nouveau/Kconfig"
 
 config DRM_I810
 	tristate "Intel I810"

@@ -57,6 +57,11 @@ libs-y		:= arch/arm64/lib/ $(libs-y)
 libs-y		+= $(LIBGCC)
 libs-$(CONFIG_EFI_STUB) += drivers/firmware/efi/libstub/
 
+ifneq ($(CONFIG_BUILTIN_DTB),"")
+core-$(CONFIG_OF) += arch/arm64/boot/dts/
+endif
+
+
 # Default target when executing plain make
 KBUILD_IMAGE	:= Image.gz
 KBUILD_DTBS	:= dtbs

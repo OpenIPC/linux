@@ -49,6 +49,13 @@
 
 #include "usb.h"
 
+#include <mstar/mpatch_macro.h>
+
+#if (MP_USB_MSTAR==1)
+#include "../host/ehci-mstar.h"
+
+extern u8 hcd_readb(struct usb_hcd *, size_t);
+#endif
 
 /*-------------------------------------------------------------------------*/
 
@@ -1354,6 +1361,11 @@ static void hcd_free_coherent(struct usb_bus *bus, dma_addr_t *dma_handle,
 
 void usb_hcd_unmap_urb_setup_for_dma(struct usb_hcd *hcd, struct urb *urb)
 {
+	/* tony.yu map between PHY addr & BUS addr */
+#if (MP_USB_MSTAR==1) && defined(BUS_PA_PATCH)
+	if (urb->transfer_flags & (URB_SETUP_MAP_SINGLE | URB_SETUP_MAP_LOCAL))
+		urb->setup_dma = PA2BUS(urb->setup_dma);
+#endif
 	if (urb->transfer_flags & URB_SETUP_MAP_SINGLE)
 		dma_unmap_single(hcd->self.controller,
 				urb->setup_dma,
@@ -1386,6 +1398,23 @@ void usb_hcd_unmap_urb_for_dma(struct usb_hcd *hcd, struct urb *urb)
 	usb_hcd_unmap_urb_setup_for_dma(hcd, urb);
 
 	dir = usb_urb_dir_in(urb) ? DMA_FROM_DEVICE : DMA_TO_DEVICE;
+/* tony.yu map between PHY addr & BUS addr */
+#if (MP_USB_MSTAR==1) && defined(BUS_PA_PATCH)
+	if (urb->transfer_flags & URB_DMA_MAP_SG)
+	{
+		struct scatterlist *s;
+		int i;
+
+		for_each_sg(urb->sg, s, urb->num_sgs, i) {
+			s->dma_address = PA2BUS(s->dma_address);
+		}
+	}
+	else if (urb->transfer_flags & (URB_DMA_MAP_PAGE | URB_DMA_MAP_SINGLE | URB_MAP_LOCAL))
+		urb->transfer_dma = PA2BUS(urb->transfer_dma);
+	else if (urb->transfer_buffer_length != 0
+		&& (urb->transfer_flags & URB_NO_TRANSFER_DMA_MAP))
+		urb->transfer_dma = PA2BUS(urb->transfer_dma);
+#endif	
 	if (urb->transfer_flags & URB_DMA_MAP_SG)
 		dma_unmap_sg(hcd->self.controller,
 				urb->sg,
@@ -1444,6 +1473,10 @@ int usb_hcd_map_urb_for_dma(struct usb_hcd *hcd, struct urb *urb,
 					urb->setup_packet,
 					sizeof(struct usb_ctrlrequest),
 					DMA_TO_DEVICE);
+/* tony.yu map between PHY addr & BUS addr */
+#if (MP_USB_MSTAR==1) && defined(BUS_PA_PATCH) 
+			urb->setup_dma = BUS2PA(urb->setup_dma);
+#endif			
 			if (dma_mapping_error(hcd->self.controller,
 						urb->setup_dma))
 				return -EAGAIN;
@@ -1455,6 +1488,10 @@ int usb_hcd_map_urb_for_dma(struct usb_hcd *hcd, struct urb *urb,
 					(void **)&urb->setup_packet,
 					sizeof(struct usb_ctrlrequest),
 					DMA_TO_DEVICE);
+/* tony.yu map between PHY addr & BUS addr */
+#if (MP_USB_MSTAR==1) && defined(BUS_PA_PATCH)
+			urb->setup_dma = BUS2PA(urb->setup_dma);
+#endif			
 			if (ret)
 				return ret;
 			urb->transfer_flags |= URB_SETUP_MAP_LOCAL;
@@ -1479,6 +1516,18 @@ int usb_hcd_map_urb_for_dma(struct usb_hcd *hcd, struct urb *urb,
 						urb->sg,
 						urb->num_sgs,
 						dir);
+/* tony.yu map between PHY addr & BUS addr */
+#if (MP_USB_MSTAR==1) && defined(BUS_PA_PATCH)
+				if (n > 0)
+				{
+					struct scatterlist *s;
+					int i;
+
+					for_each_sg(urb->sg, s, urb->num_sgs, i) {
+						s->dma_address = BUS2PA(s->dma_address);
+					}
+				}
+#endif				
 				if (n <= 0)
 					ret = -EAGAIN;
 				else
@@ -1495,6 +1544,10 @@ int usb_hcd_map_urb_for_dma(struct usb_hcd *hcd, struct urb *urb,
 						sg->offset,
 						urb->transfer_buffer_length,
 						dir);
+/* tony.yu map between PHY addr & BUS addr */
+#if (MP_USB_MSTAR==1) && defined(BUS_PA_PATCH)
+				urb->transfer_dma = BUS2PA(urb->transfer_dma);
+#endif				
 				if (dma_mapping_error(hcd->self.controller,
 						urb->transfer_dma))
 					ret = -EAGAIN;
@@ -1509,6 +1562,10 @@ int usb_hcd_map_urb_for_dma(struct usb_hcd *hcd, struct urb *urb,
 						urb->transfer_buffer,
 						urb->transfer_buffer_length,
 						dir);
+/* tony.yu map between PHY addr & BUS addr */
+#if (MP_USB_MSTAR==1) && defined(BUS_PA_PATCH)
+				urb->transfer_dma = BUS2PA(urb->transfer_dma);
+#endif				
 				if (dma_mapping_error(hcd->self.controller,
 						urb->transfer_dma))
 					ret = -EAGAIN;
@@ -1522,6 +1579,10 @@ int usb_hcd_map_urb_for_dma(struct usb_hcd *hcd, struct urb *urb,
 					&urb->transfer_buffer,
 					urb->transfer_buffer_length,
 					dir);
+/* tony.yu map between PHY addr & BUS addr */
+#if (MP_USB_MSTAR==1) && defined(BUS_PA_PATCH)
+			urb->transfer_dma = BUS2PA(urb->transfer_dma);
+#endif			
 			if (ret == 0)
 				urb->transfer_flags |= URB_MAP_LOCAL;
 		}
@@ -1529,6 +1590,14 @@ int usb_hcd_map_urb_for_dma(struct usb_hcd *hcd, struct urb *urb,
 				URB_SETUP_MAP_LOCAL)))
 			usb_hcd_unmap_urb_for_dma(hcd, urb);
 	}
+/* tony.yu map between PHY addr & BUS addr */
+#if (MP_USB_MSTAR==1) && defined(BUS_PA_PATCH)
+	else if (urb->transfer_buffer_length != 0
+		&& (urb->transfer_flags & URB_NO_TRANSFER_DMA_MAP))
+	{
+		urb->transfer_dma = BUS2PA(urb->transfer_dma);
+	}
+#endif	
 	return ret;
 }
 EXPORT_SYMBOL_GPL(usb_hcd_map_urb_for_dma);
@@ -1831,6 +1900,10 @@ rescan:
 	}
 	spin_unlock_irq(&hcd_urb_list_lock);
 
+#if (MP_USB_MSTAR==1)
+	msleep(10); //120316, modify for wifi load/unload repeatly
+#endif
+
 	/* Wait until the endpoint queue is completely empty */
 	while (!list_empty (&ep->urb_list)) {
 		spin_lock_irq(&hcd_urb_list_lock);
@@ -1845,6 +1918,15 @@ rescan:
 		spin_unlock_irq(&hcd_urb_list_lock);
 
 		if (urb) {
+#if (MP_USB_MSTAR==1)
+			unsigned long flags;
+
+			spin_lock_irqsave(&hcd_root_hub_lock, flags);
+			usb_hcd_unlink_urb_from_ep(hcd,urb);	//Add by Austin for ISO hotlpug
+			spin_unlock_irqrestore(&hcd_root_hub_lock, flags);
+			if(atomic_read(&urb->use_count) > 0)
+				atomic_dec(&urb->use_count);
+#endif			
 			usb_kill_urb (urb);
 			usb_put_urb (urb);
 		}
@@ -2746,6 +2828,14 @@ int usb_add_hcd(struct usb_hcd *hcd,
 	if (device_can_wakeup(hcd->self.controller)
 			&& device_can_wakeup(&hcd->self.root_hub->dev))
 		dev_dbg(hcd->self.controller, "supports USB remote wakeup\n");
+
+#if (MP_USB_MSTAR==1)
+	if (hcd->ehc_base!=0)
+	{
+		if (hcd_readb(hcd, 0x30) & BIT0) //120210, for port reset when connected at startup
+			hcd->startup_conn_flag = 1;
+	}
+#endif
 
 	/* initialize tasklets */
 	init_giveback_urb_bh(&hcd->high_prio_bh);

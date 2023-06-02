@@ -319,7 +319,11 @@ __v7_pj4b_setup:
 #endif /* CONFIG_CPU_PJ4B */
 
 __v7_setup:
-	adr	r12, __v7_setup_stack		@ the local stack
+#ifdef CONFIG_XIP_KERNEL
+    ldr r12, =PLAT_PHYS_OFFSET      @ the local stack
+#else
+    adr r12, __v7_setup_stack       @ the local stack
+#endif
 	stmia	r12, {r0-r5, r7, r9, r11, lr}
 	bl      v7_flush_dcache_louis
 	ldmia	r12, {r0-r5, r7, r9, r11, lr}

@@ -398,7 +398,7 @@ LINUXINCLUDE    := \
 
 KBUILD_CPPFLAGS := -D__KERNEL__
 
-KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
+KBUILD_CFLAGS   := -Wno-error -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -fno-strict-aliasing -fno-common \
 		   -Werror-implicit-function-declaration \
 		   -Wno-format-security \
@@ -940,9 +940,51 @@ define filechk_kernel.release
 	echo "$(KERNELVERSION)$$($(CONFIG_SHELL) $(srctree)/scripts/setlocalversion $(srctree))"
 endef
 
+MS_KERNEL_TYPE :=
+ifneq ($(CONFIG_MS_KERNEL_TYPE),"")
+    MS_KERNEL_TYPE=--lib_type $(CONFIG_MS_KERNEL_TYPE)
+endif
+MS_PLATFORM_ID :=
+ifneq ($(CONFIG_ARCH_CEDRIC),)
+MS_PLATFORM_ID := C3
+endif
+ifneq ($(CONFIG_ARCH_INFINITY),)
+MS_PLATFORM_ID := I1
+endif
+ifneq ($(CONFIG_ARCH_INFINITY3),)
+MS_PLATFORM_ID := I3
+endif
+ifneq ($(CONFIG_ARCH_CHICAGO),)
+MS_PLATFORM_ID := C4
+endif
+
+
+COMMITNUMBER := g$(shell git log --format=%h -n 1 2> /dev/null)
+BRANCH_ID := $(shell git rev-parse --abbrev-ref HEAD 2> /dev/null | sed -e 's/\//_/g')
+
+ifeq ($(COMMITNUMBER),g)
+file := gitInformation.txt
+gitLog := $(shell strings ${file})
+gitTemp := $(subst \#, ,$(gitLog))
+COMMITNUMBER := g$(word 1, $(gitTemp))
+BRANCH_ID := g$(word 2, $(gitTemp))
+endif
+
 # Store (new) KERNELRELEASE string in include/config/kernel.release
 include/config/kernel.release: include/config/auto.conf FORCE
 	$(call filechk,kernel.release)
+#	@python scripts/ms_gen_mvxv_h.py drivers/mstar/include/ms_version.h --comp_id KL_LX318 \
+#		--changelist G$$(git describe --match CL* --tags --long | cut -b 12-18 |  awk '{print toupper($$0)}')
+ifeq ($(MS_PLATFORM_ID),)
+	@echo "ERROR!! MS_PLATOFRM_ID is empty!!"; /bin/false
+else
+	@echo '  MVXV'
+	@echo '  changelist ${COMMITNUMBER}'
+	@echo '  BRANCHID   ${BRANCH_ID} '
+	@python scripts/ms_gen_mvxv_h.py drivers/mstar/include/ms_version.h --comp_id KL_LX318 \
+        --changelist $(COMMITNUMBER) --chip_id $(MS_PLATFORM_ID) --branch $(BRANCH_ID) $(MS_KERNEL_TYPE)
+endif
+
 
 
 # Things we need to do before we recursively start building the kernel
@@ -1092,6 +1134,9 @@ all: modules
 # A module can be listed more than once in obj-m resulting in
 # duplicate lines in modules.order files.  Those are removed
 # using awk while concatenating to the final file.
+ifdef CONFIG_XIP_KERNEL
+  MODULE_PACK_OPTIONS += "-x"
+endif
 
 PHONY += modules
 modules: $(vmlinux-dirs) $(if $(KBUILD_BUILTIN),vmlinux) modules.builtin

@@ -19,6 +19,8 @@
 #ifndef __LINUX_EHCI_HCD_H
 #define __LINUX_EHCI_HCD_H
 
+#include <mstar/mpatch_macro.h>
+
 /* definitions used for the EHCI driver */
 
 /*
@@ -110,6 +112,9 @@ enum ehci_hrtimer_event {
 	EHCI_HRTIMER_POLL_DEAD,		/* Wait for dead controller to stop */
 	EHCI_HRTIMER_UNLINK_INTR,	/* Wait for interrupt QH unlink */
 	EHCI_HRTIMER_FREE_ITDS,		/* Wait for unused iTDs and siTDs */
+#if (MP_USB_MSTAR==1)
+	EHCI_HRTIMER_SITD_WATCHDOG,/* Check for missing SITD IRQs */
+#endif	
 	EHCI_HRTIMER_START_UNLINK_INTR, /* Unlink empty interrupt QHs */
 	EHCI_HRTIMER_ASYNC_UNLINKS,	/* Unlink empty async QHs */
 	EHCI_HRTIMER_IAA_WATCHDOG,	/* Handle lost IAA interrupts */
@@ -323,7 +328,11 @@ struct ehci_qtd {
 	struct list_head	qtd_list;		/* sw qtd list */
 	struct urb		*urb;			/* qtd's urb */
 	size_t			length;			/* length of buffer */
+#if (MP_USB_MSTAR==1) && (_USB_128_ALIGMENT)
+} __attribute__ ((aligned (128)));
+#else	
 } __attribute__ ((aligned (32)));
+#endif
 
 /* mask NakCnt+T in qh->hw_alt_next */
 #define QTD_MASK(ehci)	cpu_to_hc32 (ehci, ~0x1f)
@@ -406,7 +415,11 @@ struct ehci_qh_hw {
 	__hc32			hw_token;
 	__hc32			hw_buf [5];
 	__hc32			hw_buf_hi [5];
+#if (MP_USB_MSTAR==1) && (_USB_128_ALIGMENT)
+} __attribute__ ((aligned (128)));
+#else	
 } __attribute__ ((aligned(32)));
+#endif
 
 struct ehci_qh {
 	struct ehci_qh_hw	*hw;		/* Must come first */
@@ -533,8 +546,11 @@ struct ehci_itd {
 	unsigned		frame;		/* where scheduled */
 	unsigned		pg;
 	unsigned		index[8];	/* in urb->iso_frame_desc */
+#if (MP_USB_MSTAR==1) && (_USB_128_ALIGMENT)
+} __attribute__ ((aligned (128)));
+#else	
 } __attribute__ ((aligned (32)));
-
+#endif
 /*-------------------------------------------------------------------------*/
 
 /*
@@ -639,6 +655,29 @@ struct ehci_tt {
 
 /*-------------------------------------------------------------------------*/
 
+#if (MP_USB_MSTAR==1)
+static inline unsigned int ehci_readl(struct ehci_hcd *ehci,
+		__u32 __iomem * regs);
+/* Returns the speed of a device attached to a port on the root hub. */
+static inline unsigned int
+ehci_mstar_port_speed(struct ehci_hcd *ehci)
+{
+	unsigned int bmcs = ehci_readl(ehci, &ehci->regs->bmcs);
+
+	switch ((bmcs >> 9) & 3) {
+		case 0:
+			return 0; // full speed
+		case 1:
+			return USB_PORT_STAT_LOW_SPEED;
+		case 2:
+			return USB_PORT_STAT_HIGH_SPEED;
+		default:
+			printk("[USB] unknow port1 usb device speed\n");
+			return USB_PORT_STAT_HIGH_SPEED;
+	}
+}
+#endif
+
 #ifdef CONFIG_USB_EHCI_ROOT_HUB_TT
 
 /*
@@ -655,6 +694,9 @@ static inline unsigned int
 ehci_port_speed(struct ehci_hcd *ehci, unsigned int portsc)
 {
 	if (ehci_is_TDI(ehci)) {
+#if (MP_USB_MSTAR==1)
+		return ehci_mstar_port_speed(ehci);
+#else		
 		switch ((portsc >> (ehci->has_hostpc ? 25 : 26)) & 3) {
 		case 0:
 			return 0;
@@ -664,6 +706,7 @@ ehci_port_speed(struct ehci_hcd *ehci, unsigned int portsc)
 		default:
 			return USB_PORT_STAT_HIGH_SPEED;
 		}
+#endif		
 	}
 	return USB_PORT_STAT_HIGH_SPEED;
 }
@@ -672,7 +715,12 @@ ehci_port_speed(struct ehci_hcd *ehci, unsigned int portsc)
 
 #define	ehci_is_TDI(e)			(0)
 
+#if (MP_USB_MSTAR==1)
+#error !!! Please select CONFIG_USB_EHCI_ROOT_HUB_TT in memnuconfig USB Driver
+#define	ehci_port_speed(ehci, portsc)	ehci_mstar_port_speed(ehci)
+#else
 #define	ehci_port_speed(ehci, portsc)	USB_PORT_STAT_HIGH_SPEED
+#endif
 #endif
 
 /*-------------------------------------------------------------------------*/
@@ -717,6 +765,30 @@ ehci_port_speed(struct ehci_hcd *ehci, unsigned int portsc)
 #define writel_be(val, addr)	__raw_writel(val, (__force unsigned *)addr)
 #endif
 
+#if (MP_USB_MSTAR==1)
+#include "ehci-mstar.h"
+#endif
+
+#if (MP_USB_MSTAR==1)
+static inline unsigned int ehci_readl(struct ehci_hcd *ehci,
+		__u32 __iomem * regs)
+{
+	unsigned int result;
+	#if _USB_XIU_TIMEOUT_PATCH
+	struct usb_hcd	*hcd = ehci_to_hcd(ehci);
+	unsigned long   flags;
+
+	spin_lock_irqsave(&(hcd->usb_reset_lock), flags);
+	#endif
+	regs = (u32 *)( ((uintptr_t)regs & ~(0xffUL)) + (((uintptr_t)regs & 0xffUL)<<1));
+	result = (readl((void*)regs) & 0xffffU)|((readl((void*)((uintptr_t)regs+4))<<16) & (0xffffU<<16));
+
+	#if _USB_XIU_TIMEOUT_PATCH
+	spin_unlock_irqrestore(&(hcd->usb_reset_lock), flags);
+	#endif
+	return result;
+}
+#else
 static inline unsigned int ehci_readl(const struct ehci_hcd *ehci,
 		__u32 __iomem * regs)
 {
@@ -728,6 +800,7 @@ static inline unsigned int ehci_readl(const struct ehci_hcd *ehci,
 	return readl(regs);
 #endif
 }
+#endif
 
 #ifdef CONFIG_SOC_IMX28
 static inline void imx28_ehci_writel(const unsigned int val,
@@ -741,6 +814,26 @@ static inline void imx28_ehci_writel(const unsigned int val,
 {
 }
 #endif
+
+#if (MP_USB_MSTAR==1)
+static inline void ehci_writel(struct ehci_hcd *ehci,
+		const unsigned int val, __u32 __iomem *regs)
+{
+	#if _USB_XIU_TIMEOUT_PATCH
+	struct usb_hcd	*hcd = ehci_to_hcd(ehci);
+	unsigned long   flags;
+
+	spin_lock_irqsave(&(hcd->usb_reset_lock), flags);
+	#endif
+	regs = (u32 *)(((uintptr_t)regs & ~(0xffUL)) + (((uintptr_t)regs & 0xffUL)<<1));
+	writel(val & 0xffffU,(void*)regs);
+	writel(((val>>16) & 0xffffU),(void*)((uintptr_t)regs+4));
+
+	#if _USB_XIU_TIMEOUT_PATCH
+	spin_unlock_irqrestore(&(hcd->usb_reset_lock), flags);
+	#endif
+}
+#else
 static inline void ehci_writel(const struct ehci_hcd *ehci,
 		const unsigned int val, __u32 __iomem *regs)
 {
@@ -755,6 +848,7 @@ static inline void ehci_writel(const struct ehci_hcd *ehci,
 		writel(val, regs);
 #endif
 }
+#endif
 
 /*
  * On certain ppc-44x SoC there is a HW issue, that could only worked around with
@@ -847,9 +941,12 @@ static inline u32 hc32_to_cpup (const struct ehci_hcd *ehci, const __hc32 *x)
 #define ehci_warn(ehci, fmt, args...) \
 	dev_warn(ehci_to_hcd(ehci)->self.controller , fmt , ## args)
 
-
+#if (MP_USB_MSTAR==1)
+#define STUB_DEBUG_FILES
+#else
 #ifndef CONFIG_DYNAMIC_DEBUG
 #define STUB_DEBUG_FILES
+#endif
 #endif
 
 /*-------------------------------------------------------------------------*/

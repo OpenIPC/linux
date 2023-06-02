@@ -216,7 +216,16 @@ int sdio_reset(struct mmc_host *host)
 		abort = 0x08;
 	else
 		abort |= 0x08;
-
+#ifdef CONFIG_MS_SDMMC
+	// Fixed Issue: One Special SD Card will always status busy at SD ACMD cmd of SD initial flow, but not error return.
+	// Linux initial CMD set contain SD/SD/SDIO command to check which type,
+	// Normally SD will ignore and return no resp from SDIO cmd CMD52,
+	// Although SD don't resp err, but I found this card must reamin a long gap time between first CMD 52 and second CMD52 ?
+	// I really don't know why? After the experiments, 10ms is a safe time to avoid this Special Card inner Issue.
+	// (P.S.) CMD52/CMD52 -> SD CMD0 reset don't help this card really reset the inner error.
+	// This patch is a workaround solution
+	mmc_delay(10);
+#endif
 	ret = mmc_io_rw_direct_host(host, 1, 0, SDIO_CCCR_ABORT, abort, NULL);
 	return ret;
 }

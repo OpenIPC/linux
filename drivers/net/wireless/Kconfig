@@ -216,6 +216,7 @@ config USB_NET_RNDIS_WLAN
 
 source "drivers/net/wireless/rtl818x/Kconfig"
 
+
 config ADM8211
 	tristate "ADMtek ADM8211 support"
 	depends on MAC80211 && PCI

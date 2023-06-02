@@ -1,0 +1,199 @@
+config MS_SDMMC
+	tristate "Mstar SD/MMC Card Interface Support"
+	depends on MMC
+	default n
+  ---help---
+        Enable SD/MMC Driver Support for MStar Product
+
+config MS_SDMMC_SLOTNUMS
+  int "Mstar SD/MMC Total Slot Number"
+	depends on MS_SDMMC
+  default 1
+  range 1 3
+  ---help---
+        How many SDMMC Slots
+
+config MS_SDMMC1_IP
+  int "Mstar IP Select Order of SD/MMC1"
+  depends on MS_SDMMC
+  default 0
+  range 0 2
+  ---help---
+     The IP Select Order of SDMMC1
+
+config MS_SDMMC2_IP
+  int "Mstar IP Select Order of SD/MMC2"
+  depends on MS_SDMMC
+  default 1
+  range 0 2
+  ---help---
+     The IP Select Order of SDMMC2
+
+ config MS_SDMMC3_IP
+  int "Mstar IP Select Order of SD/MMC3"
+  depends on MS_SDMMC
+  default 2
+  range 0 2
+  ---help---
+     The IP Select Order of SDMMC3
+
+config MS_SDMMC1_PAD
+  int "Mstar PAD Select Order of SD/MMC1"
+  depends on MS_SDMMC
+  default 0
+  range 0 2
+  ---help---
+     The PAD Select Order of SDMMC1
+
+config MS_SDMMC2_PAD
+  int "Mstar PAD Select Order of SD/MMC2"
+  depends on MS_SDMMC
+  default 1
+  range 0 2
+  ---help---
+     The PAD Select Order of SDMMC2
+
+config MS_SDMMC3_PAD
+  int "Mstar PAD Select Order of SD/MMC3"
+  depends on MS_SDMMC
+  default 2
+  range 0 2
+  ---help---
+     The PAD Select Order of SDMMC1
+
+
+config MS_SDMMC_REVCDZ
+	bool "Mstar SD/MMC Reverse CDZ Pin"
+	depends on MS_SDMMC
+	default n
+  ---help---
+        For SD Socket Type, Revert the CDZ pin Value for Card Detection
+
+config MS_SDMMC_TCARD
+	bool "Mstar SD/MMC T-Flash Card Using"
+	depends on MS_SDMMC
+	default n
+  ---help---
+        For T-Flash Socket, We don't use WP Pin
+
+config MS_SDMMC_REVWP
+	bool "Mstar SD/MMC Reverse WP Pin"
+	depends on !MS_SDMMC_TCARD && MS_SDMMC
+	default n
+  ---help---
+        For SD Socket Type, Revert the WP pin Value for Write Protection
+
+config MS_SDMMC1_MAXCLK
+    int "Mstar SD/MMC1 Maximum Clock"
+	depends on MS_SDMMC
+    default 32000000
+    range 300000 50000000
+  ---help---
+      The maximun Clock of SDMMC1
+
+config MS_SDMMC1_MAXDLVL
+    int "Mstar SD/MMC1 Maximum DownLevel"
+    depends on MS_SDMMC
+    default 0
+    range 0 5
+    ---help---
+      The maximun Clock Downgrade Level of SDMMC1
+
+config MS_SDMMC1_PASSLVL
+    int "Mstar SD/MMC1 Pass Level"
+    depends on MS_SDMMC
+    default 0
+    range 0 5
+    ---help---
+      The maximun Clock Pass Level of SDMMC1
+
+config MS_SDMMC1_INTCDZ
+	bool "Mstar SD/MMC1 Int CDZ Support"
+	depends on MS_SDMMC
+	default n
+  ---help---
+        For SD1, Whether we need to run hotplug funciton (HW consideration)
+
+config MS_SDMMC1_FAKECDZ
+	bool "Mstar SD/MMC1 Fake CDZ"
+	depends on !MS_SDMMC1_INTCDZ && MS_SDMMC
+	default n
+  ---help---
+        For SD1, Whether we need to assume card detection always true (HW consideration)
+
+
+config MS_SDMMC2_MAXCLK
+    int "Mstar SD/MMC2 Maximum Clock"
+    depends on MS_SDMMC
+    default 32000000
+    range 300000 50000000
+    ---help---
+      The maximun Clock of SDMMC2
+
+config MS_SDMMC2_MAXDLVL
+    int "Mstar SD/MMC2 Maximum DownLevel"
+    depends on MS_SDMMC
+    default 0
+    range 0 5
+    ---help---
+      The maximun Clock Downgrade Level of SDMMC2
+
+config MS_SDMMC2_PASSLVL
+    int "Mstar SD/MMC2 Pass Level"
+    depends on MS_SDMMC
+    default 0
+    range 0 5
+    ---help---
+      The maximun Clock Pass Level of SDMMC2
+
+config MS_SDMMC2_INTCDZ
+	bool "Mstar SD/MMC2 Int CDZ Support"
+	depends on MS_SDMMC
+	default n
+  ---help---
+        For SD2, Whether we need to run hotplug funciton (HW consideration)
+
+config MS_SDMMC2_FAKECDZ
+	bool "Mstar SD/MMC2 Fake CDZ"
+	depends on !MS_SDMMC2_INTCDZ && MS_SDMMC
+	default n
+  ---help---
+        For SD2, Whether we need to assume card detection always true (HW consideration)
+
+config MS_SDMMC3_MAXCLK
+    int "Mstar SD/MMC3 Maximum Clock"
+    depends on MS_SDMMC
+    default 32000000
+    range 300000 50000000
+    ---help---
+      The maximun Clock of SDMMC3
+
+config MS_SDMMC3_MAXDLVL
+    int "Mstar SD/MMC3 Maximum DownLevel"
+    depends on MS_SDMMC
+    default 0
+    range 0 5
+    ---help---
+      The maximun Clock Downgrade Level of SDMMC3
+
+config MS_SDMMC3_PASSLVL
+    int "Mstar SD/MMC3 Pass Level"
+    depends on MS_SDMMC
+    default 0
+    range 0 5
+    ---help---
+      The maximun Clock Pass Level of SDMMC3
+
+config MS_SDMMC3_INTCDZ
+	bool "Mstar SD/MMC3 Int CDZ Support"
+	depends on MS_SDMMC
+	default n
+  ---help---
+        For SD3, Whether we need to run hotplug funciton (HW consideration)
+
+config MS_SDMMC3_FAKECDZ
+	bool "Mstar SD/MMC3 Fake CDZ"
+	depends on !MS_SDMMC3_INTCDZ && MS_SDMMC
+	default n
+  ---help---
+        For SD3, Whether we need to assume card detection always true (HW consideration)

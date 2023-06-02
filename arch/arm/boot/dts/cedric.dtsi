@@ -1,0 +1,260 @@
+/*
+ * Copyright (c) 2014 MundoReader S.L.
+ * Author: Matthias Brugger <matthias.bgg@gmail.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+#include <../../../drivers/mstar/include/cedric/irqs.h>
+#include "skeleton.dtsi"
+
+/ {
+    compatible = "mstar,cedric";
+   
+    cpus {
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        cpu@0 {
+            device_type = "cpu";
+            compatible = "arm,cortex-a9";
+            reg = <0x0>;
+        };
+
+    };
+    
+    xtal: oscillator {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <26000000>;
+	};
+	
+  	aliases {
+    	console = &uart0;
+    	serial0 = &uart0;
+    	sdmmc0  = &sd0;
+    	sdmmc1  = &sd1;
+    	sdmmc2  = &sd2;
+    	iic0    = &i2c0;
+    	iic1    = &i2c1;    	
+	}; 
+    
+
+   
+    soc {
+    
+        compatible = "simple-bus";   
+        interrupt-parent = <&intrctl>;
+        #address-cells = <1>;
+        #size-cells = <1>;
+        ranges = <0 0 0xFFFFFFFF>;
+        
+        intrctl: interrupt-controller@0 {
+            compatible = "mstar,intrctl-cedric";
+            #interrupt-cells = <1>;
+            interrupt-controller;
+        };
+        
+        cpuclk: clk@1F221800 {
+			compatible = "mstar,cedric-cpuclk";
+			#clock-cells = <1>;
+			reg = <0x1F221800 0x100>;
+			clocks = <&xtal>;
+		};
+		
+
+        timer_clocksource: timer@16000200 {
+			compatible = "mstar,arm-gt-clocksource";
+			reg = <0x16000200 0x100>;
+			clocks = <&cpuclk 1>;
+		};
+        
+        
+        timer_clockevent: timer@1F006040 {
+			compatible = "mstar,piu-clockevent";
+			reg = <0x1F006040 0x100>;
+			interrupts=<INT_FIQ_TIMER0>;
+			clocks = <&xtal>;
+		};
+		
+		uart0: uart@1F201300 {
+			compatible = "mstar,uart";
+			reg = <0x1F201300 0x100>;
+			interrupts= <INT_IRQ_UART0>;
+            clocks = <&uart0clk>;
+            tolerance = <2>;
+			status = "ok";
+		};
+		
+		emmc:emmc0{
+            compatible = "mstar,emmc-cedric";
+//            reg = <0x1F201300 0x100>;
+            interrupts=<INT_IRQ_FCIE>;
+        };
+		
+		sd0: sd@0 {
+            compatible = "mstar,sdmmc-cedric";
+//            reg = <0x1F201300 0x100>;
+            interrupts=<INT_IRQ_SDIO2RIU>,<INT_PMU_SD_DETECT0>;
+        };
+        
+        sd1: sd@1 {
+            compatible = "mstar,sdmmc-cedric";
+//           reg = <0x1F201300 0x100>;
+            interrupts=<INT_IRQ_SDIO2_2RIU>,<INT_PMU_SD_DETECT1>;
+        };
+        
+        sd2: sd@2 {
+            compatible = "mstar,sdmmc-cedric";
+//            reg = <0x1F201300 0x100>;
+            interrupts=<INT_IRQ_SDIO1_2RIU>,<INT_PMU_SD_DETECT2>;
+        };
+        
+				sound {
+            compatible = "mstar,bach-audio";
+//					reg = <0x1F000000 0x1000000>;
+            interrupts=<INT_IRQ_AU_SYSTEM>;
+            playback-volume-level=<64>;	//0~76
+            capture-volume-level=<64>;
+            micin-gain-level=<0>;	//0~5
+            linein-gain-level=<1>;//0~6
+            lineout-gain-level=<1>;//0~2
+				};
+
+        mpll_442M: mpll_442M {
+            #clock-cells = <0>;
+            compatible = "fixed-factor-clock";
+            clocks = <&xtal>;
+            clock-mult = <34>;
+            clock-div = <2>;
+        };
+
+        mpll_221M: mpll_221M {
+            #clock-cells = <0>;
+            compatible = "fixed-factor-clock";
+            clocks = <&xtal>;
+            clock-mult = <34>;
+            clock-div = <4>;
+        };
+
+        mpll_176M: mpll_176M {
+            #clock-cells = <0>;
+            compatible = "fixed-factor-clock";
+            clocks = <&xtal>;
+            clock-mult = <34>;
+            clock-div = <5>;
+        };
+
+        mpll_147M: mpll_147M {
+            #clock-cells = <0>;
+            compatible = "fixed-factor-clock";
+            clocks = <&xtal>;
+            clock-mult = <34>;
+            clock-div = <6>;
+        };            
+
+        mpll_126M: mpll_126M {
+            #clock-cells = <0>;
+            compatible = "fixed-factor-clock";
+            clocks = <&xtal>;
+            clock-mult = <34>;
+            clock-div = <7>;
+        };
+
+        mpll_110M: mpll_110M {
+            #clock-cells = <0>;
+            compatible = "fixed-factor-clock";
+            clocks = <&xtal>;
+            clock-mult = <34>;
+            clock-div = <8>;
+        };
+
+        usbpll_480M: usbpll_480M {
+            compatible = "fixed-clock";
+            #clock-cells = <0>;
+            clock-frequency = <480000000>;
+        };
+
+        usbpll_160M: usbpll_160M {
+            #clock-cells = <0>;
+            compatible = "fixed-factor-clock";
+            clocks = <&usbpll_480M>;
+            clock-mult = <1>;
+            clock-div = <3>;
+        };
+
+        uart0clk: uart0clk {
+            #clock-cells = <0>;
+            compatible = "mstar,cedric-uartclk";
+            clocks = <&mpll_176M>, <&usbpll_160M>, <&mpll_147M>, <&mpll_126M>, <&mpll_110M>;
+            reg = <0x1F20164C 0x4>;
+            mux-shift = <10>;
+            mux-width = <3>;
+            gate-shift = <8>;                
+        };
+ 
+		mfe: mfe {
+			compatible = "mstar,mfe";
+			reg = <0x1F206600 0x100>,<0x1F222000 0x200>;
+		};
+
+        isp: isp {
+            compatible = "isp";
+            banks = <0x1F2A0C00>,<0x1F2A0E00>,<0x1F2A1000>,<0x1F2A1200>,<0x1F2A1400 >,<0x1F2A1600 >,<0x1F2A1800 >,<0x1F2A1A00 >;
+            interrupts=<INT_IRQ_ISP>; 
+        };
+        ir:ir0{
+            compatible = "mstar,ir";
+            reg = <0x1F007A00 0x100>;
+            interrupts=<INT_FIQ_IR_IN>,<INT_FIQ_IR_RC>;
+        }; 
+        
+      	clks: clocks{
+        	#address-cells = <1>;
+			#size-cells = <1>;
+        };       
+                
+        i2c0: i2c@0{
+            compatible = "mstar,i2c";
+            reg = <0x1F223000 0x200>,<0x1F203400 0x200>;
+		        #address-cells = <1>;
+		        #size-cells = <0>;            
+            i2c-group = <0>;
+            i2c-speed = <2>;//0~6  
+            
+            24c02@54 {
+            compatible = "mstar,24c02";
+            reg = <0x54>;
+            };
+		    }; 
+		    
+        i2c1: i2c@1{
+            compatible = "mstar,i2c";
+            reg = <0x1F223200 0x200>,<0x1F203c00 0x200>;
+		        #address-cells = <1>;
+		        #size-cells = <0>;             
+            i2c-group = <1>;
+            i2c-speed = <2>;//0~6
+            status = "disable";        
+		    }; 
+		    	     
+        
+        gpio:gpio{
+            compatible = "mstar,gpio";
+            reg = <0x1F207800 0x200>,<0x1F203C00 0x200>;
+            gpio-num = <183>;
+        };      
+        
+    };
+};
+
+
+/include/ "cedric-clks.dtsi"

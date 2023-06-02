@@ -1,0 +1,14 @@
+config MS_SCL
+	bool "SCL driver"
+	help
+    		To enable MSTAR SCL driver.
+
+config MS_SCL_INFINITY
+  bool "support I1 driver"
+	depends on MS_SCL
+	depends on ARCH_INFINITY
+
+config MS_SCL_INFINITY3
+  bool "support I3 driver"
+	depends on MS_SCL
+	depends on ARCH_INFINITY3

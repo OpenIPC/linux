@@ -1725,7 +1725,7 @@ struct cfg80211_disassoc_request {
  * @ht_capa_mask:  The bits of ht_capa which are to be used.
  */
 struct cfg80211_ibss_params {
-	const u8 *ssid;
+	u8 *ssid;
 	const u8 *bssid;
 	struct cfg80211_chan_def chandef;
 	const u8 *ie;
@@ -1780,12 +1780,12 @@ struct cfg80211_ibss_params {
 struct cfg80211_connect_params {
 	struct ieee80211_channel *channel;
 	struct ieee80211_channel *channel_hint;
-	const u8 *bssid;
+	u8 *bssid;
 	const u8 *bssid_hint;
-	const u8 *ssid;
+	u8 *ssid;
 	size_t ssid_len;
 	enum nl80211_auth_type auth_type;
-	const u8 *ie;
+	u8 *ie;
 	size_t ie_len;
 	bool privacy;
 	enum nl80211_mfp mfp;
@@ -1840,7 +1840,7 @@ struct cfg80211_bitrate_mask {
  */
 struct cfg80211_pmksa {
 	const u8 *bssid;
-	const u8 *pmkid;
+	u8 *pmkid;
 };
 
 /**
@@ -2376,9 +2376,9 @@ struct cfg80211_ops {
 			       const u8 *mac,
 			       struct station_parameters *params);
 	int	(*del_station)(struct wiphy *wiphy, struct net_device *dev,
-			       const u8 *mac);
+			        u8 *mac);
 	int	(*change_station)(struct wiphy *wiphy, struct net_device *dev,
-				  const u8 *mac,
+				   u8 *mac,
 				  struct station_parameters *params);
 	int	(*get_station)(struct wiphy *wiphy, struct net_device *dev,
 			       const u8 *mac, struct station_info *sinfo);
@@ -2390,7 +2390,7 @@ struct cfg80211_ops {
 	int	(*del_mpath)(struct wiphy *wiphy, struct net_device *dev,
 			       const u8 *dst);
 	int	(*change_mpath)(struct wiphy *wiphy, struct net_device *dev,
-				  const u8 *dst, const u8 *next_hop);
+				   const u8 *dst, const u8 *next_hop);
 	int	(*get_mpath)(struct wiphy *wiphy, struct net_device *dev,
 			     u8 *dst, u8 *next_hop, struct mpath_info *pinfo);
 	int	(*dump_mpath)(struct wiphy *wiphy, struct net_device *dev,
@@ -3323,7 +3323,7 @@ struct wireless_dev {
 		struct cfg80211_ibss_params ibss;
 		struct cfg80211_connect_params connect;
 		struct cfg80211_cached_keys *keys;
-		const u8 *ie;
+	    u8 *ie;
 		size_t ie_len;
 		u8 bssid[ETH_ALEN], prev_bssid[ETH_ALEN];
 		u8 ssid[IEEE80211_MAX_SSID_LEN];

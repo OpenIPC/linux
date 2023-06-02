@@ -63,6 +63,7 @@
 #include <linux/blkdev.h>
 #include "../../scsi/sd.h"
 
+#include <mstar/mpatch_macro.h>
 
 /***********************************************************************
  * Data transfer routines
@@ -172,9 +173,34 @@ static int usb_stor_msg_common(struct us_data *us, int timeout)
 	}
  
 	/* wait for the completion of the URB */
+#if defined(CONFIG_SUSPEND) && (MP_USB_STR_PATCH==1)
+	if(timeout)
+		timeleft = wait_for_completion_interruptible_timeout(
+                    &urb_done, timeout);
+	else
+	{
+		//replace the wait for completion for evever with many many 100ms wait
+		while(1)
+		{
+			timeleft = wait_for_completion_interruptible_timeout(
+				&urb_done, 0.1*HZ);
+			if(timeleft <= 0)
+			{
+				if(is_suspending())
+				{
+					set_bit(US_FLIDX_DISCONNECTING, &us->dflags);
+					break;
+				}
+			}
+            		else
+                		break;
+		}
+	}
+#else	
 	timeleft = wait_for_completion_interruptible_timeout(
 			&urb_done, timeout ? : MAX_SCHEDULE_TIMEOUT);
- 
+#endif
+
 	clear_bit(US_FLIDX_URB_ACTIVE, &us->dflags);
 
 	if (timeleft <= 0) {
@@ -609,6 +635,12 @@ void usb_stor_invoke_transport(struct scsi_cmnd *srb, struct us_data *us)
 	if (test_bit(US_FLIDX_TIMED_OUT, &us->dflags)) {
 		usb_stor_dbg(us, "-- command was aborted\n");
 		srb->result = DID_ABORT << 16;
+#if (MP_USB_MSTAR==1)
+		if (srb->cmnd[0] == INQUIRY)	//for HD+bad cable, Colin, 090216
+			//us->pusb_dev->isFirstInquiryTimeout = 1;
+			// 20131003, removing HD+cable patch
+			printk("[USB] First Inquiry command timeout!!!\n");
+#endif		
 		goto Handle_Errors;
 	}
 

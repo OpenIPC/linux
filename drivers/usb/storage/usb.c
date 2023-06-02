@@ -72,6 +72,8 @@
 #include "sierra_ms.h"
 #include "option_ms.h"
 
+#include <mstar/mpatch_macro.h>
+
 #if IS_ENABLED(CONFIG_USB_UAS)
 #include "uas-detect.h"
 #endif
@@ -1116,7 +1118,12 @@ static struct usb_driver usb_storage_driver = {
 	.post_reset =	usb_stor_post_reset,
 	.id_table =	usb_storage_usb_ids,
 	.supports_autosuspend = 1,
+#if (MP_USB_MSTAR==1)
+	.soft_unbind =	0,
+#else
 	.soft_unbind =	1,
+#endif
+
 };
 
 module_usb_driver(usb_storage_driver);

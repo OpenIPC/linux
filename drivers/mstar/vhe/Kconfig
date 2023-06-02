@@ -1,0 +1,3 @@
+config MS_VHE
+	tristate "VHE driver"
+	help

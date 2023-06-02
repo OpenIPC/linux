@@ -559,6 +559,62 @@ void asix_get_drvinfo(struct net_device *net, struct ethtool_drvinfo *info)
 	info->eedump_len = AX_EEPROM_LEN;
 }
 
+static int access_eeprom_mac(struct usbnet *dev, u8 *buf, u8 offset, bool wflag)
+{
+	int ret = 0, i;
+	u16* tmp = (u16*)buf;
+
+	if (wflag) {
+		ret = asix_write_cmd(dev, AX_CMD_WRITE_ENABLE,
+						0, 0, 0, NULL);
+		if (ret < 0)
+			 return ret;
+
+		mdelay(15);
+	}
+
+	for (i = 0; i < (ETH_ALEN >> 1); i++) {
+		if (wflag) {
+			u16 wd = cpu_to_le16(*(tmp + i));
+			ret = asix_write_cmd(dev, AX_CMD_WRITE_EEPROM, offset + i,
+						wd, 0, NULL);
+			if (ret < 0)
+				break;
+
+			mdelay(15);
+		}
+		else {
+			ret = asix_read_cmd(dev, AX_CMD_READ_EEPROM,
+					       offset + i, 0, 2, tmp + i);
+			if (ret < 0)
+				break;
+		}
+	}
+
+	if (!wflag) {
+		if (ret < 0) {
+			netdev_dbg(dev->net, "Failed to read MAC address from EEPROM: %d\n", ret);
+			return ret;
+		}
+		memcpy(dev->net->dev_addr, buf, ETH_ALEN);
+	}
+	else {
+		asix_write_cmd(dev, AX_CMD_WRITE_DISABLE,
+				  0, 0, 0, NULL);
+		if (ret < 0)
+			 return ret;
+
+		/* reload eeprom data */
+		ret = asix_write_cmd(dev, AX_CMD_WRITE_GPIOS,
+				AX_GPIO_RSE, 0, 0, NULL);
+		if (ret < 0)
+			return ret;
+	}
+
+	return 0;
+}
+
+
 int asix_set_mac_address(struct net_device *net, void *p)
 {
 	struct usbnet *dev = netdev_priv(net);
@@ -567,10 +623,27 @@ int asix_set_mac_address(struct net_device *net, void *p)
 
 	if (netif_running(net))
 		return -EBUSY;
-	if (!is_valid_ether_addr(addr->sa_data))
+
+	if ((0xFF!=addr->sa_data[0]) && (!is_valid_ether_addr(addr->sa_data)))
 		return -EADDRNOTAVAIL;
 
 	memcpy(net->dev_addr, addr->sa_data, ETH_ALEN);
+
+	if(0xFF==net->dev_addr[0])
+	{
+		int ret =-1;
+
+		net->dev_addr[0]=0x00;
+		ret = access_eeprom_mac(dev, dev->net->dev_addr, 0x04, 1);
+		if (ret < 0) {
+			printk(KERN_WARNING"Failed to write MAC to EEPROM: %d", ret);
+		}
+		else
+		{
+			printk(KERN_WARNING"Success to write MAC to EEPROM: %d", ret);
+		}
+		msleep(100);
+	}
 
 	/* We use the 20 byte dev->data
 	 * for our 6 byte mac buffer

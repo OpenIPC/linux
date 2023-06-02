@@ -1,0 +1,3 @@
+config MS_PM
+    tristate "Mstar PM driver"
+    help

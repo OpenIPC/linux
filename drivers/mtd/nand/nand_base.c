@@ -30,7 +30,6 @@
  */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
-
 #include <linux/module.h>
 #include <linux/delay.h>
 #include <linux/errno.h>
@@ -48,6 +47,16 @@
 #include <linux/leds.h>
 #include <linux/io.h>
 #include <linux/mtd/partitions.h>
+
+#if defined(CONFIG_MS_NAND) || defined(CONFIG_MS_NAND_MODULE)
+#include "../../mstar/include/ms_types.h"
+#include "../../mstar/unfd/inc/common/drvNAND.h"
+#endif
+
+#if defined(CONFIG_MS_SPINAND) || defined(CONFIG_MS_SPINAND_MODULE)
+//	#include "../../mstar/include/ms_types.h"
+#include "../../mstar/spinand/drv/mdrv_spinand.h"
+#endif
 
 /* Define default oob placement schemes for large and small page devices */
 static struct nand_ecclayout nand_oob_8 = {
@@ -3771,6 +3780,130 @@ ident_done:
 	return type;
 }
 
+#define HERE //printk(KERN_ERR"[%s]%d\n",__FILE__,__LINE__)
+
+#if 0//defined(CONFIG_MS_NAND) || defined(CONFIG_MS_NAND_MODULE) || defined(CONFIG_MS_SPINAND)
+extern void* drvNAND_get_DrvContext_address(void);
+/*
+ * Get the flash infomation from mstar database
+ */
+static struct nand_flash_dev *nand_get_flash_type_mstar(struct mtd_info *mtd,
+                          struct nand_chip *chip,
+                          int *maf_id, int *dev_id,
+                          const struct nand_flash_dev *type)
+{
+
+#if defined(CONFIG_MS_NAND)
+
+    NAND_DRIVER *pNandDrv = (NAND_DRIVER*)drvNAND_get_DrvContext_address();
+    if (!mtd->name)
+        mtd->name = "edb64M-nand";
+    HERE;
+    mtd->writesize = pNandDrv->u16_PageByteCnt;
+    mtd->oobsize = pNandDrv->u16_SpareByteCnt;
+    HERE;
+    mtd->erasesize = pNandDrv->u16_BlkPageCnt * pNandDrv->u16_PageByteCnt;
+    HERE;
+    chip->chipsize = (uint64_t)pNandDrv->u16_BlkCnt * (uint64_t)pNandDrv->u16_BlkPageCnt * (uint64_t)pNandDrv->u16_PageByteCnt;
+
+    HERE;
+    if(!mtd->writesize || !mtd->oobsize || !mtd->erasesize)
+    {
+        int i;
+        nand_printf("Unsupported NAND Flash type is detected with ID");
+        for(i = 0; i < pNandDrv->u8_IDByteCnt; i++)
+            nand_printf(" 0x%X", pNandDrv->au8_ID[i]);
+        nand_printf("\n");
+        return  ERR_PTR(-EINVAL);
+    }
+    HERE;
+    chip->onfi_version = 0;
+//    chip->cellinfo = pNandDrv->au8_ID[2];
+    HERE;
+//    /* Get chip options, preserve non chip based options */
+//    chip->options &= ~NAND_CHIPOPTIONS_MSK;
+//
+//    /*
+//	 ** Set chip as a default. Board drivers can override it, if necessary
+// 	**/
+//    chip->options |= NAND_NO_AUTOINCR;
+
+    /* Get chip options */
+    //chip->options |= type->options;
+    chip->ecc.strength=1;
+    HERE;
+    if(pNandDrv->u8_WordMode)
+        chip->options |= NAND_BUSWIDTH_16;
+
+#elif defined(CONFIG_MS_SPINAND)
+    SPI_NAND_DRIVER_t *pNandDrv = (SPI_NAND_DRIVER_t*)drvSPINAND_get_DrvContext_address();
+
+    if (!mtd->name)
+        mtd->name = "nand0";
+    HERE;
+    mtd->writesize = pNandDrv->tSpinandInfo.u16_PageByteCnt;
+    mtd->oobsize = pNandDrv->tSpinandInfo.u16_SpareByteCnt;
+
+    mtd->erasesize = pNandDrv->tSpinandInfo.u16_BlkPageCnt * pNandDrv->tSpinandInfo.u16_PageByteCnt;
+    HERE;
+    chip->chipsize = (uint64_t)pNandDrv->tSpinandInfo.u16_BlkCnt * (uint64_t)pNandDrv->tSpinandInfo.u16_BlkPageCnt * (uint64_t)pNandDrv->tSpinandInfo.u16_PageByteCnt;
+
+    if(!mtd->writesize || !mtd->oobsize || !mtd->erasesize)
+    {
+        int i;
+        printk("Unsupported NAND Flash type is detected with ID");
+        for(i = 0; i < pNandDrv->tSpinandInfo.u8_IDByteCnt; i++)
+            printk(" 0x%X", pNandDrv->tSpinandInfo.au8_ID[i]);
+        printk("\n");
+        return  ERR_PTR(-EINVAL);
+    }
+    chip->onfi_version = 0;
+    HERE;
+    //chip->cellinfo = pNandDrv->au8_ID[2];
+    chip->bits_per_cell = nand_get_bits_per_cell(pNandDrv->tSpinandInfo.au8_ID[2]);
+
+    /* Get chip options */
+    chip->options = NAND_NO_SUBPAGE_WRITE;
+
+    /*
+	 ** Set chip as a default. Board drivers can override it, if necessary
+    **/
+
+    //if(pNandDrv->tSpinandInfo.u8_WordMode)
+	if(0)
+        chip->options |= NAND_BUSWIDTH_16;
+    HERE;
+#endif
+    /* Calculate the address shift from the page size */
+    chip->page_shift = ffs(mtd->writesize) - 1;
+    /* Convert chipsize to number of pages per chip -1. */
+    chip->pagemask = (chip->chipsize >> chip->page_shift) - 1;
+    HERE;
+    chip->bbt_erase_shift = chip->phys_erase_shift =
+        ffs(mtd->erasesize) - 1;
+    if (chip->chipsize & 0xffffffff)
+        chip->chip_shift = ffs((unsigned)chip->chipsize) - 1;
+    else
+        chip->chip_shift = ffs((unsigned)(chip->chipsize >> 32)) + 31;
+    HERE;
+    //chip->blocknum = chip->chipsize >> chip->phys_erase_shift;
+    /* set bbt block number to 0.8% of total blocks, or blocks * (2 / 256) */
+    //mtd->bbt_block_num = ((chip->blocknum >> 8) * 2);
+
+    /* Set the bad block position */
+    chip->badblockpos = mtd->writesize > 512 ?
+        NAND_LARGE_BADBLOCK_POS : NAND_SMALL_BADBLOCK_POS;
+    chip->erase = single_erase;
+    HERE;
+		chip->options |= NAND_SKIP_BBTSCAN;
+		chip->badblockbits = 8;
+		  HERE;
+    return 0;
+
+}
+#endif
+
+
 /**
  * nand_scan_ident - [NAND Interface] Scan for the NAND device
  * @mtd: MTD device structure
@@ -3788,9 +3921,36 @@ int nand_scan_ident(struct mtd_info *mtd, int maxchips,
 	int i, nand_maf_id, nand_dev_id;
 	struct nand_chip *chip = mtd->priv;
 	struct nand_flash_dev *type;
-
+    HERE;
 	/* Set the default functions */
 	nand_set_defaults(chip, chip->options & NAND_BUSWIDTH_16);
+
+#if defined(CONFIG_MS_NAND) || defined(CONFIG_MS_NAND_MODULE) || defined(CONFIG_MS_SPINAND)|| defined(CONFIG_MS_SPINAND_MODULE)//ENABLE_MODULE_NAND_FLASH == 1
+	if(chip->mtd_param_init != NULL)
+	{
+		int err;
+		err = chip->mtd_param_init(mtd, chip,  &nand_maf_id, &nand_dev_id, table);
+		type = ERR_PTR(err);
+		HERE;
+		if(IS_ERR(type) && type != 0)
+		{
+			HERE;
+			type = nand_get_flash_type(mtd, chip, &nand_maf_id, &nand_dev_id, table);
+			HERE;
+			if (IS_ERR(type))
+			{
+				HERE;
+		        chip->select_chip(mtd, -1);
+			    HERE;
+		        return PTR_ERR(type);
+			}
+		}
+		else
+		    chip->erase = single_erase;
+	}
+	i = 1;
+	HERE;
+#else
 
 	/* Read the flash type */
 	type = nand_get_flash_type(mtd, chip, &nand_maf_id,
@@ -3822,11 +3982,10 @@ int nand_scan_ident(struct mtd_info *mtd, int maxchips,
 	}
 	if (i > 1)
 		pr_info("%d chips detected\n", i);
-
+#endif
 	/* Store the number of chips and calc total size for mtd */
 	chip->numchips = i;
 	mtd->size = i * chip->chipsize;
-
 	return 0;
 }
 EXPORT_SYMBOL(nand_scan_ident);
@@ -3879,7 +4038,6 @@ int nand_scan_tail(struct mtd_info *mtd)
 	struct nand_chip *chip = mtd->priv;
 	struct nand_ecc_ctrl *ecc = &chip->ecc;
 	struct nand_buffers *nbuf;
-
 	/* New bad blocks should be marked in OOB, flash-based BBT, or both */
 	BUG_ON((chip->bbt_options & NAND_BBT_NO_OOB_BBM) &&
 			!(chip->bbt_options & NAND_BBT_USE_FLASH));
@@ -4205,6 +4363,7 @@ int nand_scan(struct mtd_info *mtd, int maxchips)
 	}
 
 	ret = nand_scan_ident(mtd, maxchips, NULL);
+
 	if (!ret)
 		ret = nand_scan_tail(mtd);
 	return ret;

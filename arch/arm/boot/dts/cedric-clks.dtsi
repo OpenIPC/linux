@@ -1,0 +1,1153 @@
+&clks {
+	
+	clk_mpll_432M: clk_mpll_432M {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <432000000>;
+	};
+	 
+	clk_mpll_288M: clk_mpll_288M {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <288000000>;
+	};
+	 
+	clk_utmi_240M: clk_utmi_240M {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <240000000>;
+	};
+	 
+	clk_mpll_216M: clk_mpll_216M {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <216000000>;
+	};
+	 
+	clk_utmi_192M: clk_utmi_192M {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <192000000>;
+	};
+	 
+	clk_mpll_172M: clk_mpll_172M {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <172000000>;
+	};
+	 
+	clk_utmi_160M: clk_utmi_160M {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <160000000>;
+	};
+	 
+	clk_mpll_123M: clk_mpll_123M {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <123000000>;
+	};
+	 
+	clk_mpll_86M: clk_mpll_86M {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <86000000>;
+	};
+	 
+	clk_mpll_144M: clk_mpll_144M {
+	    #clock-cells = <0>;
+	    compatible = "fixed-factor-clock";
+	    clocks = <&clk_mpll_288M>;
+	    clock-mult = <1>;
+	    clock-div = <2>;
+	};
+	 
+	clk_mpll_72M: clk_mpll_72M {
+	    #clock-cells = <0>;
+	    compatible = "fixed-factor-clock";
+	    clocks = <&clk_mpll_288M>;
+	    clock-mult = <1>;
+	    clock-div = <4>;
+	};
+	 
+	clk_mpll_36M: clk_mpll_36M {
+	    #clock-cells = <0>;
+	    compatible = "fixed-factor-clock";
+	    clocks = <&clk_mpll_288M>;
+	    clock-mult = <1>;
+	    clock-div = <8>;
+	};
+	 
+	clk_mpll_108M: clk_mpll_108M {
+	    #clock-cells = <0>;
+	    compatible = "fixed-factor-clock";
+	    clocks = <&clk_mpll_216M>;
+	    clock-mult = <1>;
+	    clock-div = <2>;
+	};
+	 
+	clk_mpll_54M: clk_mpll_54M {
+	    #clock-cells = <0>;
+	    compatible = "fixed-factor-clock";
+	    clocks = <&clk_mpll_216M>;
+	    clock-mult = <1>;
+	    clock-div = <4>;
+	};
+	 
+	clk_mpll_27M: clk_mpll_27M {
+	    #clock-cells = <0>;
+	    compatible = "fixed-factor-clock";
+	    clocks = <&clk_mpll_216M>;
+	    clock-mult = <1>;
+	    clock-div = <8>;
+	};
+	 
+	clk_mpll_61M: clk_mpll_61M {
+	    #clock-cells = <0>;
+	    compatible = "fixed-factor-clock";
+	    clocks = <&clk_mpll_123M>;
+	    clock-mult = <1>;
+	    clock-div = <2>;
+	};
+	 
+	clk_mpll_43M: clk_mpll_43M {
+	    #clock-cells = <0>;
+	    compatible = "fixed-factor-clock";
+	    clocks = <&clk_mpll_86M>;
+	    clock-mult = <1>;
+	    clock-div = <2>;
+	};
+	 
+	clk_mpll_21M: clk_mpll_21M {
+	    #clock-cells = <0>;
+	    compatible = "fixed-factor-clock";
+	    clocks = <&clk_mpll_86M>;
+	    clock-mult = <1>;
+	    clock-div = <4>;
+	};
+	 
+	clk_mpll_5M: clk_mpll_5M {
+	    #clock-cells = <0>;
+	    compatible = "fixed-factor-clock";
+	    clocks = <&clk_mpll_86M>;
+	    clock-mult = <1>;
+	    clock-div = <16>;
+	};
+	 
+	clk_utmi_48M: clk_utmi_48M {
+	    #clock-cells = <0>;
+	    compatible = "fixed-factor-clock";
+	    clocks = <&clk_utmi_192M>;
+	    clock-mult = <1>;
+	    clock-div = <4>;
+	};
+	 
+	clk_utmi_40M: clk_utmi_40M {
+	    #clock-cells = <0>;
+	    compatible = "fixed-factor-clock";
+	    clocks = <&clk_utmi_160M>;
+	    clock-mult = <1>;
+	    clock-div = <4>;
+	};
+	 
+	clk_utmi_32M: clk_utmi_32M {
+	    #clock-cells = <0>;
+	    compatible = "fixed-factor-clock";
+	    clocks = <&clk_utmi_160M>;
+	    clock-mult = <1>;
+	    clock-div = <5>;
+	};
+	 
+	clk_utmi_20M: clk_utmi_20M {
+	    #clock-cells = <0>;
+	    compatible = "fixed-factor-clock";
+	    clocks = <&clk_utmi_160M>;
+	    clock-mult = <1>;
+	    clock-div = <8>;
+	};
+	 
+	clk_xtali_12M: clk_xtali_12M {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <12000000>;
+	};
+	 
+	clk_xtali_1M: clk_xtali_1M {
+	    #clock-cells = <0>;
+	    compatible = "fixed-factor-clock";
+	    clocks = <&clk_xtali_12M>;
+	    clock-mult = <1>;
+	    clock-div = <8>;
+	};
+	 
+	clk_xtali_750K: clk_xtali_750K {
+	    #clock-cells = <0>;
+	    compatible = "fixed-factor-clock";
+	    clocks = <&clk_xtali_12M>;
+	    clock-mult = <1>;
+	    clock-div = <16>;
+	};
+	 
+	clk_xtali_300K: clk_xtali_300K {
+	    #clock-cells = <0>;
+	    compatible = "fixed-factor-clock";
+	    clocks = <&clk_xtali_12M>;
+	    clock-mult = <1>;
+	    clock-div = <40>;
+	};
+	 
+	clk_xtali_187K: clk_xtali_187K {
+	    #clock-cells = <0>;
+	    compatible = "fixed-factor-clock";
+	    clocks = <&clk_xtali_12M>;
+	    clock-mult = <1>;
+	    clock-div = <64>;
+	};
+	 
+	clk_xtali_93K: clk_xtali_93K {
+	    #clock-cells = <0>;
+	    compatible = "fixed-factor-clock";
+	    clocks = <&clk_xtali_12M>;
+	    clock-mult = <1>;
+	    clock-div = <128>;
+	};
+	 
+	clk_RTC_CLK_32K: clk_RTC_CLK_32K {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <32000>;
+	};
+	 
+	clk_miupll_clk: clk_miupll_clk {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <0>;
+	};
+	 
+	clk_ddrpll_clk: clk_ddrpll_clk {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <0>;
+	};
+	 
+	clk_lpll_clk: clk_lpll_clk {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <0>;
+	};
+	 
+	clk_cpupll_clk: clk_cpupll_clk {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <0>;
+	};
+	 
+	clk_riu_w_clk_in: clk_riu_w_clk_in {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <0>;
+	};
+	 
+	clk_riu_w_clk_top: clk_riu_w_clk_top {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <0>;
+	};
+	 
+	clk_riu_w_clk_sc_gp: clk_riu_w_clk_sc_gp {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <0>;
+	};
+	 
+	clk_riu_w_clk_vhe_gp: clk_riu_w_clk_vhe_gp {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <0>;
+	};
+	 
+	clk_riu_w_clk_hemcu_gp: clk_riu_w_clk_hemcu_gp {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <0>;
+	};
+	 
+	clk_riu_w_clk_mipi_if_gp: clk_riu_w_clk_mipi_if_gp {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <0>;
+	};
+	 
+	clk_riu_w_clk_mcu_if_gp: clk_riu_w_clk_mcu_if_gp {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <0>;
+	};
+	 
+	clk_clk_fuart0_synth_out: clk_clk_fuart0_synth_out {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <0>;
+	};
+	 
+	clk_clk_miu: clk_clk_miu {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <0>;
+	};
+	 
+	clk_clk_miu_p: clk_clk_miu_p {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <0>;
+	};
+	 
+	clk_clk_miu_vhe_gp_p: clk_clk_miu_vhe_gp_p {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <0>;
+	};
+	 
+	clk_clk_miu_sc_gp_p: clk_clk_miu_sc_gp_p {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <0>;
+	};
+	 
+	clk_clk_miu2x_p: clk_clk_miu2x_p {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <0>;
+	};
+	 
+	clk_clk_mcu_p: clk_clk_mcu_p {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <0>;
+	};
+	 
+	clk_clk_mcu_pm_p: clk_clk_mcu_pm_p {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <0>;
+	};
+	 
+	clk_clk_isp_p: clk_clk_isp_p {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <0>;
+	};
+	 
+	clk_clk_fclk1_p: clk_clk_fclk1_p {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <0>;
+	};
+	 
+	clk_clk_sdio_p: clk_clk_sdio_p {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <0>;
+	};
+	 
+	clk_clk_fcie_p: clk_clk_fcie_p {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <0>;
+	};
+	 
+	clk_clk_tck_buf: clk_clk_tck_buf {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <0>;
+	};
+	 
+	clk_pad2isp_sr_pclk: clk_pad2isp_sr_pclk {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <0>;
+	};
+	 
+	clk_clk_csi2_mac_p: clk_clk_csi2_mac_p {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <0>;
+	};
+	 
+	clk_ccir_in_clk: clk_ccir_in_clk {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <0>;
+	};
+	 
+	clk_clk_eth_buf: clk_clk_eth_buf {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <0>;
+	};
+	 
+	clk_clk_rmii_buf: clk_clk_rmii_buf {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <0>;
+	};
+	 
+	clk_clk_emac_testrx125_in_lan: clk_clk_emac_testrx125_in_lan {
+	    #clock-cells = <0>;
+	    compatible = "fixed-clock";
+	    clock-frequency = <0>;
+	};
+	 
+	clk_miu: clk_miu {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_mpll_216M>, <&clk_miupll_clk>;
+	    bist = <0>;
+	    glitch = <1>;
+	};
+	 
+	clk_miu_ff: clk_miu_ff {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_sc_gp: clk_miu_sc_gp {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_vhe_gp: clk_miu_vhe_gp {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_dig: clk_miu_dig {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_xd2miu: clk_miu_xd2miu {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_urdma: clk_miu_urdma {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_bdma: clk_miu_bdma {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_vhe: clk_miu_vhe {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu_vhe_gp_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_mfeh: clk_miu_mfeh {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu_sc_gp_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_mfe: clk_miu_mfe {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu_sc_gp_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_jpe1: clk_miu_jpe1 {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu_sc_gp_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_jpe0: clk_miu_jpe0 {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu_sc_gp_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_bach: clk_miu_bach {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu_sc_gp_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_file: clk_miu_file {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu_sc_gp_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_uhc0: clk_miu_uhc0 {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu_sc_gp_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_emac: clk_miu_emac {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu_sc_gp_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_cmdq: clk_miu_cmdq {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu_sc_gp_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_isp_dnr: clk_miu_isp_dnr {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu_sc_gp_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_isp_rot: clk_miu_isp_rot {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu_sc_gp_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_isp_dma: clk_miu_isp_dma {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu_sc_gp_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_isp_sta: clk_miu_isp_sta {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu_sc_gp_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_gop: clk_miu_gop {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu_sc_gp_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_sc_dnr: clk_miu_sc_dnr {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu_sc_gp_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_sc_dnr_sad: clk_miu_sc_dnr_sad {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu_sc_gp_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_sc_crop: clk_miu_sc_crop {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu_sc_gp_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_sc1_frm: clk_miu_sc1_frm {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu_sc_gp_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_sc1_snp: clk_miu_sc1_snp {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu_sc_gp_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_sc1_snpi: clk_miu_sc1_snpi {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu_sc_gp_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_sc1_dbg: clk_miu_sc1_dbg {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu_sc_gp_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_sc2_frm: clk_miu_sc2_frm {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu_sc_gp_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_sc2_snpi: clk_miu_sc2_snpi {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu_sc_gp_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_sc3_frm: clk_miu_sc3_frm {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu_sc_gp_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_fcie: clk_miu_fcie {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu_sc_gp_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_sdio: clk_miu_sdio {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu_sc_gp_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_riu: clk_riu {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_riu_w_clk_top>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_riu_nogating: clk_riu_nogating {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_riu_w_clk_in>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_riu_sc_gp: clk_riu_sc_gp {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_riu_w_clk_sc_gp>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_riu_vhe_gp: clk_riu_vhe_gp {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_riu_w_clk_vhe_gp>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_riu_hemcu_gp: clk_riu_hemcu_gp {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_riu_w_clk_hemcu_gp>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_riu_mipi_gp: clk_riu_mipi_gp {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_riu_w_clk_mipi_if_gp>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_riu_mcu_if: clk_riu_mcu_if {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_riu_w_clk_mcu_if_gp>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu2x: clk_miu2x {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_ddrpll_clk>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_axi2x: clk_axi2x {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu2x_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_ddr_syn: clk_ddr_syn {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_mpll_432M>, <&clk_mpll_216M>, <&clk_xtali_12M>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miu_rec: clk_miu_rec {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_xtali_1M>, <&clk_xtali_750K>, <&clk_xtali_187K>, <&clk_xtali_93K>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_tck: clk_tck {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_tck_buf>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_mcu: clk_mcu {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_mpll_216M>, <&clk_mpll_172M>, <&clk_mpll_144M>, <&clk_mpll_108M>;
+	    bist = <0>;
+	    glitch = <1>;
+	};
+	 
+	clk_riubrdg: clk_riubrdg {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_mcu_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_bdma: clk_bdma {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_spi: clk_spi {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_mpll_216M>, <&clk_mpll_108M>, <&clk_mpll_86M>, <&clk_mpll_72M>;
+	    bist = <0>;
+	    glitch = <1>;
+	};
+	 
+	clk_uart0: clk_uart0 {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_mpll_172M>, <&clk_mpll_144M>, <&clk_xtali_12M>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_uart1: clk_uart1 {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_mpll_172M>, <&clk_mpll_144M>, <&clk_xtali_12M>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_fuart0_synth_in: clk_fuart0_synth_in {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_mpll_432M>, <&clk_mpll_216M>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_fuart: clk_fuart {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_mpll_172M>, <&clk_mpll_144M>, <&clk_xtali_12M>, <&clk_clk_fuart0_synth_out>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_mspi0: clk_mspi0 {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_mpll_108M>, <&clk_mpll_54M>, <&clk_xtali_12M>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_mspi1: clk_mspi1 {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_mpll_108M>, <&clk_mpll_54M>, <&clk_xtali_12M>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miic0: clk_miic0 {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_mpll_72M>, <&clk_mpll_54M>, <&clk_xtali_12M>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_miic1: clk_miic1 {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_mpll_72M>, <&clk_mpll_54M>, <&clk_xtali_12M>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_bist: clk_bist {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_mpll_172M>, <&clk_mpll_108M>, <&clk_mpll_54M>, <&clk_xtali_12M>;
+	    bist = <1>;
+	    glitch = <0>;
+	};
+	 
+	clk_xtali: clk_xtali {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_xtali_12M>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_live: clk_live {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_xtali_12M>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_sr_mclk: clk_sr_mclk {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_mpll_27M>, <&clk_mpll_21M>, <&clk_xtali_12M>, <&clk_mpll_5M>, <&clk_mpll_36M>, <&clk_mpll_54M>, <&clk_mpll_43M>, <&clk_mpll_61M>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_bist_pm: clk_bist_pm {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_mpll_172M>, <&clk_mpll_108M>, <&clk_mpll_54M>, <&clk_xtali_12M>;
+	    bist = <1>;
+	    glitch = <0>;
+	};
+	 
+	clk_bist_vhe_gp: clk_bist_vhe_gp {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_mpll_172M>, <&clk_mpll_108M>, <&clk_mpll_54M>, <&clk_xtali_12M>;
+	    bist = <1>;
+	    glitch = <0>;
+	};
+	 
+	clk_vhe: clk_vhe {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_utmi_240M>, <&clk_mpll_216M>, <&clk_utmi_192M>, <&clk_utmi_160M>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_xtali_sc_gp: clk_xtali_sc_gp {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_xtali_12M>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_bist_sc_gp: clk_bist_sc_gp {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_mpll_172M>, <&clk_mpll_108M>, <&clk_mpll_54M>, <&clk_xtali_12M>;
+	    bist = <1>;
+	    glitch = <0>;
+	};
+	 
+	clk_imi: clk_imi {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_emac_ahb: clk_emac_ahb {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_mpll_144M>, <&clk_mpll_123M>, <&clk_mpll_86M>, <&clk_clk_emac_testrx125_in_lan>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_mfe: clk_mfe {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_mpll_288M>, <&clk_utmi_240M>, <&clk_utmi_192M>, <&clk_mpll_123M>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_jpe: clk_jpe {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_mpll_288M>, <&clk_mpll_216M>, <&clk_mpll_54M>, <&clk_mpll_27M>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_aesdma: clk_aesdma {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_mpll_86M>, <&clk_mpll_172M>;
+	    bist = <0>;
+	    glitch = <1>;
+	};
+	 
+	clk_sdio: clk_sdio {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_utmi_48M>, <&clk_mpll_43M>, <&clk_utmi_40M>, <&clk_mpll_36M>, <&clk_utmi_32M>, <&clk_utmi_20M>, <&clk_xtali_12M>, <&clk_xtali_300K>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_fcie: clk_fcie {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_mpll_72M>, <&clk_mpll_61M>, <&clk_mpll_54M>, <&clk_xtali_12M>, <&clk_mpll_86M>, <&clk_utmi_48M>, <&clk_mpll_43M>, <&clk_utmi_40M>, <&clk_mpll_36M>, <&clk_utmi_32M>, <&clk_utmi_20M>, <&clk_mpll_5M>, <&clk_xtali_300K>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_sdio: clk_sdio {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_sdio_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_fcie: clk_fcie {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_fcie_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_ecc: clk_ecc {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_utmi_160M>, <&clk_mpll_108M>, <&clk_mpll_54M>, <&clk_xtali_12M>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_sr: clk_sr {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_pad2isp_sr_pclk>, <&clk_clk_csi2_mac_p>, <&clk_utmi_40M>, <&clk_mpll_86M>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_isp: clk_isp {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_mpll_123M>, <&clk_mpll_86M>, <&clk_mpll_72M>, <&clk_mpll_54M>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_idclk: clk_idclk {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_isp_p>, <&clk_ccir_in_clk>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_fclk1: clk_fclk1 {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_mpll_172M>, <&clk_mpll_86M>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_fclk2: clk_fclk2 {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_mpll_172M>, <&clk_mpll_86M>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_odclk: clk_odclk {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_mpll_86M>, <&clk_mpll_43M>, <&clk_mpll_21M>, <&clk_lpll_clk>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_gop: clk_gop {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_fclk1_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_nlm: clk_nlm {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_miu_p>, <&clk_clk_fclk1_p>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_emac_tx: clk_emac_tx {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_eth_buf>, <&clk_clk_rmii_buf>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_emac_rx: clk_emac_rx {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_eth_buf>, <&clk_clk_rmii_buf>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_emac_tx_ref: clk_emac_tx_ref {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_rmii_buf>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_emac_rx_ref: clk_emac_rx_ref {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_clk_rmii_buf>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_hemcu_216m: clk_hemcu_216m {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_mpll_216M>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_csi_mac: clk_csi_mac {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_xtali_12M>, <&clk_mpll_216M>, <&clk_mpll_288M>, <&clk_mpll_172M>, <&clk_mpll_123M>, <&clk_mpll_86M>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_mac_lptx: clk_mac_lptx {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_xtali_12M>, <&clk_mpll_216M>, <&clk_mpll_288M>, <&clk_mpll_172M>, <&clk_mpll_123M>, <&clk_mpll_86M>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+	 
+	clk_ns: clk_ns {
+	    #clock-cells = <0>;
+	    compatible = "mstar,composite-clock";
+	    clocks = <&clk_xtali_12M>, <&clk_mpll_216M>;
+	    bist = <0>;
+	    glitch = <0>;
+	};
+ 
+};

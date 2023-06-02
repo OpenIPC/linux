@@ -33,6 +33,9 @@
 #define gadget_is_net2280(g)		(!strcmp("net2280", (g)->name))
 #define gadget_is_pxa(g)		(!strcmp("pxa25x_udc", (g)->name))
 #define gadget_is_pxa27x(g)		(!strcmp("pxa27x_udc", (g)->name))
+#if defined(CONFIG_USB_GADGET_MSB250X) || defined(CONFIG_USB_GADGET_MSB250X_MODULE)
+#define	gadget_is_Mstar(g) (!strcmp("msb250x_udc", (g)->name))
+#endif
 
 /**
  * gadget_supports_altsettings - return true if altsettings work

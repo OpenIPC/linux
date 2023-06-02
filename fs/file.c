@@ -403,6 +403,7 @@ void put_files_struct(struct files_struct *files)
 	}
 }
 
+
 void reset_files_struct(struct files_struct *files)
 {
 	struct task_struct *tsk = current;
@@ -913,3 +914,5 @@ int iterate_fd(struct files_struct *files, unsigned n,
 	return res;
 }
 EXPORT_SYMBOL(iterate_fd);
+EXPORT_SYMBOL(get_files_struct);
+EXPORT_SYMBOL(put_files_struct);

@@ -1127,4 +1127,5 @@ int nonseekable_open(struct inode *inode, struct file *filp)
 	return 0;
 }
 
+EXPORT_SYMBOL(do_fallocate);
 EXPORT_SYMBOL(nonseekable_open);

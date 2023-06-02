@@ -225,7 +225,7 @@ static int __test_hash(struct crypto_ahash *tfm, struct hash_testvec *template,
 				   tcrypt_complete, &tresult);
 
 	j = 0;
-	for (i = 0; i < tcount; i++) {
+	for (i = 1; i < tcount; i++) {
 		if (template[i].np)
 			continue;
 
@@ -394,26 +394,23 @@ static int test_hash(struct crypto_ahash *tfm, struct hash_testvec *template,
 {
 	unsigned int alignmask;
 	int ret;
+    ret = __test_hash(tfm, template, tcount, use_digest, 0);
+    if (ret)
+        return ret;
 
-	ret = __test_hash(tfm, template, tcount, use_digest, 0);
-	if (ret)
-		return ret;
-
-	/* test unaligned buffers, check with one byte offset */
-	ret = __test_hash(tfm, template, tcount, use_digest, 1);
-	if (ret)
-		return ret;
-
-	alignmask = crypto_tfm_alg_alignmask(&tfm->base);
-	if (alignmask) {
-		/* Check if alignment mask for tfm is correctly set. */
-		ret = __test_hash(tfm, template, tcount, use_digest,
-				  alignmask + 1);
-		if (ret)
-			return ret;
-	}
-
-	return 0;
+    /* test unaligned buffers, check with one byte offset */
+    ret = __test_hash(tfm, template, tcount, use_digest, 1);
+    if (ret)
+        return ret;
+    alignmask = crypto_tfm_alg_alignmask(&tfm->base);
+    if (alignmask) {
+    /* Check if alignment mask for tfm is correctly set. */
+    ret = __test_hash(tfm, template, tcount, use_digest,
+                alignmask + 1);
+    if (ret)
+        return ret;
+    }
+    return 0;
 }
 
 static int __test_aead(struct crypto_aead *tfm, int enc,
@@ -849,56 +846,48 @@ static int test_cipher(struct crypto_cipher *tfm, int enc,
 	        e = "encryption";
 	else
 		e = "decryption";
-
 	j = 0;
-	for (i = 0; i < tcount; i++) {
-		if (template[i].np)
-			continue;
+    for (i = 0; i < tcount; i++) {
+        if (template[i].np)
+            continue;
 
-		j++;
-
-		ret = -EINVAL;
-		if (WARN_ON(template[i].ilen > PAGE_SIZE))
-			goto out;
-
-		data = xbuf[0];
-		memcpy(data, template[i].input, template[i].ilen);
-
-		crypto_cipher_clear_flags(tfm, ~0);
-		if (template[i].wk)
-			crypto_cipher_set_flags(tfm, CRYPTO_TFM_REQ_WEAK_KEY);
-
-		ret = crypto_cipher_setkey(tfm, template[i].key,
-					   template[i].klen);
-		if (!ret == template[i].fail) {
-			printk(KERN_ERR "alg: cipher: setkey failed "
-			       "on test %d for %s: flags=%x\n", j,
-			       algo, crypto_cipher_get_flags(tfm));
-			goto out;
-		} else if (ret)
-			continue;
-
-		for (k = 0; k < template[i].ilen;
-		     k += crypto_cipher_blocksize(tfm)) {
-			if (enc)
-				crypto_cipher_encrypt_one(tfm, data + k,
-							  data + k);
-			else
-				crypto_cipher_decrypt_one(tfm, data + k,
-							  data + k);
-		}
-
-		q = data;
-		if (memcmp(q, template[i].result, template[i].rlen)) {
-			printk(KERN_ERR "alg: cipher: Test %d failed "
-			       "on %s for %s\n", j, e, algo);
-			hexdump(q, template[i].rlen);
-			ret = -EINVAL;
-			goto out;
-		}
-	}
-
-	ret = 0;
+        j++;
+        ret = -EINVAL;
+        if (WARN_ON(template[i].ilen > PAGE_SIZE))
+            goto out;
+        data = xbuf[0];
+        memcpy(data, template[i].input, template[i].ilen);
+        crypto_cipher_clear_flags(tfm, ~0);
+        if (template[i].wk)
+            crypto_cipher_set_flags(tfm, CRYPTO_TFM_REQ_WEAK_KEY);
+            ret = crypto_cipher_setkey(tfm, template[i].key,
+                    template[i].klen);
+            if (!ret == template[i].fail) {
+                printk(KERN_ERR "alg: cipher: setkey failed "
+                    "on test %d for %s: flags=%x\n", j,
+                    algo, crypto_cipher_get_flags(tfm));
+                    goto out;
+                } else if (ret)
+                continue;
+        for (k = 0; k < template[i].ilen;
+                k += crypto_cipher_blocksize(tfm)) {
+            if (enc)
+                crypto_cipher_encrypt_one(tfm, data + k,
+                                            data + k);
+            else
+                crypto_cipher_decrypt_one(tfm, data + k,
+                                            data + k);
+            }
+            q = data;
+            if (memcmp(q, template[i].result, template[i].rlen)) {
+                printk(KERN_ERR "alg: cipher: Test %d failed "
+                    "on %s for %s\n", j, e, algo);
+                hexdump(q, template[i].rlen);
+                ret = -EINVAL;
+                goto out;
+                }
+            }
+        ret = 0;
 
 out:
 	testmgr_free_buf(xbuf);

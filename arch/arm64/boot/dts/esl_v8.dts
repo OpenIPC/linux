@@ -1,0 +1,166 @@
+/*
+ * ARM Ltd. Fast Models
+ *
+ * Architecture Envelope Model (AEM) ARMv8-A
+ * ARMAEMv8AMPCT
+ *
+ * MSTAR_ESL_AEMv8A
+ */
+
+/dts-v1/;
+
+/memreserve/ 0x20000000 0x00010000;
+
+/ {
+	model = "MSTAR_ESL_AEMv8A";
+	compatible = "arm,rtsm_ve,aemv8a", "arm,vexpress";
+	interrupt-parent = <&gic>;
+	#address-cells = <2>;
+	#size-cells = <2>;
+
+	chosen {
+        bootargs = "console=ttySY0 selinux=0 maxcpus=8 devtmpfs.mount=1 earlycon=mstar,0x1f220d00 debug";
+    };
+
+
+	cpus {
+		#address-cells = <2>;
+		#size-cells = <0>;
+
+		cpu@0 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a53";
+			reg = <0x0 0x0>;
+			enable-method = "spin-table";
+			cpu-release-addr = <0x0 0x2000fff8>;
+		};
+/*	
+		cpu@1 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a53";
+			reg = <0x0 0x1>;
+			enable-method = "spin-table";
+			cpu-release-addr = <0x0 0x2000fff8>;
+		};
+	
+		cpu@2 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a53";
+			reg = <0x0 0x2>;
+			enable-method = "spin-table";
+			cpu-release-addr = <0x0 0x2000fff8>;
+		};
+		cpu@3 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a53";
+			reg = <0x0 0x3>;
+			enable-method = "spin-table";
+			cpu-release-addr = <0x0 0x2000fff8>;
+		};
+	
+		cpu@100 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a53";
+			reg = <0x0 0x100>;
+			enable-method = "spin-table";
+			cpu-release-addr = <0x0 0x2000fff8>;
+		};
+	
+		cpu@101 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a53";
+			reg = <0x0 0x101>;
+			enable-method = "spin-table";
+			cpu-release-addr = <0x0 0x2000fff8>;
+		};
+				
+		cpu@102 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a53";
+			reg = <0x0 0x102>;
+			enable-method = "spin-table";
+			cpu-release-addr = <0x0 0x2000fff8>;
+		};
+				
+		cpu@103 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a53";
+			reg = <0x0 0x103>;
+			enable-method = "spin-table";
+			cpu-release-addr = <0x0 0x2000fff8>;
+		};
+*/		
+	};
+
+	memory@20000000 {
+		device_type = "memory";
+		reg = <0x0 0x20000000 0 0x10000000>;
+	};
+
+	gic: interrupt-controller@120000000 {
+		compatible = "arm,cortex-a15-gic", "arm,cortex-a9-gic";
+		#interrupt-cells = <3>;
+		#address-cells = <2>;
+		#size-cells = <2>;
+		interrupt-controller;
+		reg = <0x1 0x20001000 0 0x1000>,
+		      <0x1 0x20002000 0 0x1000>;
+/*
+		interrupts = <1 9 0xf04>;
+*/
+	};
+	
+	mic: ms-irq@1F202000 {
+		compatible = "mstar,ms-irq";
+		#interrupt-cells = <2>;
+		#address-cells = <2>;
+		#size-cells = <2>;
+
+		host = <2>;
+		
+		interrupt-controller;
+		interrupt-parent = <&gic>;
+		reg = <0x0 0x1F202000 0 0x1000>,
+		      <0x0 0x1F203000 0 0x1000>;
+
+		interrupts = <1 15 0xff04>,
+			     <1 12 0xff04>;
+	};
+
+	timer {
+		compatible = "arm,armv8-timer";
+		interrupts = <1 13 0xff01>,
+			     <1 14 0xff01>,
+			     <1 11 0xff01>,
+			     <1 10 0xff01>;
+		clock-frequency = <233000000>;
+	};
+
+
+	pmu {
+		compatible = "arm,armv8-pmuv3";
+		interrupts = <0 60 4>,
+			     <0 61 4>,
+			     <0 62 4>,
+			     <0 63 4>;
+	};
+
+
+	serial0: uart@1F220d00  {		
+		compatible = "mstar,uart";
+		reg = <0 0x1F220d00 0 0x1000>;
+		interrupts = <0 50 0x01>;
+//		interrupts = <0>;
+		clock-frequency = <115200>;
+/*	  
+		clocks = <&v2m_clk24mhz>, <&v2m_clk24mhz>;		
+		clock-names = "uartclk", "apb_pclk";
+		compatible = "arm,XXXX";
+		reg = <0 0x1F001000 0 0x1000>;
+*/
+	};
+
+
+
+
+};

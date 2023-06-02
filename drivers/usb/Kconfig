@@ -29,6 +29,16 @@ menuconfig USB_SUPPORT
 
 if USB_SUPPORT
 
+config MP_USB_MSTAR
+	bool "Mstar Host patches"
+	depends on ARCH_CEDRIC || ARCH_INFINITY || ARCH_INFINITY3
+	default y
+
+config MP_USB_STR_PATCH
+	bool "Mstar Host suspend to RAM patches"
+	depends on ARCH_CEDRIC || ARCH_INFINITY || ARCH_INFINITY3
+	default y
+
 config USB_COMMON
 	tristate
 	default y

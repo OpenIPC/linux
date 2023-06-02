@@ -1168,7 +1168,11 @@ static inline void prepare_page_table(void)
 
 #ifdef CONFIG_XIP_KERNEL
 	/* The XIP kernel is mapped in the module area -- skip over it */
+#ifdef CONFIG_MS_ARMV7_XIP
+	addr = ((unsigned long)_edata_loc + PMD_SIZE - 1) & PMD_MASK;
+#else
 	addr = ((unsigned long)_etext + PMD_SIZE - 1) & PMD_MASK;
+#endif
 #endif
 	for ( ; addr < PAGE_OFFSET; addr += PMD_SIZE)
 		pmd_clear(pmd_off_k(addr));
@@ -1247,7 +1251,11 @@ static void __init devicemaps_init(const struct machine_desc *mdesc)
 #ifdef CONFIG_XIP_KERNEL
 	map.pfn = __phys_to_pfn(CONFIG_XIP_PHYS_ADDR & SECTION_MASK);
 	map.virtual = MODULES_VADDR;
+#ifdef CONFIG_MS_ARMV7_XIP
+	map.length = ((unsigned long)_edata_loc - map.virtual + ~SECTION_MASK) & SECTION_MASK;
+#else
 	map.length = ((unsigned long)_etext - map.virtual + ~SECTION_MASK) & SECTION_MASK;
+#endif
 	map.type = MT_ROM;
 	create_mapping(&map);
 #endif
