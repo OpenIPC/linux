@@ -83,6 +83,7 @@ int fh_mdio_set_mii(struct mii_bus *bus)
 	if (pGmac->phy_interface == PHY_INTERFACE_MODE_RMII) {
 		switch (pGmac->phydev->phy_id) {
 		case FH_GMAC_PHY_RTL8201:
+		case FH_GMAC_PHY_JL1101:
 			fh_mdio_write(bus, phyid,
 					gmac_phyt_rtl8201_page_select, 7);
 			fh_mdio_write(bus, phyid,
@@ -116,6 +117,7 @@ int fh_mdio_set_mii(struct mii_bus *bus)
 	} else if (pGmac->phy_interface == PHY_INTERFACE_MODE_MII) {
 		switch (pGmac->phydev->phy_id) {
 		case FH_GMAC_PHY_RTL8201:
+		case FH_GMAC_PHY_JL1101:
 			fh_mdio_write(bus, phyid,
 					gmac_phyt_rtl8201_page_select, 7);
 			fh_mdio_write(bus, phyid,
