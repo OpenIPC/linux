@@ -1792,6 +1792,7 @@ static int __init console_setup(char *str)
 	char *s, *options, *brl_options = NULL;
 	int idx;
 
+    /*
 	if (xminfo.xmuart == 1)
 	{    
 		strcpy(buf, "null");
@@ -1800,7 +1801,8 @@ static int __init console_setup(char *str)
 		__add_preferred_console(buf, idx, options, brl_options);
 		console_set_on_cmdline = 1; 
 		return 1;
-	}    
+	} 
+    */
 
 #ifdef CONFIG_A11Y_BRAILLE_CONSOLE
 	if (!memcmp(str, "brl,", 4)) {
