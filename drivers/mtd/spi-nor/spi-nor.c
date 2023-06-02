@@ -1477,6 +1477,10 @@ static const struct flash_info spi_nor_ids[] = {
 	{ "BY25Q128AS",INFO(0x684018, 0, 64 * 1024, 256,
 		SPI_NOR_DUAL_READ), PARAMS(spansion), CLK_MHZ_2X(80) },
 
+    /* ZBIT */
+    { "zb25vq64a",INFO(0x5e4017, 0, 64*1024, 128, 0) },
+    { "zb25vq128a",INFO(0x5e4018, 0, 64*1024, 256, 0) },
+
 	{ },
 };
 
