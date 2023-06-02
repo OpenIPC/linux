@@ -369,7 +369,7 @@ LINUXINCLUDE    := \
 
 KBUILD_CPPFLAGS := -D__KERNEL__
 
-KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
+KBUILD_CFLAGS   := -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -fno-strict-aliasing -fno-common \
 		   -Werror-implicit-function-declaration \
 		   -Wno-format-security \
@@ -637,6 +637,10 @@ ifdef CONFIG_DYNAMIC_FTRACE
 	endif
 endif
 endif
+
+# address gcc12 warnings
+KBUILD_CFLAGS += $(call cc-option,-Wno-attributes)
+KBUILD_CFLAGS += $(call cc-option,-Wno-unused-variable)
 
 # We trigger additional mismatches with less inlining
 ifdef CONFIG_DEBUG_SECTION_MISMATCH
