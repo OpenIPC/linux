@@ -59,15 +59,19 @@ $(obj)/zImage:	$(obj)/compressed/vmlinux FORCE
 
 endif
 
-quiet_cmd_uimage = UIMAGE  $@
-      cmd_uimage = $(CONFIG_SHELL) $(MKIMAGE) -A arm -O linux -T kernel \
-		   -C none -a $(LOADADDR) -e $(STARTADDR) \
-		   -n 'Linux-$(KERNELRELEASE)' -d $< $@
+#quiet_cmd_uimage = UIMAGE  $@
+#      cmd_uimage = $(CONFIG_SHELL) $(MKIMAGE) -A arm -O linux -T kernel \
+#		   -C none -a $(LOADADDR) -e $(STARTADDR) \
+#		   -n 'Linux-$(KERNELRELEASE)' -d $< $@
 
-ifeq ($(CONFIG_ZBOOT_ROM),y)
-$(obj)/uImage: LOADADDR=$(CONFIG_ZBOOT_ROM_TEXT)
+ifneq ($(LOADADDR),)
+  UIMAGE_LOADADDR=$(LOADADDR)
 else
-$(obj)/uImage: LOADADDR=$(ZRELADDR)
+  ifeq ($(CONFIG_ZBOOT_ROM),y)
+    UIMAGE_LOADADDR=$(CONFIG_ZBOOT_ROM_TEXT)
+  else
+    UIMAGE_LOADADDR=$(ZRELADDR)
+  endif
 endif
 
 $(obj)/uImage: STARTADDR=$(LOADADDR)
