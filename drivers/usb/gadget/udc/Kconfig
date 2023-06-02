@@ -232,6 +232,26 @@ config USB_MV_UDC
 	  USB2.0 OTG controller, which can be configured as high speed or
 	  full speed USB peripheral.
 
+menuconfig HIUSB_DEVICE2_0
+          bool "Hisilicon USB2.0 Device Controller SUPPORT"
+          help
+          This selects the usb(ehci/ohci) family usb device.
+          Say Y to enable hisi usb2.0 controller driver.
+          IF you do not use usb2.0 device in your board,
+          say N to get a smaller uImage. Mostly you need it.
+
+if HIUSB_DEVICE2_0
+          config USB_HISI_UDC
+          tristate "hisilicon highspeed device controller version 3.00a driver"
+          help
+          You can select device mode by the option.
+          Enable hisi ehci controller driver.
+          Say Y to enable hisi usb2.0 ehci controller driver.
+          IF you do not use usb2.0 ehci device in your board, say N to get a
+          smaller uImage. Mostly you need it.
+
+endif
+
 config USB_MV_U3D
 	depends on HAS_DMA
 	tristate "MARVELL PXA2128 USB 3.0 controller"

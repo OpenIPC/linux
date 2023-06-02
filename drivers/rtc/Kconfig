@@ -824,6 +824,14 @@ comment "Platform RTC drivers"
 # requires <asm/mc146818rtc.h> defining CMOS_READ/CMOS_WRITE, and a
 # global rtc_lock ... it's not yet just another platform_device.
 
+config RTC_DRV_HIBVT
+	tristate "HiSilicon BVT RTC support"
+	help
+	  Generic RTC framework driver for HiSilicon BVT SoCs.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called rtc-hibvt.
+
 config RTC_DRV_CMOS
 	tristate "PC-style 'CMOS'"
 	depends on X86 || ARM || M32R || PPC || MIPS || SPARC64 || MN10300

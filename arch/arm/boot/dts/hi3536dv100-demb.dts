@@ -1,0 +1,192 @@
+/*
+ * Copyright (c) 2013-2014 Linaro Ltd.
+ * Copyright (c) 2015-2017 HiSilicon Technologies Co., Ltd.
+ *
+ * This program is free software; you can redistribute  it and/or modify it
+ * under  the terms of  the GNU General  Public License as published by the
+ * Free Software Foundation;  either version 2 of the  License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+/dts-v1/;
+#include "hi3536dv100.dtsi"
+
+/ {
+	model = "Hisilicon HI3536DV100 DEMO Board";
+	compatible = "hisilicon,hi3536dv100";
+
+	memory {
+		device_type = "memory";
+		reg = <0x80000000 0x20000000>;
+	};
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&i2c_bus0 {
+    status = "okay";
+    clock-frequency = <100000>;
+};
+
+&dual_timer0 {
+	status = "okay";
+};
+
+&mdio0 {
+	hisilicon,phy-reset-delays-us = <10000 20000 150000>;
+	phy0: ethernet-phy@1 {
+		reg = <1>;
+	};
+};
+
+&hisi_femac0 {
+	mac-address = [00 00 00 00 00 00];
+	phy-mode = "mii";
+	phy-handle = <&phy0>;
+};
+
+&hisfc {
+	hi_sfc {
+		   compatible = "jedec,spi-nor";
+		   reg = <0>;
+		   spi-max-frequency = <160000000>;
+	};
+};
+
+&hisnfc {
+	hinand {
+		   compatible = "jedec,spi-nand";
+		   reg = <0>;
+		   spi-max-frequency = <160000000>;
+	};
+};
+
+&hidmac {
+	status = "okay";
+};
+
+&gpio_chip0 {
+	status = "okay";
+};
+
+&gpio_chip1 {
+	status = "okay";
+};
+
+&gpio_chip2 {
+	status = "okay";
+};
+
+&gpio_chip3 {
+	status = "okay";
+};
+
+&gpio_chip4 {
+	status = "okay";
+};
+
+&gpio_chip5 {
+	status = "okay";
+};
+
+&pmux {
+
+	i2s1_pmux: i2s1_pmux {
+		pinctrl-single,pins = <
+			0x0070 0x2
+			0x0078 0x2
+			0x007c 0x2
+			0x0090 0x2
+			0x0094 0x2
+		>;
+	};
+	i2s2_pmux: i2s2_pmux {
+		pinctrl-single,pins = <
+			0x0040 0x3 /*I2S_SD_RX*/
+			0x0044 0x3 /*I2S_MCLK*/
+			0x0048 0x3 /*I2S_WS*/
+			0x004c 0x3 /*I2S_BCLK*/
+			0x0050 0x3 /*I2S_SD_TX*/
+		>;
+	};
+};
+
+&sys_config_ctrl {
+	padctrl-ability,demo = <
+		0x120f08ac 0xb0
+		0x120f08b4 0xb0
+		0x120f08b8 0xb0
+		0x120f08cc 0xb0
+		0x120f08d0 0xb0
+	>;
+	padctrl-ability,sck = <
+		0x120f0868 0x80
+		0x120f086c 0xa0
+		0x120f0870 0xa0
+		0x120f0874 0xa0
+		0x120f0878 0xa0
+	>;
+	sysctrl-ddr,pins = <
+		0x12120078  0x55322100  /* JPGD - JPGE - TFE - VGS - VDH - A7 - VDP - AIAO */
+		0x1212007c  0x65665526  /* FMC - DMA1 - DMA9 - DDRT - SATA - ETH1 - ETH0 - VOIE */
+		0x12120080  0x66666666  /*     -      -      -      -      -      - CIPHER - USB */
+		0x12120084  0x55522100  /* JPGD - JPGE - TFE - VGS - VDH - A7 - VDP - AIAO */
+		0x12120088  0x65665526  /* FMC - DMA1 - DMA9 - DDRT - SATA - ETH1 - ETH0 - VOIE */
+		0x1212008c  0x66626666  /*      -      -      -      -      -      - CIPHER - USB */
+		0x12120094  0x10        /* aio_vdp_axi_pri*/
+		0x12120090  0x80020000	/* aio_vdp_axi_timeout*/
+		0x12110020  0x000fff01  /* AXI_ACTION[19:8]:wr_rcv_mode=0,12ports */
+		0x12110200  0x00200000  /* ports0  */
+		0x12110210  0x00300000  /* ports1  */
+		0x12110220  0x00300000  /* ports2  */
+		0x12110230  0x00300000  /* ports3  */
+		0x12110240  0x00300000  /* ports4  */
+		0x12110250  0x00300000  /* ports5  */
+		0x12110260  0x00300000  /* ports6  */
+		0x12110270  0x00300000  /* ports7  */
+		0x12110204  0x76543210  /* ports0  */
+		0x12110214  0x76543210  /* ports1  */
+		0x12110224  0x76543210  /* ports2  */
+		0x12110234  0x76543210	/* ports3	*/
+		0x12110244  0x76543210  /* ports4	*/
+		0x12110254  0x76543210  /* ports5   */
+		0x12110264  0x76543210  /* ports6   */
+		0x12110274  0x76543210  /* ports7   */
+		0x12110208  0x76543210  /* ports0   */
+		0x12110218  0x76543210  /* ports1   */
+		0x12110228  0x76543210  /* ports2   */
+		0x12110238  0x76543210  /* ports3   */
+		0x12110248  0x76543210  /* ports4   */
+		0x12110258  0x76543210  /* ports5   */
+		0x12110268  0x76543210  /* ports6   */
+		0x12110278  0x76543210  /* ports7   */
+		0x12114000  0x00000002  /*qosb_push_ctrl  */
+		0x1211410c  0x0000000a  /*qosb_dmc_lvl    */
+		0x12114110  0x0000000a  /*qosb_dmc_lvl    */
+		0x1211408c  0xb3032010  /*qosb_wbuf_ctrl  */
+		0x12114090  0xb3032010  /*qosb_wbuf_ctrl   */
+		0x121140f4  0x00000033  /*row-hit enable   */
+		0x121140ec  0x00000044  /*row-hit          */
+		0x121140f0  0x00003333  /*row-hit          */
+		0x121141f4  0x00000000  /*qosb_wbuf_pri_ctrl*/
+		0x121141f0  0x00000001  /*enable qosbuf timeout,through prilvl to remap timeout level*/
+		0x1211409c  0x0000000a  /* wr_tout3 ~wr_tout0   */
+		0x121140ac  0x0000000a  /* rd_tout3 ~rd_tout0   */
+		0x121141f8  0x00800002  /* qosb_rhit_ctrl,open_window=128,close_window=2*/
+	>;
+	pinctrl-names = "demo", "sck", "default";
+	pinctrl-0 = <&i2s1_pmux>;
+	pinctrl-1 = <&i2s2_pmux>;
+	pinctrl-2 = <>;
+};

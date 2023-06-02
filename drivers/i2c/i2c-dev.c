@@ -146,16 +146,59 @@ static ssize_t i2cdev_read(struct file *file, char __user *buf, size_t count,
 	if (count > 8192)
 		count = 8192;
 
+#ifdef CONFIG_I2C_HISI
+	{
+		unsigned reg_width;
+		unsigned data_width;
+
+		if (client->flags & I2C_M_16BIT_REG)
+			reg_width = 2;
+		else
+			reg_width = 1;
+
+		if (client->flags & I2C_M_16BIT_DATA)
+			data_width = 2;
+		else
+			data_width = 1;
+
+		if (client->flags & I2C_M_DMA)
+			tmp = kmalloc(max_t(size_t, reg_width, count),
+					GFP_KERNEL);
+		else
+			tmp = kmalloc(max_t(size_t, reg_width, data_width),
+					GFP_KERNEL);
+
+		if (tmp == NULL)
+			return -ENOMEM;
+
+		if (copy_from_user(tmp, buf, reg_width))
+			return -EFAULT;
+	}
+#else
 	tmp = kmalloc(count, GFP_KERNEL);
 	if (tmp == NULL)
 		return -ENOMEM;
+#endif
 
 	pr_debug("i2c-dev: i2c-%d reading %zu bytes.\n",
 		iminor(file_inode(file)), count);
 
 	ret = i2c_master_recv(client, tmp, count);
+#ifdef CONFIG_I2C_HISI
+	if (ret >= 0) {
+		if (client->flags & I2C_M_DMA) {
+			ret = copy_to_user(buf, tmp, count) ? -EFAULT : ret;
+		} else {
+			if (client->flags & I2C_M_16BIT_DATA)
+				ret = copy_to_user(buf, tmp, 2) ? -EFAULT : ret;
+			else
+				ret = copy_to_user(buf, tmp, 1) ? -EFAULT : ret;
+		}
+	}
+#else
 	if (ret >= 0)
 		ret = copy_to_user(buf, tmp, count) ? -EFAULT : ret;
+#endif
 	kfree(tmp);
 	return ret;
 }
@@ -424,7 +467,11 @@ static long i2cdev_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	case I2C_SLAVE:
 	case I2C_SLAVE_FORCE:
 		if ((arg > 0x3ff) ||
+#ifdef CONFIG_I2C_HISI
+		    (((client->flags & I2C_M_TEN) == 0) && arg > 0xfe))
+#else
 		    (((client->flags & I2C_M_TEN) == 0) && arg > 0x7f))
+#endif
 			return -EINVAL;
 		if (cmd == I2C_SLAVE && i2cdev_check_addr(client->adapter, arg))
 			return -EBUSY;
@@ -450,6 +497,26 @@ static long i2cdev_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		else
 			client->flags &= ~I2C_CLIENT_PEC;
 		return 0;
+#ifdef CONFIG_I2C_HISI
+	case I2C_16BIT_REG:
+		if (arg)
+			client->flags |= I2C_M_16BIT_REG;
+		else
+			client->flags &= ~I2C_M_16BIT_REG;
+		return 0;
+	case I2C_16BIT_DATA:
+		if (arg)
+			client->flags |= I2C_M_16BIT_DATA;
+		else
+			client->flags &= ~I2C_M_16BIT_DATA;
+		return 0;
+	case I2C_DMA:
+		if (arg)
+			client->flags |= I2C_M_DMA;
+		else
+			client->flags &= ~I2C_M_DMA;
+		return 0;
+#endif
 	case I2C_FUNCS:
 		funcs = i2c_get_functionality(client->adapter);
 		return put_user(funcs, (unsigned long __user *)arg);

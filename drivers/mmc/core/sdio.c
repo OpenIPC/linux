@@ -28,6 +28,10 @@
 #include "sdio_ops.h"
 #include "sdio_cis.h"
 
+#ifdef CONFIG_ARCH_HISI_BVT
+#include "host.h"
+#endif
+
 static int sdio_read_fbr(struct sdio_func *func)
 {
 	int ret;
@@ -1172,4 +1176,41 @@ err:
 
 	return err;
 }
+
+#ifdef CONFIG_ARCH_HISI_BVT
+/* sdio_reset_comm has been fixed in latest kernel/msm.git for Linux
+ * 2.6.27. The implementation prior to that buggy, and needs broadcom's
+ * patch for it*/
+int sdio_reset_comm(struct mmc_card *card)
+{
+	struct mmc_host *host = card->host;
+	u32 ocr;
+	u32 rocr;
+	int err;
+
+	mmc_claim_host(host);
+	mmc_retune_disable(host);
+	mmc_go_idle(host);
+	mmc_set_clock(host, host->f_min);
+	err = mmc_send_io_op_cond(host, 0, &ocr);
+	if (err)
+		goto err;
+	rocr = mmc_select_voltage(host, ocr);
+	if (!rocr) {
+		err = -EINVAL;
+		goto err;
+	}
+	err = mmc_sdio_init_card(host, rocr, card, 0);
+	if (err)
+		goto err;
+	mmc_release_host(host);
+	return 0;
+err:
+	printk("%s: Error resetting SDIO communications (%d)\n",
+			mmc_hostname(host), err);
+	mmc_release_host(host);
+	return err;
+}
+EXPORT_SYMBOL(sdio_reset_comm);
+#endif
 

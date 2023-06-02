@@ -85,7 +85,7 @@ config POWER_RESET_GPIO_RESTART
 
 config POWER_RESET_HISI
 	bool "Hisilicon power-off driver"
-	depends on ARCH_HISI
+	depends on ARCH_HISI || ARCH_HISI_BVT
 	help
 	  Reboot support for Hisilicon boards.
 

@@ -208,6 +208,25 @@ static int pl061_irq_type(struct irq_data *d, unsigned trigger)
 	return 0;
 }
 
+#ifdef CONFIG_ARCH_HISI_BVT
+static irqreturn_t pl061_irq_handler(int irq, void *data)
+{
+	unsigned long pending;
+	int offset;
+	struct gpio_chip *gc = data;
+	struct pl061_gpio *chip = container_of(gc, struct pl061_gpio, gc);
+
+	pending = readb(chip->base + GPIOMIS);
+	writeb(pending, chip->base + GPIOIC);
+	if (pending) {
+		for_each_set_bit(offset, &pending, PL061_GPIO_NR)
+			generic_handle_irq(irq_find_mapping(gc->irqdomain,
+							    offset));
+	}
+
+	return IRQ_HANDLED;
+}
+#else
 static void pl061_irq_handler(struct irq_desc *desc)
 {
 	unsigned long pending;
@@ -227,6 +246,7 @@ static void pl061_irq_handler(struct irq_desc *desc)
 
 	chained_irq_exit(irqchip, desc);
 }
+#endif
 
 static void pl061_irq_mask(struct irq_data *d)
 {
@@ -308,7 +328,17 @@ static int pl061_probe(struct amba_device *adev, const struct amba_id *id)
 			return -ENODEV;
 		}
 	} else {
+#ifdef CONFIG_ARCH_HISI_BVT
+		if (dev->of_node) {
+			i = of_alias_get_id(dev->of_node, "gpio");
+			chip->gc.base = i * PL061_GPIO_NR;
+		}
+
+		if (chip->gc.base < 0)
+			chip->gc.base = -1;
+#else
 		chip->gc.base = -1;
+#endif
 		irq_base = 0;
 	}
 
@@ -353,8 +383,21 @@ static int pl061_probe(struct amba_device *adev, const struct amba_id *id)
 		dev_info(&adev->dev, "could not add irqchip\n");
 		return ret;
 	}
+#ifdef CONFIG_ARCH_HISI_BVT
+	ret = devm_request_irq(dev, irq, pl061_irq_handler, IRQF_SHARED,
+			dev_name(dev), &chip->gc);
+	if (ret) {
+		dev_info(dev, "request irq failed: %d\n", ret);
+		return ret;
+	}
+
+	/* Set the parent IRQ for all affected IRQs */
+	for (i = 0; i < chip->gc.ngpio; i++)
+		irq_set_parent(irq_find_mapping(chip->gc.irqdomain, i), irq);
+#else
 	gpiochip_set_chained_irqchip(&chip->gc, &pl061_irqchip,
 				     irq, pl061_irq_handler);
+#endif
 
 	for (i = 0; i < PL061_GPIO_NR; i++) {
 		if (pdata) {
