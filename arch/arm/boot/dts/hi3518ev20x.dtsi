@@ -286,15 +286,11 @@
 			interrupts = <18>;
 			clocks = <&clock HI3518EV20X_MMC0_CLK>;
 			clock-names = "mmc_clk";
-			max-frequency = <99000000>;
+			max-frequency = <49500000>;
 			resets = <&clock 0xc4 8>;
 			reset-names = "mmc_reset";
 			bus-width = <4>;
 			cap-sd-highspeed;
-			sd-uhs-sdr12;
-			sd-uhs-sdr25;
-			sd-uhs-sdr50;
-			sd-uhs-sdr104;
 			devid = <0>;
 			status = "disabled";
 		};
