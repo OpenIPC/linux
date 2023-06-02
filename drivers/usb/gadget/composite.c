@@ -17,11 +17,42 @@
 #include <linux/module.h>
 #include <linux/device.h>
 #include <linux/utsname.h>
+#include <linux/delay.h>
+#ifdef CONFIG_USB3_DEVICE_GPIO_CTRL
+#include <linux/interrupt.h>
+#endif
 
 #include <linux/usb/composite.h>
 #include <asm/unaligned.h>
+#include <mach/io.h>
 
 #include "u_os_desc.h"
+#ifdef CONFIG_USB3_DEVICE_GPIO_CTRL
+#define GPIO_IRQ_NUM		75
+#define GPIO1_0_IE		(1<<0)
+#define GPIO1_0_IC		(1<<0)
+#define GPIO1_IE		__io_address(0x12141410)
+#define GPIO1_0_DATA		__io_address(0x12141004)
+#define GPIO1_IC		__io_address(0x1214141c)
+static int uvc_flag;
+static const char gpio_driver_name[] = "usb_gpio_irq";
+#endif
+#if defined(CONFIG_ARCH_HI3519) || defined(CONFIG_ARCH_HI3519V101) \
+	|| defined(CONFIG_ARCH_HI3559) || defined(CONFIG_ARCH_HI3556) \
+	|| defined(CONFIG_ARCH_HI3516CV300) || defined(CONFIG_ARCH_HI3516AV200)
+#define USB2_BASE_REG		0x12030000
+#define DWC_OTG_EN		(1 << 31)
+#define USB2_PHY_DPPULL_DOWN	(0x3 << 26)
+#endif
+
+#ifdef CONFIG_ARCH_HI3516CV300
+#define USB2_OTG_BASE		0x5c
+#endif
+
+#if defined(CONFIG_ARCH_HI3519) || defined(CONFIG_ARCH_HI3519V101) \
+	|| defined(CONFIG_ARCH_HI3559) || defined(CONFIG_ARCH_HI3556) || defined(CONFIG_ARCH_HI3516AV200)
+#define USB2_OTG_BASE		0x78
+#endif
 
 /**
  * struct usb_os_string - represents OS String to be reported by a gadget
@@ -165,6 +196,8 @@ ep_found:
 		case USB_ENDPOINT_XFER_ISOC:
 			/* mult: bits 1:0 of bmAttributes */
 			_ep->mult = comp_desc->bmAttributes & 0x3;
+			_ep->maxburst = comp_desc->bMaxBurst;
+			break;
 		case USB_ENDPOINT_XFER_BULK:
 		case USB_ENDPOINT_XFER_INT:
 			_ep->maxburst = comp_desc->bMaxBurst + 1;
@@ -278,10 +311,10 @@ int usb_function_deactivate(struct usb_function *function)
 
 	spin_lock_irqsave(&cdev->lock, flags);
 
-	if (cdev->deactivations == 0)
+	if (cdev->deactivations == 0) {
 		status = usb_gadget_disconnect(cdev->gadget);
-	if (status == 0)
 		cdev->deactivations++;
+	}
 
 	spin_unlock_irqrestore(&cdev->lock, flags);
 	return status;
@@ -845,7 +878,7 @@ done:
 }
 EXPORT_SYMBOL_GPL(usb_add_config);
 
-static void remove_config(struct usb_composite_dev *cdev,
+static void unbind_config(struct usb_composite_dev *cdev,
 			      struct usb_configuration *config)
 {
 	while (!list_empty(&config->functions)) {
@@ -860,7 +893,6 @@ static void remove_config(struct usb_composite_dev *cdev,
 			/* may free memory for "f" */
 		}
 	}
-	list_del(&config->list);
 	if (config->unbind) {
 		DBG(cdev, "unbind config '%s'/%p\n", config->label, config);
 		config->unbind(config);
@@ -887,9 +919,11 @@ void usb_remove_config(struct usb_composite_dev *cdev,
 	if (cdev->config == config)
 		reset_config(cdev);
 
+	list_del(&config->list);
+
 	spin_unlock_irqrestore(&cdev->lock, flags);
 
-	remove_config(cdev, config);
+	unbind_config(cdev, config);
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1780,6 +1814,12 @@ void composite_disconnect(struct usb_gadget *gadget)
 	struct usb_composite_dev	*cdev = get_gadget_data(gadget);
 	unsigned long			flags;
 
+	if (cdev == NULL) {
+		WARN(1, "%s: Calling disconnect on a Gadget that is \
+			 not connected\n", __func__);
+		return;
+	}
+
 	/* REVISIT:  should we have config and device level
 	 * disconnect callbacks?
 	 */
@@ -1818,7 +1858,8 @@ static void __composite_unbind(struct usb_gadget *gadget, bool unbind_driver)
 		struct usb_configuration	*c;
 		c = list_first_entry(&cdev->configs,
 				struct usb_configuration, list);
-		remove_config(cdev, c);
+		list_del(&c->list);
+		unbind_config(cdev, c);
 	}
 	if (cdev->driver->unbind && unbind_driver)
 		cdev->driver->unbind(cdev);
@@ -1834,6 +1875,35 @@ static void composite_unbind(struct usb_gadget *gadget)
 {
 	__composite_unbind(gadget, true);
 }
+
+#ifdef CONFIG_USB3_DEVICE_GPIO_CTRL
+static irqreturn_t dwc_usb3_gpio_irq(int irq, void *dev)
+{
+	int reg;
+	/* mask */
+	reg = hi_readl(GPIO1_IE);
+	reg &= ~GPIO1_0_IE;
+	hi_writel(reg, GPIO1_IE);
+	/* GPIO1_0 */
+	if (0 == (hi_readl(GPIO1_0_DATA) & 0x1)) {
+		/* host */
+		hi_writel(0x30c11004, __io_address(0x1018c110));
+		udelay(200);
+		/* device */
+		hi_writel(0x30c12004, __io_address(0x1018c110));
+		udelay(200);
+	}
+	/* clear */
+	reg = hi_readl(GPIO1_IC);
+	reg |= GPIO1_0_IC;
+	hi_writel(reg, GPIO1_IC);
+	/* unmask */
+	reg = hi_readl(GPIO1_IE);
+	reg |= GPIO1_0_IE;
+	hi_writel(reg, GPIO1_IE);
+	return 0;
+}
+#endif
 
 static void update_unchanged_dev_desc(struct usb_device_descriptor *new,
 		const struct usb_device_descriptor *old)
@@ -1968,6 +2038,10 @@ static int composite_bind(struct usb_gadget *gadget,
 	struct usb_composite_dev	*cdev;
 	struct usb_composite_driver	*composite = to_cdriver(gdriver);
 	int				status = -ENOMEM;
+#ifdef CONFIG_HIUSB_DEVICE2_0
+	void __iomem *usb2_base_reg;
+	int usb2_reg;
+#endif
 
 	cdev = kzalloc(sizeof *cdev, GFP_KERNEL);
 	if (!cdev)
@@ -1999,10 +2073,39 @@ static int composite_bind(struct usb_gadget *gadget,
 
 	update_unchanged_dev_desc(&cdev->desc, composite->dev);
 
+#ifdef CONFIG_USB3_DEVICE_GPIO_CTRL
+	/* uvc Vendor and Product */
+	if (((cdev->desc).idVendor == 0x1d6b)
+		&& ((cdev->desc).idProduct == 0x102)) {
+		int ret = 0;
+
+		ret = request_irq(GPIO_IRQ_NUM, dwc_usb3_gpio_irq,
+				IRQF_SHARED | IRQF_DISABLED,
+				gpio_driver_name, cdev->driver);
+		uvc_flag = 1;
+		if (ret)
+			return ret;
+	}
+#endif
 	/* has userspace failed to provide a serial number? */
 	if (composite->needs_serial && !cdev->desc.iSerialNumber)
 		WARNING(cdev, "userspace failed to provide iSerialNumber\n");
-
+#ifdef CONFIG_HIUSB_SS_DEVICE
+	writel(0x8000, __io_address(0x12030004));
+	mdelay(200);
+	writel(0x30c01004, __io_address(0x1018c110));
+	mdelay(200);
+	writel(0x30c02004, __io_address(0x1018c110));
+	mdelay(200);
+#endif
+#ifdef CONFIG_HIUSB_DEVICE2_0
+	usb2_base_reg = ioremap_nocache(USB2_BASE_REG, 0x1000);
+	usb2_reg = readl(usb2_base_reg + USB2_OTG_BASE);
+	usb2_reg &= ~(USB2_PHY_DPPULL_DOWN);
+	usb2_reg |= DWC_OTG_EN;
+	writel(usb2_reg, usb2_base_reg + USB2_OTG_BASE);
+	iounmap(usb2_base_reg);
+#endif
 	INFO(cdev, "%s ready\n", composite->name);
 	return 0;
 
@@ -2129,7 +2232,26 @@ EXPORT_SYMBOL_GPL(usb_composite_probe);
  */
 void usb_composite_unregister(struct usb_composite_driver *driver)
 {
+#ifdef CONFIG_HIUSB_DEVICE2_0
+	void __iomem *usb2_base_reg;
+	int usb2_reg;
+#endif
+
 	usb_gadget_unregister_driver(&driver->gadget_driver);
+#ifdef CONFIG_USB3_DEVICE_GPIO_CTRL
+	if (uvc_flag) {
+		free_irq(GPIO_IRQ_NUM, driver);
+		uvc_flag = 0;
+	}
+#endif
+#ifdef CONFIG_HIUSB_DEVICE2_0
+	usb2_base_reg = ioremap_nocache(USB2_BASE_REG, 0x1000);
+	usb2_reg = readl(usb2_base_reg + USB2_OTG_BASE);
+	usb2_reg |= USB2_PHY_DPPULL_DOWN;
+	usb2_reg &= ~DWC_OTG_EN;
+	writel(usb2_reg, usb2_base_reg + USB2_OTG_BASE);
+	iounmap(usb2_base_reg);
+#endif
 }
 EXPORT_SYMBOL_GPL(usb_composite_unregister);
 

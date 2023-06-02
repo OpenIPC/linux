@@ -7,19 +7,51 @@
  * under the terms and conditions of the GNU General Public License,
  * version 2, as published by the Free Software Foundation.
  */
+
+#include <linux/delay.h>
 #include <linux/smp.h>
 #include <linux/io.h>
 #include <linux/of_address.h>
-
 #include <asm/cacheflush.h>
 #include <asm/smp_plat.h>
 #include <asm/smp_scu.h>
 
+#if (defined(CONFIG_ARCH_HI3531D) \
+	|| defined(CONFIG_ARCH_HI3536C) \
+	|| defined(CONFIG_ARCH_HI3520DV400) \
+	|| defined(CONFIG_ARCH_HI3521D))
+#include <mach/io.h>
+#include <mach/platform.h>
+#endif
+
 #include "core.h"
 
 #define HIX5HD2_BOOT_ADDRESS		0xffff0000
+#define HI3519_BOOT_ADDRESS		0x00000000
+#define HI3559_BOOT_ADDRESS		0x00000000
+#define HI3516AV200_BOOT_ADDRESS	0x00000000
+#define HI3536C_BOOT_ADDRESS	0x00000000
+#define HI3531D_BOOT_ADDRESS	0x00000000
+#define HI3520DV400_BOOT_ADDRESS	0x00000000
+#define HI3521D_BOOT_ADDRESS	0x00000000
 
+static void __iomem *hi3519_bootaddr;
+static void __iomem *hi3559_bootaddr;
+static void __iomem *hi3516av200_bootaddr;
+static void __iomem *hi3536c_bootaddr;
+static void __iomem *hi3531d_bootaddr;
+static void __iomem *hi3520dv400_bootaddr;
+static void __iomem *hi3521d_bootaddr;
 static void __iomem *ctrl_base;
+static DEFINE_SPINLOCK(boot_lock);
+
+static void __cpuinit hi_write_pen_release(int val)
+{
+	pen_release = val;
+	smp_wmb();
+	__cpuc_flush_dcache_area((void *)&pen_release, sizeof(pen_release));
+	outer_clean_range(__pa(&pen_release), __pa(&pen_release + 1));
+}
 
 void hi3xxx_set_cpu_jump(int cpu, void *jump_addr)
 {
@@ -132,5 +164,761 @@ struct smp_operations hix5hd2_smp_ops __initdata = {
 #endif
 };
 
+void hi3519_set_cpu_jump(unsigned int cpu, phys_addr_t jumpaddr)
+{
+	/* only cortex-a17 boot from phys 0 address */
+	if (cpu != 1)
+		return;
+	/* ldr pc, [rc, #-4] */
+	writel_relaxed(0xe51ff004, hi3519_bootaddr);
+	/* pc jump phy address */
+	writel_relaxed(jumpaddr, hi3519_bootaddr + 4);
+
+	dsb();
+}
+
+void hi3516av200_set_cpu_jump(unsigned int cpu, phys_addr_t jumpaddr)
+{
+	/* only cortex-a17 boot from phys 0 address */
+	if (cpu != 1)
+		return;
+	/* ldr pc, [rc, #-4] */
+	writel_relaxed(0xe51ff004, hi3516av200_bootaddr);
+	/* pc jump phy address */
+	writel_relaxed(jumpaddr, hi3516av200_bootaddr + 4);
+
+	dsb();
+}
+
+void hi3559_set_cpu_jump(unsigned int cpu, phys_addr_t jumpaddr)
+{
+	/* only cortex-a17 boot from phys 0 address */
+	if (cpu != 1)
+		return;
+	/* ldr pc, [rc, #-4] */
+	writel_relaxed(0xe51ff004, hi3559_bootaddr);
+	/* pc jump phy address */
+	writel_relaxed(jumpaddr, hi3559_bootaddr + 4);
+
+	dsb();
+}
+
+static void __init hi3519_smp_prepare_cpus(unsigned int max_cpus)
+{
+	if (!hi3519_bootaddr)
+		hi3519_bootaddr = ioremap(HI3519_BOOT_ADDRESS, PAGE_SIZE);
+
+	sync_cache_w(&hi3519_bootaddr);
+}
+
+static void __init hi3516av200_smp_prepare_cpus(unsigned int max_cpus)
+{
+	if (!hi3516av200_bootaddr)
+		hi3516av200_bootaddr = ioremap(HI3516AV200_BOOT_ADDRESS, PAGE_SIZE);
+
+	sync_cache_w(&hi3516av200_bootaddr);
+}
+
+static void __init hi3559_smp_prepare_cpus(unsigned int max_cpus)
+{
+	if (!hi3559_bootaddr)
+		hi3559_bootaddr = ioremap(HI3559_BOOT_ADDRESS, PAGE_SIZE);
+
+	sync_cache_w(&hi3559_bootaddr);
+}
+
+static int hi3519_boot_secondary(unsigned int cpu, struct task_struct *idle)
+{
+	flush_cache_all();
+
+	hi3519_set_cpu_jump(cpu, virt_to_phys(hi3519_secondary_startup));
+
+	hi_pmc_power_up();
+
+	return 0;
+}
+
+static int hi3516av200_boot_secondary(unsigned int cpu, struct task_struct *idle)
+{
+	flush_cache_all();
+
+	hi3516av200_set_cpu_jump(cpu, virt_to_phys(hi3516av200_secondary_startup));
+
+	hi_pmc_power_up();
+
+	return 0;
+}
+
+static int hi3559_boot_secondary(unsigned int cpu, struct task_struct *idle)
+{
+	flush_cache_all();
+
+	hi3559_set_cpu_jump(cpu, virt_to_phys(hi3559_secondary_startup));
+
+	hi_pmc_power_up();
+
+	return 0;
+}
+
+static void HI3519_secondary_init(unsigned int cpu)
+{
+/*
+	hi_pmc_power_up_done();
+*/
+}
+
+static void HI3516av200_secondary_init(unsigned int cpu)
+{
+/*
+	hi_pmc_power_up_done();
+*/
+}
+
+static void HI3559_secondary_init(unsigned int cpu)
+{
+/*
+	hi_pmc_power_up_done();
+*/
+}
+
+void hi3536c_set_cpu_jump(unsigned int cpu, phys_addr_t jumpaddr)
+{
+	/* only cortex-a17 boot from phys 0 address */
+	if (cpu != 1)
+		return;
+	/* ldr pc, [rc, #-4] */
+	writel_relaxed(0xe51ff004, hi3536c_bootaddr);
+	/* pc jump phy address */
+	writel_relaxed(jumpaddr, hi3536c_bootaddr + 4);
+
+	dsb();
+}
+
+void hi3531d_set_cpu_jump(unsigned int cpu, phys_addr_t jumpaddr)
+{
+	/* only cortex-a17 boot from phys 0 address */
+	if (cpu != 1)
+		return;
+	/* ldr pc, [rc, #-4] */
+	writel_relaxed(0xe51ff004, hi3531d_bootaddr);
+	/* pc jump phy address */
+	writel_relaxed(jumpaddr, hi3531d_bootaddr + 4);
+
+	dsb();
+}
+
+void hi3520dv400_set_cpu_jump(unsigned int cpu, phys_addr_t jumpaddr)
+{
+	/* only cortex-a17 boot from phys 0 address */
+	if (cpu != 1)
+		return;
+	/* ldr pc, [rc, #-4] */
+	writel_relaxed(0xe51ff004, hi3520dv400_bootaddr);
+	/* pc jump phy address */
+	writel_relaxed(jumpaddr, hi3520dv400_bootaddr + 4);
+
+	dsb();
+}
+
+void hi3521d_set_cpu_jump(unsigned int cpu, phys_addr_t jumpaddr)
+{
+	/* only cortex-a17 boot from phys 0 address */
+	if (cpu != 1)
+		return;
+	/* ldr pc, [rc, #-4] */
+	writel_relaxed(0xe51ff004, hi3521d_bootaddr);
+	/* pc jump phy address */
+	writel_relaxed(jumpaddr, hi3521d_bootaddr + 4);
+
+	dsb();
+}
+
+static void __iomem *scu_base_addr(void)
+{
+#ifdef CONFIG_ARCH_HI3531D
+	return __io_address(A9_PERI_BASE + REG_A9_PERI_SCU);
+#elif (defined(CONFIG_ARCH_HI3536C) \
+	|| defined(CONFIG_ARCH_HI3520DV400) \
+	|| defined(CONFIG_ARCH_HI3521D))
+	return __io_address(A7_PERI_BASE + REG_A7_PERI_SCU);
+#endif
+	return NULL;
+}
+
+static void __init hi3536c_smp_prepare_cpus(unsigned int max_cpus)
+{
+	void __iomem *base = NULL;
+
+	base = scu_base_addr();
+	if (!base)
+		return;
+
+	scu_enable(base);
+}
+
+static void __init hi3531d_smp_prepare_cpus(unsigned int max_cpus)
+{
+	scu_enable(scu_base_addr());
+}
+
+static void __init hi3520dv400_smp_prepare_cpus(unsigned int max_cpus)
+{
+	scu_enable(scu_base_addr());
+}
+
+static void __init hi3521d_smp_prepare_cpus(unsigned int max_cpus)
+{
+	scu_enable(scu_base_addr());
+}
+
+/*****************************************************************************/
+/*
+ * copy startup code to sram, and flash cache.
+ * @start_addr: slave start phy address
+ * @jump_addr: slave jump phy address
+ */
+static void hi3536c_set_scu_boot_addr(unsigned int start_addr,
+		unsigned int jump_addr)
+{
+	unsigned int *virtaddr;
+	unsigned int *p_virtaddr;
+
+	p_virtaddr = virtaddr = ioremap(start_addr, PAGE_SIZE);
+
+	*p_virtaddr++ = 0xe51ff004; /* ldr  pc, [pc, #-4] */
+	*p_virtaddr++ = jump_addr;  /* pc jump phy address */
+
+	smp_wmb();
+
+	__cpuc_flush_dcache_area((void *)virtaddr,
+			(size_t)((char *)p_virtaddr - (char *)virtaddr));
+	outer_clean_range(__pa(virtaddr), __pa(p_virtaddr));
+
+	iounmap(virtaddr);
+}
+
+/*****************************************************************************/
+/*
+ * copy startup code to sram, and flash cache.
+ * @start_addr: slave start phy address
+ * @jump_addr: slave jump phy address
+ */
+static void hi3531d_set_scu_boot_addr(unsigned int start_addr,
+		unsigned int jump_addr)
+{
+	unsigned int *virtaddr;
+	unsigned int *p_virtaddr;
+
+	p_virtaddr = virtaddr = ioremap(start_addr, PAGE_SIZE);
+
+	*p_virtaddr++ = 0xe51ff004; /* ldr  pc, [pc, #-4] */
+	*p_virtaddr++ = jump_addr;  /* pc jump phy address */
+
+	smp_wmb();
+
+	__cpuc_flush_dcache_area((void *)virtaddr,
+			(size_t)((char *)p_virtaddr - (char *)virtaddr));
+	outer_clean_range(__pa(virtaddr), __pa(p_virtaddr));
+
+	iounmap(virtaddr);
+}
+ 
+static void hi3520dv400_set_scu_boot_addr(unsigned int start_addr,
+		unsigned int jump_addr)
+{
+	unsigned int *virtaddr;
+	unsigned int *p_virtaddr;
+
+	p_virtaddr = virtaddr = ioremap(start_addr, PAGE_SIZE);
+
+	*p_virtaddr++ = 0xe51ff004; /* ldr  pc, [pc, #-4] */
+	*p_virtaddr++ = jump_addr;  /* pc jump phy address */
+
+	smp_wmb();
+
+	__cpuc_flush_dcache_area((void *)virtaddr,
+			(size_t)((char *)p_virtaddr - (char *)virtaddr));
+	outer_clean_range(__pa(virtaddr), __pa(p_virtaddr));
+
+	iounmap(virtaddr);
+}
+
+static void hi3521d_set_scu_boot_addr(unsigned int start_addr,
+		unsigned int jump_addr)
+{
+	unsigned int *virtaddr;
+	unsigned int *p_virtaddr;
+
+	p_virtaddr = virtaddr = ioremap(start_addr, PAGE_SIZE);
+
+	*p_virtaddr++ = 0xe51ff004; /* ldr  pc, [pc, #-4] */
+	*p_virtaddr++ = jump_addr;  /* pc jump phy address */
+
+	smp_wmb();
+
+	__cpuc_flush_dcache_area((void *)virtaddr,
+			(size_t)((char *)p_virtaddr - (char *)virtaddr));
+	outer_clean_range(__pa(virtaddr), __pa(p_virtaddr));
+
+	iounmap(virtaddr);
+}
+
+static int __cpuinit hi3536c_boot_secondary(unsigned int cpu,
+		struct task_struct *idle)
+{
+	unsigned long timeout;
+
+	hi3536c_set_scu_boot_addr(0x00000000,
+			(unsigned int)virt_to_phys(hi3536c_secondary_startup));
+
+	/*
+	 * set synchronisation state between this boot processor
+	 * and the secondary one
+	 */
+	spin_lock(&boot_lock);
+
+	hi3536c_scu_power_up(cpu);
+	/*
+	 * The secondary processor is waiting to be released from
+	 * the holding pen - release it, then wait for it to flag
+	 * that it has been released by resetting pen_release.
+	 *
+	 * Note that "pen_release" is the hardware CPU ID, whereas
+	 * "cpu" is Linux's internal ID.
+	 */
+	hi_write_pen_release(cpu);
+
+	/*
+	 * Send the secondary CPU a soft interrupt, thereby causing
+	 * the boot monitor to read the system wide flags register,
+	 * and branch to the address found there.
+	 */
+	arch_send_wakeup_ipi_mask(cpumask_of(cpu));
+
+	/*
+	 * Send the secondary CPU a soft interrupt, thereby causing
+	 * the boot monitor to read the system wide flags register,
+	 * and branch to the address found there.
+	 */
+	timeout = jiffies + (5 * HZ);
+	while (time_before(jiffies, timeout)) {
+		smp_rmb();
+		if (pen_release == -1)
+			break;
+
+		udelay(10);
+	}
+
+	/*
+	 * now the secondary core is starting up let it run its
+	 * calibrations, then wait for it to finish
+	 */
+	spin_unlock(&boot_lock);
+
+	return pen_release != -1 ? -ENOSYS : 0;
+}
+
+static int hi3531d_boot_secondary(unsigned int cpu, struct task_struct *idle)
+{
+	unsigned long timeout;
+
+	hi3531d_set_scu_boot_addr(0x00000000,
+			(unsigned int)virt_to_phys(hi3531d_secondary_startup));
+
+	/*
+	 *  * set synchronisation state between this boot processor
+	 *   * and the secondary one
+	 *    */
+	spin_lock(&boot_lock);
+
+	hi3531d_scu_power_up(cpu);
+
+	/*
+	 * The secondary processor is waiting to be released from
+	 * the holding pen - release it, then wait for it to flag
+	 * that it has been released by resetting pen_release.
+	 *
+	 * Note that "pen_release" is the hardware CPU ID, whereas
+	 * "cpu" is Linux's internal ID.
+	 */
+	hi_write_pen_release(cpu);
+
+	/*
+	 * Send the secondary CPU a soft interrupt, thereby causing
+	 * the boot monitor to read the system wide flags register,
+	 * and branch to the address found there.
+	 */
+	arch_send_wakeup_ipi_mask(cpumask_of(cpu));
+
+	/*
+	 * Send the secondary CPU a soft interrupt, thereby causing
+	 * the boot monitor to read the system wide flags register,
+	 * and branch to the address found there.
+	 */
+	timeout = jiffies + (5 * HZ);
+	while (time_before(jiffies, timeout)) {
+		smp_rmb();
+		if (pen_release == -1)
+			break;
+			udelay(10);
+	}
+
+	/*
+	 * now the secondary core is starting up let it run its
+	 * calibrations, then wait for it to finish
+	 */
+	spin_unlock(&boot_lock);
+	return pen_release != -1 ? -ENOSYS : 0;
+}
+
+static int __cpuinit hi3520dv400_boot_secondary(unsigned int cpu,
+		struct task_struct *idle)
+{
+	unsigned long timeout;
+
+	hi3520dv400_set_scu_boot_addr(0x00000000,
+			(unsigned int)virt_to_phys(hi3520dv400_secondary_startup));
+
+	/*
+	 * set synchronisation state between this boot processor
+	 * and the secondary one
+	 */
+	spin_lock(&boot_lock);
+
+	hi3520dv400_scu_power_up(cpu);
+	/*
+	 * The secondary processor is waiting to be released from
+	 * the holding pen - release it, then wait for it to flag
+	 * that it has been released by resetting pen_release.
+	 *
+	 * Note that "pen_release" is the hardware CPU ID, whereas
+	 * "cpu" is Linux's internal ID.
+	 */
+	hi_write_pen_release(cpu);
+
+	/*
+	 * Send the secondary CPU a soft interrupt, thereby causing
+	 * the boot monitor to read the system wide flags register,
+	 * and branch to the address found there.
+	 */
+	arch_send_wakeup_ipi_mask(cpumask_of(cpu));
+
+	/*
+	 * Send the secondary CPU a soft interrupt, thereby causing
+	 * the boot monitor to read the system wide flags register,
+	 * and branch to the address found there.
+	 */
+	timeout = jiffies + (5 * HZ);
+	while (time_before(jiffies, timeout)) {
+		smp_rmb();
+		if (pen_release == -1)
+			break;
+
+		udelay(10);
+	}
+
+	/*
+	 * now the secondary core is starting up let it run its
+	 * calibrations, then wait for it to finish
+	 */
+	spin_unlock(&boot_lock);
+
+	return pen_release != -1 ? -ENOSYS : 0;
+}
+
+static int __cpuinit hi3521d_boot_secondary(unsigned int cpu,
+		struct task_struct *idle)
+{
+	unsigned long timeout;
+
+	hi3521d_set_scu_boot_addr(0x00000000,
+			(unsigned int)virt_to_phys(hi3521d_secondary_startup));
+
+	/*
+	 * set synchronisation state between this boot processor
+	 * and the secondary one
+	 */
+	spin_lock(&boot_lock);
+
+	hi3521d_scu_power_up(cpu);
+	/*
+	 * The secondary processor is waiting to be released from
+	 * the holding pen - release it, then wait for it to flag
+	 * that it has been released by resetting pen_release.
+	 *
+	 * Note that "pen_release" is the hardware CPU ID, whereas
+	 * "cpu" is Linux's internal ID.
+	 */
+	hi_write_pen_release(cpu);
+
+	/*
+	 * Send the secondary CPU a soft interrupt, thereby causing
+	 * the boot monitor to read the system wide flags register,
+	 * and branch to the address found there.
+	 */
+	arch_send_wakeup_ipi_mask(cpumask_of(cpu));
+
+	/*
+	 * Send the secondary CPU a soft interrupt, thereby causing
+	 * the boot monitor to read the system wide flags register,
+	 * and branch to the address found there.
+	 */
+	timeout = jiffies + (5 * HZ);
+	while (time_before(jiffies, timeout)) {
+		smp_rmb();
+		if (pen_release == -1)
+			break;
+
+		udelay(10);
+	}
+
+	/*
+	 * now the secondary core is starting up let it run its
+	 * calibrations, then wait for it to finish
+	 */
+	spin_unlock(&boot_lock);
+
+	return pen_release != -1 ? -ENOSYS : 0;
+}
+
+static void __cpuinit hi3536c_secondary_init(unsigned int cpu)
+{
+	/*
+	 * let the primary processor know we're out of the
+	 * pen, then head off into the C entry point
+	 */
+	hi_write_pen_release(-1);
+
+	/*
+	 * Synchronise with the boot thread.
+	 */
+	spin_lock(&boot_lock);
+	spin_unlock(&boot_lock);
+}
+
+static void hi3531d_secondary_init(unsigned int cpu)
+{
+	/*
+	 * 1. enable L1 prefetch                       [2]
+	 * 2. enable L2 prefetch hint                  [1]a
+	 * 3. enable write full line of zeros mode.    [3]a
+	 * 4. enable allocation in one cache way only. [8]
+	 *   a: This feature must be enabled only when the slaves
+	 *      connected on the Cortex-A17 AXI master port support it.
+	 */
+	asm volatile (
+	"   mrc p15, 0, r0, c1, c0, 1\n"
+	"   orr r0, r0, #0x0104\n"
+	"   orr r0, r0, #0x02\n"
+	"   mcr p15, 0, r0, c1, c0, 1\n"
+	  :
+	  :
+	  : "r0", "cc");
+
+	/*
+	 *  * let the primary processor know we're out of the
+	 *   * pen, then head off into the C entry point
+	 *    */
+	hi_write_pen_release(-1);
+
+	/*
+	 * Synchronise with the boot thread.
+	 */
+	spin_lock(&boot_lock);
+	spin_unlock(&boot_lock);
+}
+
+static void __cpuinit hi3520dv400_secondary_init(unsigned int cpu)
+{
+	/*
+	 * let the primary processor know we're out of the
+	 * pen, then head off into the C entry point
+	 */
+	hi_write_pen_release(-1);
+
+	/*
+	 * Synchronise with the boot thread.
+	 */
+	spin_lock(&boot_lock);
+	spin_unlock(&boot_lock);
+}
+
+static void __cpuinit hi3521d_secondary_init(unsigned int cpu)
+{
+	/*
+	 * let the primary processor know we're out of the
+	 * pen, then head off into the C entry point
+	 */
+	hi_write_pen_release(-1);
+
+	/*
+	 * Synchronise with the boot thread.
+	 */
+	spin_lock(&boot_lock);
+	spin_unlock(&boot_lock);
+}
+
+static void __init hi3536c_smp_init_cpus(void)
+{
+	unsigned int i, ncores, l2ctlr;
+
+	asm volatile("mrc p15, 1, %0, c9, c0, 2\n" : "=r" (l2ctlr));
+	ncores = ((l2ctlr >> 24) & 0x3) + 1;
+
+	/* sanity check */
+	if (ncores > NR_CPUS) {
+		printk(KERN_WARNING
+				"Realview: no. of cores (%d) greater than configured "
+				"maximum of %d - clipping\n",
+				ncores, NR_CPUS);
+		ncores = NR_CPUS;
+	}
+
+	for (i = 0; i < ncores; i++)
+		set_cpu_possible(i, true);
+}
+
+static void __init hi3531d_smp_init_cpus(void)
+{
+	void __iomem *scu_base = scu_base_addr();
+	unsigned int i, ncores;
+
+	ncores = scu_base ? scu_get_core_count(scu_base) : 1;
+
+	/* sanity check */
+	if (ncores > NR_CPUS) {
+		printk(KERN_WARNING
+				"Realview: no. of cores (%d) greater than configured "
+				"maximum of %d - clipping\n",
+				ncores, NR_CPUS);
+		ncores = NR_CPUS;
+	}
+
+	for (i = 0; i < ncores; i++)
+		set_cpu_possible(i, true);
+}
+
+static void __init hi3520dv400_smp_init_cpus(void)
+{
+	unsigned int i, ncores, l2ctlr;
+
+	asm volatile("mrc p15, 1, %0, c9, c0, 2\n" : "=r" (l2ctlr));
+	ncores = ((l2ctlr >> 24) & 0x3) + 1;
+
+	/* sanity check */
+	if (ncores > NR_CPUS) {
+		printk(KERN_WARNING
+				"Realview: no. of cores (%d) greater than configured "
+				"maximum of %d - clipping\n",
+				ncores, NR_CPUS);
+		ncores = NR_CPUS;
+	}
+
+	for (i = 0; i < ncores; i++)
+		set_cpu_possible(i, true);
+}
+
+static void __init hi3521d_smp_init_cpus(void)
+{
+	unsigned int i, ncores, l2ctlr;
+
+	asm volatile("mrc p15, 1, %0, c9, c0, 2\n" : "=r" (l2ctlr));
+	ncores = ((l2ctlr >> 24) & 0x3) + 1;
+
+	/* sanity check */
+	if (ncores > NR_CPUS) {
+		printk(KERN_WARNING
+				"Realview: no. of cores (%d) greater than configured "
+				"maximum of %d - clipping\n",
+				ncores, NR_CPUS);
+		ncores = NR_CPUS;
+	}
+
+	for (i = 0; i < ncores; i++)
+		set_cpu_possible(i, true);
+}
+
+struct smp_operations hi3536c_smp_ops __initdata = {
+	.smp_init_cpus = hi3536c_smp_init_cpus,
+	.smp_prepare_cpus = hi3536c_smp_prepare_cpus,
+	.smp_secondary_init = hi3536c_secondary_init,
+	.smp_boot_secondary = hi3536c_boot_secondary,
+#ifdef CONFIG_HOTPLUG_CPU
+	.cpu_die			= hi3536c_cpu_die,
+	.cpu_kill			= hi3536c_cpu_kill,
+#endif
+};
+
+struct smp_operations hi3531d_smp_ops __initdata = {
+	.smp_init_cpus = hi3531d_smp_init_cpus,
+	.smp_prepare_cpus = hi3531d_smp_prepare_cpus,
+	.smp_secondary_init = hi3531d_secondary_init,
+	.smp_boot_secondary = hi3531d_boot_secondary,
+#ifdef CONFIG_HOTPLUG_CPU
+	.cpu_die			= hi3531d_cpu_die,
+	.cpu_kill			= hi3531d_cpu_kill,
+#endif
+};
+
+struct smp_operations hi3520dv400_smp_ops __initdata = {
+	.smp_init_cpus = hi3520dv400_smp_init_cpus,
+	.smp_prepare_cpus = hi3520dv400_smp_prepare_cpus,
+	.smp_secondary_init = hi3520dv400_secondary_init,
+	.smp_boot_secondary = hi3520dv400_boot_secondary,
+#ifdef CONFIG_HOTPLUG_CPU
+	.cpu_die			= hi3520dv400_cpu_die,
+	.cpu_kill			= hi3520dv400_cpu_kill,
+#endif
+};
+
+struct smp_operations hi3521d_smp_ops __initdata = {
+	.smp_init_cpus = hi3521d_smp_init_cpus,
+	.smp_prepare_cpus = hi3521d_smp_prepare_cpus,
+	.smp_secondary_init = hi3521d_secondary_init,
+	.smp_boot_secondary = hi3521d_boot_secondary,
+#ifdef CONFIG_HOTPLUG_CPU
+	.cpu_die			= hi3521d_cpu_die,
+	.cpu_kill			= hi3521d_cpu_kill,
+#endif
+};
+
+struct smp_operations hi3519_smp_ops __initdata = {
+	.smp_prepare_cpus	= hi3519_smp_prepare_cpus,
+	.smp_boot_secondary	= hi3519_boot_secondary,
+	.smp_secondary_init	= HI3519_secondary_init,
+#ifdef CONFIG_HOTPLUG_CPU
+	.cpu_die		= hi3519_cpu_die,
+	.cpu_kill		= hi3519_cpu_kill,
+#endif
+};
+
+struct smp_operations hi3516av200_smp_ops __initdata = {
+	.smp_prepare_cpus	= hi3516av200_smp_prepare_cpus,
+	.smp_boot_secondary	= hi3516av200_boot_secondary,
+	.smp_secondary_init	= HI3516av200_secondary_init,
+#ifdef CONFIG_HOTPLUG_CPU
+	.cpu_die		= hi3516av200_cpu_die,
+	.cpu_kill		= hi3516av200_cpu_kill,
+#endif
+};
+
+struct smp_operations hi3559_smp_ops __initdata = {
+	.smp_prepare_cpus	= hi3559_smp_prepare_cpus,
+	.smp_boot_secondary	= hi3559_boot_secondary,
+	.smp_secondary_init	= HI3559_secondary_init,
+#ifdef CONFIG_HOTPLUG_CPU
+	.cpu_die		= hi3559_cpu_die,
+	.cpu_kill		= hi3559_cpu_kill,
+#endif
+};
+
+
 CPU_METHOD_OF_DECLARE(hi3xxx_smp, "hisilicon,hi3620-smp", &hi3xxx_smp_ops);
 CPU_METHOD_OF_DECLARE(hix5hd2_smp, "hisilicon,hix5hd2-smp", &hix5hd2_smp_ops);
+CPU_METHOD_OF_DECLARE(hi3519_smp, "hisilicon,hi3519-smp", &hi3519_smp_ops);
+CPU_METHOD_OF_DECLARE(hi3559_smp, "hisilicon,hi3559-smp", &hi3559_smp_ops);
+CPU_METHOD_OF_DECLARE(hi3516av200_smp, "hisilicon,hi3516av200-smp", &hi3516av200_smp_ops);
+CPU_METHOD_OF_DECLARE(hi3536c_smp, "hisilicon,hi3536c-smp", &hi3536c_smp_ops);
+CPU_METHOD_OF_DECLARE(hi3531d_smp, "hisilicon,hi3531d-smp", &hi3531d_smp_ops);
+CPU_METHOD_OF_DECLARE(hi3520dv400_smp, "hisilicon,hi3520dv400-smp", &hi3520dv400_smp_ops);
+CPU_METHOD_OF_DECLARE(hi3521d_smp, "hisilicon,hi3521d-smp", &hi3521d_smp_ops);

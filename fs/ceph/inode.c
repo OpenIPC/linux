@@ -1712,6 +1712,10 @@ int ceph_setattr(struct dentry *dentry, struct iattr *attr)
 	if (err != 0)
 		return err;
 
+	err = setattr_killpriv(dentry, attr);
+	if (err != 0)
+		return err;
+
 	req = ceph_mdsc_create_request(mdsc, CEPH_MDS_OP_SETATTR,
 				       USE_AUTH_MDS);
 	if (IS_ERR(req))

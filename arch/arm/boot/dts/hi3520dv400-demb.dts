@@ -1,0 +1,259 @@
+/*
+ * Copyright (c) 2013-2014 Linaro Ltd.
+ * Copyright (c) 2015-2017 HiSilicon Technologies Co., Ltd.
+ *
+ * This program is free software; you can redistribute  it and/or modify it
+ * under  the terms of  the GNU General  Public License as published by the
+ * Free Software Foundation;  either version 2 of the  License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+/dts-v1/;
+#include "hi3520dv400.dtsi"
+
+/ {
+	model = "Hisilicon HI3520DV400 DEMO Board";
+	compatible = "hisilicon,hi3520dv400";
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		enable-method = "hisilicon,hi3520dv400-smp";
+
+		cpu@0 {
+			compatible = "arm,cortex-a7";
+			device_type = "cpu";
+			clock-frequency = <HI3520DV400_FIXED_1500M>;
+			reg = <0>;
+		};
+
+		cpu@1 {
+			compatible = "arm,cortex-a7";
+			device_type = "cpu";
+			clock-frequency = <HI3520DV400_FIXED_1500M>;
+			reg = <1>;
+		};
+	};
+
+	memory {
+		device_type = "memory";
+		reg = <0x80000000 0x40000000>;
+	};
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&spi_bus0{
+	status = "okay";
+	num-cs = <2>;
+
+	spidev@0 {
+		compatible = "spidev";
+		reg = <0>;
+		pl022,interface = <0>;
+		pl022,com-mode = <0>;
+		spi-max-frequency = <31250000>;
+	};
+
+	spidev@1 {
+		compatible = "spidev";
+		reg = <1>;
+		pl022,interface = <0>;
+		pl022,com-mode = <0>;
+		spi-max-frequency = <31250000>;
+	};
+};
+
+&hisfc {
+	hi_sfc {
+		compatible = "jedec,spi-nor";
+		reg = <0>;
+		spi-max-frequency = <160000000>;
+		m25p,fast-read;
+	};
+};
+
+&hisnfc {
+	hinand {
+		compatible = "jedec,spi-nand";
+		reg = <0>;
+		spi-max-frequency = <160000000>;
+	};
+};
+
+&hidmac {
+    status = "okay";
+};
+
+&mdio {
+	ethphy: ethernet-phy@1 {
+		reg = <1>;
+	};
+};
+
+&higmac {
+	phy-handle = <&ethphy>;
+	phy-mode = "rgmii";
+};
+
+&pmux {
+
+	viadclk_demob_pmux: viadclk_demob_pmux{
+		pinctrl-single,pins = <
+			0x0000 0x2
+			0x0024 0x2
+			0x0048 0x2
+			0x0070 0x2
+			0x0094 0x2
+		>;
+	};
+
+	viadclk_sck_pmux: viadclk_sck_pmux{
+		pinctrl-single,pins = <
+			0x0000 0x2
+			0x004c 0x2
+			0x0024 0x2
+			0x0048 0x2
+			0x0070 0x2
+			0x0094 0x2
+		>;
+	};
+
+	vicap_demob_pmux: vicap_demob_pmux{
+		pinctrl-single,pins = <
+			0x0004 0x1
+			0x0008 0x1
+			0x000c 0x1
+			0x0010 0x1
+			0x0014 0x1
+			0x0018 0x1
+			0x001c 0x1
+			0x0020 0x1
+			0x0028 0x1
+			0x002c 0x1
+			0x0030 0x1
+			0x0034 0x1
+			0x0038 0x1
+			0x003c 0x1
+			0x0040 0x1
+			0x0044 0x1
+		>;
+	};
+
+	vo_vga_pmux: vo_vga_pmux{
+		pinctrl-single,pins = <
+			0x0174 0x1
+			0x017c 0x1
+			0x0180 0x1
+		>;
+	};
+
+	vo_hdmi_pmux: vo_hdmi_pmux{
+		pinctrl-single,pins = <
+			0x0098 0x1
+			0x009c 0X1
+		>;
+	};
+
+	i2s0_pmux: i2s0_pmux {
+		pinctrl-single,pins = <
+			0x00a0 0x1
+			0x00a4 0x1
+			0x00a8 0x1
+		>;
+	};
+
+	i2s1_pmux: i2s1_pmux {
+		pinctrl-single,pins = <
+			0x00b0 0x1
+			0x00b4 0x1
+		>;
+	};
+
+	i2s2_demob_pmux: i2s2_demob_pmux {
+		pinctrl-single,pins = <
+			0x00b8 0x1
+			0x00bc 0x1
+			0x00c0 0x1
+		>;
+	};
+
+	i2s2_sck_pmux: i2s2_sck_pmux {
+		pinctrl-single,pins = <
+			0x00b8 0x1
+			0x00bc 0x1
+			0x00c0 0x1
+			0x00ac 0x2
+		>;
+	};
+};
+
+&sys_config_ctrl {
+	padctrl-ability,demo = <
+		0x120f08a0 0x120
+		0x120f08a4 0x130
+		0x120f08a8 0x130
+		0x120f08ac 0x120
+		0x120f08b0 0x130
+		0x120f08b4 0x130
+		0x120f08b8 0x120
+		0x120f08bc 0x130
+		0x120f08c0 0x130
+		0x120f0800 0x140
+		0x120f084c 0x140
+		0x120f0898 0x40
+		0x120f089c 0x40
+	>;
+
+	sysctrl-ddr,pins = <
+		0x12040098 0x00ffff1f
+		0x1204009c 0x8888
+		0x12040168 0x00000f55
+		0x1212007c 0x35533201
+		0x12120080 0x65335526
+		0x12120084 0x66666666
+		0x12120094 0x65       /*VIVO axi max: 7*/
+	>;
+	dllctrl-ddr,pins = <
+		0x120401e0 0x0      /*DLL rst, disable*/
+		0x120401ec 0x0
+		0x120401f8 0x0
+		0x12040204 0x0
+	        0x120401e0 0x4      /*DLL rst, disable*/
+		0x120401ec 0x4
+		0x120401f8 0x4
+		0x12040204 0x4
+		0x120401e0 0x6       /*DLL 150M and DLL rst, disable*/
+		0x120401ec 0x6
+		0x120401f8 0x6
+		0x12040204 0x6
+	        0x120401e0 0x7       /*DLL 150M and DLL rst, enable*/
+		0x120401ec 0x7
+		0x120401f8 0x7
+		0x12040204 0x7
+	        0x120401e0 0x3       /*DLL 150M and DLL unrst, enable*/
+		0x120401ec 0x3
+		0x120401f8 0x3
+		0x12040204 0x3
+		0x120401e4 0x10      /*dll_slave_en:1,dll_stop:0*/
+		0x120401F0 0x10
+		0x120401fC 0x10
+		0x12040208 0x10
+	>;
+
+	pinctrl-names =  "demo", "sck", "default";
+	pinctrl-0 = <&viadclk_demob_pmux &vicap_demob_pmux &i2s0_pmux  &i2s2_demob_pmux &vo_hdmi_pmux &vo_vga_pmux>;
+	pinctrl-1 = <&viadclk_sck_pmux   &vicap_demob_pmux &i2s0_pmux  &i2s1_pmux &i2s2_sck_pmux &vo_hdmi_pmux &vo_vga_pmux >;
+	pinctrl-2 = <>;
+};

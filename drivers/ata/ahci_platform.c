@@ -22,6 +22,11 @@
 #include <linux/ahci_platform.h>
 #include "ahci.h"
 
+static unsigned int ncq_en = CONFIG_HI_SATA_NCQ;
+module_param(ncq_en, uint, 0600);
+MODULE_PARM_DESC(ncq_en, "ahci ncq flag (default:1)");
+extern unsigned int sata_port_map;
+
 static const struct ata_port_info ahci_port_info = {
 	.flags		= AHCI_FLAG_COMMON,
 	.pio_mask	= ATA_PIO4,
@@ -31,7 +36,12 @@ static const struct ata_port_info ahci_port_info = {
 
 static int ahci_probe(struct platform_device *pdev)
 {
+#if (!defined(CONFIG_ARCH_HI3531D) \
+	&& !defined(CONFIG_ARCH_HI3521D) \
+	&& !defined(CONFIG_ARCH_HI3536C) \
+	&& !defined(CONFIG_ARCH_HI3520DV400))
 	struct device *dev = &pdev->dev;
+#endif
 	struct ahci_host_priv *hpriv;
 	int rc;
 
@@ -43,8 +53,18 @@ static int ahci_probe(struct platform_device *pdev)
 	if (rc)
 		return rc;
 
+#if (defined(CONFIG_ARCH_HI3531D) \
+	|| defined(CONFIG_ARCH_HI3521D) \
+	|| defined(CONFIG_ARCH_HI3536C) \
+	|| defined(CONFIG_ARCH_HI3520DV400))
+	hpriv->type = ORI_AHCI;
+	hpriv->force_port_map = sata_port_map;
+	if (!ncq_en)
+		 hpriv->flags |= AHCI_HFLAG_NO_NCQ;
+#else
 	if (of_device_is_compatible(dev->of_node, "hisilicon,hisi-ahci"))
 		hpriv->flags |= AHCI_HFLAG_NO_FBS | AHCI_HFLAG_NO_NCQ;
+#endif
 
 	rc = ahci_platform_init_host(pdev, hpriv, &ahci_port_info);
 	if (rc)

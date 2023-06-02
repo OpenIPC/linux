@@ -46,6 +46,11 @@ obj-$(CONFIG_ARCH_BERLIN)		+= berlin/
 obj-$(CONFIG_ARCH_HI3xxx)		+= hisilicon/
 obj-$(CONFIG_ARCH_HIP04)		+= hisilicon/
 obj-$(CONFIG_ARCH_HIX5HD2)		+= hisilicon/
+obj-$(CONFIG_ARCH_HISI)			+= hisilicon/
+obj-$(CONFIG_ARCH_HI3536C)		+= hisilicon/
+obj-$(CONFIG_ARCH_HI3531D)		+= hisilicon/
+obj-$(CONFIG_ARCH_HI3520DV400)		+= hisilicon/
+obj-$(CONFIG_ARCH_HI3521D)		+= hisilicon/
 obj-$(CONFIG_COMMON_CLK_KEYSTONE)	+= keystone/
 ifeq ($(CONFIG_COMMON_CLK), y)
 obj-$(CONFIG_ARCH_MMP)			+= mmp/

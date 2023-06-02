@@ -212,6 +212,20 @@ config MDIO_BCM_UNIMAC
 	  controllers as well as some Broadcom Ethernet switches such as the
 	  Starfighter 2 switches.
 
+config MDIO_HISI_FEMAC
+	tristate "Hisilicon FEMAC MDIO bus controller"
+	depends on HAS_IOMEM && OF_MDIO
+	help
+	  This module provides a driver for the MDIO busses found in the
+	  Hisilicon SoC that have an Fast Ethernet MAC.
+
+config MDIO_HISI_GEMAC
+	tristate "Hisilicon GEMAC MDIO bus controller"
+	depends on HAS_IOMEM && OF_MDIO
+	help
+	  This module provides a driver for the MDIO busses found in the
+	  Hisilicon SoC that have an Gigabit Ethernet MAC.
+
 endif # PHYLIB
 
 config MICREL_KS8995MA

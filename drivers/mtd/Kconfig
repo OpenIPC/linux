@@ -258,7 +258,7 @@ config INFTL
 	  not use it.
 
 config RFD_FTL
-        tristate "Resident Flash Disk (Flash Translation Layer) support"
+	tristate "Resident Flash Disk (Flash Translation Layer) support"
 	depends on BLOCK
 	select MTD_BLKDEVS
 	---help---
@@ -305,9 +305,60 @@ config MTD_SWAP
 	select MTD_BLKDEVS
 	help
 	  Provides volatile block device driver on top of mtd partition
-          suitable for swapping.  The mapping of written blocks is not saved.
+	  suitable for swapping. The mapping of written blocks is not saved.
 	  The driver provides wear leveling by storing erase counter into the
 	  OOB.
+
+config HIFMC
+	bool "Enable HIFMC - Hisilicon Flash Memory Controller"
+	depends on MTD
+	default y if ARCH_HI3516CV300
+	default y if ARCH_HI3519
+	default y if ARCH_HI3519V101
+	default y if ARCH_HI3516AV200
+	default y if ARCH_HI3559
+	default y if ARCH_HI3556
+	default y if ARCH_HI3536C
+	default y if ARCH_HI3531D
+	default y if ARCH_HI3520DV400
+	default y if ARCH_HI3521D
+	help
+	  Hisilicon Flash Memory Controller support SPI Nor SPI Nand and parallel
+	  Nand Flash. often used on embedded chip. This option will provide the
+	  generic support for FMC drivers to register
+
+if HIFMC
+
+config HIFMC_SPI_NAND
+	bool "Enable SPI nand flash Support on HIFMC"
+	depends on ARCH_HI3516CV300 || ARCH_HI3519 || ARCH_HI3519V101 || ARCH_HI3559 || ARCH_HI3556 || ARCH_HI3516AV200 || ARCH_HI3536C || ARCH_HI3520DV400 || ARCH_HI3521D || ARCH_HI3531D
+	select MTD_NAND
+	select HIFMC100_SPI_NAND
+	default y if ARCH_HI3516CV300
+	default y if ARCH_HI3519
+	default y if ARCH_HI3519V101
+	default y if ARCH_HI3516AV200
+	default y if ARCH_HI3559
+	default y if ARCH_HI3556
+	default y if ARCH_HI3536C
+	default y if ARCH_HI3531D
+	default y if ARCH_HI3520DV400
+	default y if ARCH_HI3521D
+	help
+	  Hisilicon Flash Memory Controller is called hifmc for short.
+	  This option enable hifmc support SPI nand flash.
+	  If your enadle this option, HIFMC100_SPI_NAND should be select
+
+config HIFMC_NAND
+	bool "Enable Nand flash Support on HIFMC"
+	select MTD_NAND
+	select HIFMC100_NAND
+	help
+	  Hisilicon Flash Memory Controller is called hifmc for short.
+	  This option enable hifmc support Nand flash.
+	  If your choice this option, HIFMC100_NAND should be select
+
+endif # End of HIFMC
 
 source "drivers/mtd/chips/Kconfig"
 

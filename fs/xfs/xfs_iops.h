@@ -32,8 +32,14 @@ extern void xfs_setup_inode(struct xfs_inode *);
  */
 #define XFS_ATTR_NOACL		0x01	/* Don't call posix_acl_chmod */
 
-extern int xfs_setattr_nonsize(struct xfs_inode *ip, struct iattr *vap,
-			       int flags);
-extern int xfs_setattr_size(struct xfs_inode *ip, struct iattr *vap);
+/*
+ * XXX Several callers have to pass dentry = NULL and this should
+ * work but it's really ugly.
+ */
+extern int xfs_setattr_nonsize(struct dentry *dentry,
+			       struct xfs_inode *ip, struct iattr *vap,
+ 			       int flags);
 
+extern int xfs_setattr_size(struct dentry *dentry,
+			    struct xfs_inode *ip, struct iattr *vap);
 #endif /* __XFS_IOPS_H__ */

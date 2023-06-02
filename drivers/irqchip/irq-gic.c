@@ -81,6 +81,23 @@ static DEFINE_RAW_SPINLOCK(irq_controller_lock);
 static u8 gic_cpu_map[NR_GIC_CPU_IF] __read_mostly;
 
 /*
+ *Uesed to process gic sgi interrupt *
+ */
+#if defined(CONFIG_ARCH_HI3559) || defined(CONFIG_ARCH_HI3556)
+#define DIS_IRQ_CNT	6
+#else
+#define DIS_IRQ_CNT	2
+#endif
+struct gic_sgi_handle {
+	unsigned int irq;
+	void (*handle)(unsigned int cpu_intrf,
+			unsigned int irq_num,
+			struct pt_regs *regs);
+};
+struct gic_sgi_handle dis_irq_handle[DIS_IRQ_CNT];
+EXPORT_SYMBOL(dis_irq_handle);
+
+/*
  * Supported arch specific GIC irq extension.
  * Default make them NULL.
  */
@@ -258,6 +275,22 @@ static int gic_set_wake(struct irq_data *d, unsigned int on)
 #else
 #define gic_set_wake	NULL
 #endif
+/* used to process dis irq */
+int dis_irq_proc(u32 irqnr, u32 irqstat, struct pt_regs *regs)
+{
+	u32 idx;
+
+	for (idx = 0; idx < DIS_IRQ_CNT; idx++) {
+		if ((irqnr == dis_irq_handle[idx].irq)
+				&& (dis_irq_handle[idx].handle)) {
+			dis_irq_handle[idx].handle(((irqstat >> 10) & 0x7),
+					irqnr, regs);
+			return 1;
+		}
+	}
+
+	return 0;
+}
 
 static void __exception_irq_entry gic_handle_irq(struct pt_regs *regs)
 {
@@ -273,13 +306,19 @@ static void __exception_irq_entry gic_handle_irq(struct pt_regs *regs)
 			handle_domain_irq(gic->domain, irqnr, regs);
 			continue;
 		}
+
 		if (irqnr < 16) {
 			writel_relaxed(irqstat, cpu_base + GIC_CPU_EOI);
+
+			/*Call dis irq  proccess func*/
+			if (dis_irq_proc(irqnr, irqstat, regs))
+				continue;
 #ifdef CONFIG_SMP
 			handle_IPI(irqnr, regs);
 #endif
 			continue;
 		}
+
 		break;
 	} while (1);
 }
@@ -365,7 +404,6 @@ static void gic_cpu_if_up(void)
 
 	writel_relaxed(bypass | GICC_ENABLE, cpu_base + GIC_CPU_CTRL);
 }
-
 
 static void __init gic_dist_init(struct gic_chip_data *gic)
 {
@@ -1001,7 +1039,28 @@ void __init gic_init_bases(unsigned int gic_nr, int irq_start,
 	}
 
 	gic_chip.flags |= gic_arch_extn.flags;
+#if !defined(CONFIG_ARCH_HI3559) && !defined(CONFIG_ARCH_HI3556)
 	gic_dist_init(gic);
+#else
+    {
+        /* 0x47444946('G''D''I''F') is abbreviation of GIC_DIST_INIT_FLAG   */
+        /* hi3559/hi3556 runs 2 OS, another OS distributes the IRQ.         */
+        /* when another OS has distributed the IRQ, sysctrl(0x12020130)     */
+        /* register will be set to 0x47444946                               */
+        /* if another OS did not distribute the IRQ, this OS will do it.    */
+
+#define GIC_DIST_INIT_FLAG 0x47444946
+#define GIC_DIST_INIT_FLAG_OFFSET 0x0130
+        struct device_node *np;
+        int gic_dist_init_flag;
+
+        np = of_find_compatible_node(NULL, NULL, "hisilicon,sysctrl");
+        gic_dist_init_flag = readl(of_iomap(np, 0) + GIC_DIST_INIT_FLAG_OFFSET);
+
+        if(gic_dist_init_flag != GIC_DIST_INIT_FLAG)
+            gic_dist_init(gic);
+    }
+#endif
 	gic_cpu_init(gic);
 	gic_pm_init(gic);
 }

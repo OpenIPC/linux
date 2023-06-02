@@ -1129,6 +1129,10 @@ static int v9fs_vfs_setattr(struct dentry *dentry, struct iattr *iattr)
 	if (S_ISREG(dentry->d_inode->i_mode))
 		filemap_write_and_wait(dentry->d_inode->i_mapping);
 
+	retval = setattr_killpriv(dentry, iattr);
+	if (retval)
+		return retval;
+
 	retval = p9_client_wstat(fid, &wstat);
 	if (retval < 0)
 		return retval;

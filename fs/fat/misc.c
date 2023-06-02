@@ -266,6 +266,37 @@ void fat_time_unix2fat(struct msdos_sb_info *sbi, struct timespec *ts,
 }
 EXPORT_SYMBOL_GPL(fat_time_unix2fat);
 
+void fat_time_fat2str(struct msdos_sb_info *sbi, char *d_createtime,
+		__le16 __time, __le16 __date, u8 time_cs)
+{
+	u16 time = le16_to_cpu(__time), date = le16_to_cpu(__date);
+	time_t day, month, year;
+
+	year  = date >> 9;
+	month = max(1, (date >> 5) & 0xf);
+	day   = max(1, date & 0x1f);
+
+	d_createtime[0] = year;
+	d_createtime[1] = month;
+	d_createtime[2] = day;
+	d_createtime[3] = (time >> 11);  /*hour*/
+	d_createtime[4] = ((time >> 5) & 0x3f);  /*min*/
+	d_createtime[5] = (time & 0x1f);  /*second 2s*/
+
+
+	if (!sbi->options.tz_set)
+		d_createtime[4] += sys_tz.tz_minuteswest;
+	else
+		d_createtime[4] -= sbi->options.time_offset;
+
+	if (time_cs) {
+		/*second 1s*/
+		d_createtime[5] += (time_cs / 100);
+	}
+}
+EXPORT_SYMBOL_GPL(fat_time_fat2str);
+
+
 int fat_sync_bhs(struct buffer_head **bhs, int nr_bhs)
 {
 	int i, err = 0;

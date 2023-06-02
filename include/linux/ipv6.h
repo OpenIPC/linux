@@ -37,11 +37,13 @@ struct ipv6_devconf {
 	__s32		accept_ra_rt_info_max_plen;
 #endif
 #endif
+	__s32		accept_ra_rt_table;
 	__s32		proxy_ndp;
 	__s32		accept_source_route;
 	__s32		accept_ra_from_local;
 #ifdef CONFIG_IPV6_OPTIMISTIC_DAD
 	__s32		optimistic_dad;
+	__s32		use_optimistic;
 #endif
 #ifdef CONFIG_IPV6_MROUTE
 	__s32		mc_forwarding;
@@ -122,6 +124,12 @@ struct tcp6_request_sock {
 struct ipv6_mc_socklist;
 struct ipv6_ac_socklist;
 struct ipv6_fl_socklist;
+
+struct inet6_cork {
+	struct ipv6_txoptions *opt;
+	u8 hop_limit;
+	u8 tclass;
+};
 
 /**
  * struct ipv6_pinfo - ipv6 private area
@@ -212,14 +220,10 @@ struct ipv6_pinfo {
 	struct ipv6_ac_socklist	*ipv6_ac_list;
 	struct ipv6_fl_socklist __rcu *ipv6_fl_list;
 
-	struct ipv6_txoptions	*opt;
+	struct ipv6_txoptions __rcu	*opt;
 	struct sk_buff		*pktoptions;
 	struct sk_buff		*rxpmtu;
-	struct {
-		struct ipv6_txoptions *opt;
-		u8 hop_limit;
-		u8 tclass;
-	} cork;
+	struct inet6_cork	cork;
 };
 
 /* WARNING: don't change the layout of the members in {raw,udp,tcp}6_sock! */

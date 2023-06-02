@@ -63,3 +63,33 @@ config ARM_MVEBU_V7_CPUIDLE
 	depends on ARCH_MVEBU
 	help
 	  Select this to enable cpuidle on Armada 370, 38x and XP processors.
+
+config ARM_HI3519_CPUIDLE
+	bool "CPU Idle Driver for Hi3519 processors"
+	depends on ARCH_HI3519
+	help
+	  Select this to enable cpuidle on Hi3519 processors.
+
+config ARM_HI3519V101_CPUIDLE
+	bool "CPU Idle Driver for Hi3519v101 processors"
+	depends on ARCH_HI3519V101
+	help
+	  Select this to enable cpuidle on Hi3519v101 processors.
+
+config ARM_HI3516AV200_CPUIDLE
+	bool "CPU Idle Driver for Hi3516av200 processors"
+	depends on ARCH_HI3516AV200
+	help
+	  Select this to enable cpuidle on Hi3516av200 processors.
+
+config ARM_HI3559_CPUIDLE
+	bool "CPU Idle Driver for Hi3559 processors"
+	depends on ARCH_HI3559
+	help
+	  Select this to enable cpuidle on Hi3559 processors.
+
+config ARM_HI3556_CPUIDLE
+	bool "CPU Idle Driver for Hi3556 processors"
+	depends on ARCH_HI3556
+	help
+	  Select this to enable cpuidle on Hi3556 processors.

@@ -2151,6 +2151,10 @@ cifs_setattr_unix(struct dentry *direntry, struct iattr *attrs)
 	mapping_set_error(inode->i_mapping, rc);
 	rc = 0;
 
+	rc = setattr_killpriv(direntry, attrs);
+	if (rc)
+		goto out;
+
 	if (attrs->ia_valid & ATTR_SIZE) {
 		rc = cifs_set_file_size(inode, attrs, xid, full_path);
 		if (rc != 0)
@@ -2269,6 +2273,12 @@ cifs_setattr_nounix(struct dentry *direntry, struct iattr *attrs)
 
 	rc = inode_change_ok(inode, attrs);
 	if (rc < 0) {
+		free_xid(xid);
+		return rc;
+	}
+
+	rc = setattr_killpriv(direntry, attrs);
+	if (rc) {
 		free_xid(xid);
 		return rc;
 	}

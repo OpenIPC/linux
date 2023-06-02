@@ -30,6 +30,50 @@
 #include <linux/io.h>
 #include <linux/spinlock.h>
 
+#define CLK(_id, _mask, _value, _rstbit, _rate, _ops) \
+{.id = _id,         \
+	.name = #_id,      \
+	.offset = _id,     \
+	.mask = _mask,     \
+	.value = _value,   \
+	.rstbit = _rstbit, \
+	.rate = _rate,     \
+	.ops = _ops,}
+
+#define CLK_SHARED(_id, _off, _mask, _value, _rstbit, _rate, _ops) \
+{.id = _id,         \
+	.name = #_id,      \
+	.offset = _off,     \
+	.mask = _mask,     \
+	.value = _value,   \
+	.rstbit = _rstbit, \
+	.rate = _rate,     \
+	.ops = _ops,}
+
+struct hiclk_hw {
+	int id;
+	const char *name;
+	u32 offset;
+	u32 mask;
+	u32 value;
+	u32 rstbit;
+
+	unsigned long rate;
+	struct clk_ops *ops;
+	struct clk_hw hw;
+
+#define CLKHW_RESET         (0x01)
+#define CLKHW_ENABLE        (0x02)
+
+	u32 flags;
+};
+
+extern struct clk_ops clk_ops_hiusb2_host;
+extern struct clk_ops clk_ops_hiusb3;
+extern struct clk_ops clk_ops_himci;
+
+#define to_hiclk_hw(_hw) container_of(_hw, struct hiclk_hw, hw)
+
 struct hisi_clock_data {
 	struct clk_onecell_data	clk_data;
 	void __iomem		*base;
@@ -96,6 +140,9 @@ struct clk *hisi_register_clkgate_sep(struct device *, const char *,
 				u8, spinlock_t *);
 
 struct hisi_clock_data __init *hisi_clk_init(struct device_node *, int);
+struct clk *clk_register_ops_table(struct device *,
+		struct hiclk_hw *,
+		struct clk_ops *);
 void __init hisi_clk_register_fixed_rate(struct hisi_fixed_rate_clock *,
 					int, struct hisi_clock_data *);
 void __init hisi_clk_register_fixed_factor(struct hisi_fixed_factor_clock *,
@@ -107,5 +154,7 @@ void __init hisi_clk_register_divider(struct hisi_divider_clock *,
 void __init hisi_clk_register_gate(struct hisi_gate_clock *,
 					int, struct hisi_clock_data *);
 void __init hisi_clk_register_gate_sep(struct hisi_gate_clock *,
+					int, struct hisi_clock_data *);
+void __init hisi_clk_register_ops(struct hiclk_hw *,
 					int, struct hisi_clock_data *);
 #endif	/* __HISI_CLK_H */

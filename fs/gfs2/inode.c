@@ -1786,6 +1786,10 @@ static int gfs2_setattr(struct dentry *dentry, struct iattr *attr)
 	if (error)
 		goto out;
 
+	error = setattr_killpriv(dentry, attr);
+	if (error)
+		goto out;
+
 	if (attr->ia_valid & ATTR_SIZE)
 		error = gfs2_setattr_size(inode, attr->ia_size);
 	else if (attr->ia_valid & (ATTR_UID | ATTR_GID))

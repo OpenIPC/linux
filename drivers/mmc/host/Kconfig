@@ -748,3 +748,5 @@ config MMC_SUNXI
 	help
 	  This selects support for the SD/MMC Host Controller on
 	  Allwinner sunxi SoCs.
+
+source "drivers/mmc/host/himciv200/Kconfig"

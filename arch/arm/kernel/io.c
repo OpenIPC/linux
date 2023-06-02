@@ -79,6 +79,8 @@ void _memset_io(volatile void __iomem *dst, int c, size_t count)
 		dst++;
 	}
 }
+DEFINE_RAW_SPINLOCK(hisilcon_lock);
+EXPORT_SYMBOL(hisilcon_lock);
 
 EXPORT_SYMBOL(_memcpy_fromio);
 EXPORT_SYMBOL(_memcpy_toio);

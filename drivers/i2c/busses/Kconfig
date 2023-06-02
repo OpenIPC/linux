@@ -501,6 +501,16 @@ config I2C_GPIO
 	  This is a very simple bitbanging I2C driver utilizing the
 	  arch-neutral GPIO API to control the SCL and SDA lines.
 
+config I2C_HIBVT
+	tristate "Hisilicon BVT I2C Controller"
+	depends on ARCH_HISI
+	help
+	  Say Y here to include support for Hisilicon BVT I2C controller in the
+	  Hisilicon BVT SoCs.
+
+	  This driver can also be built as a module.  If so, the module
+	  will be called i2c-hibvt.
+
 config I2C_HIGHLANDER
 	tristate "Highlander FPGA SMBus interface"
 	depends on SH_HIGHLANDER
@@ -512,6 +522,16 @@ config I2C_HIGHLANDER
 
 	  This driver can also be built as a module.  If so, the module
 	  will be called i2c-highlander.
+
+config I2C_HISI_V110
+	  tristate "Hisilicon I2C V110 Controller"
+	  depends on ARCH_HISI
+	  help
+	    Say Y here to include support for Hisilicon I2C V110 controller in the
+	    Hisilicon BVT SoCs.
+
+	    This driver can also be built as a module.  If so, the module
+	    will be called i2c-hisiv110.
 
 config I2C_IBM_IIC
 	tristate "IBM PPC 4xx on-chip I2C interface"
@@ -1044,4 +1064,84 @@ config SCx200_ACB
 	  This support is also available as a module.  If so, the module
 	  will be called scx200_acb.
 
+config HI_I2C
+	tristate "Hisilicon I2C Controller support"
+	depends on (ARCH_HI3519 || ARCH_HI3531D || ARCH_HI3521D || ARCH_HI3536C || ARCH_HI3520DV400)
+	help
+	  Hisilicon I2C controller has 3 buses.
+	  We can access some sensors though it.
+	  This IP is only used in HI3519/HI3531D/HI3521D/HI3536C/HI3520DV400 chip.
+
+if HI_I2C
+config HI_I2C0_IO_BASE
+	hex "hi i2c0 register base address"
+	default "0x12110000" if ARCH_HI3519
+	default "0x120c0000" if (ARCH_HI3531D || ARCH_HI3521D || ARCH_HI3536C || ARCH_HI3520DV400)
+
+config HI_I2C0_IO_SIZE
+	hex "hi i2c0 register size"
+	default "0x1000" if (ARCH_HI3519 || ARCH_HI3531D || ARCH_HI3521D|| ARCH_HI3536C || ARCH_HI3520DV400)
+
+config HI_I2C1_IO_BASE
+	hex "hi i2c1 register base address"
+	depends on (ARCH_HI3519 || ARCH_HI3531D)
+	default "0x12111000" if ARCH_HI3519
+	default "0x122e0000" if ARCH_HI3531D
+
+config HI_I2C1_IO_SIZE
+	hex "hi i2c1 register size"
+	depends on (ARCH_HI3519 || ARCH_HI3531D)
+	default "0x1000" if (ARCH_HI3519 || ARCH_HI3531D)
+
+config HI_I2C2_IO_BASE
+	hex "hi i2c2 register base address"
+	depends on ARCH_HI3519
+	default "0x12112000" if ARCH_HI3519
+
+config HI_I2C2_IO_SIZE
+	hex "hi i2c2 register size"
+	depends on ARCH_HI3519
+	default "0x1000" if ARCH_HI3519
+
+config HI_I2C3_IO_BASE
+	hex "hi i2c3 register base address"
+	depends on ARCH_HI3519
+	default "0x12113000" if ARCH_HI3519
+
+config HI_I2C3_IO_SIZE
+	hex "hi i2c3 register size"
+	depends on ARCH_HI3519
+	default "0x1000" if ARCH_HI3519
+
+config HI_I2C_RETRIES
+	hex "hi i2c retry times"
+	default "0x1" if (ARCH_HI3519 || ARCH_HI3531D || ARCH_HI3521D || ARCH_HI3536C || ARCH_HI3520DV400)
+
+config HI_I2C_TX_FIFO
+	hex "hi i2c tx fifo"
+	default "0x8" if (ARCH_HI3519 || ARCH_HI3531D || ARCH_HI3521D || ARCH_HI3536C || ARCH_HI3520DV400)
+
+config HI_I2C_RX_FIFO
+	hex "hi i2c rx fifo"
+	default "0x8" if (ARCH_HI3519 || ARCH_HI3531D || ARCH_HI3521D || ARCH_HI3536C || ARCH_HI3520DV400)
+
+config HI_I2C0_CLK_LIMIT
+	int "hi i2c0 clock limit"
+	default "100000" if (ARCH_HI3519 || ARCH_HI3531D || ARCH_HI3521D || ARCH_HI3536C || ARCH_HI3520DV400)
+
+config HI_I2C1_CLK_LIMIT
+	int "hi i2c1 clock limit"
+	depends on (ARCH_HI3519 || ARCH_HI3531D)
+	default "100000" if (ARCH_HI3519 || ARCH_HI3531D)
+
+config HI_I2C2_CLK_LIMIT
+	int "hi i2c2 clock limit"
+	depends on ARCH_HI3519
+	default "100000" if ARCH_HI3519
+
+config HI_I2C3_CLK_LIMIT
+	int "hi i2c3 clock limit"
+	depends on ARCH_HI3519
+	default "100000" if ARCH_HI3519
+endif
 endmenu

@@ -46,6 +46,9 @@ static struct cma cma_areas[MAX_CMA_AREAS];
 static unsigned cma_area_count;
 static DEFINE_MUTEX(cma_mutex);
 
+#define BITMAP_SIZE   16384
+static char bitmap_buf[BITMAP_SIZE];
+
 phys_addr_t cma_get_base(struct cma *cma)
 {
 	return PFN_PHYS(cma->base_pfn);
@@ -89,15 +92,18 @@ static void cma_clear_bitmap(struct cma *cma, unsigned long pfn, int count)
 static int __init cma_activate_area(struct cma *cma)
 {
 	int bitmap_size = BITS_TO_LONGS(cma_bitmap_maxno(cma)) * sizeof(long);
+#ifdef CONFIG_CMA_MEM_SHARED
 	unsigned long base_pfn = cma->base_pfn, pfn = base_pfn;
 	unsigned i = cma->count >> pageblock_order;
 	struct zone *zone;
+#endif
 
 	cma->bitmap = kzalloc(bitmap_size, GFP_KERNEL);
 
 	if (!cma->bitmap)
 		return -ENOMEM;
 
+#ifdef CONFIG_CMA_MEM_SHARED
 	WARN_ON_ONCE(!pfn_valid(pfn));
 	zone = page_zone(pfn_to_page(pfn));
 
@@ -118,14 +124,16 @@ static int __init cma_activate_area(struct cma *cma)
 		}
 		init_cma_reserved_pageblock(pfn_to_page(base_pfn));
 	} while (--i);
-
+#endif
 	mutex_init(&cma->lock);
 	return 0;
 
+#ifdef CONFIG_CMA_MEM_SHARED
 err:
 	kfree(cma->bitmap);
 	cma->count = 0;
 	return -EINVAL;
+#endif
 }
 
 static int __init cma_init_reserved_areas(void)
@@ -329,6 +337,95 @@ err:
 	return ret;
 }
 
+int hicma_saveable_page(unsigned long pfn)
+{
+	int i;
+	int bitmap_no;
+
+	for (i = 0; i < cma_area_count; i++) {
+		if ((pfn >= cma_areas[i].base_pfn) &&
+			(pfn < (cma_areas[i].base_pfn + cma_areas[i].count))) {
+			bitmap_no = (pfn - cma_areas[i].base_pfn) >> cma_areas[i].order_per_bit;
+			if (test_bit(bitmap_no, cma_areas[i].bitmap)) {
+				return 1;
+			}
+		}
+	}
+	return 0;
+}
+
+int hicma_page_free(unsigned long pfn)
+{
+	int i;
+	int bitmap_no;
+
+	for (i = 0; i < cma_area_count; i++) {
+		if ((pfn >= cma_areas[i].base_pfn) &&
+			(pfn < (cma_areas[i].base_pfn + cma_areas[i].count))) {
+			bitmap_no = (pfn - cma_areas[i].base_pfn) >> cma_areas[i].order_per_bit;
+			if (test_bit(bitmap_no, cma_areas[i].bitmap)) {
+				return 0;
+			} else {
+				return 1;
+			}
+		}
+	}
+	return 0;
+}
+
+EXPORT_SYMBOL(hicma_page_free);
+/*
+ ** bitmap_find_next_zero_area_best - find a contiguous aligned zero area closest
+ ** to nr
+ ** @map: The address to base the search on
+ ** @size: The bitmap size in bits
+ ** @start: The bitnumber to start searching at
+ ** @nr: The number of zeroed bits we're looking for
+ ** @align_mask: Alignment mask for zero area
+ **
+ ** The @align_mask should be one less than a power of 2; the effect is that
+ ** the bit offset of all zero areas this function finds is multiples of that
+ ** power of 2. A @align_mask of 0 means no alignment is required.
+ **/
+unsigned long bitmap_find_next_zero_area_best(unsigned long *map,
+					      unsigned long size,
+					      unsigned long start,
+					      unsigned int nr,
+					      unsigned long align_mask)
+{
+	unsigned long index, end, i;
+	unsigned long best = size + 1, len = -1;
+
+again:
+	index = find_next_zero_bit(map, size, start);
+
+	/* Align allocation */
+	index = __ALIGN_MASK(index, align_mask);
+	end = index + nr;
+	if (end > size)
+		goto out;
+	i = find_next_bit(map, size, index);
+	if (i < end) {
+		start = i + 1;
+		goto again;
+	}
+
+	/*  more suitable than last  */
+	if ((i - index) < len) {
+		len = i - index;
+		best = index;
+	}
+
+	/* traverse all the bitmap */
+	if (i < size) {
+		start = i + 1;
+		goto again;
+	}
+
+out:
+	return best;
+}
+
 /**
  * cma_alloc() - allocate pages from contiguous area
  * @cma:   Contiguous memory region for which the allocation is performed.
@@ -342,8 +439,17 @@ struct page *cma_alloc(struct cma *cma, int count, unsigned int align)
 {
 	unsigned long mask, pfn, start = 0;
 	unsigned long bitmap_maxno, bitmap_no, bitmap_count;
+#ifdef CONFIG_CMA_MEM_SHARED
 	struct page *page = NULL;
+#endif
 	int ret;
+	int len;
+
+	/*
+	 * force align to 4KBtytes start, to minimize cma fragmentation
+	 * but needs to fix later.
+	 */
+	align = 0;
 
 	if (!cma || !cma->count)
 		return NULL;
@@ -360,11 +466,19 @@ struct page *cma_alloc(struct cma *cma, int count, unsigned int align)
 
 	for (;;) {
 		mutex_lock(&cma->lock);
+#ifdef CONFIG_CMA_MEM_SHARED
 		bitmap_no = bitmap_find_next_zero_area(cma->bitmap,
 				bitmap_maxno, start, bitmap_count, mask);
+#else
+		bitmap_no = bitmap_find_next_zero_area_best(cma->bitmap,
+				bitmap_maxno, start, bitmap_count, mask);
+#endif
 		if (bitmap_no >= bitmap_maxno) {
 			mutex_unlock(&cma->lock);
-			break;
+#ifndef CONFIG_CMA_MEM_SHARED
+			ret = -ENOMEM;
+#endif
+			goto error;
 		}
 		bitmap_set(cma->bitmap, bitmap_no, bitmap_count);
 		/*
@@ -375,6 +489,7 @@ struct page *cma_alloc(struct cma *cma, int count, unsigned int align)
 		mutex_unlock(&cma->lock);
 
 		pfn = cma->base_pfn + (bitmap_no << cma->order_per_bit);
+#ifdef CONFIG_CMA_MEM_SHARED
 		mutex_lock(&cma_mutex);
 		ret = alloc_contig_range(pfn, pfn + count, MIGRATE_CMA);
 		mutex_unlock(&cma_mutex);
@@ -385,16 +500,36 @@ struct page *cma_alloc(struct cma *cma, int count, unsigned int align)
 
 		cma_clear_bitmap(cma, pfn, count);
 		if (ret != -EBUSY)
-			break;
-
+			goto error;
+#else
+		break;
+#endif
 		pr_debug("%s(): memory range at %p is busy, retrying\n",
 			 __func__, pfn_to_page(pfn));
 		/* try again with a bit different memory target */
 		start = bitmap_no + mask + 1;
 	}
-
+#ifdef CONFIG_CMA_MEM_SHARED
 	pr_debug("%s(): returned %p\n", __func__, page);
 	return page;
+#else
+	pr_debug("%s(): returned %p\n", __func__, pfn_to_page(pfn));
+	return pfn_to_page(pfn);
+#endif
+error:
+	if (ret != -EINTR) {
+		memset(bitmap_buf, 0, sizeof(bitmap_buf));
+		len = bitmap_scnlistprintf(bitmap_buf, 16384 - 2, cma->bitmap,
+			cma->count);
+		bitmap_buf[len++] = '\n';
+		bitmap_buf[len] = '\0';
+		pr_warn("cma area total:%lu pages\n", cma->count);
+		pr_warn("alloc %d failed: %d\n", count, ret);
+		pr_warn("bitmap: %s\n", bitmap_buf);
+	} else {
+		pr_warn("Interrupted system call!\n");
+	}
+	return NULL;
 }
 
 /**
@@ -423,7 +558,11 @@ bool cma_release(struct cma *cma, struct page *pages, int count)
 
 	VM_BUG_ON(pfn + count > cma->base_pfn + cma->count);
 
+#ifdef CONFIG_CMA_MEM_SHARED
+	mutex_lock(&cma_mutex);
 	free_contig_range(pfn, count);
+	mutex_unlock(&cma_mutex);
+#endif
 	cma_clear_bitmap(cma, pfn, count);
 
 	return true;

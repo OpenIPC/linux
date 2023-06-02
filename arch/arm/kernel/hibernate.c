@@ -24,6 +24,7 @@
 #include <asm/sections.h>
 #include "reboot.h"
 
+#ifndef CONFIG_HISI_SNAPSHOT_BOOT
 int pfn_is_nosave(unsigned long pfn)
 {
 	unsigned long nosave_begin_pfn = virt_to_pfn(&__nosave_begin);
@@ -42,7 +43,9 @@ void notrace restore_processor_state(void)
 {
 	local_fiq_enable();
 }
+#endif
 
+#ifndef CONFIG_HISI_SNAPSHOT_BOOT
 /*
  * Snapshot kernel memory and reset the system.
  *
@@ -105,3 +108,4 @@ int swsusp_arch_resume(void)
 		resume_stack + ARRAY_SIZE(resume_stack));
 	return 0;
 }
+#endif

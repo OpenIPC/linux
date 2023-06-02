@@ -135,6 +135,23 @@ int kernfs_iop_setattr(struct dentry *dentry, struct iattr *iattr)
 	if (error)
 		goto out;
 
+	/*
+	 * If we need to remove privileges, drop the mutex to do that
+	 * first and then re-validate the remaining changes.
+	 */
+	if (iattr->ia_valid & ATTR_KILL_PRIV) {
+		mutex_unlock(&kernfs_mutex);
+
+		error = setattr_killpriv(dentry, iattr);
+		if (error)
+			return error;
+
+		mutex_lock(&kernfs_mutex);
+		error = inode_change_ok(inode, iattr);
+		if (error)
+			goto out;
+	}
+
 	error = __kernfs_setattr(kn, iattr);
 	if (error)
 		goto out;

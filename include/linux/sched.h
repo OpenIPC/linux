@@ -758,6 +758,8 @@ struct user_struct {
 	unsigned long mq_bytes;	/* How many bytes can be allocated to mqueue? */
 #endif
 	unsigned long locked_shm; /* How many pages of mlocked shm ? */
+	unsigned long unix_inflight;	/* How many files in flight in unix sockets */
+	atomic_long_t pipe_bufs;  /* how many pages are allocated in pipe buffers */
 
 #ifdef CONFIG_KEYS
 	struct key *uid_keyring;	/* UID specific keyring */
@@ -1034,6 +1036,13 @@ extern void wake_up_if_idle(int cpu);
 # define SD_INIT_NAME(type)
 #endif
 
+#ifdef CONFIG_SCHED_HMP
+struct hmp_domain {
+	struct cpumask cpus;
+	struct cpumask possible_cpus;
+	struct list_head hmp_domains;
+};
+#endif /* CONFIG_SCHED_HMP */
 #else /* CONFIG_SMP */
 
 struct sched_domain_attr;
@@ -1081,7 +1090,22 @@ struct sched_avg {
 	u64 last_runnable_update;
 	s64 decay_count;
 	unsigned long load_avg_contrib;
+	unsigned long load_avg_ratio;
+#ifdef CONFIG_SCHED_HMP
+	u64 hmp_last_up_migration;
+	u64 hmp_last_down_migration;
+#endif
+	u32 usage_avg_sum;
 };
+
+#ifdef CONFIG_SCHED_HMP
+/*
+ * We want to avoid boosting any processes forked from init (PID 1)
+ * and kthreadd (assumed to be PID 2).
+ */
+#define hmp_task_should_forkboost(task) \
+	((task->parent && task->parent->pid > 2))
+#endif
 
 #ifdef CONFIG_SCHEDSTATS
 struct sched_statistics {
@@ -1367,6 +1391,7 @@ struct task_struct {
 
 	cputime_t utime, stime, utimescaled, stimescaled;
 	cputime_t gtime;
+	unsigned long long cpu_power;
 #ifndef CONFIG_VIRT_CPU_ACCOUNTING_NATIVE
 	struct cputime prev_cputime;
 #endif
@@ -1894,6 +1919,9 @@ static inline cputime_t task_gtime(struct task_struct *t)
 #endif
 extern void task_cputime_adjusted(struct task_struct *p, cputime_t *ut, cputime_t *st);
 extern void thread_group_cputime_adjusted(struct task_struct *p, cputime_t *ut, cputime_t *st);
+
+extern int task_free_register(struct notifier_block *n);
+extern int task_free_unregister(struct notifier_block *n);
 
 /*
  * Per process flags

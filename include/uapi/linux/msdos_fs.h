@@ -96,6 +96,22 @@ struct __fat_dirent {
 	char		d_name[256]; /* We must not include limits.h! */
 };
 
+struct fat_direntall {
+	unsigned long   d_ino;
+	unsigned long   d_off;
+	unsigned char   d_type;
+	u64     d_size;
+	char    d_createtime[8];
+	unsigned short  d_reclen;
+	char        d_name[1];
+};
+
+struct fat_direntall_buf {
+	int d_count;
+	int d_usecount;
+	struct fat_direntall direntall;
+};
+
 /*
  * ioctl commands
  */
@@ -106,6 +122,7 @@ struct __fat_dirent {
 #define FAT_IOCTL_SET_ATTRIBUTES	_IOW('r', 0x11, __u32)
 /*Android kernel has used 0x12, so we use 0x13*/
 #define FAT_IOCTL_GET_VOLUME_ID		_IOR('r', 0x13, __u32)
+#define VFAT_IOCTL_READDIR_ALL    _IOR('r', 0x14, struct fat_direntall_buf)
 
 struct fat_boot_sector {
 	__u8	ignored[3];	/* Boot strap short or near jump */

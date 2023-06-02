@@ -28,7 +28,7 @@ menu "USB Peripheral Controller"
 #
 # Integrated controllers
 #
-
+#source "drivers/usb/gadget/udc/hiudc3/Kconfig"
 config USB_AT91
 	tristate "Atmel AT91 USB Device Port"
 	depends on ARCH_AT91
@@ -218,6 +218,67 @@ config USB_MV_UDC
 	  Marvell Socs (including PXA and MMP series) include a high speed
 	  USB2.0 OTG controller, which can be configured as high speed or
 	  full speed USB peripheral.
+
+menuconfig HIUSB_DEVICE2_0
+	  bool "Hisilicon USB2.0 Device Controller SUPPORT"
+	  help
+	  This selects the usb(ehci/ohci) family usb device.
+	  Say Y to enable hisi usb2.0 controller driver.
+	  IF you do not use usb2.0 device in your board,
+	  say N to get a smaller uImage. Mostly you need it.
+
+if HIUSB_DEVICE2_0
+	  config USB_HISI_UDC
+	  tristate "hisilicon highspeed device controller version 3.00a driver"
+	  help
+	  You can select device mode by the option.
+	  Enable hisi ehci controller driver.
+	  Say Y to enable hisi usb2.0 ehci controller driver.
+	  IF you do not use usb2.0 ehci device in your board, say N to get a
+	  smaller uImage. Mostly you need it.
+
+config USB_AUTO_SWITCH
+	bool "Hisilicon USB2.0 Device auto switch"
+	depends on HAS_DMA
+	help
+	  Hisilicon Socs include a high speed. The select can auto switch or
+	  not. Default is auto switch. If you want to be auto switch
+	  host/device, you can set 1 the 1st bit of 0x12020150.
+endif # HI_HS_DEVICE
+
+menuconfig HIUSB_DEVICE3_0
+	  bool "Hisilicon USB3.0 Device Controller SUPPORT"
+	  help
+	  This selects the usb(ehci/ohci) family usb device.
+	  Say Y to enable hisi usb3.0 controller driver.
+	  IF you do not use usb3.0 device in your board,
+	  say N to get a smaller uImage. Mostly you need it.
+
+if HIUSB_DEVICE3_0
+	  config HIUSB_SS_DEVICE
+	  boolean "hisilicon susperspeed device controller version 2.50a driver"
+	  help
+	  You can select device mode by the option.
+	  Enable hisi ehci controller driver.
+	  Say Y to enable hisi usb3.0 xhci controller driver.
+	  IF you do not use usb3.0 xhci device in your board, say N to get a
+	  smaller uImage. Mostly you need it.
+
+config USB_HISI_UDC3
+	tristate "Hisilicon USB3.0 Device Controller"
+	depends on HAS_DMA
+	help
+	  Hisilicon Socs include a high speed
+	  USB3.0 Device controller, which can be configured as susperspeed
+	  USB peripheral.
+
+config USB3_DEVICE_GPIO_CTRL
+	tristate "Hisilicon USB3.0 Device Support GPIO CTRL"
+	help
+	  USB3.0 Device mode, it support device and host switch. When you
+	  pull out the device, it can bring gpio interrupt and notify the sw
+	  handle. The sw set the host mode and then set the device mode.
+endif # HI_SS_DEVICE
 
 config USB_MV_U3D
 	depends on HAS_DMA

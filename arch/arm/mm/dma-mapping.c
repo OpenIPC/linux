@@ -221,7 +221,7 @@ static u64 get_coherent_dma_mask(struct device *dev)
 	return mask;
 }
 
-static void __dma_clear_buffer(struct page *page, size_t size)
+void __dma_clear_buffer(struct page *page, size_t size)
 {
 	/*
 	 * Ensure that the allocated pages are zeroed, and that any data
@@ -246,6 +246,7 @@ static void __dma_clear_buffer(struct page *page, size_t size)
 		outer_flush_range(__pa(ptr), __pa(ptr) + size);
 	}
 }
+EXPORT_SYMBOL(__dma_clear_buffer);
 
 /*
  * Allocate a DMA buffer for 'dev' of size 'size' using the
@@ -464,6 +465,12 @@ static void __dma_remap(struct page *page, size_t size, pgprot_t prot)
 	apply_to_page_range(&init_mm, start, size, __dma_update_pte, &prot);
 	flush_tlb_kernel_range(start, end);
 }
+
+void hisi_flush_tlb_kernel_range(unsigned long start, unsigned long end)
+{
+	flush_tlb_kernel_range(start, end);
+}
+EXPORT_SYMBOL(hisi_flush_tlb_kernel_range);
 
 static void *__alloc_remap_buffer(struct device *dev, size_t size, gfp_t gfp,
 				 pgprot_t prot, struct page **ret_page,

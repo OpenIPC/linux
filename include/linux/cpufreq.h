@@ -18,6 +18,8 @@
 #include <linux/notifier.h>
 #include <linux/spinlock.h>
 #include <linux/sysfs.h>
+#include <asm/cputime.h>
+
 
 /*********************************************************************
  *                        CPUFREQ INTERFACE                          *
@@ -481,6 +483,9 @@ extern struct cpufreq_governor cpufreq_gov_ondemand;
 #elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_CONSERVATIVE)
 extern struct cpufreq_governor cpufreq_gov_conservative;
 #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_conservative)
+#elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_INTERACTIVE)
+extern struct cpufreq_governor cpufreq_gov_interactive;
+#define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_interactive)
 #endif
 
 /*********************************************************************
@@ -597,4 +602,11 @@ unsigned int cpufreq_generic_get(unsigned int cpu);
 int cpufreq_generic_init(struct cpufreq_policy *policy,
 		struct cpufreq_frequency_table *table,
 		unsigned int transition_latency);
+
+/*********************************************************************
+ *                         CPUFREQ STATS                             *
+ *********************************************************************/
+
+void acct_update_power(struct task_struct *p, cputime_t cputime);
+
 #endif /* _LINUX_CPUFREQ_H */

@@ -531,6 +531,7 @@ static DEVICE_ATTR_RO(dev);
 
 /* /sys/devices/ */
 struct kset *devices_kset;
+EXPORT_SYMBOL(devices_kset);
 
 /**
  * device_create_file - create sysfs attribute file for device.

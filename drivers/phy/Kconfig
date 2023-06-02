@@ -133,6 +133,30 @@ config PHY_EXYNOS5250_SATA
 	  SATA 3.0 Gb/s, SATA 6.0 Gb/s speeds. It supports one SATA host
 	  port to accept one SATA device.
 
+config PHY_HISI_INNO_USB2
+	tristate "Hisilicon Inno USB2 PHY support"
+	depends on OF && HAS_IOMEM && (USB_EHCI_HCD || HIUSB_DEVICE2_0)
+	select GENERIC_PHY
+	select MFD_SYSCON
+	default n
+	help
+	  Support for INNO PHY on Hisilicon Socs. This Phy supports
+	  USB 1.5Mb/s, USB 12Mb/s, USB 480Mb/s speeds. It suppots one
+	  USB host port to accept one USB device. Support init the phy
+	  and adjust phy Eye Diagram.
+
+config PHY_HI35x1D_INNO_USB2
+	tristate "Hisilicon 3531D&3521D Inno USB2 PHY support"
+	depends on (ARCH_HI3531D|| ARCH_HI3521D) && OF && HAS_IOMEM && (!PHY_HISI_INNO_USB2)
+	select GENERIC_PHY
+	select MFD_SYSCON
+	default y
+	help
+	  Support for INNO PHY on Hisilicon Socs. This Phy supports
+	  USB 1.5Mb/s, USB 12Mb/s, USB 480Mb/s speeds. It suppots one
+	  USB host port to accept one USB device. Support init the phy
+	  and adjust phy Eye Diagram.
+
 config PHY_HIX5HD2_SATA
 	tristate "HIX5HD2 SATA PHY Driver"
 	depends on ARCH_HIX5HD2 && OF && HAS_IOMEM
@@ -140,6 +164,28 @@ config PHY_HIX5HD2_SATA
 	select MFD_SYSCON
 	help
 	  Support for SATA PHY on Hisilicon hix5hd2 Soc.
+
+config PHY_HISI_USB3
+	tristate "HISI USB3 PHY Driver"
+	depends on (ARCH_HI3519 || ARCH_HI3519V101 || ARCH_HI3559 || ARCH_HI3556 || ARCH_HI3516AV200) && OF && HAS_IOMEM && USB_XHCI_HCD
+	select GENERIC_PHY
+	select MFD_SYSCON
+	help
+	  Support for USB PHY on Hisilicon Soc.
+	  Enable this to support the hisi USB 3.0 PHY driver for hisilicon
+	  SoCs. This driver provides the interface for USB 3.0 PHY. Support
+	  init the phy and adjust phy Eye Diagram.
+
+config PHY_HI3531D_USB3
+	tristate "HI3531D USB3 PHY Driver"
+	depends on ARCH_HI3531D && OF && HAS_IOMEM && USB_XHCI_HCD
+	select GENERIC_PHY
+	select MFD_SYSCON
+	help
+	  Support for USB PHY on Hisilicon Soc.
+	  Enable this to support the hisi USB 3.0 PHY driver for hisilicon
+	  SoCs. This driver provides the interface for USB 3.0 PHY. Support
+	  init the phy and adjust phy Eye Diagram.
 
 config PHY_SUN4I_USB
 	tristate "Allwinner sunxi SoC USB PHY driver"
@@ -255,5 +301,32 @@ config PHY_STIH41X_USB
 	help
 	  Enable this to support the USB transceiver that is part of
 	  STMicroelectronics STiH41x SoC series.
+
+config HI_NANO_PHY_SATA
+	tristate "hisilicon sata nano phy support"
+	depends on ((ARCH_HI3531D || ARCH_HI3536C || ARCH_HI3520DV400 || ARCH_HI3521D) && OF && HAS_IOMEM)
+	default y if (ARCH_HI3531D || ARCH_HI3536C || ARCH_HI3520DV400 || ARCH_HI3521D)
+	select GENERIC_PHY
+	help
+	  Enable this to support the sata nano phy that is part of
+	  sata driver for hisilicon.
+
+config HI_SATA_PORTS
+	int "hi sata port number"
+	depends on HI_NANO_PHY_SATA
+	range 1 4 if ARCH_HI3531D
+	range 1 2 if (ARCH_HI3536C || ARCH_HI3520DV400 || ARCH_HI3521D)
+	default "4" if ARCH_HI3531D
+	default "2" if (ARCH_HI3536C || ARCH_HI3520DV400 || ARCH_HI3521D)
+	help
+	  hisilicon sata port number.
+
+config HI_SATA_MODE
+	int "hi sata interworking speed mode(1.5G:0/3G:1/6G:2)"
+	depends on HI_NANO_PHY_SATA
+	range 0 2 if (ARCH_HI3536C || ARCH_HI3520DV400 || ARCH_HI3521D || ARCH_HI3531D)
+	default "1" if (ARCH_HI3536C || ARCH_HI3520DV400 || ARCH_HI3521D || ARCH_HI3531D)
+	help
+	  hisilicon interworking speed mode.
 
 endmenu

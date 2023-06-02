@@ -77,12 +77,15 @@ struct dst_entry *inet6_csk_route_req(struct sock *sk,
 	memset(fl6, 0, sizeof(*fl6));
 	fl6->flowi6_proto = IPPROTO_TCP;
 	fl6->daddr = ireq->ir_v6_rmt_addr;
-	final_p = fl6_update_dst(fl6, np->opt, &final);
+	rcu_read_lock();
+	final_p = fl6_update_dst(fl6, rcu_dereference(np->opt), &final);
+	rcu_read_unlock();
 	fl6->saddr = ireq->ir_v6_loc_addr;
 	fl6->flowi6_oif = ireq->ir_iif;
 	fl6->flowi6_mark = ireq->ir_mark;
 	fl6->fl6_dport = ireq->ir_rmt_port;
 	fl6->fl6_sport = htons(ireq->ir_num);
+	fl6->flowi6_uid = sock_i_uid(sk);
 	security_req_classify_flow(req, flowi6_to_flowi(fl6));
 
 	dst = ip6_dst_lookup_flow(sk, fl6, final_p);
@@ -206,9 +209,12 @@ static struct dst_entry *inet6_csk_route_socket(struct sock *sk,
 	fl6->flowi6_mark = sk->sk_mark;
 	fl6->fl6_sport = inet->inet_sport;
 	fl6->fl6_dport = inet->inet_dport;
+	fl6->flowi6_uid = sock_i_uid(sk);
 	security_sk_classify_flow(sk, flowi6_to_flowi(fl6));
 
-	final_p = fl6_update_dst(fl6, np->opt, &final);
+	rcu_read_lock();
+	final_p = fl6_update_dst(fl6, rcu_dereference(np->opt), &final);
+	rcu_read_unlock();
 
 	dst = __inet6_csk_dst_check(sk, np->dst_cookie);
 	if (!dst) {
@@ -241,7 +247,8 @@ int inet6_csk_xmit(struct sock *sk, struct sk_buff *skb, struct flowi *fl_unused
 	/* Restore final destination back after routing done */
 	fl6.daddr = sk->sk_v6_daddr;
 
-	res = ip6_xmit(sk, skb, &fl6, np->opt, np->tclass);
+	res = ip6_xmit(sk, skb, &fl6, rcu_dereference(np->opt),
+		       np->tclass);
 	rcu_read_unlock();
 	return res;
 }

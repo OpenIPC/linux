@@ -11,10 +11,22 @@
 #include <linux/delay.h>
 #include <linux/io.h>
 #include <linux/of_address.h>
+#include <linux/arm-cci.h>
+#include <linux/irqchip/arm-gic.h>
 #include <linux/of_platform.h>
 #include <asm/cacheflush.h>
 #include <asm/smp_plat.h>
+#include <asm/cp15.h>
+
 #include "core.h"
+
+#if (defined(CONFIG_ARCH_HI3531D) \
+	|| defined(CONFIG_ARCH_HI3536C) \
+	|| defined(CONFIG_ARCH_HI3520DV400) \
+	|| defined(CONFIG_ARCH_HI3521D))
+#include <mach/io.h>
+#include <mach/platform.h>
+#endif
 
 /* Sysctrl registers in Hi3620 SoC */
 #define SCISOEN				0xc0
@@ -256,5 +268,325 @@ void hix5hd2_cpu_die(unsigned int cpu)
 {
 	flush_cache_all();
 	hix5hd2_set_cpu(cpu, false);
+}
+
+int hi3519_cpu_kill(unsigned int cpu)
+{
+#ifdef CONFIG_ARCH_HI3519
+	hi_pmc_kill_cpu(cpu);
+#endif
+	return 1;
+}
+
+int hi3559_cpu_kill(unsigned int cpu)
+{
+	return 1;
+}
+
+int hi3516av200_cpu_kill(unsigned int cpu)
+{
+	return 1;
+}
+
+void hi3519_cpu_die(unsigned int cpu)
+{
+	/*avoid interrupt to disturb wfi&&pmc sequence */
+	gic_cpu_if_down();
+	/* disable Dcache */
+	set_cr(get_cr() & ~CR_C);
+	/* CLREX */
+	asm volatile ("clrex");
+
+	/* Clean & Invalidata L1 Data Cache, L2 Cache */
+	/*     flush_cache_all(); */
+
+	/* clean&invalidate l1 cache */
+	asm volatile("mov r0, #0\n");
+	asm volatile("mcr p15, 1, r0, c15, c14, 0\n");
+	asm volatile("dsb\n");
+
+	/* clean&invalidate l2 cache */
+	asm volatile("mov r0, #2\n");
+	asm volatile("mcr p15, 1, r0, c15, c14, 0\n");
+	asm volatile("dsb\n");
+
+	/* Set ACTLR.SMP to 0, AMP -> SMP */
+	asm volatile (
+			"       mrc     p15, 0, r0, c1, c0, 1\n"
+			"       bic     r0,  #0x40\n"
+			"       mcr     p15, 0, r0, c1, c0, 1\n"
+			:
+			:
+			: "r0", "cc");
+
+	/* disable cci snoop */
+	cci_disable_port_by_cpu(cpu_logical_map(cpu));
+
+	/* avoid debug event wake up cpu */
+	/* asm volatile("mcr p14, 0, %0, c1, c3, 0" : : "r" (1)); */
+
+	/* ISB & DSB */
+	isb();
+	dsb();
+
+	/* clear core ac inactive */
+	hi_pmc_set_ac_inactive();
+
+	/* power down  */
+	hi_pmc_power_down();
+
+	dsb();
+	/* wfi */
+	while (1)
+		wfi();
+
+}
+
+void hi3516av200_cpu_die(unsigned int cpu)
+{
+	/*avoid interrupt to disturb wfi&&pmc sequence */
+	gic_cpu_if_down();
+	/* disable Dcache */
+	set_cr(get_cr() & ~CR_C);
+	/* CLREX */
+	asm volatile ("clrex");
+
+	/* Clean & Invalidata L1 Data Cache, L2 Cache */
+	/*     flush_cache_all(); */
+
+	/* clean&invalidate l1 cache */
+	asm volatile("mov r0, #0\n");
+	asm volatile("mcr p15, 1, r0, c15, c14, 0\n");
+	asm volatile("dsb\n");
+
+	/* clean&invalidate l2 cache */
+	asm volatile("mov r0, #2\n");
+	asm volatile("mcr p15, 1, r0, c15, c14, 0\n");
+	asm volatile("dsb\n");
+
+	/* Set ACTLR.SMP to 0, AMP -> SMP */
+	asm volatile (
+			"       mrc     p15, 0, r0, c1, c0, 1\n"
+			"       bic     r0,  #0x40\n"
+			"       mcr     p15, 0, r0, c1, c0, 1\n"
+			:
+			:
+			: "r0", "cc");
+
+	/* disable cci snoop */
+	cci_disable_port_by_cpu(cpu_logical_map(cpu));
+
+	/* avoid debug event wake up cpu */
+	/* asm volatile("mcr p14, 0, %0, c1, c3, 0" : : "r" (1)); */
+
+	/* ISB & DSB */
+	isb();
+	dsb();
+
+	/* clear core ac inactive */
+	hi_pmc_set_ac_inactive();
+
+	/* power down  */
+	hi_pmc_power_down();
+
+	dsb();
+	/* wfi */
+	while (1)
+		wfi();
+
+}
+
+void hi3559_cpu_die(unsigned int cpu)
+{
+	/*avoid interrupt to disturb wfi&&pmc sequence */
+	gic_cpu_if_down();
+	/* disable Dcache */
+	set_cr(get_cr() & ~CR_C);
+	/* CLREX */
+	asm volatile ("clrex");
+
+	/* Clean & Invalidata L1 Data Cache, L2 Cache */
+	/*     flush_cache_all(); */
+
+	/* clean&invalidate l1 cache */
+	asm volatile("mov r0, #0\n");
+	asm volatile("mcr p15, 1, r0, c15, c14, 0\n");
+	asm volatile("dsb\n");
+
+	/* clean&invalidate l2 cache */
+	asm volatile("mov r0, #2\n");
+	asm volatile("mcr p15, 1, r0, c15, c14, 0\n");
+	asm volatile("dsb\n");
+
+	/* Set ACTLR.SMP to 0, AMP -> SMP */
+	asm volatile (
+			"       mrc     p15, 0, r0, c1, c0, 1\n"
+			"       bic     r0,  #0x40\n"
+			"       mcr     p15, 0, r0, c1, c0, 1\n"
+			:
+			:
+			: "r0", "cc");
+
+	/* disable cci snoop */
+	cci_disable_port_by_cpu(cpu_logical_map(cpu));
+
+	/* avoid debug event wake up cpu */
+	/* asm volatile("mcr p14, 0, %0, c1, c3, 0" : : "r" (1)); */
+
+	/* ISB & DSB */
+	isb();
+	dsb();
+
+	/* clear core ac inactive */
+	hi_pmc_set_ac_inactive();
+
+	/* power down  */
+	hi_pmc_power_down();
+
+	dsb();
+	/* wfi */
+	while (1)
+		wfi();
+
+}
+
+int hi3536c_cpu_kill(unsigned int cpu)
+{
+	return 1;
+}
+
+void hi3536c_scu_power_up(int cpu)
+{
+#ifdef CONFIG_ARCH_HI3536C
+	unsigned int regval;
+
+	/* clear the slave cpu reset */
+	regval = readl(__io_address(CRG_REG_BASE + REG_A7_SRST_CRG));
+	regval &= ~CORE1_SRST_REQ;
+	writel(regval, __io_address(CRG_REG_BASE + REG_A7_SRST_CRG));
+#endif
+}
+
+static inline void hi3536c_scu_power_off(int cpu)
+{
+#ifdef CONFIG_ARCH_HI3536C
+	unsigned long regval;
+
+	regval = readl(__io_address(CRG_REG_BASE + REG_A7_SRST_CRG));
+	regval |= (DBG1_SRST_REQ | CORE1_SRST_REQ);
+	writel(regval, __io_address(CRG_REG_BASE + REG_A7_SRST_CRG));
+#endif
+}
+
+void hi3536c_cpu_die(unsigned int cpu)
+{
+	flush_cache_all();
+	hi3536c_scu_power_off(cpu);
+	BUG();
+}
+
+int hi3531d_cpu_kill(unsigned int cpu)
+{
+	return 1;
+}
+
+int hi3520dv400_cpu_kill(unsigned int cpu)
+{
+	return 1;
+}
+
+void hi3531d_scu_power_up(int cpu)
+{
+#ifdef CONFIG_ARCH_HI3531D
+	unsigned int regval;
+
+	/* clear the slave cpu reset */
+	regval = readl(__io_address(CRG_REG_BASE + REG_A9_SRST_CRG));
+	regval &= ~CPU1_SRST_REQ;
+	writel(regval, __io_address(CRG_REG_BASE + REG_A9_SRST_CRG));
+#endif
+}
+
+void hi3520dv400_scu_power_up(int cpu)
+{
+#ifdef CONFIG_ARCH_HI3520DV400
+	unsigned int regval;
+
+	/* clear the slave cpu reset */
+	regval = readl(__io_address(CRG_REG_BASE + REG_A7_SRST_CRG));
+	regval &= ~CORE1_SRST_REQ;
+	writel(regval, __io_address(CRG_REG_BASE + REG_A7_SRST_CRG));
+#endif
+}
+
+static inline void hi3531d_scu_power_off(int cpu)
+{
+#ifdef CONFIG_ARCH_HI3531D
+	unsigned long regval;
+
+	regval = readl(__io_address(CRG_REG_BASE + REG_A9_SRST_CRG));
+	regval |= (WDG1_SRST_REQ | DBG1_SRST_REQ | CPU1_SRST_REQ);
+	writel(regval, __io_address(CRG_REG_BASE + REG_A9_SRST_CRG));
+#endif
+}
+
+static inline void hi3520dv400_scu_power_off(int cpu)
+{
+#ifdef CONFIG_ARCH_HI3520DV400
+	unsigned long regval;
+
+	regval = readl(__io_address(CRG_REG_BASE + REG_A7_SRST_CRG));
+	regval |= (DBG1_SRST_REQ | CORE1_SRST_REQ);
+	writel(regval, __io_address(CRG_REG_BASE + REG_A7_SRST_CRG));
+#endif
+}
+
+void hi3531d_cpu_die(unsigned int cpu)
+{
+	flush_cache_all();
+	hi3531d_scu_power_off(cpu);
+	BUG();
+}
+
+void hi3520dv400_cpu_die(unsigned int cpu)
+{
+	flush_cache_all();
+	hi3520dv400_scu_power_off(cpu);
+	BUG();
+}
+
+int hi3521d_cpu_kill(unsigned int cpu)
+{
+	return 1;
+}
+
+void hi3521d_scu_power_up(int cpu)
+{
+#ifdef CONFIG_ARCH_HI3521D
+	unsigned int regval;
+
+	/* clear the slave cpu reset */
+	regval = readl(__io_address(CRG_REG_BASE + REG_A7_SRST_CRG));
+	regval &= ~CORE1_SRST_REQ;
+	writel(regval, __io_address(CRG_REG_BASE + REG_A7_SRST_CRG));
+#endif
+}
+
+static inline void hi3521d_scu_power_off(int cpu)
+{
+#ifdef CONFIG_ARCH_HI3521D
+	unsigned long regval;
+
+	regval = readl(__io_address(CRG_REG_BASE + REG_A7_SRST_CRG));
+	regval |= (DBG1_SRST_REQ | CORE1_SRST_REQ);
+	writel(regval, __io_address(CRG_REG_BASE + REG_A7_SRST_CRG));
+#endif
+}
+
+void hi3521d_cpu_die(unsigned int cpu)
+{
+	flush_cache_all();
+	hi3521d_scu_power_off(cpu);
+	BUG();
 }
 #endif

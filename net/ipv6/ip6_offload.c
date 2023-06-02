@@ -122,6 +122,8 @@ static struct sk_buff *ipv6_gso_segment(struct sk_buff *skb,
 
 		if (udpfrag) {
 			unfrag_ip6hlen = ip6_find_1stfragopt(skb, &prevhdr);
+			if (unfrag_ip6hlen < 0)
+				return ERR_PTR(unfrag_ip6hlen);
 			fptr = (struct frag_hdr *)((u8 *)ipv6h + unfrag_ip6hlen);
 			fptr->frag_off = htons(offset);
 			if (skb->next != NULL)
@@ -258,6 +260,19 @@ out:
 	return pp;
 }
 
+static struct sk_buff **sit_gro_receive(struct sk_buff **head,
+					struct sk_buff *skb)
+{
+	if (NAPI_GRO_CB(skb)->encap_mark) {
+		NAPI_GRO_CB(skb)->flush = 1;
+		return NULL;
+	}
+
+	NAPI_GRO_CB(skb)->encap_mark = 1;
+
+	return ipv6_gro_receive(head, skb);
+}
+
 static int ipv6_gro_complete(struct sk_buff *skb, int nhoff)
 {
 	const struct net_offload *ops;
@@ -292,7 +307,7 @@ static struct packet_offload ipv6_packet_offload __read_mostly = {
 static const struct net_offload sit_offload = {
 	.callbacks = {
 		.gso_segment	= ipv6_gso_segment,
-		.gro_receive	= ipv6_gro_receive,
+		.gro_receive	= sit_gro_receive,
 		.gro_complete	= ipv6_gro_complete,
 	},
 };

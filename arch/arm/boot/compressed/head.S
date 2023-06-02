@@ -176,6 +176,16 @@ not_angel:
 		ldr	r4, =zreladdr
 #endif
 
+#if (defined CONFIG_ARCH_HI3519 || defined CONFIG_ARCH_HI3519V101\
+    || defined CONFIG_ARCH_HI3559 || defined CONFIG_ARCH_HI3556 || defined CONFIG_ARCH_HI3516AV200)
+		/*
+		 * set SMP bit ACTLR register to enable I cache and D cache
+		 */
+		mrc     p15, 0, r0, c1, c0, 1
+		orr     r0, #(1 << 6)
+		mcr     p15, 0, r0, c1, c0, 1
+#endif
+
 		/*
 		 * Set up a page table only if it won't overwrite ourself.
 		 * That means r4 < pc && r4 - 16k page directory > &_end.
@@ -730,6 +740,8 @@ __armv7_mmu_cache_on:
 		bic     r6, r6, #1 << 31        @ 32-bit translation system
 		bic     r6, r6, #3 << 0         @ use only ttbr0
 		mcrne	p15, 0, r3, c2, c0, 0	@ load page table pointer
+		mcrne	p15, 0, r0, c8, c7, 0	@ flush I,D TLBs
+		mcr	p15, 0, r0, c7, c5, 4	@ ISB
 		mcrne	p15, 0, r1, c3, c0, 0	@ load domain access control
 		mcrne   p15, 0, r6, c2, c0, 2   @ load ttb control
 #endif

@@ -375,6 +375,10 @@ int simple_setattr(struct dentry *dentry, struct iattr *iattr)
 	if (error)
 		return error;
 
+	error = setattr_killpriv(dentry, iattr);
+	if (error)
+		return error;
+
 	if (iattr->ia_valid & ATTR_SIZE)
 		truncate_setsize(inode, iattr->ia_size);
 	setattr_copy(inode, iattr);

@@ -109,6 +109,9 @@ MODULE_PARM_DESC (ignore_oc, "ignore bogus hardware overcurrent indications");
 #include "ehci.h"
 #include "pci-quirks.h"
 
+#ifdef CONFIG_ARCH_HI3516CV300
+void usb2_low_power(int);
+#endif
 static void compute_tt_budget(u8 budget_table[EHCI_BANDWIDTH_SIZE],
 		struct ehci_tt *tt);
 
@@ -777,7 +780,9 @@ static irqreturn_t ehci_irq (struct usb_hcd *hcd)
 				continue;
 			pstatus = ehci_readl(ehci,
 					 &ehci->regs->port_status[i]);
-
+#ifdef CONFIG_ARCH_HI3516CV300
+			usb2_low_power(pstatus);
+#endif
 			if (pstatus & PORT_OWNER)
 				continue;
 			if (!(test_bit(i, &ehci->suspended_ports) &&

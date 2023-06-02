@@ -232,6 +232,85 @@ choice
 		  Say Y here if you want kernel low-level debugging support
 		  on HI3716 UART.
 
+	config DEBUG_HI3516CV300_UART
+		bool "Hisilicon Hi3516cv300 Debug UART"
+		depends on ARCH_HI3516CV300
+		select DEBUG_UART_PL01X
+		help
+		  Say Y here if you want kernel low-level debugging support
+		  on HI3516CV300 UART.
+
+	config DEBUG_HI3519_UART
+		bool "Hisilicon Hi3519 Debug UART"
+		depends on ARCH_HI3519
+		select DEBUG_UART_PL01X
+		help
+		  Say Y here if you want kernel low-level debugging support
+		  on HI3519 UART.
+
+	config DEBUG_HI3519V101_UART
+		bool "Hisilicon Hi3519V101 Debug UART"
+		depends on ARCH_HI3519V101
+		select DEBUG_UART_PL01X
+		help
+		  Say Y here if you want kernel low-level debugging support
+		  on HI3519V101 UART.
+
+	config DEBUG_HI3559_UART
+		bool "Hisilicon Hi3559 Debug UART"
+		depends on ARCH_HI3559
+		select DEBUG_UART_PL01X
+		help
+		  Say Y here if you want kernel low-level debugging support
+		  on HI3559 UART.
+
+	config DEBUG_HI3516AV200_UART
+		bool "Hisilicon Hi3516AV200 Debug UART"
+		depends on ARCH_HI3516AV200
+		select DEBUG_UART_PL01X
+		help
+		  Say Y here if you want kernel low-level debugging support
+		  on HI3516AV200 UART.
+
+	config DEBUG_HI3556_UART
+		bool "Hisilicon Hi3556 Debug UART"
+		depends on ARCH_HI3556
+		select DEBUG_UART_PL01X
+		help
+		  Say Y here if you want kernel low-level debugging support
+		  on HI3556 UART.
+	config DEBUG_HI3536C_UART
+		bool "Hisilicon Hi3536C Debug UART"
+		depends on ARCH_HI3536C
+		select DEBUG_UART_PL01X
+		help
+		  Say Y here if you want kernel low-level debugging support
+		  on HI3536C UART.
+
+	config DEBUG_HI3531D_UART
+		bool "Hisilicon Hi3531D Debug UART"
+		depends on ARCH_HI3531D
+		select DEBUG_UART_PL01X
+		help
+		  Say Y here if you want kernel low-level debugging support
+		  on HI3531D UART.
+
+	config DEBUG_HI3520DV400_UART
+		bool "Hisilicon Hi3520DV400 Debug UART"
+		depends on ARCH_HI3520DV400
+		select DEBUG_UART_PL01X
+		help
+		  Say Y here if you want kernel low-level debugging support
+		  on HI3520DV400 UART.
+
+	config DEBUG_HI3521D_UART
+		bool "Hisilicon Hi3521D Debug UART"
+		depends on ARCH_HI3521D
+		select DEBUG_UART_PL01X
+		help
+		  Say Y here if you want kernel low-level debugging support
+		  on HI3521D UART.
+
 	config DEBUG_HIGHBANK_UART
 		bool "Kernel low-level debugging messages via Highbank UART"
 		depends on ARCH_HIGHBANK
@@ -1160,6 +1239,16 @@ config DEBUG_UART_PHYS
 	default 0xf8b00000 if DEBUG_HIX5HD2_UART
 	default 0xf991e000 if DEBUG_QCOM_UARTDM
 	default 0xfcb00000 if DEBUG_HI3620_UART
+	default 0x12100000 if DEBUG_HI3516CV300_UART
+	default 0x12100000 if DEBUG_HI3519_UART
+	default 0x12100000 if DEBUG_HI3519V101_UART
+	default 0x12100000 if DEBUG_HI3516AV200_UART
+	default 0x12100000 if DEBUG_HI3559_UART
+	default 0x12100000 if DEBUG_HI3556_UART
+	default 0x12080000 if DEBUG_HI3536C_UART
+	default 0x12080000 if DEBUG_HI3531D_UART
+	default 0x12080000 if DEBUG_HI3520DV400_UART
+	default 0x12080000 if DEBUG_HI3521D_UART
 	default 0xfe800000 if ARCH_IOP32X
 	default 0xff690000 if DEBUG_RK32_UART2
 	default 0xffc02000 if DEBUG_SOCFPGA_UART
@@ -1218,6 +1307,16 @@ config DEBUG_UART_VIRT
 	default 0xfe300000 if DEBUG_BCM_KONA_UART
 	default 0xfe800000 if ARCH_IOP32X
 	default 0xfeb00000 if DEBUG_HI3620_UART || DEBUG_HIX5HD2_UART
+	default 0xfef00000 if DEBUG_HI3516CV300_UART
+	default 0xfef00000 if DEBUG_HI3519_UART
+	default 0xfef00000 if DEBUG_HI3519V101_UART
+	default 0xfef00000 if DEBUG_HI3516AV200_UART
+	default 0xfef00000 if DEBUG_HI3559_UART
+	default 0xfef00000 if DEBUG_HI3556_UART
+	default 0xfe480000 if DEBUG_HI3536C_UART
+	default 0xfe880000 if DEBUG_HI3531D_UART
+	default 0xfe480000 if DEBUG_HI3520DV400_UART
+	default 0xfe480000 if DEBUG_HI3521D_UART
 	default 0xfeb24000 if DEBUG_RK3X_UART0
 	default 0xfeb26000 if DEBUG_RK3X_UART1
 	default 0xfeb30c00 if DEBUG_KEYSTONE_UART0
@@ -1299,7 +1398,7 @@ config EARLY_PRINTK
 
 config OC_ETM
 	bool "On-chip ETM and ETB"
-	depends on ARM_AMBA
+	depends on ARM_AMBA && !CORESIGHT
 	help
 	  Enables the on-chip embedded trace macrocell and embedded trace
 	  buffer driver that will allow you to collect traces of the
@@ -1330,5 +1429,7 @@ config DEBUG_SET_MODULE_RONX
 	  patching and dynamic kernel tracing - and they might also protect
 	  against certain classes of kernel exploits.
 	  If in doubt, say "N".
+
+source "drivers/hwtracing/coresight/Kconfig"
 
 endmenu

@@ -1491,7 +1491,7 @@ static inline int scsi_host_queue_ready(struct request_queue *q,
 	if (scsi_host_in_recovery(shost))
 		return 0;
 
-	busy = atomic_inc_return(&shost->host_busy) - 1;
+	busy = atomic_read(&shost->host_busy);
 	if (atomic_read(&shost->host_blocked) > 0) {
 		if (busy)
 			goto starved;
@@ -1500,7 +1500,7 @@ static inline int scsi_host_queue_ready(struct request_queue *q,
 		 * unblock after host_blocked iterates to zero
 		 */
 		if (atomic_dec_return(&shost->host_blocked) > 0)
-			goto out_dec;
+			goto out;
 
 		SCSI_LOG_MLQUEUE(3,
 			shost_printk(KERN_INFO, shost,
@@ -1520,6 +1520,7 @@ static inline int scsi_host_queue_ready(struct request_queue *q,
 		spin_unlock_irq(shost->host_lock);
 	}
 
+	atomic_inc(&shost->host_busy);
 	return 1;
 
 starved:
@@ -1527,8 +1528,7 @@ starved:
 	if (list_empty(&sdev->starved_entry))
 		list_add_tail(&sdev->starved_entry, &shost->starved_list);
 	spin_unlock_irq(shost->host_lock);
-out_dec:
-	atomic_dec(&shost->host_busy);
+out:
 	return 0;
 }
 

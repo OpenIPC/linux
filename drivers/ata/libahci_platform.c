@@ -24,6 +24,7 @@
 #include <linux/ahci_platform.h>
 #include <linux/phy/phy.h>
 #include <linux/pm_runtime.h>
+#include <mach/io.h>
 #include "ahci.h"
 
 static void ahci_host_stop(struct ata_host *host);

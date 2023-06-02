@@ -17,4 +17,43 @@ extern struct smp_operations hix5hd2_smp_ops;
 extern void hix5hd2_set_cpu(int cpu, bool enable);
 extern void hix5hd2_cpu_die(unsigned int cpu);
 
+extern void hi3519_secondary_startup(void);
+extern void hi3519_cpu_die(unsigned int cpu);
+extern int  hi3519_cpu_kill(unsigned int cpu);
+
+extern void hi3516av200_secondary_startup(void);
+extern void hi3516av200_cpu_die(unsigned int cpu);
+extern int  hi3516av200_cpu_kill(unsigned int cpu);
+
+extern void hi3559_secondary_startup(void);
+extern void hi3559_cpu_die(unsigned int cpu);
+extern int  hi3559_cpu_kill(unsigned int cpu);
+
+extern void hi3536c_secondary_startup(void);
+extern void hi3536c_cpu_die(unsigned int cpu);
+extern int  hi3536c_cpu_kill(unsigned int cpu);
+void hi3536c_scu_power_up(int cpu);
+
+extern void hi3531d_secondary_startup(void);
+extern void hi3531d_cpu_die(unsigned int cpu);
+extern int  hi3531d_cpu_kill(unsigned int cpu);
+void hi3531d_scu_power_up(int cpu);
+
+extern void hi3521d_secondary_startup(void);
+extern void hi3521d_cpu_die(unsigned int cpu);
+extern int  hi3521d_cpu_kill(unsigned int cpu);
+void hi3521d_scu_power_up(int cpu);
+
+extern void hi3520dv400_secondary_startup(void);
+extern void hi3520dv400_cpu_die(unsigned int cpu);
+extern int  hi3520dv400_cpu_kill(unsigned int cpu);
+void hi3520dv400_scu_power_up(int cpu);
+
+extern void hi_pmc_power_up(void);
+extern void hi_pmc_power_up_done(void);
+extern void hi_pmc_set_ac_inactive(void);
+extern void hi_pmc_power_down(void);
+#ifdef CONFIG_ARCH_HI3519
+extern void hi_pmc_kill_cpu(unsigned int cpu);
+#endif
 #endif
