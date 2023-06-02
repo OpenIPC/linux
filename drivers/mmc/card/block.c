@@ -675,6 +675,7 @@ static int mmc_blk_issue_rw_rq(struct mmc_queue *mq, struct request *req)
 	struct mmc_card *card = md->queue.card;
 	struct mmc_blk_request brq;
 	int ret = 1, disable_multi = 0;
+	int re_write_count = 0;
 
 	/*
 	 * Reliable writes are used to implement Forced Unit Access and
@@ -688,7 +689,7 @@ static int mmc_blk_issue_rw_rq(struct mmc_queue *mq, struct request *req)
 	do {
 		struct mmc_command cmd = {0};
 		u32 readcmd, writecmd, status = 0;
-
+re_write:
 		memset(&brq, 0, sizeof(struct mmc_blk_request));
 		brq.mrq.cmd = &brq.cmd;
 		brq.mrq.data = &brq.data;
@@ -894,7 +895,11 @@ static int mmc_blk_issue_rw_rq(struct mmc_queue *mq, struct request *req)
 				spin_unlock_irq(&md->lock);
 				continue;
 			}
-			goto cmd_err;
+			re_write_count++;
+			if (re_write_count < 4)
+				goto re_write;
+			else
+				goto cmd_err;
 		}
 
 		/*

@@ -226,6 +226,7 @@ __create_page_tables:
 	 * This allows debug messages to be output
 	 * via a serial console before paging_init.
 	 */
+#ifndef CONFIG_JLINK_DEBUG
 	addruart r7, r3
 
 	mov	r3, r3, lsr #20
@@ -243,6 +244,7 @@ __create_page_tables:
 	add	r3, r3, #1 << 20
 	teq	r0, r6
 	bne	1b
+#endif
 
 #else /* CONFIG_DEBUG_ICEDCC */
 	/* we don't need any serial debugging mappings for ICEDCC */
@@ -349,7 +351,11 @@ __secondary_data:
  */
 __enable_mmu:
 #ifdef CONFIG_ALIGNMENT_TRAP
+#if (__GNUC__ >= 5 && __LINUX_ARM_ARCH__ >= 6)
+        bic     r0, r0, #CR_A
+#else
 	orr	r0, r0, #CR_A
+#endif
 #else
 	bic	r0, r0, #CR_A
 #endif
@@ -362,6 +368,13 @@ __enable_mmu:
 #ifdef CONFIG_CPU_ICACHE_DISABLE
 	bic	r0, r0, #CR_I
 #endif
+	/*
+	* add by fullhan
+	*/
+#ifdef CONFIG_JLINK_DEBUG
+	mov r4, #0x10000000
+#endif
+
 	mov	r5, #(domain_val(DOMAIN_USER, DOMAIN_MANAGER) | \
 		      domain_val(DOMAIN_KERNEL, DOMAIN_MANAGER) | \
 		      domain_val(DOMAIN_TABLE, DOMAIN_MANAGER) | \

@@ -48,7 +48,7 @@
 #define ERRP "mtd: "
 
 /* debug macro */
-#if 0
+#if 1
 #define dbg(x) do { printk("DEBUG-CMDLINE-PART: "); printk x; } while(0)
 #else
 #define dbg(x)

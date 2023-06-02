@@ -574,7 +574,48 @@ config USB_OCTEON_OHCI
 	  Enable support for the Octeon II SOC's on-chip OHCI
 	  controller.  It is needed for low-speed USB 1.0 device
 	  support.  All CN6XXX based chips with USB are supported.
+	  
+config USB_FH_OTG
+	tristate "FH OTG support"
+	depends on USB
+	default y
+	help
+		FULLHAN USB SUPPORT
+		Be the OTG, host or device mode
 
+choice
+	prompt "Choose mode"
+	depends on USB_FH_OTG
+	default FH_HOST_ONLY
+	help
+		Select one
+config FH_OTG
+	depends on USB_FH_OTG && MACH_FH8856
+	bool "OTG mode"
+
+config FH_HOST_ONLY
+	bool "Host only mode"
+
+config FH_DEVICE_ONLY
+	bool "Device only mode"
+endchoice
+		
 config USB_OCTEON2_COMMON
 	bool
 	default y if USB_OCTEON_EHCI || USB_OCTEON_OHCI
+
+config USB_S3C_OTG_HOST
+	tristate "S3C USB OTG Host support"
+	depends on USB 
+	help
+	  Samsung's S3C64XX processors include high speed USB OTG2.0
+	  controller. It has 15 configurable endpoints, as well as
+	  endpoint zero (for control transfers).
+
+	  This driver support only OTG Host role. If you want to use
+	  OTG Device role, select USB Gadget support and S3C OTG Device.
+
+          Say "y" to link the driver statically, or "m" to build a
+          dynamically linked module called "s3c_otg_hcd" and force all
+          drivers to also be dynamically linked.
+

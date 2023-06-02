@@ -247,6 +247,7 @@ static int skcipher_sendmsg(struct kiocb *unused, struct socket *sock,
 	struct skcipher_ctx *ctx = ask->private;
 	struct crypto_ablkcipher *tfm = crypto_ablkcipher_reqtfm(&ctx->req);
 	unsigned ivsize = crypto_ablkcipher_ivsize(tfm);
+	struct af_alg_usr_def *p_usr_def = crypto_ablkcipher_usr_def(tfm);
 	struct skcipher_sg_list *sgl;
 	struct af_alg_control con = {};
 	long copied = 0;
@@ -269,6 +270,8 @@ static int skcipher_sendmsg(struct kiocb *unused, struct socket *sock,
 		default:
 			return -EINVAL;
 		}
+
+		memcpy(p_usr_def, &con.usr_def, sizeof(struct af_alg_usr_def));
 
 		if (con.iv && con.iv->ivlen != ivsize)
 			return -EINVAL;

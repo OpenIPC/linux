@@ -119,6 +119,11 @@ config SND_SOC_AC97_CODEC
 	tristate
 	select SND_AC97_CODEC
 
+config SND_SOC_FH_CODEC
+	tristate
+	select SND_FH_CODEC
+	select SND_AC97_CODEC
+
 config SND_SOC_AD1836
 	tristate
 
@@ -220,6 +225,9 @@ config SND_SOC_STAC9766
 	tristate
 
 config SND_SOC_TLV320AIC23
+	tristate
+
+config SND_SOC_FSH0LS029AA
 	tristate
 
 config SND_SOC_TLV320AIC26

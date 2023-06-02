@@ -27,7 +27,26 @@ config SND_PXA2XX_LIB
 
 config SND_PXA2XX_LIB_AC97
 	bool
+	
+config SND_FH_LIB
+	tristate
+	select SND_FH_CODEC if SND_FH_LIB_AC97
 
+config SND_FH_LIB_AC97
+	bool	
+config SND_FH_PCM
+	bool
+config SND_FH_AC97
+	tristate "AC97 driver for the Intel FH chip"
+	
+	select SND_FH_PCM
+	select SND_AC97_CODEC
+	select SND_FH_LIB
+	select SND_FH_LIB_AC97
+	help
+	  Say Y or M if you want to support any AC97 codec attached to
+	  the fh81 AC97 interface.
+	
 config SND_PXA2XX_AC97
 	tristate "AC97 driver for the Intel PXA2xx chip"
 	depends on ARCH_PXA

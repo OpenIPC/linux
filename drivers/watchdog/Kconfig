@@ -606,7 +606,14 @@ config HP_WATCHDOG
 	  will only load on an HP ProLiant system with a minimum of iLO2 support.
 	  To compile this driver as a module, choose M here: the module will be
 	  called hpwdt.
-
+	  
+config FH_WATCHDOG
+	tristate "fullhan  watchdog driver"
+	
+	help
+	  A software monitoring watchdog and NMI sourcing driver. 
+	  
+	  
 config HPWDT_NMI_DECODING
 	bool "NMI decoding support for the HP ProLiant iLO2+ Hardware Watchdog Timer"
 	depends on HP_WATCHDOG

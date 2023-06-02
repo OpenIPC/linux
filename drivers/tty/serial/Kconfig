@@ -1635,4 +1635,32 @@ config SERIAL_XILINX_PS_UART_CONSOLE
 	help
 	  Enable a Xilinx PS UART port to be the system console.
 
+config SERIAL_FH
+	tristate "FH UART support"
+	select SERIAL_CORE
+	help
+	  This driver supports the FH UART port.
+	  
+config SERIAL_FH_CONSOLE
+	bool "FH UART console support"
+	depends on SERIAL_FH=y
+	select SERIAL_CORE_CONSOLE
+	help
+	   Enable a FH UART port to be the system console.
+	   
+	   
+	   
+	   
+	
+
+
+	   
+	   
+	   
+	   
+	   
+	   
+	   
+	   
+	   
 endmenu

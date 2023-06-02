@@ -1060,4 +1060,37 @@ config RTC_DRV_PUV3
 	  This drive can also be built as a module. If so, the module
 	  will be called rtc-puv3.
 
+
+config RTC_DRV_FH
+	tristate "FH On-Chip RTC"
+	depends on RTC_CLASS
+	depends on ! (ARCH_FH8856 || ARCH_ZY2 || ARCH_FH8626V100)
+	help
+	  Say Y here to enable support for the on-chip RTC found in
+	  FH processors.
+
+ 	  To compile this driver as a module, choose M here: the
+	  module will be called rtc-fh.
+
+config RTC_DRV_FH_V2
+	tristate "FH On-Chip RTC"
+	depends on RTC_CLASS
+	depends on ARCH_FH8856 || ARCH_ZY2 || ARCH_FH8626V100
+	help
+	  Say Y here to enable support for the on-chip RTC found in
+	  FH processors.
+
+ 	  To compile this driver as a module, choose M here: the
+	  module will be called rtc-fh.
+if 	RTC_DRV_FH_V2
+	config USE_TSENSOR
+	bool 'USE TSENSOR'
+	default n
+
+	config USE_TSENSOR_OFFSET
+	bool 'USE ENHANCEMENT TSENSOR'
+	default n
+endif
+
+
 endif # RTC_CLASS

@@ -33,8 +33,9 @@
 #include "config.c"
 #include "epautoconf.c"
 
-#include "u_audio.c"
+/* #include "u_audio.c" */
 #include "f_audio.c"
+#include "audio_poll.c"
 
 /*-------------------------------------------------------------------------*/
 

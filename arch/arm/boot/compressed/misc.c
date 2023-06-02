@@ -169,6 +169,23 @@ asmlinkage void __div0(void)
 
 extern int do_decompress(u8 *input, int len, u8 *output, void (*error)(char *x));
 
+#ifdef CONFIG_TEST_BOOT_TIME
+#define SET_TIMING_GPIO(port, level)					\
+	do {								\
+		unsigned char *p_gpio = (unsigned char *) 0xf0300000;	\
+		int data = *(p_gpio + 0x0004);				\
+		data |= 1 << (port);					\
+		*(p_gpio + 0x0004) = data;				\
+		data = *(p_gpio);					\
+		if ((level) == 0)					\
+			data &= ~(1 << (port));				\
+		else							\
+			data |= 1 << (port);				\
+		*(p_gpio) = data;					\
+	} while (0)
+#else
+#define SET_TIMING_GPIO(port, level)
+#endif
 
 void
 decompress_kernel(unsigned long output_start, unsigned long free_mem_ptr_p,
@@ -181,6 +198,8 @@ decompress_kernel(unsigned long output_start, unsigned long free_mem_ptr_p,
 	free_mem_ptr		= free_mem_ptr_p;
 	free_mem_end_ptr	= free_mem_ptr_end_p;
 	__machine_arch_type	= arch_id;
+
+	SET_TIMING_GPIO(4, 1);
 
 	arch_decomp_setup();
 

@@ -298,7 +298,18 @@ config I2C_AT91
 	  documented way to issue repeated START conditions, as needed
 	  to support combined I2C messages.  Use the i2c-gpio driver
 	  unless your system can cope with those limitations.
+	  
+config I2C_FH_INTERRUPT
+	tristate "FH I2C Driver with Interrupt"
+	help
+	  This supports the use of the I2C interface on Fullhan
+	  processors.	
+	  
+	  Only master mode is supported.
 
+	  This driver can also be built as a module.  If so, the module
+	  will be called
+	
 config I2C_AU1550
 	tristate "Au1550/Au1200 SMBus interface"
 	depends on SOC_AU1550 || SOC_AU1200

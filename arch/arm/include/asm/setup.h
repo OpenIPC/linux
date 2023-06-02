@@ -143,6 +143,12 @@ struct tag_memclk {
 	__u32 fmemclk;
 };
 
+#define ATAG_PHYMODE 0x41000601
+
+struct tag_phymode {
+    u32 phymode;
+};
+
 struct tag {
 	struct tag_header hdr;
 	union {
@@ -165,6 +171,11 @@ struct tag {
 		 * DC21285 specific
 		 */
 		struct tag_memclk	memclk;
+
+		/*
+		 * Fullhan specific
+		 */
+		struct tag_phymode  phymode;
 	} u;
 };
 

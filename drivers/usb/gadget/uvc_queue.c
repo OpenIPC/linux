@@ -132,7 +132,8 @@ uvc_alloc_buffers(struct uvc_video_queue *queue, unsigned int nbuffers,
 
 	mutex_lock(&queue->mutex);
 
-	if ((ret = uvc_free_buffers(queue)) < 0)
+	ret = uvc_free_buffers(queue);
+	if (ret < 0)
 		goto done;
 
 	/* Bail out if no buffers should be allocated. */
@@ -265,6 +266,7 @@ uvc_queue_buffer(struct uvc_video_queue *queue, struct v4l2_buffer *v4l2_buf)
 
 	spin_lock_irqsave(&queue->irqlock, flags);
 	if (queue->flags & UVC_QUEUE_DISCONNECTED) {
+		printk(KERN_EMERG "uvc_queue_buffer UVC_QUEUE_DISCONNECTED.\n");
 		spin_unlock_irqrestore(&queue->irqlock, flags);
 		ret = -ENODEV;
 		goto done;
@@ -323,7 +325,8 @@ uvc_dequeue_buffer(struct uvc_video_queue *queue, struct v4l2_buffer *v4l2_buf,
 	}
 
 	buf = list_first_entry(&queue->mainqueue, struct uvc_buffer, stream);
-	if ((ret = uvc_queue_waiton(buf, nonblocking)) < 0)
+	ret = uvc_queue_waiton(buf, nonblocking);
+	if (ret < 0)
 		goto done;
 
 	uvc_trace(UVC_TRACE_CAPTURE, "Dequeuing buffer %u (%u, %u bytes).\n",
@@ -445,7 +448,8 @@ uvc_queue_mmap(struct uvc_video_queue *queue, struct vm_area_struct *vma)
 	addr = (unsigned long)queue->mem + buffer->buf.m.offset;
 	while (size > 0) {
 		page = vmalloc_to_page((void *)addr);
-		if ((ret = vm_insert_page(vma, start, page)) < 0)
+		ret = vm_insert_page(vma, start, page);
+		if (ret < 0)
 			goto done;
 
 		start += PAGE_SIZE;

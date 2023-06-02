@@ -61,7 +61,11 @@ __after_proc_init:
 	 * the CPU init function.
 	 */
 #ifdef CONFIG_ALIGNMENT_TRAP
+#if (__GNUC__ >= 5 && __LINUX_ARM_ARCH__ >= 6)
+        bic     r0, r0, #CR_A
+#else
 	orr	r0, r0, #CR_A
+#endif
 #else
 	bic	r0, r0, #CR_A
 #endif

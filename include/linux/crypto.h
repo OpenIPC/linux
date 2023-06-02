@@ -24,6 +24,7 @@
 #include <linux/slab.h>
 #include <linux/string.h>
 #include <linux/uaccess.h>
+#include <linux/if_alg.h>
 
 /*
  * Algorithm masks and types.
@@ -329,6 +330,8 @@ struct ablkcipher_tfm {
 
 	unsigned int ivsize;
 	unsigned int reqsize;
+	/*add usr self data..*/
+	struct af_alg_usr_def usr_def;
 };
 
 struct aead_tfm {
@@ -606,6 +609,15 @@ static inline unsigned int crypto_ablkcipher_ivsize(
 {
 	return crypto_ablkcipher_crt(tfm)->ivsize;
 }
+
+
+
+static inline struct af_alg_usr_def *crypto_ablkcipher_usr_def(
+	struct crypto_ablkcipher *tfm)
+{
+	return &crypto_ablkcipher_crt(tfm)->usr_def;
+}
+
 
 static inline unsigned int crypto_ablkcipher_blocksize(
 	struct crypto_ablkcipher *tfm)

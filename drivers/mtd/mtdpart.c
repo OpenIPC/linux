@@ -72,6 +72,12 @@ static int part_read(struct mtd_info *mtd, loff_t from, size_t len,
 		len = mtd->size - from;
 	res = part->master->read(part->master, from + part->offset,
 				   len, retlen, buf);
+
+	if ((part->master->bitflip_threshold != 0) &&
+		(res >= part->master->bitflip_threshold))
+		res = -EUCLEAN;
+
+
 	if (unlikely(res)) {
 		if (res == -EUCLEAN)
 			mtd->ecc_stats.corrected += part->master->ecc_stats.corrected - stats.corrected;

@@ -749,7 +749,8 @@ void phy_start(struct phy_device *phydev)
 			phydev->state = PHY_PENDING;
 			break;
 		case PHY_READY:
-			phydev->state = PHY_UP;
+			phydev->link_timeout = PHY_AN_TIMEOUT;
+			phydev->state = PHY_AN;
 			break;
 		case PHY_HALTED:
 			phydev->state = PHY_RESUMING;

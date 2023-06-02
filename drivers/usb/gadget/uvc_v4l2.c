@@ -33,10 +33,9 @@
  */
 
 static int
-uvc_send_response(struct uvc_device *uvc, struct uvc_request_data *data)
-{
-	struct usb_composite_dev *cdev = uvc->func.config->cdev;
-	struct usb_request *req = uvc->control_req;
+uvc_send_response(struct uvc_device *uvc, struct uvc_request_data *data) {
+	struct usb_composite_dev *cdev = uvc->comm->func.config->cdev;
+	struct usb_request *req = uvc->comm->control_req;
 
 	if (data->length < 0)
 		return usb_ep_set_halt(cdev->gadget->ep0);
@@ -44,6 +43,7 @@ uvc_send_response(struct uvc_device *uvc, struct uvc_request_data *data)
 	req->length = min(uvc->event_length, data->length);
 	req->zero = data->length < uvc->event_length;
 	req->dma = DMA_ADDR_INVALID;
+	req->context = uvc;
 
 	memcpy(req->buf, data->data, data->length);
 
@@ -54,20 +54,24 @@ uvc_send_response(struct uvc_device *uvc, struct uvc_request_data *data)
  * V4L2
  */
 
-struct uvc_format
-{
+struct uvc_format {
 	u8 bpp;
 	u32 fcc;
 };
 
 static struct uvc_format uvc_formats[] = {
-	{ 16, V4L2_PIX_FMT_YUYV  },
-	{ 0,  V4L2_PIX_FMT_MJPEG },
+	{ 12, V4L2_PIX_FMT_NV12 },
+	{ 0, V4L2_PIX_FMT_MJPEG },
+	{ 0, V4L2_PIX_FMT_H264 },
 };
 
-static int
-uvc_v4l2_get_format(struct uvc_video *video, struct v4l2_format *fmt)
+void set_yuv_bpp(int bpp)
 {
+	uvc_formats[0].bpp = bpp;
+}
+
+static int
+uvc_v4l2_get_format(struct uvc_video *video, struct v4l2_format *fmt) {
 	fmt->fmt.pix.pixelformat = video->fcc;
 	fmt->fmt.pix.width = video->width;
 	fmt->fmt.pix.height = video->height;
@@ -81,8 +85,7 @@ uvc_v4l2_get_format(struct uvc_video *video, struct v4l2_format *fmt)
 }
 
 static int
-uvc_v4l2_set_format(struct uvc_video *video, struct v4l2_format *fmt)
-{
+uvc_v4l2_set_format(struct uvc_video *video, struct v4l2_format *fmt) {
 	struct uvc_format *format;
 	unsigned int imagesize;
 	unsigned int bpl;
@@ -119,8 +122,7 @@ uvc_v4l2_set_format(struct uvc_video *video, struct v4l2_format *fmt)
 }
 
 static int
-uvc_v4l2_open(struct file *file)
-{
+uvc_v4l2_open(struct file *file) {
 	struct video_device *vdev = video_devdata(file);
 	struct uvc_device *uvc = video_get_drvdata(vdev);
 	struct uvc_file_handle *handle;
@@ -147,6 +149,8 @@ uvc_v4l2_open(struct file *file)
 	handle->device = &uvc->video;
 	file->private_data = &handle->vfh;
 
+	return 0;
+
 	uvc_function_connect(uvc);
 	return 0;
 
@@ -156,8 +160,7 @@ error:
 }
 
 static int
-uvc_v4l2_release(struct file *file)
-{
+uvc_v4l2_release(struct file *file) {
 	struct video_device *vdev = video_devdata(file);
 	struct uvc_device *uvc = video_get_drvdata(vdev);
 	struct uvc_file_handle *handle = to_uvc_file_handle(file->private_data);
@@ -179,17 +182,41 @@ uvc_v4l2_release(struct file *file)
 	return 0;
 }
 
+
+
+#define VIDIOC_TEST_FMTS  0x12345678
+#define VIDIOC_RESET_DESC  0x445566
+#define VIDIOC_CONNECT_NOW 0x238956
+
+void change_usb_support_fmt(struct uvc_device *uvc, void *arg);
 static long
-uvc_v4l2_do_ioctl(struct file *file, unsigned int cmd, void *arg)
-{
+uvc_v4l2_do_ioctl(struct file *file, unsigned int cmd, void *arg) {
 	struct video_device *vdev = video_devdata(file);
 	struct uvc_device *uvc = video_get_drvdata(vdev);
 	struct uvc_file_handle *handle = to_uvc_file_handle(file->private_data);
-	struct usb_composite_dev *cdev = uvc->func.config->cdev;
+	struct usb_composite_dev *cdev = uvc->comm->func.config->cdev;
 	struct uvc_video *video = &uvc->video;
 	int ret = 0;
 
 	switch (cmd) {
+	case VIDIOC_TEST_FMTS:
+		/*enumFmts(arg);*/
+		return 0;
+
+
+	case VIDIOC_RESET_DESC:
+
+		change_usb_support_fmt(uvc, arg);
+
+		break;
+
+	case VIDIOC_CONNECT_NOW:
+
+		uvc_function_connect(uvc);
+
+		return 0;
+		break;
+
 	/* Query capabilities */
 	case VIDIOC_QUERYCAP:
 	{
@@ -204,7 +231,6 @@ uvc_v4l2_do_ioctl(struct file *file, unsigned int cmd, void *arg)
 		cap->capabilities = V4L2_CAP_VIDEO_OUTPUT | V4L2_CAP_STREAMING;
 		break;
 	}
-
 	/* Get & Set format */
 	case VIDIOC_G_FMT:
 	{
@@ -215,7 +241,6 @@ uvc_v4l2_do_ioctl(struct file *file, unsigned int cmd, void *arg)
 
 		return uvc_v4l2_get_format(video, fmt);
 	}
-
 	case VIDIOC_S_FMT:
 	{
 		struct v4l2_format *fmt = arg;
@@ -225,14 +250,13 @@ uvc_v4l2_do_ioctl(struct file *file, unsigned int cmd, void *arg)
 
 		return uvc_v4l2_set_format(video, fmt);
 	}
-
 	/* Buffers & streaming */
 	case VIDIOC_REQBUFS:
 	{
 		struct v4l2_requestbuffers *rb = arg;
 
 		if (rb->type != video->queue.type ||
-		    rb->memory != V4L2_MEMORY_MMAP)
+			rb->memory != V4L2_MEMORY_MMAP)
 			return -EINVAL;
 
 		ret = uvc_alloc_buffers(&video->queue, rb->count,
@@ -244,7 +268,6 @@ uvc_v4l2_do_ioctl(struct file *file, unsigned int cmd, void *arg)
 		ret = 0;
 		break;
 	}
-
 	case VIDIOC_QUERYBUF:
 	{
 		struct v4l2_buffer *buf = arg;
@@ -254,7 +277,6 @@ uvc_v4l2_do_ioctl(struct file *file, unsigned int cmd, void *arg)
 
 		return uvc_query_buffer(&video->queue, buf);
 	}
-
 	case VIDIOC_QBUF:
 		if ((ret = uvc_queue_buffer(&video->queue, arg)) < 0)
 			return ret;
@@ -274,7 +296,6 @@ uvc_v4l2_do_ioctl(struct file *file, unsigned int cmd, void *arg)
 
 		return uvc_video_enable(video, 1);
 	}
-
 	case VIDIOC_STREAMOFF:
 	{
 		int *type = arg;
@@ -286,27 +307,26 @@ uvc_v4l2_do_ioctl(struct file *file, unsigned int cmd, void *arg)
 	}
 
 	/* Events */
-        case VIDIOC_DQEVENT:
+	case VIDIOC_DQEVENT:
 	{
-		struct v4l2_event *event = arg;
+	struct v4l2_event *event = arg;
 
-		ret = v4l2_event_dequeue(&handle->vfh, event,
-					 file->f_flags & O_NONBLOCK);
-		if (ret == 0 && event->type == UVC_EVENT_SETUP) {
-			struct uvc_event *uvc_event = (void *)&event->u.data;
+	ret = v4l2_event_dequeue(&handle->vfh, event,
+					file->f_flags & O_NONBLOCK);
+	if (ret == 0 && event->type == UVC_EVENT_SETUP) {
+		struct uvc_event *uvc_event = (void *)&event->u.data;
 
-			/* Tell the complete callback to generate an event for
-			 * the next request that will be enqueued by
-			 * uvc_event_write.
-			 */
-			uvc->event_setup_out =
-				!(uvc_event->req.bRequestType & USB_DIR_IN);
-			uvc->event_length = uvc_event->req.wLength;
-		}
-
-		return ret;
+		/* Tell the complete callback to generate an event for
+			* the next request that will be enqueued by
+			* uvc_event_write.
+			*/
+		uvc->event_setup_out =
+			!(uvc_event->req.bRequestType & USB_DIR_IN);
+		uvc->event_length = uvc_event->req.wLength;
 	}
 
+	return ret;
+	}
 	case VIDIOC_SUBSCRIBE_EVENT:
 	{
 		struct v4l2_event_subscription *sub = arg;
@@ -316,7 +336,6 @@ uvc_v4l2_do_ioctl(struct file *file, unsigned int cmd, void *arg)
 
 		return v4l2_event_subscribe(&handle->vfh, arg);
 	}
-
 	case VIDIOC_UNSUBSCRIBE_EVENT:
 		return v4l2_event_unsubscribe(&handle->vfh, arg);
 
@@ -332,14 +351,12 @@ uvc_v4l2_do_ioctl(struct file *file, unsigned int cmd, void *arg)
 }
 
 static long
-uvc_v4l2_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
-{
+uvc_v4l2_ioctl(struct file *file, unsigned int cmd, unsigned long arg) {
 	return video_usercopy(file, cmd, arg, uvc_v4l2_do_ioctl);
 }
 
 static int
-uvc_v4l2_mmap(struct file *file, struct vm_area_struct *vma)
-{
+uvc_v4l2_mmap(struct file *file, struct vm_area_struct *vma) {
 	struct video_device *vdev = video_devdata(file);
 	struct uvc_device *uvc = video_get_drvdata(vdev);
 
@@ -347,8 +364,7 @@ uvc_v4l2_mmap(struct file *file, struct vm_area_struct *vma)
 }
 
 static unsigned int
-uvc_v4l2_poll(struct file *file, poll_table *wait)
-{
+uvc_v4l2_poll(struct file *file, poll_table *wait) {
 	struct video_device *vdev = video_devdata(file);
 	struct uvc_device *uvc = video_get_drvdata(vdev);
 	struct uvc_file_handle *handle = to_uvc_file_handle(file->private_data);

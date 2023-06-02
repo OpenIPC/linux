@@ -1,0 +1,202 @@
+if ARCH_FULLHAN
+
+config CPU_FH8810
+	select CPU_V6
+	bool
+
+config CPU_WUDANG
+	select CPU_V6
+	bool
+
+config CPU_FH8830
+	select CPU_V6
+	bool
+
+config CPU_FH8833
+	select CPU_V6
+	bool
+
+config CPU_FH8856
+	select CPU_V6
+	bool
+
+config CPU_FH8626V100
+	select CPU_V6
+	bool
+
+config CPU_ZY2
+	select CPU_V6
+	bool
+
+menu "FullHan Implementations"
+
+comment "FullHan Core Type"
+
+choice
+	prompt "Select Fullhan Chip:"
+	default ARCH_FH8833
+
+config ARCH_FH8810
+	bool "FullHan FH8810 based system"
+	select CPU_FH8810
+	select USE_PTS_AS_CLOCKSOURCE
+
+config ARCH_FH8833
+	bool "FullHan FH8833 based system"
+	select CPU_FH8833
+
+config ARCH_FH8830
+	bool "FullHan FH8830 based system"
+	select CPU_FH8830
+
+config ARCH_FH8856
+	bool "FullHan FH8856 based system"
+	select CPU_FH8856
+
+config ARCH_FH8626V100
+	bool "FullHan FH8626V100 based system"
+	select CPU_FH8626V100
+
+
+config ARCH_WUDANG
+	bool "FullHan Wudang based system"
+	select CPU_WUDANG
+
+config ARCH_ZY2
+	bool "FullHan ZY2 based system"
+	select CPU_ZY2
+
+
+endchoice
+
+comment "FullHan Board Type"
+
+config USE_PTS_AS_CLOCKSOURCE
+	bool "use pts as clock source"
+	default n
+
+config FH_SIMPLE_TIMER
+	bool "use fh self-defined simple timer"
+	default n
+
+config MACH_FH8810
+	bool "FullHan FH8810 board"
+	default n
+	depends on ARCH_FH8810
+
+config MACH_FH8830_FPGA
+	bool "FullHan fh8830 fpga board"
+	default n
+	depends on ARCH_FH8830
+	select MISC_DEVICES
+	select I2C
+	help
+	  Configure this option to specify the whether the board used
+	  for development is a FH8830 fpga
+
+config MACH_FH8833
+	bool "FullHan FH8833 board"
+	default y
+	depends on ARCH_FH8833
+	select MISC_DEVICES
+	select I2C
+	help
+	  Configure this option to specify the whether the board used
+	  for development is FH8833
+
+
+config MACH_FH8830
+	bool "FullHan FH8830 board"
+	default y
+	depends on ARCH_FH8830
+	select MISC_DEVICES
+	select I2C
+	help
+	  Configure this option to specify the whether the board used
+	  for development is FH8830
+
+config MACH_FH8856
+	bool "FullHan FH8856 board"
+	default y
+	depends on ARCH_FH8856
+	select MISC_DEVICES
+	select I2C
+	help
+	  Configure this option to specify the whether the board used
+	  for development is FH8856
+
+config MACH_FH8852
+	bool "FullHan FH8852 board"
+	default n
+	depends on ARCH_FH8856
+	select MISC_DEVICES
+	select I2C
+	help
+	  Configure this option to specify the whether the board used
+	  for development is FH8852
+config MACH_FH8626V100
+	bool "FullHan FH8626V100 board"
+	default y
+	depends on ARCH_FH8626V100
+	select MISC_DEVICES
+	select I2C
+	help
+	  Configure this option to specify the whether the board used
+	  for development is FH8626V100
+
+config MACH_WUDANG
+	bool "FullHan Wudang board"
+	default n
+	depends on ARCH_WUDANG
+	select MISC_DEVICES
+	select I2C
+	help
+	  Configure this option to specify the whether the board used
+	  for development is a Wudang EVM
+
+config MACH_HIK
+	bool "HIK FH8810 board"
+	default n
+	depends on ARCH_FH8810
+	select MISC_DEVICES
+	select I2C
+	help
+	  Configure this option to specify the whether the board used
+	  for development is a HIK EVM
+
+config MACH_FH8830_QFN
+	bool "FH8830 QFN"
+	default n
+	depends on ARCH_FH8830
+	help
+	  FH8830 QFN
+
+config MACH_FH8833_QFN56
+	bool "FH8633 QFN56"
+	default n
+	depends on ARCH_FH8833
+	help
+	  FH8633 QFN56
+
+config MACH_ZY2
+	bool "FullHan ZY2 board"
+	default y
+	depends on ARCH_ZY2
+	select MISC_DEVICES
+	select I2C
+	help
+	  Configure this option to specify the whether the board used
+	  for development is ZY2
+
+config MACH_FH_NAND
+	bool "USE NAND FLASH"
+	default n
+	help
+	  use NAND FLASH
+
+config JLINK_DEBUG
+	bool "Use jlink to debug kernel."
+
+endmenu
+
+endif

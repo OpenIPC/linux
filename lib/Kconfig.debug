@@ -1,4 +1,11 @@
 
+config TEST_BOOT_TIME
+	bool "Set GPIO level for measuring boot time."
+	default n
+	help
+	  This option will set GPIO 4 to level high at the beginning of
+	  kernel decompressing stage.
+
 config PRINTK_TIME
 	bool "Show timing information on printks"
 	depends on PRINTK

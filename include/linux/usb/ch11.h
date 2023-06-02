@@ -18,6 +18,16 @@
 #define USB_RT_HUB	(USB_TYPE_CLASS | USB_RECIP_DEVICE)
 #define USB_RT_PORT	(USB_TYPE_CLASS | USB_RECIP_OTHER)
 
+#define HUB_CHAR_LPSM		0x0003 /* Logical Power Switching Mode mask */
+#define HUB_CHAR_COMMON_LPSM	0x0000 /* All ports power control at once */
+#define HUB_CHAR_INDV_PORT_LPSM	0x0001 /* per-port power control */
+#define HUB_CHAR_NO_LPSM	0x0002 /* no power switching */
+#define HUB_CHAR_COMPOUND	0x0004 /* hub is part of a compound device */
+
+
+
+
+
 /*
  * Hub class requests
  * See USB 2.0 spec Table 11-16
@@ -54,6 +64,7 @@
 #define USB_PORT_FEAT_L1		5	/* L1 suspend */
 #define USB_PORT_FEAT_POWER		8
 #define USB_PORT_FEAT_LOWSPEED		9	/* Should never be used */
+#define USB_PORT_FEAT_HIGHSPEED		10
 #define USB_PORT_FEAT_C_CONNECTION	16
 #define USB_PORT_FEAT_C_ENABLE		17
 #define USB_PORT_FEAT_C_SUSPEND		18
@@ -168,6 +179,7 @@ struct usb_port_status {
 #define HUB_CHAR_LPSM		0x0003 /* D1 .. D0 */
 #define HUB_CHAR_COMPOUND	0x0004 /* D2       */
 #define HUB_CHAR_OCPM		0x0018 /* D4 .. D3 */
+#define HUB_CHAR_INDV_PORT_OCPM	0x0008 /* per-port Over-current reporting */
 #define HUB_CHAR_TTTT           0x0060 /* D6 .. D5 */
 #define HUB_CHAR_PORTIND        0x0080 /* D7       */
 

@@ -14,6 +14,12 @@
 #ifndef _LINUX_MMC_DW_MMC_H_
 #define _LINUX_MMC_DW_MMC_H_
 
+#include <linux/scatterlist.h>
+#include <linux/compiler.h>
+#include <linux/types.h>
+#include <linux/io.h>
+#include <linux/mmc/host.h>
+
 #define MAX_MCI_SLOTS	2
 
 enum dw_mci_state {
@@ -117,6 +123,8 @@ struct dw_mci {
 
 	/* DMA interface members*/
 	int			use_dma;
+	int 		using_dma;
+	unsigned int		prev_blksz;
 
 	dma_addr_t		sg_dma;
 	void			*sg_cpu;
@@ -154,6 +162,9 @@ struct dw_mci {
 	u32			quirks;
 
 	struct regulator	*vmmc;	/* Power regulator */
+
+	int 		dma_data_mapped;
+	int 		data_error_flag;
 };
 
 /* DMA ops for Internal/External DMAC interface */
@@ -200,7 +211,7 @@ struct dw_mci_board {
 	/* delay in mS before detecting cards after interrupt */
 	u32 detect_delay_ms;
 
-	int (*init)(u32 slot_id, irq_handler_t , void *);
+	int (*init)(u32 slot_id,void* irq_handler_t , void *);
 	int (*get_ro)(u32 slot_id);
 	int (*get_cd)(u32 slot_id);
 	int (*get_ocr)(u32 slot_id);

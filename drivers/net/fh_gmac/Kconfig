@@ -1,0 +1,21 @@
+config FH_GMAC
+	tristate "FH 10/100 Ethernet driver"
+	select MII
+	select PHYLIB
+	select CRC32
+	depends on NETDEVICES && HAS_IOMEM
+	help
+	  This is the driver for the Ethernet IPs are built around a
+	  Synopsys IP Core.
+
+if FH_GMAC
+
+config FH_GMAC_DA
+	bool "FH GMAC DMA arbitration scheme"
+	default n
+	help
+	  Selecting this option, rx has priority over Tx (only for Giga
+	  Ethernet device).
+	  By default, the DMA arbitration scheme is based on Round-robin
+	  (rx:tx priority is 1:1).	  
+endif

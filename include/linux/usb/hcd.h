@@ -19,10 +19,10 @@
 #ifndef __USB_CORE_HCD_H
 #define __USB_CORE_HCD_H
 
-#ifdef __KERNEL__
+//#ifdef __KERNEL__
 
 #include <linux/rwsem.h>
-
+#include <linux/usb.h>
 #define MAX_TOPO_LEVEL		6
 
 /* This file contains declarations of usbcore internals that are mostly
@@ -505,6 +505,11 @@ extern void usb_ep0_reinit(struct usb_device *);
 /* class requests from USB 3.0 hub spec, table 10-5 */
 #define SetHubDepth		(0x3000 | HUB_SET_DEPTH)
 #define GetPortErrorCount	(0x8000 | HUB_GET_PORT_ERR_COUNT)
+/*-------------------------------------------------------------------------*/
+
+/* hub.h ... DeviceRemovable in 2.4.2-ac11, gone in 2.4.10 */
+/* bleech -- resurfaced in 2.4.11 or 2.4.12 */
+#define bitmap 	DeviceRemovable
 
 /*
  * Generic bandwidth allocation constants/support
@@ -669,6 +674,6 @@ extern struct rw_semaphore ehci_cf_port_reset_rwsem;
 #define USB_EHCI_LOADED		2
 extern unsigned long usb_hcds_loaded;
 
-#endif /* __KERNEL__ */
+//#endif /* __KERNEL__ */
 
 #endif /* __USB_CORE_HCD_H */

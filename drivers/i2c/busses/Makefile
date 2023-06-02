@@ -82,5 +82,6 @@ obj-$(CONFIG_I2C_SIBYTE)	+= i2c-sibyte.o
 obj-$(CONFIG_I2C_STUB)		+= i2c-stub.o
 obj-$(CONFIG_SCx200_ACB)	+= scx200_acb.o
 obj-$(CONFIG_SCx200_I2C)	+= scx200_i2c.o
+obj-$(CONFIG_I2C_FH_INTERRUPT)	+= i2c_fh_interrupt.o
 
 ccflags-$(CONFIG_I2C_DEBUG_BUS) := -DDEBUG

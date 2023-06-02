@@ -41,6 +41,7 @@ struct af_alg_completion {
 struct af_alg_control {
 	struct af_alg_iv *iv;
 	int op;
+	struct af_alg_usr_def usr_def;
 };
 
 struct af_alg_type {

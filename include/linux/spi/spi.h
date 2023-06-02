@@ -29,6 +29,22 @@
  */
 extern struct bus_type spi_bus_type;
 
+
+
+struct spi_master;
+struct _spi_advanced_info {
+	unsigned int ctl_wire_support;
+	/*add spi wire init func point...*/
+	/*may be null*/
+	int  (*multi_wire_func_init)(struct spi_master *p_master);
+	/*change spi bus to which wire func..*/
+	#define SPI_DATA_DIR_IN			(0xaa)
+	#define SPI_DATA_DIR_OUT		(0xbb)
+	#define SPI_DATA_DIR_DUOLEX		(0xcc)
+	void (*change_to_1_wire)(struct spi_master *p_master);
+	void (*change_to_2_wire)(struct spi_master *p_master, unsigned int dir);
+	void (*change_to_4_wire)(struct spi_master *p_master, unsigned int dir);
+};
 /**
  * struct spi_device - Master side proxy for an SPI slave device
  * @dev: Driver model representation of the device.
@@ -66,6 +82,7 @@ extern struct bus_type spi_bus_type;
  * variant with slightly different functionality; another might be
  * information about how this particular board wires the chip's pins.
  */
+
 struct spi_device {
 	struct device		dev;
 	struct spi_master	*master;
@@ -90,6 +107,15 @@ struct spi_device {
 	void			*controller_data;
 	char			modalias[SPI_NAME_SIZE];
 
+
+	/*add spi multi wire support..*/
+#define ONE_WIRE_SUPPORT		(1<<0)
+#define DUAL_WIRE_SUPPORT		(1<<1)
+#define QUAD_WIRE_SUPPORT		(1<<2)
+#define MULTI_WIRE_SUPPORT		(1<<8)
+	u32			dev_open_multi_wire_flag;
+	/*add the wire support info of controller...*/
+	struct _spi_advanced_info  *p_ctl_multi_wire_info;
 	/*
 	 * likely need more hooks for more protocol options affecting how
 	 * the controller talks to each chip, like:
@@ -177,7 +203,7 @@ struct spi_driver {
 	int			(*probe)(struct spi_device *spi);
 	int			(*remove)(struct spi_device *spi);
 	void			(*shutdown)(struct spi_device *spi);
-	int			(*suspend)(struct spi_device *spi, pm_message_t mesg);
+	int	(*suspend)(struct spi_device *spi, pm_message_t mesg);
 	int			(*resume)(struct spi_device *spi);
 	struct device_driver	driver;
 };
@@ -307,6 +333,7 @@ struct spi_master {
 
 	/* called on release() to free memory provided by spi_master */
 	void			(*cleanup)(struct spi_device *spi);
+	struct _spi_advanced_info ctl_multi_wire_info;
 };
 
 static inline void *spi_master_get_devdata(struct spi_master *master)
@@ -330,6 +357,32 @@ static inline void spi_master_put(struct spi_master *master)
 {
 	if (master)
 		put_device(&master->dev);
+}
+
+static inline struct
+_spi_advanced_info *spi_master_get_advanced_data(struct spi_master *master)
+{
+	return &master->ctl_multi_wire_info;
+}
+
+static inline void
+spi_dev_set_multi_data(struct spi_master *master, struct spi_device *spi_dev)
+{
+	u32 ctl_flag;
+	u32 dev_flag;
+	ctl_flag = master->ctl_multi_wire_info.ctl_wire_support;
+	dev_flag = spi_dev->dev_open_multi_wire_flag;
+	/*if slave and ctl all support multi wire...
+	then slave open the lower support*/
+	if ((ctl_flag & MULTI_WIRE_SUPPORT)
+	&& (dev_flag & MULTI_WIRE_SUPPORT))
+		spi_dev->dev_open_multi_wire_flag = ctl_flag & dev_flag;
+	else {
+		spi_dev->dev_open_multi_wire_flag = 0;
+		return;
+	}
+	spi_dev->p_ctl_multi_wire_info =
+	&master->ctl_multi_wire_info;
 }
 
 
@@ -436,15 +489,23 @@ struct spi_transfer {
 	const void	*tx_buf;
 	void		*rx_buf;
 	unsigned	len;
-
 	dma_addr_t	tx_dma;
 	dma_addr_t	rx_dma;
-
 	unsigned	cs_change:1;
 	u8		bits_per_word;
 	u16		delay_usecs;
 	u32		speed_hz;
-
+	/*add this transfer use mode..
+#define ONE_WIRE_SUPPORT	(1<<0)
+#define DUAL_WIRE_SUPPORT	(1<<1)
+#define QUAD_WIRE_SUPPORT	(1<<2)
+	*/
+	u32	xfer_wire_mode;
+	/*
+#define SPI_DATA_DIR_IN		(0xaa)
+#define SPI_DATA_DIR_OUT	(0xbb)
+	*/
+	u32	xfer_dir;
 	struct list_head transfer_list;
 };
 
@@ -530,7 +591,8 @@ spi_transfer_del(struct spi_transfer *t)
  * structures so long as you don't free them while they're in use.
  */
 
-static inline struct spi_message *spi_message_alloc(unsigned ntrans, gfp_t flags)
+static inline struct spi_message
+*spi_message_alloc(unsigned ntrans, gfp_t flags)
 {
 	struct spi_message *m;
 

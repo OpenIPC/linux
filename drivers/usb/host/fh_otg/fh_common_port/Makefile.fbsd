@@ -1,0 +1,17 @@
+CFLAGS	+= -I/sys/i386/compile/GENERIC -I/sys/i386/include -I/usr/include
+CFLAGS	+= -DFH_FREEBSD
+CFLAGS	+= -DDEBUG
+#CFLAGS	+= -DFH_DEBUG_REGS
+#CFLAGS	+= -DFH_DEBUG_MEMORY
+
+#CFLAGS	+= -DFH_LIBMODULE
+#CFLAGS	+= -DFH_CCLIB
+#CFLAGS	+= -DFH_CRYPTOLIB
+#CFLAGS	+= -DFH_NOTIFYLIB
+#CFLAGS	+= -DFH_UTFLIB
+
+KMOD = fh_common_port_lib
+SRCS = fh_cc.c fh_modpow.c fh_dh.c fh_crypto.c fh_notifier.c \
+       fh_common_fbsd.c fh_mem.c
+
+.include <bsd.kmod.mk>

@@ -1,13 +1,16 @@
 #
-# Makefile for the kernel USB device drivers.
+#akefile for the kernel USB device drivers.
 #
 
 # Object files in subdirectories
 
 obj-$(CONFIG_USB)		+= core/
 
+#obj-$(CONFIG_USB_DWC2)		+= dwc2/
+
 obj-$(CONFIG_USB_MON)		+= mon/
 
+obj-$(CONFIG_USB_FH_OTG)     += host/
 obj-$(CONFIG_PCI)		+= host/
 obj-$(CONFIG_USB_EHCI_HCD)	+= host/
 obj-$(CONFIG_USB_ISP116X_HCD)	+= host/
@@ -23,7 +26,7 @@ obj-$(CONFIG_USB_HWA_HCD)	+= host/
 obj-$(CONFIG_USB_ISP1760_HCD)	+= host/
 obj-$(CONFIG_USB_IMX21_HCD)	+= host/
 obj-$(CONFIG_USB_FSL_MPH_DR_OF)	+= host/
-
+obj-$(CONFIG_USB_S3C_OTG_HOST)	+= host/
 obj-$(CONFIG_USB_C67X00_HCD)	+= c67x00/
 
 obj-$(CONFIG_USB_WUSB)		+= wusbcore/
