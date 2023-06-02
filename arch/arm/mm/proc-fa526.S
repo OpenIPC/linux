@@ -82,7 +82,12 @@ ENDPROC(cpu_fa526_reset)
  */
 	.align	4
 ENTRY(cpu_fa526_do_idle)
+	mrs	r0, cpsr
+	bic	r0, r0, #0x80			@ enable irq
+	msr	cpsr_c, r0
 	mcr	p15, 0, r0, c7, c0, 4		@ Wait for interrupt
+	orr	r0, r0, #0x80			@ disable irq
+	msr	cpsr_c, r0
 	mov	pc, lr
 
 

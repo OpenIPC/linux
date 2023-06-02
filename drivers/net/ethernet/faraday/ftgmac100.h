@@ -22,6 +22,8 @@
 #ifndef __FTGMAC100_H
 #define __FTGMAC100_H
 
+#define CONFIG_FTGMAC100_STORM
+
 #define FTGMAC100_OFFSET_ISR		0x00
 #define FTGMAC100_OFFSET_IER		0x04
 #define FTGMAC100_OFFSET_MAC_MADR	0x08
@@ -139,6 +141,22 @@
 #define FTGMAC100_RBSR_SIZE(x)		((x) & 0x3fff)
 
 /*
+ * Feature Register (0x44)
+ */
+#define FTGMAC100_FEAR_TFIFO_RSIZE(x) ((x & 0x38) >> 3)
+#define FTGMAC100_FEAR_RFIFO_RSIZE(x) ((x & 0x7) >> 0)
+
+/*
+ * Transmit Priority Arbitration and FIFO Control register (0x48)
+ */
+#define FTGMAC100_TPAFCR_TFIFO_SIZE(x)  ((x & 0x7) << 27)
+#define FTGMAC100_TPAFCR_RFIFO_SIZE(x)  ((x & 0x7) << 24)
+#define FTGMAC100_TPAFCR_EARLY_TXTHR(x) ((x & 0xff) << 16)
+#define FTGMAC100_TPAFCR_EARLY_RXTHR(x) ((x & 0xff) << 8)
+#define FTGMAC100_TPAFCR_HPKT_THR(x)    ((x & 0xf) << 4)
+#define FTGMAC100_TPAFCR_NPKT_THR(x)    ((x & 0xf) << 0)
+
+/*
  * MAC control register
  */
 #define FTGMAC100_MACCR_TXDMA_EN	(1 << 0)
@@ -165,8 +183,13 @@
 /*
  * PHY control register
  */
+#ifdef CONFIG_PLATFORM_GM8210
 #define FTGMAC100_PHYCR_MDC_CYCTHR_MASK	0x3f
 #define FTGMAC100_PHYCR_MDC_CYCTHR(x)	((x) & 0x3f)
+#else  
+#define FTGMAC100_PHYCR_MDC_CYCTHR_MASK	0xff        
+#define FTGMAC100_PHYCR_MDC_CYCTHR(x)	((x) & 0xff)
+#endif
 #define FTGMAC100_PHYCR_PHYAD(x)	(((x) & 0x1f) << 16)
 #define FTGMAC100_PHYCR_REGAD(x)	(((x) & 0x1f) << 21)
 #define FTGMAC100_PHYCR_MIIRD		(1 << 26)
@@ -204,6 +227,40 @@ struct ftgmac100_txdes {
 #define FTGMAC100_TXDES1_TX2FIC		(1 << 30)
 #define FTGMAC100_TXDES1_TXIC		(1 << 31)
 
+/* user define */
+#ifdef CONFIG_FTMAC_TINY
+#define RX_QUEUE_ENTRIES	128	    /* must be power of 2 */
+#define TX_QUEUE_ENTRIES	128	    /* must be power of 2 */
+#else
+#if defined(CONFIG_PLATFORM_GM8139) || defined(CONFIG_PLATFORM_GM8136)
+#define RX_QUEUE_ENTRIES	128	    /* must be power of 2 */
+#define TX_QUEUE_ENTRIES	256	    /* must be power of 2 */
+#else
+#define RX_QUEUE_ENTRIES	512	    /* must be power of 2 */
+#define TX_QUEUE_ENTRIES	1024	/* must be power of 2 */
+#endif
+#endif
+
+#ifdef CONFIG_FTGMAC100_STORM
+#define RX_BROADCAST_THRESHOLD	800
+#define RX_DETECT_TIME	200
+#define RX_DELAY_TIME	1000
+#endif
+
+#define TX_QUEUE_THRESHOLD  (TX_QUEUE_ENTRIES / 4)
+
+#define MAX_PKT_SIZE		9216
+#define RX_BUF_SIZE		PAGE_SIZE	/* must be smaller than 0x3fff */
+
+#define RX_NUM_QUEUES	1
+#define TX_NUM_QUEUES	1
+
+#define MAX_RX_QUEUES   1
+#define MAX_TX_QUEUES	2
+
+/* software used bits */
+#define FTGMAC100_TXDES1_USED (1 << 20)
+
 /*
  * Receive descriptor, aligned to 16 bytes
  */
@@ -213,6 +270,45 @@ struct ftgmac100_rxdes {
 	unsigned int	rxdes2;	/* not used by HW */
 	unsigned int	rxdes3;	/* RXBUF_BADR */
 } __attribute__ ((aligned(16)));
+
+struct ftgmac100_page {
+	struct page *page;
+	void *page_va;
+};
+
+struct ftgmac100 {
+	struct resource *res;
+	void __iomem *base;
+	int irq;
+
+	struct ftgmac100_rx_ring *rx_rings;
+	struct ftgmac100_tx_ring *tx_rings;
+
+	struct net_device *netdev;
+	struct device *dev;
+	struct napi_struct napi;
+
+	struct mii_bus *mii_bus;
+	int phy_irq[PHY_MAX_ADDR];
+	struct phy_device *phydev;
+	int old_speed;
+	int old_duplex;
+	int tx_fifo_sel;
+	int rx_fifo_sel;
+	int tx_num_queues;
+	int rx_num_queues;
+	int link_flag;
+	spinlock_t mac_lock;
+	bool (*process_rx_ring)(struct ftgmac100_rx_ring *, struct napi_struct *);
+#ifdef CONFIG_FTGMAC100_STORM
+	struct timer_list   timer;
+	unsigned int broadcast_num;
+	unsigned int delay_time;
+	unsigned long begin_jiffies;
+	unsigned long end_jiffies;
+	bool enable_rx;
+#endif
+};
 
 #define FTGMAC100_RXDES0_VDBC		0x3fff
 #define FTGMAC100_RXDES0_EDORR		(1 << 15)
@@ -242,5 +338,30 @@ struct ftgmac100_rxdes {
 #define FTGMAC100_RXDES1_TCP_CHKSUM_ERR	(1 << 25)
 #define FTGMAC100_RXDES1_UDP_CHKSUM_ERR	(1 << 26)
 #define FTGMAC100_RXDES1_IP_CHKSUM_ERR	(1 << 27)
+
+#define DRV_NAME	"ftgmac100-0"
+#define DRV_1_NAME	"ftgmac100-1"
+#define DRV_VERSION	"2.2"
+
+void wait_status(int millisecond);
+int mac_scu_init(int irq);
+void mac_scu_close(int irq);
+void set_mac_clock(int irq);
+void set_MDC_CLK(struct ftgmac100 *priv);
+int CPU_detect(void);
+void mac_reset(void);      
+int interface_type(void); 
+ 
+#ifdef CONFIG_PLATFORM_GM8181
+#define Generate_PHY_Clock  	1
+#define GPIO_pin  		0      
+#endif
+
+#ifdef CONFIG_PLATFORM_GM8210
+#ifndef CONFIG_GM8210_FPGA
+//#define Generate_PHY_Clock  	1   //reset phy at u-boot or burn-in code
+#endif
+#define GPIO_pin  		        0     
+#endif
 
 #endif /* __FTGMAC100_H */

@@ -68,6 +68,7 @@
 #include <linux/delay.h>
 #include <linux/vmalloc.h>
 #include <linux/export.h>
+#include <mach/ftpmu010.h>
 
 static int check_pattern_no_oob(uint8_t *buf, struct nand_bbt_descr *td)
 {
@@ -416,13 +417,38 @@ static int scan_block_full(struct mtd_info *mtd, struct nand_bbt_descr *bd,
 	return 0;
 }
 
+#define NAND_OWN_BBT
 /* Scan a given block partially */
 static int scan_block_fast(struct mtd_info *mtd, struct nand_bbt_descr *bd,
 			   loff_t offs, uint8_t *buf, int len)
 {
 	struct mtd_oob_ops ops;
 	int j, ret;
+	
+#ifdef NAND_OWN_BBT
+    {
+        /*
+         * In romcode stage, we already built a block status table. So we need 
+         * to redirect the checking function to own checking function.
+         */
+#ifdef CONFIG_MTD_NAND_FTSPINAND020
+        {
+        extern int ftnandc_spi_read_bbt(struct mtd_info *mtd, loff_t offs);
+        
+        if (platform_check_flash_type() == 1)
+            return ftnandc_spi_read_bbt(mtd, offs);  
+        }      
+#endif
+#if defined(CONFIG_MTD_NAND_FTNANDC023) || defined(CONFIG_MTD_NAND_FTNANDC024V2)
+        {
+        extern int ftnandc_read_bbt(struct mtd_info *mtd, loff_t offs);
 
+        if (platform_check_flash_type() == 0)
+            return ftnandc_read_bbt(mtd, offs);
+        }
+#endif
+    }
+#endif
 	ops.ooblen = mtd->oobsize;
 	ops.oobbuf = buf;
 	ops.ooboffs = 0;
@@ -1131,8 +1157,10 @@ int nand_scan_bbt(struct mtd_info *mtd, struct nand_bbt_descr *bd)
 	 * table.
 	 */
 	this->bbt = kzalloc(len, GFP_KERNEL);
-	if (!this->bbt)
+	if (!this->bbt){
+		printk(KERN_ERR "nand_scan_bbt: Out of memory in allocating %d bytes!\n", len);
 		return -ENOMEM;
+	}
 
 	/*
 	 * If no primary table decriptor is given, scan the device to build a
@@ -1385,7 +1413,7 @@ int nand_isbad_bbt(struct mtd_info *mtd, loff_t offs, int allowbbt)
 	uint8_t res;
 
 	/* Get block number * 2 */
-	block = (int)(offs >> (this->bbt_erase_shift - 1));
+	block = (int)(offs) >> (this->bbt_erase_shift - 1);
 	res = (this->bbt[block >> 3] >> (block & 0x06)) & 0x03;
 
 	pr_debug("nand_isbad_bbt(): bbt info for offs 0x%08x: "

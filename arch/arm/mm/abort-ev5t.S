@@ -17,6 +17,9 @@
  */
 	.align	5
 ENTRY(v5t_early_abort)
+#ifdef CONFIG_CPU_FMP626
+	cdp	p13, 0, c0, c0, c0, 2		@ Clear exclusive monitor
+#endif
 	mrc	p15, 0, r1, c5, c0, 0		@ get FSR
 	mrc	p15, 0, r0, c6, c0, 0		@ get FAR
 	do_thumb_abort fsr=r1, pc=r4, psr=r5, tmp=r3

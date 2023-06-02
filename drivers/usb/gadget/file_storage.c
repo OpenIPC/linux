@@ -256,6 +256,11 @@
 
 #include "gadget_chips.h"
 
+#if defined(CONFIG_GM_FOTG2XX)
+#include "fotg2xx-peri-macro.h"
+#include "GM_udc.h"
+#endif
+
 
 
 /*
@@ -326,7 +331,23 @@ static struct {
 	int		protocol_type;
 	char		*protocol_name;
 
-} mod_data = {					// Default values
+}
+#ifdef CONFIG_GM_FOTG2XX
+ mod_data = {					// Default values
+	.file[0]		= "/dev/mmcblk0p1", //"/ram.img",
+	.serial			= "0123456789ABCD",
+	.transport_parm		= "BBB",
+	.protocol_parm		= "SCSI",
+	.removable		= 1,
+	.can_stall		= 1,
+	.cdrom			= 0,
+	.vendor			= FSG_VENDOR_ID,
+	.product		= FSG_PRODUCT_ID,
+	.release		= 0xffff,	// Use controller chip type
+	.buflen			= 16384,
+	};
+#else
+ mod_data = {					// Default values
 	.transport_parm		= "BBB",
 	.protocol_parm		= "SCSI",
 	.removable		= 0,
@@ -337,7 +358,7 @@ static struct {
 	.release		= 0xffff,	// Use controller chip type
 	.buflen			= 16384,
 	};
-
+#endif
 
 module_param_array_named(file, mod_data.file, charp, &mod_data.num_filenames,
 		S_IRUGO);
@@ -2079,8 +2100,10 @@ static int finish_reply(struct fsg_dev *fsg)
 			start_transfer(fsg, fsg->bulk_in, bh->inreq,
 					&bh->inreq_busy, &bh->state);
 			fsg->next_buffhd_to_fill = bh->next;
+#if !defined(CONFIG_GM_USB_DEVICE)
 			if (mod_data.can_stall)
 				rc = halt_bulk_in_endpoint(fsg);
+#endif
 		}
 		break;
 
@@ -3663,6 +3686,9 @@ module_init(fsg_init);
 static void __exit fsg_cleanup(void)
 {
 	struct fsg_dev	*fsg = the_fsg;
+#if defined(CONFIG_GM_FOTG2XX)
+	struct FTC_udc	*ftc_dev = container_of(fsg->gadget, struct FTC_udc, gadget);
+#endif
 
 	/* Unregister the driver iff the thread hasn't already done so */
 	if (test_and_clear_bit(REGISTERED, &fsg->atomic_bitflags))
@@ -3672,5 +3698,8 @@ static void __exit fsg_cleanup(void)
 	wait_for_completion(&fsg->thread_notifier);
 
 	kref_put(&fsg->ref, fsg_release);
+#if defined(CONFIG_GM_FOTG2XX)
+	mUsbUnPLGSet(ftc_dev->va_base);
+#endif
 }
 module_exit(fsg_cleanup);

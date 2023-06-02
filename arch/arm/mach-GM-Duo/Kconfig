@@ -1,0 +1,52 @@
+#
+# arch/arm/mach-GM-Duo/Kconfig
+#
+
+#
+# GM Platform Types Selection
+#
+choice
+	prompt "Platform Selection"
+	default PLATFORM_GM8210
+	depends on ARCH_GM_DUO
+
+
+config PLATFORM_GM8210
+	bool "GM8210 series platform"
+	select USB_ARCH_HAS_EHCI if CONFIG_USB_SUPPORT
+    select FIQ
+    help
+      GM GM8210 is a platform based on GM's ARM9 compatible processor
+
+endchoice
+
+config FORCE_MAX_ZONEORDER
+    int
+    depends on ARCH_GM_DUO
+    default "12"
+
+config FTDMAC020
+    tristate "Supports DMAC020 controller"
+    select DMA_ENGINE
+    default y
+
+config FTDMAC030
+    tristate "Supports DMAC030 controller"
+    select DMA_ENGINE
+    depends on PLATFORM_AXIDMA
+    default y
+
+config FTAPBB020
+    tristate "Supports APB DMA"
+    select DMA_ENGINE
+    default n
+
+#
+# Platform dependent options
+#
+menu "GM Platform Options"
+    depends on ARCH_GM_DUO
+
+source "arch/arm/mach-GM-Duo/platform-GM8210/Kconfig"
+
+endmenu

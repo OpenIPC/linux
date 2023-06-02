@@ -130,27 +130,48 @@ extern unsigned int user_debug;
 #define sev()	__asm__ __volatile__ ("sev" : : : "memory")
 #define wfe()	__asm__ __volatile__ ("wfe" : : : "memory")
 #define wfi()	__asm__ __volatile__ ("wfi" : : : "memory")
+#elif defined(CONFIG_CPU_FMP626)
+#define sev()	__asm__ __volatile__ ("cdp p13, 0, c0, c0, c0, 1" : : : "memory")
+#define wfe()	__asm__ __volatile__ ("cdp p13, 0, c0, c0, c0, 0" : : : "memory")
+#define wfi()	__asm__ __volatile__ ("mcr p15, 0, %0, c7, c0, 4" \
+				      : : "r" (0): "memory")
 #endif
 
 #if __LINUX_ARM_ARCH__ >= 7
 #define isb() __asm__ __volatile__ ("isb" : : : "memory")
 #define dsb() __asm__ __volatile__ ("dsb" : : : "memory")
 #define dmb() __asm__ __volatile__ ("dmb" : : : "memory")
-#elif defined(CONFIG_CPU_XSC3) || __LINUX_ARM_ARCH__ == 6
+#elif defined(CONFIG_CPU_XSC3) || defined(CONFIG_CPU_FMP626) || __LINUX_ARM_ARCH__ == 6
 #define isb() __asm__ __volatile__ ("mcr p15, 0, %0, c7, c5, 4" \
 				    : : "r" (0) : "memory")
 #define dsb() __asm__ __volatile__ ("mcr p15, 0, %0, c7, c10, 4" \
 				    : : "r" (0) : "memory")
 #define dmb() __asm__ __volatile__ ("mcr p15, 0, %0, c7, c10, 5" \
 				    : : "r" (0) : "memory")
-#elif defined(CONFIG_CPU_FA526)
+#elif defined(CONFIG_CPU_FA526) || defined(CONFIG_CPU_FA626TE)
+#ifdef CONFIG_PLATFORM_GM8210
+#define isb()   do { unsigned int value;    \
+                    __asm__ __volatile__ ("mrc p15, 0, %0, c0, c0, 0\t\n": "=r"(value)); \
+                    if (((value >> 4) & 0xFFF) == 0x726) __asm__ __volatile__ ("" : : : "memory");   \
+                    else __asm__ __volatile__ ("mcr p15, 0, %0, c7, c5, 4" : : "r" (0) : "memory");  \
+                } while(0)
+#else
 #define isb() __asm__ __volatile__ ("mcr p15, 0, %0, c7, c5, 4" \
 				    : : "r" (0) : "memory")
+#endif /* CONFIG_PLATFORM_GM8210 */				    
 #define dsb() __asm__ __volatile__ ("mcr p15, 0, %0, c7, c10, 4" \
 				    : : "r" (0) : "memory")
 #define dmb() __asm__ __volatile__ ("" : : : "memory")
 #else
+#ifdef CONFIG_PLATFORM_GM8210
+#define isb()   do { unsigned int value;    \
+                    __asm__ __volatile__ ("mrc p15, 0, %0, c0, c0, 0\t\n": "=r"(value)); \
+                    if (((value >> 4) & 0xFFF) == 0x726) __asm__ __volatile__ ("" : : : "memory");   \
+                    else __asm__ __volatile__ ("mcr p15, 0, %0, c7, c5, 4" : : "r" (0) : "memory");  \
+                } while(0)
+#else
 #define isb() __asm__ __volatile__ ("" : : : "memory")
+#endif /* CONFIG_PLATFORM_GM8210 */
 #define dsb() __asm__ __volatile__ ("mcr p15, 0, %0, c7, c10, 4" \
 				    : : "r" (0) : "memory")
 #define dmb() __asm__ __volatile__ ("" : : : "memory")
@@ -226,13 +247,6 @@ static inline void set_copro_access(unsigned int val)
 }
 
 /*
- * switch_mm() may do a full cache flush over the context switch,
- * so enable interrupts over the context switch to avoid high
- * latency.
- */
-#define __ARCH_WANT_INTERRUPTS_ON_CTXSW
-
-/*
  * switch_to(prev, next) should switch from task `prev' to `next'
  * `prev' will never be the same as `next'.  schedule() itself
  * contains the memory barrier to tell GCC not to cache `current'.
@@ -270,7 +284,7 @@ static inline unsigned long __xchg(unsigned long x, volatile void *ptr, int size
 #ifdef swp_is_buggy
 	unsigned long flags;
 #endif
-#if __LINUX_ARM_ARCH__ >= 6
+#if __LINUX_ARM_ARCH__ >= 6 || defined(CONFIG_CPU_FMP626)
 	unsigned int tmp;
 #endif
 
@@ -292,6 +306,33 @@ static inline unsigned long __xchg(unsigned long x, volatile void *ptr, int size
 		asm volatile("@	__xchg4\n"
 		"1:	ldrex	%0, [%3]\n"
 		"	strex	%1, %2, [%3]\n"
+		"	teq	%1, #0\n"
+		"	bne	1b"
+			: "=&r" (ret), "=&r" (tmp)
+			: "r" (x), "r" (ptr)
+			: "memory", "cc");
+		break;
+#elif defined(CONFIG_CPU_FMP626)
+	case 1:
+		asm volatile("@	__xchg1\n"
+		"1:	ldc	p13, c0, [%3], {0}	@ set address for ldrexb\n"
+		"	mrc	p13, 0, %0, c0, c0, 0	@ ldrexb\n"
+		"	mcr	p13, 0, %2, c0, c0, 0	@ data for strexb\n"
+		"	stc	p13, c0, [%3], {0}	@ strexb to address\n"
+		"	mrc	p13, 0, %1, c0, c0, 2	@ strexb status\n"
+		"	teq	%1, #0\n"
+		"	bne	1b"
+			: "=&r" (ret), "=&r" (tmp)
+			: "r" (x), "r" (ptr)
+			: "memory", "cc");
+		break;
+	case 4:
+		asm volatile("@	__xchg4\n"
+		"1:	ldc	p13, c0, [%3], {2}	@ set address for ldrex\n"
+		"	mrc	p13, 0, %0, c0, c0, 0	@ ldrex\n"
+		"	mcr	p13, 0, %2, c0, c0, 0	@ data for strex\n"
+		"	stc	p13, c0, [%3], {2}	@ strex to address\n"
+		"	mrc	p13, 0, %1, c0, c0, 2	@ strex status\n"
 		"	teq	%1, #0\n"
 		"	bne	1b"
 			: "=&r" (ret), "=&r" (tmp)
@@ -347,7 +388,7 @@ void cpu_idle_wait(void);
 
 #include <asm-generic/cmpxchg-local.h>
 
-#if __LINUX_ARM_ARCH__ < 6
+#if __LINUX_ARM_ARCH__ < 6 && !defined(CONFIG_CPU_FMP626)
 /* min ARCH < ARMv6 */
 
 #ifdef CONFIG_SMP
@@ -381,6 +422,7 @@ static inline unsigned long __cmpxchg(volatile void *ptr, unsigned long old,
 	unsigned long oldval, res;
 
 	switch (size) {
+#ifndef CONFIG_CPU_FMP626
 #ifndef CONFIG_CPU_V6	/* min ARCH >= ARMv6K */
 	case 1:
 		do {
@@ -419,6 +461,53 @@ static inline unsigned long __cmpxchg(volatile void *ptr, unsigned long old,
 				: "memory", "cc");
 		} while (res);
 		break;
+#else	/* CONFIG_CPU_FMP626 */
+	case 1:
+		do {
+			asm volatile("@ __cmpxchg1\n"
+			"	ldc	p13, c0, [%2], {0}	@ set address for ldrexb\n"
+			"	mrc	p13, 0, %1, c0, c0, 0	@ ldrexb\n"
+			"	mov	%0, #0\n"
+			"	teq	%1, %3\n"
+			"	mcreq	p13, 0, %4, c0, c0, 0	@ data for strexb\n"
+			"	stceq	p13, c0, [%2], {0}	@ strexb to address\n"
+			"	mrceq	p13, 0, %0, c0, c0, 2	@ strexb status\n"
+				: "=&r" (res), "=&r" (oldval)
+				: "r" (ptr), "Ir" (old), "r" (new)
+				: "memory", "cc");
+		} while (res);
+		break;
+	case 2:
+		do {
+			asm volatile("@ __cmpxchg1\n"
+			"	ldc	p13, c0, [%2], {1}	@ set address for ldrexh\n"
+			"	mrc	p13, 0, %1, c0, c0, 0	@ ldrexh\n"
+			"	mov	%0, #0\n"
+			"	teq	%1, %3\n"
+			"	mcreq	p13, 0, %4, c0, c0, 0	@ data for strexh\n"
+			"	stceq	p13, c0, [%2], {1}	@ strexh to address\n"
+			"	mrceq	p13, 0, %0, c0, c0, 2	@ strexh status\n"
+				: "=&r" (res), "=&r" (oldval)
+				: "r" (ptr), "Ir" (old), "r" (new)
+				: "memory", "cc");
+		} while (res);
+		break;
+	case 4:
+		do {
+			asm volatile("@ __cmpxchg4\n"
+			"	ldc	p13, c0, [%2], {2}	@ set address for ldrex\n"
+			"	mrc	p13, 0, %1, c0, c0, 0	@ ldrex\n"
+			"	mov	%0, #0\n"
+			"	teq	%1, %3\n"
+			"	mcreq	p13, 0, %4, c0, c0, 0	@ data for strex\n"
+			"	stceq	p13, c0, [%2], {2}	@ strex to address\n"
+			"	mrceq	p13, 0, %0, c0, c0, 2	@ strex status\n"
+				: "=&r" (res), "=&r" (oldval)
+				: "r" (ptr), "Ir" (old), "r" (new)
+				: "memory", "cc");
+		} while (res);
+		break;
+#endif	/* CONFIG_CPU_FMP626 */
 	default:
 		__bad_cmpxchg(ptr, size);
 		oldval = 0;
@@ -452,7 +541,7 @@ static inline unsigned long __cmpxchg_local(volatile void *ptr,
 	unsigned long ret;
 
 	switch (size) {
-#ifdef CONFIG_CPU_V6	/* min ARCH == ARMv6 */
+#if defined(CONFIG_CPU_V6) && !defined(CONFIG_CPU_FMP626)/* min ARCH == ARMv6 */
 	case 1:
 	case 2:
 		ret = __cmpxchg_local_generic(ptr, old, new, size);
@@ -471,13 +560,11 @@ static inline unsigned long __cmpxchg_local(volatile void *ptr,
 				       (unsigned long)(n),		\
 				       sizeof(*(ptr))))
 
-#ifndef CONFIG_CPU_V6	/* min ARCH >= ARMv6K */
+#if !defined(CONFIG_CPU_V6) || defined(CONFIG_CPU_FMP626)/* min ARCH >= ARMv6K */
+  
+#ifndef CONFIG_CPU_FMP626
 
-/*
- * Note : ARMv7-M (currently unsupported by Linux) does not support
- * ldrexd/strexd. If ARMv7-M is ever supported by the Linux kernel, it should
- * not be allowed to use __cmpxchg64.
- */
+#else	/* CONFIG_CPU_FMP626 */
 static inline unsigned long long __cmpxchg64(volatile void *ptr,
 					     unsigned long long old,
 					     unsigned long long new)
@@ -490,11 +577,16 @@ static inline unsigned long long __cmpxchg64(volatile void *ptr,
 	do {
 		asm volatile(
 		"	@ __cmpxchg8\n"
-		"	ldrexd	%1, %H1, [%2]\n"
+		"	ldc	p13, c0, [%2], {3}	@ set address for ldrexd\n"
+		"	mrc	p13, 0, %1, c0, c0, 0	@ ldrexd\n"
+		"	mrc	p13, 0, %H1, c0, c0, 1	@ ldrexd\n"
 		"	mov	%0, #0\n"
 		"	teq	%1, %3\n"
 		"	teqeq	%H1, %H3\n"
-		"	strexdeq %0, %4, %H4, [%2]\n"
+		"	mcreq	p13, 0, %4, c0, c0, 0	@ data for strexd\n"
+		"	mcreq	p13, 0, %H4, c0, c0, 1	@ data for strexd\n"
+		"	stceq	p13, c0, [%2], {3}	@ strexd to address\n"
+		"	mrceq	p13, 0, %0, c0, c0, 2	@ strexd status\n"
 			: "=&r" (res), "=&r" (oldval)
 			: "r" (ptr), "Ir" (__old), "r" (__new)
 			: "memory", "cc");
@@ -503,32 +595,20 @@ static inline unsigned long long __cmpxchg64(volatile void *ptr,
 	return oldval;
 }
 
-static inline unsigned long long __cmpxchg64_mb(volatile void *ptr,
-						unsigned long long old,
-						unsigned long long new)
-{
-	unsigned long long ret;
+#define cmpxchg64(ptr, o, n)                                           \
+       ((__typeof__(*(ptr)))atomic64_cmpxchg(container_of((ptr),       \
+                                               atomic64_t,             \
+                                               counter),               \
+                                             (unsigned long)(o),       \
+                                             (unsigned long)(n)))
 
-	smp_mb();
-	ret = __cmpxchg64(ptr, old, new);
-	smp_mb();
-
-	return ret;
-}
-
-#define cmpxchg64(ptr,o,n)						\
-	((__typeof__(*(ptr)))__cmpxchg64_mb((ptr),			\
-					    (unsigned long long)(o),	\
-					    (unsigned long long)(n)))
-
-#define cmpxchg64_local(ptr,o,n)					\
-	((__typeof__(*(ptr)))__cmpxchg64((ptr),				\
-					 (unsigned long long)(o),	\
-					 (unsigned long long)(n)))
-
-#else /* min ARCH = ARMv6 */
-
-#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
+#define cmpxchg64_local(ptr, o, n)                                     \
+       ((__typeof__(*(ptr)))local64_cmpxchg(container_of((ptr),        \
+                                               local64_t,              \
+                                               a),                     \
+                                            (unsigned long)(o),        \
+                                            (unsigned long)(n)))
+#endif /* CONFIG_CPU_FMP626 */
 
 #endif
 

@@ -1,0 +1,44 @@
+#
+# arch/arm/mach-GM/platform-GM8210/Kconfig
+
+if PLATFORM_GM8210_S
+
+#config SYS_CLK
+config CLOCK_TICK_RATE
+        int "AHB System Clock"
+        default 33000000
+        help
+            Any fake value is ok. It is almost obsolete.
+
+config GM8210_S_HZ
+    int "HZ of GM8210_S (FA626)"
+    range 100 1000
+    default 1000
+    help
+      HZ defined in GM8210_S platform
+
+config PLATFORM_AXIDMA
+	bool "AXI DMA support"
+	default y
+
+config FTINTC030
+	bool "FTINTC030 support"
+	default y
+
+config FTINTC010EX
+	bool "FTINTC010EX supports 64 IRQs"
+	default y
+
+config FC7500
+    bool "FC7500 support"
+    default y
+
+config GM8312
+    bool "GM8312 support"
+    default y
+
+config GM8210_FPGA
+	bool "FPGA Verify"
+	default n
+
+endif

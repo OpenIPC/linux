@@ -110,6 +110,53 @@ static int erase_write (struct mtd_info *mtd, unsigned long pos,
 	return 0;
 }
 
+int erase_write_block0 (struct mtd_info *mtd, unsigned long pos,
+			int len, const char *buf)
+{
+	struct erase_info erase;
+	DECLARE_WAITQUEUE(wait, current);
+	wait_queue_head_t wait_q;
+	size_t retlen;
+	int ret;
+
+	/*
+	 * First, let's erase the flash block.
+	 */
+
+	init_waitqueue_head(&wait_q);
+	erase.mtd = mtd;
+	erase.callback = erase_callback;
+	erase.addr = pos;
+	erase.len = mtd->erasesize;
+	erase.priv = (u_long)&wait_q;
+
+	set_current_state(TASK_INTERRUPTIBLE);
+	add_wait_queue(&wait_q, &wait);
+
+	ret = mtd_erase(mtd, &erase);
+	if (ret) {
+		set_current_state(TASK_RUNNING);
+		remove_wait_queue(&wait_q, &wait);
+		printk (KERN_WARNING "mtdblock: erase of region [0x%lx, 0x%x] "
+				     "on \"%s\" failed\n",
+			pos, len, mtd->name);
+		return ret;
+	}
+
+	schedule();  /* Wait for erase to finish. */
+	remove_wait_queue(&wait_q, &wait);
+
+	/*
+	 * Next, write the data to flash.
+	 */
+
+	ret = mtd_write(mtd, pos, len, &retlen, buf);
+	if (ret)
+		return ret;
+	if (retlen != len)
+		return -EIO;
+	return 0;
+}
 
 static int write_cached_data (struct mtdblk_dev *mtdblk)
 {

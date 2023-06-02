@@ -131,6 +131,28 @@ choice
 	   Many controller drivers are platform-specific; these
 	   often need board-specific hooks.
 
+config GM_USB_DEVICE
+	boolean "GM USB FOTG210"
+	depends on !PHYS_ADDR_T_64BIT
+	select USB_GADGET_DUALSPEED
+	help
+	   The USB device driver of GM FOTG210,
+	   modified to aim compatibility of USB 2.0. for more see
+	   FOTG210 data sheet
+
+config GM_OTG_CHOOSE
+	int "Choose which FOTG210 for UDC (platform device id)"
+	depends on GM_USB_DEVICE
+	default "0"
+	help
+	   GM SoC may have serveral OTGs, choose one as your UDC
+
+config GM_USB_UDC
+	tristate
+	depends on GM_USB_DEVICE
+	default USB_GADGET
+	select USB_GADGET_SELECTED
+
 #
 # Integrated controllers
 #
@@ -560,6 +582,13 @@ choice
 
 # this first set of drivers all depend on bulk-capable hardware.
 
+config GM_PATH_TEST
+        tristate "GM Path test for USB device driver"
+        depends on GM_USB_DEVICE
+	help
+          This USB device driver is designed to test OTG's device part.
+          You must have the application program on PC for path test.
+
 config USB_ZERO
 	tristate "Gadget Zero (DEVELOPMENT)"
 	help
@@ -616,7 +645,7 @@ config USB_ETH
 	help
 	  This driver implements Ethernet style communication, in one of
 	  several ways:
-	  
+
 	   - The "Communication Device Class" (CDC) Ethernet Control Model.
 	     That protocol is often avoided with pure Ethernet adapters, in
 	     favor of simpler vendor-specific hardware, but is widely
@@ -656,7 +685,7 @@ config USB_ETH_RNDIS
 	   If you say "y" here, the Ethernet gadget driver will try to provide
 	   a second device configuration, supporting RNDIS to talk to such
 	   Microsoft USB hosts.
-	   
+
 	   To make MS-Windows work with this, use Documentation/usb/linux.inf
 	   as the "driver info file".  For versions of MS-Windows older than
 	   XP, you'll need to download drivers from Microsoft's website; a URL

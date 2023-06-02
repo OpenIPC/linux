@@ -173,7 +173,21 @@ not_angel:
 		and	r4, r4, #0xf8000000
 		add	r4, r4, #TEXT_OFFSET
 #else
+#ifdef CONFIG_PLATFORM_GM8210
+        mrc p15, 0, r9, c0, c0  @ get processor ID
+        ldr r3, =0x0000fff0
+        and r9, r9, r3
+        ldr r3, =0x00007260     @ check id if fa726 exists
+        cmp r9, r3
+        beq 1f
+        ldr r4, =zreladdr_fa626
+        b   2f
+1:
+        ldr r4, =zreladdr_fa726
+2:
+#else
 		ldr	r4, =zreladdr
+#endif
 #endif
 
 		bl	cache_on
@@ -273,7 +287,7 @@ restart:	adr	r0, LC0
 		add	r0, r0, #0x100
 		mov	r1, r6
 		sub	r2, sp, r6
-		blne	atags_to_fdt
+		bleq	atags_to_fdt
 
 		ldmfd	sp!, {r0-r3, ip, lr}
 		sub	sp, sp, #0x10000
@@ -794,7 +808,7 @@ proc_types:
 		W(b)	__armv3_mpu_cache_on
 		W(b)	__armv3_mpu_cache_off
 		W(b)	__armv3_mpu_cache_flush
-		
+
 		.word	0x41009400		@ ARM94x
 		.word	0xff00ff00
 		W(b)	__armv4_mpu_cache_on
@@ -804,6 +818,12 @@ proc_types:
 		.word	0x41069260		@ ARM926EJ-S (v5TEJ)
 		.word	0xff0ffff0
 		W(b)	__arm926ejs_mmu_cache_on
+		W(b)	__armv4_mmu_cache_off
+		W(b)	__armv5tej_mmu_cache_flush
+
+		.word	0x66057260		@ FA726, ARMv5TE
+		.word	0xff0ffff0
+		W(b)	__armv4_mmu_cache_on
 		W(b)	__armv4_mmu_cache_off
 		W(b)	__armv5tej_mmu_cache_flush
 
@@ -859,6 +879,12 @@ proc_types:
 
 		.word	0x66015261		@ FA526
 		.word	0xff01fff1
+		W(b)	__fa526_cache_on
+		W(b)	__armv4_mmu_cache_off
+		W(b)	__fa526_cache_flush
+
+		.word	0x66056260		@ FA626TE
+		.word	0xff0ffff0
 		W(b)	__fa526_cache_on
 		W(b)	__armv4_mmu_cache_off
 		W(b)	__fa526_cache_flush
@@ -1021,7 +1047,7 @@ __armv4_mpu_cache_flush:
 		mcrne	p15, 0, ip, c7, c5, 0	@ invalidate I cache
 		mcr	p15, 0, ip, c7, c10, 4	@ drain WB
 		mov	pc, lr
-		
+
 __fa526_cache_flush:
 		mov	r1, #0
 		mcr	p15, 0, r1, c7, c14, 0	@ clean and invalidate D cache

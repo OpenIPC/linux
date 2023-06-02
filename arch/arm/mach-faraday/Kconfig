@@ -1,0 +1,111 @@
+#
+# arch/arm/mach-faraday/Kconfig
+#
+
+#
+# Faraday Platform Types Selection
+#
+choice
+	prompt "Platform Selection"
+	default PLATFORM_A320
+	depends on ARCH_FARADAY
+
+config PLATFORM_A320
+	bool "A320 evaluation board"
+	select ARM_GIC if CPU_FMP626
+	select DMADEVICES
+	select FTINTC010
+	select FTPMU010
+	select FTTMR010
+
+config PLATFORM_A369
+	bool "A369 evaluation board"
+	select ARM_GIC if CPU_FMP626
+	select DMADEVICES
+	select FTINTC010EX
+	select FTPWMTMR010
+	select FTSCU010
+	select FTAHBB020
+
+config PLATFORM_AXI
+	bool "AXI development board"
+	select ARM_GIC if CPU_FMP626
+	select DMADEVICES
+	select FTINTC010
+	select FTTMR010
+
+endchoice
+
+config FARADAY_HIGH_PHYS_OFFSET
+	bool "High physical base address for the Faraday platforms"
+	default y if CPU_FMP626
+	default n
+	help
+	  Faraday AHB bus controllers have a bit to swap ROM and RAM banks.
+	  Usually, we do the remap to map RAM to 0x0, but if we are using
+	  Multi-core processor e.g. FMP626, remapping will cause problem.
+
+config PLATFORM_FIA321
+	bool "A321 daughter board support"
+	depends on PLATFORM_A320
+
+config FTAHBB020
+	bool
+	help
+	   FTAHBB020 as external interrupt controller
+
+config FTAPBB020
+	tristate "FTAPBB020 DMA Engine"
+	select DMA_ENGINE
+	select ASYNC_TX_DISABLE_CHANNEL_SWITCH
+
+config FTDMAC020
+	tristate "FTDMAC020 DMA Engine"
+	select DMA_ENGINE
+	select ASYNC_TX_DISABLE_CHANNEL_SWITCH
+
+config FTDMAC030
+	tristate "FTDMAC030 DMA Engine"
+	select DMA_ENGINE
+	select ASYNC_TX_DISABLE_CHANNEL_SWITCH
+
+config FTINTC010
+	bool
+	help
+	   FTINTC010 interrupt controller
+
+config FTINTC010EX
+	bool
+	select FTINTC010
+	help
+	   newer version of FTINTC010 interrupt controller which supports up to 64 IRQ
+
+config FTPCI100
+	bool "Faraday PCI100 Support"
+	depends on PCI
+	help
+	  FTPCI100 bus driver
+
+config FTPMU010
+	bool
+	help
+	  Power Management Unit
+
+config FTPWMTMR010
+	bool
+	help
+	  FTPWMTMR010 timer
+
+config FTSCU010
+	bool
+	help
+	  System Controller
+
+config FTTMR010
+	bool
+	help
+	  FTTMR010 timer
+
+config ACP
+	bool "Use Accelerator Coherency Port"
+	depends on SMP

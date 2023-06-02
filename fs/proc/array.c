@@ -337,6 +337,42 @@ static void task_cpus_allowed(struct seq_file *m, struct task_struct *task)
 	seq_putc(m, '\n');
 }
 
+#if defined(CONFIG_ARCH_GM) || defined(CONFIG_ARCH_GM_DUO) || defined(CONFIG_ARCH_GM_SMP)
+#include <linux/kallsyms.h>
+void dump_regs(struct task_struct *task)
+{
+    char tcomm[20];
+    int cnt = 0;   //stack postion
+    unsigned int addr;
+    struct pt_regs *regs = task_pt_regs(task);
+    struct thread_info *thread = task_thread_info(task);
+
+    get_task_comm(tcomm, task);
+    
+    printk("\ntask [%s]\n", tcomm);
+    print_symbol("Kernel Mode PC is at (%s)\n", thread->cpu_context.pc);
+    printk("Kernel Mode Stack is 0x%x\n", (int)thread->cpu_context.sp);
+    
+    addr = thread->cpu_context.sp + 0xc0; //0xc8,0xd4,0xe0
+    for (cnt = 0; cnt < 8; cnt++) {
+        printk("  %08x: %08x %08x %08x %08x\n",  addr + (cnt * 4),
+            *(unsigned int *)(addr + (cnt * 4)), *(unsigned int *)(addr + (cnt * 4) + 4),
+            *(unsigned int *)(addr + (cnt * 4) + 8), *(unsigned int*)(addr + (cnt * 4) + 0xc));
+    }
+
+    printk("\nUser Mode PC is 0x%x\n", (int)instruction_pointer(regs));
+    printk("User Mode LR is 0x%x\n", (int)regs->ARM_lr);
+    printk("  pc : [<%08lx>]    lr : [<%08lx>]    psr: %08lx\n"
+           "  sp : %08lx  ip : %08lx  fp : %08lx\n",
+            regs->ARM_pc, regs->ARM_lr, regs->ARM_cpsr, regs->ARM_sp, regs->ARM_ip, regs->ARM_fp);
+    printk("  r10: %08lx  r9 : %08lx  r8 : %08lx\n", regs->ARM_r10, regs->ARM_r9, regs->ARM_r8);
+    printk("  r7 : %08lx  r6 : %08lx  r5 : %08lx  r4 : %08lx\n", regs->ARM_r7, regs->ARM_r6,
+            regs->ARM_r5, regs->ARM_r4);
+    printk("  r3 : %08lx  r2 : %08lx  r1 : %08lx  r0 : %08lx\n", regs->ARM_r3, regs->ARM_r2,
+            regs->ARM_r1, regs->ARM_r0);
+}
+#endif
+
 int proc_pid_status(struct seq_file *m, struct pid_namespace *ns,
 			struct pid *pid, struct task_struct *task)
 {
@@ -354,6 +390,10 @@ int proc_pid_status(struct seq_file *m, struct pid_namespace *ns,
 	task_cpus_allowed(m, task);
 	cpuset_task_status_allowed(m, task);
 	task_context_switch_counts(m, task);
+
+#if defined(CONFIG_ARCH_GM) || defined(CONFIG_ARCH_GM_DUO) || defined(CONFIG_ARCH_GM_SMP)
+    dump_regs(task);
+#endif
 	return 0;
 }
 

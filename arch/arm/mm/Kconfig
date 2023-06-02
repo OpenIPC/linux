@@ -142,6 +142,65 @@ config CPU_ARM922T
 	  Say Y if you want support for the ARM922T processor.
 	  Otherwise, say N.
 
+# FA626TE
+config CPU_FA626TE
+	bool  "Support FA626TE processor" if ARCH_FARADAY || ARCH_GM || ARCH_GM_DUO
+	select CPU_32v5
+	select CPU_ABRT_EV5T
+	select CPU_PABRT_LEGACY
+	select CPU_CACHE_FA
+	select CPU_CACHE_VIPT
+	select CPU_CP15_MMU
+	select CPU_COPY_FA if MMU
+	select CPU_TLB_FA if MMU
+
+# Faraday FMP626
+config CPU_FMP626
+	bool "Support FMP626 processor" if ARCH_FARADAY
+	select CPU_32v5
+	select CPU_ABRT_EV5T
+	select CPU_PABRT_LEGACY
+	select CPU_CACHE_VIPT
+	select CPU_CP15_MMU
+	select CPU_COPY_FA if MMU
+	select CPU_TLB_FA if MMU
+
+# FA726TE
+config CPU_FA726TE
+	bool "Support FA726TE processor" if ARCH_FARADAY || ARCH_GM || ARCH_GM_DUO
+	select CPU_32v5
+	select CPU_ABRT_EV5T
+	select CPU_PABRT_LEGACY
+	select CPU_CACHE_VIPT
+	select CPU_CP15_MMU
+	select CPU_COPY_V4WB if MMU
+	select CPU_TLB_V4WBI if MMU
+	help
+	  Say Y if you want support for the FA726TE processor.
+	  Otherwise, say N.
+
+# ARM Cortex-A9
+config CPU_CA9
+	bool "Support ARM Cortex-A9 processor" if ARCH_FARADAY || ARCH_GM || ARCH_GM_SMP
+	select CPU_V7
+	select ARM_ERRATA_764369 if SMP
+	select MIGHT_HAVE_CACHE_L2X0
+
+	help
+	  Say Y if you want support for the ARM Cortex-A9 processor.
+	  Otherwise, say N.
+
+# ARM Cortex-A7
+config CPU_CA7
+	bool "Support ARM Cortex-A7 processor" if ARCH_FARADAY || ARCH_GM || ARCH_GM_SMP
+	select CPU_V7
+	select ARM_ERRATA_764369 if SMP
+	select MIGHT_HAVE_CACHE_L2X0
+
+	help
+	  Say Y if you want support for the ARM Cortex-A7 processor.
+	  Otherwise, say N.
+
 # ARM925T
 config CPU_ARM925T
  	bool "Support ARM925T processor" if ARCH_OMAP1
@@ -163,7 +222,7 @@ config CPU_ARM925T
 
 # ARM926T
 config CPU_ARM926T
-	bool "Support ARM926T processor" if ARCH_INTEGRATOR || MACH_REALVIEW_EB
+	bool "Support ARM926T processor" if ARCH_INTEGRATOR || MACH_REALVIEW_EB || ARCH_FARADAY || ARCH_GM || ARCH_GM_DUO
 	select CPU_32v5
 	select CPU_ABRT_EV5TJ
 	select CPU_PABRT_LEGACY
@@ -181,6 +240,7 @@ config CPU_ARM926T
 
 # FA526
 config CPU_FA526
+	bool  "Support FA526 processor" if ARCH_FARADAY
 	bool
 	select CPU_32v4
 	select CPU_ABRT_EV4
@@ -451,8 +511,9 @@ config CPU_32v4T
 
 config CPU_32v5
 	bool
-	select TLS_REG_EMUL if SMP || !MMU
-	select NEEDS_SYSCALL_FOR_CMPXCHG if SMP
+	select TLS_REG_EMUL if (SMP || !MMU ) && !CPU_FMP626
+	select NEEDS_SYSCALL_FOR_CMPXCHG if SMP && !CPU_FMP626
+
 	select CPU_USE_DOMAINS if MMU
 
 config CPU_32v6
@@ -649,7 +710,7 @@ config ARCH_DMA_ADDR_T_64BIT
 
 config ARM_THUMB
 	bool "Support Thumb user binaries"
-	depends on CPU_ARM720T || CPU_ARM740T || CPU_ARM920T || CPU_ARM922T || CPU_ARM925T || CPU_ARM926T || CPU_ARM940T || CPU_ARM946E || CPU_ARM1020 || CPU_ARM1020E || CPU_ARM1022 || CPU_ARM1026 || CPU_XSCALE || CPU_XSC3 || CPU_MOHAWK || CPU_V6 || CPU_V6K || CPU_V7 || CPU_FEROCEON
+	depends on CPU_ARM720T || CPU_ARM740T || CPU_ARM920T || CPU_ARM922T || CPU_ARM925T || CPU_ARM926T || CPU_ARM940T || CPU_ARM946E || CPU_ARM1020 || CPU_ARM1020E || CPU_ARM1022 || CPU_ARM1026 || CPU_XSCALE || CPU_XSC3 || CPU_MOHAWK || CPU_V6 || CPU_V6K || CPU_V7 || CPU_FEROCEON || CPU_FA626TE || CPU_FA726TE || CPU_FMP626
 	default y
 	help
 	  Say Y if you want to include kernel support for running user space
@@ -758,7 +819,7 @@ config CPU_DCACHE_SIZE
 
 config CPU_DCACHE_WRITETHROUGH
 	bool "Force write through D-cache"
-	depends on (CPU_ARM740T || CPU_ARM920T || CPU_ARM922T || CPU_ARM925T || CPU_ARM926T || CPU_ARM940T || CPU_ARM946E || CPU_ARM1020 || CPU_FA526) && !CPU_DCACHE_DISABLE
+	depends on (CPU_ARM740T || CPU_ARM920T || CPU_ARM922T || CPU_ARM925T || CPU_ARM926T || CPU_ARM940T || CPU_ARM946E || CPU_ARM1020 || CPU_FA526 || CPU_FA626TE || CPU_FMP626 || CPU_FA726TE) && !CPU_DCACHE_DISABLE
 	default y if CPU_ARM925T
 	help
 	  Say Y here to use the data cache in writethrough mode. Unless you
@@ -766,16 +827,25 @@ config CPU_DCACHE_WRITETHROUGH
 
 config CPU_CACHE_ROUND_ROBIN
 	bool "Round robin I and D cache replacement algorithm"
-	depends on (CPU_ARM926T || CPU_ARM946E || CPU_ARM1020) && (!CPU_ICACHE_DISABLE || !CPU_DCACHE_DISABLE)
+	depends on (CPU_ARM926T || CPU_FA726TE || CPU_ARM946E || CPU_ARM1020) && (!CPU_ICACHE_DISABLE || !CPU_DCACHE_DISABLE)
 	help
 	  Say Y here to use the predictable round-robin cache replacement
 	  policy.  Unless you specifically require this or are unsure, say N.
 
 config CPU_BPREDICT_DISABLE
 	bool "Disable branch prediction"
-	depends on CPU_ARM1020 || CPU_V6 || CPU_V6K || CPU_MOHAWK || CPU_XSC3 || CPU_V7 || CPU_FA526
+	depends on CPU_ARM1020 || CPU_V6 || CPU_V6K || CPU_MOHAWK || CPU_XSC3 || CPU_V7 || CPU_FA526 || CPU_FA626TE
 	help
 	  Say Y here to disable branch prediction.  If unsure, say N.
+
+config CPU_FA526_IDLE_FIXUP
+	bool "Bug fix for idle on old revisions of FA526"
+	default y
+	depends on CPU_FA526 && PLATFORM_A320
+	help
+	  On old revisions of FA526, when cpu is awaken from idle (wait for
+	  interrupt) instruction, program counter still points to the idle
+	  instruction. Thus it will never be awaken.
 
 config TLS_REG_EMUL
 	bool
@@ -855,6 +925,23 @@ config CACHE_L2X0
 	select OUTER_CACHE_SYNC
 	help
 	  This option enables the L2x0 PrimeCell.
+
+config MIGHT_HAVE_CACHE_FTL2CC031
+	bool
+	help
+	  This option should be selected by machines which have a
+	  FTL2CC031 cache controller, but where its use is optional.
+
+	  The only effect of this option is to make CACHE_FTL2CC031
+	  and related options available to the user for configuration.
+
+config CACHE_FTL2CC031
+	bool "Enable GM FTL2CC031 L2 cache controller" if ARCH_GM
+	default MIGHT_HAVE_CACHE_FTL2CC031
+	select OUTER_CACHE
+	select OUTER_CACHE_SYNC
+	help
+	  This option enables the GM Level2 cache controller.
 
 config CACHE_PL310
 	bool

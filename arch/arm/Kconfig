@@ -7,12 +7,13 @@ config ARM
 	select HAVE_MEMBLOCK
 	select RTC_LIB
 	select SYS_SUPPORTS_APM_EMULATION
-	select GENERIC_ATOMIC64 if (CPU_V6 || !CPU_32v6K || !AEABI)
+	select GENERIC_ATOMIC64 if ((CPU_V6 || !CPU_32v6K || !AEABI) && !CPU_FMP626)
 	select HAVE_OPROFILE if (HAVE_PERF_EVENTS)
 	select HAVE_ARCH_KGDB
 	select HAVE_KPROBES if !XIP_KERNEL
 	select HAVE_KRETPROBES if (HAVE_KPROBES)
 	select HAVE_FUNCTION_TRACER if (!XIP_KERNEL)
+	select HAVE_FUNCTION_GRAPH_TRACER if (!XIP_KERNEL)
 	select HAVE_FTRACE_MCOUNT_RECORD if (!XIP_KERNEL)
 	select HAVE_DYNAMIC_FTRACE if (!XIP_KERNEL)
 	select HAVE_FUNCTION_GRAPH_TRACER if (!THUMB2_KERNEL)
@@ -21,6 +22,7 @@ config ARM
 	select HAVE_KERNEL_GZIP
 	select HAVE_KERNEL_LZO
 	select HAVE_KERNEL_LZMA
+	select HAVE_KERNEL_XZ
 	select HAVE_IRQ_WORK
 	select HAVE_PERF_EVENTS
 	select PERF_USE_VMALLOC
@@ -393,6 +395,74 @@ config ARCH_PRIMA2
 	select ZONE_DMA
 	help
           Support for CSR SiRFSoC ARM Cortex A9 Platform
+
+config ARCH_FARADAY
+	bool "Faraday All SoC Platforms"
+	select MIGHT_HAVE_PCI
+	select GENERIC_TIME
+	select GENERIC_CLOCKEVENTS
+	select CLKDEV_LOOKUP
+	select HAVE_SMP
+	select MULTI_IRQ_HANDLER if CPU_FMP626
+	help
+	   Faraday ARM processors are ARM9 (ARMv4 architecture) compatible processors
+	   with many optimizations. Faraday corp. provides many SOC platforms and IPs
+	   based on these processors for different target markets.
+	   For more information please visit:
+	   <http://www.faraday-tech.com/html/ASIC/embedded/processors/index.html>
+
+config ARCH_GM
+	bool "GM All SoC Platforms"
+	select MIGHT_HAVE_PCI
+	select GENERIC_TIME
+	select GENERIC_CLOCKEVENTS
+	select NEED_MACH_MEMORY_H
+	select USB_ARCH_HAS_EHCI if CONFIG_USB_SUPPORT
+	select ARCH_REQUIRE_GPIOLIB
+	select ARCH_HAS_CPUFREQ
+
+    help
+      Faraday ARM processors are ARM9 (ARMv4 architecture) compatible processors
+      with many optimizations. Faraday corp. provides many SOC platforms and IPs
+      based on these processors for different target markets.
+      For more information please visit:
+      <http://www.faraday-tech.com/html/ASIC/embedded/processors/index.html>
+
+config ARCH_GM_DUO
+	bool "GM Dual-Core CPU SoC Platforms"
+	select MIGHT_HAVE_PCI
+	select GENERIC_TIME
+	select GENERIC_CLOCKEVENTS
+	select NEED_MACH_MEMORY_H
+	select USB_ARCH_HAS_EHCI if CONFIG_USB_SUPPORT
+	select ARCH_REQUIRE_GPIOLIB
+
+    help
+      Faraday ARM processors, Dual-Core CPU, are ARM9 (ARMv4 architecture) compatible processors
+      with many optimizations. Faraday corp. provides many SOC platforms and IPs
+      based on these processors for different target markets.
+      For more information please visit:
+      <http://www.faraday-tech.com/html/ASIC/embedded/processors/index.html>
+
+config ARCH_GM_SMP
+	bool "GM SMP CPU SoC Platforms"
+        select CLKSRC_MMIO
+	select MIGHT_HAVE_PCI
+	select GENERIC_TIME
+	select GENERIC_CLOCKEVENTS
+	select CLKDEV_LOOKUP
+	select NEED_MACH_MEMORY_H
+	select USB_ARCH_HAS_EHCI if CONFIG_USB_SUPPORT
+	select ARCH_REQUIRE_GPIOLIB
+	select HAVE_SCHED_CLOCK
+	select HAVE_SMP
+
+    help
+      Faraday ARM processors are ARM9 (ARMv4 architecture) compatible processors
+      with many optimizations. Faraday corp. provides many SOC platforms and IPs
+      based on these processors for different target markets.
+      For more information please visit:
+      <http://www.faraday-tech.com/html/ASIC/embedded/processors/index.html>
 
 config ARCH_EBSA110
 	bool "EBSA-110"
@@ -1004,6 +1074,22 @@ source "arch/arm/mach-dove/Kconfig"
 
 source "arch/arm/mach-ep93xx/Kconfig"
 
+if ARCH_FARADAY
+source "arch/arm/mach-faraday/Kconfig"
+endif
+
+if ARCH_GM
+source "arch/arm/mach-GM/Kconfig"
+endif
+
+if ARCH_GM_DUO
+source "arch/arm/mach-GM-Duo/Kconfig"
+endif
+
+if ARCH_GM_SMP
+source "arch/arm/mach-GM-SMP/Kconfig"
+endif
+
 source "arch/arm/mach-footbridge/Kconfig"
 
 source "arch/arm/mach-gemini/Kconfig"
@@ -1149,7 +1235,7 @@ config XSCALE_PMU
 	default y
 
 config CPU_HAS_PMU
-	depends on (CPU_V6 || CPU_V6K || CPU_V7 || XSCALE_PMU) && \
+	depends on (CPU_V6 || CPU_V6K || CPU_V7 || XSCALE_PMU || CPU_FMP626) && \
 		   (!ARCH_OMAP3 || OMAP3_EMU)
 	default y
 	bool
@@ -1454,7 +1540,7 @@ config HAVE_SMP
 
 config SMP
 	bool "Symmetric Multi-Processing"
-	depends on CPU_V6K || CPU_V7
+	depends on CPU_V6K || CPU_V7 || CPU_FMP626
 	depends on GENERIC_CLOCKEVENTS
 	depends on HAVE_SMP
 	depends on MMU
@@ -1520,6 +1606,19 @@ config HAVE_ARM_SCU
 	help
 	  This option enables support for the ARM system coherency unit
 
+config ARM_ARCH_TIMER
+	bool "Architected timer support"
+	depends on CPU_V7
+	select TICK_ONESHOT
+	help
+	  This option enables support for the ARM architected timer
+
+config ARM_ARCH_TIMER
+	bool "Architected timer support"
+	depends on CPU_V7
+	select TICK_ONESHOT
+	help
+	  This option enables support for the ARM architected timer
 config HAVE_ARM_TWD
 	bool
 	depends on SMP
@@ -1593,7 +1692,9 @@ config HZ
 	default OMAP_32K_TIMER_HZ if ARCH_OMAP && OMAP_32K_TIMER
 	default AT91_TIMER_HZ if ARCH_AT91
 	default SHMOBILE_TIMER_HZ if ARCH_SHMOBILE
-	default 100
+    default GM8210_TIMER_HZ if ARCH_GM_DUO && PLATFORM_GM8210
+    default 100 if ARCH_GM
+    default 100
 
 config THUMB2_KERNEL
 	bool "Compile the kernel in Thumb-2 mode (EXPERIMENTAL)"
@@ -2073,6 +2174,7 @@ endmenu
 
 menu "CPU Power Management"
 
+if PLATFORM_GM8139 || PLATFORM_GM8136
 if ARCH_HAS_CPUFREQ
 
 source "drivers/cpufreq/Kconfig"
@@ -2154,6 +2256,7 @@ config CPU_FREQ_S3C24XX_DEBUGFS
 	  Export status information via debugfs.
 
 endif
+endif
 
 source "drivers/cpuidle/Kconfig"
 
@@ -2203,7 +2306,7 @@ config FPE_FASTFPE
 
 config VFP
 	bool "VFP-format floating point maths"
-	depends on CPU_V6 || CPU_V6K || CPU_ARM926T || CPU_V7 || CPU_FEROCEON
+	depends on CPU_V6 || CPU_V6K || CPU_ARM926T || CPU_V7 || CPU_FEROCEON || CPU_FA626TE
 	help
 	  Say Y to include VFP support code in the kernel. This is needed
 	  if your hardware includes a VFP unit.

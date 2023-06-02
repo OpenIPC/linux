@@ -121,6 +121,7 @@ extern void softirq_init(void);
 
 /* Untouched command line saved by arch-specific code. */
 char __initdata boot_command_line[COMMAND_LINE_SIZE];
+EXPORT_SYMBOL(boot_command_line);
 /* Untouched saved command line (eg. for /proc) */
 char *saved_command_line;
 /* Command line for parameter parsing */
@@ -632,7 +633,7 @@ asmlinkage void __init start_kernel(void)
 	sfi_init_late();
 
 	ftrace_init();
-
+    
 	/* Do the rest non-__init'ed, we're now alive */
 	rest_init();
 }

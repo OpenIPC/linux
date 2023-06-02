@@ -838,7 +838,7 @@ EXPORT_SYMBOL_GPL(spi_async);
 /**
  * spi_async_locked - version of spi_async with exclusive bus usage
  * @spi: device with which data will be exchanged
- * @message: describes the data transfers, including completion callback
+* @message: describes the data transfers, including completion callback
  * Context: any (irqs may be blocked, etc)
  *
  * This call may be used in_irq and other contexts which can't sleep,
@@ -1121,6 +1121,7 @@ static int __init spi_init(void)
 	status = class_register(&spi_master_class);
 	if (status < 0)
 		goto err2;
+
 	return 0;
 
 err2:

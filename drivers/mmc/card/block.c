@@ -43,6 +43,7 @@
 
 #include <asm/system.h>
 #include <asm/uaccess.h>
+#include <mach/platform/board.h>
 
 #include "queue.h"
 
@@ -122,6 +123,7 @@ enum mmc_blk_status {
 	MMC_BLK_DATA_ERR,
 	MMC_BLK_ECC_ERR,
 	MMC_BLK_NOMEDIUM,
+	MMC_BLK_DRIVING_CHANGE,
 };
 
 module_param(perdev_minors, int, 0444);
@@ -874,7 +876,7 @@ static int mmc_blk_issue_secdiscard_rq(struct mmc_queue *mq,
 {
 	struct mmc_blk_data *md = mq->data;
 	struct mmc_card *card = md->queue.card;
-	unsigned int from, nr, arg;
+	unsigned int from = 0, nr = 0, arg = 0; /* for eliminate warning, eason */
 	int err = 0, type = MMC_BLK_SECDISCARD;
 
 	if (!(mmc_can_secure_erase_trim(card) || mmc_can_sanitize(card))) {
@@ -1058,7 +1060,8 @@ static int mmc_blk_err_check(struct mmc_card *card,
 				return MMC_BLK_ECC_ERR;
 			return MMC_BLK_DATA_ERR;
 		} else {
-			return MMC_BLK_CMD_ERR;
+			//return MMC_BLK_CMD_ERR;
+			return MMC_BLK_DRIVING_CHANGE;
 		}
 	}
 
@@ -1253,6 +1256,7 @@ static int mmc_blk_issue_rw_rq(struct mmc_queue *mq, struct request *rqc)
 	struct mmc_queue_req *mq_rq;
 	struct request *req;
 	struct mmc_async_req *areq;
+	int d_strength, d_strength_retry = 0;
 
 	if (!rqc && !mq->mqrq_prev->req)
 		return 0;
@@ -1302,6 +1306,33 @@ static int mmc_blk_issue_rw_rq(struct mmc_queue *mq, struct request *rqc)
 			if (!mmc_blk_reset(md, card->host, type))
 				break;
 			goto cmd_abort;
+		case MMC_BLK_DRIVING_CHANGE:
+			if (d_strength_retry < 4) {
+                /* Change driving strength */
+#if defined(CONFIG_PLATFORM_GM8139) || defined(CONFIG_PLATFORM_GM8136)
+                /*  from Datasheet in T:\MTD\Service\GM8139
+                 *  sdc _dcsr[1:0]: Driving capability control
+                 *  0: 6mA, 1: 8mA, 2: 10mA, 3: 12mA
+                 */
+                printk("Try to change SDHC driving strength:\n");
+				printk("SCU 0x40 before: 0x%08x,", readl(PMU_FTPMU010_VA_BASE + 0x40));
+				d_strength = (readl(PMU_FTPMU010_VA_BASE + 0x40) & 0x0f0) >> 4;
+                if (d_strength_retry != d_strength) {
+                    d_strength = readl(PMU_FTPMU010_VA_BASE + 0x40);
+                    d_strength &= ~(0x3 << 4);
+                    d_strength |= (d_strength_retry << 4);
+                    writel(d_strength, PMU_FTPMU010_VA_BASE + 0x40);
+                }
+				printk("SCU 0x40 after: 0x%08x\n", readl(PMU_FTPMU010_VA_BASE + 0x40));
+#endif
+                d_strength_retry ++;
+				break;
+            } else {
+                ret = mmc_blk_cmd_err(md, card, brq, req, ret);
+                if (!mmc_blk_reset(md, card->host, type))
+                    break;
+                goto cmd_abort;
+            }
 		case MMC_BLK_RETRY:
 			if (retry++ < 5)
 				break;
@@ -1899,4 +1930,3 @@ module_exit(mmc_blk_exit);
 
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("Multimedia Card (MMC) block device driver");
-

@@ -3707,6 +3707,9 @@ int sata_link_hardreset(struct ata_link *link, const unsigned long *timing,
 	if (online)
 		*online = false;
 
+#ifdef CONFIG_SATA_AHCI_PLATFORM // chris add
+redo:
+#endif
 	if (sata_set_spd_needed(link)) {
 		/* SATA spec says nothing about how to reconfigure
 		 * spd.  To be on the safe side, turn off phy during
@@ -3742,9 +3745,22 @@ int sata_link_hardreset(struct ata_link *link, const unsigned long *timing,
 	rc = sata_link_resume(link, timing, deadline);
 	if (rc)
 		goto out;
+
+#ifdef CONFIG_SATA_AHCI_PLATFORM // chris add
+    if (ata_phys_link_offline(link)) {
+        // double confirm link status
+        extern int ftsata100_phy_reset(struct ata_link *link);
+
+        if (ftsata100_phy_reset(link))
+            goto out;
+        else
+            goto redo;
+    }
+#else
 	/* if link is offline nothing more to do */
 	if (ata_phys_link_offline(link))
 		goto out;
+#endif
 
 	/* Link is online.  From this point, -ENODEV too is an error. */
 	if (online)
@@ -5491,6 +5507,25 @@ int sata_link_init_spd(struct ata_link *link)
 {
 	u8 spd;
 	int rc;
+
+#ifdef CONFIG_SATA_AHCI_PLATFORM
+#ifndef CONFIG_EXTERNAL_CRYSTAL_CLOCK
+    {
+        u32 scontrol;
+
+        //printk("GM SATA%u limit highest allowable speed to 1.5 Gbps\n", link->ap->print_id - 1);
+        rc = sata_scr_read(link, SCR_CONTROL, &scontrol);
+        if (rc)
+            return rc;
+
+		scontrol |= 0x10;
+
+        rc = sata_scr_write(link, SCR_CONTROL, scontrol);
+        if (rc)
+            return rc;
+    }
+#endif
+#endif
 
 	rc = sata_scr_read(link, SCR_CONTROL, &link->saved_scontrol);
 	if (rc)

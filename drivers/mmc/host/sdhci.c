@@ -27,8 +27,19 @@
 
 #include <linux/mmc/mmc.h>
 #include <linux/mmc/host.h>
+#include <linux/mmc/card.h>
+
+#include <asm/setup.h>
+#include <linux/kthread.h>
 
 #include "sdhci.h"
+
+#if defined(CONFIG_PLATFORM_GM8139) || defined(CONFIG_PLATFORM_GM8136)
+#include <asm/system.h>
+#include <asm/uaccess.h>
+#include <mach/platform/board.h>
+#include <mach/platform/platform_io.h>
+#endif
 
 #define DRIVER_NAME "sdhci"
 
@@ -41,6 +52,28 @@
 #endif
 
 #define MAX_TUNING_LOOP 40
+
+#define SDHCI_FTSDC021_VENDOR0		0x100
+#define  SDHCI_PULSE_LATCH_OFF_MASK	0x3F00
+#define  SDHCI_PULSE_LATCH_OFF_SHIFT	8
+#define  SDHCI_PULSE_LATCH_EN		0x1
+
+#define SDHCI_FTSDC021_VENDOR3		0x10C
+#define  SDHCI_AUTO_TUNING_TIMES_MASK	0x1F000000
+#define  SDHCI_AUTO_TUNING_TIMES_SHIFT  24
+
+#define SDHCI_FTSDC021_VENDOR4		0x110
+
+#if defined(CONFIG_PLATFORM_GM8139)
+#define NAND_TIMEOUT 5
+static struct timer_list nand_timer;
+static unsigned int nand_flag = 0;
+#endif
+
+extern uint ftsdc021_pulse_latch;
+
+int sd_cd_inv_enable = 0;
+static char *command_line = NULL;
 
 static unsigned int debug_quirks = 0;
 static unsigned int debug_quirks2;
@@ -990,6 +1023,8 @@ static void sdhci_send_command(struct sdhci_host *host, struct mmc_command *cmd)
 
 	host->cmd = cmd;
 
+	host->busy_handle = 0;
+
 	sdhci_prepare_data(host, cmd);
 
 	sdhci_writel(host, cmd->arg, SDHCI_ARGUMENT);
@@ -1170,6 +1205,24 @@ static void sdhci_set_clock(struct sdhci_host *host, unsigned int clock)
 	clk |= SDHCI_CLOCK_CARD_EN;
 	sdhci_writew(host, clk, SDHCI_CLOCK_CONTROL);
 
+{
+	int vendor0;
+
+	vendor0 = sdhci_readl(host, SDHCI_FTSDC021_VENDOR0);
+	if (host->mmc->actual_clock < 100000000) {
+		/* Enable pulse latch */
+		vendor0 |= SDHCI_PULSE_LATCH_EN;
+
+		if (real_div > 1)
+			//vendor0 |= (1 << SDHCI_PULSE_LATCH_OFF_SHIFT);
+			vendor0 &= ~(0x3F << SDHCI_PULSE_LATCH_OFF_SHIFT);
+			vendor0 |= (ftsdc021_pulse_latch << SDHCI_PULSE_LATCH_OFF_SHIFT);
+			
+	} else
+		vendor0 &= ~(SDHCI_PULSE_LATCH_OFF_MASK | SDHCI_PULSE_LATCH_EN);
+
+	sdhci_writel(host, vendor0, SDHCI_FTSDC021_VENDOR0);
+}
 out:
 	host->clock = clock;
 }
@@ -1240,6 +1293,10 @@ static int sdhci_set_power(struct sdhci_host *host, unsigned short power)
  *                                                                           *
 \*****************************************************************************/
 
+#if defined(CONFIG_PLATFORM_GM8139) || defined(CONFIG_PLATFORM_GM8136)
+#include <mach/ftpmu010.h>
+extern int sdhci_get_fd(void);
+#endif
 static void sdhci_request(struct mmc_host *mmc, struct mmc_request *mrq)
 {
 	struct sdhci_host *host;
@@ -1254,6 +1311,24 @@ static void sdhci_request(struct mmc_host *mmc, struct mmc_request *mrq)
 
 	WARN_ON(host->mrq != NULL);
 
+#if defined(CONFIG_PLATFORM_GM8139)
+    /* sdhc pinmux with nand */
+    if (in_interrupt() || in_atomic()) {
+        u32 count = 0;
+        while (ftpmu010_request_pins(sdhci_get_fd(), 0x28, BIT(7), 0) != 0 && count < 10) {
+            count ++;
+            mdelay(100);
+        }
+    } else {
+        if (ftpmu010_request_pins(sdhci_get_fd(), 0x28, BIT(7), 1) != 0)
+            panic("%s:%d, request pin failed\n", __func__, __LINE__);
+    }
+
+    /* set pinmux to SDHC */
+    if (ftpmu010_write_reg(sdhci_get_fd(), 0x58, 0x154, 0x3fc) < 0) {
+        panic("%s:%d, Write PMU reg failed\n", __func__, __LINE__);
+    }
+#endif
 #ifndef SDHCI_USE_LEDS_CLASS
 	sdhci_activate_led(host);
 #endif
@@ -1292,9 +1367,19 @@ static void sdhci_request(struct mmc_host *mmc, struct mmc_request *mrq)
 		 */
 		if ((host->flags & SDHCI_NEEDS_RETUNING) &&
 		    !(present_state & (SDHCI_DOING_WRITE | SDHCI_DOING_READ))) {
+#if 0
+			/* eMMC uses cmd21 while sd and sdio use cmd19 */
+			u32 tuning_opcode = mmc->card->type == MMC_TYPE_MMC ?
+				MMC_SEND_TUNING_BLOCK_HS200 :
+				MMC_SEND_TUNING_BLOCK;
 			spin_unlock_irqrestore(&host->lock, flags);
-			sdhci_execute_tuning(mmc, mrq->cmd->opcode);
+			sdhci_execute_tuning(mmc, tuning_opcode);
 			spin_lock_irqsave(&host->lock, flags);
+#else
+            spin_unlock_irqrestore(&host->lock, flags);
+            sdhci_execute_tuning(mmc, mrq->cmd->opcode);
+            spin_lock_irqsave(&host->lock, flags);
+#endif
 
 			/* Restore original mmc_request structure */
 			host->mrq = mrq;
@@ -1633,7 +1718,7 @@ static int sdhci_do_start_signal_voltage_switch(struct sdhci_host *host,
 			sdhci_writew(host, ctrl, SDHCI_HOST_CONTROL2);
 
 			/* Wait for 5ms */
-			usleep_range(5000, 5500);
+			usleep_range(12000, 15000);
 
 			ctrl = sdhci_readw(host, SDHCI_HOST_CONTROL2);
 			if (ctrl & SDHCI_CTRL_VDD_180) {
@@ -1700,6 +1785,7 @@ static int sdhci_execute_tuning(struct mmc_host *mmc, u32 opcode)
 	unsigned long timeout;
 	int err = 0;
 	bool requires_tuning_nonuhs = false;
+	u32 ven_def;
 
 	host = mmc_priv(mmc);
 
@@ -1730,6 +1816,21 @@ static int sdhci_execute_tuning(struct mmc_host *mmc, u32 opcode)
 		sdhci_runtime_pm_put(host);
 		return 0;
 	}
+
+	/* Mikeyeh@110817:
+	 * According to the multiphase DLL feature in FPGA, we
+	 * filled the field of Repeating times of Auto-tuning
+	 * Opertaion with 15.
+	 */
+	ven_def = sdhci_readl(host, SDHCI_FTSDC021_VENDOR3);
+	ven_def &= ~SDHCI_AUTO_TUNING_TIMES_MASK;
+	ven_def |= (15 << SDHCI_AUTO_TUNING_TIMES_SHIFT);
+	sdhci_writel(host, ven_def, SDHCI_FTSDC021_VENDOR3);
+
+	ven_def = sdhci_readl(host, SDHCI_FTSDC021_VENDOR0);
+	ven_def &= ~(SDHCI_PULSE_LATCH_OFF_MASK |
+		     SDHCI_PULSE_LATCH_EN);
+	sdhci_writel(host, ven_def, SDHCI_FTSDC021_VENDOR0);
 
 	sdhci_writew(host, ctrl, SDHCI_HOST_CONTROL2);
 
@@ -1843,6 +1944,16 @@ static int sdhci_execute_tuning(struct mmc_host *mmc, u32 opcode)
 				" failed, falling back to fixed sampling"
 				" clock\n");
 			err = -EIO;
+		} else {
+			u32 delay;
+
+			delay = (sdhci_readl(host, SDHCI_FTSDC021_VENDOR3) >> 16) & 0x1F;
+			ven_def = sdhci_readl(host, SDHCI_FTSDC021_VENDOR4);
+			printk("Tuning complete(0x%x), delay %d", ven_def, delay);
+
+			if (!(ven_def & (1 << delay)))
+				printk("Tuning delay result not correct\n");
+
 		}
 	}
 
@@ -1885,7 +1996,7 @@ out:
 
 	return err;
 }
-
+#if 0
 static void sdhci_do_enable_preset_value(struct sdhci_host *host, bool enable)
 {
 	u16 ctrl;
@@ -1924,7 +2035,7 @@ static void sdhci_enable_preset_value(struct mmc_host *mmc, bool enable)
 	sdhci_do_enable_preset_value(host, enable);
 	sdhci_runtime_pm_put(host);
 }
-
+#endif
 static const struct mmc_host_ops sdhci_ops = {
 	.request	= sdhci_request,
 	.set_ios	= sdhci_set_ios,
@@ -1933,7 +2044,9 @@ static const struct mmc_host_ops sdhci_ops = {
 	.enable_sdio_irq = sdhci_enable_sdio_irq,
 	.start_signal_voltage_switch	= sdhci_start_signal_voltage_switch,
 	.execute_tuning			= sdhci_execute_tuning,
+#if 0
 	.enable_preset_value		= sdhci_enable_preset_value,
+#endif
 };
 
 /*****************************************************************************\
@@ -2014,6 +2127,9 @@ static void sdhci_tasklet_finish(unsigned long param)
 			sdhci_set_clock(host, clock);
 		}
 
+#if defined(CONFIG_PLATFORM_GM8139)
+        ftpmu010_release_pins(sdhci_get_fd(), 0x28, BIT(7));
+#endif
 		/* Spec says we should do both at the same time, but Ricoh
 		   controllers do not like that. */
 		sdhci_reset(host, SDHCI_RESET_CMD);
@@ -2033,6 +2149,18 @@ static void sdhci_tasklet_finish(unsigned long param)
 
 	mmc_request_done(host->mmc, mrq);
 	sdhci_runtime_pm_put(host);
+
+#if defined(CONFIG_PLATFORM_GM8139)
+    nand_flag = 1;
+    mod_timer(&nand_timer, jiffies + NAND_TIMEOUT * HZ);
+
+    /* This is used to check DAT state because of pinmux with nand flash */
+    while ((sdhci_readl(host, SDHCI_PRESENT_STATE) & SDHCI_DATA_INHIBIT) && nand_flag) {/* nop */}
+
+    del_timer(&nand_timer);
+
+    ftpmu010_release_pins(sdhci_get_fd(), 0x28, BIT(7));
+#endif
 }
 
 static void sdhci_timeout_timer(unsigned long data)
@@ -2080,6 +2208,15 @@ static void sdhci_tuning_timer(unsigned long data)
 	spin_unlock_irqrestore(&host->lock, flags);
 }
 
+#if defined(CONFIG_PLATFORM_GM8139)
+static void sdhci_nand_timer(unsigned long data)
+{
+	unsigned int *flag = (unsigned int *)data;
+	*flag = 0;
+	printk(KERN_ERR "Wait status reg(0x24) Command Inhibit(BIT1) = 0 for %d seconds timeout\n", NAND_TIMEOUT);
+}
+#endif
+
 /*****************************************************************************\
  *                                                                           *
  * Interrupt handling                                                        *
@@ -2124,8 +2261,12 @@ static void sdhci_cmd_irq(struct sdhci_host *host, u32 intmask)
 		if (host->cmd->data)
 			DBG("Cannot wait for busy signal when also "
 				"doing a data transfer");
-		else if (!(host->quirks & SDHCI_QUIRK_NO_BUSY_IRQ))
-			return;
+		else if (!(host->quirks & SDHCI_QUIRK_NO_BUSY_IRQ)
+                && !host->busy_handle) {
+            /* Mark that command complete before busy is ended */
+            host->busy_handle = 1;
+            return;
+        }
 
 		/* The controller does not support the end-of-busy IRQ,
 		 * fall through and take the SDHCI_INT_RESPONSE */
@@ -2188,7 +2329,15 @@ static void sdhci_data_irq(struct sdhci_host *host, u32 intmask)
 		 */
 		if (host->cmd && (host->cmd->flags & MMC_RSP_BUSY)) {
 			if (intmask & SDHCI_INT_DATA_END) {
-				sdhci_finish_command(host);
+				/*
+				 * Some cards handle busy-end interrupt
+				 * before the command completed, so make
+				 * sure we do things in the proper order.
+				 */
+				if (host->busy_handle)
+                    sdhci_finish_command(host);
+				else
+					host->busy_handle = 1;
 				return;
 			}
 		}
@@ -2561,6 +2710,41 @@ struct sdhci_host *sdhci_alloc_host(struct device *dev,
 
 EXPORT_SYMBOL_GPL(sdhci_alloc_host);
 
+static int card_detect_handler(void *data)
+{
+    struct sdhci_host *host = (struct sdhci_host *)data;
+
+    do {
+        u32 ctrl = sdhci_readl(host, SDHCI_HOST_CONTROL);
+        u32 present = sdhci_readl(host, SDHCI_PRESENT_STATE);
+
+        if ((present & SDHCI_CARD_DETECT) == 0) { /* SDCD#=1 */
+            ctrl |= (SDHCI_CTRL_CD_TL | SDHCI_CTRL_CD_SS);
+            sdhci_writel(host, ctrl, SDHCI_HOST_CONTROL);
+        } else {
+            if ((ctrl & SDHCI_CTRL_CD_TL) > 0) {
+                ctrl &= ~SDHCI_CTRL_CD_TL;
+                sdhci_writel(host, ctrl, SDHCI_HOST_CONTROL);
+            }
+
+            /* After setting SDHCI_CTRL_CD_TL,
+             * SDHCI_HOST_CONTROL is been cleared.
+             * We need to turn on SDHCI_CTRL_CD_SS again.
+             */
+            sdhci_disable_card_detection(host);
+            ctrl = sdhci_readl(host, SDHCI_HOST_CONTROL);
+            ctrl |= SDHCI_CTRL_CD_SS;
+            sdhci_writel(host, ctrl, SDHCI_HOST_CONTROL);
+            sdhci_enable_card_detection(host);
+        }
+
+        msleep(200);
+    } while (1);
+
+    return 0;
+}
+static struct task_struct *card_detect_thread = NULL;
+
 int sdhci_add_host(struct sdhci_host *host)
 {
 	struct mmc_host *mmc;
@@ -2568,11 +2752,33 @@ int sdhci_add_host(struct sdhci_host *host)
 	u32 max_current_caps;
 	unsigned int ocr_avail;
 	int ret;
+	#if defined(CONFIG_PLATFORM_GM8139) || defined(CONFIG_PLATFORM_GM8136)
+	int clk_tmp;
+	#endif
 
 	WARN_ON(host == NULL);
 	if (host == NULL)
 		return -EINVAL;
+    if(sd_cd_inv_enable == 1) {
+        printk("SD card detect pin polarity inversed!\n");
+        if (!card_detect_thread) {
+            u32 ctrl = sdhci_readl(host, SDHCI_HOST_CONTROL);
 
+            /* don't use SDCD# for card detect */
+            sdhci_disable_card_detection(host);
+            ctrl = sdhci_readl(host, SDHCI_HOST_CONTROL);
+            ctrl |= SDHCI_CTRL_CD_SS;
+            sdhci_writel(host, ctrl, SDHCI_HOST_CONTROL);
+            sdhci_enable_card_detection(host);
+
+            card_detect_thread = kthread_run(card_detect_handler, (void *)host, "card_detect_thread");
+
+            if (IS_ERR(card_detect_thread)) {
+                panic("%s: unable to create kernel thread: %ld\n",
+                        __func__, PTR_ERR(card_detect_thread));
+            }
+        }
+    }
 	mmc = host->mmc;
 
 	if (debug_quirks)
@@ -2959,6 +3165,9 @@ int sdhci_add_host(struct sdhci_host *host)
 		sdhci_tasklet_finish, (unsigned long)host);
 
 	setup_timer(&host->timer, sdhci_timeout_timer, (unsigned long)host);
+#if defined(CONFIG_PLATFORM_GM8139)
+    setup_timer(&nand_timer, sdhci_nand_timer, (unsigned long)&nand_flag);
+#endif
 
 	if (host->version >= SDHCI_SPEC_300) {
 		init_waitqueue_head(&host->buf_ready_int);
@@ -3007,7 +3216,19 @@ int sdhci_add_host(struct sdhci_host *host)
 		mmc_hostname(mmc), host->hw_name, dev_name(mmc_dev(mmc)),
 		(host->flags & SDHCI_USE_ADMA) ? "ADMA" :
 		(host->flags & SDHCI_USE_SDMA) ? "DMA" : "PIO");
-
+		
+  #if defined(CONFIG_PLATFORM_GM8136)
+		clk_tmp = readl(PMU_FTPMU010_VA_BASE + 0x70);
+		clk_tmp = clk_tmp + 2;
+		writel(clk_tmp, PMU_FTPMU010_VA_BASE + 0x70);	
+	#endif
+	
+	#if defined(CONFIG_PLATFORM_GM8139)
+		clk_tmp = readl(PMU_FTPMU010_VA_BASE + 0x70);
+		clk_tmp = clk_tmp + 1;
+		writel(clk_tmp, PMU_FTPMU010_VA_BASE + 0x70);	
+	#endif
+	
 	sdhci_enable_card_detection(host);
 
 	return 0;
@@ -3029,6 +3250,11 @@ EXPORT_SYMBOL_GPL(sdhci_add_host);
 void sdhci_remove_host(struct sdhci_host *host, int dead)
 {
 	unsigned long flags;
+
+    if(sd_cd_inv_enable == 1) {
+        if (!IS_ERR(card_detect_thread))
+            kthread_stop(card_detect_thread);
+    }
 
 	if (dead) {
 		spin_lock_irqsave(&host->lock, flags);
@@ -3090,9 +3316,16 @@ EXPORT_SYMBOL_GPL(sdhci_free_host);
  * Driver init/exit                                                          *
  *                                                                           *
 \*****************************************************************************/
-
 static int __init sdhci_drv_init(void)
 {
+    char *ptr = NULL;
+
+    command_line = kmalloc(COMMAND_LINE_SIZE, GFP_KERNEL);
+    memcpy(command_line, boot_command_line, COMMAND_LINE_SIZE);
+    ptr = strstr(command_line, "sdcd_inv=");
+    if(ptr)
+        sd_cd_inv_enable = *(ptr+9)=='1'?1:0;
+
 	pr_info(DRIVER_NAME
 		": Secure Digital Host Controller Interface driver\n");
 	pr_info(DRIVER_NAME ": Copyright(c) Pierre Ossman\n");

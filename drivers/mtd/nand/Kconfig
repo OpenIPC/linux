@@ -184,6 +184,62 @@ config MTD_NAND_PPCHAMELEONEVB
 	depends on PPCHAMELEONEVB && BROKEN
 	help
 	  This enables the NAND flash driver on the PPChameleon EVB Board.
+	  
+config MTD_NAND_FTNANDC023
+	tristate "NAND Flash NANDC023 support for GM SoC"
+	depends on ARCH_GM || ARCH_GM_DUO
+	help
+	  This enable the NAND flash controller on the GM SoC
+
+config NAND_USE_AHBDMA
+	bool "Use AHB DMA transfer"
+	depends on MTD_NAND_FTNANDC023
+	help
+	  Use AHB DMA to transfer data instead of PIO
+
+config NAND_USE_AXIDMA
+	bool "Use AXI DMA transfer"
+	depends on MTD_NAND_FTNANDC023
+	help
+	  Use AXI DMA to transfer data instead of PIO
+
+config MTD_NAND_FTNANDC024V2
+	tristate "NAND Flash NANDC024 v2 support for GM SoC"
+	depends on ARCH_GM
+	help
+	  This enable the NAND flash controller on the GM SoC
+
+config NAND_V2_USE_AHBDMA
+	bool "Use AHB DMA transfer"
+	depends on MTD_NAND_FTNANDC024V2 && !MMC_SDHCI
+	help
+	  Use AHB DMA to transfer data instead of PIO
+
+config MTD_NAND_FTSPINAND020
+	tristate "SPI NAND Flash support for GM SoC"
+	depends on ARCH_GM || ARCH_GM_SMP
+	help
+	  This enable the SPI flash controller on the GM SoC
+
+config SPI_NAND_USE_AHBDMA
+	bool "Use AHB DMA transfer"
+	depends on MTD_NAND_FTSPINAND020
+	help
+	  Use AHB DMA to transfer data instead of PIO
+
+config FTNANDC023_DEBUG
+	int "FTNANDC023 driver debugging verbosity (0 = quiet, 2 = noisy)"
+	depends on MTD_NAND_FTNANDC023
+	range 0 2
+	default "0"
+	help
+	  print debug information for FTNANDC023
+
+config GPIO_WP
+	bool "Use GPIO to control write protect"
+	depends on MTD_NAND_FTNANDC023
+	help
+	  Use GPIO to control write protect
 
 config MTD_NAND_S3C2410
 	tristate "NAND Flash support for Samsung S3C SoCs"

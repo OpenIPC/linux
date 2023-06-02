@@ -320,7 +320,7 @@ config SND_SOC_WM8728
 	tristate
 
 config SND_SOC_WM8731
-	tristate
+	tristate "Wolfson WM8731 Codec support"
 
 config SND_SOC_WM8737
 	tristate

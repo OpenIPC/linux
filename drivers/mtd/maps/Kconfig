@@ -392,6 +392,12 @@ config MTD_H720X
 	  This enables access to the flash chips on the Hynix evaluation boards.
 	  If you have such a board, say 'Y'.
 
+config MTD_GM
+	tristate "GM NOR flash mappings"
+	depends on ARM && MTD_CFI
+	help
+	  This enables access to the NOR flash on the GM board.
+
 # This needs CFI or JEDEC, depending on the cards found.
 config MTD_PCI
 	tristate "PCI MTD driver"

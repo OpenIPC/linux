@@ -223,8 +223,14 @@ static const char *proc_arch[] = {
 
 static int __get_cpu_architecture(void)
 {
-	int cpu_arch;
-
+    int cpu_arch;
+    
+    if (((read_cpuid_id() >> 4) & 0xFFF) == 0x726) {
+        return CPU_ARCH_ARMv5TE;
+    }
+    
+    /* other cpus, FA626 should be CPU_ARCH_ARMv5TE as well 
+     */
 	if ((read_cpuid_id() & 0x0008f000) == 0) {
 		cpu_arch = CPU_ARCH_UNKNOWN;
 	} else if ((read_cpuid_id() & 0x0008f000) == 0x00007000) {
@@ -296,6 +302,25 @@ static int cpu_has_aliasing_icache(unsigned int arch)
 
 static void __init cacheid_init(void)
 {
+#ifdef CONFIG_PLATFORM_GM8210    
+    int cpu_id;
+    
+    cpu_id = (read_cpuid_id() >> 4) & 0xFFF;
+    if (cpu_id == 0x726) {
+        cacheid = CACHEID_VIPT_NONALIASING;
+        goto out;
+    }
+    if (cpu_id == 0x626) {
+        cacheid = CACHEID_VIPT_ALIASING;
+        goto out;
+    }
+#endif /* CONFIG_PLATFORM_GM8210 */
+        
+#if defined(CONFIG_CPU_FA626TE)
+	cacheid = CACHEID_VIPT_ALIASING | CACHEID_VIPT_I_ALIASING;
+#elif defined(CONFIG_CPU_FA726TE) || defined(CONFIG_CPU_FMP626)
+	cacheid = CACHEID_VIPT_NONALIASING | CACHEID_VIPT_I_ALIASING;
+#else
 	unsigned int cachetype = read_cpuid_cachetype();
 	unsigned int arch = cpu_architecture();
 
@@ -324,8 +349,10 @@ static void __init cacheid_init(void)
 	} else {
 		cacheid = CACHEID_VIVT;
 	}
+#endif
 
-	printk("CPU: %s data cache, %s instruction cache\n",
+out:
+	printk(KERN_INFO "CPU %s data cache, %s instruction cache\n",
 		cache_is_vivt() ? "VIVT" :
 		cache_is_vipt_aliasing() ? "VIPT aliasing" :
 		cache_is_vipt_nonaliasing() ? "PIPT / VIPT nonaliasing" : "unknown",
@@ -472,7 +499,7 @@ static void __init setup_processor(void)
 	cpu_cache = *list->cache;
 #endif
 
-	printk("CPU: %s [%08x] revision %d (ARMv%s), cr=%08lx\n",
+	printk(KERN_INFO "CPU: %s [%08x] revision %d (ARMv%s), cr=%08lx\n",
 	       cpu_name, read_cpuid_id(), read_cpuid_id() & 15,
 	       proc_arch[cpu_architecture()], cr_alignment);
 
@@ -521,7 +548,21 @@ int __init arm_add_memory(phys_addr_t start, unsigned long size)
 	 */
 	size -= start & ~PAGE_MASK;
 	bank->start = PAGE_ALIGN(start);
-	bank->size  = size & PAGE_MASK;
+
+#ifndef CONFIG_LPAE
+	if (bank->start + size < bank->start) {
+		printk(KERN_CRIT "Truncating memory at 0x%08llx to fit in "
+			"32-bit physical address space\n", (long long)start);
+		/*
+		 * To ensure bank->start + bank->size is representable in
+		 * 32 bits, we use ULONG_MAX as the upper limit rather than 4GB.
+		 * This means we lose a page after masking.
+		 */
+		size = ULONG_MAX - bank->start;
+	}
+#endif
+
+	bank->size = size & PAGE_MASK;
 
 	/*
 	 * Check whether this memory region has non-zero size or
@@ -865,7 +906,10 @@ static struct machine_desc * __init setup_machine_tags(unsigned int nr)
 	}
 
 	if (__atags_pointer)
-		tags = phys_to_virt(__atags_pointer);
+		/* when transfer argument, bank[1] = 0 */	
+		//tags = phys_to_virt(__atags_pointer);
+        //fmem_phys_to_virt is not ready.....
+		tags = (struct tag *)(__atags_pointer - PHYS_OFFSET + PAGE_OFFSET);
 	else if (mdesc->atag_offset)
 		tags = (void *)(PAGE_OFFSET + mdesc->atag_offset);
 

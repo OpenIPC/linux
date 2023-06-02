@@ -19,7 +19,10 @@ obj-$(CONFIG_USB_WHCI_HCD)	+= whci/
 
 obj-$(CONFIG_PCI)		+= pci-quirks.o
 
-obj-$(CONFIG_USB_EHCI_HCD)	+= ehci-hcd.o
+#Host driver of CTD's version
+#obj-$(CONFIG_GM_FOTG2XX)	+= fotg2xx_opt.o fotg210-hcd.o
+#obj-$(CONFIG_GM_FOTG2XX)	+= fotg2xx_opt.o
+obj-$(CONFIG_USB_EHCI_HCD)	+= fotg2xx_opt.o ehci-hcd.o
 obj-$(CONFIG_USB_OXU210HP_HCD)	+= oxu210hp-hcd.o
 obj-$(CONFIG_USB_ISP116X_HCD)	+= isp116x-hcd.o
 obj-$(CONFIG_USB_ISP1362_HCD)	+= isp1362-hcd.o

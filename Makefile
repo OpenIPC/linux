@@ -4,6 +4,8 @@ SUBLEVEL = 0
 EXTRAVERSION =
 NAME = Saber-toothed Squirrel
 
+ARCH = arm
+
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
 # More info can be located in ./README
@@ -825,7 +827,7 @@ ifdef CONFIG_KALLSYMS
 #   temporary bypass to allow the kernel to be built while the
 #   maintainers work out what went wrong with kallsyms.
 
-last_kallsyms := 2
+last_kallsyms := 3
 
 ifdef KALLSYMS_EXTRA_PASS
 ifneq ($(KALLSYMS_EXTRA_PASS),0)
@@ -920,6 +922,7 @@ endif
 	$(call vmlinux-modpost)
 	$(call if_changed_rule,vmlinux__)
 	$(Q)rm -f .old_version
+	@grep 'CONFIG_CROSS_COMPILE' .config | sed 's/"//g' | sed 's/CONFIG_CROSS_COMPILE/CROSS_COMPILE/g' > cross_compiler_def
 
 # build vmlinux.o first to catch section mismatch errors early
 ifdef CONFIG_KALLSYMS
@@ -1529,7 +1532,7 @@ quiet_cmd_rmfiles = $(if $(wildcard $(rm-files)),CLEAN   $(wildcard $(rm-files))
 # Run depmod only if we have System.map and depmod is executable
 quiet_cmd_depmod = DEPMOD  $(KERNELRELEASE)
       cmd_depmod = $(CONFIG_SHELL) $(srctree)/scripts/depmod.sh $(DEPMOD) \
-                   $(KERNELRELEASE)
+                   $(KERNELRELEASE) $(INSTALL_MOD_PATH)
 
 # Create temporary dir for module support files
 # clean it up only when building all modules

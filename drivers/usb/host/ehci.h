@@ -161,6 +161,7 @@ struct ehci_hcd {			/* one per controller */
 	unsigned		has_ppcd:1; /* support per-port change bits */
 	u8			sbrn;		/* packed release number */
 
+
 	/* irq statistics */
 #ifdef EHCI_STATS
 	struct ehci_stats	stats;
@@ -487,7 +488,7 @@ struct ehci_itd {
 	unsigned		frame;		/* where scheduled */
 	unsigned		pg;
 	unsigned		index[8];	/* in urb->iso_frame_desc */
-} __attribute__ ((aligned (32)));
+} __attribute__ ((aligned (64)));
 
 /*-------------------------------------------------------------------------*/
 
@@ -595,9 +596,46 @@ ehci_port_speed(struct ehci_hcd *ehci, unsigned int portsc)
 
 #else
 
+#if defined(CONFIG_GM_FOTG2XX) || defined(CONFIG_GM_FUSBH200)
+
+#define	ehci_is_TDI(e)			(ehci_to_hcd(e)->has_tt)
+
+static inline unsigned int ehci_port_speed(struct ehci_hcd *ehci, unsigned int portsc)
+{
+	u32 val = 0;
+	struct usb_hcd *hcd = ehci_to_hcd(ehci);
+	//hcd->has_tt =1;
+
+#if defined(CONFIG_GM_FUSBH200)
+	if (memcmp(hcd->product_desc, H200_NAME, sizeof(H200_NAME)) == 0) {
+		val=mwH20Port(hcd->regs,0x40);
+		val = (val >> 9) & 0x03;
+	}
+#endif
+#if defined(CONFIG_GM_FOTG2XX)
+	if (memcmp(hcd->product_desc, OTG2XX_NAME, sizeof(OTG2XX_NAME)) == 0) {
+		val = mwOTG20Port(hcd->regs,0x80);
+		val = (val >> 22) & 0x03;
+	}
+#endif
+
+	switch (val) {
+		case 0:
+			return 0;
+		case 1:
+			return USB_PORT_STAT_LOW_SPEED;
+		case 2:
+			return USB_PORT_STAT_HIGH_SPEED;
+		default:
+			return USB_PORT_STAT_LOW_SPEED;
+	}
+	return USB_PORT_STAT_HIGH_SPEED;
+}
+#else
 #define	ehci_is_TDI(e)			(0)
 
 #define	ehci_port_speed(ehci, portsc)	USB_PORT_STAT_HIGH_SPEED
+#endif
 #endif
 
 /*-------------------------------------------------------------------------*/

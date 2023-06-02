@@ -59,6 +59,16 @@ struct nand_flash_dev nand_flash_ids[] = {
 	{"NAND 128MiB 1,8V 8-bit",	0x78, 512, 128, 0x4000, 0},
 	{"NAND 128MiB 1,8V 8-bit",	0x39, 512, 128, 0x4000, 0},
 	{"NAND 128MiB 3,3V 8-bit",	0x79, 512, 128, 0x4000, 0},
+	{"NAND 64MiB 3,3V 8-bit",	0x20, 2048, 64, 0x20000, 0},//spi_nand second ID
+	{"NAND 128MiB 3,3V 8-bit",	0x21, 2048, 128, 0x20000, 0},//spi_nand second ID
+	{"NAND 128MiB 3,3V 8-bit",	0xF1, 2048, 128, 0x20000, 0},//spi_nand second ID
+	{"NAND 128MiB 3,3V 8-bit",	0xD1, 2048, 128, 0x20000, 0},//spi_nand second ID
+	{"NAND 128MiB 3,3V 8-bit",	0x12, 2048, 128, 0x20000, 0},//spi_nand second ID
+	{"NAND 128MiB 3,3V 8-bit",	0x41, 2048, 128, 0x20000, 0},//spi_nand second ID
+	{"NAND 128MiB 3,3V 8-bit",	0xAA, 2048, 128, 0x20000, 0},//spi_nand second ID
+	{"NAND 256MiB 3,3V 8-bit",	0x42, 2048, 256, 0x20000, 0},//spi_nand second ID
+	{"NAND 256MiB 3,3V 8-bit",	0xD2, 2048, 256, 0x20000, 0},//spi_nand second ID
+	{"NAND 256MiB 3,3V 8-bit",	0x22, 2048, 256, 0x20000, 0},//spi_nand second ID
 	{"NAND 128MiB 1,8V 16-bit",	0x72, 512, 128, 0x4000, NAND_BUSWIDTH_16},
 	{"NAND 128MiB 1,8V 16-bit",	0x49, 512, 128, 0x4000, NAND_BUSWIDTH_16},
 	{"NAND 128MiB 3,3V 16-bit",	0x74, 512, 128, 0x4000, NAND_BUSWIDTH_16},
@@ -86,6 +96,7 @@ struct nand_flash_dev nand_flash_ids[] = {
 
 	/* 1 Gigabit */
 	{"NAND 128MiB 1,8V 8-bit",	0xA1, 0, 128, 0, LP_OPTIONS},
+	{"NAND 128MiB 3,3V 8-bit", 	0xF1, 2048, 128, 0x20000, LP_OPTIONS}, /* Samsung K9F1G08U0C, 9500F1EC */
 	{"NAND 128MiB 3,3V 8-bit",	0xF1, 0, 128, 0, LP_OPTIONS},
 	{"NAND 128MiB 3,3V 8-bit",	0xD1, 0, 128, 0, LP_OPTIONS},
 	{"NAND 128MiB 1,8V 16-bit",	0xB1, 0, 128, 0, LP_OPTIONS16},
@@ -100,6 +111,7 @@ struct nand_flash_dev nand_flash_ids[] = {
 
 	/* 4 Gigabit */
 	{"NAND 512MiB 1,8V 8-bit",	0xAC, 0, 512, 0, LP_OPTIONS},
+	{"NAND 512MiB ?.?V 8-bit", 	0xDC, 2048, 512, 0x20000, LP_OPTIONS},	/* Samsung K9F4G08U0A */
 	{"NAND 512MiB 3,3V 8-bit",	0xDC, 0, 512, 0, LP_OPTIONS},
 	{"NAND 512MiB 1,8V 16-bit",	0xBC, 0, 512, 0, LP_OPTIONS16},
 	{"NAND 512MiB 3,3V 16-bit",	0xCC, 0, 512, 0, LP_OPTIONS16},
@@ -118,10 +130,14 @@ struct nand_flash_dev nand_flash_ids[] = {
 
 	/* 32 Gigabit */
 	{"NAND 4GiB 1,8V 8-bit",	0xA7, 0, 4096, 0, LP_OPTIONS},
+	{"NAND 4GiB 3.3V 8-bit",   	0xD7, 4096, 512 /*4096*/   , 0x80000,  LP_OPTIONS},	/* Samsung K9LBG08U0M */
+	{"NAND 4GiB 3.3V 8-bit", 	0xD7, 8192, 1024 /*4096 */ , 0x100000, LP_OPTIONS},	/* Samsung K9HDGD8XM (toggle) */	
 	{"NAND 4GiB 3,3V 8-bit",	0xD7, 0, 4096, 0, LP_OPTIONS},
 	{"NAND 4GiB 1,8V 16-bit",	0xB7, 0, 4096, 0, LP_OPTIONS16},
-	{"NAND 4GiB 3,3V 16-bit",	0xC7, 0, 4096, 0, LP_OPTIONS16},
-
+	{"NAND 4GiB 3,3V 16-bit",	0xC7, 0, 4096, 0, LP_OPTIONS16},	
+	{"NAND 4GiB 3.3V 8-bit", 	0x68, 4096, 512 /*4096 */  , 0x100000, LP_OPTIONS},	/* Micron 29F32G08CBABB (ONFI) */
+	{"NAND 4GiB ?.?V 8-bit", 	0xD5, 8192, 2048 /*4096 */ , 0x100000, LP_OPTIONS},	/* Toshiba TF14G2GADA */
+	
 	/* 64 Gigabit */
 	{"NAND 8GiB 1,8V 8-bit",	0xAE, 0, 8192, 0, LP_OPTIONS},
 	{"NAND 8GiB 3,3V 8-bit",	0xDE, 0, 8192, 0, LP_OPTIONS},
@@ -178,6 +194,7 @@ struct nand_manufacturers nand_manuf_ids[] = {
 	{NAND_MFR_MICRON, "Micron"},
 	{NAND_MFR_AMD, "AMD"},
 	{NAND_MFR_MACRONIX, "Macronix"},
+	{NAND_MFR_SPINAND, "SPI-NAND"},
 	{0x0, "Unknown"}
 };
 

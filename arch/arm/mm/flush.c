@@ -11,6 +11,7 @@
 #include <linux/mm.h>
 #include <linux/pagemap.h>
 #include <linux/highmem.h>
+#include <linux/spinlock.h>
 
 #include <asm/cacheflush.h>
 #include <asm/cachetype.h>
@@ -25,19 +26,40 @@
 
 #define ALIAS_FLUSH_START	0xffff4000
 
+static DEFINE_RAW_SPINLOCK(flush_lock);
+
+/* Beware that this function is not to be called for SMP setups. */
 static void flush_pfn_alias(unsigned long pfn, unsigned long vaddr)
 {
 	unsigned long to = ALIAS_FLUSH_START + (CACHE_COLOUR(vaddr) << PAGE_SHIFT);
+	unsigned long end = to + PAGE_SIZE;
 	const int zero = 0;
-
+    static int cpu_id = 0;
+    
+    if (!cpu_id)
+        cpu_id = (read_cpuid_id() >> 4) & 0xFFF;
+    
+	preempt_disable();
 	set_pte_ext(TOP_PTE(to), pfn_pte(pfn, PAGE_KERNEL), 0);
 	flush_tlb_kernel_page(to);
 
-	asm(	"mcrr	p15, 0, %1, %0, c14\n"
-	"	mcr	p15, 0, %2, c7, c10, 4"
-	    :
-	    : "r" (to), "r" (to + PAGE_SIZE - L1_CACHE_BYTES), "r" (zero)
-	    : "cc");
+    if (cpu_id == 0x626) {
+    	for (; to < end; to += L1_CACHE_BYTES) {
+    		/* clean and invalidate D-cache entry */
+    		asm("mcr	p15, 0, %0, c7, c14, 1\n\t"
+    			:
+    			: "r" (to)
+    			: "cc");
+    	}
+    } else {    
+    	asm(	"mcrr	p15, 0, %1, %0, c14\n"
+    	"	mcr	p15, 0, %2, c7, c10, 4"
+    	    :
+    	    : "r" (to), "r" (to + PAGE_SIZE - L1_CACHE_BYTES), "r" (zero)
+    	    : "cc");
+    }
+
+	preempt_enable();
 }
 
 static void flush_icache_alias(unsigned long pfn, unsigned long vaddr, unsigned long len)
@@ -46,10 +68,14 @@ static void flush_icache_alias(unsigned long pfn, unsigned long vaddr, unsigned 
 	unsigned long offset = vaddr & (PAGE_SIZE - 1);
 	unsigned long to;
 
+	raw_spin_lock(&flush_lock);
+
 	set_pte_ext(TOP_PTE(ALIAS_FLUSH_START) + colour, pfn_pte(pfn, PAGE_KERNEL), 0);
 	to = ALIAS_FLUSH_START + (colour << PAGE_SHIFT) + offset;
 	flush_tlb_kernel_page(to);
 	flush_icache_range(to, to + len);
+
+	raw_spin_unlock(&flush_lock);
 }
 
 void flush_cache_mm(struct mm_struct *mm)

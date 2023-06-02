@@ -41,13 +41,84 @@ MODULE_LICENSE("GPL");
 #define IP1001_APS_ON			11	/* IP1001 APS Mode  bit */
 #define IP101A_G_APS_ON			2	/* IP101A/G APS Mode bit */
 
+static int ip175d_config_init(struct phy_device *phydev)
+{
+	int err, i;
+	static int full_reset_175d = 0;
+	if (full_reset_175d == 0) {
+
+        printk("ip175d_config_init\n");
+        /* master reset */
+        err = mdiobus_write(phydev->bus, 20, 2, 0x175D);
+        if (err < 0)
+            return err;
+
+        /* data sheet specifies reset period is 2 msec */
+        mdelay(2);
+
+        /*make sure it is well after reset*/
+        mdiobus_read(phydev->bus, 20,2);       
+
+        /* Set MII0 speed 100 and duplex FULL (in mac mode) */
+        err = mdiobus_read(phydev->bus, 20,4);
+        err |= (0x1 << 13 | 0x1 << 15);
+
+        err = mdiobus_write(phydev->bus, 20,4, err);
+        if (err != 0)
+            return err; 
+
+        /* reset switch ports */
+        for (i = 0; i < 5; i++) {
+        	err = mdiobus_write(phydev->bus, i,
+        			    MII_BMCR, BMCR_RESET);
+        	if (err < 0)
+        		return err;
+        }
+
+        for (i = 0; i < 5; i++)
+        	err = mdiobus_read(phydev->bus, i, MII_BMCR);
+
+        mdelay(2);
+
+        /* add to port 0~3 and port 4 isolation for IP175D */
+        err = mdiobus_write(phydev->bus, 23, 0, 0x2f2f);
+        if (err < 0)
+        	return err;
+        err = mdiobus_write(phydev->bus, 23, 1, 0x2f2f);
+        if (err < 0)
+        	return err;
+        err = mdiobus_write(phydev->bus, 23, 2, 0x3f30);
+        if (err < 0)
+        	return err;
+
+        full_reset_175d = 1;
+	}
+
+	if (phydev->addr != 4) {
+		phydev->state = PHY_RUNNING;
+		phydev->speed = SPEED_100;
+		phydev->duplex = DUPLEX_FULL;
+		phydev->link = 1;
+		netif_carrier_on(phydev->attached_dev);
+	}
+
+	return 0;
+}
+
 static int ip175c_config_init(struct phy_device *phydev)
 {
 	int err, i;
 	static int full_reset_performed = 0;
 
-	if (full_reset_performed == 0) {
-
+    /*read 20.0 to judge if 175D*/
+    err = mdiobus_read(phydev->bus, 20, 0);
+    if(err == 0x175D)
+    {
+        return ip175d_config_init(phydev);
+    }
+        
+	if (full_reset_performed == 0) {   
+            
 		/* master reset */
 		err = mdiobus_write(phydev->bus, 30, 0, 0x175c);
 		if (err < 0)
@@ -76,7 +147,18 @@ static int ip175c_config_init(struct phy_device *phydev)
 			if (err < 0)
 				return err;
 		}
-
+        /* Gavin add to port 0~3 and port 4 isolation for IP175D */
+#ifdef CONFIG_FTGMAC100_DRIVER_1
+		err = mdiobus_write(phydev->bus, 23, 0, 0x2f2f);
+		if (err < 0)
+			return err;
+		err = mdiobus_write(phydev->bus, 23, 1, 0x2f2f);
+		if (err < 0)
+			return err;
+		err = mdiobus_write(phydev->bus, 23, 2, 0x3f30);
+		if (err < 0)
+			return err;
+#endif
 		for (i = 0; i < 5; i++)
 			err = mdiobus_read(phydev->bus, i, MII_BMCR);
 
@@ -154,25 +236,34 @@ static int ip1001_config_init(struct phy_device *phydev)
 static int ip101a_g_config_init(struct phy_device *phydev)
 {
 	int c;
-
+#if 0
 	c = ip1xx_reset(phydev);
 	if (c < 0)
 		return c;
-
+#else
 	/* Enable Auto Power Saving mode */
 	c = phy_read(phydev, IP10XX_SPEC_CTRL_STATUS);
 	c |= IP101A_G_APS_ON;
-	return c;
+    if (c < 0)
+	    return c;
+#endif				
+	return 0;
 }
 
 static int ip175c_read_status(struct phy_device *phydev)
 {
 	if (phydev->addr == 4) /* WAN port */
 		genphy_read_status(phydev);
-	else
+	else {
 		/* Don't need to read status for switch ports */
 		phydev->irq = PHY_IGNORE_INTERRUPT;
 
+		phydev->state = PHY_RUNNING;
+		phydev->speed = SPEED_100;
+		phydev->duplex = DUPLEX_FULL;
+		phydev->link = 1;
+		netif_carrier_on(phydev->attached_dev);
+    }
 	return 0;
 }
 
@@ -232,14 +323,24 @@ static int __init icplus_init(void)
 	int ret = 0;
 
 	ret = phy_driver_register(&ip1001_driver);
-	if (ret < 0)
-		return -ENODEV;
+	if (ret)
+		goto err1;
 
 	ret = phy_driver_register(&ip101a_g_driver);
-	if (ret < 0)
-		return -ENODEV;
+	if (ret)
+		goto err2;
 
-	return phy_driver_register(&ip175c_driver);
+	ret = phy_driver_register(&ip175c_driver);
+	if (ret)
+		goto err3;
+	return 0;
+
+err3:
+	phy_driver_unregister (&ip101a_g_driver);
+err2:
+	phy_driver_unregister (&ip1001_driver);
+err1:
+	return ret;	
 }
 
 static void __exit icplus_exit(void)

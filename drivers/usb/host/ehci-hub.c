@@ -714,6 +714,22 @@ static int ehci_hub_control (
 		switch (wValue) {
 		case USB_PORT_FEAT_ENABLE:
 			ehci_writel(ehci, temp & ~PORT_PE, status_reg);
+#if defined(CONFIG_GM_FOTG2XX)
+			if (temp & PORT_RESET) {
+				u32 retval;
+
+				/* force reset to complete */
+				ehci_writel(ehci, temp & ~(PORT_RWC_BITS | PORT_RESET),	status_reg);
+				/* REVISIT:  some hardware needs 550+ usec to clear
+				 * this bit; seems too long to spin routinely...
+				 */
+				retval = handshake(ehci, status_reg, PORT_RESET, 0, 750);
+				if (retval != 0)
+					printk("port %d reset error %d\n", wIndex + 1, retval);
+				else
+					printk("PORT_RESET with C_PORT_ENABLE done\n");
+			}
+#endif
 			break;
 		case USB_PORT_FEAT_C_ENABLE:
 			ehci_writel(ehci, (temp & ~PORT_RWC_BITS) | PORT_PEC,
@@ -856,6 +872,10 @@ static int ehci_hub_control (
 				}
 				temp &= ~(PORT_SUSPEND|PORT_RESUME|(3<<10));
 			}
+#if defined(CONFIG_GM_FOTG2XX) || defined(CONFIG_GM_FUSBH200)
+			else
+				status |= 1<< USB_PORT_FEAT_C_SUSPEND;
+#endif
 		}
 
 		/* whoever resets must GetPortStatus to complete it!! */
@@ -882,6 +902,11 @@ static int ehci_hub_control (
 			/* see what we found out */
 			temp = check_reset_complete (ehci, wIndex, status_reg,
 					ehci_readl(ehci, status_reg));
+#if defined(CONFIG_GM_FOTG2XX)
+			/* Patch from CTD, Restart Controller */
+			writel(readl(&ehci->regs->command)|CMD_RUN, &ehci->regs->command);
+			while((readl(&ehci->regs->status)&STS_HALT));
+#endif
 		}
 
 		if (!(temp & (PORT_RESUME|PORT_RESET)))
@@ -1019,6 +1044,62 @@ static int ehci_hub_control (
 					wIndex + 1);
 				temp |= PORT_OWNER;
 			} else {
+#if defined(CONFIG_GM_FOTG2XX)
+                if (strncmp(hcd->self.bus_name, "fotg", 4) == 0) {
+                    u32 temp,count;
+
+                    /* Stop controller for reset */
+                    temp = readl(&ehci->regs->command);
+                    //printk("Stop for reset %x\n",temp);
+                    writel(temp&(~CMD_RUN),&ehci->regs->command);
+                    writel(ehci->periodic_dma, &ehci->regs->frame_list);
+                    writel(ehci->async->qh_dma, &ehci->regs->async_next);
+                    count=0;
+                    temp = 0;
+                    while (((temp & STS_HALT) == 0) && (count<=10000)) {
+                        udelay(3);
+                        count++;
+                        temp = readl(&ehci->regs->status);
+                    }
+                    //printk("......reset host..for port reset..........count %d\n",count);
+                    if (count>=10000) {
+                        u32 regcommand, regenable, regstatus;
+                        u32 i,temp;
+
+                        printk("Host cannot enter HALT state, recover.....\n");
+                        regcommand = readl(&ehci->regs->command);
+                        regcommand &= ((0xFF << 16) | (0x3 << 2));
+                        regenable = readl(&ehci->regs->intr_enable);
+
+                        writel(CMD_RESET,&ehci->regs->command);
+                        i=0;
+                        temp = CMD_RESET;
+                        while (((temp & CMD_RESET)) && (i<=1000)) {
+                            mdelay(1);
+                            i++;
+                            temp = readl(&ehci->regs->command);
+                        }
+                        printk("Reset OK.....%d\n",i);
+
+                        //set port reset
+                        writel(PORT_RESET, &ehci->regs->port_status);
+                        mdelay(50);
+
+                        /* re-init operational registers */
+                        writel(ehci->periodic_dma, &ehci->regs->frame_list);
+                        writel(ehci->async->qh_dma, &ehci->regs->async_next);
+
+                        writel(regcommand, &ehci->regs->command);
+                        mdelay(5);
+                        writel(regcommand | CMD_RUN,&ehci->regs->command);
+                        writel(regenable,&ehci->regs->intr_enable);
+                        regstatus = readl(&ehci->regs->port_status);
+                        writel(regstatus & ~PORT_RESET,&ehci->regs->port_status);
+
+                        printk("Host recover OK\n");
+                    }
+                }
+#endif
 				ehci_vdbg (ehci, "port %d reset\n", wIndex + 1);
 				temp |= PORT_RESET;
 				temp &= ~PORT_PE;

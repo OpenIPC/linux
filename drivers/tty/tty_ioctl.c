@@ -539,7 +539,9 @@ int tty_set_termios(struct tty_struct *tty, struct ktermios *new_termios)
 			wake_up_interruptible(&tty->link->read_wait);
 		}
 	}
-
+#if (defined(CONFIG_PLATFORM_GM8136) || defined(CONFIG_PLATFORM_GM8139) || defined(CONFIG_PLATFORM_GM8210) || defined(CONFIG_PLATFORM_GM8287))
+	tty->termios->c_cflag &= ~CRTSCTS;
+#endif
 	if (tty->ops->set_termios)
 		(*tty->ops->set_termios)(tty, &old_termios);
 	else

@@ -18,23 +18,143 @@ config NET_VENDOR_FARADAY
 
 if NET_VENDOR_FARADAY
 
-config FTMAC100
-	tristate "Faraday FTMAC100 10/100 Ethernet support"
-	depends on ARM
+config FTGMAC100
+	tristate "Faraday FTGMAC100 support"
+	help
+	  This driver supports Faraday(R) FTGMAC100 gigabit ethernet family of
+	  adapters.  
+	  For general information and support, go to the Faraday support
+	  website at:
+	  <http://www.faraday-tech.com>
+	 
+	  To compile this driver as a module, choose M here and read
+	  <file:Documentation/networking/net-modules.txt>.  The module
+	  will be called ftgmac100.
+
+if FTGMAC100
+if PLATFORM_GM8210
+
+config FTGMAC100_DRIVER_0_MASTER
+	bool "Enable GMAC 0 for 726"
+	default y
+	help
+	  If we want to use GMAC driver 0 for 726, say Y; otherwise say N.	  
+config FTGMAC100_DRIVER_0_SLAVE
+	bool "Enable GMAC 0 for 626"
+	default y
+	help
+	  If we want to use GMAC driver 0 for 626, say Y; otherwise say N.
+config FTGMAC100_DRIVER_1_MASTER
+	bool "Enable GMAC 1 for 726"
+	default y
+	help
+	  If we want to use GMAC driver 1 for 726, say Y; otherwise say N.
+config FTGMAC100_DRIVER_1_SLAVE
+	bool "Enable GMAC 1 for 626"
+	default y
+	help
+	  If we want to use GMAC driver 1 for 626, say Y; otherwise say N.
+endif	# if PLATFORM_GM8210
+
+if !PLATFORM_GM8210
+config FTGMAC100_DRIVER_0_MASTER
+	bool "Enable GMAC 0"
+	default y
+	help
+	  If we want to use GMAC driver 0, say Y; otherwise say N.
+
+config FTMAC_TINY
+    bool "Less queue number"
+    default n
+	depends on FTGMAC100_DRIVER_0_MASTER
+	help
+	    Use less queue number, if user application is not enough,
+	    please disable it.
+endif
+
+endif	# if FTGMAC100
+
+config FTGMAC030
+	tristate "Faraday FTGMAC030 support"
+	default n
+	help
+	  This driver supports Faraday(R) FTGMAC030 gigabit ethernet family of
+	  adapters.  
+	  For general information and support, go to the Faraday support
+	  website at:
+	  <http://www.faraday-tech.com>
+	 
+	  To compile this driver as a module, choose M here and read
+	  <file:Documentation/networking/net-modules.txt>.  The module
+	  will be called ftgmac030.
+
+if FTGMAC030
+if PLATFORM_GM8220
+
+config FTGMAC030_DRIVER_0
+	bool "Enable GMAC 0"
+	default y
+	help
+	  If we want to use GMAC driver 0, say Y; otherwise say N.	  
+config FTGMAC030_DRIVER_1
+	bool "Enable GMAC 1"
+	default y
+	help
+	  If we want to use GMAC driver 1, say Y; otherwise say N.
+endif	# if PLATFORM_GM8220
+
+endif	# if FTGMAC030
+
+config FTMAC110
+	tristate "Faraday FTMAC110 support"
 	select NET_CORE
 	select MII
-	---help---
-	  This driver supports the FTMAC100 10/100 Ethernet controller
-	  from Faraday. It is used on Faraday A320, Andes AG101 and some
-	  other ARM/NDS32 SoC's.
+	help
+	  This driver supports Faraday(R) FTMAC110 10/100 ethernet family of
+	  adapters.  
+	  For general information and support, go to the Faraday support
+	  website at:
+	  <http://www.faraday-tech.com>
+	 
+	  To compile this driver as a module, choose M here and read
+	  <file:Documentation/networking/net-modules.txt>.  The module
+	  will be called ftmac110.
 
-config FTGMAC100
-	tristate "Faraday FTGMAC100 Gigabit Ethernet support"
-	depends on ARM
-	select PHYLIB
-	---help---
-	  This driver supports the FTGMAC100 Gigabit Ethernet controller
-	  from Faraday. It is used on Faraday A369, Andes AG102 and some
-	  other ARM/NDS32 SoC's.
+if FTMAC110
+
+config FTMAC110_PHYADDR
+	int "PHY Address"
+	default 1
+	depends on FTMAC110
+	
+config FTMAC110_PHYMON
+	bool "PHY Monitor"
+	default n
+	depends on FTMAC110
+	help
+	  If ftmac110 is connected with a single phy, say Y; otherwise say N.
+	
+config FTMAC110_NDESC_TX
+	int "Tx Descriptor Number"
+	default 256
+	depends on FTMAC110
+	
+config FTMAC110_NDESC_RX
+	int "Rx Descriptor Number"
+	default 256
+	depends on FTMAC110
+
+config FTMAC110_NAPI
+	bool "NAPI(New API) support"
+	default y
+	depends on FTMAC110
+	
+config FTMAC110_NAPI_LRO
+	bool "LRO(Large Receive Offload) support"
+	default y
+	select INET_LRO
+	depends on FTMAC110_NAPI
+
+endif	# if FTMAC110
 
 endif # NET_VENDOR_FARADAY

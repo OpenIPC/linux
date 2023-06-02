@@ -446,7 +446,21 @@ static int wm8731_set_bias_level(struct snd_soc_codec *codec,
 
 		/* Clear PWROFF, gate CLKOUT, everything else as-is */
 		reg = snd_soc_read(codec, WM8731_PWR) & 0xff7f;
+#ifdef CONFIG_ARCH_FARADAY
+		/*
+		 * Make sure that CLKOUT of wm8731 will not be powered down.
+		 *
+		 * We choose external clock source (X_SSP_CLK) as SSP0 clock
+		 * input by setting bit 4 of SCLK_CFG1 register of SCU010.
+		 * The external clock source (X_SSP_CLK) comes from CLKOUT of
+		 * wm8731 on A369 evb. The wm8731 codec driver in Linux gates
+		 * CLKOUT by default. We need to apply this patch or there will
+		 * be no external clock.
+		 */
+		snd_soc_write(codec, WM8731_PWR, reg);
+#else
 		snd_soc_write(codec, WM8731_PWR, reg | 0x0040);
+#endif
 		break;
 	case SND_SOC_BIAS_OFF:
 		snd_soc_write(codec, WM8731_PWR, 0xffff);

@@ -147,6 +147,146 @@ static inline void atomic_clear_mask(unsigned long mask, unsigned long *addr)
 	: "cc");
 }
 
+#elif defined(CONFIG_CPU_FMP626)
+
+/*
+ * Faraday FMP626 UP and SMP safe atomic ops.  We use load exclusive and
+ * store exclusive to ensure that these are atomic.  We may loop
+ * to ensure that the update happens.  Writing to 'v->counter'
+ * without using the following operations WILL break the atomic
+ * nature of these ops.
+ */
+static inline void atomic_add(int i, atomic_t *v)
+{
+	unsigned long tmp;
+	int result;
+
+	__asm__ __volatile__("@ atomic_add\n"
+"1:	ldc	p13, c0, [%3], {2}	@ set address for ldrex\n"
+"	mrc	p13, 0, %0, c0, c0, 0	@ ldrex\n"
+"	add	%0, %0, %4\n"
+"	mcr	p13, 0, %0, c0, c0, 0	@ data for strex\n"
+"	stc	p13, c0, [%3], {2}	@ strex to address\n"
+"	mrc	p13, 0, %1, c0, c0, 2	@ strex status\n"
+"	teq	%1, #0\n"
+"	bne	1b"
+	: "=&r" (result), "=&r" (tmp), "+Qo" (v->counter)
+	: "r" (&v->counter), "Ir" (i)
+	: "cc");
+}
+
+static inline int atomic_add_return(int i, atomic_t *v)
+{
+	unsigned long tmp;
+	int result;
+
+	smp_mb();
+
+	__asm__ __volatile__("@ atomic_add_return\n"
+"1:	ldc	p13, c0, [%3], {2}	@ set address for ldrex\n"
+"	mrc	p13, 0, %0, c0, c0, 0	@ ldrex\n"
+"	add	%0, %0, %4\n"
+"	mcr	p13, 0, %0, c0, c0, 0	@ data for strex\n"
+"	stc	p13, c0, [%3], {2}	@ strex to address\n"
+"	mrc	p13, 0, %1, c0, c0, 2	@ strex status\n"
+"	teq	%1, #0\n"
+"	bne	1b"
+	: "=&r" (result), "=&r" (tmp), "+Qo" (v->counter)
+	: "r" (&v->counter), "Ir" (i)
+	: "cc");
+
+	smp_mb();
+
+	return result;
+}
+
+static inline void atomic_sub(int i, atomic_t *v)
+{
+	unsigned long tmp;
+	int result;
+
+	__asm__ __volatile__("@ atomic_sub\n"
+"1:	ldc	p13, c0, [%3], {2}	@ set address for ldrex\n"
+"	mrc	p13, 0, %0, c0, c0, 0	@ ldrex\n"
+"	sub	%0, %0, %4\n"
+"	mcr	p13, 0, %0, c0, c0, 0	@ data for strex\n"
+"	stc	p13, c0, [%3], {2}	@ strex to address\n"
+"	mrc	p13, 0, %1, c0, c0, 2	@ strex status\n"
+"	teq	%1, #0\n"
+"	bne	1b"
+	: "=&r" (result), "=&r" (tmp), "+Qo" (v->counter)
+	: "r" (&v->counter), "Ir" (i)
+	: "cc");
+}
+
+static inline int atomic_sub_return(int i, atomic_t *v)
+{
+	unsigned long tmp;
+	int result;
+
+	smp_mb();
+
+	__asm__ __volatile__("@ atomic_sub_return\n"
+"1:	ldc	p13, c0, [%3], {2}	@ set address for ldrex\n"
+"	mrc	p13, 0, %0, c0, c0, 0	@ ldrex\n"
+"	sub	%0, %0, %4\n"
+"	mcr	p13, 0, %0, c0, c0, 0	@ data for strex\n"
+"	stc	p13, c0, [%3], {2}	@ strex to address\n"
+"	mrc	p13, 0, %1, c0, c0, 2	@ strex status\n"
+"	teq	%1, #0\n"
+"	bne	1b"
+	: "=&r" (result), "=&r" (tmp), "+Qo" (v->counter)
+	: "r" (&v->counter), "Ir" (i)
+	: "cc");
+
+	smp_mb();
+
+	return result;
+}
+
+static inline int atomic_cmpxchg(atomic_t *ptr, int old, int new)
+{
+	unsigned long oldval, res;
+
+	smp_mb();
+
+	do {
+		__asm__ __volatile__("@ atomic_cmpxchg\n"
+		"ldc	p13, c0, [%3], {2}	@ set address for ldrex\n"
+		"mrc	p13, 0, %1, c0, c0, 0	@ ldrex\n"
+		"mov	%0, #0\n"
+		"teq	%1, %4\n"
+		"mcreq	p13, 0, %5, c0, c0, 0	@ data for strex\n"
+		"stceq	p13, c0, [%3], {2}	@ strex to address\n"
+		"mrceq	p13, 0, %0, c0, c0, 2	@ strex status\n"
+		    : "=&r" (res), "=&r" (oldval), "+Qo" (ptr->counter)
+		    : "r" (&ptr->counter), "Ir" (old), "r" (new)
+		    : "cc");
+	} while (res);
+
+	smp_mb();
+
+	return oldval;
+}
+
+static inline void atomic_clear_mask(unsigned long mask, unsigned long *addr)
+{
+	unsigned long tmp, tmp2;
+
+	__asm__ __volatile__("@ atomic_clear_mask\n"
+"1:	ldc	p13, c0, [%3], {2}	@ set address for ldrex\n"
+"	mrc	p13, 0, %0, c0, c0, 0	@ ldrex\n"
+"	bic	%0, %0, %4\n"
+"	mcr	p13, 0, %0, c0, c0, 0	@ data for strex\n"
+"	stc	p13, c0, [%3], {2}	@ strex to address\n"
+"	mrc	p13, 0, %1, c0, c0, 2	@ strex status\n"
+"	teq	%1, #0\n"
+"	bne	1b"
+	: "=&r" (tmp), "=&r" (tmp2), "+Qo" (*addr)
+	: "r" (addr), "Ir" (mask)
+	: "cc");
+}
+
 #else /* ARM_ARCH_6 */
 
 #ifdef CONFIG_SMP
@@ -241,6 +381,7 @@ typedef struct {
 
 #define ATOMIC64_INIT(i) { (i) }
 
+#ifndef CONFIG_CPU_FMP626
 static inline u64 atomic64_read(atomic64_t *v)
 {
 	u64 result;
@@ -448,6 +589,262 @@ static inline int atomic64_add_unless(atomic64_t *v, u64 a, u64 u)
 
 	return ret;
 }
+#else	/* CONFIG_CPU_FMP626 */
+static inline u64 atomic64_read(atomic64_t *v)
+{
+	u64 result;
+
+	__asm__ __volatile__("@ atomic64_read\n"
+"	ldc	p13, c0, [%1], {3}	@ set address for ldrexd\n"
+"	mrc	p13, 0, %0, c0, c0, 0	@ ldrexd\n"
+"	mrc	p13, 0, %H0, c0, c0, 1	@ ldrexd\n"
+	: "=&r" (result)
+	: "r" (&v->counter), "Qo" (v->counter)
+	);
+
+	return result;
+}
+
+static inline void atomic64_set(atomic64_t *v, u64 i)
+{
+	u64 tmp;
+
+	__asm__ __volatile__("@ atomic64_set\n"
+"1:	ldc	p13, c0, [%2], {3}	@ set address for ldrexd\n"
+"	mrc	p13, 0, %0, c0, c0, 0	@ ldrexd\n"
+"	mrc	p13, 0, %H0, c0, c0, 1	@ ldrexd\n"
+"	mcr	p13, 0, %3, c0, c0, 0	@ data for strexd\n"
+"	mcr	p13, 0, %H3, c0, c0, 1	@ data for strexd\n"
+"	stc	p13, c0, [%2], {3}	@ strexd to address\n"
+"	mrc	p13, 0, %0, c0, c0, 2	@ strexd status\n"
+"	teq	%0, #0\n"
+"	bne	1b"
+	: "=&r" (tmp), "=Qo" (v->counter)
+	: "r" (&v->counter), "r" (i)
+	: "cc");
+}
+
+static inline void atomic64_add(u64 i, atomic64_t *v)
+{
+	u64 result;
+	unsigned long tmp;
+
+	__asm__ __volatile__("@ atomic64_add\n"
+"1:	ldc	p13, c0, [%3], {3}	@ set address for ldrexd\n"
+"	mrc	p13, 0, %0, c0, c0, 0	@ ldrexd\n"
+"	mrc	p13, 0, %H0, c0, c0, 1	@ ldrexd\n"
+"	adds	%0, %0, %4\n"
+"	adc	%H0, %H0, %H4\n"
+"	mcr	p13, 0, %0, c0, c0, 0	@ data for strexd\n"
+"	mcr	p13, 0, %H0, c0, c0, 1	@ data for strexd\n"
+"	stc	p13, c0, [%3], {3}	@ strexd to address\n"
+"	mrc	p13, 0, %1, c0, c0, 2	@ strexd status\n"
+"	teq	%1, #0\n"
+"	bne	1b"
+	: "=&r" (result), "=&r" (tmp), "+Qo" (v->counter)
+	: "r" (&v->counter), "r" (i)
+	: "cc");
+}
+
+static inline u64 atomic64_add_return(u64 i, atomic64_t *v)
+{
+	u64 result;
+	unsigned long tmp;
+
+	smp_mb();
+
+	__asm__ __volatile__("@ atomic64_add_return\n"
+"1:	ldc	p13, c0, [%3], {3}	@ set address for ldrexd\n"
+"	mrc	p13, 0, %0, c0, c0, 0	@ ldrexd\n"
+"	mrc	p13, 0, %H0, c0, c0, 1	@ ldrexd\n"
+"	adds	%0, %0, %4\n"
+"	adc	%H0, %H0, %H4\n"
+"	mcr	p13, 0, %0, c0, c0, 0	@ data for strexd\n"
+"	mcr	p13, 0, %H0, c0, c0, 1	@ data for strexd\n"
+"	stc	p13, c0, [%3], {3}	@ strexd to address\n"
+"	mrc	p13, 0, %1, c0, c0, 2	@ strexd status\n"
+"	teq	%1, #0\n"
+"	bne	1b"
+	: "=&r" (result), "=&r" (tmp), "+Qo" (v->counter)
+	: "r" (&v->counter), "r" (i)
+	: "cc");
+
+	smp_mb();
+
+	return result;
+}
+
+static inline void atomic64_sub(u64 i, atomic64_t *v)
+{
+	u64 result;
+	unsigned long tmp;
+
+	__asm__ __volatile__("@ atomic64_sub\n"
+"1:	ldc	p13, c0, [%3], {3}	@ set address for ldrexd\n"
+"	mrc	p13, 0, %0, c0, c0, 0	@ ldrexd\n"
+"	mrc	p13, 0, %H0, c0, c0, 1	@ ldrexd\n"
+"	subs	%0, %0, %4\n"
+"	sbc	%H0, %H0, %H4\n"
+"	mcr	p13, 0, %0, c0, c0, 0	@ data for strexd\n"
+"	mcr	p13, 0, %H0, c0, c0, 1	@ data for strexd\n"
+"	stc	p13, c0, [%3], {3}	@ strexd to address\n"
+"	mrc	p13, 0, %1, c0, c0, 2	@ strexd status\n"
+"	teq	%1, #0\n"
+"	bne	1b"
+	: "=&r" (result), "=&r" (tmp), "+Qo" (v->counter)
+	: "r" (&v->counter), "r" (i)
+	: "cc");
+}
+
+static inline u64 atomic64_sub_return(u64 i, atomic64_t *v)
+{
+	u64 result;
+	unsigned long tmp;
+
+	smp_mb();
+
+	__asm__ __volatile__("@ atomic64_sub_return\n"
+"1:	ldc	p13, c0, [%3], {3}	@ set address for ldrexd\n"
+"	mrc	p13, 0, %0, c0, c0, 0	@ ldrexd\n"
+"	mrc	p13, 0, %H0, c0, c0, 1	@ ldrexd\n"
+"	subs	%0, %0, %4\n"
+"	sbc	%H0, %H0, %H4\n"
+"	mcr	p13, 0, %0, c0, c0, 0	@ data for strexd\n"
+"	mcr	p13, 0, %H0, c0, c0, 1	@ data for strexd\n"
+"	stc	p13, c0, [%3], {3}	@ strexd to address\n"
+"	mrc	p13, 0, %1, c0, c0, 2	@ strexd status\n"
+"	teq	%1, #0\n"
+"	bne	1b"
+	: "=&r" (result), "=&r" (tmp), "+Qo" (v->counter)
+	: "r" (&v->counter), "r" (i)
+	: "cc");
+
+	smp_mb();
+
+	return result;
+}
+
+static inline u64 atomic64_cmpxchg(atomic64_t *ptr, u64 old, u64 new)
+{
+	u64 oldval;
+	unsigned long res;
+
+	smp_mb();
+
+	do {
+		__asm__ __volatile__("@ atomic64_cmpxchg\n"
+		"ldc	p13, c0, [%3], {3}	@ set address for ldrexd\n"
+		"mrc	p13, 0, %1, c0, c0, 0	@ ldrexd\n"
+		"mrc	p13, 0, %H1, c0, c0, 1	@ ldrexd\n"
+		"mov	%0, #0\n"
+		"teq	%1, %4\n"
+		"teqeq	%H1, %H4\n"
+		"mcreq	p13, 0, %5, c0, c0, 0	@ data for strexd\n"
+		"mcreq	p13, 0, %H5, c0, c0, 1	@ data for strexd\n"
+		"stceq	p13, c0, [%3], {3}	@ strexd to address\n"
+		"mrceq	p13, 0, %0, c0, c0, 2	@ strexd status\n"
+		: "=&r" (res), "=&r" (oldval), "+Qo" (ptr->counter)
+		: "r" (&ptr->counter), "r" (old), "r" (new)
+		: "cc");
+	} while (res);
+
+	smp_mb();
+
+	return oldval;
+}
+
+static inline u64 atomic64_xchg(atomic64_t *ptr, u64 new)
+{
+	u64 result;
+	unsigned long tmp;
+
+	smp_mb();
+
+	__asm__ __volatile__("@ atomic64_xchg\n"
+"1:	ldc	p13, c0, [%3], {3}	@ set address for ldrexd\n"
+"	mrc	p13, 0, %0, c0, c0, 0	@ ldrexd\n"
+"	mrc	p13, 0, %H0, c0, c0, 1	@ ldrexd\n"
+"	mcr	p13, 0, %4, c0, c0, 0	@ data for strexd\n"
+"	mcr	p13, 0, %H4, c0, c0, 1	@ data for strexd\n"
+"	stc	p13, c0, [%3], {3}	@ strexd to address\n"
+"	mrc	p13, 0, %1, c0, c0, 2	@ strexd status\n"
+"	teq	%1, #0\n"
+"	bne	1b"
+	: "=&r" (result), "=&r" (tmp), "+Qo" (ptr->counter)
+	: "r" (&ptr->counter), "r" (new)
+	: "cc");
+
+	smp_mb();
+
+	return result;
+}
+
+static inline u64 atomic64_dec_if_positive(atomic64_t *v)
+{
+	u64 result;
+	unsigned long tmp;
+
+	smp_mb();
+
+	__asm__ __volatile__("@ atomic64_dec_if_positive\n"
+"1:	ldc	p13, c0, [%3], {3}	@ set address for ldrexd\n"
+"	mrc	p13, 0, %0, c0, c0, 0	@ ldrexd\n"
+"	mrc	p13, 0, %H0, c0, c0, 1	@ ldrexd\n"
+"	subs	%0, %0, #1\n"
+"	sbc	%H0, %H0, #0\n"
+"	teq	%H0, #0\n"
+"	bmi	2f\n"
+"	mcr	p13, 0, %0, c0, c0, 0	@ data for strexd\n"
+"	mcr	p13, 0, %H0, c0, c0, 1	@ data for strexd\n"
+"	stc	p13, c0, [%3], {3}	@ strexd to address\n"
+"	mrc	p13, 0, %1, c0, c0, 2	@ strexd status\n"
+"	teq	%1, #0\n"
+"	bne	1b\n"
+"2:"
+	: "=&r" (result), "=&r" (tmp), "+Qo" (v->counter)
+	: "r" (&v->counter)
+	: "cc");
+
+	smp_mb();
+
+	return result;
+}
+
+static inline int atomic64_add_unless(atomic64_t *v, u64 a, u64 u)
+{
+	u64 val;
+	unsigned long tmp;
+	int ret = 1;
+
+	smp_mb();
+
+	__asm__ __volatile__("@ atomic64_add_unless\n"
+"1:	ldc	p13, c0, [%4], {3}	@ set address for ldrexd\n"
+"	mrc	p13, 0, %0, c0, c0, 0	@ ldrexd\n"
+"	mrc	p13, 0, %H0, c0, c0, 1	@ ldrexd\n"
+"	teq	%0, %5\n"
+"	teqeq	%H0, %H5\n"
+"	moveq	%1, #0\n"
+"	beq	2f\n"
+"	adds	%0, %0, %6\n"
+"	adc	%H0, %H0, %H6\n"
+"	mcr	p13, 0, %0, c0, c0, 0	@ data for strexd\n"
+"	mcr	p13, 0, %H0, c0, c0, 1	@ data for strexd\n"
+"	stc	p13, c0, [%4], {3}	@ strexd to address\n"
+"	mrc	p13, 0, %2, c0, c0, 2	@ strexd status\n"
+"	teq	%2, #0\n"
+"	bne	1b\n"
+"2:"
+	: "=&r" (val), "+r" (ret), "=&r" (tmp), "+Qo" (v->counter)
+	: "r" (&v->counter), "r" (u), "r" (a)
+	: "cc");
+
+	if (ret)
+		smp_mb();
+
+	return ret;
+}
+#endif	/* CONFIG_CPU_FMP626 */
 
 #define atomic64_add_negative(a, v)	(atomic64_add_return((a), (v)) < 0)
 #define atomic64_inc(v)			atomic64_add(1LL, (v))

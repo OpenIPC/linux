@@ -376,7 +376,7 @@ ENDPROC(__pabt_svc)
 	.endm
 
 	.macro	kuser_cmpxchg_check
-#if !defined(CONFIG_CPU_32v6K) && !defined(CONFIG_NEEDS_SYSCALL_FOR_CMPXCHG)
+#if !defined(CONFIG_CPU_32v6K) && !defined(CONFIG_CPU_FMP626) && !defined(CONFIG_NEEDS_SYSCALL_FOR_CMPXCHG)
 #ifndef CONFIG_MMU
 #warning "NPTL on non MMU needs fixing"
 #else
@@ -755,6 +755,32 @@ ENDPROC(__switch_to)
 	.globl	__kuser_helper_start
 __kuser_helper_start:
 
+#if defined(CONFIG_CPU_FMP626)
+/*
+ * This is the body of __kuser_cmpxchg for FMP626
+ */
+
+__kuser_cmpxchg_fmp626:
+#ifdef CONFIG_SMP
+	mcr	p15, 0, r0, c7, c10, 5	@ dmb
+#endif
+1:	ldc	p13, c0, [r2], {2}	@ set address for ldrex
+	mrc	p13, 0, r3, c0, c0, 0	@ ldrex
+	subs	r3, r3, r0
+	mcreq	p13, 0, r1, c0, c0, 0	@ data for strex
+	stceq	p13, c0, [r2], {2}	@ strex to address
+	mrceq	p13, 0, r3, c0, c0, 2	@ strex status
+	teqeq	r3, #1
+	beq	1b
+	rsbs	r0, r3, #0
+#ifdef CONFIG_SMP
+	mcr	p15, 0, r0, c7, c10, 5	@ dmb
+#endif
+	usr_ret	lr
+
+	.align	5
+#endif
+
 /*
  * Due to the length of some sequences, __kuser_cmpxchg64 spans 2 regular
  * kuser "slots", therefore 0xffff0f80 is not used as a valid entry point.
@@ -791,6 +817,28 @@ __kuser_cmpxchg64:				@ 0xffff0f60
 	rsbs	r0, r3, #0			@ set returned val and C flag
 	ldmfd	sp!, {r4, r5, r6, r7}
 	usr_ret	lr
+
+#elif defined(CONFIG_CPU_FMP626)
+
+	stmfd	sp!, {r4, r5, r6, r7}
+	ldrd	r4, r5, [r0]			@ load old val
+	ldrd	r6, r7, [r1]			@ load new val
+	ALT_SMP(mcr	p15, 0, r0, c7, c10, 5)	@ dmb
+1:      ldc	p13, c0, [r2], {3}		@ set address for ldrex
+	mrc	p13, 0, r0, c0, c0, 0		@ ldrex 1st word
+	mrc	p13, 0, r1, c0, c0, 1		@ ldrex 2nd word
+	eors	r3, r0, r4			@ compare with oldval (1)
+	eoreqs	r3, r1, r5			@ compare with oldval (2)
+	mcreq	p13, 0, r6, c0, c0, 0		@ strex 1st word
+	mcreq	p13, 0, r7, c0, c0, 0		@ strex 2nd word
+	stceq   p13, c0, [r2], {3}		@ strex to address
+	mrceq   p13, 0, r3, c0, c0, 2		@ strex status
+	teqeq	r3, #1				@ success?
+	beq	1b				@ if no then retry
+	ALT_SMP(mcr	p15, 0, r0, c7, c10, 5)	@ dmb
+	rsbs	r0, r3, #0			@ set returned val and C flag
+	ldmfd	sp!, {r4, r5, r6, r7}
+	bx	lr
 
 #elif !defined(CONFIG_SMP)
 
@@ -868,6 +916,14 @@ __kuser_cmpxchg:				@ 0xffff0fc0
 	swi	__ARM_NR_cmpxchg
 	ldmfd	sp!, {r7, pc}
 1:	.word	__ARM_NR_cmpxchg
+
+#elif defined(CONFIG_CPU_FMP626)
+	/*
+	 * Each __kuser slot must be 8 instructions max.
+	 * Our implementation blows it up.
+	 * So we put it at the beginning of all user helpers.
+	 */
+	b	__kuser_cmpxchg_fmp626
 
 #elif __LINUX_ARM_ARCH__ < 6
 

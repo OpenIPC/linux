@@ -4,6 +4,7 @@
 ccflags-$(CONFIG_USB_GADGET_DEBUG) := -DDEBUG
 
 obj-$(CONFIG_USB_GADGET)	+= udc-core.o
+obj-$(CONFIG_GM_USB_UDC)        += g_GM_udc.o
 obj-$(CONFIG_USB_DUMMY_HCD)	+= dummy_hcd.o
 obj-$(CONFIG_USB_NET2272)	+= net2272.o
 obj-$(CONFIG_USB_NET2280)	+= net2280.o
@@ -35,6 +36,9 @@ obj-$(CONFIG_USB_FUSB300)	+= fusb300_udc.o
 #
 # USB gadget drivers
 #
+g_GM_udc-y			:= GM_udc.o
+#g_GM_udc-y			:= fotg210-udc.o
+g_GM_zero-objs		:= GM_test.o usbstring.o config.o epautoconf.o
 g_zero-y			:= zero.o
 g_audio-y			:= audio.o
 g_ether-y			:= ether.o
@@ -53,6 +57,7 @@ g_webcam-y			:= webcam.o
 g_ncm-y				:= ncm.o
 g_acm_ms-y			:= acm_ms.o
 
+obj-$(CONFIG_GM_PATH_TEST)	+= g_GM_zero.o
 obj-$(CONFIG_USB_ZERO)		+= g_zero.o
 obj-$(CONFIG_USB_AUDIO)		+= g_audio.o
 obj-$(CONFIG_USB_ETH)		+= g_ether.o

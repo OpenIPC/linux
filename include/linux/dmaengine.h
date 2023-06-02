@@ -615,6 +615,51 @@ static inline struct dma_async_tx_descriptor *dmaengine_prep_slave_single(
 	return chan->device->device_prep_slave_sg(chan, &sg, 1, dir, flags);
 }
 
+/**
+ * dmaengine_prep_dma_cyclic - prepare the cyclic DMA transfer
+ * @chan: the DMA channel to prepare
+ * @buf_addr: physical DMA address where the buffer starts
+ * @buf_len: total number of bytes for the entire buffer
+ * @period_len: number of bytes for each period
+ * @direction: transfer direction, to or from device
+ */
+static inline struct dma_async_tx_descriptor *dmaengine_prep_dma_cyclic(
+            struct dma_chan *chan, dma_addr_t buf_addr, size_t buf_len, 
+            size_t period_len, enum dma_transfer_direction direction) 
+{
+    return chan->device->device_prep_dma_cyclic(chan, buf_addr, buf_len, period_len, direction);
+}		
+
+/**
+ * dmaengine_prep_dma_memcpy - prepare a memcpy operation
+ * @chan: the channel to prepare operation on
+ * @dest: operation virtual destination address
+ * @src: operation virtual source address
+ * @len: operation length
+ * @flags: tx descriptor status flags
+ */
+static inline struct dma_async_tx_descriptor *dmaengine_prep_dma_memcpy(
+            struct dma_chan *chan, dma_addr_t dest, dma_addr_t src,
+		    size_t len, unsigned long flags)
+{
+    return chan->device->device_prep_dma_memcpy(chan, dest, src, len, flags);
+}
+
+/**
+ * dmaengine_prep_dma_memset - prepare a memset operation
+ * @chan: the channel to prepare operation on
+ * @dest: operation virtual destination address
+ * @src: operation virtual source address
+ * @len: operation length
+ * @flags: tx descriptor status flags
+ */
+static inline struct dma_async_tx_descriptor *dmaengine_prep_dma_memset(
+            struct dma_chan *chan, dma_addr_t dest, int value,
+		    size_t len, unsigned long flags)
+{
+    return chan->device->device_prep_dma_memset(chan, dest, value, len, flags);
+}
+		    
 static inline int dmaengine_terminate_all(struct dma_chan *chan)
 {
 	return dmaengine_device_control(chan, DMA_TERMINATE_ALL, 0);

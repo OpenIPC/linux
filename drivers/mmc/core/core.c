@@ -41,6 +41,15 @@
 #include "sd_ops.h"
 #include "sdio_ops.h"
 
+#include <asm/system.h>
+#include <asm/uaccess.h>
+#include <mach/platform/board.h>
+
+#if defined(CONFIG_MMC_FTSDC021_VEND_TUNE)
+#include <mach/platform/platform_io.h>
+extern uint ftsdc021_pulse_latch;
+#endif
+
 static struct workqueue_struct *workqueue;
 
 /*
@@ -2054,6 +2063,11 @@ EXPORT_SYMBOL(mmc_hw_reset_check);
 
 static int mmc_rescan_try_freq(struct mmc_host *host, unsigned freq)
 {
+	#if defined(CONFIG_MMC_FTSDC021_VEND_TUNE)	
+	uint d_strength, d_strength_retry = 0;
+	uint strength_level[] = { 2, 3, 1, 0 };
+	#endif
+	
 	host->f_init = freq;
 
 #ifdef CONFIG_MMC_DEBUG
@@ -2082,14 +2096,47 @@ static int mmc_rescan_try_freq(struct mmc_host *host, unsigned freq)
 	mmc_send_if_cond(host, host->ocr_avail);
 
 	/* Order's important: probe SDIO, then SD, then MMC */
-	if (!mmc_attach_sdio(host))
-		return 0;
-	if (!mmc_attach_sd(host))
-		return 0;
-	if (!mmc_attach_mmc(host))
-		return 0;
+	#if defined(CONFIG_MMC_FTSDC021_VEND_TUNE)
+			for (d_strength_retry = 0; d_strength_retry < 4; d_strength_retry++) 
+			{
+		                /* Change driving strength */	
+		                /* sdc _dcsr[1:0]: Driving capability control
+		                 *  0: 6mA, 1: 8mA, 2: 10mA, 3: 12mA
+		                 */	
+				d_strength = (readl(PMU_FTPMU010_VA_BASE + 0x40) & 0x0f0) >> 4;
+		    if (strength_level[d_strength_retry] != d_strength) 
+		    {
+		    	d_strength = readl(PMU_FTPMU010_VA_BASE + 0x40);
+		      d_strength &= ~(0x3 << 4);
+		      d_strength |= (strength_level[d_strength_retry] << 4);
+		      writel(d_strength, PMU_FTPMU010_VA_BASE + 0x40);				
+	     	}
+			#ifdef CONFIG_MMC_DEBUG
+				 pr_info("SCU 0x40 : 0x%08x at %u Hz\n", readl(PMU_FTPMU010_VA_BASE + 0x40), host->f_init);
+			#endif					
+					if (!mmc_attach_sdio(host))
+						return 0;
+					if (!mmc_attach_sd(host))
+						return 0;
+					if (!mmc_attach_mmc(host))
+						return 0;
+			}		
+	#else 
+				if (!mmc_attach_sdio(host))
+					return 0;
+				if (!mmc_attach_sd(host))
+					return 0;
+				if (!mmc_attach_mmc(host))
+					return 0;	
+	#endif
 
 	mmc_power_off(host);
+	#if defined(CONFIG_MMC_FTSDC021_VEND_TUNE)
+		d_strength = readl(PMU_FTPMU010_VA_BASE + 0x40);
+		d_strength &= ~(0x3 << 4);
+		d_strength |= (strength_level[0] << 4);
+		writel(d_strength, PMU_FTPMU010_VA_BASE + 0x40);	
+	#endif
 	return -EIO;
 }
 
@@ -2136,7 +2183,11 @@ void mmc_rescan(struct work_struct *work)
 	struct mmc_host *host =
 		container_of(work, struct mmc_host, detect.work);
 	int i;
-
+	
+	#if defined(CONFIG_MMC_FTSDC021_VEND_TUNE)
+	static uint ftsdc021_pulse_latch_tmp = 0xffffffff;
+	#endif
+	
 	if (host->rescan_disable)
 		return;
 
@@ -2180,6 +2231,24 @@ void mmc_rescan(struct work_struct *work)
 			break;
 		if (freqs[i] <= host->f_min)
 			break;
+	
+	#if defined(CONFIG_MMC_FTSDC021_VEND_TUNE)																
+		if (host->actual_clock < 100000000) 
+		{
+			if(ftsdc021_pulse_latch_tmp == 0xffffffff)		 
+			{
+				ftsdc021_pulse_latch_tmp = ftsdc021_pulse_latch;
+			}
+    	ftsdc021_pulse_latch = ((~ftsdc021_pulse_latch) & 0x00000001);		
+    								
+			if (!mmc_rescan_try_freq(host, max(freqs[i], host->f_min)))
+			{
+				ftsdc021_pulse_latch = ftsdc021_pulse_latch_tmp;
+				break;
+			}
+			ftsdc021_pulse_latch = ftsdc021_pulse_latch_tmp;
+		} 		
+	#endif	
 	}
 	mmc_release_host(host);
 

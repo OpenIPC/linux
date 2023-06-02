@@ -30,8 +30,13 @@
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
 #include <linux/err.h>
+#include <linux/sched.h>
 
 #include "mtdcore.h"
+
+#ifdef CONFIG_MTD_NAND_FTSPINAND020
+#define CONFIG_NAND_DISTRUB
+#endif
 
 /* Our partition linked list */
 static LIST_HEAD(mtd_partitions);
@@ -51,6 +56,173 @@ struct mtd_part {
  */
 #define PART(x)  ((struct mtd_part *)(x))
 
+#ifdef CONFIG_NAND_DISTRUB
+extern int read_ecc_limit;
+
+static void erase_callback(struct erase_info *done)
+{
+	wait_queue_head_t *wait_q = (wait_queue_head_t *)done->priv;
+	wake_up(wait_q);
+}
+
+/* mode: 0 is read, 1 is write */
+int swap_block(struct mtd_info *mtd, loff_t from, size_t len, size_t *retlen, char mode, const u_char *buf)
+{
+	unsigned char *block_mem, *block_mem_tmp;
+	loff_t start_addr, block_size = mtd->erasesize, page_size = mtd->writesize;
+	struct erase_info erase;
+	DECLARE_WAITQUEUE(wait, current);
+	wait_queue_head_t wait_q;
+	int res = 0, i, offset;
+	size_t rrn = *retlen;
+
+	start_addr = (int)from - ((int)from % (int)block_size);
+	block_mem = kzalloc(block_size, GFP_KERNEL);
+
+	//printk("addr = 0x%x, 0x%x, 0x%x\n", (int)start_addr, (int)from, start_addr);
+	if(mode) {
+		if(start_addr != from) {
+			/* read block data */
+			res = mtd_read(mtd, start_addr, from - start_addr, &rrn, block_mem);
+			if(res)
+				goto swap_err;			
+		}
+		/* data we want to write */
+		offset = (int)from % (int)block_size;
+		memcpy(block_mem + offset, buf, len);
+
+		/* mark block bad */
+		res = mtd_block_markbad(mtd, start_addr);
+		if(res)
+			goto swap_err;
+	} else {
+		/* read one block data */
+		res = mtd_read(mtd, start_addr, block_size, &rrn, block_mem);
+		if(res)
+			goto swap_err;
+	}
+
+	/* erase block */
+	//printk("erase addr = 0x%x\n", (unsigned int)start_addr);
+	init_waitqueue_head(&wait_q);
+	erase.mtd = mtd;
+	erase.callback = erase_callback;
+	erase.addr = (unsigned long)start_addr;
+	erase.len = (unsigned long)block_size;
+	erase.priv = (u_long)&wait_q;
+
+	set_current_state(TASK_INTERRUPTIBLE);
+	add_wait_queue(&wait_q, &wait);
+
+	res = mtd_erase(mtd, &erase);
+
+	schedule();  /* Wait for erase to finish. */
+	remove_wait_queue(&wait_q, &wait);
+
+	if(res)
+		goto swap_err;
+
+	/* write block */
+	block_mem_tmp = block_mem;
+
+	for(i = 0; i < ((int)block_size / (int)page_size); i++) {
+		//printk("addr = 0x%x, 0x%x\n", (unsigned int)start_addr, *(unsigned int *)block_mem_tmp);
+		res = mtd_write(mtd, start_addr, page_size, &rrn, block_mem_tmp);
+		if(res)
+			goto swap_err;
+
+		start_addr += page_size;
+		block_mem_tmp += page_size;
+		
+		if(mode && (start_addr > from))
+			break;
+	}
+
+swap_err:
+	kfree(block_mem);
+	return res;
+}
+
+int mtd_ftl_read(struct mtd_info *mtd, loff_t from, size_t len, size_t *retlen,
+		u_char *buf)
+{
+	loff_t start_addr, block_size = mtd->erasesize;
+	size_t read_len;
+	u_char *buf_tmp;
+	int res = 0;
+
+	start_addr = (int)from % (int)block_size;
+	buf_tmp = buf;
+	while(len > 0) {    
+    	read_ecc_limit = 0;
+
+		if ((start_addr + len) > block_size) {
+			printk("read %d....................\n", (int)(start_addr + len));
+			read_len = block_size - start_addr;
+			res = mtd_read(mtd, from, read_len, retlen, buf_tmp);
+			from += read_len;
+			buf_tmp += (u_char)read_len;
+			len -= read_len;
+			start_addr = 0;
+		} else {
+			res = mtd_read(mtd, from, len, retlen, buf_tmp);
+			len = 0;
+		}
+
+		/* can't recovery */
+		if (unlikely(res))
+			break;
+
+		if (read_ecc_limit) {
+			printk("NAND read recover for ECC issue...\n");
+			res = swap_block(mtd, from, len, retlen, 0, NULL);
+			if(res)
+				break;
+		}
+	}
+
+	return res;
+}
+
+int mtd_ftl_write(struct mtd_info *mtd, loff_t to, size_t len, size_t *retlen,
+               const u_char *buf)
+{
+	int res = 0;
+
+	res = mtd_write(mtd, to, len, retlen, buf);
+	if(!res)
+		goto write_exit;
+
+	printk("\nwrite recover addr = 0x%x, len = 0x%x\n", (int)to, (int)len);
+	
+	res = swap_block(mtd, to, len, retlen, 1, buf);
+
+write_exit:
+	return res;
+}
+
+int mtd_ftl_erase(struct mtd_info *mtd, struct erase_info *instr) 
+{
+	int res = 0;
+
+	res = mtd_erase(mtd, instr);
+	if(!res)
+		goto erase_exit;
+
+	printk("\nerase recover addr = 0x%x\n", (int)instr->addr);
+
+	/* mark block bad */
+	res = mtd_block_markbad(mtd, instr->addr);
+	if(res)
+		goto erase_exit;
+
+	res = mtd_erase(mtd, instr);
+
+erase_exit:
+	return res;
+}
+
+#endif
 
 /*
  * MTD methods which simply translate the effective address and pass through
@@ -70,7 +242,14 @@ static int part_read(struct mtd_info *mtd, loff_t from, size_t len,
 		len = 0;
 	else if (from + len > mtd->size)
 		len = mtd->size - from;
-	res = mtd_read(part->master, from + part->offset, len, retlen, buf);
+
+#ifdef CONFIG_NAND_DISTRUB
+	if (mtd->type == MTD_NANDFLASH)
+		res = mtd_ftl_read(part->master, from + part->offset, len, retlen, buf);
+	else
+#endif
+		res = mtd_read(part->master, from + part->offset, len, retlen, buf);
+
 	if (unlikely(res)) {
 		if (mtd_is_bitflip(res))
 			mtd->ecc_stats.corrected += part->master->ecc_stats.corrected - stats.corrected;
@@ -186,7 +365,13 @@ static int part_write(struct mtd_info *mtd, loff_t to, size_t len,
 		len = 0;
 	else if (to + len > mtd->size)
 		len = mtd->size - to;
-	return mtd_write(part->master, to + part->offset, len, retlen, buf);
+
+#ifdef CONFIG_NAND_DISTRUB
+	if (mtd->type == MTD_NANDFLASH)
+		return mtd_ftl_write(part->master, to + part->offset, len, retlen, buf);
+	else
+#endif
+		return mtd_write(part->master, to + part->offset, len, retlen, buf);
 }
 
 static int part_panic_write(struct mtd_info *mtd, loff_t to, size_t len,
@@ -251,7 +436,12 @@ static int part_erase(struct mtd_info *mtd, struct erase_info *instr)
 	if (instr->addr >= mtd->size)
 		return -EINVAL;
 	instr->addr += part->offset;
-	ret = mtd_erase(part->master, instr);
+#ifdef CONFIG_NAND_DISTRUB
+	if (mtd->type == MTD_NANDFLASH)
+		ret = mtd_ftl_erase(part->master, instr);
+	else
+#endif
+		ret = mtd_erase(part->master, instr);
 	if (ret) {
 		if (instr->fail_addr != MTD_FAIL_ADDR_UNKNOWN)
 			instr->fail_addr -= part->offset;

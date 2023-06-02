@@ -21,6 +21,7 @@
 
 #define pr_fmt(fmt)	KBUILD_MODNAME ": " fmt
 
+#include <linux/crc32.h>
 #include <linux/dma-mapping.h>
 #include <linux/etherdevice.h>
 #include <linux/ethtool.h>
@@ -31,69 +32,157 @@
 #include <linux/netdevice.h>
 #include <linux/phy.h>
 #include <linux/platform_device.h>
+#include <linux/vmalloc.h>
 #include <net/ip.h>
-
+#include <linux/gpio.h>
+#include <linux/timer.h>
+#include <asm/setup.h>
+#include <linux/proc_fs.h>
+#include <mach/gm_jiffies.h>
 #include "ftgmac100.h"
 
-#define DRV_NAME	"ftgmac100"
-#define DRV_VERSION	"0.7"
+static int first_time = 0, MDIO_first_time = 1;
+static char show_tx_pkg = 0, show_rx_pkg = 0, show_phy = 0, show_rx_dbg = 0;
+static struct proc_dir_entry *ftgmac_proc = NULL, *ftgmac_tx_pkg_debug = NULL;
+static struct proc_dir_entry *ftgmac_rx_pkg_debug = NULL, *ftgmac_phy_debug = NULL, *ftgmac_rx_debug = NULL, *ftgmac_reg_debug = NULL;
+static char *command_line = NULL;
 
-#define RX_QUEUE_ENTRIES	256	/* must be power of 2 */
-#define TX_QUEUE_ENTRIES	512	/* must be power of 2 */
+/* ****************************************************************************
+ * array contains all platform devices
+ * ****************************************************************************/ 
 
-#define MAX_PKT_SIZE		1518
-#define RX_BUF_SIZE		PAGE_SIZE	/* must be smaller than 0x3fff */
+static u64 ftgmac100_dmamask = DMA_BIT_MASK(32);
+#if defined(CONFIG_FTGMAC100_DRIVER_0_MASTER) || defined(CONFIG_FTGMAC100_DRIVER_0_SLAVE)
+/*GMAC 0*/
+static struct resource ftgmac100_0_resource[] = {
+	{
+         .start  = MAC_FTGMAC100_0_PA_BASE,
+         .end        = MAC_FTGMAC100_0_PA_LIMIT,
+         .flags  = IORESOURCE_MEM,
+	},
+	{
+         .start  = MAC_FTGMAC100_0_IRQ,
+         .end        = MAC_FTGMAC100_0_IRQ,
+         .flags  = IORESOURCE_IRQ,
+	},
+};
+
+static void ftgmac100_0_release(struct device *dev)
+{
+    return;
+}
+
+static struct platform_device ftgmac100_0_device = {
+	.name	= DRV_NAME,
+	.id		= 0,
+	.num_resources	= ARRAY_SIZE(ftgmac100_0_resource),
+	.resource	= ftgmac100_0_resource,
+        .dev = {
+        	.dma_mask = &ftgmac100_dmamask,
+        	.coherent_dma_mask = DMA_BIT_MASK(32),
+        	.release = ftgmac100_0_release,
+        }, 	
+};
+#endif
+
+#if defined(CONFIG_FTGMAC100_DRIVER_1_MASTER) || defined(CONFIG_FTGMAC100_DRIVER_1_SLAVE)
+/*GMAC 1*/
+static struct resource ftgmac100_1_resource[] = {
+	{
+         .start  = MAC_FTGMAC100_1_PA_BASE,
+         .end        = MAC_FTGMAC100_1_PA_LIMIT,
+         .flags  = IORESOURCE_MEM,
+	},
+	{
+         .start  = MAC_FTGMAC100_1_IRQ,
+         .end        = MAC_FTGMAC100_1_IRQ,
+         .flags  = IORESOURCE_IRQ,
+	},
+};
+
+static void ftgmac100_1_release(struct device *dev)
+{
+    return;
+}
+
+static struct platform_device ftgmac100_1_device = {
+	.name	= DRV_1_NAME,
+	.id		= 1,
+	.num_resources	= ARRAY_SIZE(ftgmac100_1_resource),
+	.resource	= ftgmac100_1_resource,
+        .dev = {
+        	.dma_mask = &ftgmac100_dmamask,
+        	.coherent_dma_mask = DMA_BIT_MASK(32),
+        	.release = ftgmac100_1_release,
+        }, 	
+};
+#endif 
 
 /******************************************************************************
  * private data
  *****************************************************************************/
-struct ftgmac100_descs {
-	struct ftgmac100_rxdes rxdes[RX_QUEUE_ENTRIES];
-	struct ftgmac100_txdes txdes[TX_QUEUE_ENTRIES];
+
+struct ftgmac100_rx_reg_offset {
+	unsigned int offset_rxpd;
+	unsigned int offset_rxr_badr;
 };
 
-struct ftgmac100 {
-	struct resource *res;
-	void __iomem *base;
-	int irq;
+const struct ftgmac100_rx_reg_offset ftgmac100_rx_reg_offset[MAX_RX_QUEUES] = {
+	{FTGMAC100_OFFSET_RXPD, FTGMAC100_OFFSET_RXR_BADR}
+};
 
-	struct ftgmac100_descs *descs;
-	dma_addr_t descs_dma_addr;
-
+struct ftgmac100_rx_ring {
+	unsigned int rx_num_entries;
+	u16 rx_queue_index;
+	dma_addr_t rx_dma_addr;
+	struct ftgmac100_rxdes *rxdes;
 	unsigned int rx_pointer;
+	unsigned int rx_offset_rxpd;
+	unsigned int rx_offset_rxr_badr;
+	struct net_device *netdev;
+	struct device *dev;
+};
+
+struct ftgmac100_tx_reg_offset {
+	unsigned int offset_txpd;
+	unsigned int offset_txr_badr;
+};
+
+const struct ftgmac100_tx_reg_offset ftgmac100_tx_reg_offset[MAX_TX_QUEUES] = {
+	{FTGMAC100_OFFSET_NPTXPD, FTGMAC100_OFFSET_NPTXR_BADR},
+	{FTGMAC100_OFFSET_HPTXPD, FTGMAC100_OFFSET_HPTXR_BADR}
+};
+
+struct ftgmac100_tx_ring {
+	unsigned int tx_num_entries;
+	u16 tx_queue_index;
+	dma_addr_t tx_dma_addr;
+	struct ftgmac100_txdes *txdes;
 	unsigned int tx_clean_pointer;
 	unsigned int tx_pointer;
 	unsigned int tx_pending;
 
-	spinlock_t tx_lock;
-
+	unsigned int tx_offset_txpd;
+	unsigned int tx_offset_txr_badr;
 	struct net_device *netdev;
 	struct device *dev;
-	struct napi_struct napi;
-
-	struct mii_bus *mii_bus;
-	int phy_irq[PHY_MAX_ADDR];
-	struct phy_device *phydev;
-	int old_speed;
 };
 
-static int ftgmac100_alloc_rx_page(struct ftgmac100 *priv,
+static int ftgmac100_alloc_rx_page(struct ftgmac100_rx_ring *rx_ring,
 				   struct ftgmac100_rxdes *rxdes, gfp_t gfp);
-
 /******************************************************************************
  * internal functions (hardware register access)
  *****************************************************************************/
 #define INT_MASK_ALL_ENABLED	(FTGMAC100_INT_RPKT_LOST	| \
-				 FTGMAC100_INT_XPKT_ETH		| \
-				 FTGMAC100_INT_XPKT_LOST	| \
 				 FTGMAC100_INT_AHB_ERR		| \
-				 FTGMAC100_INT_PHYSTS_CHG	| \
 				 FTGMAC100_INT_RPKT_BUF		| \
 				 FTGMAC100_INT_NO_RXBUF)
 
-static void ftgmac100_set_rx_ring_base(struct ftgmac100 *priv, dma_addr_t addr)
+#define INT_MASK_TX (FTGMAC100_INT_XPKT_ETH | FTGMAC100_INT_XPKT_LOST)
+
+static void ftgmac100_set_rx_ring_base(struct ftgmac100 *priv, struct ftgmac100_rx_ring *rx_ring)
 {
-	iowrite32(addr, priv->base + FTGMAC100_OFFSET_RXR_BADR);
+	iowrite32(rx_ring->rx_dma_addr, priv->base + rx_ring->rx_offset_rxr_badr);
 }
 
 static void ftgmac100_set_rx_buffer_size(struct ftgmac100 *priv,
@@ -103,23 +192,28 @@ static void ftgmac100_set_rx_buffer_size(struct ftgmac100 *priv,
 	iowrite32(size, priv->base + FTGMAC100_OFFSET_RBSR);
 }
 
-static void ftgmac100_set_normal_prio_tx_ring_base(struct ftgmac100 *priv,
-						   dma_addr_t addr)
+static void ftgmac100_set_tx_ring_base(struct ftgmac100 *priv, struct ftgmac100_tx_ring *tx_ring)
 {
-	iowrite32(addr, priv->base + FTGMAC100_OFFSET_NPTXR_BADR);
+	iowrite32(tx_ring->tx_dma_addr, priv->base + tx_ring->tx_offset_txr_badr);
 }
 
-static void ftgmac100_txdma_normal_prio_start_polling(struct ftgmac100 *priv)
+static void ftgmac100_txdma_start_polling(struct ftgmac100 *priv, struct ftgmac100_tx_ring *tx_ring)
 {
-	iowrite32(1, priv->base + FTGMAC100_OFFSET_NPTXPD);
+	iowrite32(1, priv->base + tx_ring->tx_offset_txpd);
 }
+
 
 static int ftgmac100_reset_hw(struct ftgmac100 *priv)
 {
+#ifdef CONFIG_PLATFORM_GM8210    
 	struct net_device *netdev = priv->netdev;
 	int i;
+#endif
 
+    MDIO_first_time = 1;
+#ifdef CONFIG_PLATFORM_GM8210
 	/* NOTE: reset clears all registers */
+	printk("reset MAC IP\n");
 	iowrite32(FTGMAC100_MACCR_SW_RST, priv->base + FTGMAC100_OFFSET_MACCR);
 	for (i = 0; i < 5; i++) {
 		unsigned int maccr;
@@ -128,11 +222,15 @@ static int ftgmac100_reset_hw(struct ftgmac100 *priv)
 		if (!(maccr & FTGMAC100_MACCR_SW_RST))
 			return 0;
 
-		udelay(1000);
+		wait_status(1);
 	}
 
 	netdev_err(netdev, "software reset failed\n");
 	return -EIO;
+#else
+    mac_reset();
+    return 0;
+#endif	
 }
 
 static void ftgmac100_set_mac(struct ftgmac100 *priv, const unsigned char *mac)
@@ -146,18 +244,35 @@ static void ftgmac100_set_mac(struct ftgmac100 *priv, const unsigned char *mac)
 
 static void ftgmac100_init_hw(struct ftgmac100 *priv)
 {
-	/* setup ring buffer base registers */
-	ftgmac100_set_rx_ring_base(priv,
-				   priv->descs_dma_addr +
-				   offsetof(struct ftgmac100_descs, rxdes));
-	ftgmac100_set_normal_prio_tx_ring_base(priv,
-					       priv->descs_dma_addr +
-					       offsetof(struct ftgmac100_descs, txdes));
-
+	int i;
+	
+	if(priv->rx_rings != NULL) {
+		/* setup ring buffer base registers */
+		for (i = 0; i < priv->rx_num_queues; i++) {
+			ftgmac100_set_rx_ring_base(priv, &priv->rx_rings[i]);
+		}
+		for (i = 0; i < priv->tx_num_queues; i++) {
+			ftgmac100_set_tx_ring_base(priv, &priv->tx_rings[i]);
+		}
+	}
 	ftgmac100_set_rx_buffer_size(priv, RX_BUF_SIZE);
 
-	iowrite32(FTGMAC100_APTC_RXPOLL_CNT(1), priv->base + FTGMAC100_OFFSET_APTC);
+	iowrite32(FTGMAC100_APTC_RXPOLL_CNT(0xF), priv->base + FTGMAC100_OFFSET_APTC);
+	set_MDC_CLK(priv);
+#if 1
+    {
+	unsigned int value;        
+  // enable flow control
+	value = ioread32(priv->base + FTGMAC100_OFFSET_FCR);			
+	iowrite32(value | 0x1, priv->base + FTGMAC100_OFFSET_FCR);
 
+  // enable back pressure register
+	value = ioread32(priv->base + FTGMAC100_OFFSET_BPR);			
+	iowrite32(value | 0x1, priv->base + FTGMAC100_OFFSET_BPR);
+    }
+#endif		
+	//iowrite32(0xFF, priv->base + FTGMAC100_OFFSET_ITC);
+	
 	ftgmac100_set_mac(priv, priv->netdev->dev_addr);
 }
 
@@ -165,12 +280,16 @@ static void ftgmac100_init_hw(struct ftgmac100 *priv)
 				 FTGMAC100_MACCR_RXDMA_EN	| \
 				 FTGMAC100_MACCR_TXMAC_EN	| \
 				 FTGMAC100_MACCR_RXMAC_EN	| \
-				 FTGMAC100_MACCR_FULLDUP	| \
+				 FTGMAC100_MACCR_HPTXR_EN	| \
 				 FTGMAC100_MACCR_CRC_APD	| \
 				 FTGMAC100_MACCR_RX_RUNT	| \
-				 FTGMAC100_MACCR_RX_BROADPKT)
+				 FTGMAC100_MACCR_RX_BROADPKT | \
+				 FTGMAC100_MACCR_JUMBO_LF)
 
-static void ftgmac100_start_hw(struct ftgmac100 *priv, int speed)
+static int ftgmac100_set_tfifo_size(struct ftgmac100 *priv, int size_sel);
+static int ftgmac100_set_rfifo_size(struct ftgmac100 *priv, int size_sel);
+
+static void ftgmac100_start_hw(struct ftgmac100 *priv, int speed, int duplex)
 {
 	int maccr = MACCR_ENABLE_ALL;
 
@@ -188,14 +307,18 @@ static void ftgmac100_start_hw(struct ftgmac100 *priv, int speed)
 		break;
 	}
 
+	if(duplex)
+		maccr |= FTGMAC100_MACCR_FULLDUP;
+
 	iowrite32(maccr, priv->base + FTGMAC100_OFFSET_MACCR);
+	priv->tx_fifo_sel = ftgmac100_set_tfifo_size(priv, priv->tx_fifo_sel);
+	priv->rx_fifo_sel = ftgmac100_set_rfifo_size(priv, priv->rx_fifo_sel);
 }
 
 static void ftgmac100_stop_hw(struct ftgmac100 *priv)
 {
 	iowrite32(0, priv->base + FTGMAC100_OFFSET_MACCR);
 }
-
 /******************************************************************************
  * internal functions (receive descriptor)
  *****************************************************************************/
@@ -225,9 +348,14 @@ static bool ftgmac100_rxdes_rx_error(struct ftgmac100_rxdes *rxdes)
 	return rxdes->rxdes0 & cpu_to_le32(FTGMAC100_RXDES0_RX_ERR);
 }
 
+static bool ftgmac100_rxdes_fifo_error(struct ftgmac100_rxdes *rxdes)
+{
+    return rxdes->rxdes0 & cpu_to_le32(FTGMAC100_RXDES0_FIFO_FULL);
+}
+
 static bool ftgmac100_rxdes_crc_error(struct ftgmac100_rxdes *rxdes)
 {
-	return rxdes->rxdes0 & cpu_to_le32(FTGMAC100_RXDES0_CRC_ERR);
+    return rxdes->rxdes0 & cpu_to_le32(FTGMAC100_RXDES0_CRC_ERR);
 }
 
 static bool ftgmac100_rxdes_frame_too_long(struct ftgmac100_rxdes *rxdes)
@@ -304,143 +432,156 @@ static bool ftgmac100_rxdes_ipcs_err(struct ftgmac100_rxdes *rxdes)
  */
 static void ftgmac100_rxdes_set_page(struct ftgmac100_rxdes *rxdes, struct page *page)
 {
-	rxdes->rxdes2 = (unsigned int)page;
+	struct ftgmac100_page *p = (struct ftgmac100_page *)rxdes->rxdes2;
+	//p->page_va = page_address(p->page);
+	p->page = page;
 }
 
 static struct page *ftgmac100_rxdes_get_page(struct ftgmac100_rxdes *rxdes)
 {
-	return (struct page *)rxdes->rxdes2;
+	struct ftgmac100_page *p = (struct ftgmac100_page *)rxdes->rxdes2;
+	return p->page;
+}
+
+/******************************************************************************
+ * internal functions (transmit & receive)
+ *****************************************************************************/
+static int ftgmac100_next_pointer(int pointer, int num_entries)
+{
+	return (pointer + 1) & (num_entries - 1);
 }
 
 /******************************************************************************
  * internal functions (receive)
  *****************************************************************************/
-static int ftgmac100_next_rx_pointer(int pointer)
+static void ftgmac100_rx_pointer_advance(struct ftgmac100_rx_ring *rx_ring)
 {
-	return (pointer + 1) & (RX_QUEUE_ENTRIES - 1);
+	rx_ring->rx_pointer = ftgmac100_next_pointer(rx_ring->rx_pointer, rx_ring->rx_num_entries);
 }
 
-static void ftgmac100_rx_pointer_advance(struct ftgmac100 *priv)
+static struct ftgmac100_rxdes *ftgmac100_current_rxdes(struct ftgmac100_rx_ring *rx_ring)
 {
-	priv->rx_pointer = ftgmac100_next_rx_pointer(priv->rx_pointer);
-}
-
-static struct ftgmac100_rxdes *ftgmac100_current_rxdes(struct ftgmac100 *priv)
-{
-	return &priv->descs->rxdes[priv->rx_pointer];
+	return &rx_ring->rxdes[rx_ring->rx_pointer];
 }
 
 static struct ftgmac100_rxdes *
-ftgmac100_rx_locate_first_segment(struct ftgmac100 *priv)
+ftgmac100_rx_locate_first_segment(struct ftgmac100_rx_ring *rx_ring)
 {
-	struct ftgmac100_rxdes *rxdes = ftgmac100_current_rxdes(priv);
+	struct ftgmac100_rxdes *rxdes = ftgmac100_current_rxdes(rx_ring);
 
 	while (ftgmac100_rxdes_packet_ready(rxdes)) {
 		if (ftgmac100_rxdes_first_segment(rxdes))
 			return rxdes;
 
 		ftgmac100_rxdes_set_dma_own(rxdes);
-		ftgmac100_rx_pointer_advance(priv);
-		rxdes = ftgmac100_current_rxdes(priv);
+		ftgmac100_rx_pointer_advance(rx_ring);
+		rxdes = ftgmac100_current_rxdes(rx_ring);
 	}
 
 	return NULL;
 }
 
-static bool ftgmac100_rx_packet_error(struct ftgmac100 *priv,
+static bool ftgmac100_rx_packet_error(struct ftgmac100_rx_ring *rx_ring,
 				      struct ftgmac100_rxdes *rxdes)
 {
-	struct net_device *netdev = priv->netdev;
+	struct net_device *netdev = rx_ring->netdev;
 	bool error = false;
 
-	if (unlikely(ftgmac100_rxdes_rx_error(rxdes))) {
-		if (net_ratelimit())
-			netdev_info(netdev, "rx err\n");
+	if (unlikely(ftgmac100_rxdes_fifo_error(rxdes))) {
+		if (show_rx_dbg)
+			netdev_info(netdev, "MAC rx fifo full, lose\n");
 
-		netdev->stats.rx_errors++;
 		error = true;
+	} else {
+    	if (unlikely(ftgmac100_rxdes_rx_error(rxdes))) {
+    		if (show_rx_dbg)
+    			netdev_info(netdev, "rx err\n");
+    
+    		error = true;
+    	} else if (unlikely(ftgmac100_rxdes_crc_error(rxdes))) {
+    	    if (show_rx_dbg)
+    			netdev_info(netdev, "rx crc err\n");
+    
+    		netdev->stats.rx_crc_errors++;
+    		error = true;
+    	} else if (unlikely(ftgmac100_rxdes_ipcs_err(rxdes))) {
+    		if (show_rx_dbg)
+    			netdev_info(netdev, "rx IP checksum err\n");
+            
+            netdev->stats.rx_frame_errors++;
+    		error = true;
+    	} else if (unlikely(ftgmac100_rxdes_frame_too_long(rxdes))) {
+    		if (show_rx_dbg)
+    			netdev_info(netdev, "rx frame too long\n");
+    
+    		netdev->stats.rx_length_errors++;
+    		error = true;
+    	} else if (unlikely(ftgmac100_rxdes_runt(rxdes))) {
+    		if (show_rx_dbg)
+    			netdev_info(netdev, "rx runt\n");
+    
+    		netdev->stats.rx_length_errors++;
+    		error = true;
+    	} else if (unlikely(ftgmac100_rxdes_odd_nibble(rxdes))) {
+    		if (show_rx_dbg)
+    			netdev_info(netdev, "rx odd nibble\n");
+    
+    		netdev->stats.rx_length_errors++;
+    		error = true;
+    	}	    
 	}
 
-	if (unlikely(ftgmac100_rxdes_crc_error(rxdes))) {
-		if (net_ratelimit())
-			netdev_info(netdev, "rx crc err\n");
-
-		netdev->stats.rx_crc_errors++;
-		error = true;
-	} else if (unlikely(ftgmac100_rxdes_ipcs_err(rxdes))) {
-		if (net_ratelimit())
-			netdev_info(netdev, "rx IP checksum err\n");
-
-		error = true;
-	}
-
-	if (unlikely(ftgmac100_rxdes_frame_too_long(rxdes))) {
-		if (net_ratelimit())
-			netdev_info(netdev, "rx frame too long\n");
-
-		netdev->stats.rx_length_errors++;
-		error = true;
-	} else if (unlikely(ftgmac100_rxdes_runt(rxdes))) {
-		if (net_ratelimit())
-			netdev_info(netdev, "rx runt\n");
-
-		netdev->stats.rx_length_errors++;
-		error = true;
-	} else if (unlikely(ftgmac100_rxdes_odd_nibble(rxdes))) {
-		if (net_ratelimit())
-			netdev_info(netdev, "rx odd nibble\n");
-
-		netdev->stats.rx_length_errors++;
-		error = true;
-	}
-
+    if(error)
+        netdev->stats.rx_errors++;
+    
 	return error;
 }
 
-static void ftgmac100_rx_drop_packet(struct ftgmac100 *priv)
+static void ftgmac100_rx_drop_packet(struct ftgmac100_rx_ring *rx_ring)
 {
-	struct net_device *netdev = priv->netdev;
-	struct ftgmac100_rxdes *rxdes = ftgmac100_current_rxdes(priv);
+	struct net_device *netdev = rx_ring->netdev;
+	struct ftgmac100_rxdes *rxdes = ftgmac100_current_rxdes(rx_ring);
 	bool done = false;
 
-	if (net_ratelimit())
-		netdev_dbg(netdev, "drop packet %p\n", rxdes);
+	if (show_rx_dbg)
+		netdev_err(netdev, "drop packet %p\n", rxdes);
 
 	do {
 		if (ftgmac100_rxdes_last_segment(rxdes))
 			done = true;
 
 		ftgmac100_rxdes_set_dma_own(rxdes);
-		ftgmac100_rx_pointer_advance(priv);
-		rxdes = ftgmac100_current_rxdes(priv);
+		ftgmac100_rx_pointer_advance(rx_ring);
+		rxdes = ftgmac100_current_rxdes(rx_ring);
 	} while (!done && ftgmac100_rxdes_packet_ready(rxdes));
-
-	netdev->stats.rx_dropped++;
 }
 
-static bool ftgmac100_rx_packet(struct ftgmac100 *priv, int *processed)
+static bool ftgmac100_process_rx_jumbo_ring(struct ftgmac100_rx_ring *rx_ring, struct napi_struct *napi)
 {
-	struct net_device *netdev = priv->netdev;
+	struct net_device *netdev = rx_ring->netdev;
 	struct ftgmac100_rxdes *rxdes;
 	struct sk_buff *skb;
 	bool done = false;
+	int i;
 
-	rxdes = ftgmac100_rx_locate_first_segment(priv);
+	rxdes = ftgmac100_rx_locate_first_segment(rx_ring);
 	if (!rxdes)
 		return false;
 
-	if (unlikely(ftgmac100_rx_packet_error(priv, rxdes))) {
-		ftgmac100_rx_drop_packet(priv);
+	if (unlikely(ftgmac100_rx_packet_error(rx_ring, rxdes))) {
+		ftgmac100_rx_drop_packet(rx_ring);
+		netdev->stats.rx_dropped++;
 		return true;
 	}
 
 	/* start processing */
 	skb = netdev_alloc_skb_ip_align(netdev, 128);
 	if (unlikely(!skb)) {
-		if (net_ratelimit())
-			netdev_err(netdev, "rx skb alloc failed\n");
+		netdev_err(netdev, "rx skb alloc failed\n");
 
-		ftgmac100_rx_drop_packet(priv);
+		ftgmac100_rx_drop_packet(rx_ring);
+		netdev->stats.rx_dropped++;
+
 		return true;
 	}
 
@@ -461,37 +602,55 @@ static bool ftgmac100_rx_packet(struct ftgmac100 *priv, int *processed)
 		struct page *page = ftgmac100_rxdes_get_page(rxdes);
 		unsigned int size;
 
-		dma_unmap_page(priv->dev, map, RX_BUF_SIZE, DMA_FROM_DEVICE);
+		dma_unmap_page(rx_ring->dev, map, RX_BUF_SIZE, DMA_FROM_DEVICE);
 
 		size = ftgmac100_rxdes_data_length(rxdes);
 		skb_fill_page_desc(skb, skb_shinfo(skb)->nr_frags, page, 0, size);
 
 		skb->len += size;
 		skb->data_len += size;
-		skb->truesize += PAGE_SIZE;
+		skb->truesize += RX_BUF_SIZE;
 
 		if (ftgmac100_rxdes_last_segment(rxdes))
 			done = true;
 
-		ftgmac100_alloc_rx_page(priv, rxdes, GFP_ATOMIC);
+		ftgmac100_alloc_rx_page(rx_ring, rxdes, GFP_ATOMIC);
 
-		ftgmac100_rx_pointer_advance(priv);
-		rxdes = ftgmac100_current_rxdes(priv);
+		ftgmac100_rx_pointer_advance(rx_ring);
+		rxdes = ftgmac100_current_rxdes(rx_ring);
 	} while (!done);
 
 	if (skb->len <= 64)
-		skb->truesize -= PAGE_SIZE;
+		skb->truesize -= RX_BUF_SIZE;
 	__pskb_pull_tail(skb, min(skb->len, 64U));
 	skb->protocol = eth_type_trans(skb, netdev);
 
 	netdev->stats.rx_packets++;
 	netdev->stats.rx_bytes += skb->len;
 
+	if(show_rx_pkg) {
+	    printk("<rx pkg=");
+	    for(i = 0; i < 10; i++)
+	    	printk("0x%02x ", *(skb->mac_header + i));
+	    for(i = 0; i < 10; i++)
+	        printk("0x%02x ", *(skb->data + i));
+        printk(">\n");
+    }
+    
 	/* push packet to protocol stack */
-	napi_gro_receive(&priv->napi, skb);
-
-	(*processed)++;
+	napi_gro_receive(napi, skb);
 	return true;
+}
+
+static bool ftgmac100_rx_packet(struct ftgmac100 *priv)
+{
+	int i;
+	bool ret = false;
+	for (i = 0; i < priv->rx_num_queues; i++) {
+		if (priv->process_rx_ring(&priv->rx_rings[i], &priv->napi))
+			ret = true;
+	}
+	return ret;
 }
 
 /******************************************************************************
@@ -509,6 +668,11 @@ static void ftgmac100_txdes_reset(struct ftgmac100_txdes *txdes)
 static bool ftgmac100_txdes_owned_by_dma(struct ftgmac100_txdes *txdes)
 {
 	return txdes->txdes0 & cpu_to_le32(FTGMAC100_TXDES0_TXDMA_OWN);
+}
+
+static bool ftgmac100_txdes_first_segment(struct ftgmac100_txdes *txdes)
+{
+	return txdes->txdes0 & cpu_to_le32(FTGMAC100_TXDES0_FTS);
 }
 
 static void ftgmac100_txdes_set_dma_own(struct ftgmac100_txdes *txdes)
@@ -562,6 +726,11 @@ static void ftgmac100_txdes_set_ipcs(struct ftgmac100_txdes *txdes)
 	txdes->txdes1 |= cpu_to_le32(FTGMAC100_TXDES1_IP_CHKSUM);
 }
 
+static void ftgmac100_txdes_set_used(struct ftgmac100_txdes *txdes)
+{
+	txdes->txdes1 |= cpu_to_le32(FTGMAC100_TXDES1_USED);
+}
+
 static void ftgmac100_txdes_set_dma_addr(struct ftgmac100_txdes *txdes,
 					 dma_addr_t addr)
 {
@@ -591,142 +760,313 @@ static struct sk_buff *ftgmac100_txdes_get_skb(struct ftgmac100_txdes *txdes)
 /******************************************************************************
  * internal functions (transmit)
  *****************************************************************************/
-static int ftgmac100_next_tx_pointer(int pointer)
+static void ftgmac100_tx_clean_pointer_advance(struct ftgmac100_tx_ring *tx_ring)
 {
-	return (pointer + 1) & (TX_QUEUE_ENTRIES - 1);
+	tx_ring->tx_clean_pointer = ftgmac100_next_pointer(tx_ring->tx_clean_pointer, tx_ring->tx_num_entries);
 }
 
-static void ftgmac100_tx_pointer_advance(struct ftgmac100 *priv)
+static int ftgmac100_current_txdes_idx(struct ftgmac100_tx_ring *tx_ring)
 {
-	priv->tx_pointer = ftgmac100_next_tx_pointer(priv->tx_pointer);
+	return tx_ring->tx_pointer;
 }
 
-static void ftgmac100_tx_clean_pointer_advance(struct ftgmac100 *priv)
+static struct ftgmac100_txdes *ftgmac100_idx_txdes(struct ftgmac100_tx_ring *tx_ring, int idx)
 {
-	priv->tx_clean_pointer = ftgmac100_next_tx_pointer(priv->tx_clean_pointer);
-}
-
-static struct ftgmac100_txdes *ftgmac100_current_txdes(struct ftgmac100 *priv)
-{
-	return &priv->descs->txdes[priv->tx_pointer];
+	if (idx >= tx_ring->tx_num_entries)
+		return NULL;
+	return &tx_ring->txdes[idx];
 }
 
 static struct ftgmac100_txdes *
-ftgmac100_current_clean_txdes(struct ftgmac100 *priv)
+ftgmac100_current_clean_txdes(struct ftgmac100_tx_ring *tx_ring)
 {
-	return &priv->descs->txdes[priv->tx_clean_pointer];
+	return &tx_ring->txdes[tx_ring->tx_clean_pointer];
 }
 
-static bool ftgmac100_tx_complete_packet(struct ftgmac100 *priv)
+static bool ftgmac100_clean_tx_ring(struct ftgmac100 *priv, struct ftgmac100_tx_ring *tx_ring, int *nr_frag)
 {
-	struct net_device *netdev = priv->netdev;
+	struct net_device *netdev = tx_ring->netdev;
 	struct ftgmac100_txdes *txdes;
 	struct sk_buff *skb;
 	dma_addr_t map;
 
-	if (priv->tx_pending == 0)
-		return false;
+    spin_lock(&priv->mac_lock);
+	/* spinlock protect */
+	if (tx_ring->tx_pending == 0)
+		goto out;
 
-	txdes = ftgmac100_current_clean_txdes(priv);
+	txdes = ftgmac100_current_clean_txdes(tx_ring);
 
 	if (ftgmac100_txdes_owned_by_dma(txdes))
-		return false;
+		goto out;
+
+    spin_unlock(&priv->mac_lock);
 
 	skb = ftgmac100_txdes_get_skb(txdes);
+
+	/* unmap the first txdes (single buffer) */
 	map = ftgmac100_txdes_get_dma_addr(txdes);
+	if (ftgmac100_txdes_first_segment(txdes)) {
+		dma_unmap_single(tx_ring->dev, map, skb_headlen(skb), DMA_TO_DEVICE);
+		(*nr_frag) = 0;
+	}
+	else {
+		const struct skb_frag_struct *frag = &skb_shinfo(skb)->frags[*nr_frag];
+		dma_unmap_page(tx_ring->dev, map, skb_frag_size(frag), DMA_TO_DEVICE);
+		(*nr_frag)++;
+	}
 
 	netdev->stats.tx_packets++;
 	netdev->stats.tx_bytes += skb->len;
-
-	dma_unmap_single(priv->dev, map, skb_headlen(skb), DMA_TO_DEVICE);
-
 	dev_kfree_skb(skb);
 
+	ftgmac100_tx_clean_pointer_advance(tx_ring);
 	ftgmac100_txdes_reset(txdes);
 
-	ftgmac100_tx_clean_pointer_advance(priv);
-
-	spin_lock(&priv->tx_lock);
-	priv->tx_pending--;
-	spin_unlock(&priv->tx_lock);
-	netif_wake_queue(netdev);
+	spin_lock(&priv->mac_lock);
+	tx_ring->tx_pending--;
+	spin_unlock(&priv->mac_lock);
 
 	return true;
+out:
+	spin_unlock(&priv->mac_lock);
+	return false;
 }
 
 static void ftgmac100_tx_complete(struct ftgmac100 *priv)
 {
-	while (ftgmac100_tx_complete_packet(priv))
-		;
+	int i, nr_frag = 0;
+	for (i = 0; i < priv->tx_num_queues; i++) {
+		while(ftgmac100_clean_tx_ring(priv, &priv->tx_rings[i], &nr_frag))
+			;
+	}
 }
 
-static int ftgmac100_xmit(struct ftgmac100 *priv, struct sk_buff *skb,
-			  dma_addr_t map)
+/*
+ * In order to prevent the critical section of these tx descriptors,
+ * we need to reserve these tx descriptors in advance.
+ * return value is the index of the first tx descriptor.
+ */
+static int ftgmac100_reserve_txdeses(struct ftgmac100 *priv, struct ftgmac100_tx_ring *tx_ring, int num)
+{
+	int cur_idx = ftgmac100_current_txdes_idx(tx_ring);
+
+	spin_lock(&priv->mac_lock);
+
+	if ((TX_QUEUE_ENTRIES - tx_ring->tx_pending) < num)
+		goto tx_full;
+
+	tx_ring->tx_pointer += num;
+	if (tx_ring->tx_pointer >= TX_QUEUE_ENTRIES)
+		tx_ring->tx_pointer -= TX_QUEUE_ENTRIES;
+
+	//tx_ring->tx_pending += num;//tx_ring->tx_pending ++;
+
+	spin_unlock(&priv->mac_lock);
+
+	return cur_idx;
+
+tx_full:
+	spin_unlock(&priv->mac_lock);
+	return -1;
+}
+
+static int ftgmac100_xmit(struct ftgmac100 *priv, struct sk_buff *skb)
 {
 	struct net_device *netdev = priv->netdev;
-	struct ftgmac100_txdes *txdes;
-	unsigned int len = (skb->len < ETH_ZLEN) ? ETH_ZLEN : skb->len;
+	struct ftgmac100_tx_ring *tx_ring = &priv->tx_rings[skb->queue_mapping];
+	struct ftgmac100_txdes *txdes = NULL, *first_txdes = NULL;
+	int txdes_idx;
+	int i;
+	unsigned int num_txdeses = 1;
+	const struct skb_frag_struct *frag;
+	dma_addr_t map;
+	unsigned int total_len = 0, len;
 
-	txdes = ftgmac100_current_txdes(priv);
-	ftgmac100_tx_pointer_advance(priv);
+	num_txdeses += skb_shinfo(skb)->nr_frags;
 
-	/* setup TX descriptor */
-	ftgmac100_txdes_set_skb(txdes, skb);
-	ftgmac100_txdes_set_dma_addr(txdes, map);
-	ftgmac100_txdes_set_buffer_size(txdes, len);
+	/* the first descriptor must be set at last */
+	txdes_idx = ftgmac100_reserve_txdeses(priv, tx_ring, num_txdeses);
 
-	ftgmac100_txdes_set_first_segment(txdes);
-	ftgmac100_txdes_set_last_segment(txdes);
-	ftgmac100_txdes_set_txint(txdes);
+	if (unlikely(txdes_idx < 0)) {
+		netif_stop_queue(netdev);
+		if (show_rx_dbg)
+			printk("MAC tx queue full, wait to digest\n");
+		
+		return NETDEV_TX_BUSY;
+	}
+
+#if 0//debug
+	if (tx_ring->tx_pending > 480) {
+		printk(">>> tx pending %d <<<\n", tx_ring->tx_pending);
+	}
+#endif	
+	if ((TX_QUEUE_ENTRIES - tx_ring->tx_pending) < TX_QUEUE_THRESHOLD)
+		iowrite32(INT_MASK_TX, priv->base + FTGMAC100_OFFSET_IER);
+
+	first_txdes = ftgmac100_idx_txdes(tx_ring, txdes_idx);
+	txdes_idx = ftgmac100_next_pointer(txdes_idx, tx_ring->tx_num_entries);
+
+	if (num_txdeses > 1) {
+		txdes = ftgmac100_idx_txdes(tx_ring, txdes_idx);
+		txdes_idx = ftgmac100_next_pointer(txdes_idx, tx_ring->tx_num_entries);
+
+		for (i = 1; i < (num_txdeses - 1); i++) {
+			frag = &skb_shinfo(skb)->frags[i - 1];
+			len = skb_frag_size(frag);
+			total_len += len;
+			map = skb_frag_dma_map(priv->dev, frag, 0, len, DMA_TO_DEVICE);
+
+			if (unlikely(dma_mapping_error(priv->dev, map)))
+				goto dma_err;
+			/* setup TX descriptor */
+			ftgmac100_txdes_set_skb(txdes, skb);
+			ftgmac100_txdes_set_dma_addr(txdes, map);
+			ftgmac100_txdes_set_buffer_size(txdes, len);
+
+			ftgmac100_txdes_set_dma_own(txdes);
+			ftgmac100_txdes_set_used(txdes);
+			txdes = ftgmac100_idx_txdes(tx_ring, txdes_idx);
+			txdes_idx = ftgmac100_next_pointer(txdes_idx, tx_ring->tx_num_entries);
+		}
+
+		/* setup the last descriptor */
+		frag = &skb_shinfo(skb)->frags[i - 1];
+		len = skb_frag_size(frag);
+		
+		map = skb_frag_dma_map(priv->dev, frag, 0, len, DMA_TO_DEVICE);
+
+		if (unlikely(dma_mapping_error(priv->dev, map)))
+			goto dma_err;
+
+		ftgmac100_txdes_set_skb(txdes, skb);
+		ftgmac100_txdes_set_dma_addr(txdes, map);
+		
+		if((total_len + len + skb_headlen(skb)) < ETH_ZLEN)
+		    len = ETH_ZLEN - skb_headlen(skb) - total_len;
+
+        total_len += len;
+
+		ftgmac100_txdes_set_buffer_size(txdes, len);
+		ftgmac100_txdes_set_last_segment(txdes);
+
+		ftgmac100_txdes_set_dma_own(txdes);
+		ftgmac100_txdes_set_used(txdes);
+	}
+
+	/* setup the first descriptor */
+	len = skb_headlen(skb);
+	total_len += len;
+	map = dma_map_single(priv->dev, skb->data, len, DMA_TO_DEVICE);
+
+	if(show_tx_pkg) {
+	    printk("<tx pkg=");
+	    for(i = 0; i < len; i++)
+	        printk("0x%02x ", *(skb->data + i));
+        printk(">\n");
+    }
+  
+	if (unlikely(dma_mapping_error(priv->dev, map)))
+		goto dma_err;
+
+	ftgmac100_txdes_set_skb(first_txdes, skb);
+	ftgmac100_txdes_set_dma_addr(first_txdes, map);
+
+	if (1 == num_txdeses) {
+		len = (total_len < ETH_ZLEN) ? ETH_ZLEN : len;
+		ftgmac100_txdes_set_buffer_size(first_txdes, len);
+	}
+	else
+		ftgmac100_txdes_set_buffer_size(first_txdes, len);
+
+	ftgmac100_txdes_set_first_segment(first_txdes);
+
+	if (1 == num_txdeses)
+		ftgmac100_txdes_set_last_segment(first_txdes);
+
+	ftgmac100_txdes_set_txint(first_txdes);
+
 	if (skb->ip_summed == CHECKSUM_PARTIAL) {
 		__be16 protocol = skb->protocol;
 
 		if (protocol == cpu_to_be16(ETH_P_IP)) {
 			u8 ip_proto = ip_hdr(skb)->protocol;
 
-			ftgmac100_txdes_set_ipcs(txdes);
+			ftgmac100_txdes_set_ipcs(first_txdes);
 			if (ip_proto == IPPROTO_TCP)
-				ftgmac100_txdes_set_tcpcs(txdes);
+				ftgmac100_txdes_set_tcpcs(first_txdes);
 			else if (ip_proto == IPPROTO_UDP)
-				ftgmac100_txdes_set_udpcs(txdes);
+				ftgmac100_txdes_set_udpcs(first_txdes);
 		}
 	}
 
-	spin_lock(&priv->tx_lock);
-	priv->tx_pending++;
-	if (priv->tx_pending == TX_QUEUE_ENTRIES)
+	/* spinlock protect */
+    spin_lock(&priv->mac_lock);
+	ftgmac100_txdes_set_dma_own(first_txdes);
+	ftgmac100_txdes_set_used(first_txdes);
+	tx_ring->tx_pending ++;
+
+	if (unlikely(tx_ring->tx_pending == TX_QUEUE_ENTRIES)) {
 		netif_stop_queue(netdev);
+		if (show_rx_dbg)
+			printk("MAC tx queue full, wait to digest!\n");
+	}
+	spin_unlock(&priv->mac_lock);
 
-	/* start transmit */
-	ftgmac100_txdes_set_dma_own(txdes);
-	spin_unlock(&priv->tx_lock);
+	ftgmac100_txdma_start_polling(priv, tx_ring);
+	return NETDEV_TX_OK;
 
-	ftgmac100_txdma_normal_prio_start_polling(priv);
+dma_err:
+	netdev_err(netdev, "map socket buffer failed\n");
 
+	netdev->stats.tx_dropped++;
+	dev_kfree_skb(skb);
 	return NETDEV_TX_OK;
 }
 
 /******************************************************************************
  * internal functions (buffer)
  *****************************************************************************/
-static int ftgmac100_alloc_rx_page(struct ftgmac100 *priv,
+static int ftgmac100_alloc_tx_entries(struct ftgmac100_tx_ring *tx_ring, 
+					unsigned int num_entries, 
+					const struct ftgmac100_tx_reg_offset *reg_offset)
+{
+	struct net_device *netdev = tx_ring->netdev;
+
+	tx_ring->tx_num_entries = num_entries;
+	tx_ring->txdes = dma_alloc_coherent(tx_ring->dev, 
+										tx_ring->tx_num_entries * sizeof(struct ftgmac100_txdes), 
+										&tx_ring->tx_dma_addr, GFP_ATOMIC);
+	if (!tx_ring->txdes) {
+		netdev_err(netdev, "failed to allocate tx descriptors\n");
+		return -ENOMEM;
+	}
+	tx_ring->tx_clean_pointer = 0;
+	tx_ring->tx_pointer = 0;
+	tx_ring->tx_pending = 0;
+
+	tx_ring->tx_offset_txpd = reg_offset->offset_txpd;
+	tx_ring->tx_offset_txr_badr = reg_offset->offset_txr_badr;
+	ftgmac100_txdes_set_end_of_ring(&tx_ring->txdes[tx_ring->tx_num_entries - 1]);
+	return 0;
+}
+
+static int ftgmac100_alloc_rx_page(struct ftgmac100_rx_ring *rx_ring,
 				   struct ftgmac100_rxdes *rxdes, gfp_t gfp)
 {
-	struct net_device *netdev = priv->netdev;
+	struct net_device *netdev = rx_ring->netdev;
 	struct page *page;
 	dma_addr_t map;
 
 	page = alloc_page(gfp);
 	if (!page) {
-		if (net_ratelimit())
-			netdev_err(netdev, "failed to allocate rx page\n");
+		netdev_err(netdev, "failed to allocate rx page\n");
 		return -ENOMEM;
 	}
 
-	map = dma_map_page(priv->dev, page, 0, RX_BUF_SIZE, DMA_FROM_DEVICE);
-	if (unlikely(dma_mapping_error(priv->dev, map))) {
-		if (net_ratelimit())
-			netdev_err(netdev, "failed to map rx page\n");
+	map = dma_map_page(rx_ring->dev, page, 0, RX_BUF_SIZE, DMA_FROM_DEVICE);
+	if (unlikely(dma_mapping_error(rx_ring->dev, map))) {
+		netdev_err(netdev, "failed to map rx page\n");
 		__free_page(page);
 		return -ENOMEM;
 	}
@@ -737,69 +1077,142 @@ static int ftgmac100_alloc_rx_page(struct ftgmac100 *priv,
 	return 0;
 }
 
+static int ftgmac100_alloc_rx_entries(struct ftgmac100_rx_ring *rx_ring,
+				unsigned int num_entries,
+				const struct ftgmac100_rx_reg_offset *reg_offset)
+{
+	int i;
+	struct net_device *netdev = rx_ring->netdev;
+
+	rx_ring->rx_num_entries = num_entries;
+	rx_ring->rxdes = dma_alloc_coherent(rx_ring->dev, 
+										rx_ring->rx_num_entries * sizeof(struct ftgmac100_rxdes), 
+										&rx_ring->rx_dma_addr, GFP_ATOMIC);
+
+	if (!rx_ring->rxdes) {
+		netdev_err(netdev, "failed to allocate rx descriptors\n");
+		return -ENOMEM;
+	}
+
+	for (i = 0; i < rx_ring->rx_num_entries; i++) {
+		struct ftgmac100_rxdes *rxdes = &rx_ring->rxdes[i];
+		rxdes->rxdes2 = (unsigned int)vzalloc(sizeof(struct ftgmac100_page));
+		if (ftgmac100_alloc_rx_page(rx_ring, rxdes, GFP_ATOMIC | GFP_DMA)) {
+		    netdev_err(netdev, "failed to allocate rx page\n");
+			return -ENOMEM;
+		}
+    }
+	rx_ring->rx_pointer = 0;
+	rx_ring->rx_offset_rxpd = reg_offset->offset_rxpd;
+	rx_ring->rx_offset_rxr_badr = reg_offset->offset_rxr_badr;
+	ftgmac100_rxdes_set_end_of_ring(&rx_ring->rxdes[rx_ring->rx_num_entries - 1]);
+	return 0;
+}
+
+static void ftgmac100_free_rxdes(struct ftgmac100_rx_ring *rx_ring)
+{
+	int i;
+	if (rx_ring->rxdes) {
+		for (i = 0; i < rx_ring->rx_num_entries; i++) {
+			struct ftgmac100_rxdes *rxdes = &rx_ring->rxdes[i];
+			struct page *page = ftgmac100_rxdes_get_page(rxdes);
+			dma_addr_t map = ftgmac100_rxdes_get_dma_addr(rxdes);
+
+			if (!page)
+				continue;
+
+			dma_unmap_page(rx_ring->dev, map, RX_BUF_SIZE, DMA_FROM_DEVICE);
+			__free_page(page);
+			vfree((void *)rxdes->rxdes2);
+		}
+		dma_free_coherent(rx_ring->dev, rx_ring->rx_num_entries * sizeof(struct ftgmac100_rxdes),
+					rx_ring->rxdes, rx_ring->rx_dma_addr);
+	}
+}
+
+static void ftgmac100_free_txdes(struct ftgmac100 *priv, struct ftgmac100_tx_ring *tx_ring)
+{
+	int i;
+	if (tx_ring->txdes) {
+		/* free txdes on by one */
+    	for (i = 0; i < TX_QUEUE_ENTRIES; i++) {
+    		struct ftgmac100_txdes *txdes = &tx_ring->txdes[i];
+    		struct sk_buff *skb = ftgmac100_txdes_get_skb(txdes);
+    		dma_addr_t map = ftgmac100_txdes_get_dma_addr(txdes);
+    
+    		if (!skb)
+    			continue;
+    
+    		dma_unmap_single(tx_ring->dev, map, skb_headlen(skb), DMA_TO_DEVICE);
+    		kfree_skb(skb);
+    	}
+		dma_free_coherent(tx_ring->dev, tx_ring->tx_num_entries * sizeof(struct ftgmac100_txdes),
+					tx_ring->txdes, tx_ring->tx_dma_addr);
+	}
+}
+
 static void ftgmac100_free_buffers(struct ftgmac100 *priv)
 {
 	int i;
 
-	for (i = 0; i < RX_QUEUE_ENTRIES; i++) {
-		struct ftgmac100_rxdes *rxdes = &priv->descs->rxdes[i];
-		struct page *page = ftgmac100_rxdes_get_page(rxdes);
-		dma_addr_t map = ftgmac100_rxdes_get_dma_addr(rxdes);
-
-		if (!page)
-			continue;
-
-		dma_unmap_page(priv->dev, map, RX_BUF_SIZE, DMA_FROM_DEVICE);
-		__free_page(page);
+	if (priv->rx_rings) {
+		for (i = 0; i < priv->rx_num_queues; i++) {
+			ftgmac100_free_rxdes(&priv->rx_rings[i]);
+		}
+		vfree(priv->rx_rings);
 	}
 
-	for (i = 0; i < TX_QUEUE_ENTRIES; i++) {
-		struct ftgmac100_txdes *txdes = &priv->descs->txdes[i];
-		struct sk_buff *skb = ftgmac100_txdes_get_skb(txdes);
-		dma_addr_t map = ftgmac100_txdes_get_dma_addr(txdes);
-
-		if (!skb)
-			continue;
-
-		dma_unmap_single(priv->dev, map, skb_headlen(skb), DMA_TO_DEVICE);
-		dev_kfree_skb(skb);
+	if (priv->tx_rings) {
+		for (i = 0; i< priv->tx_num_queues; i++) {
+			ftgmac100_free_txdes(priv, &priv->tx_rings[i]);
+		}
+		vfree(priv->tx_rings);
 	}
-
-	dma_free_coherent(priv->dev, sizeof(struct ftgmac100_descs),
-			  priv->descs, priv->descs_dma_addr);
 }
 
 static int ftgmac100_alloc_buffers(struct ftgmac100 *priv)
 {
 	int i;
 
-	priv->descs = dma_alloc_coherent(priv->dev,
-					 sizeof(struct ftgmac100_descs),
-					 &priv->descs_dma_addr, GFP_KERNEL);
-	if (!priv->descs)
-		return -ENOMEM;
-
-	memset(priv->descs, 0, sizeof(struct ftgmac100_descs));
+	priv->rx_rings = vzalloc(priv->rx_num_queues * sizeof(struct ftgmac100_rx_ring));
+	if (!priv->rx_rings){
+	    printk(KERN_ERR "GMAC alloc rx rings fail\n");
+		goto err;
+	}
+	priv->tx_rings = vzalloc(priv->tx_num_queues * sizeof(struct ftgmac100_tx_ring));
+	if (!priv->tx_rings){
+	    printk(KERN_ERR "GMAC alloc tx rings fail\n");
+		goto err;
+	}
 
 	/* initialize RX ring */
-	ftgmac100_rxdes_set_end_of_ring(&priv->descs->rxdes[RX_QUEUE_ENTRIES - 1]);
-
-	for (i = 0; i < RX_QUEUE_ENTRIES; i++) {
-		struct ftgmac100_rxdes *rxdes = &priv->descs->rxdes[i];
-
-		if (ftgmac100_alloc_rx_page(priv, rxdes, GFP_KERNEL))
+	for (i = 0; i < priv->rx_num_queues; i++) {
+		priv->rx_rings[i].netdev = priv->netdev;
+		priv->rx_rings[i].dev = priv->dev;
+		priv->rx_rings[i].rx_queue_index = i;
+		if (ftgmac100_alloc_rx_entries(&priv->rx_rings[i], 
+										RX_QUEUE_ENTRIES, 
+										&ftgmac100_rx_reg_offset[i]))
 			goto err;
 	}
 
 	/* initialize TX ring */
-	ftgmac100_txdes_set_end_of_ring(&priv->descs->txdes[TX_QUEUE_ENTRIES - 1]);
+	for (i = 0; i < priv->tx_num_queues; i++) {
+		priv->tx_rings[i].netdev = priv->netdev;
+		priv->tx_rings[i].dev = priv->dev;
+		priv->tx_rings[i].tx_queue_index = i;
+		if (ftgmac100_alloc_tx_entries(&priv->tx_rings[i], 
+										TX_QUEUE_ENTRIES, 
+										&ftgmac100_tx_reg_offset[i]))
+			goto err;
+	}
 	return 0;
 
 err:
 	ftgmac100_free_buffers(priv);
 	return -ENOMEM;
 }
-
+    
 /******************************************************************************
  * internal functions (mdio)
  *****************************************************************************/
@@ -807,27 +1220,71 @@ static void ftgmac100_adjust_link(struct net_device *netdev)
 {
 	struct ftgmac100 *priv = netdev_priv(netdev);
 	struct phy_device *phydev = priv->phydev;
-	int ier;
+	int err;
+	unsigned int maht0, maht1;
+	unsigned int maccr = 0x0, rx_mode = 0x0;
 
-	if (phydev->speed == priv->old_speed)
+#ifndef CONFIG_PLATFORM_GM8210
+	if (phydev->speed == 1000) {
+	    if(interface_type())
+		    return;
+	}
+#endif	
+	if (phydev->speed == priv->old_speed && phydev->duplex == priv->old_duplex)
 		return;
 
+	if (phydev->speed == 0)
+		    return;
+
+	printk("phy speed is %d, %s duplex\n", phydev->speed, phydev->duplex ? "full" : "half");
+	/* some PHY must reset when link change */
+	if(first_time)
+		set_mac_clock(priv->irq);
+	first_time = 1;
+	
 	priv->old_speed = phydev->speed;
+	priv->old_duplex = phydev->duplex;
 
-	ier = ioread32(priv->base + FTGMAC100_OFFSET_IER);
+	/* keep rx mode */
+	rx_mode = ioread32(priv->base + FTGMAC100_OFFSET_MACCR);
+	rx_mode &= (FTGMAC100_MACCR_RX_BROADPKT | FTGMAC100_MACCR_RX_MULTIPKT | FTGMAC100_MACCR_HT_MULTI_EN | FTGMAC100_MACCR_RX_ALL);
 
-	/* disable all interrupts */
-	iowrite32(0, priv->base + FTGMAC100_OFFSET_IER);
+	maht0 = ioread32(priv->base + FTGMAC100_OFFSET_MAHT0);
+	maht1 = ioread32(priv->base + FTGMAC100_OFFSET_MAHT1);
+#if 1
+    netif_stop_queue(netdev);
+    
+    iowrite32(0, priv->base + FTGMAC100_OFFSET_IER);
+    
+    ftgmac100_stop_hw(priv);
+    
+    ftgmac100_reset_hw(priv);
+    ftgmac100_free_buffers(priv);
+    
+    err = ftgmac100_alloc_buffers(priv);
+    if (err)
+    	return;
+    
+    ftgmac100_init_hw(priv);
+    ftgmac100_start_hw(priv, phydev->speed, phydev->duplex);
+    
+    netif_start_queue(netdev);
+#endif
+#ifdef CONFIG_FTGMAC100_STORM
+	priv->broadcast_num = 0;
+	priv->begin_jiffies = 0;
+#endif
+	/* restore multicast settings */
+	maccr = ioread32(priv->base + FTGMAC100_OFFSET_MACCR);
+	maccr |= rx_mode;
+	iowrite32(maccr, priv->base + FTGMAC100_OFFSET_MACCR);
 
-	netif_stop_queue(netdev);
-	ftgmac100_stop_hw(priv);
+    iowrite32(maht0, priv->base + FTGMAC100_OFFSET_MAHT0);
+    iowrite32(maht1, priv->base + FTGMAC100_OFFSET_MAHT1);
 
-	netif_start_queue(netdev);
-	ftgmac100_init_hw(priv);
-	ftgmac100_start_hw(priv, phydev->speed);
-
-	/* re-enable interrupts */
-	iowrite32(ier, priv->base + FTGMAC100_OFFSET_IER);
+	/* enable all interrupts */
+	iowrite32(INT_MASK_ALL_ENABLED, priv->base + FTGMAC100_OFFSET_IER);
+	
 }
 
 static int ftgmac100_mii_probe(struct ftgmac100 *priv)
@@ -866,9 +1323,25 @@ static int ftgmac100_mii_probe(struct ftgmac100 *priv)
 }
 
 /******************************************************************************
+ * internal functions (hash table)
+ ******************************************************************************/
+static unsigned int ftgmac100_get_ht_index(unsigned char *mac_addr)
+{
+	unsigned int crc32 = ether_crc(ETH_ALEN, mac_addr);
+	crc32 = ~crc32;
+	crc32 = bitrev8(crc32 & 0xff) |
+			(bitrev8((crc32 >> 8) & 0xff) << 8) |
+			(bitrev8((crc32 >> 16) & 0xff) << 16) |
+			(bitrev8((crc32 >> 24) & 0xff) << 24);
+
+	/* return MSB 6 bits */
+	return ((unsigned char)(crc32 >> 26));
+}
+
+/******************************************************************************
  * struct mii_bus functions
  *****************************************************************************/
-static int ftgmac100_mdiobus_read(struct mii_bus *bus, int phy_addr, int regnum)
+static int ftgmac100_dummy_read(struct mii_bus *bus, int phy_addr, int regnum)
 {
 	struct net_device *netdev = bus->priv;
 	struct ftgmac100 *priv = netdev_priv(netdev);
@@ -886,7 +1359,7 @@ static int ftgmac100_mdiobus_read(struct mii_bus *bus, int phy_addr, int regnum)
 
 	iowrite32(phycr, priv->base + FTGMAC100_OFFSET_PHYCR);
 
-	for (i = 0; i < 10; i++) {
+	for (i = 0; i < 100; i++) {
 		phycr = ioread32(priv->base + FTGMAC100_OFFSET_PHYCR);
 
 		if ((phycr & FTGMAC100_PHYCR_MIIRD) == 0) {
@@ -896,7 +1369,51 @@ static int ftgmac100_mdiobus_read(struct mii_bus *bus, int phy_addr, int regnum)
 			return FTGMAC100_PHYDATA_MIIRDATA(data);
 		}
 
-		udelay(100);
+		wait_status(1);
+	}
+
+	netdev_err(netdev, "mdio read timed out\n");
+	return -EIO;
+}
+
+static int ftgmac100_mdiobus_read(struct mii_bus *bus, int phy_addr, int regnum)
+{
+	struct net_device *netdev = bus->priv;
+	struct ftgmac100 *priv = netdev_priv(netdev);
+	unsigned int phycr;
+	int i, data;
+
+	if(MDIO_first_time) {	/* for 8287 and 8139 */    
+	    data = ftgmac100_dummy_read(bus, phy_addr, regnum);
+	    MDIO_first_time = 0;
+	}
+	    
+	phycr = ioread32(priv->base + FTGMAC100_OFFSET_PHYCR);
+
+	/* preserve MDC cycle threshold */
+	phycr &= FTGMAC100_PHYCR_MDC_CYCTHR_MASK;
+
+	phycr |= FTGMAC100_PHYCR_PHYAD(phy_addr) |
+		 FTGMAC100_PHYCR_REGAD(regnum) |
+		 FTGMAC100_PHYCR_MIIRD;
+
+	iowrite32(phycr, priv->base + FTGMAC100_OFFSET_PHYCR);
+
+	for (i = 0; i < 100; i++) {
+		phycr = ioread32(priv->base + FTGMAC100_OFFSET_PHYCR);
+
+		if ((phycr & FTGMAC100_PHYCR_MIIRD) == 0) {
+
+			data = ioread32(priv->base + FTGMAC100_OFFSET_PHYDATA);
+			data = FTGMAC100_PHYDATA_MIIRDATA(data);
+			
+			if(show_phy)
+			    printk("<r:adr=%d,reg=%d,data=0x%x>", phy_addr, regnum, data);
+			    
+			return data;
+		}
+
+		wait_status(1);
 	}
 
 	netdev_err(netdev, "mdio read timed out\n");
@@ -912,6 +1429,9 @@ static int ftgmac100_mdiobus_write(struct mii_bus *bus, int phy_addr,
 	int data;
 	int i;
 
+    if(show_phy)
+        printk("<w:adr=%d,reg=%d,data=0x%x>", phy_addr, regnum, value);
+        
 	phycr = ioread32(priv->base + FTGMAC100_OFFSET_PHYCR);
 
 	/* preserve MDC cycle threshold */
@@ -926,13 +1446,13 @@ static int ftgmac100_mdiobus_write(struct mii_bus *bus, int phy_addr,
 	iowrite32(data, priv->base + FTGMAC100_OFFSET_PHYDATA);
 	iowrite32(phycr, priv->base + FTGMAC100_OFFSET_PHYCR);
 
-	for (i = 0; i < 10; i++) {
+	for (i = 0; i < 100; i++) {
 		phycr = ioread32(priv->base + FTGMAC100_OFFSET_PHYCR);
 
 		if ((phycr & FTGMAC100_PHYCR_MIIWR) == 0)
 			return 0;
 
-		udelay(100);
+		wait_status(1);
 	}
 
 	netdev_err(netdev, "mdio write timed out\n");
@@ -971,29 +1491,140 @@ static int ftgmac100_set_settings(struct net_device *netdev,
 	return phy_ethtool_sset(priv->phydev, cmd);
 }
 
+static void ftgmac100_get_ethtool_stats(struct net_device *netdev,
+		struct ethtool_stats *stats, u64 *data)
+{
+	int i = 0;
+
+    for (i = 0; i < 8; i++)
+        data[i] = ((unsigned long *)&netdev->stats)[i];
+
+    data[i++] = netdev->stats.rx_length_errors;
+    data[i++] = netdev->stats.rx_crc_errors;
+    data[i++] = netdev->stats.rx_frame_errors;
+    data[i++] = netdev->stats.rx_fifo_errors;//justin 0xC8
+}
+
+static const struct {
+	const char name[ETH_GSTRING_LEN];
+} sundance_stats[] = {
+	{ "rx_packets" },
+	{ "tx_packets" },
+	{ "rx_bytes" },
+	{ "tx_bytes" },
+	{ "rx_errors" },
+	{ "tx_errors" },
+	{ "rx_dropped" },
+	{ "tx_dropped" },
+	
+	{ "rx_length_errors" },
+	{ "rx_crc_errors" },
+	{ "rx_frame_errors" },
+	{ "rx_fifo_errors" },	
+};
+
+static void get_strings(struct net_device *dev, u32 stringset,
+		u8 *data)
+{
+	if (stringset == ETH_SS_STATS)
+		memcpy(data, sundance_stats, sizeof(sundance_stats));
+}
+
+static int get_sset_count(struct net_device *dev, int sset)
+{
+	switch (sset) {
+	case ETH_SS_STATS:
+		return ARRAY_SIZE(sundance_stats);
+	default:
+		return -EOPNOTSUPP;
+	}
+}
+
 static const struct ethtool_ops ftgmac100_ethtool_ops = {
 	.set_settings		= ftgmac100_set_settings,
 	.get_settings		= ftgmac100_get_settings,
 	.get_drvinfo		= ftgmac100_get_drvinfo,
 	.get_link		= ethtool_op_get_link,
+	.get_ethtool_stats = ftgmac100_get_ethtool_stats,
+	.get_strings = get_strings,
+	.get_sset_count = get_sset_count,
 };
 
 /******************************************************************************
  * interrupt handler
  *****************************************************************************/
+static int ftgmac100_poll(struct napi_struct *napi, int budget);
 static irqreturn_t ftgmac100_interrupt(int irq, void *dev_id)
 {
 	struct net_device *netdev = dev_id;
 	struct ftgmac100 *priv = netdev_priv(netdev);
 
+	/* Disable interrupts for polling */
+	iowrite32(0, priv->base + FTGMAC100_OFFSET_IER);
+
 	if (likely(netif_running(netdev))) {
-		/* Disable interrupts for polling */
-		iowrite32(0, priv->base + FTGMAC100_OFFSET_IER);
 		napi_schedule(&priv->napi);
 	}
 
 	return IRQ_HANDLED;
 }
+
+#ifdef CONFIG_FTGMAC100_STORM
+static void calc_counter(struct ftgmac100 *priv, int mode)
+{
+	struct net_device *netdev = priv->netdev;
+	unsigned int data, counter;
+
+	priv->end_jiffies = get_gm_jiffies();
+	if(((priv->end_jiffies - priv->begin_jiffies) < (priv->delay_time - 50)) && (mode)) {
+		//printk("<t=%d,%ld>", priv->delay_time, priv->end_jiffies - priv->begin_jiffies);
+		return;
+	}
+
+	data = ioread32(priv->base + FTGMAC100_OFFSET_RX_BC);
+
+	if(data < priv->broadcast_num)
+		counter = 0xFFFFFFFF - priv->broadcast_num + data;
+	else
+		counter = data - priv->broadcast_num;
+
+    priv->broadcast_num = data;
+
+    //printk("<b=%d,t=%ld>", counter, priv->end_jiffies - priv->begin_jiffies);
+    priv->begin_jiffies = priv->end_jiffies;
+
+    if(counter > RX_BROADCAST_THRESHOLD) {
+    	priv->enable_rx = false;
+    	priv->delay_time = RX_DELAY_TIME;
+    	iowrite32(ioread32(priv->base + FTGMAC100_OFFSET_MACCR) & ~(FTGMAC100_MACCR_RX_BROADPKT | FTGMAC100_MACCR_RX_MULTIPKT | FTGMAC100_MACCR_HT_MULTI_EN), priv->base + FTGMAC100_OFFSET_MACCR);
+	} else {
+		priv->enable_rx = true;
+		priv->delay_time = RX_DETECT_TIME;
+
+		data = ioread32(priv->base + FTGMAC100_OFFSET_MACCR);
+		if(data) {
+			if (netdev->flags & IFF_ALLMULTI)
+				data |= FTGMAC100_MACCR_RX_MULTIPKT;
+
+			if (netdev->flags & IFF_BROADCAST)
+				data |= FTGMAC100_MACCR_RX_BROADPKT;
+
+			if (netdev->flags & IFF_MULTICAST)
+				data |= FTGMAC100_MACCR_HT_MULTI_EN;
+
+			iowrite32(data, priv->base + FTGMAC100_OFFSET_MACCR);
+		}
+	}
+}
+
+static void ftgmac100_timer(unsigned long d)
+{
+	struct ftgmac100 *priv = (struct ftgmac100 *)d;
+
+    mod_timer(&priv->timer, jiffies + msecs_to_jiffies(priv->delay_time));
+    calc_counter(priv, 0);
+}
+#endif	/* #ifdef CONFIG_FTGMAC100_STORM */
 
 /******************************************************************************
  * struct napi_struct functions
@@ -1005,6 +1636,10 @@ static int ftgmac100_poll(struct napi_struct *napi, int budget)
 	unsigned int status;
 	bool completed = true;
 	int rx = 0;
+
+#ifdef CONFIG_FTGMAC100_STORM
+	calc_counter(priv, 1);
+#endif	/* #ifdef CONFIG_FTGMAC100_STORM */
 
 	status = ioread32(priv->base + FTGMAC100_OFFSET_ISR);
 	iowrite32(status, priv->base + FTGMAC100_OFFSET_ISR);
@@ -1020,7 +1655,9 @@ static int ftgmac100_poll(struct napi_struct *napi, int budget)
 		bool retry;
 
 		do {
-			retry = ftgmac100_rx_packet(priv, &rx);
+			retry = ftgmac100_rx_packet(priv);
+			if (retry)
+				rx++;
 		} while (retry && rx < budget);
 
 		if (retry && rx == budget)
@@ -1039,29 +1676,19 @@ static int ftgmac100_poll(struct napi_struct *napi, int budget)
 		ftgmac100_tx_complete(priv);
 	}
 
-	if (status & (FTGMAC100_INT_NO_RXBUF | FTGMAC100_INT_RPKT_LOST |
-		      FTGMAC100_INT_AHB_ERR | FTGMAC100_INT_PHYSTS_CHG)) {
-		if (net_ratelimit())
-			netdev_info(netdev, "[ISR] = 0x%x: %s%s%s%s\n", status,
-				    status & FTGMAC100_INT_NO_RXBUF ? "NO_RXBUF " : "",
-				    status & FTGMAC100_INT_RPKT_LOST ? "RPKT_LOST " : "",
-				    status & FTGMAC100_INT_AHB_ERR ? "AHB_ERR " : "",
-				    status & FTGMAC100_INT_PHYSTS_CHG ? "PHYSTS_CHG" : "");
-
-		if (status & FTGMAC100_INT_NO_RXBUF) {
-			/* RX buffer unavailable */
-			netdev->stats.rx_over_errors++;
-		}
-
-		if (status & FTGMAC100_INT_RPKT_LOST) {
-			/* received packet lost due to RX FIFO full */
-			netdev->stats.rx_fifo_errors++;
-		}
+	if (status & FTGMAC100_INT_AHB_ERR)
+    	netdev_info(netdev, "AHB bus err\n");			
+	
+	if (status & FTGMAC100_INT_RPKT_LOST) {
+		/* received packet lost due to RX FIFO full */
+		netdev->stats.rx_fifo_errors++;
+		netdev->stats.rx_errors++;
+    	if (show_rx_dbg)
+    		netdev_info(netdev, "MAC INT rx fifo full, lose\n");			
 	}
 
 	if (completed) {
 		napi_complete(napi);
-
 		/* enable all interrupts */
 		iowrite32(INT_MASK_ALL_ENABLED, priv->base + FTGMAC100_OFFSET_IER);
 	}
@@ -1082,27 +1709,34 @@ static int ftgmac100_open(struct net_device *netdev)
 		netdev_err(netdev, "failed to allocate buffers\n");
 		goto err_alloc;
 	}
+	priv->process_rx_ring = ftgmac100_process_rx_jumbo_ring;
 
+#ifdef CONFIG_FTGMAC100_STORM
+	priv->broadcast_num = 0;
+	priv->begin_jiffies = 0;
+	priv->enable_rx = true;
+
+	init_timer(&priv->timer);
+	priv->timer.data     = (unsigned long)priv;
+	priv->timer.function = ftgmac100_timer;
+	priv->timer.expires  = jiffies + msecs_to_jiffies(RX_DETECT_TIME);
+	add_timer(&priv->timer);
+	priv->delay_time = RX_DETECT_TIME;
+#endif
 	err = request_irq(priv->irq, ftgmac100_interrupt, 0, netdev->name, netdev);
 	if (err) {
 		netdev_err(netdev, "failed to request irq %d\n", priv->irq);
 		goto err_irq;
 	}
 
-	priv->rx_pointer = 0;
-	priv->tx_clean_pointer = 0;
-	priv->tx_pointer = 0;
-	priv->tx_pending = 0;
-
 	err = ftgmac100_reset_hw(priv);
 	if (err)
 		goto err_hw;
 
 	ftgmac100_init_hw(priv);
-	ftgmac100_start_hw(priv, 10);
+	ftgmac100_start_hw(priv, priv->old_speed, priv->old_duplex);
 
 	phy_start(priv->phydev);
-
 	napi_enable(&priv->napi);
 	netif_start_queue(netdev);
 
@@ -1122,14 +1756,20 @@ static int ftgmac100_stop(struct net_device *netdev)
 {
 	struct ftgmac100 *priv = netdev_priv(netdev);
 
+#ifdef CONFIG_FTGMAC100_STORM
+	del_timer_sync(&priv->timer);
+#endif
+
 	/* disable all interrupts */
 	iowrite32(0, priv->base + FTGMAC100_OFFSET_IER);
 
 	netif_stop_queue(netdev);
 	napi_disable(&priv->napi);
+	
 	phy_stop(priv->phydev);
 
 	ftgmac100_stop_hw(priv);
+	ftgmac100_reset_hw(priv);
 	free_irq(priv->irq, netdev);
 	ftgmac100_free_buffers(priv);
 
@@ -1140,29 +1780,73 @@ static int ftgmac100_hard_start_xmit(struct sk_buff *skb,
 				     struct net_device *netdev)
 {
 	struct ftgmac100 *priv = netdev_priv(netdev);
-	dma_addr_t map;
 
-	if (unlikely(skb->len > MAX_PKT_SIZE)) {
-		if (net_ratelimit())
-			netdev_dbg(netdev, "tx packet too big\n");
+	if (unlikely(skb->len > (netdev->mtu + 18))) {
 
 		netdev->stats.tx_dropped++;
 		dev_kfree_skb(skb);
 		return NETDEV_TX_OK;
 	}
 
-	map = dma_map_single(priv->dev, skb->data, skb_headlen(skb), DMA_TO_DEVICE);
-	if (unlikely(dma_mapping_error(priv->dev, map))) {
-		/* drop packet */
-		if (net_ratelimit())
-			netdev_err(netdev, "map socket buffer failed\n");
+	return ftgmac100_xmit(priv, skb);
+}
 
-		netdev->stats.tx_dropped++;
-		dev_kfree_skb(skb);
-		return NETDEV_TX_OK;
+
+static void ftgmac100_set_rx_mode(struct net_device *netdev)
+{
+	struct ftgmac100 *priv = netdev_priv(netdev);
+	unsigned int maccr = ioread32(priv->base + FTGMAC100_OFFSET_MACCR);
+
+	if (show_rx_dbg)
+		printk("set rx mode = 0x%x\n", netdev->flags);
+
+	/* clear filter flags */
+	maccr &= ~(FTGMAC100_MACCR_RX_BROADPKT | FTGMAC100_MACCR_RX_MULTIPKT | FTGMAC100_MACCR_HT_MULTI_EN | FTGMAC100_MACCR_RX_ALL);
+	if (netdev->flags & IFF_PROMISC) {
+		maccr |= FTGMAC100_MACCR_RX_ALL;
 	}
 
-	return ftgmac100_xmit(priv, skb, map);
+	if (netdev->flags & IFF_ALLMULTI) {
+		maccr |= FTGMAC100_MACCR_RX_MULTIPKT;
+	}
+
+	if (netdev->flags & IFF_BROADCAST) {
+		maccr |= FTGMAC100_MACCR_RX_BROADPKT;
+	}
+
+	if (netdev->flags & IFF_MULTICAST) {
+		unsigned int maht0 = 0x0;
+		unsigned int maht1 = 0x0;
+		struct netdev_hw_addr *ha;
+
+		maccr |= FTGMAC100_MACCR_HT_MULTI_EN;
+		/* clear hash table*/
+		iowrite32(maht0, priv->base + FTGMAC100_OFFSET_MAHT0);
+		iowrite32(maht1, priv->base + FTGMAC100_OFFSET_MAHT1);
+		/* set hash table */
+		netdev_for_each_mc_addr(ha, netdev) {
+			unsigned char ht_index = ftgmac100_get_ht_index(ha->addr);
+			if (ht_index < 32)
+				maht0 |= (1 << ht_index);
+			else
+				maht1 |= (1 << (ht_index - 32));
+		}
+		iowrite32(maht0, priv->base + FTGMAC100_OFFSET_MAHT0);
+		iowrite32(maht1, priv->base + FTGMAC100_OFFSET_MAHT1);
+	}
+	iowrite32(maccr, priv->base + FTGMAC100_OFFSET_MACCR);
+}
+
+static int ftgmac100_mac_addr(struct net_device *netdev, void *p)
+{
+	struct ftgmac100 *priv = netdev_priv(netdev);
+	int ret;
+	ret = eth_mac_addr(netdev, p);
+	if (unlikely(ret))
+		return ret;
+
+	ftgmac100_set_mac(priv, p);
+	return ret;
 }
 
 /* optional */
@@ -1173,13 +1857,105 @@ static int ftgmac100_do_ioctl(struct net_device *netdev, struct ifreq *ifr, int 
 	return phy_mii_ioctl(priv->phydev, ifr, cmd);
 }
 
+
+/*
+ * tx fifo size and rx fifo size selection (only 3 bits):
+ * 0x0: 2K
+ * 0x1: 4K
+ * 0x2: 8K
+ * 0x3: 16K
+ * 0x4: 32K
+ * else: reserved
+ */
+static int ftgmac100_set_tfifo_size(struct ftgmac100 *priv, int size_sel)
+{
+	int max_sel = FTGMAC100_FEAR_TFIFO_RSIZE(ioread32(priv->base + FTGMAC100_OFFSET_FEAR));
+	int tpafcr = ioread32(priv->base + FTGMAC100_OFFSET_TPAFCR);;
+
+	tpafcr &= ~FTGMAC100_TPAFCR_TFIFO_SIZE(0x7);
+
+	tpafcr |= FTGMAC100_TPAFCR_TFIFO_SIZE(max_sel);
+	iowrite32(tpafcr, priv->base + FTGMAC100_OFFSET_TPAFCR);
+	return max_sel;
+}
+
+static int ftgmac100_set_rfifo_size(struct ftgmac100 *priv, int size_sel)
+{
+	int max_sel = FTGMAC100_FEAR_RFIFO_RSIZE(ioread32(priv->base + FTGMAC100_OFFSET_FEAR));
+	int tpafcr = ioread32(priv->base + FTGMAC100_OFFSET_TPAFCR);;
+
+	tpafcr &= ~FTGMAC100_TPAFCR_RFIFO_SIZE(0x7);
+
+	tpafcr |= FTGMAC100_TPAFCR_RFIFO_SIZE(max_sel);
+	iowrite32(tpafcr, priv->base + FTGMAC100_OFFSET_TPAFCR);
+	return max_sel;
+}
+
+static int ftgmac100_fifo_size_to_sel(int fifo_size)
+{
+	if (fifo_size <= (SZ_2K - SZ_32))
+		return 0;
+	else if (fifo_size <= (SZ_4K -SZ_32))
+		return 1;
+	else if (fifo_size <= (SZ_8K -SZ_32))
+		return 2;
+	else if (fifo_size <= (SZ_16K -SZ_32))
+		return 3;
+	else if (fifo_size <= (SZ_32K -SZ_32))
+		return 4;
+	else
+		return 5;
+}
+
+static unsigned int ftgmac100_fifo_size_sel_to_size(int sel)
+{
+	switch (sel) {
+	case 0:
+		return (SZ_2K - SZ_32);
+	case 1:
+		return (SZ_4K - SZ_32);
+	case 2:
+		return (SZ_8K -SZ_32);
+	case 3:
+		return (SZ_16K -SZ_32);
+	case 4:
+		return (SZ_32K -SZ_32);
+	default:
+		return 0;
+	}
+}
+
+static int ftgmac100_change_mtu(struct net_device *netdev, int new_mtu)
+{
+	unsigned int tx_size, rx_size, tx_sel, rx_sel, max_size;
+	struct ftgmac100 *priv = netdev_priv(netdev);
+	int sel = ftgmac100_fifo_size_to_sel(new_mtu);
+
+	tx_sel = ftgmac100_set_tfifo_size(priv, sel);
+	rx_sel = ftgmac100_set_rfifo_size(priv, sel);
+
+	priv->tx_fifo_sel = tx_sel;
+	priv->rx_fifo_sel = rx_sel;
+
+	tx_size = ftgmac100_fifo_size_sel_to_size(tx_sel);
+	rx_size = ftgmac100_fifo_size_sel_to_size(rx_sel);
+
+	max_size = (tx_size > rx_size) ? tx_size : rx_size;
+
+	netdev->mtu = (new_mtu < max_size) ? new_mtu : (max_size < MAX_PKT_SIZE) ? max_size : MAX_PKT_SIZE;
+
+	return 0;
+}
+
 static const struct net_device_ops ftgmac100_netdev_ops = {
 	.ndo_open		= ftgmac100_open,
 	.ndo_stop		= ftgmac100_stop,
 	.ndo_start_xmit		= ftgmac100_hard_start_xmit,
-	.ndo_set_mac_address	= eth_mac_addr,
+	.ndo_set_rx_mode	= ftgmac100_set_rx_mode,
+	.ndo_set_mac_address	= ftgmac100_mac_addr,
 	.ndo_validate_addr	= eth_validate_addr,
 	.ndo_do_ioctl		= ftgmac100_do_ioctl,
+	.ndo_change_mtu		= ftgmac100_change_mtu,
 };
 
 /******************************************************************************
@@ -1193,7 +1969,11 @@ static int ftgmac100_probe(struct platform_device *pdev)
 	struct ftgmac100 *priv;
 	int err;
 	int i;
-
+	int tx_num_queues = 1, rx_num_queues = 1;
+	char *ptr = NULL, *ptr_end;
+	u8 addr[6];
+	char ethaddr[18];
+	
 	if (!pdev)
 		return -ENODEV;
 
@@ -1205,8 +1985,13 @@ static int ftgmac100_probe(struct platform_device *pdev)
 	if (irq < 0)
 		return irq;
 
+	if (num_online_cpus() > 1) {
+		tx_num_queues = TX_NUM_QUEUES;
+		rx_num_queues = RX_NUM_QUEUES;
+	}
+
 	/* setup net_device */
-	netdev = alloc_etherdev(sizeof(*priv));
+	netdev = alloc_etherdev_mqs(sizeof(*priv), tx_num_queues, rx_num_queues);
 	if (!netdev) {
 		err = -ENOMEM;
 		goto err_alloc_etherdev;
@@ -1216,16 +2001,16 @@ static int ftgmac100_probe(struct platform_device *pdev)
 
 	SET_ETHTOOL_OPS(netdev, &ftgmac100_ethtool_ops);
 	netdev->netdev_ops = &ftgmac100_netdev_ops;
-	netdev->features = NETIF_F_IP_CSUM | NETIF_F_GRO;
+	netdev->features = NETIF_F_IP_CSUM | NETIF_F_GRO | NETIF_F_GSO;
 
 	platform_set_drvdata(pdev, netdev);
 
 	/* setup private data */
 	priv = netdev_priv(netdev);
+	priv->tx_num_queues = tx_num_queues;
+	priv->rx_num_queues = rx_num_queues;
 	priv->netdev = netdev;
 	priv->dev = &pdev->dev;
-
-	spin_lock_init(&priv->tx_lock);
 
 	/* initialize NAPI */
 	netif_napi_add(netdev, &priv->napi, ftgmac100_poll, 64);
@@ -1248,15 +2033,26 @@ static int ftgmac100_probe(struct platform_device *pdev)
 
 	priv->irq = irq;
 
+	if(mac_scu_init(priv->irq) < 0){
+		err = -EIO;
+		goto err_alloc_mdiobus;
+	}
+	
 	/* initialize mdio bus */
+	set_mac_clock(priv->irq);
 	priv->mii_bus = mdiobus_alloc();
 	if (!priv->mii_bus) {
 		err = -EIO;
 		goto err_alloc_mdiobus;
 	}
 
-	priv->mii_bus->name = "ftgmac100_mdio";
-	snprintf(priv->mii_bus->id, MII_BUS_ID_SIZE, "ftgmac100_mii");
+	if(irq == MAC_FTGMAC100_0_IRQ){
+		priv->mii_bus->name = "ftgmac100-0-mdio";
+		snprintf(priv->mii_bus->id, MII_BUS_ID_SIZE, DRV_NAME);
+	}else{
+		priv->mii_bus->name = "ftgmac100-1-mdio";
+		snprintf(priv->mii_bus->id, MII_BUS_ID_SIZE, DRV_1_NAME);	
+	}
 
 	priv->mii_bus->priv = netdev;
 	priv->mii_bus->read = ftgmac100_mdiobus_read;
@@ -1286,14 +2082,54 @@ static int ftgmac100_probe(struct platform_device *pdev)
 		goto err_register_netdev;
 	}
 
-	netdev_info(netdev, "irq %d, mapped at %p\n", priv->irq, priv->base);
+	//netdev_info(netdev, "%d tx queue used (max: %d)", priv->tx_num_queues, MAX_TX_QUEUES);
+	//netdev_info(netdev, "%d rx queue used (max: %d)", priv->rx_num_queues, MAX_RX_QUEUES);
+	//netdev_info(netdev, "irq %d, mapped at %p\n", priv->irq, priv->base);
 
 	if (!is_valid_ether_addr(netdev->dev_addr)) {
-		random_ether_addr(netdev->dev_addr);
-		netdev_info(netdev, "generated random MAC address %pM\n",
-			    netdev->dev_addr);
-	}
+        ethaddr[17] = '\0';	    
+	    	if(irq == MAC_FTGMAC100_0_IRQ){	        
+            ptr = strstr(command_line, "ethaddr=");
+            if (ptr)
+                memcpy(ethaddr, ptr + 8, 17 * sizeof(char));
+        }
+        else{
+            ptr = strstr(command_line, "eth1addr=");
+            if (ptr)
+                memcpy(ethaddr, ptr + 9, 17 * sizeof(char));
+        }
+    
+        if (ptr) {
+            printk(KERN_NOTICE "ethaddr parsed from commandline: %s\n", ethaddr);
+            ptr_end = ethaddr;
+            
+            for (i = 0; i <= 5; i++) {
+                addr[i] = simple_strtol(ptr_end, &ptr_end, 16) |
+                          simple_strtol(ptr_end, &ptr_end, 16) << 4;
+                          ptr_end++; /* skip ":" in  ethaddr */
+                          
+            }
+            memcpy(netdev->dev_addr, addr, sizeof(addr));
+            
+        } else {	    	    
+    		random_ether_addr(netdev->dev_addr);
+    		//netdev_info(netdev, "generated random MAC address %pM\n", netdev->dev_addr);
+	    }
+    }
 
+	priv->tx_fifo_sel = 0x0;
+	priv->rx_fifo_sel = 0x0;
+	spin_lock_init(&priv->mac_lock);	
+
+	ftgmac_reg_debug->data = netdev;
+/*
+	err = ftgmac100_alloc_buffers(priv);
+	if (err) {
+		netdev_err(netdev, "failed to allocate buffers\n");
+		goto err_alloc_etherdev;
+	}
+	priv->process_rx_ring = ftgmac100_process_rx_jumbo_ring;
+*/
 	return 0;
 
 err_register_netdev:
@@ -1328,6 +2164,8 @@ static int __exit ftgmac100_remove(struct platform_device *pdev)
 	mdiobus_unregister(priv->mii_bus);
 	mdiobus_free(priv->mii_bus);
 
+	mac_scu_close(priv->irq);
+	
 	iounmap(priv->base);
 	release_resource(priv->res);
 
@@ -1337,6 +2175,7 @@ static int __exit ftgmac100_remove(struct platform_device *pdev)
 	return 0;
 }
 
+#if defined(CONFIG_FTGMAC100_DRIVER_0_MASTER) || defined(CONFIG_FTGMAC100_DRIVER_0_SLAVE)
 static struct platform_driver ftgmac100_driver = {
 	.probe		= ftgmac100_probe,
 	.remove		= __exit_p(ftgmac100_remove),
@@ -1345,19 +2184,200 @@ static struct platform_driver ftgmac100_driver = {
 		.owner	= THIS_MODULE,
 	},
 };
+#endif
+#if defined(CONFIG_FTGMAC100_DRIVER_1_MASTER) || defined(CONFIG_FTGMAC100_DRIVER_1_SLAVE)
+static struct platform_driver ftgmac100_1_driver = {
+	.probe		= ftgmac100_probe,
+	.remove		= __exit_p(ftgmac100_remove),
+	.driver		= {
+		.name	= DRV_1_NAME,
+		.owner	= THIS_MODULE,
+	},
+};
+#endif
 
+static int ftgmac_proc_tx_write(struct file *file, const char *buffer, unsigned long count,
+                                void *data)
+{
+    show_tx_pkg = *buffer - 48;
+    //printk("buf=%d,%d\n", *buffer, show_tx_pkg);
+    return count;
+}
+
+static int ftgmac_proc_rx_write(struct file *file, const char *buffer, unsigned long count,
+                                void *data)
+{
+    show_rx_pkg = *buffer - 48;
+    return count;
+}
+
+static int ftgmac_proc_phy_write(struct file *file, const char *buffer, unsigned long count,
+                                void *data)
+{
+    show_phy = *buffer - 48;
+    return count;
+}
+
+static int ftgmac_proc_rx_dbg_write(struct file *file, const char *buffer, unsigned long count,
+                                void *data)
+{
+    show_rx_dbg = *buffer - 48;
+    //printk("buf=%d,%d\n", *buffer, show_rx_dbg);
+    return count;
+}
+
+static int ftgmac_proc_reg_dbg_read(char *page, char **start, off_t off, int count, int *eof, void *data)
+{
+    struct net_device *netdev = data;
+    struct ftgmac100 *priv = netdev_priv(netdev);
+    unsigned int i, len = 0;
+
+	len += sprintf(page + len, "GMAC version %s, queue number tx = %d, rx = %d\n", DRV_VERSION, TX_QUEUE_ENTRIES, RX_QUEUE_ENTRIES);
+	for(i = 0; i < 15; i++) {
+    	len += sprintf(page + len, "reg%2x: %8x %8x %8x %8x\n", i * 16, ioread32(priv->base + i * 16 + 0), 
+    			ioread32(priv->base + i * 16 + 4), ioread32(priv->base + i * 16 + 8), ioread32(priv->base + i * 16 + 12));
+	}
+    return len;
+}
+
+int register_mac0 = 0, register_mac1 = 0;
 /******************************************************************************
  * initialization / finalization
  *****************************************************************************/
 static int __init ftgmac100_init(void)
 {
-	pr_info("Loading version " DRV_VERSION " ...\n");
-	return platform_driver_register(&ftgmac100_driver);
+    int result = -ENODEV;
+  
+    command_line = kmalloc(COMMAND_LINE_SIZE, GFP_ATOMIC);
+    memcpy(command_line, boot_command_line, COMMAND_LINE_SIZE);
+
+	printk("GMAC version %s, queue number tx = %d, rx = %d\n", DRV_VERSION, TX_QUEUE_ENTRIES, RX_QUEUE_ENTRIES);
+
+    ftgmac_proc = create_proc_entry("ftgmac", S_IFDIR | S_IRUGO | S_IXUGO, NULL);
+    if (ftgmac_proc == NULL) {
+        printk("Error to create driver ftgmac proc\n");
+        goto exit_init;
+    }
+    
+    ftgmac_tx_pkg_debug = create_proc_entry("show_tx", S_IRUGO, ftgmac_proc);
+    if (ftgmac_tx_pkg_debug == NULL)
+        panic("Fail to create proc ftgmac tx pkg!\n");
+
+    ftgmac_tx_pkg_debug->write_proc = ftgmac_proc_tx_write;
+
+    ftgmac_rx_pkg_debug = create_proc_entry("show_rx", S_IRUGO, ftgmac_proc);
+    if (ftgmac_rx_pkg_debug == NULL)
+        panic("Fail to create proc ftgmac rx pkg!\n");
+
+    ftgmac_rx_pkg_debug->write_proc = ftgmac_proc_rx_write;
+
+    ftgmac_phy_debug = create_proc_entry("show_phy", S_IRUGO, ftgmac_proc);
+    if (ftgmac_phy_debug == NULL)
+        panic("Fail to create proc ftgmac phy!\n");
+
+    ftgmac_phy_debug->write_proc = ftgmac_proc_phy_write;
+
+    ftgmac_rx_debug = create_proc_entry("show_rx_dbg", S_IRUGO, ftgmac_proc);
+    if (ftgmac_rx_debug == NULL)
+        panic("Fail to create proc ftgmac rx dbg!\n");
+
+    ftgmac_rx_debug->write_proc = ftgmac_proc_rx_dbg_write;
+
+    ftgmac_reg_debug = create_proc_entry("reg_dbg", S_IRUGO, ftgmac_proc);
+    if (ftgmac_reg_debug == NULL)
+        panic("Fail to create proc ftgmac reg dbg!\n");
+
+    ftgmac_reg_debug->read_proc = ftgmac_proc_reg_dbg_read;
+
+#ifdef Generate_PHY_Clock
+    if ((result = gpio_request(GPIO_pin, "gpio1")) != 0) {
+        printk("gpio request fail\n");
+        return result;
+    }
+#endif
+
+#ifdef CONFIG_PLATFORM_GM8210
+#ifdef CONFIG_FTGMAC100_DRIVER_0_MASTER
+    if(!CPU_detect())
+        register_mac0 = 1;
+#endif
+#ifdef CONFIG_FTGMAC100_DRIVER_0_SLAVE
+    if(CPU_detect())
+        register_mac0 = 1;
+#endif
+#ifdef CONFIG_FTGMAC100_DRIVER_1_MASTER
+    if(!CPU_detect())
+        register_mac1 = 1;
+#endif
+#ifdef CONFIG_FTGMAC100_DRIVER_1_SLAVE
+    if(CPU_detect())
+        register_mac1 = 1;
+#endif
+#endif
+
+#if defined(CONFIG_PLATFORM_GM8287) || defined(CONFIG_PLATFORM_GM8139) || defined(CONFIG_PLATFORM_GM8136)
+    register_mac0 = 1;
+#endif
+
+	if(register_mac0){
+	    platform_device_register(&ftgmac100_0_device);
+	    
+    	result = platform_driver_register(&ftgmac100_driver);
+    	if (result < 0) {
+    	    platform_device_unregister(&ftgmac100_0_device);
+	        goto exit_init;
+	    }
+	}
+#if defined(CONFIG_FTGMAC100_DRIVER_1_MASTER) || defined(CONFIG_FTGMAC100_DRIVER_1_SLAVE)	
+	if(register_mac1){
+	    platform_device_register(&ftgmac100_1_device);
+	    
+    	result = platform_driver_register(&ftgmac100_1_driver);
+    	if (result < 0) {
+    	    platform_device_unregister(&ftgmac100_1_device);
+	        goto exit_init;
+	    }
+	}
+#endif
+
+exit_init:		    	
+	return result;
 }
 
 static void __exit ftgmac100_exit(void)
 {
-	platform_driver_unregister(&ftgmac100_driver);
+    if (ftgmac_tx_pkg_debug != NULL)
+        remove_proc_entry(ftgmac_tx_pkg_debug->name, ftgmac_proc);
+
+    if (ftgmac_rx_pkg_debug != NULL)
+        remove_proc_entry(ftgmac_rx_pkg_debug->name, ftgmac_proc);
+
+    if (ftgmac_phy_debug != NULL)
+        remove_proc_entry(ftgmac_phy_debug->name, ftgmac_proc);
+
+    if (ftgmac_rx_debug != NULL)
+        remove_proc_entry(ftgmac_rx_debug->name, ftgmac_proc);
+
+    if (ftgmac_reg_debug != NULL)
+        remove_proc_entry(ftgmac_reg_debug->name, ftgmac_proc);                
+
+    if (ftgmac_proc != NULL)
+        remove_proc_entry(ftgmac_proc->name, NULL);
+        
+#ifdef Generate_PHY_Clock
+	gpio_free(GPIO_pin);
+#endif
+
+    if(register_mac0) {
+    	platform_driver_unregister(&ftgmac100_driver);
+    	platform_device_unregister(&ftgmac100_0_device);
+    }
+#if defined(CONFIG_FTGMAC100_DRIVER_1_MASTER) || defined(CONFIG_FTGMAC100_DRIVER_1_SLAVE)
+    if(register_mac1) {
+    	platform_driver_unregister(&ftgmac100_1_driver);
+    	platform_device_unregister(&ftgmac100_1_device);
+    }
+#endif    
 }
 
 module_init(ftgmac100_init);

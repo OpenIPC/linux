@@ -54,6 +54,9 @@ static int usb_start_wait_urb(struct urb *urb, int timeout, int *actual_length)
 	if (unlikely(retval))
 		goto out;
 
+	//john, acrual_length is not initialized,
+	//once urb failed, may cause serious error
+	*actual_length=0;
 	expire = timeout ? msecs_to_jiffies(timeout) : MAX_SCHEDULE_TIMEOUT;
 	if (!wait_for_completion_timeout(&ctx.done, expire)) {
 		usb_kill_urb(urb);

@@ -1,0 +1,11 @@
+rm -f ./usr/initramfs_data.cpio.gz
+make
+#cores=`grep 'processor' /proc/cpuinfo | sort -u | wc -l`
+#make -j$cores
+cp -f arch/arm/boot/zImage /tftpboot/mbootpImage
+cp -f System.map /tftpboot/
+cp -f vmlinux /tftpboot/
+sudo chown nobody:nobody /tftpboot/mbootpImage
+#./mkimage -A arm -O linux -T kernel -C none -a 2000000 -e 2000040 -n gm8220 -d arch/arm/boot/zImage arch/arm/boot/uImage
+#cp -f arch/arm/boot/uImage /tftpboot/uImage_8220
+#sudo chown nobody:nobody /tftpboot/uImage_8220

@@ -238,9 +238,19 @@ void __iomem * __arm_ioremap_pfn_caller(unsigned long pfn,
 	/*
 	 * Don't allow RAM to be mapped - this causes problems with ARMv6+
 	 */
-	if (WARN_ON(pfn_valid(pfn)))
+#if defined(CONFIG_ARCH_GM) || defined(CONFIG_ARCH_GM_DUO) || defined(CONFIG_ARCH_GM_SMP) /* Harry */
+    if (pfn_valid(pfn) && (cpu_architecture() >= CPU_ARCH_ARMv6)) {
+        printk("BUG: Your driver calls ioremap() on system memory. This leads to architecturally\n"
+                "unpredictable behavior on ARMv6+, please fix your driver.\n");
+        return NULL;
+    }
+#else    
+	if (WARN_ON(pfn_valid(pfn))) {
+        printk("BUG: Your driver calls ioremap() on system memory. This leads to architecturally\n"
+               "unpredictable behavior on ARMv6+, please fix your driver.\n");
 		return NULL;
-
+    }
+#endif
 	area = get_vm_area_caller(size, VM_IOREMAP, caller);
  	if (!area)
  		return NULL;

@@ -599,7 +599,12 @@ struct sk_buff *arp_create(int type, int ptype, __be32 dest_ip,
 
 	skb_reserve(skb, hlen);
 	skb_reset_network_header(skb);
+#if 0 // Original code
 	arp = (struct arphdr *) skb_put(skb, arp_hdr_len(dev));
+#else // Modify: add extra 18 bytes data buffer for ARP padding space
+    #define SIZE_OF_ARP_PADDING   18
+    arp = (struct arphdr *) skb_put(skb, arp_hdr_len(dev)+SIZE_OF_ARP_PADDING);
+#endif
 	skb->dev = dev;
 	skb->protocol = htons(ETH_P_ARP);
 	if (src_hw == NULL)
@@ -673,7 +678,10 @@ struct sk_buff *arp_create(int type, int ptype, __be32 dest_ip,
 		memset(arp_ptr, 0, dev->addr_len);
 	arp_ptr += dev->addr_len;
 	memcpy(arp_ptr, &dest_ip, 4);
-
+#if 1 // Modify: Clear the ARP padding to be zero forcefully.
+	arp_ptr += 4;
+	memset(arp_ptr, 0x00, SIZE_OF_ARP_PADDING);
+#endif
 	return skb;
 
 out:

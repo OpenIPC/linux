@@ -30,6 +30,9 @@
 
 #include "usb.h"
 
+#include "../host/fotg2xx-ehci-macro.h"
+#include "../host/fotg2xx_opt-macro.h"
+
 /* if we are in debug mode, always announce new devices */
 #ifdef DEBUG
 #ifndef CONFIG_USB_ANNOUNCE_NEW_DEVICES
@@ -608,7 +611,7 @@ static int hub_hub_status(struct usb_hub *hub,
 			"%s failed (err = %d)\n", __func__, ret);
 	else {
 		*status = le16_to_cpu(hub->status->hub.wHubStatus);
-		*change = le16_to_cpu(hub->status->hub.wHubChange); 
+		*change = le16_to_cpu(hub->status->hub.wHubChange);
 		ret = 0;
 	}
 	mutex_unlock(&hub->status_mutex);
@@ -2748,7 +2751,7 @@ EXPORT_SYMBOL_GPL(usb_root_hub_lost_power);
  * Between connect detection and reset signaling there must be a delay
  * of 100ms at least for debounce and power-settling.  The corresponding
  * timer shall restart whenever the downstream port detects a disconnect.
- * 
+ *
  * Apparently there are some bluetooth and irda-dongles and a number of
  * low-speed devices for which this debounce period may last over a second.
  * Not covered by the spec - but easy to deal with.
@@ -2840,6 +2843,8 @@ static int hub_set_address(struct usb_device *udev, int devnum)
 	return retval;
 }
 
+void ftusb_reset_host(struct usb_hcd *hcd);
+
 /* Reset device, (re)assign address, get device descriptor.
  * Device connection must be stable, no more debouncing needed.
  * Returns device in USB_STATE_ADDRESS, except on error.
@@ -2926,11 +2931,14 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
 	else
 		speed = usb_speed_string(udev->speed);
 
-	if (udev->speed != USB_SPEED_SUPER)
-		dev_info(&udev->dev,
-				"%s %s USB device number %d using %s\n",
-				(udev->config) ? "reset" : "new", speed,
-				devnum, udev->bus->controller->driver->name);
+    /*  */
+    if (udev->speed != USB_SPEED_SUPER) {
+        if (!udev->config || udev->speed != USB_SPEED_LOW) // if defined(CONFIG_GM_FOTG2XX) || defined(CONFIG_GM_FUSBH200)
+            dev_info(&udev->dev,
+                    "%s %s USB device number %d using %s\n",
+                    (udev->config) ? "reset" : "new", speed,
+                    devnum, udev->bus->controller->driver->name);
+    }
 
 	/* Set up TT records, if needed  */
 	if (hdev->tt) {
@@ -2946,7 +2954,7 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
 		udev->tt = &hub->tt;
 		udev->ttport = port1;
 	}
- 
+
 	/* Why interleave GET_DESCRIPTOR and SET_ADDRESS this way?
 	 * Because device hardware and firmware is sometimes buggy in
 	 * this area, and this is how Linux has done it for ages.
@@ -2976,6 +2984,7 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
 			 * 512 (WUSB1.0[4.8.1]).
 			 */
 			for (j = 0; j < 3; ++j) {
+                //u32 temp = 0;
 				buf->bMaxPacketSize0 = 0;
 				r = usb_control_msg(udev, usb_rcvaddr0pipe(),
 					USB_REQ_GET_DESCRIPTOR, USB_DIR_IN,
@@ -2997,6 +3006,31 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
 				}
 				if (r == 0)
 					break;
+
+#if 0 //#if defined(CONFIG_GM_FOTG2XX) || defined(CONFIG_GM_FUSBH200)
+                /* ZTE 3G dongle cause system died, need to restart host here. */
+                temp = *((volatile u32 *)(hcd->regs+0x10));
+                if (!(temp & 0x01) || (r == -ETIMEDOUT)) {
+                    printk("%s:%d, host controller is stopped\n", __func__, __LINE__);
+                    if (hdev == hdev->bus->root_hub) {
+                        printk("restart host controller\n");
+#if 1
+                        ftusb_reset_host(hcd);
+#else
+                        hcd->driver->stop(hcd);
+                        hcd->driver->reset(hcd);
+                        hcd->driver->start(hcd);
+#endif
+                        // force to reconnect device
+                        mdwOTGC_Control_A_BUS_REQ_Clr(hcd->regs);
+                        mdwOTGC_Control_A_BUS_DROP_Set(hcd->regs);
+                        mdwOTGC_Control_A_BUS_DROP_Clr(hcd->regs) ;
+                        mdwOTGC_Control_A_BUS_REQ_Set(hcd->regs);
+
+                        break;
+                    }
+                }
+#endif
 			}
 			udev->descriptor.bMaxPacketSize0 =
 					buf->bMaxPacketSize0;
@@ -3090,7 +3124,7 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
 		udev->ep0.desc.wMaxPacketSize = cpu_to_le16(i);
 		usb_ep0_reinit(udev);
 	}
-  
+
 	retval = usb_get_device_descriptor(udev, USB_DT_DEVICE_SIZE);
 	if (retval < (signed)sizeof(udev->descriptor)) {
 		dev_err(&udev->dev, "device descriptor read/all, error %d\n",
@@ -3325,6 +3359,44 @@ static void hub_port_connect_change(struct usb_hub *hub, int port1,
 		if (status < 0)
 			goto loop;
 
+#if defined(CONFIG_GM_FOTG2XX) || defined(CONFIG_GM_FUSBH200)
+        /* workaround for bad mice */
+        if (!hdev->parent && !udev->config && udev->speed == USB_SPEED_LOW) {
+            static int f_toggle_vbus[5] = {1, 1, 1, 1 ,1};
+            int hcd_id = 0;
+
+            switch (hcd->rsrc_start) {
+                case USB_FOTG2XX_0_PA_BASE:
+                    hcd_id = 0;
+                    break;
+#if FOTG_DEV_NR >= 2
+                case USB_FOTG2XX_1_PA_BASE:
+                    hcd_id = 1;
+                    break;
+#endif
+#if FOTG_DEV_NR >= 3
+                case USB_FOTG2XX_2_PA_BASE:
+                    hcd_id = 2;
+                    break;
+#endif
+                default:
+                    panic("%s : Invalid HCD base\n", __func__);
+            }
+
+            if (f_toggle_vbus[hcd_id]) {
+                // force to reconnect device
+                dev_info(&udev->dev, ">>>> force to reconnect device on hcd %d\n", hcd_id);
+                mdwOTGC_Control_A_BUS_REQ_Clr(hcd->regs);
+                mdwOTGC_Control_A_BUS_DROP_Set(hcd->regs);
+                mdwOTGC_Control_A_BUS_DROP_Clr(hcd->regs) ;
+                mdwOTGC_Control_A_BUS_REQ_Set(hcd->regs);
+                f_toggle_vbus[hcd_id] = 0;
+                status = -ENOTCONN; // fake result for workaround
+                goto loop;
+            }
+        }
+#endif
+
 		usb_detect_quirks(udev);
 		if (udev->quirks & USB_QUIRK_DELAY_INIT)
 			msleep(1000);
@@ -3359,7 +3431,7 @@ static void hub_port_connect_change(struct usb_hub *hub, int port1,
 				goto loop_disable;
 			}
 		}
- 
+
 		/* check for devices running slower than they could */
 		if (le16_to_cpu(udev->descriptor.bcdUSB) >= 0x0200
 				&& udev->speed == USB_SPEED_FULL
@@ -3417,7 +3489,17 @@ loop:
 			!(hcd->driver->port_handed_over)(hcd, port1))
 		dev_err(hub_dev, "unable to enumerate USB device on port %d\n",
 				port1);
- 
+
+#if defined(CONFIG_GM_FOTG2XX) || defined(CONFIG_GM_FUSBH200)
+    if ((strncmp(hcd->self.bus_name, "fotg", 4) == 0) && !hdev->parent) {
+        // force to reconnect device
+        mdwOTGC_Control_A_BUS_REQ_Clr(hcd->regs);
+        mdwOTGC_Control_A_BUS_DROP_Set(hcd->regs);
+        mdwOTGC_Control_A_BUS_DROP_Clr(hcd->regs) ;
+        mdwOTGC_Control_A_BUS_REQ_Set(hcd->regs);
+    }
+#endif
+
 done:
 	hub_port_disable(hub, port1, 1);
 	if (hcd->driver->relinquish_port && !hub->hdev->parent)
@@ -3543,7 +3625,7 @@ static void hub_events(void)
 				 * EM interference sometimes causes badly
 				 * shielded USB devices to be shutdown by
 				 * the hub, this hack enables them again.
-				 * Works at least with mouse driver. 
+				 * Works at least with mouse driver.
 				 */
 				if (!(portstatus & USB_PORT_STAT_ENABLE)
 				    && !connect_change
@@ -3581,7 +3663,7 @@ static void hub_events(void)
 					"resume on port %d, status %d\n",
 					i, ret);
 			}
-			
+
 			if (portchange & USB_PORT_STAT_C_OVERCURRENT) {
 				u16 status = 0;
 				u16 unused;
@@ -3904,7 +3986,7 @@ static int usb_reset_and_verify_device(struct usb_device *udev)
 
 	if (ret < 0)
 		goto re_enumerate;
- 
+
 	/* Device might have changed firmware (DFU or similar) */
 	if (descriptors_changed(udev, &descriptor)) {
 		dev_info(&udev->dev, "device firmware changed\n");
@@ -3977,7 +4059,7 @@ static int usb_reset_and_verify_device(struct usb_device *udev)
 
 done:
 	return 0;
- 
+
 re_enumerate:
 	hub_port_logical_disconnect(parent_hub, port1);
 	return -ENODEV;

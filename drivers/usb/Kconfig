@@ -76,6 +76,9 @@ config USB_ARCH_HAS_EHCI
 	default y if MICROBLAZE
 	default y if SPARC_LEON
 	default y if ARCH_MMP
+	default y if ARCH_GM
+	default y if ARCH_GM_DUO
+	default y if ARCH_GM_SMP
 	default PCI
 
 # some non-PCI HCDs implement xHCI
@@ -94,7 +97,7 @@ config USB
 	  traditional PC serial port.  The bus supplies power to peripherals
 	  and allows for hot swapping.  Up to 127 USB peripherals can be
 	  connected to a single USB host in a tree structure.
-	  
+
 	  The USB host is the root of the tree, the peripherals are the
 	  leaves and the inner nodes are special USB devices called hubs.
 	  Most PCs now have USB host ports, used to connect peripherals

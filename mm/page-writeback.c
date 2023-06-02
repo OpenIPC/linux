@@ -65,7 +65,11 @@ static long ratelimit_pages = 32;
 /*
  * Start background writeback (via writeback threads) at this percentage
  */
+#ifdef CONFIG_SATA_AHCI_PLATFORM
+int dirty_background_ratio = 1;
+#else
 int dirty_background_ratio = 10;
+#endif
 
 /*
  * dirty_background_bytes starts at 0 (disabled) so that it is a function of
@@ -82,7 +86,11 @@ int vm_highmem_is_dirtyable;
 /*
  * The generator of dirty data starts writeback at this percentage
  */
+#ifdef CONFIG_SATA_AHCI_PLATFORM
+int vm_dirty_ratio = 2;
+#else
 int vm_dirty_ratio = 20;
+#endif
 
 /*
  * vm_dirty_bytes starts at 0 (disabled) so that it is a function of
@@ -93,12 +101,20 @@ unsigned long vm_dirty_bytes;
 /*
  * The interval between `kupdate'-style writebacks
  */
+#ifdef CONFIG_SATA_AHCI_PLATFORM
+unsigned int dirty_writeback_interval = 1 * 100; /* centiseconds */
+#else
 unsigned int dirty_writeback_interval = 5 * 100; /* centiseconds */
+#endif
 
 /*
  * The longest time for which data is allowed to remain dirty
  */
+#ifdef CONFIG_SATA_AHCI_PLATFORM
+unsigned int dirty_expire_interval = 10 * 100; /* centiseconds */
+#else
 unsigned int dirty_expire_interval = 30 * 100; /* centiseconds */
+#endif
 
 /*
  * Flag that makes the machine dump writes/reads and block dirtyings.

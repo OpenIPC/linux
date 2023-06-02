@@ -1,4 +1,4 @@
-/* i2c-core.c - a device driver for the iic-bus interface		     */
+﻿/* i2c-core.c - a device driver for the iic-bus interface		     */
 /* ------------------------------------------------------------------------- */
 /*   Copyright (C) 1995-99 Simon G. Vogl
 
@@ -52,6 +52,65 @@ static DEFINE_IDR(i2c_adapter_idr);
 static struct device_type i2c_client_type;
 static int i2c_detect(struct i2c_adapter *adapter, struct i2c_driver *driver);
 
+#if (defined(CONFIG_PLATFORM_GM8210) && defined(CONFIG_GM8312))
+#include <mach/platform/board.h>
+
+/* lock i2c bus */
+static inline void lock_i2c_bus(int adapter_nr)
+{
+    switch (adapter_nr) {
+      case 0:
+        board_bus_lock(BUS_LOCK_I2C);
+        break;
+      case 1:
+        board_bus_lock(BUS_LOCK_I2C1);
+        break;
+      case 2:
+        board_bus_lock(BUS_LOCK_I2C2);
+        break;
+      case 3:
+        board_bus_lock(BUS_LOCK_I2C3);
+        break;
+      case 4:
+        board_bus_lock(BUS_LOCK_I2C4);
+        break;
+      case 5:
+        board_bus_lock(BUS_LOCK_I2C5);
+        break;
+      default:
+        printk("%s, id: %d is not supported! \n", __func__, adapter_nr);
+        break;
+    }
+}
+
+/* unlock i2c bus */
+static inline void unlock_i2c_bus(int adapter_nr)
+{
+    switch (adapter_nr) {
+      case 0:
+        board_bus_unlock(BUS_LOCK_I2C);
+        break;
+      case 1:
+        board_bus_unlock(BUS_LOCK_I2C1);
+        break;
+      case 2:
+        board_bus_unlock(BUS_LOCK_I2C2);
+        break;
+      case 3:
+        board_bus_unlock(BUS_LOCK_I2C3);
+        break;
+      case 4:
+        board_bus_unlock(BUS_LOCK_I2C4);
+        break;
+      case 5:
+        board_bus_unlock(BUS_LOCK_I2C5);
+        break;
+      default:
+        printk("%s, id: %d is not supported! \n", __func__, adapter_nr);
+        break;
+    }
+}
+#endif /* CONFIG_PLATFORM_GM8210 */
 /* ------------------------------------------------------------------------- */
 
 static const struct i2c_device_id *i2c_match_id(const struct i2c_device_id *id,
@@ -446,10 +505,14 @@ void i2c_lock_adapter(struct i2c_adapter *adapter)
 {
 	struct i2c_adapter *parent = i2c_parent_is_i2c_adapter(adapter);
 
-	if (parent)
+	if (parent) {
 		i2c_lock_adapter(parent);
-	else
+	} else {
 		rt_mutex_lock(&adapter->bus_lock);
+#if (defined(CONFIG_PLATFORM_GM8210) && defined(CONFIG_GM8312))
+        lock_i2c_bus(adapter->nr);
+#endif
+	}
 }
 EXPORT_SYMBOL_GPL(i2c_lock_adapter);
 
@@ -461,10 +524,21 @@ static int i2c_trylock_adapter(struct i2c_adapter *adapter)
 {
 	struct i2c_adapter *parent = i2c_parent_is_i2c_adapter(adapter);
 
-	if (parent)
+	if (parent) {
 		return i2c_trylock_adapter(parent);
-	else
+	}
+	else {
+#if (defined(CONFIG_PLATFORM_GM8210) && defined(CONFIG_GM8312))
+        int ret = rt_mutex_trylock(&adapter->bus_lock);
+
+        if (ret)
+            lock_i2c_bus(adapter->nr);
+
+        return ret;
+#else
 		return rt_mutex_trylock(&adapter->bus_lock);
+#endif
+	}
 }
 
 /**
@@ -475,10 +549,15 @@ void i2c_unlock_adapter(struct i2c_adapter *adapter)
 {
 	struct i2c_adapter *parent = i2c_parent_is_i2c_adapter(adapter);
 
-	if (parent)
+	if (parent) {
 		i2c_unlock_adapter(parent);
-	else
+	}
+	else {
+#if (defined(CONFIG_PLATFORM_GM8210) && defined(CONFIG_GM8312))
+        unlock_i2c_bus(adapter->nr);
+#endif
 		rt_mutex_unlock(&adapter->bus_lock);
+	}
 }
 EXPORT_SYMBOL_GPL(i2c_unlock_adapter);
 
@@ -836,7 +915,32 @@ static int i2c_register_adapter(struct i2c_adapter *adap)
 		return -EINVAL;
 	}
 
+#if (defined(CONFIG_PLATFORM_GM8210) && defined(CONFIG_GM8312))
+    switch(adap->nr) {
+      case 0:
+        board_bus_lock_init(BUS_LOCK_I2C);
+        break;
+      case 1:
+        board_bus_lock_init(BUS_LOCK_I2C1);
+        break;
+      case 2:
+        board_bus_lock_init(BUS_LOCK_I2C2);
+        break;
+      case 3:
+        board_bus_lock_init(BUS_LOCK_I2C3);
+        break;
+      case 4:
+        board_bus_lock_init(BUS_LOCK_I2C4);
+        break;
+      case 5:
+        board_bus_lock_init(BUS_LOCK_I2C5);
+        break;
+      default:
+        break;
+    }
+#endif /* CONFIG_PLATFORM_GM8210 */
 	rt_mutex_init(&adap->bus_lock);
+
 	mutex_init(&adap->userspace_clients_lock);
 	INIT_LIST_HEAD(&adap->userspace_clients);
 
@@ -913,6 +1017,7 @@ retry:
 	}
 
 	adapter->nr = id;
+
 	return i2c_register_adapter(adapter);
 }
 EXPORT_SYMBOL(i2c_add_adapter);

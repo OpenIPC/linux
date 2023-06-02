@@ -1,7 +1,7 @@
 #ifndef __ASM_SPINLOCK_H
 #define __ASM_SPINLOCK_H
 
-#if __LINUX_ARM_ARCH__ < 6
+#if __LINUX_ARM_ARCH__ < 6 && !defined(CONFIG_CPU_FMP626)
 #error SMP not supported on pre-ARMv6 CPUs
 #endif
 
@@ -49,6 +49,12 @@ static inline void dsb_sev(void)
 		"dsb\n"
 		SEV
 	);
+#elif defined(CONFIG_CPU_FMP626)
+	__asm__ __volatile__ (
+		"mcr	p15, 0, %0, c7, c10, 4\n"
+		"cdp	p13, 0, c0, c0, c0, 1	@ set event\n"
+		: : "r" (0)
+	);
 #else
 	__asm__ __volatile__ (
 		"mcr p15, 0, %0, c7, c10, 4\n"
@@ -76,6 +82,51 @@ static inline void dsb_sev(void)
 
 #define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
 
+#ifdef CONFIG_CPU_FMP626
+static inline void arch_spin_lock(arch_spinlock_t *lock)
+{
+	unsigned long tmp;
+
+	__asm__ __volatile__(
+"1:	ldc	p13, c0, [%1], {2}	@ set address for ldrex\n"
+"	mrc	p13, 0, %0, c0, c0, 0	@ ldrex\n"
+"	teq	%0, #0\n"
+"	cdpne	p13, 0, c0, c0, c0, 0	@ wait for event\n"
+"	mcreq	p13, 0, %2, c0, c0, 0	@ data for strex\n"
+"	stceq	p13, c0, [%1], {2}	@ strex to address\n"
+"	mrceq	p13, 0, %0, c0, c0, 2	@ strex status\n"
+"	teqeq	%0, #0\n"
+"	bne	1b"
+	: "=&r" (tmp)
+	: "r" (&lock->lock), "r" (1)
+	: "cc");
+
+	smp_mb();
+}
+
+static inline int arch_spin_trylock(arch_spinlock_t *lock)
+{
+	unsigned long tmp;
+
+	__asm__ __volatile__(
+"	ldc	p13, c0, [%1], {2}	@ set address for ldrex\n"
+"	mrc	p13, 0, %0, c0, c0, 0	@ ldrex\n"
+"	teq	%0, #0\n"
+"	mcreq	p13, 0, %2, c0, c0, 0	@ data for strex\n"
+"	stceq	p13, c0, [%1], {2}	@ strex to address\n"
+"	mrceq	p13, 0, %0, c0, c0, 2	@ strex status\n"
+	: "=&r" (tmp)
+	: "r" (&lock->lock), "r" (1)
+	: "cc");
+
+	if (tmp == 0) {
+		smp_mb();
+		return 1;
+	} else {
+		return 0;
+	}
+}
+#else
 static inline void arch_spin_lock(arch_spinlock_t *lock)
 {
 	unsigned long tmp;
@@ -113,6 +164,7 @@ static inline int arch_spin_trylock(arch_spinlock_t *lock)
 		return 0;
 	}
 }
+#endif
 
 static inline void arch_spin_unlock(arch_spinlock_t *lock)
 {
@@ -135,6 +187,51 @@ static inline void arch_spin_unlock(arch_spinlock_t *lock)
  * just write zero since the lock is exclusively held.
  */
 
+#ifdef CONFIG_CPU_FMP626
+static inline void arch_write_lock(arch_rwlock_t *rw)
+{
+	unsigned long tmp;
+
+	__asm__ __volatile__(
+"1:	ldc	p13, c0, [%1], {2}	@ set address for ldrex\n"
+"	mrc	p13, 0, %0, c0, c0, 0	@ ldrex\n"
+"	teq	%0, #0\n"
+"	cdpne	p13, 0, c0, c0, c0, 0	@ wait for event\n"
+"	mcreq	p13, 0, %2, c0, c0, 0	@ data for strex\n"
+"	stceq	p13, c0, [%1], {2}	@ strex to address\n"
+"	mrceq	p13, 0, %0, c0, c0, 2	@ strex status\n"
+"	teq	%0, #0\n"
+"	bne	1b"
+	: "=&r" (tmp)
+	: "r" (&rw->lock), "r" (0x80000000)
+	: "cc");
+
+	smp_mb();
+}
+
+static inline int arch_write_trylock(arch_rwlock_t *rw)
+{
+	unsigned long tmp;
+
+	__asm__ __volatile__(
+"1:	ldc	p13, c0, [%1], {2}	@ set address for ldrex\n"
+"	mrc	p13, 0, %0, c0, c0, 0	@ ldrex\n"
+"	teq	%0, #0\n"
+"	mcreq	p13, 0, %2, c0, c0, 0	@ data for strex\n"
+"	stceq	p13, c0, [%1], {2}	@ strex to address\n"
+"	mrceq	p13, 0, %0, c0, c0, 2	@ strex status\n"
+	: "=&r" (tmp)
+	: "r" (&rw->lock), "r" (0x80000000)
+	: "cc");
+
+	if (tmp == 0) {
+		smp_mb();
+		return 1;
+	} else {
+		return 0;
+	}
+}
+#else
 static inline void arch_write_lock(arch_rwlock_t *rw)
 {
 	unsigned long tmp;
@@ -172,6 +269,7 @@ static inline int arch_write_trylock(arch_rwlock_t *rw)
 		return 0;
 	}
 }
+#endif
 
 static inline void arch_write_unlock(arch_rwlock_t *rw)
 {
@@ -201,6 +299,70 @@ static inline void arch_write_unlock(arch_rwlock_t *rw)
  * currently active.  However, we know we won't have any write
  * locks.
  */
+#ifdef CONFIG_CPU_FMP626
+static inline void arch_read_lock(arch_rwlock_t *rw)
+{
+	unsigned long tmp, tmp2;
+
+	__asm__ __volatile__(
+"1:	ldc	p13, c0, [%2], {2}	@ set address for ldrex\n"
+"	mrc	p13, 0, %0, c0, c0, 0	@ ldrex\n"
+"	adds	%0, %0, #1\n"
+"	mcrpl	p13, 0, %0, c0, c0, 0	@ data for strex\n"
+"	stcpl	p13, c0, [%2], {2}	@ strex to address\n"
+"	mrcpl	p13, 0, %1, c0, c0, 2	@ strex status\n"
+"	cdpmi	p13, 0, c0, c0, c0, 0	@ wait for event\n"
+"	rsbpls	%0, %1, #0\n"
+"	bmi	1b"
+	: "=&r" (tmp), "=&r" (tmp2)
+	: "r" (&rw->lock)
+	: "cc");
+
+	smp_mb();
+}
+
+static inline void arch_read_unlock(arch_rwlock_t *rw)
+{
+	unsigned long tmp, tmp2;
+
+	smp_mb();
+
+	__asm__ __volatile__(
+"1:	ldc	p13, c0, [%2], {2}	@ set address for ldrex\n"
+"	mrc	p13, 0, %0, c0, c0, 0	@ ldrex\n"
+"	sub	%0, %0, #1\n"
+"	mcr	p13, 0, %0, c0, c0, 0	@ data for strex\n"
+"	stc	p13, c0, [%2], {2}	@ strex to address\n"
+"	mrc	p13, 0, %1, c0, c0, 2	@ strex status\n"
+"	teq	%1, #0\n"
+"	bne	1b\n"
+	: "=&r" (tmp), "=&r" (tmp2)
+	: "r" (&rw->lock)
+	: "cc");
+
+	if (tmp == 0)
+		dsb_sev();
+}
+
+static inline int arch_read_trylock(arch_rwlock_t *rw)
+{
+	unsigned long tmp, tmp2 = 1;
+
+	__asm__ __volatile__(
+"1:	ldc	p13, c0, [%2], {2}	@ set address for ldrex\n"
+"	mrc	p13, 0, %0, c0, c0, 0	@ ldrex\n"
+"	adds	%0, %0, #1\n"
+"	mcrpl	p13, 0, %0, c0, c0, 0	@ data for strex\n"
+"	stcpl	p13, c0, [%2], {2}	@ strex to address\n"
+"	mrcpl	p13, 0, %1, c0, c0, 2	@ strex status\n"
+	: "=&r" (tmp), "+r" (tmp2)
+	: "r" (&rw->lock)
+	: "cc");
+
+	smp_mb();
+	return tmp2 == 0;
+}
+#else
 static inline void arch_read_lock(arch_rwlock_t *rw)
 {
 	unsigned long tmp, tmp2;
@@ -254,6 +416,7 @@ static inline int arch_read_trylock(arch_rwlock_t *rw)
 	smp_mb();
 	return tmp2 == 0;
 }
+#endif
 
 /* read_can_lock - would read_trylock() succeed? */
 #define arch_read_can_lock(x)		((x)->lock < 0x80000000)

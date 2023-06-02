@@ -61,8 +61,13 @@
  * DO NOT REUSE THESE IDs with any other driver!!  Ever!!
  * Instead:  allocate your own, using normal USB-IF procedures.
  */
+#if defined(CONFIG_GM_FOTG2XX)
+#define FSG_VENDOR_ID	0x2310	/* Faraday, GM */
+#define FSG_PRODUCT_ID	0x5678	/* Linux-USB File-backed Storage Gadget */
+#else
 #define FSG_VENDOR_ID	0x0525	/* NetChip */
 #define FSG_PRODUCT_ID	0xa4a5	/* Linux-USB File-backed Storage Gadget */
+#endif
 
 
 /*-------------------------------------------------------------------------*/

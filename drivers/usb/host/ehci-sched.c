@@ -487,6 +487,17 @@ static int enable_periodic (struct ehci_hcd *ehci)
 	if (ehci->periodic_sched++)
 		return 0;
 
+#if defined(CONFIG_GM_FOTG2XX)
+    if (strncmp(ehci_to_hcd(ehci)->self.bus_name, "fotg", 4) == 0) {
+        cmd = ehci_readl(ehci, &ehci->regs->command);
+        if (cmd & CMD_PSE) {
+            /* CMD_PSE already pre-enabled to fix Ralink wifi dongle issue */
+            cmd &= ~CMD_PSE;
+            ehci_writel(ehci, cmd, &ehci->regs->command);
+        }
+    }
+#endif
+
 	/* did clearing PSE did take effect yet?
 	 * takes effect only at frame boundaries...
 	 */
@@ -530,12 +541,19 @@ static int disable_periodic (struct ehci_hcd *ehci)
 	/* did setting PSE not take effect yet?
 	 * takes effect only at frame boundaries...
 	 */
-	status = handshake_on_error_set_halt(ehci, &ehci->regs->status,
-					     STS_PSS, STS_PSS, 9 * 125);
-	if (status) {
-		usb_hc_died(ehci_to_hcd(ehci));
-		return status;
-	}
+#if defined(CONFIG_GM_FOTG2XX) || defined(CONFIG_GM_FUSBH200)
+    if ((strncmp(ehci_to_hcd(ehci)->self.bus_name, "fotg", 4) == 0) && !(ehci_readl(ehci, &ehci->regs->command) & CMD_PSE)) {
+        printk("%s: CMD_PSE already cleared, ignore handshake on STS_PSS\n", __func__);
+    } else
+#endif
+    {
+    	status = handshake_on_error_set_halt(ehci, &ehci->regs->status,
+    					     STS_PSS, STS_PSS, 9 * 125);
+    	if (status) {
+    		usb_hc_died(ehci_to_hcd(ehci));
+    		return status;
+    	}
+    }
 
 	cmd = ehci_readl(ehci, &ehci->regs->command) & ~CMD_PSE;
 	ehci_writel(ehci, cmd, &ehci->regs->command);
@@ -980,6 +998,7 @@ iso_stream_init (
 	unsigned		epnum, maxp;
 	int			is_input;
 	long			bandwidth;
+	u32                     ehci_speed;
 
 	/*
 	 * this might be a "high bandwidth" highspeed endpoint,
@@ -994,11 +1013,55 @@ iso_stream_init (
 		buf1 = 0;
 	}
 
-	/* knows about ITD vs SITD */
+#if defined(CONFIG_GM_FOTG2XX)
+if ((strncmp(ehci_to_hcd(ehci)->self.bus_name, "fotg", 4) == 0) && (ehci_port_speed(ehci, 0) != USB_PORT_STAT_HIGH_SPEED)) {
+	unsigned 		multi;
+
+	/* knows about ITD */
+	maxp = max_packet(maxp);
+	if (dev->speed == USB_SPEED_HIGH)
+	    multi = hb_mult(maxp);
+    else
+	    multi = 1;
+	buf1 |= maxp;
+	maxp *= multi;
+
+	stream->buf0 = cpu_to_hc32(ehci, (epnum << 8) | dev->devnum);
+	stream->buf1 = cpu_to_hc32(ehci, buf1);
+	stream->buf2 = cpu_to_hc32(ehci, multi);
+
+	/* usbfs wants to report the average usecs per frame tied up
+	 * when transfers on this endpoint are scheduled ...
+	 */
 	if (dev->speed == USB_SPEED_HIGH) {
+		stream->highspeed = 1;
+		stream->usecs = HS_USECS_ISO (maxp);
+	}
+	else {
+		interval <<= 3;
+		stream->usecs = NS_TO_US(usb_calc_bus_time(dev->speed,
+				is_input, 1, maxp));
+		stream->usecs /= 8;
+	}
+	bandwidth = stream->usecs * 8;
+	bandwidth /= interval;
+} else {
+#endif
+	ehci_speed = ehci_port_speed(ehci,0);
+	if (ehci_is_TDI(ehci)) {
+		// we use 125us as unit
+		if ( ehci_speed != USB_PORT_STAT_HIGH_SPEED )
+			interval = interval<<3;
+	}
+
+	/* knows about ITD vs SITD */
+	if ((dev->speed == USB_SPEED_HIGH) ||
+			( (ehci_is_TDI(ehci)) && (ehci_speed != USB_PORT_STAT_HIGH_SPEED)) ) {
 		unsigned multi = hb_mult(maxp);
 
-		stream->highspeed = 1;
+                /* knows about ITD vs SITD */
+		if (dev->speed == USB_SPEED_HIGH)
+			stream->highspeed = 1;
 
 		maxp = max_packet(maxp);
 		buf1 |= maxp;
@@ -1011,7 +1074,11 @@ iso_stream_init (
 		/* usbfs wants to report the average usecs per frame tied up
 		 * when transfers on this endpoint are scheduled ...
 		 */
-		stream->usecs = HS_USECS_ISO (maxp);
+		if ( ehci_speed != USB_PORT_STAT_HIGH_SPEED ) { //full speed
+			stream->usecs = NS_TO_US (usb_calc_bus_time (dev->speed, is_input, 1, maxp));
+			stream->usecs /= 8;   // convert from FS to HS, use 125us as unit
+		} else
+			stream->usecs = HS_USECS_ISO (maxp);
 		bandwidth = stream->usecs * 8;
 		bandwidth /= interval;
 
@@ -1051,6 +1118,10 @@ iso_stream_init (
 		/* stream->splits gets created from raw_mask later */
 		stream->address = cpu_to_hc32(ehci, addr);
 	}
+#if defined(CONFIG_GM_FOTG2XX)
+}
+#endif
+
 	stream->bandwidth = bandwidth;
 
 	stream->udev = dev;
@@ -1063,6 +1134,8 @@ iso_stream_init (
 static void
 iso_stream_put(struct ehci_hcd *ehci, struct ehci_iso_stream *stream)
 {
+	u32	ehci_speed = ehci_port_speed(ehci,0);
+
 	stream->refcount--;
 
 	/* free whenever just a dev->ep reference remains.
@@ -1077,8 +1150,20 @@ iso_stream_put(struct ehci_hcd *ehci, struct ehci_iso_stream *stream)
 			entry = stream->free_list.next;
 			list_del (entry);
 
+#if defined(CONFIG_GM_FOTG2XX)
+if ((strncmp(ehci_to_hcd(ehci)->self.bus_name, "fotg", 4) == 0) && (ehci_speed != USB_PORT_STAT_HIGH_SPEED)) {
+            /* knows about ITD */
+            struct ehci_itd     *itd;
+
+            itd = list_entry (entry, struct ehci_itd,
+                    itd_list);
+            dma_pool_free (ehci->itd_pool, itd,
+                    itd->itd_dma);
+} else {
+#endif
 			/* knows about ITD vs SITD */
-			if (stream->highspeed) {
+			if ((stream->highspeed) ||
+					((ehci_is_TDI(ehci)) && (ehci_speed != USB_PORT_STAT_HIGH_SPEED))) {
 				struct ehci_itd		*itd;
 
 				itd = list_entry (entry, struct ehci_itd,
@@ -1093,6 +1178,9 @@ iso_stream_put(struct ehci_hcd *ehci, struct ehci_iso_stream *stream)
 				dma_pool_free (ehci->sitd_pool, sitd,
 						sitd->sitd_dma);
 			}
+#if defined(CONFIG_GM_FOTG2XX)
+}
+#endif
 		}
 
 		stream->bEndpointAddress &= 0x0f;
@@ -1415,13 +1503,22 @@ iso_stream_schedule (
 	int			status;
 	unsigned		mod = ehci->periodic_size << 3;
 	struct ehci_iso_sched	*sched = urb->hcpriv;
+	u32			ehci_speed = ehci_port_speed(ehci,0);
 
 	period = urb->interval;
 	span = sched->span;
+#if defined(CONFIG_GM_FOTG2XX)
+if ((strncmp(ehci_to_hcd(ehci)->self.bus_name, "fotg", 4) == 0) && (ehci_speed != USB_PORT_STAT_HIGH_SPEED)) {
+    // do nothing
+} else {
+#endif
 	if (!stream->highspeed) {
 		period <<= 3;
 		span <<= 3;
 	}
+#if defined(CONFIG_GM_FOTG2XX)
+}
+#endif
 
 	if (span > mod - SCHEDULE_SLOP) {
 		ehci_dbg (ehci, "iso request %p too long\n", urb);
@@ -1490,7 +1587,15 @@ iso_stream_schedule (
 		do {
 			start--;
 			/* check schedule: enough space? */
-			if (stream->highspeed) {
+#if defined(CONFIG_GM_FOTG2XX)
+if ((strncmp(ehci_to_hcd(ehci)->self.bus_name, "fotg", 4) == 0) && (ehci_speed != USB_PORT_STAT_HIGH_SPEED)) {
+            if (itd_slot_ok(ehci, mod, start,
+                    stream->usecs, period))
+                done = 1;
+} else {
+#endif
+			if ((stream->highspeed) ||
+					((ehci_is_TDI(ehci)) && (ehci_speed != USB_PORT_STAT_HIGH_SPEED))) {
 				if (itd_slot_ok(ehci, mod, start,
 						stream->usecs, period))
 					done = 1;
@@ -1501,6 +1606,9 @@ iso_stream_schedule (
 						start, sched, period))
 					done = 1;
 			}
+#if defined(CONFIG_GM_FOTG2XX)
+}
+#endif
 		} while (start > next && !done);
 
 		/* no room in the schedule */
@@ -1823,11 +1931,35 @@ static int itd_submit (struct ehci_hcd *ehci, struct urb *urb,
 		ehci_dbg (ehci, "can't get iso stream\n");
 		return -ENOMEM;
 	}
-	if (unlikely (urb->interval != stream->interval)) {
+#if defined(CONFIG_GM_FOTG2XX)
+if ((strncmp(ehci_to_hcd(ehci)->self.bus_name, "fotg", 4) == 0) && (ehci_port_speed(ehci, 0) != USB_PORT_STAT_HIGH_SPEED)) {
+	if (unlikely (urb->interval != stream->interval) &&
+	    (ehci_port_speed(ehci, 0) == USB_PORT_STAT_HIGH_SPEED)) {
 		ehci_dbg (ehci, "can't change iso interval %d --> %d\n",
 			stream->interval, urb->interval);
 		goto done;
 	}
+} else {
+#endif
+	if (ehci_is_TDI(ehci)) {
+		u32 ehci_speed = ehci_port_speed(ehci,0);
+
+		if ( unlikely (urb->interval != stream->interval) && (ehci_speed == USB_PORT_STAT_HIGH_SPEED) ) {
+			printk( "can't change iso interval %d --> %d\n",
+					stream->interval, urb->interval);
+			goto done;
+		}
+	}
+	else {
+		if (unlikely (urb->interval != stream->interval)) {
+			ehci_dbg (ehci, "can't change iso interval %d --> %d\n",
+					stream->interval, urb->interval);
+			goto done;
+		}
+	}
+#if defined(CONFIG_GM_FOTG2XX)
+}
+#endif
 
 #ifdef EHCI_URB_TRACE
 	ehci_dbg (ehci,
@@ -2211,6 +2343,13 @@ static int sitd_submit (struct ehci_hcd *ehci, struct urb *urb,
 	int			status = -EINVAL;
 	unsigned long		flags;
 	struct ehci_iso_stream	*stream;
+
+	if (ehci_is_TDI(ehci)) {
+		u32 ehci_speed = ehci_port_speed(ehci,0);
+
+		if (ehci_speed != USB_PORT_STAT_HIGH_SPEED)  // this is FS itd
+			return itd_submit(ehci,urb,mem_flags);
+	}
 
 	/* Get iso_stream head */
 	stream = iso_stream_find (ehci, urb);

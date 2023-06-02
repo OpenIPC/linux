@@ -392,6 +392,31 @@ config SPI_DW_PCI
 	tristate "PCI interface driver for DW SPI core"
 	depends on SPI_DESIGNWARE && PCI
 
+config SPI_FTSPI020
+    	bool "Grain Media's SPI020 controller for SPI flash"
+    	depends on SPI_MASTER
+    	help
+	  This exposes the SPI020 controller IP of Grain Media Inc.
+
+config FTSPI020_USE_AHBDMA
+	bool "Use AHB DMA transfer"
+	depends on SPI_FTSPI020
+	help
+	  Use AHB DMA to transfer data instead of PIO
+
+config FTSPI020_USE_AXIDMA
+	bool "Use AXI DMA transfer"
+	depends on SPI_FTSPI020
+	help
+	  Use AXI DMA to transfer data instead of PIO
+
+config SPI_FTSSP010
+    bool "Grain Media's SSP010_1 controller for SPI mode"
+    default n
+    depends on SPI_MASTER && (PLATFORM_GM8139 || PLATFORM_GM8136)
+    help
+      This exposes the SSP010 controller IP of Grain Media Inc.
+	  
 config SPI_DW_MID_DMA
 	bool "DMA support for DW SPI controller on Intel Moorestown platform"
 	depends on SPI_DW_PCI && INTEL_MID_DMAC

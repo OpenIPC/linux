@@ -734,6 +734,9 @@ init_hw_perf_events(void)
 		case 0xC0F0:	/* Cortex-A15 */
 			cpu_pmu = armv7_a15_pmu_init();
 			break;
+		case 0xC070:	/* Cortex-A7 */
+			cpu_pmu = armv7_a7_pmu_init();
+			break;
 		}
 	/* Intel CPUs [xscale]. */
 	} else if (0x69 == implementor) {
@@ -746,6 +749,15 @@ init_hw_perf_events(void)
 			cpu_pmu = xscale2pmu_init();
 			break;
 		}
+#if 0
+	/* Faraday CPUs [FMP626]. */
+	} else if (0x66 == implementor) {
+		switch (part_number) {
+		case 0x6260:	/* FMP626 */
+			cpu_pmu = fmp626_pmu_init();
+			break;
+		}
+#endif
 	}
 
 	if (cpu_pmu) {

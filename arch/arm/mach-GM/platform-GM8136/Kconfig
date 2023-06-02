@@ -1,0 +1,33 @@
+#
+# arch/arm/mach-GM/platform-GM8136/Kconfig
+
+if PLATFORM_GM8136
+
+#config SYS_CLK
+config CLOCK_TICK_RATE	
+        int "AHB System Clock"
+        default 240000000
+        help
+          Manual setting of AHB clock, must match the jumper setting on
+          the board, or the system time won't be correctly calculated.
+          Notice that even when AUTO_SYS_CLK is ON, this value is still
+          required for adjusting minor time offsets. However, the influence
+          should be within micro-second to nano-second scale.
+
+config FTINTC030
+	bool "FTINTC030 support"
+	default y
+
+config FPGA
+	bool "FPGA Verify"
+	default n
+
+config VIDEO_FASTTHROUGH
+	bool "Video Fast Through"
+	default y
+	help
+	  When this function is on, video related drivers need to work in
+	  atomic context for fast passing job to next stage.
+
+endif
+

@@ -45,6 +45,14 @@
 #include <scsi/scsi_cmnd.h>
 #include <linux/libata.h>
 #include "ahci.h"
+#ifdef CONFIG_SATA_AHCI_PLATFORM // chris add
+#ifdef CONFIG_PLATFORM_GM8210
+#include <mach/ftpmu010_pcie.h>
+#endif
+#ifdef CONFIG_PLATFORM_GM8287
+#include <mach/ftpmu010.h>
+#endif
+#endif
 
 static int ahci_skip_host_reset;
 int ahci_ignore_sss;
@@ -802,6 +810,25 @@ int ahci_reset_controller(struct ata_host *host)
 	 */
 	ahci_enable_ahci(mmio);
 
+#ifdef CONFIG_SATA_AHCI_PLATFORM // chris add
+#ifdef CONFIG_PLATFORM_GM8287
+    {
+        /*
+         * An additional step for SATA PHY used by GM8287,
+         * it must de-assert phyn_reset_n first, before set HBA Reset on controller.
+         */
+        void __iomem *port_mmio = mmio + 0x100;
+
+        tmp = readl(port_mmio + PORT_CMD);
+        tmp |= PORT_CMD_SPIN_UP;
+        writel(tmp, port_mmio + PORT_CMD);
+        readl(port_mmio + PORT_CMD); /* flush */
+
+        mdelay(500);
+    }
+#endif
+#endif
+
 	/* global controller reset */
 	if (!ahci_skip_host_reset) {
 		tmp = readl(mmio + HOST_CTL);
@@ -824,6 +851,23 @@ int ahci_reset_controller(struct ata_host *host)
 				tmp);
 			return -EIO;
 		}
+
+#ifdef CONFIG_SATA_AHCI_PLATFORM // chris add
+#ifdef CONFIG_PLATFORM_GM8210
+        tmp = PCIE_AHB_CLK_IN / 1000;
+#endif
+#ifdef CONFIG_PLATFORM_GM8287
+        tmp = AHB_CLK_IN / 1000;
+#endif
+        if (tmp > 0x3FFFF) {
+            writel(tmp/2, mmio + 0xA0);
+            tmp = readl(mmio + 0x14);
+            tmp = (tmp & 0x0000FFFF) | (2 << 16);
+            writel(tmp, mmio + 0x14);
+        } else {
+            writel(tmp, mmio + 0xA0);
+        }
+#endif
 
 		/* turn on AHCI mode */
 		ahci_enable_ahci(mmio);
@@ -1440,6 +1484,9 @@ static unsigned int ahci_fill_sg(struct ata_queued_cmd *qc, void *cmd_tbl)
 		dma_addr_t addr = sg_dma_address(sg);
 		u32 sg_len = sg_dma_len(sg);
 
+#ifdef CONFIG_EP_SATA_ENABLE
+        addr += 0xF0000000;
+#endif
 		ahci_sg[si].addr = cpu_to_le32(addr & 0xffffffff);
 		ahci_sg[si].addr_hi = cpu_to_le32((addr >> 16) >> 16);
 		ahci_sg[si].flags_size = cpu_to_le32(sg_len - 1);
@@ -1568,6 +1615,65 @@ static void ahci_error_intr(struct ata_port *ap, u32 irq_stat)
 	if (hpriv->flags & AHCI_HFLAG_IGN_IRQ_IF_ERR)
 		irq_stat &= ~PORT_IRQ_IF_ERR;
 
+#ifdef CONFIG_SATA_AHCI_PLATFORM // for ATAPI
+    if (link->device->class == ATA_DEV_ATAPI) {
+        static int quick_drain = 0;
+
+        if (quick_drain) {
+            /* If interrupt is triggered on Task File Error Status
+             * after Protocol Error happened, it must ignore the
+             * result of error to fake passed.
+             */
+            ahci_stop_engine(ap);
+            ahci_start_engine(ap);
+            quick_drain = 0;
+            ata_qc_complete(active_qc);
+            return;
+        }
+
+        if (host_ehi->serror & SERR_PROTOCOL) {
+            /* There is a very strange behavior on cdrom drive.
+             * While host issues a packet command READ DISC INFORMATION(51h),
+             * the data FIS received during a PIO command and the size
+             * in the transfer counter field of the preceding PIO Setup
+             * FIS are mismatched. That is violation of the Serial ATA
+             * protocol and always returns result of error back.
+             * In order to solve this issue, it must ignore result of
+             * Protocol Error on host and skip remaining handling.
+             */
+            host_ehi->serror &= ~SERR_PROTOCOL;
+            ahci_stop_engine(ap);
+            ahci_start_engine(ap);
+            quick_drain = 1;
+            return;
+        }
+
+        if (irq_stat & PORT_IRQ_TF_ERR) {
+            if (active_qc && active_qc->scsicmd) {
+                /* The CD recorder, model name LG GH24NSC0, is always returned error
+                 * status for these commands, it is different from other devices.
+                 * It is necessary to ignore these errors to return back successful result.
+                 */
+                switch (active_qc->scsicmd->cmnd[0]) {
+                    case 0x28: // READ (10)
+                        active_qc->flags |= ATA_QCFLAG_RETRY;
+                        active_ehi->flags |= (ATA_EHI_NO_AUTOPSY | ATA_EHI_QUIET);
+                        break;
+                    case 0x52: // READ TRACK/RZONE INFORMATION
+                        ahci_stop_engine(ap);
+                        ahci_start_engine(ap);
+                        ata_qc_complete(active_qc);
+                        return;
+                    default:
+                        break;
+                }
+            }
+        }
+
+        irq_stat &= ~PORT_IRQ_IF_ERR;
+    }
+#endif
+
 	if (irq_stat & PORT_IRQ_TF_ERR) {
 		/* If qc is active, charge it; otherwise, the active
 		 * link.  There's no active qc on NCQ errors.  It will
@@ -1644,6 +1750,14 @@ static void ahci_port_intr(struct ata_port *ap)
 	int rc;
 
 	status = readl(port_mmio + PORT_IRQ_STAT);
+#ifdef CONFIG_SATA_AHCI_PLATFORM
+    if (unlikely(status & PORT_IRQ_ERROR)) {
+        if (ap->link.device->class == ATA_DEV_ATA) {
+            extern void ftsata100_dump_reg(struct ata_port *ap);
+            ftsata100_dump_reg(ap);
+        }
+    }
+#endif
 	writel(status, port_mmio + PORT_IRQ_STAT);
 
 	/* ignore BAD_PMP while resetting */
@@ -1734,12 +1848,17 @@ irqreturn_t ahci_interrupt(int irq, void *dev_instance)
 	hpriv = host->private_data;
 	mmio = hpriv->mmio;
 
+#ifdef CONFIG_EP_SATA_ENABLE
+    irq_stat = hpriv->port_map;
+    irq_masked = hpriv->port_map;
+#else
 	/* sigh.  0xffffffff is a valid return from h/w */
 	irq_stat = readl(mmio + HOST_IRQ_STAT);
 	if (!irq_stat)
 		return IRQ_NONE;
 
 	irq_masked = irq_stat & hpriv->port_map;
+#endif
 
 	spin_lock(&host->lock);
 
@@ -1753,6 +1872,14 @@ irqreturn_t ahci_interrupt(int irq, void *dev_instance)
 		if (ap) {
 			ahci_port_intr(ap);
 			VPRINTK("port %u\n", i);
+#ifdef CONFIG_EP_SATA_ENABLE
+            {
+                void __iomem *port_mmio = ahci_port_base(ap);
+                struct ahci_port_priv *pp = ap->private_data;
+
+                writel(pp->intr_mask, port_mmio + PORT_IRQ_MASK);
+            }
+#endif
 		} else {
 			VPRINTK("port %u (no irq)\n", i);
 			if (ata_ratelimit())
@@ -1763,6 +1890,9 @@ irqreturn_t ahci_interrupt(int irq, void *dev_instance)
 		handled = 1;
 	}
 
+#ifdef CONFIG_EP_SATA_ENABLE
+    ftpmu010_clear_intr(irq);
+#else
 	/* HOST_IRQ_STAT behaves as level triggered latch meaning that
 	 * it should be cleared after all the port events are cleared;
 	 * otherwise, it will raise a spurious interrupt after each
@@ -1773,6 +1903,7 @@ irqreturn_t ahci_interrupt(int irq, void *dev_instance)
 	 * pending event on a dummy port might cause screaming IRQ.
 	 */
 	writel(irq_stat, mmio + HOST_IRQ_STAT);
+#endif
 
 	spin_unlock(&host->lock);
 
@@ -2066,6 +2197,10 @@ static int ahci_port_start(struct ata_port *ap)
 	if (!mem)
 		return -ENOMEM;
 	memset(mem, 0, dma_sz);
+
+#ifdef CONFIG_EP_SATA_ENABLE
+    mem_dma += 0xF0000000;
+#endif
 
 	/*
 	 * First item in chunk of DMA memory: 32-slot command table,

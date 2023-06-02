@@ -85,6 +85,12 @@ config GPIO_GENERIC_PLATFORM
 	help
 	  Say yes here to support basic platform_device memory-mapped GPIO controllers.
 
+config GPIO_FTGPIO010
+	tristate "FTGPIO010 GPIO support"
+	depends on ARCH_GM || ARCH_GM_DUO || ARCH_GM_SMP # unconditional access to IO space.
+	help
+	  Say yes here to support GPIO functionality of GM Soc
+
 config GPIO_IT8761E
 	tristate "IT8761E GPIO support"
 	depends on X86  # unconditional access to IO space.

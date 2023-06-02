@@ -30,7 +30,7 @@
  * enable the interrupt.
  */
 
-#if defined(CONFIG_CPU_V6) || defined(CONFIG_CPU_V6K)
+#if defined(CONFIG_CPU_V6) || defined(CONFIG_CPU_V6K) || defined(CONFIG_CPU_FMP626)
 enum armv6_perf_types {
 	ARMV6_PERFCTR_ICACHE_MISS	    = 0x0,
 	ARMV6_PERFCTR_IBUF_STALL	    = 0x1,
@@ -706,6 +706,35 @@ static struct arm_pmu *__init armv6mpcore_pmu_init(void)
 {
 	return &armv6mpcore_pmu;
 }
+
+/*
+ * FMP626 is almost identical to single core ARMv6 with the exception
+ * that some of the events have different enumerations and that there is no
+ * *hack* to stop the programmable counters. To stop the counters we simply
+ * disable the interrupt reporting and update the event. When unthrottling we
+ * reset the period and enable the interrupt reporting.
+ */
+static const struct arm_pmu fmp626_pmu = {
+	.id			= ARM_PERF_PMU_ID_FMP626,
+	.name			= "fmp626",
+	.handle_irq		= armv6pmu_handle_irq,
+	.enable			= armv6pmu_enable_event,
+	.disable		= armv6mpcore_pmu_disable_event,
+	.read_counter		= armv6pmu_read_counter,
+	.write_counter		= armv6pmu_write_counter,
+	.get_event_idx		= armv6pmu_get_event_idx,
+	.start			= armv6pmu_start,
+	.stop			= armv6pmu_stop,
+	.map_event		= armv6mpcore_map_event,
+	.num_events		= 3,
+	.max_period		= (1LLU << 32) - 1,
+};
+
+static const struct arm_pmu *__init fmp626_pmu_init(void)
+{
+	return &fmp626_pmu;
+}
+
 #else
 static struct arm_pmu *__init armv6pmu_init(void)
 {

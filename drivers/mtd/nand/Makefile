@@ -7,7 +7,13 @@ obj-$(CONFIG_MTD_NAND_ECC)		+= nand_ecc.o
 obj-$(CONFIG_MTD_NAND_BCH)		+= nand_bch.o
 obj-$(CONFIG_MTD_NAND_IDS)		+= nand_ids.o
 obj-$(CONFIG_MTD_SM_COMMON) 		+= sm_common.o
-
+obj-$(CONFIG_MTD_NAND_FTNANDC023) 	+= ftnandc023v2_nand.o
+obj-$(CONFIG_MTD_NAND_FTNANDC024V2) 	+= ftnandc024v2_nand.o
+ifeq ($(CONFIG_PLATFORM_GM8220),y)
+obj-$(CONFIG_MTD_NAND_FTSPINAND020) 	+= ftspi020_nand_v2.o
+else
+obj-$(CONFIG_MTD_NAND_FTSPINAND020) 	+= ftspi020_nand.o
+endif
 obj-$(CONFIG_MTD_NAND_CAFE)		+= cafe_nand.o
 obj-$(CONFIG_MTD_NAND_SPIA)		+= spia.o
 obj-$(CONFIG_MTD_NAND_AMS_DELTA)	+= ams-delta.o

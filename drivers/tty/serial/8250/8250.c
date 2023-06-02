@@ -41,11 +41,17 @@
 
 #include <asm/io.h>
 #include <asm/irq.h>
+#include <asm/cputype.h>
 
 #include "8250.h"
+#include <mach/ftpmu010.h>
 
 #ifdef CONFIG_SPARC
 #include "../suncore.h"
+#endif
+
+#ifdef CONFIG_SERIAL_CTSRTS
+#include <linux/gpio.h>
 #endif
 
 /*
@@ -140,6 +146,11 @@ struct irq_info {
 static struct hlist_head irq_lists[NR_IRQ_HASH];
 static DEFINE_MUTEX(hash_mutex);	/* Used to walk the hash */
 
+#ifdef CONFIG_SERIAL_CTSRTS
+#define RTS_PIN 28
+#define CTS_PIN 29
+static unsigned char tx_stop = 0;
+#endif
 /*
  * Here we define the default xmit fifo size used for each type of UART.
  */
@@ -168,7 +179,11 @@ static const struct serial8250_config uart_config[] = {
 		.name		= "16550A",
 		.fifo_size	= 16,
 		.tx_loadsz	= 16,
+#ifdef CONFIG_SERIAL_CTSRTS
+		.fcr		= UART_FCR_ENABLE_FIFO | UART_FCR_R_TRIG_01,
+#else
 		.fcr		= UART_FCR_ENABLE_FIFO | UART_FCR_R_TRIG_10,
+#endif
 		.flags		= UART_CAP_FIFO,
 	},
 	[PORT_CIRRUS] = {
@@ -292,6 +307,122 @@ static const struct serial8250_config uart_config[] = {
 	},
 };
 
+#if CONFIG_SERIAL_8250_RUNTIME_UARTS >= 2
+static int uart_fd = -1;
+
+static pmuReg_t regUARTArray[] = {
+    /* reg_off      bit_masks       lock_bits       init_val        init_mask */
+#ifdef CONFIG_PLATFORM_GM8210
+    {0xB8,          (0x1 << 0),    (0x1 << 0),    (0x0 << 0),    (0x1 << 0)},   // uart0 clk on
+    {0x58,          (0x1 << 8), 	 (0x1 << 8), 	  (0x0 << 8), 	 (0x1 << 8)},   // uart1 pinmux, uart1 for 626
+    {0xB8,          (0x1 << 1),    (0x1 << 1),    (0x0 << 1),    (0x1 << 1)},   // uart1 clk on
+#ifdef CONFIG_SERIAL_UART2_IP
+    {0x58,          (0x3 << 12), 	 (0x3 << 12), 	(0x0 << 12), 	 (0x3 << 12)},  // uart2 pinmux
+    {0xB8,          (0x1 << 2),    (0x1 << 2),    (0x0 << 2),    (0x1 << 2)},   // uart2 clk on
+#endif
+#ifdef CONFIG_SERIAL_UART3_IP
+    {0x58,          (0x3 << 16), 	 (0x3 << 16), 	(0x0 << 16), 	 (0x3 << 16)},  // uart3 pinmux
+    {0xB8,          (0x1 << 3),    (0x1 << 3),    (0x0 << 3),    (0x1 << 3)},   // uart3 clk on
+#endif
+#ifdef CONFIG_SERIAL_UART4_IP
+    {0x58,          (0x3 << 20), 	 (0x3 << 20), 	(0x0 << 20), 	 (0x3 << 20)},  // uart4 pinmux
+    {0xB8,          (0x1 << 4),    (0x1 << 4),    (0x0 << 4),    (0x1 << 4)},   // uart4 clk on
+#endif
+#ifdef CONFIG_SERIAL_UART5_IP
+    {0x4C,          (0x3 << 6),    (0x3 << 6),    (0x0 << 6),    (0x3 << 6)},   // uart5 pinmux for 7500
+    {0xB8,          (0x1 << 5),    (0x1 << 5),    (0x0 << 5),    (0x1 << 5)},   // uart5 clk on
+#endif
+#endif //#ifdef CONFIG_PLATFORM_GM8210
+
+#ifdef CONFIG_PLATFORM_GM8287
+    {0xB8,          (0x1 << 0),    (0x1 << 0),    (0x0 << 0),    (0x1 << 0)},   // uart0 clk on
+#ifdef CONFIG_SERIAL_UART1_IP
+    {0x58,          (0x1 << 8), 	 (0x1 << 8), 	  (0x0 << 8), 	 (0x1 << 8)},   // uart1 pinmux
+    {0xB8,          (0x1 << 1),    (0x1 << 1),    (0x0 << 1),    (0x1 << 1)},   // uart1 clk on
+#endif
+#ifdef CONFIG_SERIAL_UART2_IP
+    {0x58,          (0x3 << 12), 	 (0x3 << 12), 	(0x0 << 12), 	 (0x3 << 12)},  // uart2 pinmux
+    {0xB8,          (0x1 << 2),    (0x1 << 2),    (0x0 << 2),    (0x1 << 2)},   // uart2 clk on
+#endif
+#ifdef CONFIG_SERIAL_UART3_IP
+#if 1
+    {0x5C,          (0x3 << 14),   (0x3 << 14),   (0x2 << 14),   (0x3 << 14)},  // uart3 pinmux
+#else
+    {0x5C,          (0x3 << 18),   (0x3 << 18),   (0x1 << 18),   (0x3 << 18)},  // uart3 pinmux, default irda use it. For uart function, field [15:14] and [19:18] only select one to use
+#endif
+    {0xB8,          (0x1 << 3),    (0x1 << 3),    (0x0 << 3),    (0x1 << 3)},   // uart3 clk on
+#endif
+#endif //#ifdef CONFIG_PLATFORM_GM8287
+
+#ifdef CONFIG_PLATFORM_GM8139
+    {0x58,          (0xF << 28), 	 (0xF << 28), 	(0x5 << 28), 	 (0xF << 28)},  // uart0 pinmux
+    {0xB8,          (0x1 << 0),    (0x1 << 0),    (0x0 << 0),    (0x1 << 0)},   // uart0 clk on
+#ifdef CONFIG_SERIAL_UART1_IP
+    {0x64,          (0xF << 2), 	 (0xF << 2), 	  (0xA << 2), 	 (0xF << 2)},   // uart1 pinmux
+    {0xB8,          (0x1 << 1),    (0x1 << 1),    (0x0 << 1),    (0x1 << 1)},   // uart1 clk on
+#endif
+#ifdef CONFIG_SERIAL_UART2_IP
+    {0x58,          (0xF << 24), 	 (0xF << 24), 	(0xF << 24), 	 (0xF << 24)},  // uart2 pinmux
+    {0xB8,          (0x1 << 2),    (0x1 << 2),    (0x0 << 2),    (0x1 << 2)},   // uart2 clk on
+#endif
+#endif //#ifdef CONFIG_PLATFORM_GM8139
+
+#ifdef CONFIG_PLATFORM_GM8136
+    {0x58,          (0xF << 28), 	 (0xF << 28), 	(0x5 << 28), 	 (0xF << 28)},  // uart0 pinmux
+    {0xB8,          (0x1 << 0),    (0x1 << 0),    (0x0 << 0),    (0x1 << 0)},   // uart0 clk on
+#ifdef CONFIG_SERIAL_UART1_IP
+    {0x64,          (0xF << 2), 	 (0xF << 2), 	  (0xA << 2), 	 (0xF << 2)},   // uart1 pinmux
+    {0xB8,          (0x1 << 1),    (0x1 << 1),    (0x0 << 1),    (0x1 << 1)},   // uart1 clk on
+#endif
+#ifdef CONFIG_SERIAL_UART2_IP
+    {0x58,          (0xF << 24), 	 (0xF << 24), 	(0x5 << 24), 	 (0xF << 24)},  // uart2 pinmux
+    {0xB8,          (0x1 << 2),    (0x1 << 2),    (0x0 << 2),    (0x1 << 2)},   // uart2 clk on
+#endif
+#endif //#ifdef CONFIG_PLATFORM_GM8136
+
+#ifdef CONFIG_PLATFORM_GM8220
+    {0x1A8,          (0xF << 6), 	 (0xF << 6), 	(0x5 << 6), 	 (0xF << 6)},  // uart0 pinmux
+    {0x78,          (0x1 << 2),    (0x1 << 2),    (0x0 << 2),    (0x1 << 2)},   // uart0 clk on
+#ifdef CONFIG_SERIAL_UART1_IP
+    {0x1A8,          (0xF << 10), 	 (0xF << 10), 	(0x5 << 10), 	 (0xF << 10)},   // uart1 pinmux
+    {0x78,          (0x1 << 3),    (0x1 << 3),    (0x0 << 3),    (0x1 << 3)},   // uart1 clk on
+#endif
+#ifdef CONFIG_SERIAL_UART2_IP
+    {0x1A8,          (0xF << 14), 	 (0xF << 14), 	(0x5 << 14), 	 (0xF << 14)},  // uart2 pinmux
+    {0x78,          (0x1 << 4),    (0x1 << 4),    (0x0 << 4),    (0x1 << 4)},   // uart2 clk on
+#endif
+#ifdef CONFIG_SERIAL_UART3_IP
+    {0x1A8,          (0xF << 18), 	 (0xF << 18), 	(0x5 << 18), 	 (0xF << 18)},   // uart3 pinmux
+    {0x78,          (0x1 << 5),    (0x1 << 5),    (0x0 << 5),    (0x1 << 5)},   // uart3 clk on
+#endif
+#ifdef CONFIG_SERIAL_UART4_IP
+    {0x1A8,          (0xF << 22), 	 (0xF << 22), 	(0x5 << 22), 	 (0xF << 22)},  // uart4 pinmux
+    {0x78,          (0x1 << 6),    (0x1 << 6),    (0x0 << 6),    (0x1 << 6)},   // uart4 clk on
+#endif
+#ifdef CONFIG_SERIAL_UART5_IP
+    {0x1A8,          (0xF << 26), 	 (0xF << 26), 	(0x5 << 26), 	 (0xF << 26)},   // uart5 pinmux
+    {0x78,          (0x1 << 7),    (0x1 << 7),    (0x0 << 7),    (0x1 << 7)},   // uart5 clk on
+#endif
+#ifdef CONFIG_SERIAL_UART6_IP
+    {0x1A8,          (0x3 << 30), 	 (0x3 << 30), 	(0x1 << 30), 	 (0x3 << 30)},  // uart6 pinmux
+    {0x1AC,          (0x3 << 0), 	 (0x3 << 0), 	(0x1 << 0), 	 (0x3 << 0)},
+    {0x78,          (0x1 << 8),    (0x1 << 8),    (0x0 << 8),    (0x1 << 8)},   // uart6 clk on
+#endif
+#ifdef CONFIG_SERIAL_UART7_IP
+    {0x1AC,          (0xF << 2), 	 (0xF << 2), 	(0x5 << 2), 	 (0xF << 2)},   // uart7 pinmux
+    {0x78,          (0x1 << 9),    (0x1 << 9),    (0x0 << 9),    (0x1 << 9)},   // uart7 clk on
+#endif
+#endif //#ifdef CONFIG_PLATFORM_GM8220
+};
+
+static pmuRegInfo_t uart_clk_pinmux_info = {
+    "uart_clk_pinmux",
+    ARRAY_SIZE(regUARTArray),
+    ATTR_TYPE_NONE,
+    regUARTArray
+};
+#endif
+
 #if defined(CONFIG_MIPS_ALCHEMY)
 
 /* Au1x00 UART hardware has a weird register layout */
@@ -372,6 +503,18 @@ static inline int map_8250_out_reg(struct uart_port *p, int offset)
 #define map_8250_in_reg(up, offset) (offset)
 #define map_8250_out_reg(up, offset) (offset)
 
+#endif
+
+#ifdef CONFIG_PLATFORM_GM8210
+static inline u32 get_cpu_id(void)
+{
+    static u32 cpu_id = 0;
+
+    if (!cpu_id)
+        cpu_id = (read_cpuid_id() >> 0x4) & 0xFFF;
+
+    return cpu_id;
+}
 #endif
 
 static unsigned int hub6_serial_in(struct uart_port *p, int offset)
@@ -564,7 +707,7 @@ static void serial_icr_write(struct uart_8250_port *up, int offset, int value)
 	serial_out(up, UART_SCR, offset);
 	serial_out(up, UART_ICR, value);
 }
-
+#if !defined(CONFIG_ARCH_GM) && !defined(CONFIG_ARCH_GM_DUO) && !defined(CONFIG_ARCH_GM_SMP)
 static unsigned int serial_icr_read(struct uart_8250_port *up, int offset)
 {
 	unsigned int value;
@@ -576,7 +719,7 @@ static unsigned int serial_icr_read(struct uart_8250_port *up, int offset)
 
 	return value;
 }
-
+#endif
 /*
  * FIFO support.
  */
@@ -685,6 +828,7 @@ static void disable_rsa(struct uart_8250_port *up)
  * This is a quickie test to see how big the FIFO is.
  * It doesn't work at all the time, more's the pity.
  */
+#if !defined(CONFIG_ARCH_GM) && !defined(CONFIG_ARCH_GM_DUO) && !defined(CONFIG_ARCH_GM_SMP)
 static int size_fifo(struct uart_8250_port *up)
 {
 	unsigned char old_fcr, old_mcr, old_lcr;
@@ -865,14 +1009,14 @@ static int broken_efr(struct uart_8250_port *up)
 	/*
 	 * Exar ST16C2550 "A2" devices incorrectly detect as
 	 * having an EFR, and report an ID of 0x0201.  See
-	 * http://linux.derkeiler.com/Mailing-Lists/Kernel/2004-11/4812.html 
+	 * http://linux.derkeiler.com/Mailing-Lists/Kernel/2004-11/4812.html
 	 */
 	if (autoconfig_read_divisor_id(up) == 0x0201 && size_fifo(up) == 16)
 		return 1;
 
 	return 0;
 }
-
+#endif
 static inline int ns16550a_goto_highspeed(struct uart_8250_port *up)
 {
 	unsigned char status;
@@ -896,6 +1040,7 @@ static inline int ns16550a_goto_highspeed(struct uart_8250_port *up)
  * we know the top two bits of the IIR are currently set.  The
  * EFR should contain zero.  Try to read the EFR.
  */
+#if !defined(CONFIG_ARCH_GM) && !defined(CONFIG_ARCH_GM_DUO) && !defined(CONFIG_ARCH_GM_SMP)
 static void autoconfig_16550a(struct uart_8250_port *up)
 {
 	unsigned char status1, status2;
@@ -1049,6 +1194,7 @@ static void autoconfig_16550a(struct uart_8250_port *up)
 		up->capabilities |= UART_CAP_AFE;
 	}
 }
+#endif
 
 /*
  * This routine is called by rs_init() to initialize a specific serial
@@ -1057,6 +1203,17 @@ static void autoconfig_16550a(struct uart_8250_port *up)
  * whether or not this UART is a 16550A or not, since this will
  * determine whether or not we can use its FIFO features or not.
  */
+// Luke Lee 04/28/2005 ins #if block
+#if defined(CONFIG_ARCH_GM) || defined(CONFIG_ARCH_GM_DUO) || defined(CONFIG_ARCH_GM_SMP)
+static void autoconfig(struct uart_8250_port *up, unsigned int probeflags)
+{
+    	up->port.type = PORT_16550A;
+	up->bugs = 0;
+	serial_outp(up, UART_IER, 0x0F);
+
+    	return ;
+}
+#else
 static void autoconfig(struct uart_8250_port *up, unsigned int probeflags)
 {
 	unsigned char status1, scratch, scratch2, scratch3;
@@ -1150,8 +1307,10 @@ static void autoconfig(struct uart_8250_port *up, unsigned int probeflags)
 	 * We also initialise the EFR (if any) to zero for later.  The
 	 * EFR occupies the same register location as the FCR and IIR.
 	 */
+#ifndef CONFIG_SERIAL_8250_FTUART010	/* FTUART010 does not have EFR */
 	serial_outp(up, UART_LCR, UART_LCR_CONF_MODE_B);
 	serial_outp(up, UART_EFR, 0);
+#endif
 	serial_outp(up, UART_LCR, 0);
 
 	serial_outp(up, UART_FCR, UART_FCR_ENABLE_FIFO);
@@ -1226,6 +1385,7 @@ static void autoconfig(struct uart_8250_port *up, unsigned int probeflags)
 	spin_unlock_irqrestore(&up->port.lock, flags);
 	DEBUG_AUTOCONF("type=%s\n", uart_config[up->port.type].name);
 }
+#endif
 
 static void autoconfig_irq(struct uart_8250_port *up)
 {
@@ -1315,8 +1475,35 @@ static void serial8250_start_tx(struct uart_port *port)
 			up->lsr_saved_flags |= lsr & LSR_SAVE_FLAGS;
 			if ((up->port.type == PORT_RM9000) ?
 				(lsr & UART_LSR_THRE) :
-				(lsr & UART_LSR_TEMT))
+				(lsr & UART_LSR_TEMT)) {
+
+#ifdef CONFIG_SERIAL_CTSRTS
+				{
+					ssize_t	status;
+					unsigned int tmout;
+			
+					if(up->port.irq == UART_FTUART010_2_IRQ) {
+						//printk("<w=0x%x>",gpio_get_value(CTS_PIN));
+						for (tmout = 1000000; tmout; tmout--) {
+							status = gpio_get_value(CTS_PIN); /* input */
+							if (!status)	/* CTS send must low */
+								break;
+		
+							udelay(1);
+						}
+						//printk("<e>");
+						if(!tmout) {
+							printk("Wait CTS low timeout, status = 0x%x", status);
+							tx_stop = 1;
+							return;
+						} else {
+							tx_stop = 0;
+						}
+					}
+				}
+#endif
 				serial8250_tx_chars(up);
+			}
 		}
 	}
 
@@ -1450,6 +1637,10 @@ serial8250_rx_chars(struct uart_8250_port *up, unsigned char lsr)
 		if (uart_handle_sysrq_char(&up->port, ch))
 			goto ignore_char;
 
+#ifdef CONFIG_SERIAL_CTSRTS
+		if(up->port.irq == UART_FTUART010_2_IRQ)
+			gpio_direction_output(RTS_PIN, 1); /* output high to stop receive */
+#endif
 		uart_insert_char(&up->port, lsr, UART_LSR_OE, ch, flag);
 
 ignore_char:
@@ -1457,7 +1648,15 @@ ignore_char:
 	} while ((lsr & (UART_LSR_DR | UART_LSR_BI)) && (max_count-- > 0));
 	spin_unlock(&up->port.lock);
 	tty_flip_buffer_push(tty);
+
+#ifdef CONFIG_SERIAL_CTSRTS
+		if(up->port.irq == UART_FTUART010_2_IRQ) {
+			//printk("<r>");
+			gpio_direction_output(RTS_PIN, 0); /* output low to resume */
+		}
+#endif
 	spin_lock(&up->port.lock);
+
 	return lsr;
 }
 EXPORT_SYMBOL_GPL(serial8250_rx_chars);
@@ -1466,6 +1665,11 @@ void serial8250_tx_chars(struct uart_8250_port *up)
 {
 	struct circ_buf *xmit = &up->port.state->xmit;
 	int count;
+
+#ifdef CONFIG_SERIAL_CTSRTS
+	if((tx_stop) && (up->port.irq == UART_FTUART010_2_IRQ))
+		return;
+#endif
 
 	if (up->port.x_char) {
 		serial_outp(up, UART_TX, up->port.x_char);
@@ -2060,7 +2264,12 @@ static int serial8250_startup(struct uart_port *port)
 		 * If the interrupt is not reasserted, setup a timer to
 		 * kick the UART on a regular basis.
 		 */
+/* lichun modify: when kernel boot-up, some last message can't show on terminal */
+#if defined(CONFIG_ARCH_GM) || defined(CONFIG_ARCH_GM_DUO) || defined(CONFIG_ARCH_GM_SMP)
+		if (iir & UART_IIR_NO_INT) {
+#else
 		if (!(iir1 & UART_IIR_NO_INT) && (iir & UART_IIR_NO_INT)) {
+#endif
 			up->bugs |= UART_BUG_THRE;
 			pr_debug("ttyS%d - using backup timer\n",
 				 serial_index(port));
@@ -2645,6 +2854,7 @@ static void serial8250_config_port(struct uart_port *port, int flags)
 
 	if (up->port.type != PORT_RSA && probeflags & PROBE_RSA)
 		serial8250_release_rsa_resource(up);
+
 	if (up->port.type == PORT_UNKNOWN)
 		serial8250_release_std_resource(up);
 }
@@ -2741,10 +2951,23 @@ static void __init serial8250_isa_init_ports(void)
 	for (i = 0, up = serial8250_ports;
 	     i < ARRAY_SIZE(old_serial_port) && i < nr_uarts;
 	     i++, up++) {
+#ifdef CONFIG_PLATFORM_GM8210
+        /* for fa626, map UART1 to ttyS0 and skip others */
+        if (get_cpu_id() == 0x626) {
+            if (i == 0)
+                i = 1;
+            else
+                continue;
+        }
+#endif
 		up->port.iobase   = old_serial_port[i].port;
 		up->port.irq      = irq_canonicalize(old_serial_port[i].irq);
 		up->port.irqflags = old_serial_port[i].irqflags;
+#ifdef CONFIG_PLATFORM_GM8136
+        up->port.uartclk  = ft_get_uartclk();
+#else
 		up->port.uartclk  = old_serial_port[i].baud_base * 16;
+#endif
 		up->port.flags    = old_serial_port[i].flags;
 		up->port.hub6     = old_serial_port[i].hub6;
 		up->port.membase  = old_serial_port[i].iomem_base;
@@ -2781,6 +3004,24 @@ serial8250_register_ports(struct uart_driver *drv, struct device *dev)
 
 	for (i = 0; i < nr_uarts; i++) {
 		struct uart_8250_port *up = &serial8250_ports[i];
+
+#ifdef CONFIG_SERIAL_8250_FTUART010
+        /*
+         * Skip adding unconfigured device node to make one-one mapping
+         * with hardware naming.
+         */
+        if (up->port.iobase == 0)
+            continue;
+
+#ifdef CONFIG_PLATFORM_GM8210
+        /* UART1 is used by fa626 as default console, skip it for fa726 */
+        if ((get_cpu_id() == 0x726) && (i == 1))
+            continue;
+        /* for fa626, UART1 is already mapped to ttyS0, register ttyS0 only */
+        if ((get_cpu_id() == 0x626) && (i != 0))
+            continue;
+#endif
+#endif
 
 		up->port.dev = dev;
 
@@ -3270,6 +3511,54 @@ static int __init serial8250_init(void)
 	printk(KERN_INFO "Serial: 8250/16550 driver, "
 		"%d ports, IRQ sharing %sabled\n", nr_uarts,
 		share_irqs ? "en" : "dis");
+
+#if CONFIG_SERIAL_8250_RUNTIME_UARTS >= 2
+    /* register UART to pmu core */
+    uart_fd = ftpmu010_register_reg(&uart_clk_pinmux_info);
+    if (unlikely(uart_fd < 0)){
+        printk("UART registers to PMU fail! \n");
+        ret = uart_fd;
+        goto out;
+    }
+///////////////
+#ifdef CONFIG_PLATFORM_GM8210
+#ifdef CONFIG_SERIAL_UART2_IP
+    ftpmu010_write_reg(uart_fd, 0x58, 0, (0x3 << 12));
+    ftpmu010_write_reg(uart_fd, 0xB8, 0, (0x1 << 2));
+#endif
+#ifdef CONFIG_SERIAL_UART3_IP
+    ftpmu010_write_reg(uart_fd, 0x58, 0, (0x3 << 16));
+    ftpmu010_write_reg(uart_fd, 0xB8, 0, (0x1 << 3));
+#endif
+#ifdef CONFIG_SERIAL_UART4_IP
+    ftpmu010_write_reg(uart_fd, 0x58, 0, (0x3 << 20));
+    ftpmu010_write_reg(uart_fd, 0xB8, 0, (0x1 << 4));
+#endif
+#endif
+///////////////
+#ifdef CONFIG_SERIAL_CTSRTS
+	printk("Enable CTS-RTS mode\n");
+
+	/* RTS */
+    if ((ret = gpio_request(RTS_PIN, "RTS_PIN")) != 0) {
+    	printk("Request GPIO%d fail! \n", RTS_PIN);
+    	goto out;
+    }
+    /* CTS */
+    if ((ret = gpio_request(CTS_PIN, "CTS_PIN")) != 0) {
+    	printk("Request GPIO%d fail! \n", CTS_PIN);
+    	goto out;
+    }
+    
+    if ((ret = gpio_direction_input(CTS_PIN)) != 0) {
+    	printk("GPIO%d set input fail! \n", CTS_PIN);
+    	goto out;
+    }
+    
+    gpio_direction_output(RTS_PIN, 0); /* initial output low */
+#endif
+
+#endif
 
 #ifdef CONFIG_SPARC
 	ret = sunserial_register_minors(&serial8250_reg, UART_NR);

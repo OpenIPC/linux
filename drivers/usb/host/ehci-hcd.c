@@ -52,6 +52,15 @@
 #include <asm/firmware.h>
 #endif
 
+#if defined(CONFIG_GM_FOTG2XX) || defined(CONFIG_GM_FUSBH200)
+#include <linux/platform_device.h>
+#include "fotg2xx_opt-macro.h"
+//#include "../gadget/GM_udc.h"
+#include <mach/ftpmu010.h>
+#include <mach/platform/platform_io.h>
+#include "fotg2xx-config.h"
+#include "fotg2xx-ehci-macro.h"
+#endif
 /*-------------------------------------------------------------------------*/
 
 /*
@@ -581,7 +590,15 @@ static void ehci_stop (struct usb_hcd *hcd)
 	if (ehci->async)
 		ehci_work (ehci);
 	spin_unlock_irq (&ehci->lock);
+
+#if defined(CONFIG_GM_FOTG2XX) || defined(CONFIG_GM_FUSBH200)
+	if (!hcd->self.is_b_host)
+		ehci_mem_cleanup (ehci);
+	ehci->watchdog.data=0;
+	ehci->iaa_watchdog.data=0;
+#else
 	ehci_mem_cleanup (ehci);
+#endif
 
 	if (ehci->amd_pll_fix == 1)
 		usb_amd_dev_put();
@@ -695,8 +712,13 @@ static int ehci_init(struct usb_hcd *hcd)
 		 */
 		if (park) {
 			park = min(park, (unsigned) 3);
+/*
+ * before FOTG210 v1.15, park mode on cause qTD buffer page number error
+ */
+#if !defined(CONFIG_GM_FOTG2XX)
 			temp |= CMD_PARK;
 			temp |= park << 8;
+#endif
 		}
 		ehci_dbg(ehci, "park %d\n", park);
 	}
@@ -760,11 +782,29 @@ static int ehci_run (struct usb_hcd *hcd)
 #endif
 	}
 
+#ifdef CONFIG_GM_FOTG2XX
+	// extend EOF 1 timing, if OTG is running on full-speed, and device is connected behind a hub
+	mwOTG20Bit_Set(hcd->regs,0x40,0xc);
+#endif
+#ifdef CONFIG_GM_FUSBH200
+	// extend EOF 1 timing, if OTG is running on full-speed, and device is connected behind a hub
+	mwH20Bit_Set(hcd->regs,0x34,0xc);
+#endif
 
 	// Philips, Intel, and maybe others need CMD_RUN before the
 	// root hub will detect new devices (why?); NEC doesn't
 	ehci->command &= ~(CMD_LRESET|CMD_IAAD|CMD_PSE|CMD_ASE|CMD_RESET);
+
+/*
+ * before FOTG210 v1.15, park mode on cause qTD buffer page number error
+ */
+#if !defined(CONFIG_GM_FOTG2XX)
+	ehci->command |= CMD_PARK | (3<<8);
+#endif
+#if !defined(CONFIG_GM_FUSBH200)
+	/* FOTG200 can't set this bit, but FOTG210 is ok */
 	ehci->command |= CMD_RUN;
+#endif
 	ehci_writel(ehci, ehci->command, &ehci->regs->command);
 	dbg_cmd (ehci, "init", ehci->command);
 
@@ -786,7 +826,9 @@ static int ehci_run (struct usb_hcd *hcd)
 	ehci->rh_state = EHCI_RH_RUNNING;
 	ehci_writel(ehci, FLAG_CF, &ehci->regs->configured_flag);
 	ehci_readl(ehci, &ehci->regs->command);	/* unblock posted writes */
-	msleep(5);
+	// john, cannot busy wait, use short delay
+	//msleep(5);
+	udelay(500);
 	up_write(&ehci_cf_port_reset_rwsem);
 	ehci->last_periodic_enable = ktime_get_real();
 
@@ -839,17 +881,274 @@ static int __maybe_unused ehci_setup (struct usb_hcd *hcd)
 	return 0;
 }
 
+#if defined(CONFIG_GM_FOTG2XX) || defined(CONFIG_GM_FUSBH200)
+static void reset_host(struct ehci_hcd *ehci)
+{
+	u32 regcommand, regenable, regstatus;
+	u32 i,temp;
+
+    printk("periodic=%x,%x\n", ehci->periodic_dma,readl(&ehci->regs->frame_list));
+    printk("async=%x,%x\n",ehci->async->qh_dma, readl(&ehci->regs->async_next));
+    printk("command=%x,%x\n",ehci->command, readl(&ehci->regs->command));
+
+	regcommand = readl(&ehci->regs->command);
+    regcommand &= ((0xFF << 16) | (0x3 << 2));
+	regenable = readl(&ehci->regs->intr_enable);
+
+    //set HC_RESET
+	writel(CMD_RESET,&ehci->regs->command);
+	i=0;
+	temp = CMD_RESET;
+	while (((temp & CMD_RESET)) && (i<=1000)) {
+		mdelay(1);
+		i++;
+		temp = readl(&ehci->regs->command);
+	}
+
+    //set port reset
+    writel(PORT_RESET, &ehci->regs->port_status);
+    mdelay(50);
+
+    /* re-init operational registers */
+    writel(ehci->periodic_dma, &ehci->regs->frame_list);
+    writel(ehci->async->qh_dma, &ehci->regs->async_next);
+
+    writel(regcommand, &ehci->regs->command);
+    mdelay(5);
+    writel(regcommand | CMD_RUN,&ehci->regs->command);
+    writel(regenable,&ehci->regs->intr_enable);
+    regstatus = readl(&ehci->regs->port_status);
+    writel(regstatus & ~PORT_RESET,&ehci->regs->port_status);
+}
+
+void ftusb_reset_host(struct usb_hcd *hcd)
+{
+    struct ehci_hcd *ehci = hcd_to_ehci (hcd);
+
+    reset_host(ehci);
+}
+#endif
 /*-------------------------------------------------------------------------*/
 
+/* FOTG210 eye pattern test */
+#if defined(CONFIG_GM_FOTG2XX_PHY_TEST)
+#include "../gadget/fotg2xx-peri-macro.h"
+#define DIRECTION_IN 1
+static void fotg210_write_cx_fifo(struct usb_hcd *hcd, u8 *buf, u16 num)
+{
+	u32 tmp, wDMABuffer;
+
+	if (likely(num != 0)) {
+
+		wDMABuffer = dma_map_single(NULL, buf, num, DMA_TO_DEVICE);
+		mUsbDmaConfig(hcd->regs, num, DIRECTION_IN);
+		mUsbDMA2FIFOSel(hcd->regs,FOTG200_DMA2CxFIFO);
+		mUsbDmaAddr(hcd->regs,wDMABuffer);
+		mUsbDmaStart(hcd->regs);
+		while(1) {
+			tmp = mUsbIntSrc2Rd(hcd->regs);
+			if(tmp & BIT8) {
+				mUsbCxFClr(hcd->regs);
+				mUsbIntDmaErrClr(hcd->regs);
+				printk(KERN_ERR"%s: Cx IN DMA error\n", __func__);
+				break;
+			}
+			if(tmp & BIT7) {
+				mUsbIntDmaFinishClr(hcd->regs);
+				break;
+			}
+			if((tmp & 0x00000007) > 0) {//If (Resume/Suspend/Reset) exit
+				mUsbDMAResetSet(hcd->regs);
+				mUsbCxFClr(hcd->regs);
+				mUsbIntDmaFinishClr(hcd->regs);
+				printk("%s: Cx IN DMA stop because USB Resume/Suspend/Reset\n", __func__);
+				break;
+			}
+		}
+		mUsbDMA2FIFOSel(hcd->regs, FOTG200_DMA2FIFO_Non);
+		dma_unmap_single(NULL, wDMABuffer, num, DMA_TO_DEVICE);
+	}
+}
+
+static void fotg210_eye_diagram_test(struct usb_hcd *hcd)
+{
+	u8 i, tmp[53], *pp;
+
+#define mUsb_mwOTG20_isRun(x) mwOTG20Bit_Rd(x,0x10,BIT0)
+
+	if (mwOTG20_b_conn_Rd(hcd->regs) == 1) {
+		mUsb_mwHost20_PORTSC_PortReset_Set(hcd->regs);
+		mdelay(100);
+		mUsb_mwHost20_PORTSC_PortReset_Clr(hcd->regs);
+
+		/* Check host run/stop and enable/disable it */
+		if (mUsb_mwOTG20_isRun(hcd->regs) == 0) {
+			mwOTG20_start_host(hcd->regs);
+			while(mUsb_mwOTG20_isRun(hcd->regs) == 0);
+		}
+		if (mUsb_mwOTG20_isRun(hcd->regs) > 0) {
+			//Make sure the Async schedule is disbale
+			if (mwOTG20Bit_Rd(hcd->regs,0x10,BIT5) > 0) {
+				mwOTG20Bit_Clr(hcd->regs,0x10,BIT5);
+				while(mwOTG20Bit_Rd(hcd->regs,0x14,BIT15) > 0);
+			}
+
+			mwOTG20_stop_host(hcd->regs);
+			while(mUsb_mwOTG20_isRun(hcd->regs) > 0);
+		}
+
+#if defined(CONFIG_GM_FOTG2XX_EYE_DIAGRAM)
+		printk(KERN_INFO"%s: Transmit Test Packet\n", __func__);
+
+		/* Set Test Packet */
+		mwOTG20Bit_Set(hcd->regs, 0x30, (4<<16));
+
+		pp = tmp;
+		for (i=0; i<9; i++){	// JKJKJKJK x 9
+			(*pp) = (0x00);
+			pp++;
+		}
+
+		for (i=0; i<8; i++){ 	// JJKKJJKK*8, 8*AA
+			(*pp) = (0xAA);
+			pp++;
+		}
+
+		for (i=0; i<8; i++) {	// JJJJKKKK*8, 8*EE
+			(*pp) = (0xEE);
+			pp++;
+		}
+		(*pp) = (0xFE);		// JJJJJJJKKKKKKK *8
+		pp ++;
+
+		for (i=0; i<11; i++) {	// 11*FF
+			(*pp) = (0xFF);
+			pp++;
+		}
+
+		(*pp) = (0x7F);		// JJJJJJJK *8
+		pp++;
+		(*pp) = (0xBF);
+		pp++;
+		(*pp) = (0xDF);
+		pp++;
+		(*pp) = (0xEF);
+		pp++;
+		(*pp) = (0xF7);
+		pp++;
+		(*pp) = (0xFB);
+		pp++;
+		(*pp) = (0xFD);
+		pp++;
+		(*pp) = (0xFC);
+		pp++;
+		(*pp) = (0x7E);		// {JKKKKKKK * 10}, JK
+		pp++;
+		(*pp) = (0xBF);
+		pp++;
+		(*pp) = (0xDF);
+		pp++;
+		(*pp) = (0xEF);
+		pp++;
+		(*pp) = (0xF7);
+		pp++;
+		(*pp) = (0xFB);
+		pp++;
+		(*pp) = (0xFD);
+		pp++;
+		(*pp) = (0x7E);
+		fotg210_write_cx_fifo(hcd, tmp, 53);
+
+		mdelay(2000);
+		/* after filling test packet into FIFO by DMA, set HC_TST_PKDONE to 1 */
+		mwOTG20Bit_Set(hcd->regs, 0x30, BIT20);
+
+		while (1);
+#endif
+#if defined(CONFIG_GM_FOTG2XX_J_STATE)
+		/* Set Test J-state */
+		mwOTG20Bit_Set(hcd->regs, 0x30, (1<<16));
+#endif
+#if defined(CONFIG_GM_FOTG2XX_K_STATE)
+		/* Set Test K-state */
+		mwOTG20Bit_Set(hcd->regs, 0x30, (2<<16));
+#endif
+#if defined(CONFIG_GM_FOTG2XX_SE0_NAK)
+        /* Set Test SE0_NAK */
+        mwOTG20Bit_Set(hcd->regs, 0x30, (3<<16));
+#endif
+	}
+}
+#endif
+
+#if defined(CONFIG_GM_FOTG2XX) || defined(CONFIG_GM_FUSBH200)
+extern void set_irq_is_hcd(int val);
+extern int get_irq_is_hcd(void);
+#endif
 static irqreturn_t ehci_irq (struct usb_hcd *hcd)
 {
 	struct ehci_hcd		*ehci = hcd_to_ehci (hcd);
 	u32			status, masked_status, pcd_status = 0, cmd;
-	int			bh;
+	int			bh = 0;
 
 	spin_lock (&ehci->lock);
 
+#ifdef CONFIG_GM_FUSBH200
+	if (memcmp(hcd->product_desc, H200_NAME, sizeof(H200_NAME)) == 0) {
+		u32 __iomem  *reg_ptr = (u32 __iomem *)(((u8 __iomem *)ehci->regs) + USBH200_BUS_MONITOR);
+		u32 tmp = ehci_readl(ehci,reg_ptr);
+
+        set_irq_is_hcd(1);
+		if ( tmp & USBH200_BUS_MONITOR_OVC ){
+			printk("Over current!!\n");
+			ehci_writel(ehci,USBH200_BUS_MONITOR_OVC,reg_ptr);
+			reset_host(ehci);
+			spin_unlock(&ehci->lock);
+			return IRQ_HANDLED;
+		}
+		else if ( tmp & USBH200_BUS_MONITOR_VBUS_ERR ){
+			printk("Vbus Error!!\n");
+			ehci_writel(ehci, USBH200_BUS_MONITOR_VBUS_ERR, reg_ptr);
+			reset_host(ehci);
+			spin_unlock(&ehci->lock);
+			return IRQ_HANDLED;
+		}
+	}
+#endif
+
+#ifdef CONFIG_GM_FOTG2XX
+	if (memcmp(hcd->product_desc, OTG2XX_NAME, sizeof(OTG2XX_NAME)) == 0) {
+        set_irq_is_hcd(0);
+		status = ehci_readl(ehci, hcd->regs+0x84);//read interrupt status
+
+		if (!(status & (OTGC_INT_A_TYPE | OTGC_INT_B_TYPE)))
+            set_irq_is_hcd(1);
+
+		if (get_irq_is_hcd())
+			fotg200_handle_irq(hcd->irq);
+
+		status = ehci_readl(ehci, hcd->regs+0xC4) & (~0x04);//enable HC interrupt
+		ehci_writel(ehci, status, hcd->regs+0xC4);
+		status = ehci_readl(ehci, hcd->regs+0x80) & (1<<20);//read role status
+#define OTG_ROLE_HOST 	0
+		if (status != OTG_ROLE_HOST) {
+			spin_unlock(&ehci->lock);
+			if (get_irq_is_hcd())
+				return IRQ_NONE;
+			else
+				return IRQ_HANDLED;
+		} else {
+			fotg200_handle_irq(hcd->irq);
+		}
+	}
+#endif
+
 	status = ehci_readl(ehci, &ehci->regs->status);
+
+#if defined(CONFIG_GM_FOTG2XX_PHY_TEST)
+    printk("Enter pattern test mode\n");
+    fotg210_eye_diagram_test(hcd);
+#endif
 
 	/* e.g. cardbus physical eject */
 	if (status == ~(u32) 0) {
@@ -912,6 +1211,73 @@ static irqreturn_t ehci_irq (struct usb_hcd *hcd)
 		if (!(cmd & CMD_RUN))
 			usb_hcd_resume_root_hub(hcd);
 
+/* Patch from CTD, for port change detect */
+#if defined(CONFIG_GM_FOTG2XX) || defined(CONFIG_GM_FUSBH200)
+		if (!(cmd & CMD_RUN)) {
+			u32 temp,i;
+
+			i=0;
+			temp = ehci_readl(ehci, &ehci->regs->status);
+			while ((!(temp & STS_HALT)) && (i<1000)) {
+				udelay(125);
+				i++;
+				temp = ehci_readl(ehci, &ehci->regs->status);
+			}
+
+			if (i<1000) {
+				temp = ehci_readl(ehci, &ehci->regs->command);
+				temp |= CMD_RUN;
+				ehci_writel(ehci, temp, &ehci->regs->command);
+
+				i=0;
+				temp = ehci_readl(ehci, &ehci->regs->status);
+				while ((temp & STS_HALT) && (i<10)) {
+					udelay(125);
+					i++;
+					temp = ehci_readl(ehci, &ehci->regs->status);
+				}
+				if (i>0)
+					printk("polling NOT HALT times.....%d\n",i);
+			}
+			else {
+				u32 regcommand, regenable, regstatus;
+				u32 i,temp;
+
+				//printk("Host cannot exit HALT state, recover.....\n");
+				regcommand = readl(&ehci->regs->command);
+                regcommand &= ((0xFF << 16) | (0x3 << 2));
+				regenable = readl(&ehci->regs->intr_enable);
+
+				writel(CMD_RESET,&ehci->regs->command);
+				i=0;
+				temp = CMD_RESET;
+				while (((temp & CMD_RESET)) && (i<=100)) {
+					mdelay(3);
+					i++;
+					temp = readl(&ehci->regs->command);
+				}
+				//printk("exit HALT OK.....%d\n",i);
+
+                //set port reset
+                writel(PORT_RESET, &ehci->regs->port_status);
+                mdelay(50);
+
+                /* re-init operational registers */
+                writel(ehci->periodic_dma, &ehci->regs->frame_list);
+                writel(ehci->async->qh_dma, &ehci->regs->async_next);
+
+				writel(regcommand,&ehci->regs->command);
+				mdelay(5);
+				writel(regcommand | CMD_RUN,&ehci->regs->command);
+				writel(regenable,&ehci->regs->intr_enable);
+                regstatus = readl(&ehci->regs->port_status);
+                writel(regstatus & ~PORT_RESET,&ehci->regs->port_status);
+
+				//printk("Host-halt recover OK\n");
+			}
+		}
+#endif /* CONFIG_GM_FOTG2XX || CONFIG_GM_FUSBH200 */
+
 		/* get per-port change detect bits */
 		if (ehci->has_ppcd)
 			ppcd = status >> 16;
@@ -947,18 +1313,30 @@ static irqreturn_t ehci_irq (struct usb_hcd *hcd)
 
 	/* PCI errors [4.15.2.4] */
 	if (unlikely ((status & STS_FATAL) != 0)) {
-		ehci_err(ehci, "fatal error\n");
-		dbg_cmd(ehci, "fatal", cmd);
-		dbg_status(ehci, "fatal", status);
-		ehci_halt(ehci);
+		/* Patch from CTD, try to recover fatal error */
+		if (strncmp(hcd->self.bus_name, "fotg", 4) == 0) {
+            /*
+             * if defined(CONFIG_GM_FOTG2XX) || defined(CONFIG_GM_FUSBH200)
+             */
+            printk("Fatal error.....0x%x\n",status);
+
+            reset_host(ehci);
+
+			printk("recover OK\n");
+		} else {
+			ehci_err(ehci, "fatal error\n");
+			dbg_cmd(ehci, "fatal", cmd);
+			dbg_status(ehci, "fatal", status);
+			ehci_halt(ehci);
 dead:
-		ehci_reset(ehci);
-		ehci_writel(ehci, 0, &ehci->regs->configured_flag);
-		usb_hc_died(hcd);
-		/* generic layer kills/unlinks all urbs, then
-		 * uses ehci_stop to clean up the rest
-		 */
-		bh = 1;
+			ehci_reset(ehci);
+			ehci_writel(ehci, 0, &ehci->regs->configured_flag);
+			usb_hc_died(hcd);
+			/* generic layer kills/unlinks all urbs, then
+			 * uses ehci_stop to clean up the rest
+			 */
+			bh = 1;
+		}
 	}
 
 	if (bh)
@@ -1013,10 +1391,21 @@ static int ehci_urb_enqueue (
 		return intr_submit(ehci, urb, &qtd_list, mem_flags);
 
 	case PIPE_ISOCHRONOUS:
+#if defined(CONFIG_GM_FOTG2XX)
+        if ((strncmp(hcd->self.bus_name, "fotg", 4) == 0) && (ehci_port_speed(ehci, 0) != USB_PORT_STAT_HIGH_SPEED)) {
+            return itd_submit (ehci, urb, mem_flags);
+        } else {
+    		if (urb->dev->speed == USB_SPEED_HIGH)
+    			return itd_submit (ehci, urb, mem_flags);
+    		else
+    			return sitd_submit (ehci, urb, mem_flags);
+        }
+#else
 		if (urb->dev->speed == USB_SPEED_HIGH)
 			return itd_submit (ehci, urb, mem_flags);
 		else
 			return sitd_submit (ehci, urb, mem_flags);
+#endif
 	}
 }
 
@@ -1376,16 +1765,36 @@ MODULE_LICENSE ("GPL");
 #define        PLATFORM_DRIVER         ehci_mv_driver
 #endif
 
-#if !defined(PCI_DRIVER) && !defined(PLATFORM_DRIVER) && \
-    !defined(PS3_SYSTEM_BUS_DRIVER) && !defined(OF_PLATFORM_DRIVER) && \
-    !defined(XILINX_OF_PLATFORM_DRIVER)
-#error "missing bus glue for ehci-hcd"
+#if defined(CONFIG_GM_FOTG2XX)
+#include "ehci-fotg2xx.c"
+#define PLATFORM_DRIVER		fotg210_ehci_driver
+#if defined(CONFIG_PLATFORM_GM8210)
+#include <mach/fmem.h>
+#endif
 #endif
 
+#if defined(CONFIG_GM_FUSBH200)
+#include "ehci-fusbh200.c"
+#endif
+/** When building for kernel module, this check will cause compiling error
+#if !defined(PCI_DRIVER) && !defined(PLATFORM_DRIVER) && \
+    !defined(PS3_SYSTEM_BUS_DRIVER) && !defined(OF_PLATFORM_DRIVER) && \
+    !defined(XILINX_OF_PLATFORM_DRIVER) && \
+    !defined(CONFIG_GM_FOTG2XX) && !defined(CONFIG_GM_FUSBH200)
+#error "missing bus glue for ehci-hcd"
+#endif
+*/
 static int __init ehci_hcd_init(void)
 {
 	int retval = 0;
 
+#if defined(CONFIG_PLATFORM_GM8210)
+    fmem_pci_id_t pci_id;
+    fmem_cpu_id_t cpu_id;
+    fmem_get_identifier(&pci_id, &cpu_id);
+    if (cpu_id != FMEM_CPU_FA726 || pci_id != FMEM_PCI_HOST)
+		goto clean0;
+#endif
 	if (usb_disabled())
 		return -ENODEV;
 
@@ -1407,6 +1816,12 @@ static int __init ehci_hcd_init(void)
 		retval = -ENOENT;
 		goto err_debug;
 	}
+#endif
+
+#if defined(CONFIG_GM_FUSBH200)
+	retval = platform_driver_register(&fusbh200_plat_driver);
+	if (retval < 0)
+		goto final;
 #endif
 
 #ifdef PLATFORM_DRIVER
@@ -1465,6 +1880,9 @@ clean0:
 	ehci_debug_root = NULL;
 err_debug:
 #endif
+#if defined(CONFIG_GM_FUSBH200)
+final:
+#endif
 	clear_bit(USB_EHCI_LOADED, &usb_hcds_loaded);
 	return retval;
 }
@@ -1487,10 +1905,12 @@ static void __exit ehci_hcd_cleanup(void)
 #ifdef PS3_SYSTEM_BUS_DRIVER
 	ps3_ehci_driver_unregister(&PS3_SYSTEM_BUS_DRIVER);
 #endif
+#ifdef CONFIG_GM_FUSBH200
+	platform_driver_unregister(&fusbh200_plat_driver);
+#endif
 #ifdef DEBUG
 	debugfs_remove(ehci_debug_root);
 #endif
 	clear_bit(USB_EHCI_LOADED, &usb_hcds_loaded);
 }
 module_exit(ehci_hcd_cleanup);
-

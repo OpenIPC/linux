@@ -1,0 +1,18 @@
+#
+# arch/arm/mach-GM/platform-GM8287/Kconfig
+
+if PLATFORM_GM8287
+
+#config SYS_CLK
+config CLOCK_TICK_RATE	
+        int "AHB System Clock"
+        default 33000000
+        help
+            Any fake value is ok. It almost obsolete.
+
+config FTINTC030
+	bool "FTINTC030 support"
+	default y
+
+endif
+

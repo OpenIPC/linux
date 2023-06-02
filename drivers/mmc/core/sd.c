@@ -365,7 +365,7 @@ out:
  */
 int mmc_sd_switch_hs(struct mmc_card *card)
 {
-	int err;
+	int err, mode = 1;
 	u8 *status;
 
 	if (card->scr.sda_vsn < SCR_SPEC_VER_1)
@@ -389,8 +389,13 @@ int mmc_sd_switch_hs(struct mmc_card *card)
 		return -ENOMEM;
 	}
 
-	err = mmc_sd_switch(card, 1, 0, 1, status);
-	if (err)
+retry_cmd6:
+
+	err = mmc_sd_switch(card, 1, 0, mode, status);
+	if (err && mode > 0) {
+        mode --;
+        goto retry_cmd6;
+    } else if (err)
 		goto out;
 
 	if ((status[16] & 0xF) != 1) {
@@ -758,7 +763,9 @@ int mmc_sd_get_cid(struct mmc_host *host, u32 ocr, u32 *cid, u32 *rocr)
 	    MMC_CAP_SET_XPC_180))
 		ocr |= SD_OCR_XPC;
 
+#if !defined(CONFIG_ARCH_GM)
 try_again:
+#endif
 	err = mmc_send_app_op_cond(host, ocr, rocr);
 	if (err)
 		return err;
@@ -767,6 +774,7 @@ try_again:
 	 * In case CCS and S18A in the response is set, start Signal Voltage
 	 * Switch procedure. SPI mode doesn't support CMD11.
 	 */
+#if !defined(CONFIG_ARCH_GM)
 	if (!mmc_host_is_spi(host) && rocr &&
 	   ((*rocr & 0x41000000) == 0x41000000)) {
 		err = mmc_set_signal_voltage(host, MMC_SIGNAL_VOLTAGE_180, true);
@@ -775,6 +783,7 @@ try_again:
 			goto try_again;
 		}
 	}
+#endif
 
 	if (mmc_host_is_spi(host))
 		err = mmc_send_cid(host, cid);
@@ -1242,4 +1251,3 @@ err:
 
 	return err;
 }
-

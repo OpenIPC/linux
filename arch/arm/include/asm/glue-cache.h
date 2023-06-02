@@ -41,11 +41,35 @@
 # define MULTI_CACHE 1
 #endif
 
-#if defined(CONFIG_CPU_FA526)
+#if defined(CONFIG_CPU_FA526) || defined(CONFIG_CPU_FA626TE)
 # ifdef _CACHE
 #  define MULTI_CACHE 1
 # else
-#  define _CACHE fa
+#  ifdef CONFIG_PLATFORM_GM8210
+#   define _CACHE fmem
+#  else 
+#   define _CACHE fa
+#  endif 
+# endif
+#endif
+
+#if defined(CONFIG_CPU_FMP626)
+# ifdef _CACHE
+#  define MULTI_CACHE 1
+# else
+#  define _CACHE fmp626
+# endif
+#endif
+
+#if defined(CONFIG_CPU_FA726TE)
+# ifdef _CACHE
+#  define MULTI_CACHE 1
+# else
+#  ifdef CONFIG_PLATFORM_GM8210
+#   define _CACHE fmem
+#  else 
+#   define _CACHE fa726te
+#  endif 
 # endif
 #endif
 

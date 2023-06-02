@@ -133,6 +133,54 @@ config SERIAL_8250_RUNTIME_UARTS
 	  with the module parameter "nr_uarts", or boot-time parameter
 	  8250.nr_uarts
 
+config SERIAL_UART1_IP
+	bool "Use GM UART1 IP"
+	default n	
+	depends on SERIAL_8250 && !PLATFORM_GM8210
+	help
+	  Enable GM UART1 IP, please check pin mux issue
+
+config SERIAL_UART2_IP
+	bool "Use GM UART2 IP"
+	default n	
+	depends on SERIAL_8250
+	help
+	  Enable GM UART2 IP, please check pin mux issue
+
+config SERIAL_UART3_IP
+	bool "Use GM UART3 IP"
+	default n	
+	depends on SERIAL_8250
+	help
+	  Enable GM UART3 IP, please check pin mux issue
+
+config SERIAL_UART4_IP
+	bool "Use GM UART4 IP"
+	default n	
+	depends on SERIAL_8250
+	help
+	  Enable GM UART4 IP, please check pin mux issue
+
+config SERIAL_UART5_IP
+	bool "Use GM UART5 IP"
+	default n	
+	depends on SERIAL_8250
+	help
+	  Enable GM UART5 IP, please check pin mux issue
+
+config SERIAL_UART6_IP
+	bool "Use GM UART6 IP"
+	default n	
+	depends on SERIAL_8250 && PLATFORM_GM8220
+	help
+	  Enable GM UART6 IP, please check pin mux issue
+
+config SERIAL_UART7_IP
+	bool "Use GM UART7 IP"
+	default n	
+	depends on SERIAL_8250 && PLATFORM_GM8220
+	help
+	  Enable GM UART7 IP, please check pin mux issue
 config SERIAL_8250_EXTENDED
 	bool "Extended 8250/16550 serial driver options"
 	depends on SERIAL_8250
@@ -257,6 +305,14 @@ config SERIAL_8250_ACORN
 	  If you have an Atomwide Serial card or Serial Port card for an Acorn
 	  system, say Y to this option.  The driver can handle 1, 2, or 3 port
 	  cards.  If unsure, say N.
+
+config SERIAL_8250_FTUART010
+	bool "Faraday FTUART010 serial port support"
+	depends on SERIAL_8250
+	help
+	  If you have an Faraday SOC based board and want to use the serial port,
+	  say Y to this option. The driver can handle up to 4 serial ports,
+	  depending on the SOC. If unsure, say N.
 
 config SERIAL_8250_RM9K
 	bool "Support for MIPS RM9xxx integrated serial port"

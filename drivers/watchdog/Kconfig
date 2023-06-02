@@ -82,6 +82,13 @@ config WM8350_WATCHDOG
 
 # ARM Architecture
 
+config FTWDT010_WATCHDOG
+	tristate "FTWDT010 watchdog"
+	depends on ARCH_GM || ARCH_GM_DUO || ARCH_GM_SMP
+	help
+	  Watchdog timer embedded into Grain Media chips. This will reboot your
+	  system when the timeout is reached.
+
 config ARM_SP805_WATCHDOG
 	tristate "ARM SP805 Watchdog"
 	depends on ARM_AMBA

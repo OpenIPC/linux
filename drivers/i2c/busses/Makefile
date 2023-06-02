@@ -69,7 +69,11 @@ obj-$(CONFIG_I2C_VERSATILE)	+= i2c-versatile.o
 obj-$(CONFIG_I2C_OCTEON)	+= i2c-octeon.o
 obj-$(CONFIG_I2C_XILINX)	+= i2c-xiic.o
 obj-$(CONFIG_I2C_EG20T)         += i2c-eg20t.o
-
+ifeq ("y", $(filter "y", "$(CONFIG_PLATFORM_GM8139)" "$(CONFIG_PLATFORM_GM8136)"))
+obj-$(CONFIG_I2C_GM_FTI2C010)   += i2c-ftiic010-new-intr-mode.o
+else
+obj-$(CONFIG_I2C_GM_FTI2C010)   += i2c-ftiic010.o
+endif
 # External I2C/SMBus adapter drivers
 obj-$(CONFIG_I2C_DIOLAN_U2C)	+= i2c-diolan-u2c.o
 obj-$(CONFIG_I2C_PARPORT)	+= i2c-parport.o

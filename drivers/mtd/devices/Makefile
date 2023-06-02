@@ -18,5 +18,9 @@ obj-$(CONFIG_MTD_BLOCK2MTD)	+= block2mtd.o
 obj-$(CONFIG_MTD_DATAFLASH)	+= mtd_dataflash.o
 obj-$(CONFIG_MTD_M25P80)	+= m25p80.o
 obj-$(CONFIG_MTD_SST25L)	+= sst25l.o
-
+ifeq ($(CONFIG_PLATFORM_GM8220),y)
+obj-$(CONFIG_MTD_SPI_FLASH) 	+= spi_flash_v2.o
+else
+obj-$(CONFIG_MTD_SPI_FLASH)     += spi_flash.o
+endif
 CFLAGS_docg3.o			+= -I$(src)

@@ -229,6 +229,40 @@ config MMC_SDHCI_S3C_DMA
 
 	  YMMV.
 
+config MMC_FTSDC021
+	tristate "FTSDC021 Secure Digital Host Controller Interface support"
+	depends on HAS_DMA && MMC_SDHCI && MMC_SDHCI_PLTFM && (ARCH_GM || ARCH_GM_DUO || ARCH_GM_SMP || ARCH_FARADAY)
+	help
+	  This selects the faraday-tech ftsdc021 controller.
+
+	  If you have a faraday-tech ftsdc021 SD Host Controller, say Y or M here. You
+	  also need to enable an appropriate bus interface.
+
+	  If unsure, say N.
+
+config SDC0_IP
+	bool "FT SDC sdc0 enable"
+	default y
+	depends on MMC_FTSDC021 && PLATFORM_GM8136
+	help
+	  If you say yes to this open, it will create the mmc0 sdc host.
+
+config SDC1_IP
+	bool "FT SDC sdc1 enable"
+	default n
+	depends on MMC_FTSDC021 && PLATFORM_GM8136
+	help
+	  If you say yes to this open, it will create the mmc1 sdc host (if sdc0 is enabled).
+
+config MMC_FTSDC021_VEND_TUNE
+	bool "FTSDC021 Vendor tune enable"
+	depends on MMC_FTSDC021
+	default y
+	help
+	  This flag supports Vendor tune for ftsdc021.
+	  If you say yes to enable tune.
+	  If unsure, say N.
+	  
 config MMC_OMAP
 	tristate "TI OMAP Multimedia Card Interface support"
 	depends on ARCH_OMAP

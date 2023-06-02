@@ -6,7 +6,7 @@
 #endif
 
 /* not all ARM platforms necessarily support this API ... */
-#include <mach/gpio.h>
+//#include <mach/gpio.h>
 
 #ifndef __ARM_GPIOLIB_COMPLEX
 /* Note: this may rely upon the value of ARCH_NR_GPIOS set in mach/gpio.h */

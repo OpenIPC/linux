@@ -26,7 +26,7 @@
 #include <asm/unaligned.h>
 
 #include "fault.h"
-
+#include <linux/kallsyms.h>
 /*
  * 32-bit misaligned trap handler (c) 1998 San Mehat (CCC) -July 1998
  * /proc/sys/debug/alignment, modified and integrated into
@@ -759,6 +759,12 @@ do_alignment(unsigned long addr, unsigned int fsr, struct pt_regs *regs)
 		local_irq_enable();
 
 	instrptr = instruction_pointer(regs);
+
+#if 0 //(defined(CONFIG_ARCH_GM) || defined(CONFIG_ARCH_GM_DUO))
+        printk(KERN_DEBUG "Warning, unalignment program (0x%x) with load/store"
+              " at 0x%x is captured, fsr(0x%x) ", (u32)instrptr, (u32)addr, fsr & 0xF);
+        print_symbol(KERN_DEBUG "from (%s)\n", instrptr);
+#endif
 
 	fs = get_fs();
 	set_fs(KERNEL_DS);

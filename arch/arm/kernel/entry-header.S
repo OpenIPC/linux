@@ -83,6 +83,9 @@
 #elif defined(CONFIG_CPU_32v6K)
 	clrex					@ clear the exclusive monitor
 	ldmia	sp, {r0 - pc}^			@ load r0 - pc, cpsr
+#elif defined(CONFIG_CPU_FMP626)
+	cdp	p13, 0, c0, c0, c0, 2		@ Clear exclusive monitor
+	ldmia	sp, {r0 - pc}^			@ load r0 - pc, cpsr
 #else
 	ldmia	sp, {r0 - pc}^			@ load r0 - pc, cpsr
 #endif
@@ -96,6 +99,8 @@
 	strex	r1, r2, [sp]			@ clear the exclusive monitor
 #elif defined(CONFIG_CPU_32v6K)
 	clrex					@ clear the exclusive monitor
+#elif defined(CONFIG_CPU_FMP626)
+	cdp	p13, 0, c0, c0, c0, 2		@ Clear exclusive monitor
 #endif
 	.if	\fast
 	ldmdb	sp, {r1 - lr}^			@ get calling r1 - lr

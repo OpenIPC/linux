@@ -1,0 +1,67 @@
+#
+# arch/arm/mach-GM/Kconfig
+#
+
+#
+# GM Platform Types Selection
+#
+choice
+	prompt "Platform Selection"
+	default PLATFORM_GM8126
+	depends on ARCH_GM
+
+
+config PLATFORM_GM8126
+	bool "GM8126 series platform"
+    select FIQ
+    help
+      GM GM8126 is a platform based on GM's ARM9 compatible processor
+
+config PLATFORM_GM8287
+	bool "GM8287 series platform"
+    help
+      GM GM8287 is a platform based on GM's ARM9 compatible processor
+
+config PLATFORM_GM8139
+	bool "GM8139 series platform"
+    help
+      GM GM8139 is a platform based on GM's ARM9 compatible processor
+
+config PLATFORM_GM8136
+	bool "GM8136 series platform"
+    help
+      GM GM8136 is a platform based on GM's ARM9 compatible processor
+
+endchoice
+
+config FORCE_MAX_ZONEORDER
+    int
+    depends on ARCH_GM
+    default "12"
+
+config FTDMAC020
+    tristate "Supports DMAC020 controller"
+    select DMA_ENGINE
+    default y
+
+config FTAPBB020
+    tristate "Supports APB DMA"
+    select DMA_ENGINE
+    default n
+
+
+#
+# Platform dependent options
+#
+menu "GM Platform Options"
+    depends on ARCH_GM
+
+source "arch/arm/mach-GM/platform-GM8126/Kconfig"
+source "arch/arm/mach-GM/platform-GM8287/Kconfig"
+source "arch/arm/mach-GM/platform-GM8139/Kconfig"
+source "arch/arm/mach-GM/platform-GM8136/Kconfig"
+    
+endmenu    
+
+
+

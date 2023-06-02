@@ -99,7 +99,7 @@ config FB_BOOT_VESA_SUPPORT
 	  of VESA video modes set at an early boot stage via the vga= parameter.
 
 config FB_CFB_FILLRECT
-	tristate
+	tristate "FB_CFB_FILLRECT"
 	depends on FB
 	default n
 	---help---
@@ -108,7 +108,7 @@ config FB_CFB_FILLRECT
 	  (accelerated) version.
 
 config FB_CFB_COPYAREA
-	tristate
+	tristate "FB_CFB_COPYAREA"
 	depends on FB
 	default n
 	---help---
@@ -117,7 +117,7 @@ config FB_CFB_COPYAREA
 	  version.
 
 config FB_CFB_IMAGEBLIT
-	tristate
+	tristate "FB_CFB_IMAGEBLIT"
 	depends on FB
 	default n
 	---help---

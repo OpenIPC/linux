@@ -73,6 +73,97 @@ static int hid_submit_out(struct hid_device *hid);
 static int hid_submit_ctrl(struct hid_device *hid);
 static void hid_cancel_delayed_stuff(struct usbhid_device *usbhid);
 
+#ifdef CONFIG_GM_FOTG2XX
+#undef CONFIG_GM_FOTG2XX
+#endif
+
+#if defined(CONFIG_GM_FOTG2XX)
+/*
+ * Some kind of usb mouse low-speed devices are not designed under spec.
+ * In special condition, these devices will create SE1 packet and cause
+ * host controller stopping usb traffic transmition.
+ * This workaround solution is using the bus reset to reset device in period.
+ */
+#include <linux/usb/hcd.h>
+#include <linux/kthread.h>
+#define POLL_RESET_TIME (5 * HZ)
+#define STATE_STOP  0
+#define STATE_RUN   1
+
+static wait_queue_head_t hid_wdt_wqh;
+static int state = STATE_STOP;
+static struct task_struct *hid_wdt_task = NULL;
+static char hid_wdt_reset, hid_wdt_quit;
+static struct hid_device *hid_wdt_hdev = NULL;
+
+static int hid_wdt_thread(void *_data)
+{
+    struct hid_device *hid = (struct hid_device *) _data;
+	struct usbhid_device *usbhid = hid->driver_data;
+
+    if (state == STATE_STOP)
+        state = STATE_RUN;
+
+    wake_up(&hid_wdt_wqh); // to notify thread is running
+
+    while (state == STATE_RUN) {
+        struct usb_hcd *hcd = bus_to_hcd(hid_to_usb_dev(hid)->bus);
+
+        wait_event_timeout(hid_wdt_wqh, state == STATE_STOP, POLL_RESET_TIME);
+        if (state == STATE_STOP)
+            break;
+        if (!(*((volatile u32 *)((u32)hcd->regs | 0x30)) & (1 << 0))) {
+            printk("%s: device disconnect.\n", __func__);
+            break;
+        }
+        if (!hid_wdt_reset) {
+            hid_wdt_reset = 1;
+            continue;
+        }
+
+        /* reset device */
+		if (!test_and_set_bit(HID_RESET_PENDING, &usbhid->iofl))
+			schedule_work(&usbhid->reset_work);
+    }
+    hid_wdt_quit = 1;
+    wake_up(&hid_wdt_wqh); // to notify thread is quit
+    return 0;
+}
+
+static void hid_wdt_init(struct hid_device *hid)
+{
+    if (hid_wdt_task != NULL) // check if thread is already created
+        return;
+
+    init_waitqueue_head(&hid_wdt_wqh);
+    hid_wdt_reset = 1;
+    hid_wdt_quit = 0;
+
+    hid_wdt_task = kthread_run(hid_wdt_thread, hid, "hid_wdtd");
+    if (IS_ERR(hid_wdt_task)) {
+        printk("%s: create kthread failed\n", __func__);
+        hid_wdt_task = NULL;
+        return;
+    }
+    hid_wdt_hdev = hid;
+    wait_event(hid_wdt_wqh, state == STATE_RUN); // wait for thread is real running
+}
+
+static void hid_wdt_exit(struct hid_device *hid)
+{
+    if (hid_wdt_hdev != hid) // identify which hid device that thread hooked onto
+        return;
+
+    if (hid_wdt_task != NULL) {
+        state = STATE_STOP;
+        wake_up(&hid_wdt_wqh); // wake up thread to enter stop state
+        wait_event(hid_wdt_wqh, hid_wdt_quit); // wait for thread is real quit
+        hid_wdt_task = NULL;
+        hid_wdt_hdev = NULL;
+    }
+}
+#endif
+
 /* Start up the input URB */
 static int hid_start_in(struct hid_device *hid)
 {
@@ -258,6 +349,9 @@ static void hid_irq_in(struct urb *urb)
 
 	switch (urb->status) {
 	case 0:			/* success */
+#if defined(CONFIG_GM_FOTG2XX)
+        hid_wdt_reset = 0;
+#endif
 		usbhid_mark_busy(usbhid);
 		usbhid->retry_delay = 0;
 		hid_input_report(urb->context, HID_INPUT_REPORT,
@@ -714,8 +808,16 @@ int usbhid_open(struct hid_device *hid)
 		usbhid->intf->needs_remote_wakeup = 1;
 		if (hid_start_in(hid))
 			hid_io_error(hid);
- 
+
 		usb_autopm_put_interface(usbhid->intf);
+#if defined(CONFIG_GM_FOTG2XX)
+        {
+            struct usb_device *udev = hid_to_usb_dev(hid);
+
+            if ((udev->parent == udev->bus->root_hub) && (udev->speed == USB_SPEED_LOW))
+                hid_wdt_init(hid);
+        }
+#endif
 	}
 	mutex_unlock(&hid_open_mut);
 	return 0;
@@ -734,6 +836,9 @@ void usbhid_close(struct hid_device *hid)
 	spin_lock_irq(&usbhid->lock);
 	if (!--hid->open) {
 		spin_unlock_irq(&usbhid->lock);
+#if defined(CONFIG_GM_FOTG2XX)
+        hid_wdt_exit(hid);
+#endif
 		hid_cancel_delayed_stuff(usbhid);
 		usb_kill_urb(usbhid->urbin);
 		usbhid->intf->needs_remote_wakeup = 0;

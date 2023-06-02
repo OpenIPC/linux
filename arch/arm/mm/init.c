@@ -637,7 +637,7 @@ void __init mem_init(void)
 	}
 	printk(" = %luMB total\n", num_physpages >> (20 - PAGE_SHIFT));
 
-	printk(KERN_NOTICE "Memory: %luk/%luk available, %luk reserved, %luK highmem\n",
+	printk(KERN_INFO "Memory: %luk/%luk available, %luk reserved, %luK highmem\n",
 		nr_free_pages() << (PAGE_SHIFT-10),
 		free_pages << (PAGE_SHIFT-10),
 		reserved_pages << (PAGE_SHIFT-10),
@@ -647,7 +647,7 @@ void __init mem_init(void)
 #define MLM(b, t) b, t, ((t) - (b)) >> 20
 #define MLK_ROUNDUP(b, t) b, t, DIV_ROUND_UP(((t) - (b)), SZ_1K)
 
-	printk(KERN_NOTICE "Virtual kernel memory layout:\n"
+	printk(KERN_INFO "Virtual kernel memory layout:\n"
 			"    vector  : 0x%08lx - 0x%08lx   (%4ld kB)\n"
 #ifdef CONFIG_HAVE_TCM
 			"    DTCM    : 0x%08lx - 0x%08lx   (%4ld kB)\n"
@@ -712,7 +712,41 @@ void __init mem_init(void)
 		 */
 		sysctl_overcommit_memory = OVERCOMMIT_ALWAYS;
 	}
+
+#if (defined(CONFIG_ARCH_GM) || defined(CONFIG_ARCH_GM_DUO) || defined(CONFIG_ARCH_GM_SMP)) 
+    {
+        extern void fmem_early_init(void);
+        /* put here in order to get clean pages */
+        fmem_early_init();
+    }
+#endif	
 }
+
+#if ((defined(CONFIG_ARCH_GM) || defined(CONFIG_ARCH_GM_DUO) || defined(CONFIG_ARCH_GM_SMP)) && defined(CONFIG_MEMORY_HOTPLUG))
+int arch_add_memory(int nid, u64 start, u64 size)
+{
+#if 0 /* Harry, copy from powerPC. This function should be implemented if 
+       * we supported hardware hotplug function.
+       */
+	struct pglist_data *pgdata;
+	struct zone *zone;
+	unsigned long start_pfn = start >> PAGE_SHIFT;
+	unsigned long nr_pages = size >> PAGE_SHIFT;
+
+	pgdata = NODE_DATA(nid);
+
+	start = (unsigned long)__va(start);
+	if (create_section_mapping(start, start + size))
+		return -EINVAL;
+
+	/* this should work for most non-highmem platforms */
+	zone = pgdata->node_zones;
+
+	return __add_pages(nid, zone, start_pfn, nr_pages);
+#endif
+    return -1;	
+}
+#endif
 
 void free_initmem(void)
 {

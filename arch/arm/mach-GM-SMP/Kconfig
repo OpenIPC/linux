@@ -1,0 +1,59 @@
+#
+# arch/arm/mach-GM-SMP/Kconfig
+#
+
+#
+# GM Platform Types Selection
+#
+choice
+	prompt "Platform Selection"
+	default PLATFORM_GM8220
+	depends on ARCH_GM_SMP
+
+config PLATFORM_GM8220
+	bool "GM8220 series platform"
+	select ARM_GIC if CPU_HAS_GIC
+    help
+      GM GM8220 is a platform based on ARM Cortex compatible processor
+
+endchoice
+
+config FORCE_MAX_ZONEORDER
+    int
+    depends on ARCH_GM_SMP
+    default "12"
+
+config FTDMAC020
+    tristate "Supports DMAC020 controller"
+    select DMA_ENGINE
+    default y
+
+config FTDMAC030
+    tristate "Supports DMAC030 controller"
+    select DMA_ENGINE
+    depends on PLATFORM_AXIDMA
+    default y
+
+config FTAPBB020
+    tristate "Supports APB DMA"
+    select DMA_ENGINE
+    default n
+
+config CPU_HAS_GIC
+	bool
+	default y if CPU_FMP626 || CPU_CA9 || CPU_CA7
+	help
+	   Use ARM GIC
+
+#
+# Platform dependent options
+#
+menu "GM Platform Options"
+    depends on ARCH_GM_SMP
+
+source "arch/arm/mach-GM-SMP/platform-GM8220/Kconfig"
+    
+endmenu    
+
+
+

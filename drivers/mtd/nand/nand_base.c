@@ -3069,6 +3069,9 @@ static struct nand_flash_dev *nand_get_flash_type(struct mtd_info *mtd,
 			mtd->erasesize <<= ((id_data[3] & 0x03) << 1);
 		}
 	}
+	if (mtd->erasesize == 0) /* error configuration in nand_flash_ids[] table */
+		panic("NAND: wrong configuration in nand_flash_ids[] table!");
+        	
 	/* Get chip options, preserve non chip based options */
 	chip->options &= ~NAND_CHIPOPTIONS_MSK;
 	chip->options |= type->options & NAND_CHIPOPTIONS_MSK;
@@ -3144,6 +3147,7 @@ ident_done:
 				 *maf_id == NAND_MFR_HYNIX ||
 				 *maf_id == NAND_MFR_TOSHIBA ||
 				 *maf_id == NAND_MFR_AMD ||
+				 *maf_id == NAND_MFR_SPINAND ||
 				 *maf_id == NAND_MFR_MACRONIX)) ||
 			(mtd->writesize == 2048 &&
 			 *maf_id == NAND_MFR_MICRON))

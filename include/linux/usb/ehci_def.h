@@ -111,7 +111,11 @@ struct ehci_regs {
 	/* ASYNCLISTADDR: offset 0x18 */
 	u32		async_next;	/* address of next async queue head */
 
+#if !defined(CONFIG_ARCH_GM) && !defined(CONFIG_ARCH_GM_DUO)&& !defined(CONFIG_ARCH_GM_SMP)
 	u32		reserved[9];
+#else
+        //missed on Faraday's controller
+#endif
 
 	/* CONFIGFLAG: offset 0x40 */
 	u32		configured_flag;
@@ -162,6 +166,32 @@ struct ehci_regs {
 #define USBMODE_BE	(1<<2)		/* BE/LE endianness select */
 #define USBMODE_CM_HC	(3<<0)		/* host controller mode */
 #define USBMODE_CM_IDLE	(0<<0)		/* idle state */
+
+// OTG210 related register
+#define OTG210_MISC                  0x30     /* Miscellaneous register */
+#define OTG210_MISC_EOF2_Time        (3<<4)   /* EOF2_Timing points */
+#define OTG210_MISC_EOF1_Time        (3<<2)   /* EOF1_Timing points */
+#define OTG210_MISC_ASYN_SCH_SLPT    (3<<0)   /* Asyn Schedule sleep timer */
+
+#define OTG210_OTG_STATUS            0x70     /* OTG Control Status register */
+#define OTG210_OTG_STATUS_SPD_TYPE   (3<<22)  /* Host Speed Type */
+#define OTG210_OTG_STATUS_CROLE      (1<<20)  /* Current Role, 0:Host, 1:Device */
+
+#define OTG210_OTG_MASK_INTR         0xB4     /* OTG Control Mask HC/OTG/DEV interrupt register */
+#define OTG210_OTG_MASK_INTR_HC     (1<<2)    /* Mask Host interrupt */
+
+// USBH200 related register
+#define USBH200_TIMER                0x24     /* EOF time & Async sleep Timer register */
+#define USBH200_TIMER_EOF2_Time      (3<<4)   /* EOF2_Timing points */
+#define USBH200_TIMER_EOF1_Time      (3<<2)   /* EOF1_Timing points */
+#define USBH200_TIMER_ASYN_SCH_SLPT  (3<<0)   /* Asyn Schedule sleep timer */
+
+#define USBH200_BUS_STATUS          0x30     /* Host Control Bus Control/Status register */
+#define USBH200_BUS_STATUS_SPD_TYPE (3<<9)   /* Host Speed Type */
+
+#define USBH200_BUS_MONITOR          0x34     /* Host Control Bus Monitor Status register */
+#define USBH200_BUS_MONITOR_OVC      (1<<1)   /* Over Current Detection */
+#define USBH200_BUS_MONITOR_VBUS_ERR (1<<0)   /* VBUS Error */
 
 /* Moorestown has some non-standard registers, partially due to the fact that
  * its EHCI controller has both TT and LPM support. HOSTPCx are extensions to

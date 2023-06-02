@@ -50,6 +50,9 @@
 #define gadget_is_s3c2410(g)		(!strcmp("s3c2410_udc", (g)->name))
 #define gadget_is_s3c_hsotg(g)		(!strcmp("s3c-hsotg", (g)->name))
 #define gadget_is_s3c_hsudc(g)		(!strcmp("s3c-hsudc", (g)->name))
+#define gadget_is_fotg(g)		(!strcmp("fotg_udc", (g)->name))
+#define gadget_is_fusb(g)		(!strcmp("fusb_udc", (g)->name))
+#define gadget_is_fotg2xx(g)		(!strcmp("fotg2xx_udc", (g)->name))
 
 /**
  * usb_gadget_controller_number - support bcdDevice id convention
@@ -118,6 +121,14 @@ static inline int usb_gadget_controller_number(struct usb_gadget *gadget)
 		return 0x31;
 	else if (gadget_is_dwc3(gadget))
 		return 0x32;
+#if defined(CONFIG_GM_FOTG2XX)
+	else if (gadget_is_fusb(gadget))
+		return 0x33;
+	else if (gadget_is_fotg(gadget))
+		return 0x34;
+	else if (gadget_is_fotg2xx(gadget))
+		return 0x35;
+#endif
 
 	return -ENOENT;
 }

@@ -27,6 +27,7 @@ int __initdata rd_doload;	/* 1 = load RAM disk, 0 = don't load */
 
 int root_mountflags = MS_RDONLY | MS_SILENT;
 static char * __initdata root_device_name;
+int root_mtd_num = 0xFFFF;
 static char __initdata saved_root_name[64];
 static int root_wait;
 
@@ -282,6 +283,7 @@ static char * __initdata root_fs_names;
 static int __init fs_names_setup(char *str)
 {
 	root_fs_names = str;
+	//printk("stype str=%s\n",*str);
 	return 1;
 }
 
@@ -353,6 +355,10 @@ void __init mount_block_root(char *name, int flags)
 #endif
 
 	get_fs_names(fs_names);
+	// squash
+	if (strncmp(fs_names, "squashfs", 8) != 0)
+	    root_mtd_num = 0xFFFF;
+
 retry:
 	for (p = fs_names; *p; p += strlen(p)+1) {
 		int err = do_mount_root(name, p, flags, root_mount_data);
@@ -498,6 +504,23 @@ void __init mount_root(void)
 #endif
 }
 
+static s32 atoi(char *psz_buf)
+{
+        char *pch = psz_buf;
+        s32 base = 0;
+
+        while (isspace(*pch))
+                pch++;
+
+        if (*pch == '-' || *pch == '+') {
+                base = 10;
+                pch++;
+        } else if (*pch && tolower(pch[strlen(pch) - 1]) == 'h') {
+                base = 16;
+        }
+
+        return simple_strtoul(pch, NULL, base);
+}
 /*
  * Prepare the namespace - decide what/where to mount, load ramdisks, etc.
  */
@@ -532,6 +555,13 @@ void __init prepare_namespace(void)
 		ROOT_DEV = name_to_dev_t(root_device_name);
 		if (strncmp(root_device_name, "/dev/", 5) == 0)
 			root_device_name += 5;
+			
+		// squash
+		if (strncmp(root_device_name, "mtdblock", 8) == 0) {
+		    static char *root_mtd;
+		    root_mtd = root_device_name + 8;
+		    root_mtd_num = atoi(root_mtd);
+	    }
 	}
 
 	if (initrd_load())

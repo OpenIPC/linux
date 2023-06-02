@@ -987,7 +987,15 @@ static void qh_link_async (struct ehci_hcd *ehci, struct ehci_qh *qh)
 			/* in case a clear of CMD_ASE didn't take yet */
 			(void)handshake(ehci, &ehci->regs->status,
 					STS_ASS, 0, 150);
+#if defined(CONFIG_GM_FOTG2XX)
+            if (strncmp(ehci_to_hcd(ehci)->self.bus_name, "fotg", 4) == 0)
+                /* workaround, fix Ralink wifi dongle issue */
+                cmd |= (CMD_ASE | CMD_PSE);
+            else
+                cmd |= CMD_ASE;
+#else
 			cmd |= CMD_ASE;
+#endif
 			ehci_writel(ehci, cmd, &ehci->regs->command);
 			/* posted write need not be known to HC yet ... */
 		}
@@ -1216,14 +1224,32 @@ static void start_unlink_async (struct ehci_hcd *ehci, struct ehci_qh *qh)
 		BUG ();
 #endif
 
+#if 0
+	/* Patch from CTD, if PORTSC run bit = 0, restore qh address */
+	if ((cmd & CMD_RUN) == 0) {
+		printk("unlink qhead in HALT:..%x..%x..%x\n", (u32)qh,
+			ehci_readl(ehci, &ehci->regs->port_status[0]), cmd);
+		ehci_writel(ehci, ehci->async->qh_dma, &ehci->regs->async_next);
+	}
+#endif
+
 	/* stop async schedule right now? */
 	if (unlikely (qh == ehci->async)) {
 		/* can't get here without STS_ASS set */
 		if (ehci->rh_state != EHCI_RH_HALTED
 				&& !ehci->reclaim) {
 			/* ... and CMD_IAAD clear */
+#if defined(CONFIG_GM_FOTG2XX)
+            if ((strncmp(ehci_to_hcd(ehci)->self.bus_name, "fotg", 4) == 0) && !ehci->periodic_sched)
+                ehci_writel(ehci, cmd & ~(CMD_ASE | CMD_PSE),
+                        &ehci->regs->command);
+            else
+                ehci_writel(ehci, cmd & ~CMD_ASE,
+                        &ehci->regs->command);
+#else
 			ehci_writel(ehci, cmd & ~CMD_ASE,
 				    &ehci->regs->command);
+#endif
 			wmb ();
 			// handshake later, if we need to
 			timer_action_done (ehci, TIMER_ASYNC_OFF);

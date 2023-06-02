@@ -45,6 +45,51 @@ UNWIND(	.fnstart	)
 UNWIND(	.fnend		)
 ENDPROC(\name		)
 	.endm
+#elif defined(CONFIG_CPU_FMP626)
+	.macro	bitop, name, instr
+ENTRY(	\name		)
+UNWIND(	.fnstart	)
+	mov	r2, #1
+	and	r3, r0, #7		@ Get bit offset
+	add	r1, r1, r0, lsr #3	@ Get byte offset
+	mov	r3, r2, lsl r3
+1:	ldc	p13, c0, [r1], {0}	@ set address for ldrexb
+	mrc	p13, 0, r2, c0, c0, 0	@ ldrexb
+	\instr	r2, r2, r3
+	mcr	p13, 0, r2, c0, c0, 0	@ data for strexb
+	stc	p13, c0, [r1], {0}	@ strexb to address
+	mrc	p13, 0, r0, c0, c0, 2	@ strexb status
+	cmp	r0, #0
+	bne	1b
+	mov	pc, lr
+UNWIND(	.fnend		)
+ENDPROC(\name		)
+	.endm
+
+	.macro	testop, name, instr, store
+ENTRY(	\name		)
+UNWIND(	.fnstart	)
+	and	r3, r0, #7		@ Get bit offset
+	mov	r2, #1
+	add	r1, r1, r0, lsr #3	@ Get byte offset
+	mov	r3, r2, lsl r3		@ create mask
+	smp_dmb
+1:	ldc	p13, c0, [r1], {0}	@ set address for ldrexb
+	mrc	p13, 0, r2, c0, c0, 0	@ ldrexb
+	ands	r0, r2, r3		@ save old value of bit
+	\instr	r2, r2, r3		@ toggle bit
+	mcr	p13, 0, r2, c0, c0, 0	@ data for strexb
+	stc	p13, c0, [r1], {0}	@ strexb to address
+	mrc	p13, 0, ip, c0, c0, 2	@ strexb status
+	smp_dmb
+	cmp	ip, #0
+	bne	1b
+	cmp	r0, #0
+	movne	r0, #1
+2:	mov	pc, lr
+UNWIND(	.fnend		)
+ENDPROC(\name		)
+	.endm
 #else
 	.macro	bitop, name, instr
 ENTRY(	\name		)

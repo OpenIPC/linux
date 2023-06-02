@@ -23,7 +23,7 @@
 /*
  * The size of one data cache line.
  */
-#define CACHE_DLINESIZE	16
+#define CACHE_DLINESIZE	32
 
 /*
  * The total size of the data cache.

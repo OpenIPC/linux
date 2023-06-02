@@ -1,0 +1,6 @@
+rm -f ./usr/initramfs_data.cpio.gz
+make
+sudo cp arch/arm/boot/zImage /tftpboot/mbootpImage
+sudo cp -f System.map /tftpboot/
+sudo cp -f vmlinux /tftpboot/
+sudo chown nobody:nobody /tftpboot/mbootpImage

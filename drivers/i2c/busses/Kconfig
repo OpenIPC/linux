@@ -464,6 +464,62 @@ config I2C_MV64XXX
 	  This driver can also be built as a module.  If so, the module
 	  will be called i2c-mv64xxx.
 
+config I2C_GM_FTI2C010
+    bool "GM FTIIC010 I2C Controller"
+    default y
+    depends on ARCH_GM || ARCH_GM_DUO || ARCH_GM_SMP
+    help
+      If you say yes to this open, GM FTIIC010 contoller will be included.
+
+config I2C_INTERRUPT_MODE
+    bool "GM I2C uses interrupt mode"
+    default n
+    depends on I2C_GM_FTI2C010
+    help
+      If you say yes to this open, it will save CPU power but the I2C transaction latency will be longer.    
+
+config I2C0_IP
+    bool "GM I2C i2c0 enable"
+    default n
+    depends on I2C_GM_FTI2C010
+    help
+      If you say yes to this open, it will create the i2c0 i2c host.    
+
+config I2C1_IP
+    bool "GM I2C i2c1 enable"
+    default n
+    depends on I2C_GM_FTI2C010
+    help
+      If you say yes to this open, it will create the i2c1 i2c host.    
+
+config I2C2_IP
+    bool "GM I2C i2c2 enable"
+    default n
+    depends on I2C_GM_FTI2C010
+    help
+      If you say yes to this open, it will create the i2c2 i2c host.    
+
+config I2C3_IP
+    bool "GM I2C i2c3 enable"
+    default n
+    depends on I2C_GM_FTI2C010
+    help
+      If you say yes to this open, it will create the i2c3 i2c host.    
+
+config I2C4_IP
+    bool "GM I2C i2c4 enable"
+    default n
+    depends on I2C_GM_FTI2C010
+    help
+      If you say yes to this open, it will create the i2c4 i2c host.    
+
+config I2C5_IP
+    bool "GM I2C i2c5 enable"
+    default n
+    depends on I2C_GM_FTI2C010
+    help
+      If you say yes to this open, it will create the i2c5 i2c host. 
+
 config I2C_MXS
 	tristate "Freescale i.MX28 I2C interface"
 	depends on SOC_IMX28

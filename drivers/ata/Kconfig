@@ -83,6 +83,25 @@ config SATA_AHCI_PLATFORM
 
 	  If unsure, say N.
 
+config EXTERNAL_CRYSTAL_CLOCK
+	bool "Select external crystal as clock source for SATA PHY"
+	default n
+	depends on SATA_AHCI_PLATFORM && PLATFORM_GM8210
+	help
+	  This option selects external crystal as the clock source for SATA PHY.
+
+	  If unsure, say N.
+
+config EP_SATA_ENABLE
+	bool "Manage GM SATA on EP"
+	default n
+	depends on SATA_AHCI_PLATFORM && PLATFORM_GM8210 && GM8210_EP_MODE
+	help
+	  This option is only valid on dual chip platform.
+
+	  Only one side can manage SATA controller at the same time, if you want to
+	  opterate SATA controller on slave chip, say Y here.
+
 config SATA_FSL
 	tristate "Freescale 3.0Gbps SATA support"
 	depends on FSL_SOC

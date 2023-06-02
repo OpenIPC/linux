@@ -562,6 +562,10 @@ static inline int gadget_is_dualspeed(struct usb_gadget *g)
 	/* runtime test would check "g->max_speed" ... that might be
 	 * useful to work around hardware bugs, but is mostly pointless
 	 */
+#if defined(CONFIG_PLATFORM_GM8136)
+    if (CONFIG_GM_OTG_CHOOSE == 1)
+        return 0;
+#endif
 	return 1;
 #else
 	return 0;

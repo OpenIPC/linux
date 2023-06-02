@@ -79,6 +79,9 @@ obj-$(CONFIG_CPU_ARM926T)	+= proc-arm926.o
 obj-$(CONFIG_CPU_ARM940T)	+= proc-arm940.o
 obj-$(CONFIG_CPU_ARM946E)	+= proc-arm946.o
 obj-$(CONFIG_CPU_FA526)		+= proc-fa526.o
+obj-$(CONFIG_CPU_FA626TE)	+= proc-fa626te.o
+obj-$(CONFIG_CPU_FMP626)	+= proc-fmp626.o
+obj-$(CONFIG_CPU_FA726TE)	+= proc-fa726te.o
 obj-$(CONFIG_CPU_ARM1020)	+= proc-arm1020.o
 obj-$(CONFIG_CPU_ARM1020E)	+= proc-arm1020e.o
 obj-$(CONFIG_CPU_ARM1022)	+= proc-arm1022.o
@@ -92,6 +95,7 @@ obj-$(CONFIG_CPU_FEROCEON)	+= proc-feroceon.o
 obj-$(CONFIG_CPU_V6)		+= proc-v6.o
 obj-$(CONFIG_CPU_V6K)		+= proc-v6.o
 obj-$(CONFIG_CPU_V7)		+= proc-v7.o
+obj-$(CONFIG_PLATFORM_GM8210)	+= proc-fa726te.o cache-fa.o proc-fa626te.o copypage-fa.o tlb-fa.o copypage-v4wb.o tlb-v4wbi.o
 
 AFLAGS_proc-v6.o	:=-Wa,-march=armv6
 AFLAGS_proc-v7.o	:=-Wa,-march=armv7-a
@@ -100,3 +104,4 @@ obj-$(CONFIG_CACHE_FEROCEON_L2)	+= cache-feroceon-l2.o
 obj-$(CONFIG_CACHE_L2X0)	+= cache-l2x0.o
 obj-$(CONFIG_CACHE_XSC3L2)	+= cache-xsc3l2.o
 obj-$(CONFIG_CACHE_TAUROS2)	+= cache-tauros2.o
+obj-$(CONFIG_CACHE_FTL2CC031)	+= cache-ftl2cc031.o

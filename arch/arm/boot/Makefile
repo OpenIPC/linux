@@ -25,7 +25,15 @@ ZRELADDR    := $(zreladdr-y)
 PARAMS_PHYS := $(params_phys-y)
 INITRD_PHYS := $(initrd_phys-y)
 
-export ZRELADDR INITRD_PHYS PARAMS_PHYS
+ifeq ($(CONFIG_PLATFORM_GM8210),y)
+ZRELADDR_FA726 := $(zreladdr_fa726-y)
+ZRELADDR_FA626 := $(zreladdr_fa626-y)
+export ZRELADDR_FA726 ZRELADDR_FA626
+else
+export ZRELADDR
+endif
+
+export INITRD_PHYS PARAMS_PHYS
 
 targets := Image zImage xipImage bootpImage uImage
 

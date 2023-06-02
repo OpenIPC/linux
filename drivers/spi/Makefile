@@ -23,6 +23,7 @@ obj-$(CONFIG_SPI_DAVINCI)		+= spi-davinci.o
 obj-$(CONFIG_SPI_DESIGNWARE)		+= spi-dw.o
 obj-$(CONFIG_SPI_DW_MMIO)		+= spi-dw-mmio.o
 obj-$(CONFIG_SPI_DW_PCI)		+= spi-dw-midpci.o
+obj-$(CONFIG_SPI_FTSPI020)      	+= ftspi020.o
 spi-dw-midpci-objs			:= spi-dw-pci.o spi-dw-mid.o
 obj-$(CONFIG_SPI_EP93XX)		+= spi-ep93xx.o
 obj-$(CONFIG_SPI_FSL_LIB)		+= spi-fsl-lib.o
@@ -58,4 +59,5 @@ obj-$(CONFIG_SPI_TLE62X0)		+= spi-tle62x0.o
 obj-$(CONFIG_SPI_TOPCLIFF_PCH)		+= spi-topcliff-pch.o
 obj-$(CONFIG_SPI_TXX9)			+= spi-txx9.o
 obj-$(CONFIG_SPI_XILINX)		+= spi-xilinx.o
+obj-$(CONFIG_SPI_FTSSP010)		+= ftssp010_spi.o
 
