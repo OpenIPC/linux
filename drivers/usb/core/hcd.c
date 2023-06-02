@@ -393,7 +393,6 @@ rh_string(int id, struct usb_hcd const *hcd, u8 *data, unsigned len)
 	char const *s;
 	static char const langids[4] = {4, USB_DT_STRING, 0x09, 0x04};
 
-	// language ids
 	switch (id) {
 	case 0:
 		/* Array of LANGID codes (0x0409 is MSFT-speak for "en-us") */
@@ -562,7 +561,6 @@ static int rh_call_control (struct usb_hcd *hcd, struct urb *urb)
 	case DeviceOutRequest | USB_REQ_SET_INTERFACE:
 		break;
 	case DeviceOutRequest | USB_REQ_SET_ADDRESS:
-		// wValue == urb->dev->devaddr
 		dev_dbg (hcd->self.controller, "root hub device address %d\n",
 			wValue);
 		break;
@@ -572,7 +570,7 @@ static int rh_call_control (struct usb_hcd *hcd, struct urb *urb)
 	/* ENDPOINT REQUESTS */
 
 	case EndpointRequest | USB_REQ_GET_STATUS:
-		// ENDPOINT_HALT flag
+
 		tbuf [0] = 0;
 		tbuf [1] = 0;
 		len = 2;
@@ -1582,8 +1580,10 @@ void usb_hcd_giveback_urb(struct usb_hcd *hcd, struct urb *urb, int status)
 	usb_unanchor_urb(urb);
 
 	/* pass ownership to the completion handler */
+	//printk("god...hand add is %x\n",(unsigned int)urb->complete);
 	urb->status = status;
 	urb->complete (urb);
+
 	atomic_dec (&urb->use_count);
 	if (unlikely(atomic_read(&urb->reject)))
 		wake_up (&usb_kill_urb_queue);

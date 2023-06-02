@@ -89,6 +89,25 @@ config DW_DMAC
 	  Support the Synopsys DesignWare AHB DMA controller.  This
 	  can be integrated in chips such as the Atmel AT32ap7000.
 
+config FH_DMAC
+	tristate "FH DesignWare AHB DMA support"
+	depends on HAVE_CLK
+	select DMA_ENGINE
+
+	help
+	  Support the Synopsys DesignWare AHB DMA controller.  This
+	  can be integrated in chips such as the FullHan.
+	  
+if FH_DMAC
+
+config FH_DMAC_MISC
+	bool "FH DMAC Misc Device Enable"
+	default y
+	help
+	  FH DMAC Misc Device Enable
+
+endif
+	  
 config AT_HDMAC
 	tristate "Atmel AHB DMA support"
 	depends on ARCH_AT91SAM9RL || ARCH_AT91SAM9G45
@@ -271,5 +290,7 @@ config DMATEST
 	help
 	  Simple DMA test client. Say N unless you're debugging a
 	  DMA Device driver.
-
 endif
+
+
+

@@ -1,0 +1,14 @@
+config FH_HOST_ONLY
+	bool "Host only mode"
+	default y
+	depends on CONFIG_USB_FH_OTG
+	help
+		The USB2.0 high-speed host controller
+		integrated into many SoCs.
+
+config FH_DEVICE_ONLY
+	bool "Gadget only mode"
+	depends on CONFIG_USB_FH_OTG
+	help
+		The USB2.0 high-speed gadget controller
+		integrated into many SoCs.

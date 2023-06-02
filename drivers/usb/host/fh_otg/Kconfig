@@ -1,0 +1,1 @@
+source "drivers/usb/host/fh_otg/fh_otg/Kconfig"

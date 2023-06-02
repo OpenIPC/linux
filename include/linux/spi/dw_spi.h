@@ -4,6 +4,27 @@
 #include <linux/io.h>
 #include <linux/scatterlist.h>
 
+
+#define YU_ADD_ISR_TASKLET
+
+#ifdef CONFIG_JLINK_DEBUG
+#	define DEBUG_DW_SPI0
+
+#	ifdef DEBUG_DW_SPI0
+#		define DW_SPI0_REG_BASE			(0xf0500000)
+		#define DW_SPI0_CS_REG				(0xf0300000)
+
+#	else
+		#define DW_SPI_REG_BASE			(0xfe400000)
+		#define DW_SPI0_CS_REG			(0xfe500000)
+#	endif
+
+#else
+#	define DW_SPI0_CS_REG			(0xfe500000)
+#endif
+
+
+
 /* Bit fields in CTRLR0 */
 #define SPI_DFS_OFFSET			0
 
@@ -138,7 +159,7 @@ struct dw_spi {
 	u32			dma_width;
 	int			cs_change;
 	irqreturn_t		(*transfer_handler)(struct dw_spi *dws);
-	void			(*cs_control)(u32 command);
+	void			(*cs_control)(struct spi_device *spi, u32 command);
 
 	/* Dma info */
 	int			dma_inited;
@@ -152,9 +173,18 @@ struct dw_spi {
 	struct dw_spi_dma_ops	*dma_ops;
 	void			*dma_priv; /* platform relate info */
 	struct pci_dev		*dmac;
+	void * dma_rx_dummy;
+	void * dma_tx_dummy;
 
 	/* Bus interface info */
 	void			*priv;
+
+
+#ifdef YU_ADD_ISR_TASKLET
+	struct tasklet_struct	yu_add_isr_tasklet;
+
+#endif
+
 #ifdef CONFIG_DEBUG_FS
 	struct dentry *debugfs;
 #endif
@@ -169,6 +199,10 @@ struct dw_spi {
 #define dw_writew(dw, name, val) \
 	__raw_writew((val), &(((struct dw_spi_reg *)dw->regs)->name))
 
+
+#define yu_write(val,add)    __raw_writel((val), (add))
+
+
 static inline void spi_enable_chip(struct dw_spi *dws, int enable)
 {
 	dw_writel(dws, ssienr, (enable ? 1 : 0));
@@ -179,16 +213,18 @@ static inline void spi_set_clk(struct dw_spi *dws, u16 div)
 	dw_writel(dws, baudr, div);
 }
 
-static inline void spi_chip_sel(struct dw_spi *dws, u16 cs)
+static inline void spi_chip_sel(struct dw_spi *dws, struct spi_device *spi)
 {
+	 u16 cs = spi->chip_select;
 	if (cs > dws->num_cs)
 		return;
 
 	if (dws->cs_control)
-		dws->cs_control(1);
+		dws->cs_control(spi, 1);
 
 	dw_writel(dws, ser, 1 << cs);
 }
+
 
 /* Disable IRQ bits */
 static inline void spi_mask_intr(struct dw_spi *dws, u32 mask)
@@ -218,7 +254,8 @@ struct dw_spi_chip {
 	u8 poll_mode;	/* 0 for contoller polling mode */
 	u8 type;	/* SPI/SSP/Micrwire */
 	u8 enable_dma;
-	void (*cs_control)(u32 command);
+	void *cs_control;
+//	void (*cs_control)(u32 command);
 };
 
 extern int dw_spi_add_host(struct dw_spi *dws);

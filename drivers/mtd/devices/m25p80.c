@@ -166,10 +166,26 @@ static inline int write_disable(struct m25p *flash)
  */
 static inline int set_4byte(struct m25p *flash, u32 jedec_id, int enable)
 {
+	int ret;
 	switch (JEDEC_MFR(jedec_id)) {
 	case CFI_MFR_MACRONIX:
+	case CFI_MFR_ST: /* Micron, actually */
+	case 0xC8 /* GD */ :
 		flash->command[0] = enable ? OPCODE_EN4B : OPCODE_EX4B;
-		return spi_write(flash->spi, flash->command, 1);
+		ret = spi_write(flash->spi, flash->command, 1);
+		return ret;
+	case 0xEF /* winbond */:
+		flash->command[0] = enable ? OPCODE_EN4B : OPCODE_EX4B;
+		ret = spi_write(flash->spi, flash->command, 1);
+		if (!enable)
+		{
+			flash->command[0] = 0x06;
+			spi_write(flash->spi,flash->command, 1);
+			flash->command[0] = 0xc5;
+			flash->command[1] = 0x00;
+			ret =spi_write(flash->spi,flash->command, 2);
+		}
+		return ret;
 	default:
 		/* Spansion style */
 		flash->command[0] = OPCODE_BRWR;
@@ -177,6 +193,7 @@ static inline int set_4byte(struct m25p *flash, u32 jedec_id, int enable)
 		return spi_write(flash->spi, flash->command, 2);
 	}
 }
+
 
 /*
  * Service routine to read status register until ready, or timeout occurs.
@@ -192,7 +209,7 @@ static int wait_till_ready(struct m25p *flash)
 	do {
 		if ((sr = read_sr(flash)) < 0)
 			break;
-		else if (!(sr & SR_WIP))
+		else if (!(sr & (SR_WIP | SR_WEL)))
 			return 0;
 
 		cond_resched();
@@ -200,6 +217,43 @@ static int wait_till_ready(struct m25p *flash)
 	} while (!time_after_eq(jiffies, deadline));
 
 	return 1;
+}
+
+
+static  int reset_chip(struct m25p *flash, u32 jedec_id)
+{
+	int ret;
+	mutex_lock(&flash->lock);
+
+	/* Wait till previous write/erase is done. */
+	if (wait_till_ready(flash)) {
+		mutex_unlock(&flash->lock);
+		return 1;
+	}
+
+	switch (JEDEC_MFR(jedec_id)) {
+	case 0x9F: /* S25FL128/256S spansion */
+		flash->command[0] = 0xFF; // MBR
+		ret = spi_write(flash->spi, flash->command, 1);
+		flash->command[0] = 0xF0;  // RESET
+		ret = spi_write(flash->spi, flash->command, 1);
+		mutex_unlock(&flash->lock);
+		return ret;
+	case 0xef:	/*winbond*/
+	case 0xc8:	/*GD*/
+		flash->command[0] = 0x66;
+		ret = spi_write(flash->spi, flash->command, 1);
+		flash->command[0] = 0x99;
+		ret = spi_write(flash->spi, flash->command, 1);
+		udelay(100);
+		mutex_unlock(&flash->lock);
+		return ret;
+	case CFI_MFR_MACRONIX:
+	case CFI_MFR_ST: /* Micron, actually */
+	default:
+		mutex_unlock(&flash->lock);
+		return 0;
+	}
 }
 
 /*
@@ -707,7 +761,7 @@ static const struct spi_device_id m25p_ids[] = {
 	{ "s25fl129p0", INFO(0x012018, 0x4d00, 256 * 1024,  64, 0) },
 	{ "s25fl129p1", INFO(0x012018, 0x4d01,  64 * 1024, 256, 0) },
 	{ "s25fl016k",  INFO(0xef4015,      0,  64 * 1024,  32, SECT_4K) },
-	{ "s25fl064k",  INFO(0xef4017,      0,  64 * 1024, 128, SECT_4K) },
+	{ "s25fl064k",  INFO(0xef4017,      0,  64 * 1024, 128, 0) },
 
 	/* SST -- large erase sizes are "overlays", "sectors" are 4K */
 	{ "sst25vf040b", INFO(0xbf258d, 0, 64 * 1024,  8, SECT_4K) },
@@ -760,15 +814,29 @@ static const struct spi_device_id m25p_ids[] = {
 	{ "w25x16", INFO(0xef3015, 0, 64 * 1024,  32, SECT_4K) },
 	{ "w25x32", INFO(0xef3016, 0, 64 * 1024,  64, SECT_4K) },
 	{ "w25q32", INFO(0xef4016, 0, 64 * 1024,  64, SECT_4K) },
+	{ "w25q32dw", INFO(0xef6016, 0, 64 * 1024,  64, SECT_4K) },
 	{ "w25x64", INFO(0xef3017, 0, 64 * 1024, 128, SECT_4K) },
-	{ "w25q64", INFO(0xef4017, 0, 64 * 1024, 128, SECT_4K) },
+	{ "w25q64", INFO(0xef4017, 0, 64 * 1024, 128, 0) },
+	{ "w25q80", INFO(0xef5014, 0, 64 * 1024,  16, SECT_4K) },
+	{ "w25q80bl", INFO(0xef4014, 0, 64 * 1024,  16, SECT_4K) },
+	{ "w25q128", INFO(0xef4018, 0, 64 * 1024, 256, 0) }, /// SECT_4K
+	{ "w25q256", INFO(0xef4019, 0, 64 * 1024, 512, 0) },
 
 	/* Catalyst / On Semiconductor -- non-JEDEC */
-	{ "cat25c11", CAT25_INFO(  16, 8, 16, 1) },
-	{ "cat25c03", CAT25_INFO(  32, 8, 16, 2) },
-	{ "cat25c09", CAT25_INFO( 128, 8, 32, 2) },
-	{ "cat25c17", CAT25_INFO( 256, 8, 32, 2) },
+	{ "cat25c11", CAT25_INFO(16, 8, 16, 1) },
+	{ "cat25c03", CAT25_INFO(32, 8, 16, 2) },
+	{ "cat25c09", CAT25_INFO(128, 8, 32, 2) },
+	{ "cat25c17", CAT25_INFO(256, 8, 32, 2) },
 	{ "cat25128", CAT25_INFO(2048, 8, 64, 2) },
+
+	/*for GD flash..*/
+	{ "gd25q128", INFO(0xc84018, 0, 64 * 1024, 256, 0) },
+	{ "gd25q64", INFO(0xc84017, 0, 64 * 1024, 128, 0) },
+	{ "gd25q16", INFO(0xc84015, 0, 64 * 1024, 32, 0) },
+	/*for xmc flash..*/
+	{ "XM25QH128A", INFO(0x207018, 0, 64 * 1024, 256, 0) },
+	{ "XM25QH64A", INFO(0x207017, 0, 64 * 1024, 128, 0) },
+
 	{ },
 };
 MODULE_DEVICE_TABLE(spi, m25p_ids);
@@ -909,6 +977,7 @@ static int __devinit m25p_probe(struct spi_device *spi)
 	flash->mtd.size = info->sector_size * info->n_sectors;
 	flash->mtd.erase = m25p80_erase;
 	flash->mtd.read = m25p80_read;
+	flash->mtd.priv = (void *)info->jedec_id;
 
 	/* sst flash chips use AAI word program */
 	if (JEDEC_MFR(info->jedec_id) == CFI_MFR_SST)
@@ -1005,6 +1074,22 @@ static int __devinit m25p_probe(struct spi_device *spi)
 		-ENODEV : 0;
 }
 
+static void m25p_shutdown(struct spi_device *spi)
+{
+	struct m25p	*flash = dev_get_drvdata(&spi->dev);
+	u32 jedec = (u32)flash->mtd.priv;
+
+	dev_err(&spi->dev, "[m25] shutdown here? \n");
+
+	if (flash->addr_width == 4){
+		set_4byte(flash, jedec, 0);
+		flash->addr_width =3 ;
+	}
+
+	if (reset_chip(flash, jedec))
+		dev_err(&spi->dev, "[m25] reset chip error...\n");
+}
+
 
 static int __devexit m25p_remove(struct spi_device *spi)
 {
@@ -1030,7 +1115,8 @@ static struct spi_driver m25p80_driver = {
 	.id_table	= m25p_ids,
 	.probe	= m25p_probe,
 	.remove	= __devexit_p(m25p_remove),
-
+	// add shutdown method to reset spi flash
+	.shutdown = m25p_shutdown, ///
 	/* REVISIT: many of these chips have deep power-down modes, which
 	 * should clearly be entered on suspend() to minimize power use.
 	 * And also when they're otherwise idle...

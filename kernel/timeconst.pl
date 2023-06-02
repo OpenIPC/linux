@@ -370,7 +370,7 @@ if ($hz eq '--can') {
 	}
 
 	@val = @{$canned_values{$hz}};
-	if (!defined(@val)) {
+	if (!defined()) {
 		@val = compute_values($hz);
 	}
 	output($hz, @val);

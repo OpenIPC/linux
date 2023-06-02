@@ -64,6 +64,11 @@ int clk_enable(struct clk *clk);
  */
 void clk_disable(struct clk *clk);
 
+/*
+ * clk_reset
+ */
+void clk_reset(struct clk *clk);
+
 /**
  * clk_get_rate - obtain the current clock rate (in Hz) for a clock source.
  *		  This is only valid once the clock source has been enabled.
@@ -154,5 +159,7 @@ struct clk *clk_get_sys(const char *dev_id, const char *con_id);
  */
 int clk_add_alias(const char *alias, const char *alias_dev_name, char *id,
 			struct device *dev);
+
+void clk_change_parent(struct clk *clk, int select);
 
 #endif

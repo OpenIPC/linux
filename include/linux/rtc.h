@@ -18,15 +18,15 @@
  */
 
 struct rtc_time {
-	int tm_sec;
-	int tm_min;
-	int tm_hour;
-	int tm_mday;
-	int tm_mon;
-	int tm_year;
-	int tm_wday;
-	int tm_yday;
-	int tm_isdst;
+	int tm_sec;		//0~59
+	int tm_min;		//0~59
+	int tm_hour;	//0~23
+	int tm_mday;	//1~31
+	int tm_mon;		//0~11
+	int tm_year;	//offset from 1900
+	int tm_wday;	//0~6   sunday:0
+	int tm_yday;	//offset from 1.1    0~365
+	int tm_isdst;	//???
 };
 
 /*

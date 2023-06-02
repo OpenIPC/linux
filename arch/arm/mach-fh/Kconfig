@@ -1,0 +1,52 @@
+if ARCH_FULLHAN
+
+config CPU_FH8833
+	select CPU_V6
+	bool	
+menu "FullHan Implementations"
+
+comment "FullHan Core Type"
+
+choice
+	prompt "Select Fullhan Chip:"
+	default ARCH_FH8833
+
+config ARCH_FH8833
+	bool "FullHan FH8833 based system"
+	select CPU_FH8833
+
+endchoice
+
+comment "FullHan Board Type"
+
+config USE_PTS_AS_CLOCKSOURCE
+	bool "use pts as clock source"
+	default n
+	
+config FH_SIMPLE_TIMER
+	bool "use fh self-defined simple timer"
+	default n
+
+config MACH_FH8833
+	bool "FullHan FH8833 board"
+	default y
+	depends on ARCH_FH8833
+	select MISC_DEVICES
+	select I2C
+	help
+	  Configure this option to specify the whether the board used
+	  for development is FH8833
+
+	  
+config  MACH_FH_NAND
+	bool "USE NAND FLASH"
+	default n
+	help
+	  use NAND FLASH 
+
+config JLINK_DEBUG
+	bool "Use jlink to debug kernel."
+
+endmenu
+
+endif

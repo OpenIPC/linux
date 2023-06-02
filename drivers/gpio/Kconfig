@@ -85,6 +85,11 @@ config GPIO_IT8761E
 	tristate "IT8761E GPIO support"
 	help
 	  Say yes here to support GPIO functionality of IT8761E super I/O chip.
+	  
+config GPIO_FH
+	tristate "FH GPIO support"
+	help
+	  Say yes here to support GPIO functionality of FH.
 
 config GPIO_EXYNOS4
 	def_bool y

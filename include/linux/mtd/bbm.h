@@ -101,9 +101,27 @@ struct nand_bbt_descr {
 /* Chip stores bad block marker on BOTH 1st and 6th bytes of OOB */
 #define NAND_BBT_SCANBYTE1AND6 0x00100000
 /* The nand_bbt_descr was created dynamicaly and must be freed */
-#define NAND_BBT_DYNAMICSTRUCT 0x00200000
+/*#define NAND_BBT_DYNAMICSTRUCT 0x00200000*/
+/*
+ * Use a flash based bad block table. By default, OOB identifier is saved in
+ * OOB area. This option is passed to the default bad block table function.
+ */
+#define NAND_BBT_USE_FLASH      0x00020000
+
 /* The bad block table does not OOB for marker */
 #define NAND_BBT_NO_OOB		0x00400000
+
+/*
+ * Do not write new bad block markers to OOB; useful, e.g., when ECC covers
+ * entire spare area. Must be used with NAND_BBT_USE_FLASH.
+ */
+#define NAND_BBT_NO_OOB_BBM     0x00800000
+/*
+ * Flag set by nand_create_default_bbt_descr(), marking that the nand_bbt_descr
+ * was allocated dynamicaly and must be freed in nand_release(). Has no meaning
+ * in nand_chip.bbt_options.
+ */
+#define NAND_BBT_DYNAMICSTRUCT  0x80000000
 
 /* The maximum number of blocks to scan for a bbt */
 #define NAND_BBT_SCAN_MAXBLOCKS	4

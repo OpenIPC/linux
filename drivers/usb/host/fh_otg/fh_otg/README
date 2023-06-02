@@ -1,0 +1,17 @@
+Instructions for building HSOTG driver
+Portability library will be built on the fly
+---------------------------------------
+- Export necessary environment variables or pass them to the make command line.
+
+# Path to the installed kernel directory
+  % export KDIR=/...
+# Architecture type - for HAPS x86_64/x86, for IPMATE ARM
+  % export ARCH=x86_64
+# If BUS_INTERFACE not exported, PCI_INTERFACE is the default, for IPMATE use LM_INTERFACE
+  
+- Build the driver.
+  % make 
+
+- Install the driver (by default /lib/modules/x.x.xx.x/extra or export INSTALL_MOD_PATH for custom directory)
+  % make install
+

@@ -1060,4 +1060,15 @@ config RTC_DRV_PUV3
 	  This drive can also be built as a module. If so, the module
 	  will be called rtc-puv3.
 
+
+config RTC_DRV_FH
+	tristate "FH On-Chip RTC"
+	depends on RTC_CLASS 
+	help
+	  Say Y here to enable support for the on-chip RTC found in
+	  FH processors.
+
+ 	  To compile this driver as a module, choose M here: the
+	  module will be called rtc-fh.
+
 endif # RTC_CLASS

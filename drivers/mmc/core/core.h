@@ -13,7 +13,7 @@
 
 #include <linux/delay.h>
 
-#define MMC_CMD_RETRIES        3
+#define MMC_CMD_RETRIES        0 //FIXME, by PeterJiang, don't retry...
 
 struct mmc_bus_ops {
 	int (*awake)(struct mmc_host *);

@@ -268,7 +268,8 @@ static int mtdblock_writesect(struct mtd_blktrans_dev *dev,
 {
 	struct mtdblk_dev *mtdblk = container_of(dev, struct mtdblk_dev, mbd);
 	if (unlikely(!mtdblk->cache_data && mtdblk->cache_size)) {
-		mtdblk->cache_data = vmalloc(mtdblk->mbd.mtd->erasesize);
+		mtdblk->cache_data = kmalloc(mtdblk->mbd.mtd->erasesize,
+		GFP_KERNEL);
 		if (!mtdblk->cache_data)
 			return -EINTR;
 		/* -EINTR is not really correct, but it is the best match
@@ -324,7 +325,7 @@ static int mtdblock_release(struct mtd_blktrans_dev *mbd)
 		/* It was the last usage. Free the cache */
 		if (mbd->mtd->sync)
 			mbd->mtd->sync(mbd->mtd);
-		vfree(mtdblk->cache_data);
+		kfree(mtdblk->cache_data);
 	}
 
 	mutex_unlock(&mtdblks_lock);

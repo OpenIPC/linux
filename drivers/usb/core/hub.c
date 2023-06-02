@@ -2939,6 +2939,7 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
 					/* FALL THROUGH */
 				default:
 					if (r == 0)
+						printk("error is r = eproto\n");
 						r = -EPROTO;
 					break;
 				}

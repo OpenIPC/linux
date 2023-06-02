@@ -442,6 +442,15 @@ config SPI_DW_MMIO
 	tristate "Memory-mapped io interface driver for DW SPI core"
 	depends on SPI_DESIGNWARE && HAVE_CLK
 
+
+config SPI_FH
+	tristate "fh spi driver for DW SPI core"
+	depends on SPI_MASTER
+	
+config SPI_FH_SLAVE
+	tristate "fh spi slave driver for DW SPI core"
+
+	
 #
 # There are lots of SPI device types, with sensors and memory
 # being probably the most widely used ones.

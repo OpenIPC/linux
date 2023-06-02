@@ -280,6 +280,7 @@ struct mmc_host {
 #endif
 
 	struct dentry		*debugfs_root;
+	unsigned int		rescan_count;
 
 	unsigned long		private[0] ____cacheline_aligned;
 };

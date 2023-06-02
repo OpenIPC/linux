@@ -305,6 +305,8 @@ static int mmc_read_switch(struct mmc_card *card)
 
 		goto out;
 	}
+	if (status[13] & 0x02) //modify by kernel 3.0.101
+				card->sw_caps.hs_max_dtr = 50000000;
 
 	if (card->scr.sda_spec3) {
 		card->sw_caps.sd3_bus_mode = status[13];
@@ -348,11 +350,11 @@ static int mmc_read_switch(struct mmc_card *card)
 		}
 
 		card->sw_caps.sd3_curr_limit = status[7];
-	} else {
+	} /*else {//modify by kernel 3.0.101
 		if (status[13] & 0x02)
 			card->sw_caps.hs_max_dtr = 50000000;
 	}
-
+	 */
 out:
 	kfree(status);
 

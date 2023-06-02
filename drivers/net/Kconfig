@@ -984,6 +984,8 @@ config DM9000
 
 	  To compile this driver as a module, choose M here.  The module
 	  will be called dm9000.
+	  
+source "drivers/net/fh_gmac/Kconfig"
 
 config DM9000_DEBUGLEVEL
 	int "DM9000 maximum debug level"
@@ -2542,6 +2544,7 @@ config S6GMAC
 
 source "drivers/net/stmmac/Kconfig"
 
+
 config PCH_GBE
 	tristate "Intel EG20T PCH / OKI SEMICONDUCTOR ML7223 IOH GbE"
 	depends on PCI
@@ -3449,5 +3452,7 @@ config VMXNET3
 	  This driver supports VMware's vmxnet3 virtual ethernet NIC.
 	  To compile this driver as a module, choose M here: the
 	  module will be called vmxnet3.
+
+
 
 endif # NETDEVICES

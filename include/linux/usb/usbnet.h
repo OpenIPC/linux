@@ -33,6 +33,8 @@ struct usbnet {
 	wait_queue_head_t	*wait;
 	struct mutex		phy_mutex;
 	unsigned char		suspend_count;
+	unsigned char		pkt_cnt, pkt_err;
+	unsigned short		rx_qlen, tx_qlen;
 
 	/* i/o info: pipes etc */
 	unsigned		in, out;
@@ -69,6 +71,7 @@ struct usbnet {
 #		define EVENT_DEV_WAKING 6
 #		define EVENT_DEV_ASLEEP 7
 #		define EVENT_DEV_OPEN	8
+#		define EVENT_RX_KILL	10
 };
 
 static inline struct usb_driver *driver_of(struct usb_interface *intf)
@@ -150,6 +153,10 @@ struct driver_info {
 	int		in;		/* rx endpoint */
 	int		out;		/* tx endpoint */
 
+	/* add driver private info by zhangy
+	2018-10-31 to fix asix rx fixup lost data */
+	void			*driver_priv;
+
 	unsigned long	data;		/* Misc driver specific data */
 };
 
@@ -191,7 +198,8 @@ extern void usbnet_cdc_status(struct usbnet *, struct urb *);
 enum skb_state {
 	illegal = 0,
 	tx_start, tx_done,
-	rx_start, rx_done, rx_cleanup
+	rx_start, rx_done, rx_cleanup,
+	unlink_start
 };
 
 struct skb_data {	/* skb->cb is one of these */

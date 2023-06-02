@@ -13,3 +13,6 @@ obj-$(CONFIG_CRYPTO_DEV_OMAP_SHAM) += omap-sham.o
 obj-$(CONFIG_CRYPTO_DEV_OMAP_AES) += omap-aes.o
 obj-$(CONFIG_CRYPTO_DEV_PICOXCELL) += picoxcell_crypto.o
 obj-$(CONFIG_CRYPTO_DEV_S5P) += s5p-sss.o
+
+obj-$(CONFIG_FH_AES)		+= fh_aes.o
+obj-$(CONFIG_FH_AES_SELF_TEST)		+= fh_aes_test.o

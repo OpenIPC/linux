@@ -111,7 +111,7 @@ static int sdio_read_cccr(struct mmc_card *card)
 
 	cccr_vsn = data & 0x0f;
 
-	if (cccr_vsn > SDIO_CCCR_REV_1_20) {
+	if (cccr_vsn > SDIO_CCCR_REV_3_00) { /* to support SDIO 3.0 (luoc) */
 		printk(KERN_ERR "%s: unrecognised CCCR structure version %d\n",
 			mmc_hostname(card->host), cccr_vsn);
 		return -EINVAL;
@@ -881,3 +881,73 @@ err:
 	return err;
 }
 
+int sdio_reset_comm(struct mmc_card *card)
+{
+	struct mmc_host *host = card->host;
+	u32 ocr;
+	int err;
+	printk("%s():\n", __func__);
+	printk("%s line %d.\n", __FILE__, __LINE__);
+	mmc_claim_host(host);
+	mmc_go_idle(host);
+	mmc_set_clock(host, host->f_min);
+	printk("%s line %d.\n", __FILE__, __LINE__);
+	err = mmc_send_io_op_cond(host, 0, &ocr);
+	if (err)
+		goto err;
+	printk("%s line %d.\n", __FILE__, __LINE__);
+	host->ocr = mmc_select_voltage(host, ocr);
+	if (!host->ocr) {
+		err = -EINVAL;
+		goto err;
+	}
+	printk("%s line %d.\n", __FILE__, __LINE__);
+	err = mmc_send_io_op_cond(host, host->ocr, &ocr);
+	if (err)
+		goto err;
+	if (mmc_host_is_spi(host)) {
+		err = mmc_spi_set_crc(host, use_spi_crc);
+		if (err)
+			goto err;
+	}
+	printk("%s line %d.\n", __FILE__, __LINE__);
+	if (!mmc_host_is_spi(host)) {
+		err = mmc_send_relative_addr(host, &card->rca);
+		if (err)
+			goto err;
+		mmc_set_bus_mode(host, MMC_BUSMODE_PUSHPULL);
+	}
+	printk("%s line %d.\n", __FILE__, __LINE__);
+	if (!mmc_host_is_spi(host)) {
+		err = mmc_select_card(card);
+		if (err)
+			goto err;
+	}
+	/*
+	 * Switch to high-speed (if supported).
+	 */
+	printk("%s line %d.\n", __FILE__, __LINE__);
+	err = sdio_enable_hs(card);
+	if (err > 0)
+		mmc_sd_go_highspeed(card);
+	else if (err)
+		goto err;
+	/*
+	 * Change to the card's maximum speed.
+	 */
+	printk("%s line %d.\n", __FILE__, __LINE__);
+	mmc_set_clock(host, mmc_sdio_get_max_clock(card));
+	err = sdio_enable_4bit_bus(card);
+	if (err > 0)
+		mmc_set_bus_width(host, MMC_BUS_WIDTH_4);
+	else if (err)
+		goto err;
+	mmc_release_host(host);
+	return 0;
+err:
+	printk("%s: Error resetting SDIO communications (%d)\n",
+	       mmc_hostname(host), err);
+	mmc_release_host(host);
+	return err;
+}
+EXPORT_SYMBOL(sdio_reset_comm);

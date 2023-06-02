@@ -858,6 +858,20 @@ config ARCH_OMAP
 	help
 	  Support for TI's OMAP platform (OMAP1/2/3/4).
 
+config ARCH_FULLHAN
+	bool "FullHan"
+	select GENERIC_CLOCKEVENTS
+#	select GENERIC_TIME
+	select HAVE_SCHED_CLOCK
+	select ARCH_REQUIRE_GPIOLIB
+#	select ZONE_DMA
+	select CLKDEV_LOOKUP
+	select GENERIC_ALLOCATOR
+#	select GENERIC_IRQ_CHIP
+	select HAVE_SYSCALL_TRACEPOINTS
+	help
+	  Support for FullHan's FH platform.
+
 config PLAT_SPEAR
 	bool "ST SPEAr"
 	select ARM_AMBA
@@ -899,6 +913,8 @@ source "arch/arm/mach-davinci/Kconfig"
 source "arch/arm/mach-dove/Kconfig"
 
 source "arch/arm/mach-ep93xx/Kconfig"
+
+source "arch/arm/mach-fh/Kconfig"
 
 source "arch/arm/mach-footbridge/Kconfig"
 
@@ -1577,7 +1593,8 @@ config LEDS
 		   ARCH_OMAP || ARCH_P720T || ARCH_PXA_IDP || \
 		   ARCH_SA1100 || ARCH_SHARK || ARCH_VERSATILE || \
 		   ARCH_AT91 || ARCH_DAVINCI || \
-		   ARCH_KS8695 || MACH_RD88F5182 || ARCH_REALVIEW
+		   ARCH_KS8695 || MACH_RD88F5182 || ARCH_REALVIEW || \
+		   ARCH_FULLHAN
 	help
 	  If you say Y here, the LEDs on your machine will be used
 	  to provide useful information about your current system status.

@@ -157,6 +157,8 @@ config INTEL_MID_PTI
 	  an Intel Atom (non-netbook) mobile device containing a MIPI
 	  P1149.7 standard implementation.
 
+
+
 config SGI_IOC4
 	tristate "SGI IOC4 Base IO support"
 	depends on PCI
@@ -404,6 +406,60 @@ config EP93XX_PWM
 	  To compile this driver as a module, choose M here: the module will
 	  be called ep93xx_pwm.
 
+config FH_I2S_SLAVE
+	depends on ARCH_FH8830 || ARCH_FH8833
+	tristate "FH I2S SLAVE MODE support"
+	default n
+
+config FH_I2S_MASTER
+	depends on  ARCH_FH8833
+	tristate "FH I2S MASTER MODE support"
+	default n
+
+
+	  
+
+config FH_PINCTRL
+	tristate "FH Pinctrl support"
+	default n
+	help
+	  To compile this driver as a module, choose M here: the module will
+	  be called.
+	  
+	  
+config FH_SADC
+	depends on ARCH_FULLHAN
+    tristate "FH SADC support"
+	help
+	  To compile this driver as a module, choose M here: the module will
+	  be called fh_sadc.
+	  
+	  HW para:10bits precision, 8 channels, 5M clk in. 
+	  one conversion need almost (12/5M *1)second
+
+
+config FH_FIRMWARE_LOADER
+	tristate "Enable FH firmware loader"
+	default m
+	help
+	  enable firmware loader
+
+config FH_EFUSE
+	tristate "FH EFUSE support"
+	help
+	  To compile this driver as a module, choose M here: the module will
+	  be called fh_efuse.
+	  
+	  HW para:60 bytes could be programmed. 
+	  the "efuse2aes map" is fixed by hardware..EX. 0~4 : aes key0, 5~8 : aes key1.
+
+config FH_CLK_MISC
+	tristate "FH clk miscdev support"
+	default n
+	help
+	  To compile this driver as a module, choose M here: the module will
+	  be called.
+	  
 config DS1682
 	tristate "Dallas DS1682 Total Elapsed Time Recorder with Alarm"
 	depends on I2C && EXPERIMENTAL

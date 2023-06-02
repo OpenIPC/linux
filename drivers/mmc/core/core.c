@@ -1557,6 +1557,9 @@ int mmc_set_blocklen(struct mmc_card *card, unsigned int blocklen)
 }
 EXPORT_SYMBOL(mmc_set_blocklen);
 
+extern struct mmc_host *mmc_sd1;
+extern struct mmc_host *mmc_sd0;
+
 static int mmc_rescan_try_freq(struct mmc_host *host, unsigned freq)
 {
 	host->f_init = freq;
@@ -1630,6 +1633,14 @@ void mmc_rescan(struct work_struct *work)
 
 	if (host->ops->get_cd && host->ops->get_cd(host) == 0)
 		goto out;
+
+	/* rescan 5 times when detect mmc */
+	if (!(host->caps & MMC_CAP_NONREMOVABLE)) {
+		if (host->rescan_count > 5)
+			goto out;
+		else
+			host->rescan_count++;
+	}
 
 	mmc_claim_host(host);
 	for (i = 0; i < ARRAY_SIZE(freqs); i++) {
