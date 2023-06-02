@@ -1194,7 +1194,7 @@ static const struct flash_info spi_nor_ids[] = {
 	{ "mx25l3205d",  INFO(0xc22016, 0, 64 * 1024,  64, 0) },
 	{ "mx25l3255e",  INFO(0xc29e16, 0, 64 * 1024,  64, SECT_4K) },
 	{ "mx25l6436f",  INFO(0xc22017, 0, 64 * 1024, 128,
-			SPI_NOR_QUAD_READ), PARAMS(mxic), CLK_MHZ_2X(133) },
+			SPI_NOR_DUAL_READ), CLK_MHZ_2X(80) },
 	{ "mx25l12835f", INFO(0xc22018, 0, 64 * 1024, 256,
 			SPI_NOR_QUAD_READ), PARAMS(mxic), CLK_MHZ_2X(84) },
 	{ "mx25l12855e", INFO(0xc22618, 0, 64 * 1024, 256, 0) },
