@@ -1387,6 +1387,10 @@ static const struct flash_info spi_nor_ids[] = {
 	{ "pn25f32s", INFO(0xe04016, 0, 64 * 1024,  64,
 			SPI_NOR_QUAD_READ), PARAMS(paragon), CLK_MHZ_2X(80) },
 
+	/* Xinxin MXC */
+	{ "xm25qh64a", INFO(0x207017, 0, 64 * 1024, 128, SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ) },
+	{ "xm25qh128a", INFO(0x207018, 0, 64 * 1024, 256, SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ) },
+
 	{ },
 };
 
