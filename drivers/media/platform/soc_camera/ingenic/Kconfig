@@ -1,0 +1,12 @@
+config VIDEO_INGENIC
+	tristate "Ingenic Camera Sensor Interface driver"
+	depends on VIDEO_DEV && SOC_CAMERA
+	depends on HAS_DMA
+	select VIDEOBUF2_DMA_CONTIG
+	---help---
+	  This is a v4l2 driver for the ingenic Camera Sensor Interface
+
+if VIDEO_INGENIC
+source "drivers/media/platform/soc_camera/ingenic/x1000/Kconfig"
+source "drivers/media/platform/soc_camera/ingenic/x2000/Kconfig"
+endif

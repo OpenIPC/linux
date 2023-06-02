@@ -41,7 +41,7 @@ static int zram_major;
 static const char *default_compressor = "lzo";
 
 /* Module params (documentation at end) */
-static unsigned int num_devices = 1;
+static unsigned int num_devices = 2;
 
 static inline void deprecated_attr_warn(const char *name)
 {

@@ -10,8 +10,9 @@ config HAVE_MACH_CLKDEV
 	bool
 
 config COMMON_CLK
-	bool
-	select HAVE_CLK_PREPARE
+	bool "common clk"
+    default y
+    select HAVE_CLK_PREPARE
 	select CLKDEV_LOOKUP
 	select SRCU
 	select RATIONAL
@@ -198,3 +199,4 @@ source "drivers/clk/mvebu/Kconfig"
 
 source "drivers/clk/samsung/Kconfig"
 source "drivers/clk/tegra/Kconfig"
+source "drivers/clk/ingenic/Kconfig"

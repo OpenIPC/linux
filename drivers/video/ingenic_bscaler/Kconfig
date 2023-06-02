@@ -1,0 +1,3 @@
+config JZ_BSCALER
+    bool "jz bscaler driver"
+    default n

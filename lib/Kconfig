@@ -254,6 +254,7 @@ config DECOMPRESS_BZIP2
 
 config DECOMPRESS_LZMA
 	tristate
+    default y
 
 config DECOMPRESS_XZ
 	select XZ_DEC
@@ -266,6 +267,10 @@ config DECOMPRESS_LZO
 config DECOMPRESS_LZ4
 	select LZ4_DECOMPRESS
 	tristate
+
+config DECOMPRESS_LZMA_NEEDED
+	 boolean
+     default y
 
 #
 # Generic allocator support is selected if needed

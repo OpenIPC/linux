@@ -1,0 +1,28 @@
+config INGENIC_MAC
+	tristate "ingenic on-chip MAC support"
+	select CRC32
+	select RMII
+	select MII
+	help
+	  This is the driver for INGENIC on-chip mac device.
+
+config INGENIC_MAC_DMA_INTERFACES
+	bool "Ingenic mac dma interfaces"
+	depends on INGENIC_MAC
+	help
+	  This is for MAC Dma interfaces selection
+choice
+	prompt "Ingenic mac dma bus interfaces"
+	depends on INGENIC_MAC_DMA_INTERFACES
+	default CONFIG_INGENIC_MAC_AHB_BUS
+
+config INGENIC_MAC_AXI_BUS
+	bool "MAC_AXI_BUS"
+	help
+	  Select for mac dma AXI bus
+
+config INGENIC_MAC_AHB_BUS
+	bool "MAC_AHB_BUS"
+	help
+	  Select for mac dma AHB bus
+endchoice

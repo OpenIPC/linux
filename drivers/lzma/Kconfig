@@ -1,0 +1,7 @@
+#
+# LZMA  device configuration
+#
+
+config LZMADEVICE
+   bool "LZMA support"
+   default y

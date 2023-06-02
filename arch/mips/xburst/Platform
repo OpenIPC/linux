@@ -1,0 +1,6 @@
+platform-$(CONFIG_MACH_XBURST)	+= xburst/
+load-$(CONFIG_MACH_XBURST)	+= 0xffffffff80010000
+
+cflags-$(CONFIG_MACH_XBURST)	+= -I$(srctree)/arch/mips/xburst/common/include
+cflags-$(CONFIG_SOC_X1000)	+= -I$(srctree)/arch/mips/xburst/soc-x1000/include
+cflags-$(CONFIG_SOC_X1800)	+= -I$(srctree)/arch/mips/xburst/soc-x1800/include

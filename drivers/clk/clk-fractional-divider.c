@@ -149,8 +149,11 @@ struct clk *clk_register_fractional_divider(struct device *dev,
 	fd->hw.init = &init;
 
 	clk = clk_register(dev, &fd->hw);
-	if (IS_ERR(clk))
+	if (IS_ERR(clk)) {
 		kfree(fd);
+    } else {
+        __clk_set_flags(clk, 1);
+    }
 
 	return clk;
 }

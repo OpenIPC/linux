@@ -1,0 +1,13 @@
+menuconfig FB_INGENIC_DISPLAYS_X1000
+	tristate "Supported lcd panels"
+	depends on FB_INGENIC_X1000
+	select BACKLIGHT_LCD_SUPPORT
+	select LCD_CLASS_DEVICE
+	select BACKLIGHT_CLASS_DEVICE
+
+
+config PANEL_X1000_TRULY_TFT240240_2_E
+	tristate "lcd panel truly tft240240"
+	depends on FB_INGENIC_DISPLAYS_X1000
+	help
+		lcd panel truly tft240240, for ingenicfb drivers.

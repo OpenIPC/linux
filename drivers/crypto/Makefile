@@ -29,3 +29,6 @@ obj-$(CONFIG_CRYPTO_DEV_QAT) += qat/
 obj-$(CONFIG_CRYPTO_DEV_QCE) += qce/
 obj-$(CONFIG_CRYPTO_DEV_VMX) += vmx/
 obj-$(CONFIG_CRYPTO_DEV_SUN4I_SS) += sunxi-ss/
+
+obj-$(CONFIG_CRYPTO_DEV_INGENIC_AES) += ingenic-aes.o
+obj-$(CONFIG_CRYPTO_DEV_INGENIC_SHA) += ingenic-hash.o

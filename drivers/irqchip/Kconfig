@@ -193,3 +193,21 @@ config IRQ_MXS
 	def_bool y if MACH_ASM9260 || ARCH_MXS
 	select IRQ_DOMAIN
 	select STMP_DEVICE
+
+config INGENIC_INTC
+	bool
+	select IRQ_DOMAIN
+
+config IRQ_INGENIC_CPU
+	bool
+	select IRQ_DOMAIN
+	help
+		Support for ingenic cpu core irq handler.
+
+config INGENIC_INTC_CHIP
+	bool
+	depends on MACH_XBURST2
+	select IRQ_DOMAIN
+	help
+		Support for ingenic XBURST2 based SOCs, which intc is
+		near cpu core,and each logic cpu has an intc.

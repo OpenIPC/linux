@@ -8,7 +8,7 @@ source "lib/Kconfig.debug"
 
 config EARLY_PRINTK
 	bool "Early printk" if EXPERT
-	depends on SYS_HAS_EARLY_PRINTK
+	depends on SYS_HAS_EARLY_PRINTK && !FAST_BOOT
 	default y
 	help
 	  This option enables special console drivers which allow the kernel

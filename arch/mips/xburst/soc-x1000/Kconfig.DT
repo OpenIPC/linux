@@ -1,0 +1,2 @@
+config DT_HALLEY2_V20
+	bool "halley2 v20"

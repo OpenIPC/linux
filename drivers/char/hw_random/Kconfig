@@ -381,6 +381,18 @@ config HW_RANDOM_STM32
 
 	  If unsure, say N.
 
+config HW_RANDOM_INGENIC
+	tristate "Ingenic HW Random Number Generator support"
+	depends on MIPS && (SOC_X2000_V12 || SOC_M300)
+	help
+	 This driver provides kernel-side support for the Random Number
+	 Generator hardware found on Ingenic processors.
+
+	 To compile this driver as a module, choose M here: the
+	 module will be called ingenic-rng.
+
+	 If unsure, say N.
+
 endif # HW_RANDOM
 
 config UML_RANDOM

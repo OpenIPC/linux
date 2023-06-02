@@ -1,0 +1,2 @@
+config DT_X2000_V12_FPGA
+	bool "x2000-v12 fpga"

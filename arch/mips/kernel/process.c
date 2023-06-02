@@ -45,6 +45,8 @@
 #include <asm/inst.h>
 #include <asm/stacktrace.h>
 #include <asm/irq_regs.h>
+#include <mxu.h>
+#include <mxuv3.h>
 
 #ifdef CONFIG_HOTPLUG_CPU
 void arch_cpu_idle_dead(void)
@@ -63,12 +65,13 @@ void start_thread(struct pt_regs * regs, unsigned long pc, unsigned long sp)
 	unsigned long status;
 
 	/* New thread loses kernel privileges. */
-	status = regs->cp0_status & ~(ST0_CU0|ST0_CU1|ST0_FR|KU_MASK);
+        status = regs->cp0_status & ~(ST0_CU0|ST0_CU1|ST0_CU2|ST0_FR|KU_MASK);
 	status |= KU_USER;
 	regs->cp0_status = status;
 	clear_used_math();
 	clear_fpu_owner();
 	init_dsp();
+	init_mxu();
 	clear_thread_flag(TIF_USEDMSA);
 	clear_thread_flag(TIF_MSA_CTX_LIVE);
 	disable_msa();
@@ -101,6 +104,8 @@ int arch_dup_task_struct(struct task_struct *dst, struct task_struct *src)
 		_save_fp(current);
 
 	save_dsp(current);
+
+	//save_mxu(current);
 
 	preempt_enable();
 

@@ -247,12 +247,18 @@ void smp_prepare_boot_cpu(void)
 
 int __cpu_up(unsigned int cpu, struct task_struct *tidle)
 {
+	unsigned int timeout = 0xff;
+
 	mp_ops->boot_secondary(cpu, tidle);
 
 	/*
 	 * Trust is futile.  We should really have timeouts ...
 	 */
 	while (!cpumask_test_cpu(cpu, &cpu_callin_map)) {
+		udelay(100);
+		schedule();
+	}
+	while (!(cpumask_test_cpu(cpu, cpu_online_mask) || !timeout--)) {
 		udelay(100);
 		schedule();
 	}

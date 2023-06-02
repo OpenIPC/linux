@@ -102,6 +102,8 @@ static inline void enable_msa(void)
 {
 	if (cpu_has_msa) {
 		set_c0_config5(MIPS_CONF5_MSAEN);
+		set_c0_status(ST0_CU2);
+		KSTK_STATUS(current) |= ST0_CU2;
 		enable_fpu_hazard();
 	}
 }
@@ -110,6 +112,8 @@ static inline void disable_msa(void)
 {
 	if (cpu_has_msa) {
 		clear_c0_config5(MIPS_CONF5_MSAEN);
+		clear_c0_status(ST0_CU2);
+		KSTK_STATUS(current) &= ~ST0_CU2;
 		disable_fpu_hazard();
 	}
 }

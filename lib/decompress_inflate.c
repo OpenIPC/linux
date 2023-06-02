@@ -24,6 +24,7 @@
 
 #endif /* STATIC */
 
+#include <linux/decompress/inflate_mm.h>
 #include <linux/decompress/mm.h>
 
 #define GZIP_IOBUF_SIZE (16*1024)

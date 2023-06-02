@@ -197,7 +197,7 @@ static void dwc2_hsotg_init_fifo(struct dwc2_hsotg *hsotg)
 	 * them to endpoints dynamically according to maxpacket size value of
 	 * given endpoint.
 	 */
-	for (ep = 1; ep < MAX_EPS_CHANNELS; ep++) {
+	for (ep = 1; ep < hsotg->num_of_ineps; ep++) {
 		if (!hsotg->g_tx_fifo_sz[ep])
 			continue;
 		val = addr;
@@ -208,6 +208,9 @@ static void dwc2_hsotg_init_fifo(struct dwc2_hsotg *hsotg)
 
 		dwc2_writel(val, hsotg->regs + DPTXFSIZN(ep));
 	}
+
+	val = (addr << GDFIFOCFG_EPINFOBASE_SHIFT) | hsotg->fifo_mem;
+	dwc2_writel(val, hsotg->regs + GDFIFOCFG);
 
 	/*
 	 * according to p428 of the design guide, we need to ensure that
@@ -1742,7 +1745,7 @@ static void dwc2_hsotg_set_ep_maxpacket(struct dwc2_hsotg *hsotg,
 	struct dwc2_hsotg_ep *hs_ep;
 	void __iomem *regs = hsotg->regs;
 	u32 mpsval;
-	u32 mcval;
+	u32 mcval = 1;
 	u32 reg;
 
 	hs_ep = index_to_ep(hsotg, ep, dir_in);
@@ -2095,7 +2098,7 @@ static void dwc2_hsotg_irq_enumdone(struct dwc2_hsotg *hsotg)
 	 */
 
 	/* catch both EnumSpd_FS and EnumSpd_FS48 */
-	switch (dsts & DSTS_ENUMSPD_MASK) {
+	switch ((dsts & DSTS_ENUMSPD_MASK) >> DSTS_ENUMSPD_SHIFT) {
 	case DSTS_ENUMSPD_FS:
 	case DSTS_ENUMSPD_FS48:
 		hsotg->gadget.speed = USB_SPEED_FULL;
@@ -2163,6 +2166,7 @@ static void kill_all_requests(struct dwc2_hsotg *hsotg,
 {
 	struct dwc2_hsotg_req *req, *treq;
 	unsigned size;
+	int index = ep->index;
 
 	ep->req = NULL;
 
@@ -2325,7 +2329,10 @@ void dwc2_hsotg_core_init_disconnected(struct dwc2_hsotg *hsotg,
 	if (!is_usb_reset)
 		__orr32(hsotg->regs + DCTL, DCTL_SFTDISCON);
 
-	dwc2_writel(DCFG_EPMISCNT(1) | DCFG_DEVSPD_HS,  hsotg->regs + DCFG);
+	if (hsotg->gadget.max_speed == USB_SPEED_FULL)
+		dwc2_writel(DCFG_DEVSPD_FS,  hsotg->regs + DCFG);
+	else
+		dwc2_writel(DCFG_DEVSPD_HS,  hsotg->regs + DCFG);
 
 	/* Clear any pending OTG interrupts */
 	dwc2_writel(0xffffffff, hsotg->regs + GOTGINT);
@@ -3439,6 +3446,8 @@ static int dwc2_hsotg_hw_cfg(struct dwc2_hsotg *hsotg)
 
 	cfg = dwc2_readl(hsotg->regs + GHWCFG4);
 	hsotg->dedicated_fifos = (cfg >> GHWCFG4_DED_FIFO_SHIFT) & 1;
+	hsotg->num_of_ineps = (cfg & GHWCFG4_NUM_IN_EPS_MASK) >> GHWCFG4_NUM_IN_EPS_SHIFT;
+	hsotg->num_of_ineps++;
 
 	dev_info(hsotg->dev, "EPs: %d, %s fifos, %d entries in SPRAM\n",
 		 hsotg->num_of_eps,
@@ -3458,6 +3467,11 @@ static void dwc2_hsotg_dump(struct dwc2_hsotg *hsotg)
 	void __iomem *regs = hsotg->regs;
 	u32 val;
 	int idx;
+
+	if ((dwc2_readl(hsotg->regs + GINTSTS) & GINTSTS_CURMODE_HOST)) {
+		dev_dbg(hsotg->dev, "%s but current mode is host\n", __func__);
+		return;
+	}
 
 	dev_info(dev, "DCFG=0x%08x, DCTL=0x%08x, DIEPMSK=%08x\n",
 		 dwc2_readl(regs + DCFG), dwc2_readl(regs + DCTL),
@@ -3558,8 +3572,8 @@ int dwc2_gadget_init(struct dwc2_hsotg *hsotg, int irq)
 	u32 p_tx_fifo[] = DWC2_G_P_LEGACY_TX_FIFO_SIZE;
 
 	/* Initialize to legacy fifo configuration values */
-	hsotg->g_rx_fifo_sz = 2048;
-	hsotg->g_np_g_tx_fifo_sz = 1024;
+	hsotg->g_rx_fifo_sz = 768;
+	hsotg->g_np_g_tx_fifo_sz = 256;
 	memcpy(&hsotg->g_tx_fifo_sz[1], p_tx_fifo, sizeof(p_tx_fifo));
 	/* Device tree specific probe */
 	dwc2_hsotg_of_probe(hsotg);
@@ -3567,11 +3581,15 @@ int dwc2_gadget_init(struct dwc2_hsotg *hsotg, int irq)
 	dev_dbg(dev, "NonPeriodic TXFIFO size: %d\n",
 						hsotg->g_np_g_tx_fifo_sz);
 	dev_dbg(dev, "RXFIFO size: %d\n", hsotg->g_rx_fifo_sz);
-	for (i = 0; i < MAX_EPS_CHANNELS; i++)
+	for (i = 1; i < MAX_EPS_CHANNELS; i++)
 		dev_dbg(dev, "Periodic TXFIFO%2d size: %d\n", i,
 						hsotg->g_tx_fifo_sz[i]);
 
-	hsotg->gadget.max_speed = USB_SPEED_HIGH;
+	if (hsotg->core_params->speed == DWC2_SPEED_PARAM_FULL)
+		hsotg->gadget.max_speed = USB_SPEED_FULL;
+	else
+		hsotg->gadget.max_speed = USB_SPEED_HIGH;
+
 	hsotg->gadget.ops = &dwc2_hsotg_gadget_ops;
 	hsotg->gadget.name = dev_name(dev);
 	if (hsotg->dr_mode == USB_DR_MODE_OTG)
@@ -3714,6 +3732,7 @@ int dwc2_hsotg_resume(struct dwc2_hsotg *hsotg)
 	if (hsotg->lx_state == DWC2_L2)
 		return 0;
 
+	udelay(20);
 	if (hsotg->driver) {
 		dev_info(hsotg->dev, "resuming usb gadget %s\n",
 			 hsotg->driver->driver.name);

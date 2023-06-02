@@ -578,7 +578,6 @@ int dwc2_hcd_qh_add(struct dwc2_hsotg *hsotg, struct dwc2_qh *qh)
 {
 	int status;
 	u32 intr_mask;
-
 	if (dbg_qh(qh))
 		dev_vdbg(hsotg->dev, "%s()\n", __func__);
 
@@ -605,7 +604,7 @@ int dwc2_hcd_qh_add(struct dwc2_hsotg *hsotg, struct dwc2_qh *qh)
 	status = dwc2_schedule_periodic(hsotg, qh);
 	if (status)
 		return status;
-	if (!hsotg->periodic_qh_count) {
+	if ((!hsotg->periodic_qh_count)&&(!hsotg->core_params->dma_desc_enable)) {
 		intr_mask = dwc2_readl(hsotg->regs + GINTMSK);
 		intr_mask |= GINTSTS_SOF;
 		dwc2_writel(intr_mask, hsotg->regs + GINTMSK);

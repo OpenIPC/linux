@@ -1,0 +1,12 @@
+menuconfig JZ_IPU
+	bool "JZ IPU Driver"
+	default y
+	help
+	  Support for Ingenic dmmu operations.
+
+config INGENIC_IPU_V13
+	bool "IPU V13 Driver"
+	depends on JZ_IPU
+	default y
+	help
+	  Support for Ingenic ipu v13 operations.

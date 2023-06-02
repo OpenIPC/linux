@@ -142,6 +142,20 @@ static inline void arch_local_irq_enable(void)
 	: "memory");
 }
 
+static inline unsigned long read_cp0_30_flags(void)
+{
+	unsigned long flags;
+
+	asm __volatile__(
+	"	.set	push						\n"
+	"	.set	reorder						\n"
+	"	mfc0	%[flags], $30					\n"
+	"	.set	pop						\n"
+	: [flags] "=r" (flags));
+
+	return flags;
+}
+
 static inline unsigned long arch_local_save_flags(void)
 {
 	unsigned long flags;

@@ -41,6 +41,12 @@ static const struct squashfs_decompressor squashfs_lzma_unsupported_comp_ops = {
 	NULL, NULL, NULL, NULL, LZMA_COMPRESSION, "lzma", 0
 };
 
+#ifndef CONFIG_SQUASHFS_LZMA
+ const struct squashfs_decompressor squashfs_lzma_comp_ops = {
+	NULL, NULL, NULL, NULL, LZMA_COMPRESSION, "lzma", 0
+};
+#endif
+
 #ifndef CONFIG_SQUASHFS_LZ4
 static const struct squashfs_decompressor squashfs_lz4_comp_ops = {
 	NULL, NULL, NULL, NULL, LZ4_COMPRESSION, "lz4", 0
@@ -74,7 +80,7 @@ static const struct squashfs_decompressor *decompressor[] = {
 	&squashfs_lz4_comp_ops,
 	&squashfs_lzo_comp_ops,
 	&squashfs_xz_comp_ops,
-	&squashfs_lzma_unsupported_comp_ops,
+	&squashfs_lzma_comp_ops,
 	&squashfs_unknown_comp_ops
 };
 
@@ -139,7 +145,6 @@ void *squashfs_decompressor_setup(struct super_block *sb, unsigned short flags)
 
 	if (IS_ERR(comp_opts))
 		return comp_opts;
-
 	stream = squashfs_decompressor_create(msblk, comp_opts);
 	if (IS_ERR(stream))
 		kfree(comp_opts);

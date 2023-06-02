@@ -498,6 +498,7 @@ asmlinkage __visible void __init start_kernel(void)
 {
 	char *command_line;
 	char *after_dashes;
+    unsigned  long flags = 0;
 
 	/*
 	 * Need to run as early as possible, to initialize the
@@ -594,6 +595,8 @@ asmlinkage __visible void __init start_kernel(void)
 	perf_event_init();
 	profile_init();
 	call_function_init();
+    flags = read_cp0_30_flags();
+    printk("ERROR epc 0x%lx\n", flags);
 	WARN(!irqs_disabled(), "Interrupts were enabled early\n");
 	early_boot_irqs_disabled = false;
 	local_irq_enable();

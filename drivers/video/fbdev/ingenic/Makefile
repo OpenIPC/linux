@@ -1,0 +1,3 @@
+obj-$(CONFIG_FB_INGENIC_X1000)	+= fb_v10/
+obj-$(CONFIG_FB_INGENIC_X2000)	+= fb_v11/
+obj-$(CONFIG_FB_INGENIC_V12) += fb_v12/

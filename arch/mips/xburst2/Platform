@@ -1,0 +1,6 @@
+platform-$(CONFIG_MACH_XBURST2)	+= xburst2/
+load-$(CONFIG_MACH_XBURST2)	+= 0xffffffff80010000
+cflags-$(CONFIG_MACH_XBURST2)	+= -I$(srctree)/arch/mips/xburst2/core/include
+
+cflags-$(CONFIG_SOC_T40)	+= -I$(srctree)/arch/mips/xburst2/soc-t40/include
+cflags-$(CONFIG_SOC_X2000_V12)	+= -I$(srctree)/arch/mips/xburst2/soc-x2000-v12/include

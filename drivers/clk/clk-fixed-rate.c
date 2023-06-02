@@ -85,6 +85,8 @@ struct clk *clk_register_fixed_rate_with_accuracy(struct device *dev,
 	if (IS_ERR(clk))
 		kfree(fixed);
 
+    __clk_set_flags(clk, 1);
+
 	return clk;
 }
 EXPORT_SYMBOL_GPL(clk_register_fixed_rate_with_accuracy);

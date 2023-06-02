@@ -68,8 +68,11 @@ int squashfs_decompress(struct squashfs_sb_info *msblk, struct buffer_head **bh,
 	struct squashfs_stream *stream = msblk->stream;
 
 	mutex_lock(&stream->mutex);
+//	printk("squashfs single decompress start: %s : %d time is %d\n",__func__,__LINE__,1000 * *(volatile u32 *)0xb0002078 * 16 / ((24 * 1000 * 1000) / 512) );
+//	printk("offset = 0x%x   length = 0x%x\n",offset,length);
 	res = msblk->decompressor->decompress(msblk, stream->stream, bh, b,
 		offset, length, output);
+//	printk("squashfs single decompress end: %s : %d time is %d\n",__func__,__LINE__,1000 * *(volatile u32 *)0xb0002078 * 16 / ((24 * 1000 * 1000) / 512) );
 	mutex_unlock(&stream->mutex);
 
 	if (res < 0)

@@ -2414,7 +2414,7 @@ int usb_new_device(struct usb_device *udev)
 			(((udev->bus->busnum-1) * 128) + (udev->devnum-1)));
 
 	/* Tell the world! */
-	announce_device(udev);
+	/*announce_device(udev);*/
 
 	if (udev->serial)
 		add_device_randomness(udev->serial, strlen(udev->serial));
