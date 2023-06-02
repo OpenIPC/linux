@@ -107,6 +107,34 @@ static int read_sr(struct spi_nor *nor)
 	return val;
 }
 
+static int read_sr2(struct spi_nor *nor)
+{
+	int ret;
+	u8 val;
+
+	ret = nor->read_reg(nor, SPINOR_OP_RDSR2, &val, 1);
+	if (ret < 0) {
+		pr_err("error %d reading SR2\n", (int) ret);
+		return ret;
+	}
+
+	return val;
+}
+
+static int read_sr3(struct spi_nor *nor)
+{
+	int ret;
+	u8 val;
+
+	ret = nor->read_reg(nor, SPINOR_OP_RDSR3, &val, 1);
+	if (ret < 0) {
+		pr_err("error %d reading SR3\n", (int) ret);
+		return ret;
+	}
+
+	return val;
+}
+
 /*
  * Read the flag status register, returning its value in the location
  * Return the status register value.
@@ -153,6 +181,18 @@ static inline int write_sr(struct spi_nor *nor, u8 val)
 {
 	nor->cmd_buf[0] = val;
 	return nor->write_reg(nor, SPINOR_OP_WRSR, nor->cmd_buf, 1);
+}
+
+static inline int write_sr2(struct spi_nor *nor, u8 val)
+{
+	nor->cmd_buf[0] = val;
+	return nor->write_reg(nor, SPINOR_OP_WRSR2, nor->cmd_buf, 1);
+}
+
+static inline int write_sr3(struct spi_nor *nor, u8 val)
+{
+	nor->cmd_buf[0] = val;
+	return nor->write_reg(nor, SPINOR_OP_WRSR3, nor->cmd_buf, 1);
 }
 
 /*
@@ -1964,7 +2004,7 @@ static void spi_lock_update_address(struct spi_nor *nor, const struct flash_info
 
 	if (!nor->level) {
 		nor->end_addr = 0;
-		dev_warn(nor->dev, "all blocks is unlocked.\n");
+		dev_warn(nor->dev, "all blocks are unlocked.\n");
 		return;
 	}
 
@@ -2047,6 +2087,47 @@ static unsigned char hisi_bp_to_level(struct spi_nor *nor,
 	return level;
 }
 
+static void hisi_global_unlock(struct spi_nor *nor) {
+	int val;
+
+	dev_info(nor->dev, "Force global unlock\n");
+	write_enable(nor);
+	/* Global Block/Sector Unlock,
+	* see 8.2.42 Global Block/Sector Unlock (98h) */
+	nor->write_reg(nor, 0x98, NULL, 0);
+	spi_nor_wait_till_ready(nor);
+
+	val = read_sr(nor);
+	if (val) {
+		dev_info(nor->dev, "SR1:[%02x]->[00] ", val);
+		val = 0;
+		write_enable(nor);
+		write_sr(nor, val);
+		if (spi_nor_wait_till_ready(nor))
+		dev_err(nor->dev, "error while writing SR1.\n");
+	}
+
+	val = read_sr2(nor);
+	if (val) {
+		dev_info(nor->dev, "SR2:[%02x]->[00]", val);
+		val = 0;
+		write_enable(nor);
+		write_sr2(nor, val);
+		if (spi_nor_wait_till_ready(nor))
+		dev_err(nor->dev, "error while writing SR2.\n");
+	}
+
+	val = read_sr3(nor);
+	if (val & 4) {
+		dev_info(nor->dev, "SR3:[%02x]->[%02x]", val, val ^ 4);
+		val ^= 4; // Remove SR3_WPS
+		write_enable(nor);
+		write_sr3(nor, val);
+		if (spi_nor_wait_till_ready(nor))
+		dev_err(nor->dev, "error while writing SR3.\n");
+	}
+}
+
 static void hisi_get_spi_lock_info(struct spi_nor *nor, const struct flash_info *info)
 {
 	unsigned int chipsize;
@@ -2057,6 +2138,7 @@ static void hisi_get_spi_lock_info(struct spi_nor *nor, const struct flash_info 
 	/* read the BP bit in RDSR to check whether nor is lock or not */
 	switch (JEDEC_MFR(info)) {
 	case SNOR_MFR_GD:
+	case SNOR_MFR_FM:
 	case SNOR_MFR_ESMT:
 	case SNOR_MFR_EON:
 	case SNOR_MFR_SPANSION:
@@ -2064,7 +2146,6 @@ static void hisi_get_spi_lock_info(struct spi_nor *nor, const struct flash_info 
 		nor->level = hisi_bp_to_level(nor, info, BP_NUM_3);
 		break;
 	case SNOR_MFR_WINBOND:
-	case SNOR_MFR_XTX:
 		/* BP bit convert to lock level */
 		if (chipsize <= _16M)
 			nor->level = hisi_bp_to_level(nor, info, BP_NUM_3);
@@ -2072,15 +2153,22 @@ static void hisi_get_spi_lock_info(struct spi_nor *nor, const struct flash_info 
 			nor->level = hisi_bp_to_level(nor, info, BP_NUM_4);
 		break;
 	case SNOR_MFR_MACRONIX:
+	case SNOR_MFR_XMC:
 		/* BP bit convert to lock level */
 		if (chipsize <= _8M)
 			nor->level = hisi_bp_to_level(nor, info, BP_NUM_3);
 		else
 			nor->level = hisi_bp_to_level(nor, info, BP_NUM_4);
 		break;
+	case SNOR_MFR_XTX:
+		/* BP bit convert to lock level */
+		nor->level = hisi_bp_to_level(nor, info, BP_NUM_4);
+		break;
 	default:
 		goto usage;
 	}
+
+	hisi_global_unlock(nor);
 
 	spi_lock_update_address(nor, info);
 	if (nor->end_addr)
@@ -2245,6 +2333,7 @@ static int spi_nor_config(struct spi_nor *nor, const struct flash_info *info,
 {
 	int ret;
 	unsigned char cval,val;
+	unsigned char sr1, sr2, sr3;
 
 	if (JEDEC_MFR(info) == SNOR_MFR_MACRONIX){
 		val = read_sr(nor);
@@ -2268,7 +2357,18 @@ static int spi_nor_config(struct spi_nor *nor, const struct flash_info *info,
 		}
 	}
 
-	if (params) {
+	sr1 = read_sr(nor);
+	if (sr1 < 0)
+		return sr1;
+	sr2 = read_sr2(nor);
+	if (sr2 < 0)
+		return sr2;
+	sr3 = read_sr3(nor);
+	if (sr3 < 0)
+		return sr3;
+	dev_info(nor->dev, "SR1 [%02x], SR2 [%02x], SR3 [%02x]\n", sr1, sr2, sr3);
+
+        if (params) {
 		ret = spi_nor_setup(nor, info, params, modes);
 		if (ret)
 			return ret;

@@ -28,8 +28,10 @@
 #define SNOR_MFR_EON		CFI_MFR_EON
 #define SNOR_MFR_WINBOND	0xef
 #define SNOR_MFR_ESMT		0x8c
-#define SNOR_MFR_GD			0xc8
-#define SNOR_MFR_XTX        0x0b
+#define SNOR_MFR_GD		0xc8
+#define SNOR_MFR_FM		0xa1
+#define SNOR_MFR_XTX		0x0b
+#define SNOR_MFR_XMC		0x20
 
 /* Flash set the RESET# from */
 #define SPI_NOR_SR_RST_MASK	BIT(7)
