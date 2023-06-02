@@ -35,6 +35,40 @@ MODULE_DESCRIPTION("Support for Atheros 802.11n wireless LAN cards.");
 MODULE_SUPPORTED_DEVICE("Atheros 802.11n WLAN cards");
 MODULE_LICENSE("Dual BSD/GPL");
 
+u8 tx_power_man = 58; //manual power
+u8 cwmin_man = 7;
+u8 cwmax_man = 15;
+u8 aifs_man = 2;
+u8 cck_sifs_man = 10;
+u8 ofdm_sifs_man = 16;
+u8 slottime_man = 9;
+u8 thresh62_man = 28;
+
+module_param_named(txpower,tx_power_man,byte,0444);
+MODULE_PARM_DESC(txpower,"Manual TX power setting, default 58, max 63");
+
+module_param_named(cwmin,cwmin_man,byte,0444);
+MODULE_PARM_DESC(cwmin,"CWMIN setting, 0-255, default 7");
+
+module_param_named(cwmax,cwmax_man,byte,0444);
+MODULE_PARM_DESC(cwmax,"CWMAX setting, 0-255, default 15");
+
+module_param_named(aifs,aifs_man,byte,0444);
+MODULE_PARM_DESC(aifs,"AIFS setting, default 2");
+
+module_param_named(cck_sifs,cck_sifs_man,byte,0444);
+MODULE_PARM_DESC(cck_sifs,"CCK SIFS setting, default 10");
+
+module_param_named(ofdm_sifs,ofdm_sifs_man,byte,0444);
+MODULE_PARM_DESC(ofdm_sifs,"OFDM SIFS setting, default 16");
+
+module_param_named(slottime,slottime_man,byte,0444);
+MODULE_PARM_DESC(slottime,"Slottime setting, default 9");
+
+module_param_named(thresh62,thresh62_man,byte,0444);
+MODULE_PARM_DESC(thresh62,"CCA THRESH62 setting, default 28");
+
+
 static int __init ath9k_init(void)
 {
 	return 0;
@@ -1100,7 +1134,8 @@ void ath9k_hw_init_global_settings(struct ath_hw *ah)
 	}
 
 	/* As defined by IEEE 802.11-2007 17.3.8.6 */
-	slottime += 3 * ah->coverage_class;
+	//slottime += 3 * ah->coverage_class;
+	slottime = slottime_man;
 	acktimeout = slottime + sifstime + ack_offset;
 	ctstimeout = acktimeout;
 

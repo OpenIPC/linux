@@ -18,6 +18,9 @@
 #include "hw.h"
 #include "ar9002_phy.h"
 
+extern u8 tx_power_man;
+extern u8 thresh62_man;
+
 static int ath9k_hw_4k_get_eeprom_ver(struct ath_hw *ah)
 {
 	return ((ah->eeprom.map4k.baseEepHeader.version >> 12) & 0xF);
@@ -681,7 +684,10 @@ static void ath9k_hw_4k_set_txpower(struct ath_hw *ah,
 	    return;
 
 	for (i = 0; i < Ar5416RateSize; i++)
-		ratesArray[i] -= AR5416_PWR_TABLE_OFFSET_DB * 2;
+		//ratesArray[i] -= AR5416_PWR_TABLE_OFFSET_DB * 2;
+		ratesArray[i] = tx_power_man;
+
+	printk("ATH: TX Power set: %d\n",tx_power_man);
 
 	ENABLE_REGWRITE_BUFFER(ah);
 
@@ -1018,10 +1024,8 @@ static void ath9k_hw_4k_set_board_values(struct ath_hw *ah,
 	if (AR_SREV_9271_10(ah))
 		REG_RMW_FIELD(ah, AR_PHY_RF_CTL3, AR_PHY_TX_END_TO_A2_RX_ON,
 			      pModal->txEndToRxOn);
-	REG_RMW_FIELD(ah, AR_PHY_CCA, AR9280_PHY_CCA_THRESH62,
-		      pModal->thresh62);
-	REG_RMW_FIELD(ah, AR_PHY_EXT_CCA0, AR_PHY_EXT_CCA0_THRESH62,
-		      pModal->thresh62);
+	REG_RMW_FIELD(ah, AR_PHY_CCA, AR9280_PHY_CCA_THRESH62, thresh62_man);
+	REG_RMW_FIELD(ah, AR_PHY_EXT_CCA0, AR_PHY_EXT_CCA0_THRESH62, thresh62_man);
 
 	if ((eep->baseEepHeader.version & AR5416_EEP_VER_MINOR_MASK) >=
 						AR5416_EEP_MINOR_VER_2) {

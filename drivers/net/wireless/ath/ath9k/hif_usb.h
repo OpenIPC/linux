@@ -43,7 +43,7 @@
 #define MAX_PKT_NUM_IN_TRANSFER 10
 
 #define MAX_REG_OUT_URB_NUM  1
-#define MAX_REG_IN_URB_NUM   64
+#define MAX_REG_IN_URB_NUM   8
 
 #define MAX_REG_IN_BUF_SIZE 64
 
