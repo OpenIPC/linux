@@ -1209,6 +1209,9 @@ static void purge_configs_funcs(struct gadget_info *gi)
 
 		list_for_each_entry_safe(f, tmp, &c->functions, list) {
 
+			if (f->disable)
+			    f->disable(f);
+
 			list_move_tail(&f->list, &cfg->func_list);
 			if (f->unbind) {
 				dev_dbg(&gi->cdev.gadget->dev,
@@ -1216,6 +1219,9 @@ static void purge_configs_funcs(struct gadget_info *gi)
 				         f->name, f);
 				f->unbind(c, f);
 			}
+
+			if (f->bind_deactivated)
+				usb_function_activate(f);
 		}
 		c->next_interface_id = 0;
 		memset(c->interface, 0, sizeof(c->interface));

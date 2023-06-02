@@ -1,0 +1,8 @@
+
+config GOKE_FENCE
+	bool "Goke fence suppport"
+	default y
+	select SW_SYNC
+	select SYNC_FILE
+	help
+	  Goke fence suppport

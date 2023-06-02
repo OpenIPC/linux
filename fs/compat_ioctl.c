@@ -750,9 +750,9 @@ static int do_i2c_smbus_ioctl(struct file *file,
 	if (!access_ok(VERIFY_READ, udata, sizeof(*udata)))
 		return -EFAULT;
 
-	if (__copy_in_user(&tdata->read_write, &udata->read_write, 2 * sizeof(u8)))
+	if (copy_in_user(&tdata->read_write, &udata->read_write, 2 * sizeof(u8)))
 		return -EFAULT;
-	if (__copy_in_user(&tdata->size, &udata->size, 2 * sizeof(u32)))
+	if (copy_in_user(&tdata->size, &udata->size, 2 * sizeof(u32)))
 		return -EFAULT;
 	if (__get_user(datap, &udata->data) ||
 	    __put_user(compat_ptr(datap), &tdata->data))

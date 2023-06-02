@@ -358,6 +358,16 @@ config MFD_HI655X_PMIC
 	help
 	  Select this option to enable Hisilicon hi655x series pmic driver.
 
+config MFD_GOKE_FMC
+	tristate "Goke Flash Memory Controller"
+	depends on OF
+	depends on ARCH_GOKE
+	select MFD_CORE
+	select REGMAP_MMIO
+	help
+	  Select this option to enable the Goke Flash Memory
+	  Controller(FMC) driver.
+
 config HTC_PASIC3
 	tristate "HTC PASIC3 LED/DS1WM chip support"
 	select MFD_CORE

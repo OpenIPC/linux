@@ -1,0 +1,3 @@
+zreladdr-$(CONFIG_ARCH_GOKE)      := $(CONFIG_BSP_ZRELADDR)
+params_phys-$(CONFIG_ARCH_GOKE)   := $(CONFIG_BSP_PARAMS_PHYS)
+initrd_phys-$(CONFIG_ARCH_GOKE)   := $(CONFIG_BSP_INITRD_PHYS)

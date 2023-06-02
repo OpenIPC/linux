@@ -52,6 +52,7 @@ struct f_uvc_opts {
 	struct uvc_processing_unit_descriptor		uvc_processing;
 	struct uvc_output_terminal_descriptor		uvc_output_terminal;
 	struct uvc_color_matching_descriptor		uvc_color_matching;
+	struct UVC_EXTENSION_UNIT_DESCRIPTOR(1, 2) 	uvc_extension;
 
 	/*
 	 * Control descriptors pointers arrays for full-/high-speed and
@@ -60,8 +61,8 @@ struct f_uvc_opts {
 	 * descriptors. Used by configfs only, must not be touched by legacy
 	 * gadgets.
 	 */
-	struct uvc_descriptor_header			*uvc_fs_control_cls[5];
-	struct uvc_descriptor_header			*uvc_ss_control_cls[5];
+	struct uvc_descriptor_header			*uvc_fs_control_cls[6];
+	struct uvc_descriptor_header			*uvc_ss_control_cls[6];
 
 	/*
 	 * Streaming descriptors for full-speed, high-speed and super-speed.

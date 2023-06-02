@@ -1260,7 +1260,7 @@ ssize_t	ip_append_page(struct sock *sk, struct flowi4 *fl4, struct page *page,
 		if (skb->ip_summed != CHECKSUM_PARTIAL)
 			return -EOPNOTSUPP;
 
-		skb_shinfo(skb)->gso_size = mtu - fragheaderlen;
+		skb_shinfo(skb)->gso_size = maxfraglen - fragheaderlen;
 		skb_shinfo(skb)->gso_type = SKB_GSO_UDP;
 	}
 	cork->length += size;

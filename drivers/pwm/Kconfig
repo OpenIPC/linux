@@ -175,6 +175,14 @@ config PWM_FSL_FTM
 	  To compile this driver as a module, choose M here: the module
 	  will be called pwm-fsl-ftm.
 
+config PWM_GOKE
+	tristate "Goke PWM support"
+	help
+	  Generic PWM framework driver for Goke SoCs.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called pwm-goke.
+
 config PWM_IMG
 	tristate "Imagination Technologies PWM driver"
 	depends on HAS_IOMEM

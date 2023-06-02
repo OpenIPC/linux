@@ -301,6 +301,7 @@ struct fsg_common {
 	unsigned int		bad_lun_okay:1;
 	unsigned int		running:1;
 	unsigned int		sysfs:1;
+	unsigned int		actived:1;
 
 	int			thread_wakeup_needed;
 	struct completion	thread_notifier;
@@ -1371,7 +1372,7 @@ static int do_start_stop(struct fsg_common *common)
 
 	up_read(&common->filesem);
 	down_write(&common->filesem);
-	fsg_lun_close(curlun);
+	common->actived = 0;
 	up_write(&common->filesem);
 	down_read(&common->filesem);
 
@@ -1815,7 +1816,7 @@ static int check_command(struct fsg_common *common, int cmnd_size,
 
 	/* If the medium isn't mounted and the command needs to access
 	 * it, return an error. */
-	if (curlun && !fsg_lun_is_open(curlun) && needs_medium) {
+	if (curlun && !common->actived && needs_medium) {
 		curlun->sense_data = SS_MEDIUM_NOT_PRESENT;
 		return -EINVAL;
 	}
@@ -2280,6 +2281,7 @@ reset:
 	}
 
 	common->running = 0;
+	common->actived = 0;
 	if (!new_fsg || rc)
 		return rc;
 
@@ -2323,7 +2325,7 @@ reset:
 		bh->inreq->complete = bulk_in_complete;
 		bh->outreq->complete = bulk_out_complete;
 	}
-
+	common->actived = 1;
 	common->running = 1;
 	for (i = 0; i < ARRAY_SIZE(common->luns); ++i)
 		if (common->luns[i])

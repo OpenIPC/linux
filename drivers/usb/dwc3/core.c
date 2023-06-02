@@ -44,10 +44,26 @@
 #include "core.h"
 #include "gadget.h"
 #include "io.h"
+#include "dwc3-goke.h"
 
 #include "debug.h"
 
 #define DWC3_DEFAULT_AUTOSUSPEND_DELAY	5000 /* ms */
+
+
+/*
+ * Default to the number of outstanding pipelined transfer
+ * requests is 0x3[11:8], modify the field change to 0x7.
+ */
+static void dwc3_outstanding_pipe_choose(struct dwc3 *dwc)
+{
+	u32	reg;
+
+	reg = dwc3_readl(dwc->regs, DWC3_GSBUSCFG1);
+	reg &= ~DWC3_PIPE_TRANS_LIMIT_MASK;
+	reg |= DWC3_PIPE_TRANS_LIMIT;
+	dwc3_writel(dwc->regs, DWC3_GSBUSCFG1, reg);
+}
 
 /**
  * dwc3_get_dr_mode - Validates and sets dr_mode
@@ -305,13 +321,7 @@ static int dwc3_event_buffers_setup(struct dwc3 *dwc)
 	struct dwc3_event_buffer	*evt;
 
 	evt = dwc->ev_buf;
-	dwc3_trace(trace_dwc3_core,
-			"Event buf %p dma %08llx length %d\n",
-			evt->buf, (unsigned long long) evt->dma,
-			evt->length);
-
 	evt->lpos = 0;
-
 	dwc3_writel(dwc->regs, DWC3_GEVNTADRLO(0),
 			lower_32_bits(evt->dma));
 	dwc3_writel(dwc->regs, DWC3_GEVNTADRHI(0),
@@ -428,9 +438,6 @@ static void dwc3_core_num_eps(struct dwc3 *dwc)
 
 	dwc->num_in_eps = DWC3_NUM_IN_EPS(parms);
 	dwc->num_out_eps = DWC3_NUM_EPS(parms) - dwc->num_in_eps;
-
-	dwc3_trace(trace_dwc3_core, "found %d IN and %d OUT endpoints",
-			dwc->num_in_eps, dwc->num_out_eps);
 }
 
 static void dwc3_cache_hwparams(struct dwc3 *dwc)
@@ -683,13 +690,13 @@ static int dwc3_core_init(struct dwc3 *dwc)
 		reg |= DWC3_GCTL_GBLHIBERNATIONEN;
 		break;
 	default:
-		dwc3_trace(trace_dwc3_core, "No power optimization available\n");
+		/* nothing */
+		break;
 	}
 
 	/* check if current dwc3 is on simulation board */
 	if (dwc->hwparams.hwparams6 & DWC3_GHWPARAMS6_EN_FPGA) {
-		dwc3_trace(trace_dwc3_core,
-				"running on FPGA platform\n");
+		dev_info(dwc->dev, "Running with FPGA optmizations\n");
 		dwc->is_fpga = true;
 	}
 
@@ -982,7 +989,8 @@ static int dwc3_probe(struct platform_device *pdev)
 	 */
 	hird_threshold = 12;
 
-	dwc->maximum_speed = usb_get_maximum_speed(dev);
+	dwc->maximum_speed = usb_get_max_speed(dev);
+
 	dwc->dr_mode = usb_get_dr_mode(dev);
 	dwc->hsphy_mode = of_usb_get_phy_mode(dev->of_node);
 
@@ -996,6 +1004,8 @@ static int dwc3_probe(struct platform_device *pdev)
 				&hird_threshold);
 	dwc->usb3_lpm_capable = device_property_read_bool(dev,
 				"snps,usb3_lpm_capable");
+	dwc->usb2_lpm_disable = device_property_read_bool(dev,
+				"snps,usb2-lpm-disable");
 
 	dwc->disable_scramble_quirk = device_property_read_bool(dev,
 				"snps,disable_scramble_quirk");
@@ -1026,6 +1036,16 @@ static int dwc3_probe(struct platform_device *pdev)
 	dwc->dis_del_phy_power_chg_quirk = device_property_read_bool(dev,
 				"snps,dis-del-phy-power-chg-quirk");
 
+	dwc->dis_initiate_u1 = device_property_read_bool(dev,
+				"snps,dis_initiate_u1");
+	dwc->dis_initiate_u2 = device_property_read_bool(dev,
+				"snps,dis_initiate_u2");
+
+	dwc->eps_new_init = device_property_read_bool(dev,
+				"snps,eps_new_init");
+	device_property_read_u32(dev, "eps_directions",
+				 &dwc->eps_directions);
+
 	dwc->tx_de_emphasis_quirk = device_property_read_bool(dev,
 				"snps,tx_de_emphasis_quirk");
 	device_property_read_u8(dev, "snps,tx_de_emphasis",
@@ -1043,6 +1063,10 @@ static int dwc3_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, dwc);
 	dwc3_cache_hwparams(dwc);
+
+	device_property_read_u32_array(dev, "eps_map",
+				dwc->dwceps_map_to_usbeps,
+				DWC3_NUM_EPS(&dwc->hwparams));
 
 	ret = dwc3_core_get_phy(dwc);
 	if (ret)
@@ -1086,6 +1110,8 @@ static int dwc3_probe(struct platform_device *pdev)
 		dev_err(dev, "failed to initialize core\n");
 		goto err4;
 	}
+
+	dwc3_outstanding_pipe_choose(dwc);
 
 	/* Check the maximum_speed parameter */
 	switch (dwc->maximum_speed) {
@@ -1176,6 +1202,10 @@ static int dwc3_remove(struct platform_device *pdev)
 
 	dwc3_free_event_buffers(dwc);
 	dwc3_free_scratch_buffers(dwc);
+
+	bsp_dwc3_exited();
+
+	dwc3_set_mode(dwc, DWC3_GCTL_PRTCAP_HOST);
 
 	return 0;
 }

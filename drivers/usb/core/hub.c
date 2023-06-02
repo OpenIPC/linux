@@ -1345,6 +1345,10 @@ static int hub_configure(struct usb_hub *hub,
 		ret = -ENODEV;
 		goto fail;
 	} else if (hub->descriptor->bNbrPorts == 0) {
+		if (!hdev->parent) {
+			dev_info(hub_dev, "hub can't support USB3.0\n");
+			return -ENODEV;
+		}
 		message = "hub doesn't have any ports!";
 		ret = -ENODEV;
 		goto fail;

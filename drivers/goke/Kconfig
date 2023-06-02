@@ -1,0 +1,4 @@
+menu "goke driver support"
+
+source "drivers/goke/cma/Kconfig"
+endmenu

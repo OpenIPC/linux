@@ -115,7 +115,7 @@ static notrace int do_monotonic_coarse(struct timespec *ts,
 	return 0;
 }
 
-#ifdef CONFIG_ARM_ARCH_TIMER
+#if defined (CONFIG_ARM_ARCH_TIMER) && defined(CONFIG_ARM_ARCH_TIMER_VCT_ACCESS)
 
 static notrace u64 get_ns(struct vdso_data *vdata)
 {

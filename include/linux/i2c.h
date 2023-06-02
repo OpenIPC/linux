@@ -68,6 +68,20 @@ extern int i2c_master_recv(const struct i2c_client *client, char *buf,
  */
 extern int i2c_transfer(struct i2c_adapter *adap, struct i2c_msg *msgs,
 			int num);
+
+#ifdef CONFIG_ARCH_GOKE
+
+extern int gk_i2c_master_send(const struct i2c_client *client, const char *buf,
+					int count);
+
+extern int gk_i2c_master_recv(const struct i2c_client *client, char *buf,
+					int count);
+
+extern int gk_i2c_transfer(struct i2c_adapter *adap, struct i2c_msg *msgs,
+					int num);
+
+#endif
+
 /* Unlocked flavor */
 extern int __i2c_transfer(struct i2c_adapter *adap, struct i2c_msg *msgs,
 			  int num);
@@ -553,6 +567,9 @@ struct i2c_adapter {
 	const struct i2c_lock_operations *lock_ops;
 	struct rt_mutex bus_lock;
 	struct rt_mutex mux_lock;
+#ifdef CONFIG_ARCH_GOKE
+	spinlock_t spinlock;
+#endif
 
 	int timeout;			/* in jiffies */
 	int retries;

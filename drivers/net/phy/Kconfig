@@ -89,6 +89,13 @@ config MDIO_BUS_MUX_MMIOREG
 config MDIO_CAVIUM
 	tristate
 
+config MDIO_GOKE_FEMAC
+	tristate "Goke femac MDIO buses"
+	depends on HAS_IOMEM && OF_MDIO
+	help
+	  This module provides a driver for the MDIO busses found in the
+	  Goke SoC that have an Fast Ethernet.
+
 config MDIO_GPIO
 	tristate "GPIO lib-based bitbanged MDIO buses"
 	depends on MDIO_BITBANG && GPIOLIB

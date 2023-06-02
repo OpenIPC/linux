@@ -170,6 +170,9 @@ static ssize_t i2cdev_write(struct file *file, const char __user *buf,
 	if (count > 8192)
 		count = 8192;
 
+	if (count == 0)
+		return -EINVAL;
+
 	tmp = memdup_user(buf, count);
 	if (IS_ERR(tmp))
 		return PTR_ERR(tmp);
@@ -270,6 +273,11 @@ static noinline int i2cdev_ioctl_rdwr(struct i2c_client *client,
 	for (i = 0; i < rdwr_arg.nmsgs; i++) {
 		/* Limit the size of the message to a sane amount */
 		if (rdwr_pa[i].len > 8192) {
+			res = -EINVAL;
+			break;
+		}
+
+		if (rdwr_pa[i].len == 0) {
 			res = -EINVAL;
 			break;
 		}

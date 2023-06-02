@@ -176,6 +176,15 @@ config MMC_SDHCI_CNS3XXX
 
 	  If unsure, say N.
 
+config MMC_SDHCI_GOKE
+	tristate "SDHCI support on the Goke SoC"
+	depends on ARCH_GK7205V200 || ARCH_GK7205V300 || ARCH_GK7202V300 || ARCH_GK7605V100
+	depends on MMC_SDHCI_PLTFM
+	help
+	  This selects the SDHCI support for Goke System-on-Chip devices.
+	  If you have a controller with this interface, say Y or M here.
+	  If unsure, say N.
+
 config MMC_SDHCI_ESDHC_IMX
 	tristate "SDHCI support for the Freescale eSDHC/uSDHC i.MX controller"
 	depends on ARCH_MXC
@@ -798,3 +807,17 @@ config MMC_SDHCI_BRCMSTB
 	  Broadcom STB SoCs.
 
 	  If unsure, say Y.
+
+config MMC_CQ_HCI
+	tristate "Command Queue Support"
+	depends on HAS_DMA
+	help
+	  This selects the Command Queue Host Controller Interface (CQHCI)
+	  support present in host controllers of Qualcomm Technologies, Inc
+	  amongst others.
+	  This controller supports eMMC devices with command queue support.
+
+	  If you have a controller with this interface, say Y or M here.
+
+	  If unsure, say N.
+

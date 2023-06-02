@@ -67,6 +67,12 @@ config POWER_RESET_BRCMSTB
 	  Say Y here if you have a Broadcom STB board and you wish
 	  to have restart support.
 
+config POWER_RESET_GOKE
+	bool "Goke power-off driver"
+	depends on ARCH_GOKE
+	help
+	  Reboot support for Goke boards.
+
 config POWER_RESET_GPIO
 	bool "GPIO power-off driver"
 	depends on OF_GPIO

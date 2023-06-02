@@ -174,6 +174,14 @@ dtb-$(CONFIG_ARCH_HISI) += \
 	hi3519-demb.dtb
 dtb-$(CONFIG_ARCH_HIX5HD2) += \
 	hisi-x5hd2-dkb.dtb
+dtb-$(CONFIG_ARCH_GK7205V200) += \
+	gk7205v200-demb.dtb
+dtb-$(CONFIG_ARCH_GK7205V300) += \
+	gk7205v300-demb.dtb
+dtb-$(CONFIG_ARCH_GK7202V300) += \
+	gk7202v300-demb.dtb
+dtb-$(CONFIG_ARCH_GK7605V100) += \
+	gk7605v100-demb.dtb
 dtb-$(CONFIG_ARCH_INTEGRATOR) += \
 	integratorap.dtb \
 	integratorcp.dtb
