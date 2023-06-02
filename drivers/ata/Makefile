@@ -1,5 +1,6 @@
 
 obj-$(CONFIG_ATA)		+= libata.o
+obj-$(CONFIG_HISI_SATA)       += hisi_sata_dbg.o
 
 # non-SFF interface
 obj-$(CONFIG_SATA_AHCI)		+= ahci.o libahci.o

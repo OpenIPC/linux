@@ -1,0 +1,17 @@
+#
+# hisilicon flash memory controller SPI nand device driver version 100
+# drivers/mtd/nand/hifmc100/Kconfig
+# add by hisilicon 2017.8.7
+#
+
+config MTD_SPI_NAND_HIFMC100
+	bool "Hisilicon Flash Memory Controller v100 SPI Nand devices support"
+	depends on MFD_HISI_FMC && MTD_SPI_NAND_HISI_BVT
+	select MISC_FILESYSTEMS
+	select MTD_BLOCK
+	select YAFFS_FS
+	select YAFFS_YAFFS2
+	help
+	  Hisilicon Flash Memory Controller version 100 is called hifmc100 for
+	  short. The controller driver support registers and DMA transfers
+	  while reading or writing the SPI nand flash.

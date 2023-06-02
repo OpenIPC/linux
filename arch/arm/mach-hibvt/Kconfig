@@ -1,0 +1,46 @@
+config ARCH_HISI_BVT
+	bool "Hisilicon BVT SoC Support"
+	select ARM_AMBA
+	select ARM_GIC
+	select ARM_TIMER_SP804
+	select POWER_RESET
+	select POWER_RESET_HISI
+	select POWER_SUPPLY
+
+if ARCH_HISI_BVT
+
+menu "Hisilicon BVT platform type"
+
+config HI_ZRELADDR
+       hex 'zreladdr'
+       default "0x80008000"
+
+config HI_PARAMS_PHYS
+       hex 'params_phys'
+       default "0x00000100"
+
+config HI_INITRD_PHYS
+       hex 'initrd_phys'
+       default "0x00800000"
+
+config ARCH_HI3516A
+	bool "Hisilicon Hi3516A Cortex-A7(Single) family"
+	select HAVE_ARM_ARCH_TIMER
+	select ARM_GIC
+	select ARCH_HAS_RESET_CONTROLLER
+	select RESET_CONTROLLER
+	select ARCH_MULTI_V7
+	help
+		Support for Hisilicon Hi3516A Soc family.
+
+config ARCH_HI3536DV100
+	bool "Hisilicon Hi3536DV100 Cortex-A7(Single) family"
+	depends on ARCH_MULTI_V7
+	select HAVE_ARM_ARCH_TIMER
+	select PINCTRL
+	help
+		Support for Hisilicon Hi3536DV100 Soc family.
+
+endmenu
+
+endif

@@ -2397,3 +2397,10 @@ void arch_teardown_dma_ops(struct device *dev)
 {
 	arm_teardown_iommu_dma_ops(dev);
 }
+
+void hi_dmac_map_area(const void *kaddr, size_t size,
+			enum dma_data_direction dir)
+{
+	dmac_map_area(kaddr, size, dir);
+}
+EXPORT_SYMBOL(hi_dmac_map_area);

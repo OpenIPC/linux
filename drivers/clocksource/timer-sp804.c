@@ -235,6 +235,10 @@ static int __init sp804_of_init(struct device_node *np)
 	writel(0, base + TIMER_CTRL);
 	writel(0, base + TIMER_2_BASE + TIMER_CTRL);
 
+	/* Ensure timer interrupts are clear */
+	writel(1, base + TIMER_INTCLR);
+	writel(1, base + TIMER_2_BASE + TIMER_INTCLR);
+
 	if (initialized || !of_device_is_available(np)) {
 		ret = -EINVAL;
 		goto err;

@@ -553,6 +553,9 @@ struct i2c_adapter {
 	const struct i2c_lock_operations *lock_ops;
 	struct rt_mutex bus_lock;
 	struct rt_mutex mux_lock;
+#ifdef CONFIG_ARCH_HISI_BVT
+	spinlock_t spinlock;
+#endif
 
 	int timeout;			/* in jiffies */
 	int retries;

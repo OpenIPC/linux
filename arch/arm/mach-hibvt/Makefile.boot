@@ -1,0 +1,3 @@
+zreladdr-$(CONFIG_ARCH_HISI_BVT)      := $(CONFIG_HI_ZRELADDR)
+params_phys-$(CONFIG_ARCH_HISI_BVT)   := $(CONFIG_HI_PARAMS_PHYS)
+initrd_phys-$(CONFIG_ARCH_HISI_BVT)   := $(CONFIG_HI_INITRD_PHYS)
