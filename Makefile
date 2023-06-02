@@ -831,8 +831,6 @@ KBUILD_CFLAGS   += $(call cc-disable-warning, address-of-packed-member)
 # use the deterministic mode of AR if available
 KBUILD_ARFLAGS := $(call ar-option,D)
 
-KBUILD_CFLAGS   += -Werror
-
 include scripts/Makefile.kasan
 include scripts/Makefile.extrawarn
 include scripts/Makefile.ubsan
