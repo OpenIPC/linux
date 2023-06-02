@@ -737,6 +737,11 @@ ifdef CONFIG_DYNAMIC_FTRACE
 endif
 endif
 
+# address gcc12 warnings
+KBUILD_CFLAGS += $(call cc-option,-Wno-attributes)
+KBUILD_CFLAGS += $(call cc-option,-Wno-address-of-packed-member)
+KBUILD_CFLAGS += $(call cc-option,-Wno-discarded-qualifiers)
+
 # We trigger additional mismatches with less inlining
 ifdef CONFIG_DEBUG_SECTION_MISMATCH
 KBUILD_CFLAGS += $(call cc-option, -fno-inline-functions-called-once)
