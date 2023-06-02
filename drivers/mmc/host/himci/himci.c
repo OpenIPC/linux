@@ -63,6 +63,7 @@ static unsigned int request_timeout = HI_MCI_REQUEST_TIMEOUT;
 int trace_level = HIMCI_TRACE_LEVEL;
 unsigned int slot_index = 0;
 struct himci_host *mci_host[HIMCI_SLOT_NUM] = {NULL};
+int disabled = 0;
 
 #ifdef MODULE
 
@@ -79,6 +80,8 @@ module_param(trace_level, int, 0600);
 MODULE_PARM_DESC(trace_level, "HIMCI_TRACE_LEVEL");
 
 #endif
+
+module_param(disabled, int, S_IRUGO);
 
 /* reset MMC host controller */
 static void himci_sys_reset(struct himci_host *host)
@@ -1719,7 +1722,7 @@ static int __init himci_init(void)
 	 * We should register SDIO1 first to make sure that
 	 * the eMMC device,which connected to SDIO1 is mmcblk0.
 	 */
-
+if (disabled == 0) {
 	ret = platform_driver_register(&himci_driver);
 	if (ret) {
 		platform_driver_unregister(&himci_driver);
@@ -1731,7 +1734,7 @@ static int __init himci_init(void)
 	ret = mci_proc_init(HIMCI_SLOT_NUM);
 	if (ret)
 		himci_error("device proc init is failed!");
-
+}
 	return ret;
 }
 
