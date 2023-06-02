@@ -175,11 +175,13 @@ static long vpu_start(struct device *dev, const struct channel_node * const cnod
     vpu_writel(vpu, REG_SCH_GLBC, SCH_GLBC_HIAXI | SCH_INTE_RESERR | SCH_INTE_ACFGERR
             | SCH_INTE_BSERR | SCH_INTE_ENDF);
 
-/*	vpu_writel(vpu, REG_VDMA_TASKRG, VDMA_ACFG_DHA(cnode->dma_addr)
-			| VDMA_ACFG_RUN);
-*/
+#ifdef CONFIG_SOC_T21
 	vpu_writel(vpu, REG_VDMA_TASKRG_T21, VDMA_ACFG_DHA(cnode->dma_addr)
 			| VDMA_ACFG_RUN);
+#else
+	vpu_writel(vpu, REG_VDMA_TASKRG, VDMA_ACFG_DHA(cnode->dma_addr)
+			| VDMA_ACFG_RUN);
+#endif
 	dev_dbg(vpu->vpu.dev, "[%d:%d] start vpu\n", current->tgid, current->pid);
 
 	return 0;
