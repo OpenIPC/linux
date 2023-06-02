@@ -35,10 +35,60 @@
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
 #include <linux/mtd/map.h>
-
+#include <plat-anyka/anyka_types.h>
+#include <mach-anyka/partition_init.h> 
+#include <mach-anyka/partition_lib.h> 
+#include <mach-anyka/ak_partition_table.h> 
+#include <mach-anyka/spinand_badblock.h> 
 #include <asm/uaccess.h>
 
 static DEFINE_MUTEX(mtd_mutex);
+
+/* Add ioctl data structure for spi flash burn tool.
+*/
+#define FLASH_PAGESIZE		256
+
+#define AK_SPIFLASH_PHY_ERASE               0x80
+#define AK_SPIFLASH_PHY_READ                0x81
+#define AK_SPIFLASH_PHY_WRITE               0x82
+#define AK_SPIFLASH_GET_CHIP_ID             0x83
+#define AK_SPIFLASH_READ_BYTES              0x84
+#define AK_UPDATE_PART_NAME             0x85
+
+#define AK_GET_PART_NAME                0x86
+
+#define AK_PROTECT_CTL                  0x87
+
+
+
+#define LEFT_ALIGN(a,b) ((a/b)*b)
+#define RIGHT_ALIGN(a, b) (((a+b-1)/b)*b)
+
+struct rw_para
+{
+    T_U32 chip_num;
+    T_U32 page_num;
+    T_U8 *data;
+    T_U32 data_len;
+    T_U8 *oob;   //not used in spi flash, only reserve for nand.
+    T_U32 oob_len;  //not used in spi flash, only reserve for nand.
+	T_U32 eDataType;
+};
+
+/* erase block info */
+struct erase_para
+{
+    T_U32 chip_num; //which chip the block is in
+    T_U32 startpage; // the block's first page number
+	T_U32 erasesize;
+};
+
+struct get_id_para
+{
+    T_U32 chip_num;
+	T_U32 *spiflash_id;
+};
+
 
 /*
  * Data structure to hold the pointer to the mtd device as well
@@ -48,6 +98,7 @@ struct mtd_file_info {
 	struct mtd_info *mtd;
 	struct inode *ino;
 	enum mtd_file_modes mode;
+	void *part_handle;
 };
 
 static loff_t mtdchar_lseek(struct file *file, loff_t offset, int orig)
@@ -137,6 +188,16 @@ static int mtdchar_open(struct inode *inode, struct file *file)
 	mfi->ino = mtd_ino;
 	mfi->mtd = mtd;
 	file->private_data = mfi;
+	if(MTD_NANDFLASH == mtd->type)
+	{
+	    //open partition
+	    mfi->part_handle = partition_open(mtd->name);
+		if (mfi->part_handle == NULL) {
+		    printk(KERN_ERR "%s, open partition error!\n", __func__);		
+			goto out2;
+	    }
+	}
+    
 	mutex_unlock(&mtd_mutex);
 	return 0;
 
@@ -162,6 +223,11 @@ static int mtdchar_close(struct inode *inode, struct file *file)
 	/* Only sync if opened RW */
 	if ((file->f_mode & FMODE_WRITE))
 		mtd_sync(mtd);
+	if(MTD_NANDFLASH == mtd->type)
+	{
+    	//close partition
+    	partition_close(mfi->part_handle);
+	}
 
 	iput(mfi->ino);
 
@@ -241,7 +307,20 @@ static ssize_t mtdchar_read(struct file *file, char __user *buf, size_t count,
 			break;
 		}
 		default:
-			ret = mtd_read(mtd, *ppos, len, &retlen, kbuf);
+			if(MTD_NANDFLASH == mtd->type)
+			{
+			    retlen = partition_read(mfi->part_handle, kbuf, len);
+			    if(retlen < 0){
+					kfree(kbuf);
+					return -EFAULT;
+			    }
+	            else
+	    		    ret = 0;
+			}
+			else
+			{
+				ret = mtd_read(mtd, *ppos, len, &retlen, kbuf);
+			}
 		}
 		/* Nand returns -EBADMSG on ECC errors, but it returns
 		 * the data. For our userspace tools it is important
@@ -288,7 +367,7 @@ static ssize_t mtdchar_write(struct file *file, const char __user *buf, size_t c
 	size_t total_retlen=0;
 	int ret=0;
 	int len;
-
+	T_PARTITION_TABLE_INFO *parttition_handle = NULL;
 	pr_debug("MTD_write\n");
 
 	if (*ppos == mtd->size)
@@ -304,9 +383,19 @@ static ssize_t mtdchar_write(struct file *file, const char __user *buf, size_t c
 	if (!kbuf)
 		return -ENOMEM;
 
+	if(MTD_NANDFLASH == mtd->type){
+		parttition_handle = (T_PARTITION_TABLE_INFO *)mfi->part_handle;
+	}
+
 	while (count) {
 		len = min_t(size_t, count, size);
-
+		if(MTD_NANDFLASH == mtd->type && size != count){
+			if(parttition_handle->partition_info.type == PART_FS_TYPE)
+			{
+				len = len/2112;
+				len = len*2112;
+			}
+		}
 		if (copy_from_user(kbuf, buf, len)) {
 			kfree(kbuf);
 			return -EFAULT;
@@ -337,7 +426,20 @@ static ssize_t mtdchar_write(struct file *file, const char __user *buf, size_t c
 		}
 
 		default:
-			ret = mtd_write(mtd, *ppos, len, &retlen, kbuf);
+			if(MTD_NANDFLASH == mtd->type)
+			{
+				retlen = partition_write(mfi->part_handle, kbuf, len);
+				if(retlen <= 0){
+	                kfree(kbuf);
+					return -EFAULT;
+				}
+				else
+	    		    ret = 0;
+			}
+			else
+			{
+				ret = mtd_write(mtd, *ppos, len, &retlen, kbuf);
+			}
 		}
 		if (!ret) {
 			*ppos += retlen;
@@ -620,17 +722,250 @@ static int mtdchar_write_ioctl(struct mtd_info *mtd,
 	return ret;
 }
 
+
+/**
+* @brief   MTD  char earse
+* 
+* Erase a sector specified by input paramerter.
+* @author SheShaohua
+* @date 2012-03-20
+* @param[in] mtd    mtd info handle.
+* @param[in] arg     erase info.
+* @return int return write success or failed
+* @retval returns zero on success
+* @retval return a non-zero error code if failed
+*/
+static int erase_SPIFlash_page(struct mtd_info *mtd, unsigned long arg)
+{
+	struct erase_info instr_info;
+	struct erase_para e_para;
+	unsigned long len;
+	int ret;	
+
+	ret = copy_from_user(&e_para, (struct erase_para *)arg, sizeof(struct erase_para));
+	if(ret)
+		return -EFAULT;
+	//printk("Erase sector: %ld \n", e_para.startpage/16);
+	
+	memset(&instr_info, 0, sizeof(struct erase_info));
+	instr_info.addr = e_para.startpage * FLASH_PAGESIZE;
+	instr_info.len = len = e_para.erasesize; 
+	instr_info.mtd = mtd;
+
+	//printk("Addr: %lld, len: %lld, start to erase...\n", instr_info.addr, instr_info.len);
+
+	mtd_erase(mtd, &instr_info);
+
+	return 0;	 
+}
+
+
+static int read_spiflash_bytes(struct mtd_info *mtd, unsigned long arg)
+{
+	struct rw_para r_para;
+	unsigned long baseaddr, len, retlen;	
+	unsigned char *buf;
+	int ret;
+
+	ret = copy_from_user(&r_para, (struct rw_para *)arg, sizeof(struct rw_para));
+	if(ret)
+		return -EFAULT;
+	
+	baseaddr = r_para.page_num;
+	len = r_para.data_len;
+	buf = (unsigned char *)kmalloc(len, GFP_KERNEL);
+	if( buf == NULL )
+	{
+		printk(KERN_ERR "%s, kmalloc buf fail!\n", __func__);
+		return -1;
+	}
+
+	mtd_read(mtd, baseaddr, len, (size_t*)&retlen, buf);
+	
+	ret = copy_to_user(((struct rw_para *)arg)->data, buf, retlen);
+	if(ret) {
+		ret = -EFAULT;
+		goto rd_fail;
+	}
+
+rd_fail:
+	kfree(buf);
+
+	return 0;	 
+}
+
+
+/**
+* @brief   MTD  char read
+* 
+* Read data from spi flash.
+* @author SheShaohua
+* @date 2012-03-20
+* @param[in] mtd    mtd info handle.
+* @param[in] arg     read address and length info.
+* @return int return write success or failed
+* @retval returns zero on success
+* @retval return a non-zero error code if failed
+*/
+static int read_SPIFlash_page(struct mtd_info *mtd, unsigned long arg)
+{
+	struct rw_para r_para;
+	unsigned long baseaddr, addr, len, retlen, pageCount;	
+	unsigned char *buf;
+	int ret;
+
+	ret = copy_from_user(&r_para, (struct rw_para *)arg, sizeof(struct rw_para));
+	if(ret)
+		return -EFAULT;
+
+	//printk("Read page: %ld, len: %ld\n", r_para.page_num, r_para.data_len);
+	
+	baseaddr = r_para.page_num * FLASH_PAGESIZE;
+	pageCount = r_para.data_len;
+	len = r_para.data_len  * FLASH_PAGESIZE;	
+	buf = (unsigned char *)kmalloc(len, GFP_KERNEL);
+	if( buf == NULL )
+	{
+		printk(KERN_ERR "%s, kmalloc buf fail!\n", __func__);
+		return -1;
+	}
+
+	addr = baseaddr;
+	mtd_read(mtd, addr, len, (size_t*)&retlen, buf);
+	
+	ret = copy_to_user(((struct rw_para *)arg)->data, buf, retlen);
+	if(ret) {
+		ret = -EFAULT;
+		goto rd_fail;
+	}
+
+rd_fail:
+	kfree(buf);
+
+	return 0;	 
+}
+
+
+/**
+* @brief   MTD  char write
+* 
+* write data to spi flash.
+* @author SheShaohua
+* @date 2012-03-20
+* @param[in] mtd    mtd info handle.
+* @param[in] arg     write related info.
+* @return int return write success or failed
+* @retval returns zero on success
+* @retval return a non-zero error code if failed
+*/
+static int write_SPIFlash_page(struct mtd_info *mtd, unsigned long arg)
+{
+	struct rw_para w_para;
+	unsigned long baseAddr, addr, total_len, len, remainCount, retlen, pageCount;	
+	unsigned char *buff, *pbuf;
+	u32 i;
+	int ret;
+
+	ret = copy_from_user(&w_para, (struct rw_para *)arg, sizeof(struct rw_para));
+	if(ret)
+		return -EFAULT;
+
+//	printk("Write page: %ld ~ %ld\n", w_para.page_num, (w_para.page_num + w_para.data_len - 1) );
+	
+	baseAddr = w_para.page_num * FLASH_PAGESIZE;
+	pageCount = w_para.data_len;
+	total_len = w_para.data_len * FLASH_PAGESIZE;
+	buff = (unsigned char *)kmalloc(total_len, GFP_KERNEL);
+	if( buff == NULL )
+	{
+		printk(KERN_ERR "%s, kmalloc buf fail!\n", __func__);
+		return -1;
+	}
+
+	ret = copy_from_user(buff, w_para.data, total_len);
+	if(ret) {
+		ret = -EFAULT;
+		goto wr_fail;
+	}
+
+
+	remainCount = total_len;
+	addr = baseAddr;
+	pbuf = buff;
+	for(i=0; i<pageCount; i++)
+	{
+		if( remainCount > FLASH_PAGESIZE )
+		{
+			len = FLASH_PAGESIZE;
+		}
+		else
+		{
+			len = remainCount;
+		}
+
+		addr = baseAddr + (i * FLASH_PAGESIZE);
+		pbuf = buff + (i * FLASH_PAGESIZE);
+		mtd_write(mtd, addr, len, (size_t*)&retlen, pbuf);
+		remainCount -= FLASH_PAGESIZE;
+	}
+
+wr_fail:
+	kfree(buff);
+
+	return 0;	 
+}
+
+
+/**
+* @brief   Get Device ID
+* 
+* Get Device ID of  spi flash.
+* @author SheShaohua
+* @date 2012-03-20
+* @param[in] mtd    mtd info handle.
+* @param[out] arg     return device ID.
+* @return int return write success or failed
+* @retval returns zero on success
+* @retval return a non-zero error code if failed
+*/
+static int get_SPIFlash_ID(struct mtd_info *mtd, unsigned long arg)
+{
+	int ret;
+	u32 spi_id = 0;
+
+	if(mtd->get_device_id)
+	{
+		spi_id = mtd->get_device_id(mtd);
+		if( spi_id == AK_FALSE)
+		{
+			printk(KERN_ERR "%s, get_device_id fail!\n", __func__);
+			return -1;
+		}
+	}
+
+	ret = copy_to_user(((struct get_id_para *)arg)->spiflash_id, &spi_id, sizeof(u32));
+	if(ret)
+		return -EFAULT;
+
+	printk("get_SPIFlash_ID: 0x%08x\n", spi_id);
+	return 0;	
+}
+
+
 static int mtdchar_ioctl(struct file *file, u_int cmd, u_long arg)
 {
 	struct mtd_file_info *mfi = file->private_data;
 	struct mtd_info *mtd = mfi->mtd;
 	void __user *argp = (void __user *)arg;
-	int ret = 0;
+	int ret = 0, i = 0;
 	u_long size;
 	struct mtd_info_user info;
+	T_PARTITION_INFO partition_info = {0};
+	T_PARTITION_INFO read_partition_info = {0};
+	char read_flag = 0; //0表示不需要读 1表示�?要读
 
 	pr_debug("MTD_ioctl\n");
-
+	
 	size = (cmd & IOCSIZE_MASK) >> IOCSIZE_SHIFT;
 	if (cmd & IOC_IN) {
 		if (!access_ok(VERIFY_READ, argp, size))
@@ -642,6 +977,181 @@ static int mtdchar_ioctl(struct file *file, u_int cmd, u_long arg)
 	}
 
 	switch (cmd) {
+        case AK_PROTECT_CTL:
+        {
+            
+
+			printk(KERN_ERR "spinand set protect not support \n");
+
+			#if 0
+			int bprotect;
+            if (copy_from_user(&bprotect, argp, sizeof(bprotect)))
+                ret = -EFAULT;
+            else {
+                printk(KERN_ERR "spinand set protect: %d\n", bprotect);
+                if(bprotect)
+                    ak_spinand_cfg_protect(true);
+                else
+                    ak_spinand_cfg_protect(false);
+            }
+			#endif
+        }
+        break;
+
+	case AK_GET_PART_NAME:
+		//只有个别分区进行更新�?以需要把原来数据读取出来,再进行写下去
+			memset(&read_partition_info, 0, sizeof(T_PARTITION_INFO));
+
+			if(MTD_NANDFLASH != mtd->type)
+			{
+				printk(KERN_ERR "spi nor not support get part name\n");
+			}
+			else
+			{
+
+				//printk(KERN_ERR "sizeof(T_PARTITION_INFO):%d\n", sizeof(T_PARTITION_INFO));
+				if(spinand_read_asa_data((unsigned char *)&read_partition_info, sizeof(T_PARTITION_INFO)) == -1)
+				{
+					printk(KERN_ERR"spinand_read_asa_data fail\r\n");
+					return -EFAULT;
+				}
+
+				printk(KERN_ERR"partition_cnt:%ld\r\n", read_partition_info.partition_cnt);
+				//printk(KERN_ERR"partition_name_info[0].partition_name:%s\r\n", read_partition_info.partition_name_info[0].partition_name);
+				//printk(KERN_ERR"partition_name_info[1].partition_name:%s\r\n", read_partition_info.partition_name_info[1].partition_name);
+				//printk(KERN_ERR"partition_name_info[20].partition_name:%s\r\n", read_partition_info.partition_name_info[2].partition_name);
+
+
+				if (copy_to_user(argp, &read_partition_info, sizeof(T_PARTITION_INFO)))
+				{
+					printk(KERN_ERR"copy_to_user fail\r\n");	
+					return -EFAULT;
+				}
+			}
+
+		break;
+
+	case AK_UPDATE_PART_NAME:
+
+		//printk(KERN_ERR "mtdchar_ioctl@@@@@@@@@@@@@@@@@@, cmd:%d\n", cmd);
+		if(MTD_NANDFLASH != mtd->type)
+		{
+			printk(KERN_ERR "spi nor not support update part name\n");
+		}
+		else
+		{
+
+		#if 1
+			//判断传下来的数据是否个分区都更新
+
+		    //printk(KERN_ERR "len:%d\n", sizeof(T_PARTITION_INFO));
+		    
+			if(copy_from_user(&partition_info, argp,sizeof(T_PARTITION_INFO))) {
+				return -EFAULT;
+			 }
+			
+			//printk(KERN_ERR "read_flag:%d\n", read_flag);
+			if(read_flag == 0)
+			{
+				printk(KERN_ERR"partition_cnt:%ld\r\n", partition_info.partition_cnt);
+				printk(KERN_ERR"partition_name_info[0].update_flag:%s\r\n", partition_info.partition_name_info[0].update_flag);
+				printk(KERN_ERR"partition_name_info[1].update_flag:%s\r\n", partition_info.partition_name_info[1].update_flag);
+				printk(KERN_ERR"partition_name_info[2].update_flag:%s\r\n", partition_info.partition_name_info[2].update_flag);
+			
+				if(spinand_write_asa_data((unsigned char *)&partition_info, sizeof(T_PARTITION_INFO)) == -1)
+				{
+					printk(KERN_ERR"spinand_write_asa_data fail\r\n");
+					return -EFAULT;
+				}
+			}
+			else  
+			{
+				//只有个别分区进行更新�?以需要把原来数据读取出来,再进行写下去
+				memset(&read_partition_info, 0, sizeof(T_PARTITION_INFO));
+
+				//printk(KERN_ERR "sizeof(T_PARTITION_INFO):%d\n", sizeof(T_PARTITION_INFO));
+				if(spinand_read_asa_data((unsigned char *)&read_partition_info, sizeof(T_PARTITION_INFO)) == -1)
+				{
+					printk(KERN_ERR"spinand_read_asa_data fail\r\n");
+					return -EFAULT;
+				}
+
+				printk(KERN_ERR"partition_cnt:%ld\r\n", read_partition_info.partition_cnt);
+				printk(KERN_ERR"partition_name_info[0].update_flag:%s\r\n", read_partition_info.partition_name_info[0].update_flag);
+				printk(KERN_ERR"partition_name_info[1].update_flag:%s\r\n", read_partition_info.partition_name_info[1].update_flag);
+				printk(KERN_ERR"partition_name_info[20].update_flag:%s\r\n", read_partition_info.partition_name_info[2].update_flag);
+
+				//
+				for(i = 0; i < partition_info.partition_cnt; i++)
+				{
+					if(partition_info.partition_name_info[i].update_flag[0] != 0)
+					{
+						memset(read_partition_info.partition_name_info[i].update_flag, 0, 6);
+						strncpy(read_partition_info.partition_name_info[i].update_flag, partition_info.partition_name_info[i].update_flag, 6);
+					}
+				}
+				
+				printk(KERN_ERR"partition_cnt:%ld\r\n", read_partition_info.partition_cnt);
+				printk(KERN_ERR"partition_name_info[0].update_flag:%s\r\n", read_partition_info.partition_name_info[0].update_flag);
+				printk(KERN_ERR"partition_name_info[1].update_flag:%s\r\n", read_partition_info.partition_name_info[1].update_flag);
+				printk(KERN_ERR"partition_name_info[20].update_flag:%s\r\n",read_partition_info.partition_name_info[2].update_flag);
+				
+				if(spinand_write_asa_data((unsigned char *)&read_partition_info, sizeof(T_PARTITION_INFO)) == -1)
+				{
+					printk(KERN_ERR"spinand_write_asa_data fail\r\n");
+					return -EFAULT;
+				}
+			}
+			#endif
+		}
+	
+		break;
+
+		
+	case AK_SPIFLASH_PHY_READ:
+		ret = read_SPIFlash_page( mtd, arg );
+		if( ret != 0 )
+		{
+			printk(KERN_ERR "AK_SPIFLASH_PHY_READ failed:ret=%d\n", ret);
+			return -EFAULT;
+		}
+		break;
+
+	case AK_SPIFLASH_PHY_WRITE:
+		ret = write_SPIFlash_page( mtd, arg );
+		if( ret != 0 )
+		{
+			printk(KERN_ERR "AK_SPIFLASH_PHY_WRITE failed:ret=%d\n", ret);
+			return -EFAULT;
+		}
+		break;
+
+	case AK_SPIFLASH_PHY_ERASE:
+		ret = erase_SPIFlash_page( mtd, arg );
+		if( ret != 0 )
+		{
+			printk(KERN_ERR "AK_SPIFLASH_PHY_ERASE failed:ret=%d\n", ret);
+			return -EFAULT;
+		}
+		break;
+
+	case AK_SPIFLASH_GET_CHIP_ID:
+		ret = get_SPIFlash_ID( mtd, arg );
+		if( ret != 0 )
+		{
+			printk(KERN_ERR "AK_SPIFLASH_GET_CHIP_ID failed:ret=%d\n", ret);
+			return -EFAULT;
+		}
+		break;
+	case AK_SPIFLASH_READ_BYTES:
+		ret = read_spiflash_bytes(mtd, arg);
+		if( ret != 0 )
+		{
+			printk(KERN_ERR "AK_SPIFLASH_READ_BYTES failed:ret=%d\n", ret);
+			return -EFAULT;
+		}
+		break;
+		
 	case MEMGETREGIONCOUNT:
 		if (copy_to_user(argp, &(mtd->numeraseregions), sizeof(int)))
 			return -EFAULT;

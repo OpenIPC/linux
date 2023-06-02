@@ -382,6 +382,14 @@ config HMC6352
 	  This driver provides support for the Honeywell HMC6352 compass,
 	  providing configuration and heading data via sysfs.
 
+config SENSORS_AK8975
+	tristate "AK8975 compass support"
+	default n
+	depends on I2C
+	help
+	  If you say yes here you get support for Asahi Kasei's
+	  orientation sensor AK8975.
+
 config EP93XX_PWM
 	tristate "EP93xx PWM support"
 	depends on ARCH_EP93XX
@@ -424,6 +432,10 @@ config TI_DAC7512
 
 	  This driver can also be built as a module. If so, the module
 	  will be called ti_dac7512.
+
+config UID_STAT
+	bool "UID based statistics tracking exported to /proc/uid_stat"
+	default n
 
 config VMWARE_BALLOON
 	tristate "VMware Balloon Driver"
@@ -498,6 +510,54 @@ config MAX8997_MUIC
 	  Maxim MAX8997 PMIC.
 	  The MAX8997 MUIC is a USB port accessory detector and switch.
 
+config WL127X_RFKILL
+	tristate "Bluetooth power control driver for TI wl127x"
+	depends on RFKILL
+	default n
+	---help---
+	 Creates an rfkill entry in sysfs for power control of Bluetooth
+	 TI wl127x chips.
+
+config AK_SERIAL_NUMBER
+	tristate "Anyka Serial Number Interface"
+	depends on ARCH_AK39
+	---help---
+	 If you say yes here you get an sysfs interface to read device serial number 
+	 on Anyka platform.
+
+
+config AK_GETAIN
+	tristate "Anyka Get AIN value driver support"
+	default y	
+	help
+	  Say Y to enable support for the anyka ain0 from SOCLE.
+
+
+config AK_MOTOR
+	tristate "Anyka Motor Support"
+	default n
+	help
+	  If you say yes here you get support for the Anyka Motor device.
+
+config AK_DAC_CLOCK
+	tristate "Anyka Ak98 Dac Clock"
+	depends on ARCH_AK39
+	help
+	If you say yes here you retrieve the elapsed time in dac driver
+
+comment "user space generic gpio controller"
+config GPIOS_AKCUSTOM
+	tristate "Generic akgpio custom support"
+	depends on ARCH_AK39
+	help
+		This enables anyka's generic GPIO for setting support through user space controller.
+		if you want need to enable this, you can control attribute of akgpio,
+		example dir[in/out], out[high/low], pull[up/down], get gpio level,
+		irq polarity[low/high], request gpio irq and delete irq etc.
+
+		If unsure, say N.
+
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
@@ -506,4 +566,31 @@ source "drivers/misc/ti-st/Kconfig"
 source "drivers/misc/lis3lv02d/Kconfig"
 source "drivers/misc/carma/Kconfig"
 source "drivers/misc/altera-stapl/Kconfig"
+source "drivers/misc/akpcm/Kconfig"
+
+config H2_ISP_CHAR 
+	tristate "H2 ISP CHAR device"
+	default y
+	help 
+	  H2 ISP CHAR device
+
+config USER_GPIO 
+	tristate "gpios device that export to /sys"
+	default y
+	help 
+	  gpios device that export to /sys
+
+config AK_INFO_DUMP
+	tristate "dump anyka kernel informations that export to /sys"
+	default y
+	help 
+	  dump anyka kernel informations that export to /sys
+
+config AK_PWM_CHAR
+	tristate "AK PWM CHAR device"
+	default y
+	help
+	  AK PCM CHAR device
+
 endmenu
+

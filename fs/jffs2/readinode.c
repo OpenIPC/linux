@@ -228,6 +228,7 @@ static int jffs2_add_tn_to_tree(struct jffs2_sb_info *c,
 	   node with highest version -- i.e. the one which will end up as f->metadata.
 	   Note that such nodes won't be REF_UNCHECKED since there are no data to
 	   check anyway. */
+	/* FIXME: But sometimes it is a regular file node, create by O_TRUNC flag */
 	if (!tn->fn->size) {
 		if (rii->mdata_tn) {
 			if (rii->mdata_tn->version < tn->version) {
@@ -455,9 +456,11 @@ static int jffs2_build_inode_fragtree(struct jffs2_sb_info *c,
 
 	if (rii->mdata_tn) {
 		dbg_readinode("potential mdata is ver %d at %p\n", rii->mdata_tn->version, rii->mdata_tn);
-		high_ver = rii->mdata_tn->version;
+		/* FIXME: When it is not a regular file node, just do it. Otherwise, skip it */
+			high_ver = rii->mdata_tn->version;
 		rii->latest_ref = rii->mdata_tn->fn->raw;
 	}
+
 #ifdef JFFS2_DBG_READINODE_MESSAGES
 	this = tn_last(&rii->tn_root);
 	while (this) {
@@ -505,6 +508,8 @@ static int jffs2_build_inode_fragtree(struct jffs2_sb_info *c,
 					   highest_version, because this one is only
 					   counting _valid_ nodes which could give the
 					   latest inode metadata */
+					/* FIXME: Make sure latest_ref point to valid node,
+					 * but not empty node */
 					high_ver = this->version;
 					rii->latest_ref = this->fn->raw;
 				}

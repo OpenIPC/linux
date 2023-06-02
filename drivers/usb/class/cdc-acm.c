@@ -553,12 +553,13 @@ static int acm_port_activate(struct tty_port *port, struct tty_struct *tty)
 	set_bit(TTY_NO_WRITE_SPLIT, &tty->flags);
 	acm->control->needs_remote_wakeup = 1;
 
-	acm->ctrlurb->dev = acm->dev;
+    //add for notion 4g module:disable interrupt urb submit
+	/*acm->ctrlurb->dev = acm->dev;
 	if (usb_submit_urb(acm->ctrlurb, GFP_KERNEL)) {
 		dev_err(&acm->control->dev,
 			"%s - usb_submit_urb(ctrl irq) failed\n", __func__);
 		goto error_submit_urb;
-	}
+	}*/
 
 	acm->ctrlout = ACM_CTRL_DTR | ACM_CTRL_RTS;
 	if (acm_set_control(acm, acm->ctrlout) < 0 &&
@@ -1253,12 +1254,13 @@ made_compressed_probe:
 		urb->transfer_flags |= URB_NO_TRANSFER_DMA_MAP;
 		urb->transfer_dma = rb->dma;
 		if (acm->is_int_ep) {
-			usb_fill_int_urb(urb, acm->dev,
+			//add for notion 4g module:disable interrupt urb submit
+            /*usb_fill_int_urb(urb, acm->dev,
 					 acm->rx_endpoint,
 					 rb->base,
 					 acm->readsize,
 					 acm_read_bulk_callback, rb,
-					 acm->bInterval);
+					 acm->bInterval);*/
 		} else {
 			usb_fill_bulk_urb(urb, acm->dev,
 					  acm->rx_endpoint,
@@ -1327,12 +1329,15 @@ made_compressed_probe:
 	}
 
 skip_countries:
-	usb_fill_int_urb(acm->ctrlurb, usb_dev,
+	//add for notion 4g module:disable interrupt urb submit
+    #if 0
+    usb_fill_int_urb(acm->ctrlurb, usb_dev,
 			 usb_rcvintpipe(usb_dev, epctrl->bEndpointAddress),
 			 acm->ctrl_buffer, ctrlsize, acm_ctrl_irq, acm,
 			 /* works around buggy devices */
 			 epctrl->bInterval ? epctrl->bInterval : 0xff);
-	acm->ctrlurb->transfer_flags |= URB_NO_TRANSFER_DMA_MAP;
+	#endif
+    acm->ctrlurb->transfer_flags |= URB_NO_TRANSFER_DMA_MAP;
 	acm->ctrlurb->transfer_dma = acm->ctrl_dma;
 
 	dev_info(&intf->dev, "ttyACM%d: USB ACM device\n", minor);
@@ -1685,7 +1690,10 @@ static const struct usb_device_id acm_ids[] = {
 	{ USB_DEVICE(0x0694, 0xff00),
 	.driver_info = NOT_A_MODEM,
 	},
-
+    //add for notion 4g module
+    { USB_DEVICE(0x1286, 0x4e3d),
+    .driver_info = NOT_A_MODEM,
+    },
 	/* Support for Droids MuIn LCD */
 	{ USB_DEVICE(0x04d8, 0x000b),
 	.driver_info = NO_DATA_INTERFACE,

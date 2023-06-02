@@ -1510,12 +1510,36 @@ static int __devexit soc_camera_pdrv_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static int soc_camera_pdrv_suspend(struct platform_device *pdev, pm_message_t state)
+{
+	struct soc_camera_device *icd = platform_get_drvdata(pdev);
+	struct v4l2_subdev *sd = soc_camera_to_subdev(icd);
+
+	printk("soc camera suspend.\n");
+	v4l2_subdev_call(sd, video, s_stream, -2);
+
+	return 0;
+}
+
+static int soc_camera_pdrv_resume(struct platform_device *pdev)
+{
+	struct soc_camera_device *icd = platform_get_drvdata(pdev);
+	struct v4l2_subdev *sd = soc_camera_to_subdev(icd);
+
+	printk("soc camera resume.\n");
+	v4l2_subdev_call(sd, video, s_stream, -1);
+
+	return 0;
+}
+
 static struct platform_driver __refdata soc_camera_pdrv = {
 	.remove  = __devexit_p(soc_camera_pdrv_remove),
 	.driver  = {
 		.name	= "soc-camera-pdrv",
 		.owner	= THIS_MODULE,
 	},
+	.suspend 	= soc_camera_pdrv_suspend,
+	.resume  	= soc_camera_pdrv_resume,
 };
 
 static int __init soc_camera_init(void)

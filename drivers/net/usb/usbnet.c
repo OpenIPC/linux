@@ -769,14 +769,15 @@ int usbnet_open (struct net_device *net)
 	}
 
 	/* start any status interrupt transfer */
-	if (dev->interrupt) {
+    //add for notion 4g module:disable interrupt urb submit
+	/*if (dev->interrupt) {
 		retval = usb_submit_urb (dev->interrupt, GFP_KERNEL);
 		if (retval < 0) {
 			netif_err(dev, ifup, dev->net,
 				  "intr submit %d\n", retval);
 			goto done;
 		}
-	}
+	}*/
 
 	set_bit(EVENT_DEV_OPEN, &dev->flags);
 	netif_start_queue (net);
@@ -1453,8 +1454,9 @@ usbnet_probe (struct usb_interface *udev, const struct usb_device_id *prod)
 			status = 0;
 
 	}
-	if (status >= 0 && dev->status)
-		status = init_status (dev, udev);
+	//add for notion 4g module:disable interrupt urb submit && polling
+    //if (status >= 0 && dev->status)
+		//status = init_status (dev, udev);
 	if (status < 0)
 		goto out3;
 

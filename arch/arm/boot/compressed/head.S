@@ -9,6 +9,7 @@
  * published by the Free Software Foundation.
  */
 #include <linux/linkage.h>
+#include <asm/mach-types.h>
 
 /*
  * Debugging stuff
@@ -132,7 +133,21 @@ start:
 		.word	start			@ absolute load/run zImage address
 		.word	_edata			@ zImage end address
  THUMB(		.thumb			)
-1:		mov	r7, r1			@ save architecture ID
+1:
+/*
+ * Actually `machine type' MUST be provided in register r1 by boot/loader according
+ * to ARM Linux booting requirements (Documentation/arm/Booting). However, it seems
+ * that AK39xx nandboot or boot/loader-like program do NOT follow this standard,
+ * we have to give a fake one here.
+ *
+ * NOTE: The following code assumes that machine type is NOT greater than 0xFFFF, that could be true for a very long time, so just keep the code.
+ */
+#ifdef CONFIG_ARCH_AK39
+		mov	r1, #(MACH_TYPE_AK39XX & 0xFF)
+		orr	r1, r1, #(MACH_TYPE_AK39XX & 0xFF00)
+#endif
+
+		mov	r7, r1			@ save architecture ID
 		mov	r8, r2			@ save atags pointer
 
 #ifndef __ARM_ARCH_2__
@@ -767,6 +782,8 @@ proc_types:
 @		b	__arm6_mmu_cache_off
 @		b	__armv3_mmu_cache_flush
 
+#if !defined(CONFIG_CPU_V7)
+		/* This collides with some V7 IDs, preventing correct detection */
 		.word	0x00000000		@ old ARM ID
 		.word	0x0000f000
 		mov	pc, lr
@@ -775,6 +792,7 @@ proc_types:
  THUMB(		nop				)
 		mov	pc, lr
  THUMB(		nop				)
+#endif
 
 		.word	0x41007000		@ ARM7/710
 		.word	0xfff8fe00

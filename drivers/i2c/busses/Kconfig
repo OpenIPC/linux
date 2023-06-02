@@ -723,6 +723,30 @@ config I2C_XLR
 	  This driver can also be built as a module.  If so, the module
 	  will be called i2c-xlr.
 
+config I2C_ANYKA
+	bool "Anyka I2C drivers support"
+	depends on ARCH_AK39
+	help
+	  Say Y here to enable support for I2C driver for Anyka chip.
+
+choice
+	bool "I2C driver"
+	depends on I2C_ANYKA
+
+config I2C_AK39_HW
+	bool "i2c controller"
+	depends on I2C_ANYKA
+	help
+	  Say Y here to enable support for I2C driver by chip controller.
+
+config I2C_GPIO_SOFT
+	bool "i2c software simulate by gpios"
+	depends on I2C_ANYKA && I2C_ALGOBIT
+	help
+	  Say Y here to enable support I2C driver by GPIOs simulate
+
+endchoice
+
 comment "External I2C/SMBus adapter drivers"
 
 config I2C_DIOLAN_U2C

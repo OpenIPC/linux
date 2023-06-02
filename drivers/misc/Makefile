@@ -33,6 +33,7 @@ obj-$(CONFIG_SENSORS_TSL2550)	+= tsl2550.o
 obj-$(CONFIG_EP93XX_PWM)	+= ep93xx_pwm.o
 obj-$(CONFIG_DS1682)		+= ds1682.o
 obj-$(CONFIG_TI_DAC7512)	+= ti_dac7512.o
+obj-$(CONFIG_UID_STAT)		+= uid_stat.o
 obj-$(CONFIG_C2PORT)		+= c2port/
 obj-$(CONFIG_IWMC3200TOP)      += iwmc3200top/
 obj-$(CONFIG_HMC6352)		+= hmc6352.o
@@ -49,3 +50,18 @@ obj-y				+= carma/
 obj-$(CONFIG_USB_SWITCH_FSA9480) += fsa9480.o
 obj-$(CONFIG_ALTERA_STAPL)	+=altera-stapl/
 obj-$(CONFIG_MAX8997_MUIC)	+= max8997-muic.o
+obj-$(CONFIG_WL127X_RFKILL)	+= wl127x-rfkill.o
+obj-$(CONFIG_SENSORS_AK8975)	+= akm8975.o
+obj-$(CONFIG_AK_MOTOR) 		+= ak_motor.o
+obj-$(CONFIG_AK_SERIAL_NUMBER)	+= ak_sn.o
+obj-$(CONFIG_AK_GETAIN)     	 += ain.o
+obj-$(CONFIG_GPIOS_AKCUSTOM)	+= akgpios.o
+obj-$(CONFIG_AK_DAC_CLOCK)		+= ak_dac_clock.o
+obj-y				+= akpcm/
+
+obj-$(CONFIG_H2_ISP_CHAR)        += isp_char.o
+isp_char-objs                  += ak_isp_char.o #../media/video/plat-anyka/ak39_isp2.o ../media/video/plat-anyka/ak39_isp2_3a.o ../media/video/plat-anyka/ar0130_3a.o ../media/video/plat-anyka/ov9712_3a.o
+
+obj-$(CONFIG_USER_GPIO)        += user_gpio.o
+obj-$(CONFIG_AK_INFO_DUMP)        += ak_info_dump.o
+obj-$(CONFIG_AK_PWM_CHAR)		+=ak_pwm_char.o

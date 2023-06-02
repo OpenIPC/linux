@@ -146,6 +146,13 @@ struct scsi_cmnd;
 #define SYNCHRONIZE_CACHE_16  0x91
 #define WRITE_SAME_16	      0x93
 #define SERVICE_ACTION_IN     0x9e
+
+#ifdef CONFIG_USB_AKUDC_PRODUCER
+//modified by anyka Zhang Jingyuan 
+#define SCSI_ANYKA_UBOOT        0xf1
+//end of modified by anyka Zhang Jingyuan
+#endif
+
 /* values for service action in */
 #define	SAI_READ_CAPACITY_16  0x10
 #define SAI_GET_LBA_STATUS    0x12

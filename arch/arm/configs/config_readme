@@ -1,0 +1,5 @@
+cloud39ev3_ak3916ev300_corebd_v1.0.0_defconfig 对应的是 3916ev300 开发板的板级配置文件
+cloud39ev3_ak3918ev300_corebd_v1.0.0_defconfig 对应的是 3918ev300 开发板的板级配置文件
+cloud39ev3_ak3919ev300_corebd_v1.0.0_defconfig 对应的是 3919ev300 开发板的板级配置文件
+cloud39ev3_co38_sc2235_v1.0.0_defconfig        对应的是 3918ev300 38模块的板级配置文件
+cloud39ev3_sq38_qfn64_f22_v100_defconfig       对应的是 3919ev300 38模块的板级配置文件    

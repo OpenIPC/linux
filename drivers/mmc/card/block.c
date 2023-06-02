@@ -42,6 +42,7 @@
 #include <linux/mmc/sd.h>
 
 #include <asm/uaccess.h>
+#include <plat-anyka/drv_module_lock.h>
 
 #include "queue.h"
 
@@ -75,6 +76,10 @@ static int max_devices;
 /* 256 minors, so at most 256 separate devices */
 static DECLARE_BITMAP(dev_use, 256);
 static DECLARE_BITMAP(name_use, 256);
+
+/*由于mci0，mci1接口sdio，sdmmc调换，因此在判断与spi复用的mci接口上面做了对换。目前sdmmc与spi复用*/
+#define mmc_host_is_sdmmc(host)	(!((host)->caps & MMC_CAP_SDIO_IRQ))
+
 
 /*
  * There is one mmc_blk_data per slot.
@@ -143,11 +148,7 @@ static struct mmc_blk_data *mmc_blk_get(struct gendisk *disk)
 
 static inline int mmc_get_devidx(struct gendisk *disk)
 {
-	int devmaj = MAJOR(disk_devt(disk));
-	int devidx = MINOR(disk_devt(disk)) / perdev_minors;
-
-	if (!devmaj)
-		devidx = disk->first_minor / perdev_minors;
+	int devidx = disk->first_minor / perdev_minors;
 	return devidx;
 }
 
@@ -660,18 +661,22 @@ static int mmc_blk_cmd_error(struct request *req, const char *name, int error,
 			req->rq_disk->disk_name, "timed out", name, status);
 
 		/* If the status cmd initially failed, retry the r/w cmd */
-		if (!status_valid)
+		if (!status_valid) {
+			pr_err("%s: status not valid, retrying timeout\n", req->rq_disk->disk_name);
 			return ERR_RETRY;
-
+		}
 		/*
 		 * If it was a r/w cmd crc error, or illegal command
 		 * (eg, issued in wrong state) then retry - we should
 		 * have corrected the state problem above.
 		 */
-		if (status & (R1_COM_CRC_ERROR | R1_ILLEGAL_COMMAND))
+		if (status & (R1_COM_CRC_ERROR | R1_ILLEGAL_COMMAND)) {
+			pr_err("%s: command error, retrying timeout\n", req->rq_disk->disk_name);
 			return ERR_RETRY;
+		}
 
 		/* Otherwise abort the command */
+		pr_err("%s: not retrying timeout\n", req->rq_disk->disk_name);
 		return ERR_ABORT;
 
 	default:
@@ -1051,6 +1056,9 @@ static int mmc_blk_err_check(struct mmc_card *card,
 	 */
 	if (!mmc_host_is_spi(card->host) && rq_data_dir(req) != READ) {
 		u32 status;
+		unsigned long before_jiffs = jiffies;
+		unsigned int status_ms = 0;
+		unsigned int count = 0;
 		do {
 			int err = get_card_status(card, &status, 5);
 			if (err) {
@@ -1058,13 +1066,22 @@ static int mmc_blk_err_check(struct mmc_card *card,
 				       req->rq_disk->disk_name, err);
 				return MMC_BLK_CMD_ERR;
 			}
+			count++;
+			if(!(count%5000)){
+				printk(KERN_ERR"##get_card_status wait too long count : %u\n", count);
+				msleep(2);
+			}
 			/*
 			 * Some cards mishandle the status bits,
 			 * so make sure to check both the busy
 			 * indication and the card state.
 			 */
+			 //msleep(2);
+			 cond_resched();
 		} while (!(status & R1_READY_FOR_DATA) ||
 			 (R1_CURRENT_STATE(status) == R1_STATE_PRG));
+		status_ms = jiffies_to_msecs(jiffies-before_jiffs);
+		//printk("get_card_status ms:%u  count:%u\n",status_ms,count);
 	}
 
 	if (brq->data.error) {
@@ -1297,8 +1314,10 @@ static int mmc_blk_issue_rw_rq(struct mmc_queue *mq, struct request *rqc)
 			areq = NULL;
 		areq = mmc_start_req(card->host, areq, (int *) &status);
 		if (!areq)
+		{
 			return 0;
-
+        }
+        
 		mq_rq = container_of(areq, struct mmc_queue_req, mmc_active);
 		brq = &mq_rq->brq;
 		req = mq_rq->req;
@@ -1405,11 +1424,25 @@ static int mmc_blk_issue_rw_rq(struct mmc_queue *mq, struct request *rqc)
 	return 0;
 }
 
+#ifdef CONFIG_MMC_BLOCK_DEFERRED_RESUME
+static int mmc_blk_set_blksize(struct mmc_blk_data *md, struct mmc_card *card)
+{
+    return 0;
+}
+#endif
+
 static int mmc_blk_issue_rq(struct mmc_queue *mq, struct request *req)
 {
 	int ret;
 	struct mmc_blk_data *md = mq->data;
 	struct mmc_card *card = md->queue.card;
+
+#ifdef CONFIG_MMC_BLOCK_DEFERRED_RESUME
+	if (mmc_bus_needs_resume(card->host)) {
+		mmc_resume_bus(card->host);
+		mmc_blk_set_blksize(md, card);
+	}
+#endif
 
 	if (req && !mq->mqrq_prev->req)
 		/* claim host only for the first request */
@@ -1523,6 +1556,7 @@ static struct mmc_blk_data *mmc_blk_alloc_req(struct mmc_card *card,
 	md->disk->queue = md->queue.queue;
 	md->disk->driverfs_dev = parent;
 	set_disk_ro(md->disk, md->read_only || default_ro);
+	md->disk->flags = GENHD_FL_EXT_DEVT;
 
 	/*
 	 * As discussed on lkml, GENHD_FL_REMOVABLE should:
@@ -1820,6 +1854,9 @@ static int mmc_blk_probe(struct mmc_card *card)
 	mmc_set_drvdata(card, md);
 	mmc_fixup_device(card, blk_fixups);
 
+#ifdef CONFIG_MMC_BLOCK_DEFERRED_RESUME
+	mmc_set_bus_resume_policy(card->host, 1);
+#endif
 	if (mmc_add_disk(md))
 		goto out;
 
@@ -1845,6 +1882,9 @@ static void mmc_blk_remove(struct mmc_card *card)
 	mmc_release_host(card->host);
 	mmc_blk_remove_req(md);
 	mmc_set_drvdata(card, NULL);
+#ifdef CONFIG_MMC_BLOCK_DEFERRED_RESUME
+	mmc_set_bus_resume_policy(card->host, 0);
+#endif
 }
 
 #ifdef CONFIG_PM

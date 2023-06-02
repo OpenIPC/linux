@@ -348,8 +348,6 @@ static void bitbang_work(struct work_struct *work)
 
 			if (!cs_change)
 				continue;
-			if (t->transfer_list.next == &m->transfers)
-				break;
 
 			/* sometimes a short mid-message deselect of the chip
 			 * may be needed to terminate a mode or command
@@ -357,6 +355,9 @@ static void bitbang_work(struct work_struct *work)
 			ndelay(nsecs);
 			bitbang->chipselect(spi, BITBANG_CS_INACTIVE);
 			ndelay(nsecs);
+
+			if (t->transfer_list.next == &m->transfers)
+				break;
 		}
 
 		m->status = status;

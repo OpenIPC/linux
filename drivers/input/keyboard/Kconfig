@@ -580,4 +580,35 @@ config KEYBOARD_W90P910
 	  To compile this driver as a module, choose M here: the
 	  module will be called w90p910_keypad.
 
+config KEYBOARD_AKKEY
+	tristate "Anyka gpio-keys support"
+	depends on ARCH_AK39
+	help
+	  This driver implements support for buttons connected
+	  to GPIO pins of various CPUs (and some other chips).
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called akgpio_keys.
+
+config KEYBOARD_AK_KEYPAD
+	tristate "Anyka matrix-keypad support"
+	depends on ARCH_AK39
+	help
+	  This driver implements support for buttons connected
+	  to GPIO pins of various CPUs (and some other chips).
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called ak_matrix_keypad.
+
+config KEYBOARD_ADKEY
+	tristate "ADC simulate gpio keys support"
+	depends on ARCH_AK39
+#	select INPUT_POLLDEV
+	help
+	  This driver implements support for AD-KEY connected
+	  to ADC pin.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called akad-key.
+
 endif

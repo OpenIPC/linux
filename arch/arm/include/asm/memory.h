@@ -192,7 +192,8 @@ static inline unsigned long __phys_to_virt(unsigned long x)
 #ifdef PLAT_PHYS_OFFSET
 #define PHYS_OFFSET	PLAT_PHYS_OFFSET
 #else
-#define PHYS_OFFSET	UL(CONFIG_PHYS_OFFSET)
+//#define PHYS_OFFSET	UL(CONFIG_PHYS_OFFSET)
+#define PHYS_OFFSET	UL(CONFIG_RAM_BASE + CONFIG_VIDEO_RESERVED_MEM_SIZE)
 #endif
 #endif
 

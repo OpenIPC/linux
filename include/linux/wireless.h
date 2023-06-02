@@ -537,7 +537,7 @@
 #define IW_SCAN_TYPE_ACTIVE 0
 #define IW_SCAN_TYPE_PASSIVE 1
 /* Maximum size of returned data */
-#define IW_SCAN_MAX_DATA	4096	/* In bytes */
+#define IW_SCAN_MAX_DATA	65535	/* In bytes */
 
 /* Scan capability flags - in (struct iw_range *)->scan_capa */
 #define IW_SCAN_CAPA_NONE		0x00

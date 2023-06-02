@@ -67,6 +67,22 @@ struct mtd_erase_region_info {
 	unsigned long *lockmap;		/* If keeping bitmap of locks */
 };
 
+/*
+ * oob operation modes
+ *
+ * MTD_OOB_PLACE:	oob data are placed at the given offset
+ * MTD_OOB_AUTO:	oob data are automatically placed at the free areas
+ *			which are defined by the ecclayout
+ * MTD_OOB_RAW:		mode to read raw data+oob in one chunk. The oob data
+ *			is inserted into the data. Thats a raw image of the
+ *			flash contents.
+ */
+typedef enum {
+	MTD_OOB_PLACE,
+	MTD_OOB_AUTO,
+	MTD_OOB_RAW,
+} mtd_oob_mode_t;
+
 /**
  * struct mtd_oob_ops - oob operation operands
  * @mode:	operation mode
@@ -223,6 +239,9 @@ struct mtd_info {
 	 */
 	int (*_get_device) (struct mtd_info *mtd);
 	void (*_put_device) (struct mtd_info *mtd);
+
+	/*Get device chip ID.*/
+	int (*get_device_id) (struct mtd_info *mtd);
 
 	/* Backing device capabilities for this device
 	 * - provides mmap capabilities

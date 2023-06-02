@@ -359,6 +359,13 @@ int jffs2_write_inode_range(struct jffs2_sb_info *c, struct jffs2_inode_info *f,
 		jffs2_dbg(2, "jffs2_commit_write() loop: 0x%x to write to 0x%x\n",
 			  writelen, offset);
 
+		/* FIXME 
+		 * Make one write op as atomic, less data frag lose when power off. 
+		 * But, still lose some data when the file huge enough.
+		 * And, wasted more space case of biger minisize.
+		 * And, GC will work harder.
+		 * And, performance is bad
+		 */
 		ret = jffs2_reserve_space(c, sizeof(*ri) + JFFS2_MIN_DATA_LEN,
 					&alloclen, ALLOC_NORMAL, JFFS2_SUMMARY_INODE_SIZE);
 		if (ret) {

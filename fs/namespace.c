@@ -22,7 +22,11 @@
 #include <linux/uaccess.h>
 #include "pnode.h"
 #include "internal.h"
+//#include <mach-anyka/ak_partition_table.h> 
 
+//T_PARTITION_INFO g_partition_info = {0};
+
+//extern int ak_get_partition_bak_name_idex(unsigned long partition_idex);
 #define HASH_SHIFT ilog2(PAGE_SIZE / sizeof(struct list_head))
 #define HASH_SIZE (1UL << HASH_SHIFT)
 
@@ -2129,6 +2133,13 @@ long do_mount(char *dev_name, char *dir_name, char *type_page,
 	struct path path;
 	int retval = 0;
 	int mnt_flags = 0;
+	//unsigned long partition_idex = B_PARTITION_IDEX;
+	//char *dev_name_temp = "/dev/mtdblock";
+
+	int idex = 0;
+
+
+	//printk(KERN_ERR "dir_name:%s\n", dir_name);
 
 	/* Discard magic */
 	if ((flags & MS_MGC_MSK) == MS_MGC_VAL)
@@ -2142,10 +2153,32 @@ long do_mount(char *dev_name, char *dir_name, char *type_page,
 	if (data_page)
 		((char *)data_page)[PAGE_SIZE - 1] = 0;
 
+
 	/* ... and get the mountpoint */
 	retval = kern_path(dir_name, LOOKUP_FOLLOW, &path);
 	if (retval)
 		return retval;
+	#if 0
+	if(strlen(dir_name) == strlen("/usr") && (memcmp(dir_name, "/usr", strlen("/usr"))== 0)
+	&& g_partition_info.partition_cnt == PARTITION_CNT 
+	&& g_partition_info.partition_name_info[partition_idex].partition_name[0] != 0)
+	{
+		char buf[10] = {0};
+		unsigned long str_len = strlen(dev_name_temp);
+		idex = ak_get_partition_bak_name_idex(partition_idex);
+		if(idex != -1)
+		{
+			printk(KERN_ERR "idex:%d\n", idex);
+			memset(buf, 0, 10);
+			sprintf(buf, "%d", idex + 1);
+			printk(KERN_ERR "dev_name:%s\n", dev_name);
+			memcpy(&dev_name[str_len], buf, strlen(buf)+1);
+		}
+		printk(KERN_ERR "dev_name:%s\n", dev_name);
+	
+		
+	}
+	#endif
 
 	retval = security_sb_mount(dev_name, &path,
 				   type_page, flags, data_page);

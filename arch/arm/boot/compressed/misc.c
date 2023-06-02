@@ -27,6 +27,9 @@ extern void error(char *x);
 
 #include <mach/uncompress.h>
 
+#define _STR(x) #x
+#define STR(x) _STR(x)
+
 #ifdef CONFIG_DEBUG_ICEDCC
 
 #if defined(CONFIG_CPU_V6) || defined(CONFIG_CPU_V6K) || defined(CONFIG_CPU_V7)
@@ -151,4 +154,6 @@ decompress_kernel(unsigned long output_start, unsigned long free_mem_ptr_p,
 		error("decompressor returned an error");
 	else
 		putstr(" done, booting the kernel.\n");
+
+    putstr("Anyka Linux Kernel Version: "STR(ANYKA_VERSION)"\n");
 }

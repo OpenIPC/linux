@@ -1191,6 +1191,13 @@ struct v4l2_querymenu {
 #define V4L2_CID_MAX_CTRLS		1024
 #define V4L2_CID_BASE			(V4L2_CTRL_CLASS_USER | 0x900)
 #define V4L2_CID_USER_BASE 		V4L2_CID_BASE
+#define V4L2_CID_SCENE			(V4L2_CID_USER_BASE + 0)
+#define V4L2_CID_FOCUS			(V4L2_CID_USER_BASE + 1)
+#define V4L2_CID_FLASH			(V4L2_CID_USER_BASE + 2)
+#define V4L2_CID_PREVIEW			(V4L2_CID_USER_BASE + 3)
+#define V4L2_CID_PICTURE			(V4L2_CID_USER_BASE + 4)
+#define V4L2_CID_FRAME			(V4L2_CID_USER_BASE + 5) //use to report how many frames are abandoned before ecoding
+#define V4L2_CID_NIGHTMODE			(V4L2_CID_USER_BASE + 6)
 /*  IDs reserved for driver specific controls */
 #define V4L2_CID_PRIVATE_BASE		0x08000000
 

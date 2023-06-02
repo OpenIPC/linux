@@ -148,6 +148,10 @@ static int jffs2_write_begin(struct file *filp, struct address_space *mapping,
 	jffs2_dbg(1, "%s()\n", __func__);
 
 	if (pageofs > inode->i_size) {
+		/* FIXME
+		 * How about a huage hole ?
+		 * If i make it happy, system will crash!
+		 */
 		ret = jffs2_reserve_space(c, sizeof(ri), &alloc_len,
 					  ALLOC_NORMAL, JFFS2_SUMMARY_INODE_SIZE);
 		if (ret)

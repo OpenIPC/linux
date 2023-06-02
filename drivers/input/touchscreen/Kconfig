@@ -451,6 +451,12 @@ config TOUCHSCREEN_TNETV107X
 	  To compile this driver as a module, choose M here: the
 	  module will be called tnetv107x-ts.
 
+config TOUCHSCREEN_SYNAPTICS_I2C_RMI
+	tristate "Synaptics i2c touchscreen"
+	depends on I2C
+	help
+	  This enables support for Synaptics RMI over I2C based touchscreens.
+
 config TOUCHSCREEN_TOUCHRIGHT
 	tristate "Touchright serial touchscreen"
 	select SERIO
@@ -791,6 +797,35 @@ config TOUCHSCREEN_TSC2007
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called tsc2007.
+
+config TOUCHSCREEN_ANYKA
+	bool "Anyka extra touchscreen"
+	depends on ARCH_AK39
+	help
+	  This item enable extra touchscreen interface for Anyka platform.
+
+config TOUCHSCREEN_CP2007
+	tristate "cp2007 based touchscreen"
+	depends on TOUCHSCREEN_ANYKA
+	default y
+	help
+	  Say Y here if you have a CP2007 based touchscreen.
+
+	  If unsure, say N.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called tscp2007.
+
+config TOUCHSCREEN_CP2017
+	tristate "cp2017 based touchscreen"
+	depends on TOUCHSCREEN_ANYKA
+	help
+	  Say Y here if you have a CP2017 based touchscreen.
+
+	  If unsure, say N.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called tscp2017.
 
 config TOUCHSCREEN_W90X900
 	tristate "W90P910 touchscreen driver"

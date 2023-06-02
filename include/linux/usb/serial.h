@@ -249,6 +249,7 @@ struct usb_serial_driver {
 
 	int (*suspend)(struct usb_serial *serial, pm_message_t message);
 	int (*resume)(struct usb_serial *serial);
+	int (*reset_resume)(struct usb_serial *serial);     /* add for 4G module */
 
 	/* serial function calls */
 	/* Called by console and by the tty layer */

@@ -96,6 +96,8 @@ source "drivers/memstick/Kconfig"
 
 source "drivers/leds/Kconfig"
 
+source "drivers/switch/Kconfig"
+
 source "drivers/accessibility/Kconfig"
 
 source "drivers/infiniband/Kconfig"
@@ -139,5 +141,12 @@ source "drivers/rpmsg/Kconfig"
 source "drivers/virt/Kconfig"
 
 source "drivers/devfreq/Kconfig"
+
+config AEC_DUMP_DEBUG
+	bool "Enable AEC dump debug function"
+    default n
+	help
+          Say Y if you want to use console to dump AEC debug data.
+          Only for debugging purpose.
 
 endmenu

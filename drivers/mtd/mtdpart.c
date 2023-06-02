@@ -646,6 +646,7 @@ int add_mtd_partitions(struct mtd_info *master,
 
 	return 0;
 }
+EXPORT_SYMBOL_GPL(add_mtd_partitions);
 
 static DEFINE_SPINLOCK(part_parser_lock);
 static LIST_HEAD(part_parsers);

@@ -1,0 +1,6 @@
+header-y += partition_init.h
+header-y += partition_lib.h
+header-y += ak_partition_table.h
+header-y += anyka_types.h
+header-y += nand_list.h
+

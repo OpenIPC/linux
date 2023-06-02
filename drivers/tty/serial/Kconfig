@@ -1360,4 +1360,34 @@ config SERIAL_EFM32_UART_CONSOLE
 	depends on SERIAL_EFM32_UART=y
 	select SERIAL_CORE_CONSOLE
 
+config SERIAL_AK39_UART
+	tristate "AK39xx serial port support"
+	select SERIAL_CORE
+	depends on ARCH_AK39
+	help
+	  AK98 Uart support.
+
+config SERIAL_AK39_CONSOLE
+	bool "Console on AK39 serial port"
+	depends on SERIAL_AK39_UART
+	select SERIAL_CORE_CONSOLE
+	help
+	  Say Y here if you want enable console support on AK39xx serial port.
+
+config SERIAL_GPIO_UART
+	tristate "GPIO serial port support"
+	select SERIAL_CORE
+	depends on ARCH_AK39
+	default n
+	help
+	  AK39 GPIO simulate UART support.
+
+config SERIAL_GPIO_CONSOLE
+	bool "Console on GPIO serial port"
+	depends on SERIAL_GPIO_UART
+	select SERIAL_CORE_CONSOLE
+	help
+          AK39 GPIO simulate UART console support.
+
+
 endmenu

@@ -2417,7 +2417,10 @@ video_usercopy(struct file *file, unsigned int cmd, unsigned long arg,
 		err = -EFAULT;
 		if (_IOC_DIR(cmd) & _IOC_WRITE) {
 			unsigned long n = cmd_input_size(cmd);
-
+			
+			if (cmd == VIDIOC_G_PARM) 
+				n+=4;
+			
 			if (copy_from_user(parg, (void __user *)arg, n))
 				goto out;
 

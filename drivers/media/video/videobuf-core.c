@@ -469,8 +469,7 @@ int videobuf_reqbufs(struct videobuf_queue *q,
 	}
 	if (!list_empty(&q->stream)) {
 		dprintk(1, "reqbufs: stream running\n");
-		retval = -EBUSY;
-		goto done;
+		INIT_LIST_HEAD(&q->stream);
 	}
 
 	count = req->count;

@@ -3156,7 +3156,7 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
 		udev->tt = &hub->tt;
 		udev->ttport = port1;
 	}
- 
+
 	/* Why interleave GET_DESCRIPTOR and SET_ADDRESS this way?
 	 * Because device hardware and firmware is sometimes buggy in
 	 * this area, and this is how Linux has done it for ages.
@@ -4265,6 +4265,17 @@ int usb_reset_device(struct usb_device *udev)
 		return -EINVAL;
 	}
 
+	if (udev->state == USB_STATE_CONFIGURED)
+	{
+		struct usb_hcd *hcd;
+		hcd = bus_to_hcd(udev->bus);	
+		if(hcd->driver->reset){
+			usb_remove_device(udev);
+			hcd->driver->reset(hcd);
+			return 0;
+		}
+	}
+	
 	/* Prevent autosuspend during the reset */
 	usb_autoresume_device(udev);
 

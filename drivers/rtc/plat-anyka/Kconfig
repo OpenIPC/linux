@@ -1,0 +1,23 @@
+menuconfig AK39_RTC_SELECT_CLOCK 
+	bool "ANYKA ak39 rtc select clock support"
+	help
+	  Enable this to be able to choose the drivers for using the internal or external CLOCK.
+
+if AK39_RTC_SELECT_CLOCK
+
+
+config AK39_RTC_INTERNAL_RC_OSC
+	bool "RTC_INTERNAL_RC_OSC"
+	depends on ARCH_AK39
+	help
+	  Say Y here if you are using the RTC_INTERNAL_RC_OSC
+
+config AK39_RTC_EXTERNAL_XTAL
+	bool "RTC_EXTERNAL_XTAL"
+	depends on ARCH_AK39
+	help
+	  Say Y here if you are using the RTC_EXTERNAL_XTAL
+	  
+endif 
+
+#AK39_RTC_SELECT_CLOCK

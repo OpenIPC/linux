@@ -1,0 +1,24 @@
+config AK_ETHERNET
+	tristate "Anyka Ethernet support"
+	depends on ARCH_AK39
+	help
+	  Anyka  Ethernet device support
+
+choice
+	prompt "Anyka Ethernet support"
+	default ETHERNET_MAC_MII
+	depends on ARCH_AK39
+
+	config ETHERNET_MAC_MII
+	bool "MAC_MII"
+	depends on ARCH_AK39
+	help
+		Then Ethernet mac mii interface.
+
+	config ETHERNET_MAC_RMII
+	bool "MAC_RMII"
+	depends on ARCH_AK39
+	help
+		Then Ethernet mac Rmii interface.
+
+endchoice

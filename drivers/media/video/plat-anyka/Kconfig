@@ -1,0 +1,107 @@
+config AK_SENSOR_I2C
+	bool "ak sensor i2c interface"
+	default y
+	help
+	  This is a sensor i2c interface 
+
+config AK_SENSOR_COMMON
+	bool "ak sensor common interface"
+	default y
+	help
+	  This is sensor common interface 
+
+config SENSOR_AR0130
+	tristate "ar0130 sensor support"
+	depends on LINUX_AKSENSOR
+	help
+	  This is a ar0130 sensor driver  
+
+config SENSOR_BF3703
+	tristate "bf3703 sensor support"
+	depends on LINUX_AKSENSOR
+	help
+	  This is a bf3703 sensor driver 
+
+config SENSOR_F22_F23_F28_F35_F37
+	tristate "f22 f23 f35 f37 sensor support"
+	depends on LINUX_AKSENSOR
+	help
+	  This is a sensor driver amongst model f22 f23 f28 f35 f37
+
+config SENSOR_GC1054
+	tristate "gc1054 sensor support"
+	depends on LINUX_AKSENSOR
+	help
+	  This is a gc1054 sensor driver
+	  
+config SENSOR_GC2053
+	tristate "gc2053 sensor support"
+	depends on LINUX_AKSENSOR
+	help
+	  This is a gc2053 sensor driver
+
+config SENSOR_H63
+	tristate "H63 sensor support"
+	depends on LINUX_AKSENSOR
+	help
+	  This is a H63 sensor driver
+      
+config SENSOR_H65
+	tristate "h65 sensor support"
+	depends on LINUX_AKSENSOR
+	help
+	  This is a h65 sensor driver
+
+config SENSOR_IMX307
+	tristate "imx307 sensor support"
+	depends on LINUX_AKSENSOR
+	help
+	  This is a imx307 sensor driver
+
+config SENSOR_PS5260
+	tristate "ps5260 sensor support"
+	depends on LINUX_AKSENSOR
+	help
+	  This is a ps5260 sensor driver
+
+config SENSOR_SC1235
+	tristate "sc1235 sensor support"
+	depends on LINUX_AKSENSOR
+	help
+	  This is a sc1235 sensor driver
+
+config SENSOR_SC1245
+	tristate "sc1245 sensor support"
+	depends on LINUX_AKSENSOR
+	help
+	  This is a sc1245 sensor driver
+
+config SENSOR_SC2232H_SC2135E
+	tristate "sc2232h & sc2135e sensor support"
+	depends on LINUX_AKSENSOR
+	help
+	  This is a sc2232h & sc2135e sensor driver
+
+config SENSOR_SC2235
+	tristate "sc2235 sensor support"
+	depends on LINUX_AKSENSOR
+	help
+	  This is a sc2235 sensor driver
+
+config SENSOR_SC2239_SC2332_SC2335
+	tristate "SC2239 SC2332 SC2335 SCsensor support"
+	depends on LINUX_AKSENSOR
+	help
+	  This is a SC2239 SC2332 SC2335 sensor driver
+      
+config SENSOR_SP2305
+	tristate "sc2305 sensor support"
+	depends on LINUX_AKSENSOR
+	help
+	  This is a sc2305 sensor driver
+
+
+
+
+
+

@@ -308,6 +308,7 @@ int mmc_sd_switch(struct mmc_card *card, int mode, int group,
 	struct mmc_command cmd = {0};
 	struct mmc_data data = {0};
 	struct scatterlist sg;
+    int i = 0;
 
 	BUG_ON(!card);
 	BUG_ON(!card->host);
@@ -335,8 +336,11 @@ int mmc_sd_switch(struct mmc_card *card, int mode, int group,
 	sg_init_one(&sg, resp, 64);
 
 	mmc_set_data_timeout(&data, card);
-
-	mmc_wait_for_req(card->host, &mrq);
+    for(i = 0; i < 3; i++){
+        mmc_wait_for_req(card->host, &mrq);
+        if(!cmd.error)
+            break;
+    }	
 
 	if (cmd.error)
 		return cmd.error;

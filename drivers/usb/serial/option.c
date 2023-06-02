@@ -546,6 +546,7 @@ static const struct option_blacklist_info telit_le920_blacklist = {
 };
 
 static const struct usb_device_id option_ids[] = {
+    { USB_DEVICE(0x1286, 0x4e3d) }, //add air720 4g module
 	{ USB_DEVICE(OPTION_VENDOR_ID, OPTION_PRODUCT_COLT) },
 	{ USB_DEVICE(OPTION_VENDOR_ID, OPTION_PRODUCT_RICOLA) },
 	{ USB_DEVICE(OPTION_VENDOR_ID, OPTION_PRODUCT_RICOLA_LIGHT) },
@@ -1356,6 +1357,7 @@ static struct usb_driver option_driver = {
 #ifdef CONFIG_PM
 	.suspend    = usb_serial_suspend,
 	.resume     = usb_serial_resume,
+	.reset_resume = usb_serial_resume,
 	.supports_autosuspend =	1,
 #endif
 	.id_table   = option_ids,
@@ -1391,6 +1393,7 @@ static struct usb_serial_driver option_1port_device = {
 #ifdef CONFIG_PM
 	.suspend           = usb_wwan_suspend,
 	.resume            = usb_wwan_resume,
+	.reset_resume      = usb_wwan_resume,     /* add for 4G module */
 #endif
 };
 

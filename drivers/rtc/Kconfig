@@ -1087,4 +1087,12 @@ config RTC_DRV_LOONGSON1
 	  This driver can also be built as a module. If so, the module
 	  will be called rtc-ls1x.
 
+config RTC_DRV_AK
+	  tristate "AK RTC"
+	  depends on ARCH_AK39
+	  help
+		  If you say Y here you will get support for the onboard AK RTC.
+
+source "drivers/rtc/plat-anyka/Kconfig"
+
 endif # RTC_CLASS

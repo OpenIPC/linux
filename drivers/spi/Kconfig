@@ -403,6 +403,14 @@ config SPI_NUC900
 	help
 	  SPI driver for Nuvoton NUC900 series ARM SoCs
 
+config SPI_ANYKA
+     tristate "ANYKA SPI controller"
+     depends on SPI_MASTER && (ARCH_AK98 || ARCH_AK39)
+     select SPI_BITBANG
+     help
+       SPI driver for anyka ARM SoCs
+       
+
 #
 # Add new SPI master controllers in alphabetical order above this line
 #
@@ -453,6 +461,13 @@ config SPI_TLE62X0
 #
 
 endif # SPI_MASTER
+
+# (slave support would go here)
+config SPI_ANYKA_SLAVE
+	tristate "ANYKA SPI slave controller "
+    depends on (ARCH_AK98 || ARCH_AK39) && !SPI_ANYKA
+    help
+    	This is the SPI slave controller driver for anyka platform
 
 # (slave support would go here)
 

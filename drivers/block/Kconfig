@@ -538,6 +538,12 @@ config BLK_DEV_HD
 
 	  If unsure, say N.
 
+config BLK_DEV_ANYKA
+	tristate "block dev for anyka video buff"
+	depends on ARCH_AK39
+	help
+	 block dev for anyka video buff.
+
 config BLK_DEV_RBD
 	tristate "Rados block device (RBD)"
 	depends on INET && EXPERIMENTAL && BLOCK

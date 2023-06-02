@@ -1,0 +1,185 @@
+# linux/arch/arm/mach-ak39/Kconfig
+#
+# Copyright 2013 Anaka Microelectronics
+#
+# Licensed under GPLv2
+ 
+# define CPU TYPE FLAGS 
+config CPU_AK3916
+	bool
+config CPU_AK3918
+	bool
+config CPU_AK3919
+	bool
+
+# Machine support
+choice
+	prompt "ANYKA AK39xx boards"
+	depends on ARCH_AK39
+
+config ARCH_CLOUD39EV3_AK3916E128PIN_COREBD
+	bool "AK3916E V300 SVT Board"
+	depends on ARCH_AK39
+	select CPU_AK3916
+	help
+	  Support for AK3916E V300 SVT board
+	  
+config ARCH_CLOUD39EV3_AK3918E80PIN_COREBD
+	bool "AK3918E V300 SVT board"
+	depends on ARCH_AK39
+	select CPU_AK3918
+	help
+	  Support for AK3918E V300
+
+config ARCH_CLOUD39EV3_AK3916EV300_MAINBD
+	bool "AK3916E V300 machine"
+	depends on ARCH_AK39
+	select CPU_AK3916
+	help
+	  Support for AK3916E V300
+	  
+config ARCH_CLOUD39EV3_SQ38X4_COREBD
+	bool "AK3918E V300 SVT board"
+	depends on ARCH_AK39
+	select CPU_AK3918
+	help
+	  Support for AK3918E V300	  
+	  
+config ARCH_CLOUD39EV3_AK3918EV300_MAINBD
+	bool "AK3918E V300 machine"
+	depends on ARCH_AK39
+	select CPU_AK3918
+	help
+	  Support for AK3918E V300
+
+config ARCH_CLOUD39EV3_AK3918EV300_SDIO_WIFI_MAINBD
+	bool "AK3918E V300 sdio wifi machine"
+	depends on ARCH_AK39
+	select CPU_AK3918
+	help
+		Support for AK3918E V300
+
+config ARCH_CLOUD39EV3_AK3918EV300_YTJ_MAINBD
+	bool "AK3918E V300 YTJ machine"
+	depends on ARCH_AK39
+	select CPU_AK3918
+	help
+	  Support for AK3918E V300
+	  
+config ARCH_CLOUD39EV3_AK3919EV300_MAINBD
+	bool "AK3919E V300 machine"
+	depends on ARCH_AK39
+	select CPU_AK3919
+	help
+	  Support for AK3919E V300
+
+config ARCH_CLOUD39EV3_CO38_SC2235
+	bool "AK3918E 38module board"
+	depends on ARCH_AK39
+	select CPU_AK3918
+	help
+	  Support for AK3918E V300
+	  
+config ARCH_CLOUD39EV3_AK3919EV300_SQ38_SC2232_V1_0_0
+	bool "AK3919E SQ38 module board_V1.0.0"
+	depends on ARCH_AK39
+	select CPU_AK3919
+	help
+	  Support for AK3918E V300
+	  
+config ARCH_CLOUD39EV3_AK3919EV300_SQ38_SC2232_V1_0_1
+	bool "AK3919E SQ38 module board_V1.0.1"
+	depends on ARCH_AK39
+	select CPU_AK3919
+	help
+	  Support for AK3918E V300
+
+config ARCH_CLOUD39EV3_SQ38_QFN64_F22_V100
+	bool "AK3919E 38module board"
+	depends on ARCH_AK39
+	select CPU_AK3918
+	help
+	  Support for AK3919E V300
+
+config ARCH_AK3918EV300_C80DX
+	bool "AK3919E Tenda C80DX Board"
+	depends on ARCH_AK39
+	select CPU_AK3918
+	help
+	  Support for TD-C80DX Board
+
+config ARCH_AK3918EV300_HL_XIAOFANG
+	bool "AK3919E Tenda C80DX Board"
+	depends on ARCH_AK39
+	select CPU_AK3918
+	help
+	  Support for HL-XIAOFANG Board
+
+config ARCH_CLOUD39EV3_AK3918EV300_YR_IPC100A_MAINBD
+	bool "AK3918E V300 YTJ machine"
+	depends on ARCH_AK39
+	select CPU_AK3918
+	help
+	  Support for AK3918E V300
+
+config ARCH_AK3918EV300_SC10008_V100
+        bool "AK3918E V300 Board SC10008 V1.0.0"
+        depends on ARCH_AK39
+        select CPU_AK3918
+        help
+          Support for AK3918E V300 Board SC-10008.
+
+config ARCH_AK3918EV300_JW_F37_V10
+        bool "AK3918E V300 Board JW F37 V1.0"
+        depends on ARCH_AK39
+        select CPU_AK3918
+        help
+          Support for AK3918E V300 Board JW-F37.
+      
+endchoice
+
+# aisc cpufreq set
+#config ASIC_FREQ_VALUE
+#	int "Config asic frequency(if asic>100MHz asic=vclk; else asic=vclk/2)"
+#	range 45000000 120000000
+#	default 90000000
+#	depends on ARCH_AK39
+#	help
+#	  config ak39xx asic frequency when the kernel uncompress.
+#	  note: vclk be equal to even asic.
+
+#	because ADC2_clk_div_num is 6-bits register, so ASIC PLL should not too high
+#		if set ADC samplerate 8000Hz.
+choice
+	prompt "Config asic frequency"
+	default ASIC_CLK_120MHZ
+	depends on ARCH_AK39
+
+config ASIC_CLK_120MHZ
+	bool "120MHz"
+	depends on ARCH_AK39
+	help
+	  Then ASIC_PLL=480MHz, VCLK=240MHz, ASIC_CLK=120MHz.
+
+endchoice
+
+# power managerment
+comment "Power management"
+config AK39_PM
+	bool "ak39 Power Management support"
+	depends on PM && ARCH_AK39
+	help
+	Say Y here if you want support power management for AK39.
+
+config AK39_CPUFREQ
+	bool "ak39 Frequency scaling support"
+	depends on CPU_FREQ && ARCH_AK39
+	help
+	  Say Y here, CPU Frequency scaling support for AK39 SoC CPUs.
+
+# chip extra controller lib
+config AK39_PWM_TIMER
+	bool "ak39 PWM/Timer Control support"
+	depends on ARCH_AK39
+	help
+	  Say Y here if you want support pwm control.

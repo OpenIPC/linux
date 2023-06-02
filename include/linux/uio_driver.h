@@ -14,6 +14,7 @@
 #ifndef _UIO_DRIVER_H_
 #define _UIO_DRIVER_H_
 
+#include <linux/module.h>
 #include <linux/fs.h>
 #include <linux/interrupt.h>
 
@@ -41,7 +42,7 @@ struct uio_mem {
 	struct uio_map		*map;
 };
 
-#define MAX_UIO_MAPS	5
+#define MAX_UIO_MAPS	16
 
 struct uio_portio;
 
@@ -95,6 +96,7 @@ struct uio_info {
 	int (*open)(struct uio_info *info, struct inode *inode);
 	int (*release)(struct uio_info *info, struct inode *inode);
 	int (*irqcontrol)(struct uio_info *info, s32 irq_on);
+	int (*ioctl)(struct uio_info *info, unsigned int cmd, unsigned long arg);
 };
 
 extern int __must_check

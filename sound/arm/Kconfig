@@ -11,6 +11,50 @@ menuconfig SND_ARM
 
 if SND_ARM
 
+config SND_AK_PCM
+   tristate "Anyka ADC/DAC sound driver"
+   select SND_PCM
+   help
+	  ALSA sound driver fo the AK ADC/DAC.
+	  
+choice
+	prompt "Select codec"
+	depends on SND_AK_PCM
+
+config CODEC_AK39
+	bool "AK39 internal codec"
+	depends on SND_AK_PCM
+	help
+	  ak39 SoC audio codec.
+config CODEC_WM8523
+	bool "WM8523 external codec(master mode)"
+	depends on I2C && SND_AK_PCM
+	help
+	  Ultra low power DAC from Wolfson Microelectronics plc.
+	  Note that this codec work in i2s master mode now. 	  
+endchoice
+	  	  
+choice
+	prompt "HP/Speaker switch mode"
+	depends on SND_AK_PCM
+	
+config SPKHP_SWITCH_AUTO
+	bool "auto switch in audio driver(default, for both linux and android)"
+
+config SPKHP_SWITCH_MIXER
+	bool "notify,but not switch in audio driver(with ALSA lib amixer)"
+
+config SPKHP_SWITCH_UEVENT
+	bool "detect HP by UEVENT(only for android)"
+	
+endchoice
+
+config SUPPORT_AEC
+	bool "Support Accoustic Echo Cancllation"
+	depends on SND_AK_PCM
+	help
+		Support Accoustic Echo Cancllation.
+	  	  
 config SND_ARMAACI
 	tristate "ARM PrimeCell PL041 AC Link support"
 	depends on ARM_AMBA

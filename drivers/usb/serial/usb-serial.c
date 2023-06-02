@@ -50,7 +50,8 @@ static struct usb_driver usb_serial_driver = {
 	.disconnect =	usb_serial_disconnect,
 	.suspend =	usb_serial_suspend,
 	.resume =	usb_serial_resume,
-	.no_dynamic_id =	1,
+	.reset_resume = usb_serial_resume, //add for air720 4g module
+    .no_dynamic_id =	1,
 	.supports_autosuspend =	1,
 };
 
@@ -1414,6 +1415,7 @@ int usb_serial_register_drivers(struct usb_driver *udriver,
 	udriver->supports_autosuspend = 1;
 	udriver->suspend = usb_serial_suspend;
 	udriver->resume = usb_serial_resume;
+	udriver->reset_resume = usb_serial_resume;     /* add for 4G module */
 	rc = usb_register(udriver);
 	if (rc)
 		return rc;

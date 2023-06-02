@@ -1057,6 +1057,14 @@ config SOC_CAMERA_OV9740
 	help
 	  This is a ov9740 camera driver
 
+menuconfig LINUX_AKSENSOR
+	tristate "aksensor support"
+	depends on SOC_CAMERA && I2C
+	help
+	  This is a aksensor driver
+
+source "drivers/media/video/plat-anyka/Kconfig"
+
 config MX1_VIDEO
 	bool
 
@@ -1114,6 +1122,26 @@ config VIDEO_OMAP2
 	select VIDEOBUF_DMA_SG
 	---help---
 	  This is a v4l2 driver for the TI OMAP2 camera capture interface
+
+config VIDEO_AK
+	tristate "AK Camera Interface driver"
+	depends on VIDEO_DEV && SOC_CAMERA
+	---help---
+	  This is a v4l2 driver for the AK Platform Camera Interface
+
+config AK_SENSOR_I2C 
+	depends on VIDEO_AK
+	bool "ak sensor i2c"
+	default y
+	---help---
+	  Ak sensor i2c interface
+
+config AK_VIDEOBUF_DMA_CONTIG
+	bool "VIDEOBUF_DMA_CONTIG"
+	select VIDEOBUF_DMA_CONTIG
+	default y
+	---help---
+	  VIDEOBUF_DMA_CONTIG for AK Camera
 
 config VIDEO_MX2_HOSTSUPPORT
 	bool

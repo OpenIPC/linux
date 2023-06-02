@@ -137,6 +137,8 @@ int rndis_command(struct usbnet *dev, struct rndis_msg_hdr *buf, int buflen)
 
 	/* Some devices don't respond on the control channel until
 	 * polled on the status channel, so do that first. */
+     //add for notion 4g module:disable interrupt polling
+#if 0
 	if (dev->driver_info->data & RNDIS_DRIVER_DATA_POLL_STATUS) {
 		retval = usb_interrupt_msg(
 			dev->udev,
@@ -147,7 +149,9 @@ int rndis_command(struct usbnet *dev, struct rndis_msg_hdr *buf, int buflen)
 		if (unlikely(retval < 0))
 			return retval;
 	}
-
+#else
+    mdelay(200); //wait a short time for ready
+#endif
 	/* Poll the control channel; the request probably completed immediately */
 	rsp = buf->msg_type | RNDIS_MSG_COMPLETION;
 	for (count = 0; count < 10; count++) {

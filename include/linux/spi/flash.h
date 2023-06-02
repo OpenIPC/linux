@@ -3,6 +3,14 @@
 
 struct mtd_partition;
 
+
+
+#define FLASH_BUS_WIDTH_1WIRE 	(1<<0)
+#define FLASH_BUS_WIDTH_2WIRE	(1<<1)
+#define FLASH_BUS_WIDTH_4WIRE	(1<<2)
+
+
+
 /**
  * struct flash_platform_data: board-specific flash data
  * @name: optional flash device name (eg, as used with mtdparts=)
@@ -25,6 +33,7 @@ struct flash_platform_data {
 
 	char		*type;
 
+	u8  bus_width;
 	/* we'll likely add more ... use JEDEC IDs, etc */
 };
 

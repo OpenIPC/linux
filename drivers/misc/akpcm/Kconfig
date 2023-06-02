@@ -1,0 +1,5 @@
+config AK39_PCM
+	tristate "Anyka pcm cdev"
+	depends on ARCH_AK39
+	---help---
+		akpcm cdev	  

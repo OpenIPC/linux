@@ -803,3 +803,13 @@
 	BSS(bss_align)							\
 	. = ALIGN(stop_align);						\
 	VMLINUX_SYMBOL(__bss_stop) = .;
+
+#define L2MEM(x)	\
+	_start_##x = .;	\
+	.l2mem_##x 0x48000000 : AT(_start_##x) {	\
+	__l2mem_start_##x = .;\
+	*(.l2mem_##x)	\
+	__l2mem_end_##x = .;\
+	}	\
+	. = _start_##x + __l2mem_end_##x - __l2mem_start_##x;\
+	_end_##x = .;	

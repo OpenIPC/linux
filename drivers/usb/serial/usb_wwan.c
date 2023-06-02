@@ -480,6 +480,14 @@ static struct urb *usb_wwan_setup_urb(struct usb_serial *serial, int endpoint,
 			  usb_sndbulkpipe(serial->dev, endpoint) | dir,
 			  buf, len, callback, ctx);
 
+    //add air720 4g module
+    if (dir == USB_DIR_OUT)
+    {
+            struct usb_device_descriptor *desc=&serial->dev->descriptor;
+            if (desc->idVendor==cpu_to_le16(0x1286)
+                    && desc->idProduct==cpu_to_le16(0x4e3d))
+                urb->transfer_flags |= URB_ZERO_PACKET;
+    }
 	return urb;
 }
 
@@ -560,12 +568,6 @@ int usb_wwan_startup(struct usb_serial *serial)
 		}
 
 		usb_set_serial_port_data(port, portdata);
-
-		if (!port->interrupt_in_urb)
-			continue;
-		err = usb_submit_urb(port->interrupt_in_urb, GFP_KERNEL);
-		if (err)
-			dbg("%s: submit irq_in urb failed %d", __func__, err);
 	}
 	usb_wwan_setup_urbs(serial);
 	return 0;

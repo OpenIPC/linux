@@ -1,8 +1,9 @@
 VERSION = 3
 PATCHLEVEL = 4
 SUBLEVEL = 35
-EXTRAVERSION =
 NAME = Saber-toothed Squirrel
+ANYKA_VERSION = 1.1.14
+EXTRAVERSION = 
 
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
@@ -132,6 +133,36 @@ sub-make: FORCE
 	KBUILD_EXTMOD="$(KBUILD_EXTMOD)" -f $(CURDIR)/Makefile \
 	$(filter-out _all sub-make,$(MAKECMDGOALS))
 
+
+# cdh:add
+myPATH := $(KBUILD_OUTPUT)/lib
+myFILE := "libpartition.a"
+myFILE_SOURCE := "lib/libpartition.a"  
+$(shell if [ ! -d $(myPATH) ]; then\
+	mkdir -p $(myPATH); fi)
+$(shell cp -f $(myFILE_SOURCE) $(myPATH))
+
+aecPATH := $(KBUILD_OUTPUT)/lib
+aecFILE := "libakecho.a"
+aecFILE_SOURCE := "lib/libakecho.a"
+$(shell if [ ! -d $(aecPATH) ]; then\
+	mkdir -p $(aecPATH); fi)
+$(shell cp -f $(aecFILE_SOURCE) $(aecPATH))
+
+filterPATH := $(KBUILD_OUTPUT)/lib
+filterFILE := "libakaudiofilter_kern.a"
+filterFILE_SOURCE := "lib/libakaudiofilter_kern.a"
+$(shell if [ ! -d $(filterPATH) ]; then\
+	mkdir -p $(filterPATH); fi)
+$(shell cp -f $(filterFILE_SOURCE) $(filterPATH))
+
+ispdrvPATH := $(KBUILD_OUTPUT)/lib
+ispdrvFILE := "libispdrv.a"
+ispdrvFILE_SOURCE := "lib/libispdrv.a"
+$(shell if [ ! -d $(ispdrvPATH) ]; then\
+	mkdir -p $(ispdrvPATH); fi)
+$(shell cp -f $(ispdrvFILE_SOURCE) $(ispdrvPATH))
+
 # Leave processing to above invocation of make
 skip-makefile := 1
 endif # ifneq ($(KBUILD_OUTPUT),)
@@ -192,8 +223,11 @@ SUBARCH := $(shell uname -m | sed -e s/i.86/i386/ -e s/sun4u/sparc64/ \
 # Default value for CROSS_COMPILE is not to prefix executables
 # Note: Some architectures assign CROSS_COMPILE in their arch/*/Makefile
 export KBUILD_BUILDHOST := $(SUBARCH)
-ARCH		?= $(SUBARCH)
-CROSS_COMPILE	?= $(CONFIG_CROSS_COMPILE:"%"=%)
+# ARCH		?= $(SUBARCH)
+# CROSS_COMPILE	?= $(CONFIG_CROSS_COMPILE:"%"=%)
+
+ARCH		?= arm
+CROSS_COMPILE	?= arm-anykav200-linux-uclibcgnueabi-
 
 # Architecture as present in compile.h
 UTS_MACHINE 	:= $(ARCH)
@@ -350,7 +384,7 @@ CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
 CFLAGS_MODULE   =
 AFLAGS_MODULE   =
 LDFLAGS_MODULE  =
-CFLAGS_KERNEL	=
+CFLAGS_KERNEL	= -DANYKA_VERSION=$(ANYKA_VERSION)
 AFLAGS_KERNEL	=
 CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
 
@@ -725,7 +759,7 @@ drivers-y	:= $(patsubst %/, %/built-in.o, $(drivers-y))
 net-y		:= $(patsubst %/, %/built-in.o, $(net-y))
 libs-y1		:= $(patsubst %/, %/lib.a, $(libs-y))
 libs-y2		:= $(patsubst %/, %/built-in.o, $(libs-y))
-libs-y		:= $(libs-y1) $(libs-y2)
+libs-y		:= $(libs-y1) $(libs-y2) lib/libpartition.a lib/libakecho.a lib/libispdrv.a lib/libakaudiofilter_kern.a
 
 # Build vmlinux
 # ---------------------------------------------------------------------------
@@ -1409,7 +1443,7 @@ clean: $(clean-dirs)
 	$(call cmd,rmdirs)
 	$(call cmd,rmfiles)
 	@find $(if $(KBUILD_EXTMOD), $(KBUILD_EXTMOD), .) $(RCS_FIND_IGNORE) \
-		\( -name '*.[oas]' -o -name '*.ko' -o -name '.*.cmd' \
+		\( -name '*.[os]' -o -name 'lib.a' -o -name '*.ko' -o -name '.*.cmd' \
 		-o -name '.*.d' -o -name '.*.tmp' -o -name '*.mod.c' \
 		-o -name '*.symtypes' -o -name 'modules.order' \
 		-o -name modules.builtin -o -name '.tmp_*.o.*' \

@@ -257,7 +257,6 @@
 #include "gadget_chips.h"
 
 
-
 /*
  * Kbuild is not very cooperative with respect to linking separately
  * compiled library objects into one module.  So for now we won't use
@@ -335,7 +334,11 @@ static struct {
 	.vendor			= FSG_VENDOR_ID,
 	.product		= FSG_PRODUCT_ID,
 	.release		= 0xffff,	// Use controller chip type
+#ifdef CONFIG_USB_AKUDC_PRODUCER
+	.buflen			= 65536
+#else
 	.buflen			= 16384,
+#endif
 	};
 
 
@@ -555,10 +558,15 @@ device_desc = {
 	.idVendor =		cpu_to_le16(FSG_VENDOR_ID),
 	.idProduct =		cpu_to_le16(FSG_PRODUCT_ID),
 	.bcdDevice =		cpu_to_le16(0xffff),
-
+#ifdef CONFIG_USB_AKUDC_PRODUCER
+	.iManufacturer =	0,//STRING_MANUFACTURER,
+	.iProduct = 	0,//STRING_PRODUCT,
+	.iSerialNumber =	0,//STRING_SERIAL,
+#else
 	.iManufacturer =	FSG_STRING_MANUFACTURER,
 	.iProduct =		FSG_STRING_PRODUCT,
 	.iSerialNumber =	FSG_STRING_SERIAL,
+#endif
 	.bNumConfigurations =	1,
 };
 
@@ -2360,6 +2368,10 @@ static int check_command_size_in_blocks(struct fsg_dev *fsg, int cmnd_size,
 			mask, needs_medium, name);
 }
 
+#ifdef CONFIG_USB_AKUDC_PRODUCER
+#include "plat-anyka/anyka_usbburn.c"		//modified by anyka Zhang Jingyuan
+#endif
+
 static int do_scsi_command(struct fsg_dev *fsg)
 {
 	struct fsg_buffhd	*bh;
@@ -2563,6 +2575,23 @@ static int do_scsi_command(struct fsg_dev *fsg)
 				"WRITE(12)")) == 0)
 			reply = do_write(fsg);
 		break;
+		
+#ifdef CONFIG_USB_AKUDC_PRODUCER
+		case SCSI_ANYKA_UBOOT:
+		fsg->data_size_from_cmnd = fsg->data_size;
+		if ((reply = check_anyka_command(fsg, 1)) == 0)
+			reply = usbburn_write(fsg->cmnd, 16 + 8);
+		if (fsg->data_size_from_cmnd > 0) {
+			if (fsg->data_dir == DATA_DIR_TO_HOST)
+				reply = do_anyka_read(fsg);
+			else
+				reply = do_anyka_write(fsg);
+		}
+		down(&sense_data_lock);
+		fsg->curlun->sense_data = sense_data;
+		break;
+		//end of modified by anyka Zhang Jingyuan
+#endif
 
 	/* Some mandatory commands that we recognize but don't implement.
 	 * They don't mean much in this setting.  It's left as an exercise

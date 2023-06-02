@@ -5,12 +5,16 @@
 #include <linux/seq_file.h>
 #include <linux/utsname.h>
 
+#define _STR(x) #x
+#define STR(x) _STR(x)
+
 static int version_proc_show(struct seq_file *m, void *v)
 {
 	seq_printf(m, linux_proc_banner,
 		utsname()->sysname,
 		utsname()->release,
 		utsname()->version);
+	seq_printf(m, "-AKV_"STR(ANYKA_VERSION)"\n");
 	return 0;
 }
 

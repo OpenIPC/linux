@@ -575,6 +575,21 @@ static int __init early_mem(char *p)
 	size  = memparse(p, &endp);
 	if (*endp == '@')
 		start = memparse(endp + 1, NULL);
+	
+#ifdef CONFIG_VIDEO_RESERVED_MEM_SIZE
+		/*
+		 * Workaround for AK39xx H.264 decoder limitation which requires continous 
+		 * physical RAM which do NOT cross 32MB boundary (Decoder IP requirement).
+		 *
+		 * To avoid confusing developers, developer still pass something like
+		 * mem=REAL_RAM_SIZE in command line. But we must skip memory reserved for
+		 * H.264 decoder since they are NOT handled by normal kernel VM. They are
+		 * manipulated by pmem-like drivers.
+		 */
+		if (meminfo.nr_banks == 0) {
+			size -= CONFIG_VIDEO_RESERVED_MEM_SIZE;
+		}
+#endif
 
 	arm_add_memory(start, size);
 

@@ -334,4 +334,30 @@ config MTD_DOCPROBE_55AA
 	  LinuxBIOS or if you need to recover a DiskOnChip Millennium on which
 	  you have managed to wipe the first block.
 
+config MTD_AK_SPIFLASH
+	tristate "Support Anyka SPI Flash chips(Most chips)"
+	depends on SPI_MASTER
+	help
+		Anyka driver enables access to most SPI flash chips, used for
+		program and data storage.
+
+		Set up your spi devices with the right board-specific platform data,
+		if you want to specify device partitioning or to use a device which
+		doesn't support the JEDEC ID instruction.
+config MTD_AK_SPINAND
+	tristate "Support Anyka SPI NandFlash chips(Most chips)"
+	depends on SPI_MASTER
+	help
+	  Anyka driver enables access to most SPI Nandflash chips, used for
+	  program and data storage.
+
+	  Set up your spi devices with the right board-specific platform data,
+	  if you want to specify device partitioning or to use a device which
+	  doesn't support the JEDEC ID instruction.
+config MTD_SPINAND_PRODUCER
+	bool "spinand_producer"
+		depends on MTD_AK_SPINAND
+	help
+	  This turns on low-level debugging for the entire MTD sub-system.
+	  Normally, you should say 'N'
 endmenu
