@@ -669,6 +669,14 @@ static void intr_deschedule (struct ehci_hcd *ehci, struct ehci_qh *qh)
 		wait = 55;	/* worst case: 3 * 1024 */
 
 	udelay (wait);
+
+	/*
+	 * usb2.0 host ip CONFIG(2) incompatibility EHCI spec.
+	 * (REQUEST: always fetch QH when uframe start)
+	 * IP-VENDER suggest QH operations delay 1ms to avoid this quirk.
+	 */
+	mdelay(1);
+
 	qh->qh_state = QH_STATE_IDLE;
 	hw->hw_next = EHCI_LIST_END(ehci);
 	wmb ();

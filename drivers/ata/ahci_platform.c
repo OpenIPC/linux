@@ -23,6 +23,8 @@
 #include <linux/ahci_platform.h>
 #include "ahci.h"
 
+#include "ahci_sys.h"
+
 static struct scsi_host_template ahci_platform_sht = {
 	AHCI_SHT("ahci_platform"),
 };
@@ -86,6 +88,8 @@ static int __init ahci_probe(struct platform_device *pdev)
 		if (rc)
 			return rc;
 	}
+
+	hi_sata_init(hpriv->mmio);
 
 	ahci_save_initial_config(dev, hpriv,
 		pdata ? pdata->force_port_map : 0,
@@ -168,8 +172,67 @@ static int __devexit ahci_remove(struct platform_device *pdev)
 	if (pdata && pdata->exit)
 		pdata->exit(dev);
 
+	hi_sata_exit();
+
 	return 0;
 }
+
+#ifdef CONFIG_PM
+static int hisata_ahci_device_suspend(struct platform_device *pdev,
+	       pm_message_t mesg)
+{
+	struct ata_host *host = dev_get_drvdata(&pdev->dev);
+	struct ahci_host_priv *hpriv = host->private_data;
+	void __iomem *mmio = hpriv->mmio;
+
+	unsigned int ctl;
+	int ret = 0;
+
+	if (mesg.event & PM_EVENT_SLEEP) {
+		/* AHCI spec rev1.1 section 8.3.3:
+		 * Software must disable interrupts prior to requesting a
+		 * transition of the HBA to D3 state.
+		 */
+		ctl = readl(mmio + HOST_CTL);
+		ctl &= ~HOST_IRQ_EN;
+		writel(ctl, mmio + HOST_CTL);
+		readl(mmio + HOST_CTL); /* flush */
+	}
+
+	ret = ata_host_suspend(host, mesg);
+	if (ret)
+		return ret;
+
+	hi_sata_exit();
+
+	return ret;
+}
+
+static int hisata_ahci_device_resume(struct platform_device *pdev)
+{
+	struct ata_host *host = dev_get_drvdata(&pdev->dev);
+	struct ahci_host_priv *hpriv = host->private_data;
+	void __iomem *mmio = hpriv->mmio;
+	int rc;
+
+	hi_sata_init(mmio);
+
+	if (pdev->dev.power.power_state.event == PM_EVENT_SUSPEND) {
+		rc = ahci_reset_controller(host);
+		if (rc)
+			return rc;
+
+		ahci_init_controller(host);
+	}
+
+	ata_host_resume(host);
+
+	return 0;
+}
+#else
+#define hisata_ahci_device_suspend	NULL
+#define hisata_ahci_device_resume	NULL
+#endif
 
 static struct platform_driver ahci_driver = {
 	.remove = __devexit_p(ahci_remove),
@@ -177,10 +240,54 @@ static struct platform_driver ahci_driver = {
 		.name = "ahci",
 		.owner = THIS_MODULE,
 	},
+#ifdef CONFIG_PM
+	.suspend	= hisata_ahci_device_suspend,
+	.resume		= hisata_ahci_device_resume,
+#endif
+};
+
+static struct resource hisatav100_ahci_resources[] = {
+	[0] = {
+		.start          = CONFIG_HI_SATA_IOBASE,
+		.end            = CONFIG_HI_SATA_IOBASE +
+					CONFIG_HI_SATA_IOSIZE - 1,
+		.flags          = IORESOURCE_MEM,
+	},
+	[1] = {
+		.start          = CONFIG_HI_SATA_IRQNUM,
+		.end            = CONFIG_HI_SATA_IRQNUM,
+		.flags		= IORESOURCE_IRQ,
+	},
+};
+
+static u64 ahci_dmamask = ~(u32)0;
+
+static void hisatav100_ahci_platdev_release(struct device *dev)
+{
+}
+
+static struct platform_device hisatav100_ahci_device = {
+	.name           = "ahci",
+	.dev = {
+		.dma_mask               = &ahci_dmamask,
+		.coherent_dma_mask      = 0xffffffff,
+		.release                = hisatav100_ahci_platdev_release,
+	},
+	.num_resources  = ARRAY_SIZE(hisatav100_ahci_resources),
+	.resource       = hisatav100_ahci_resources,
 };
 
 static int __init ahci_init(void)
 {
+	int ret;
+
+	ret = platform_device_register(&hisatav100_ahci_device);
+	if (ret) {
+		printk(KERN_ERR "[%s %d] sata platform device register "
+				"is failed!!!\n", __func__, __LINE__);
+		return ret;
+	}
+
 	return platform_driver_probe(&ahci_driver, ahci_probe);
 }
 module_init(ahci_init);
@@ -188,6 +295,7 @@ module_init(ahci_init);
 static void __exit ahci_exit(void)
 {
 	platform_driver_unregister(&ahci_driver);
+	platform_device_unregister(&hisatav100_ahci_device);
 }
 module_exit(ahci_exit);
 

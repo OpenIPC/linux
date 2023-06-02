@@ -55,6 +55,15 @@
 #include <asm/io.h>
 #include <asm/sizes.h>
 
+/*solve uart block when overflow*/
+#define UART_OE_ENABLE
+
+#ifdef CONFIG_AMBA_PL011_SHARE_IRQ
+#define IRQ_FLAGS	IRQF_SHARED
+#else
+#define IRQ_FLAGS	IRQF_TRIGGER_NONE
+#endif
+
 #define UART_NR			14
 
 #define SERIAL_AMBA_MAJOR	204
@@ -68,6 +77,16 @@
 
 
 #define UART_WA_SAVE_NR 14
+static int monoflag;
+static spinlock_t mono_spinlock;
+void pl011_set_monoflag(int flag)
+{
+	unsigned long flags;
+	spin_lock_irqsave(&mono_spinlock, flags);
+	monoflag = flag;
+	spin_unlock_irqrestore(&mono_spinlock, flags);
+}
+EXPORT_SYMBOL_GPL(pl011_set_monoflag);
 
 static void pl011_lockup_wa(unsigned long data);
 static const u32 uart_wa_reg[UART_WA_SAVE_NR] = {
@@ -207,7 +226,9 @@ static int pl011_fifo_to_tty(struct uart_amba_port *uap)
 			if (ch & UART011_DR_OE)
 				uap->port.icount.overrun++;
 
+#ifndef UART_OE_ENABLE
 			ch &= uap->port.read_status_mask;
+#endif
 
 			if (ch & UART011_DR_BE)
 				flag = TTY_BREAK;
@@ -215,6 +236,9 @@ static int pl011_fifo_to_tty(struct uart_amba_port *uap)
 				flag = TTY_PARITY;
 			else if (ch & UART011_DR_FE)
 				flag = TTY_FRAME;
+#ifdef UART_OE_ENABLE
+			writel(~0, uap->port.membase + UART01x_RSR);
+#endif
 		}
 
 		if (uart_handle_sysrq_char(&uap->port, ch & 255))
@@ -1376,20 +1400,41 @@ static int pl011_startup(struct uart_port *port)
 
 	uap->port.uartclk = clk_get_rate(uap->clk);
 
+#ifdef UART_OE_ENABLE
+	spin_lock_irq(&uap->port.lock);
+
+	/*
+	 * Clean Any errors and status.
+	 */
+	writew(0,  uap->port.membase + UART011_CR);
+	writel(~0, uap->port.membase + UART01x_RSR);
+	writel(~0, uap->port.membase + UART011_ICR);
+#else
 	/*
 	 * Allocate the IRQ
+	 *
+	 * We define UART_OE_ENABLE to solve problem
+	 * of uart overflow.
+	 * Function of request_irq here is invalid,
+	 * and we will call it at the below one.
 	 */
-	retval = request_irq(uap->port.irq, pl011_int, 0, "uart-pl011", uap);
+	retval = request_irq(uap->port.irq, pl011_int,
+				IRQ_FLAGS, "uart-pl011", uap);
 	if (retval)
 		goto clk_dis;
+
+	spin_lock_irq(&uap->port.lock);
+#endif
 
 	writew(uap->vendor->ifls, uap->port.membase + UART011_IFLS);
 
 	/*
 	 * Provoke TX FIFO interrupt into asserting.
 	 */
+#ifndef UART_OE_ENABLE
 	cr = UART01x_CR_UARTEN | UART011_CR_TXE | UART011_CR_LBE;
 	writew(cr, uap->port.membase + UART011_CR);
+#endif
 	writew(0, uap->port.membase + UART011_FBRD);
 	writew(1, uap->port.membase + UART011_IBRD);
 	writew(0, uap->port.membase + uap->lcrh_rx);
@@ -1403,21 +1448,36 @@ static int pl011_startup(struct uart_port *port)
 			writew(0xff, uap->port.membase + UART011_MIS);
 		writew(0, uap->port.membase + uap->lcrh_tx);
 	}
+#ifndef UART_OE_ENABLE
 	writew(0, uap->port.membase + UART01x_DR);
+#endif
 	while (readw(uap->port.membase + UART01x_FR) & UART01x_FR_BUSY)
 		barrier();
 
+#ifndef UART_OE_ENABLE
 	cr = UART01x_CR_UARTEN | UART011_CR_RXE | UART011_CR_TXE;
 	writew(cr, uap->port.membase + UART011_CR);
+#endif
 
-	/* Clear pending error interrupts */
-	writew(UART011_OEIS | UART011_BEIS | UART011_PEIS | UART011_FEIS,
-	       uap->port.membase + UART011_ICR);
+	/* Clear pending error and receive interrupts */
+	writew(UART011_OEIS | UART011_BEIS | UART011_PEIS | UART011_FEIS |
+	       UART011_RTIS | UART011_RXIS, uap->port.membase + UART011_ICR);
+
+	spin_unlock_irq(&uap->port.lock);
 
 	/*
 	 * initialise the old status of the modem signals
 	 */
 	uap->old_status = readw(uap->port.membase + UART01x_FR) & UART01x_FR_MODEM_ANY;
+#ifdef UART_OE_ENABLE
+	/*
+	 * Allocate the IRQ
+	 */
+	retval = request_irq(uap->port.irq, pl011_int,
+				IRQ_FLAGS, "uart-pl011", uap);
+	if (retval)
+		goto clk_dis;
+#endif
 
 	/* Startup DMA */
 	pl011_dma_startup(uap);
@@ -1432,6 +1492,13 @@ static int pl011_startup(struct uart_port *port)
 	if (!pl011_dma_rx_running(uap))
 		uap->im |= UART011_RXIM;
 	writew(uap->im, uap->port.membase + UART011_IMSC);
+
+#ifdef UART_OE_ENABLE
+	cr = UART01x_CR_UARTEN | UART011_CR_RXE | UART011_CR_TXE;
+	writew(cr, uap->port.membase + UART011_CR);
+	writew(0, uap->port.membase + UART01x_DR);
+#endif
+
 	spin_unlock_irq(&uap->port.lock);
 
 	if (uap->port.dev->platform_data) {
@@ -1733,8 +1800,22 @@ pl011_console_write(struct console *co, const char *s, unsigned int count)
 {
 	struct uart_amba_port *uap = amba_ports[co->index];
 	unsigned int status, old_cr, new_cr;
+	unsigned long flags;
+	int locked = 1;
 
 	clk_enable(uap->clk);
+
+	spin_lock_irqsave(&mono_spinlock, flags);
+	if (monoflag) {
+		spin_unlock_irqrestore(&mono_spinlock, flags);
+		return;
+	}
+	if (uap->port.sysrq)
+		locked = 0;
+	else if (oops_in_progress)
+		locked = spin_trylock(&uap->port.lock);
+	else
+		spin_lock(&uap->port.lock);
 
 	/*
 	 *	First save the CR then disable the interrupts
@@ -1754,6 +1835,10 @@ pl011_console_write(struct console *co, const char *s, unsigned int count)
 		status = readw(uap->port.membase + UART01x_FR);
 	} while (status & UART01x_FR_BUSY);
 	writew(old_cr, uap->port.membase + UART011_CR);
+
+	if (locked)
+		spin_unlock(&uap->port.lock);
+	spin_unlock_irqrestore(&mono_spinlock, flags);
 
 	clk_disable(uap->clk);
 }
@@ -1862,6 +1947,8 @@ static int pl011_probe(struct amba_device *dev, const struct amba_id *id)
 	struct vendor_data *vendor = id->data;
 	void __iomem *base;
 	int i, ret;
+
+	spin_lock_init(&mono_spinlock);
 
 	for (i = 0; i < ARRAY_SIZE(amba_ports); i++)
 		if (amba_ports[i] == NULL)

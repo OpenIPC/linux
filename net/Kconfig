@@ -77,7 +77,28 @@ source "net/ipv4/Kconfig"
 source "net/ipv6/Kconfig"
 source "net/netlabel/Kconfig"
 
+config TNK
+	bool "CreVinn TOE-NK-2G TCP Offload Engine support"
+	help
+	  Enable support in the TCP network stack for the CreVinn 
+	  TOE-NK-2G TCP Offload Engine. 
+	  If you are unsure how to answer this question, answer N.
+
 endif # if INET
+
+config ANDROID_PARANOID_NETWORK
+	bool "Only allow certain groups to create sockets"
+	default y
+	help
+		none
+
+config NET_ACTIVITY_STATS
+	bool "Network activity statistics tracking"
+	default y
+	help
+	 Network activity statistics are useful for tracking wireless
+	 modem activity on 2G, 3G, 4G wireless networks. Counts number of
+	 transmissions and groups them in specified time buckets.
 
 config NETWORK_SECMARK
 	bool "Security Marking"
@@ -217,7 +238,7 @@ source "net/dns_resolver/Kconfig"
 source "net/batman-adv/Kconfig"
 
 config RPS
-	boolean
+	boolean "RPS"
 	depends on SMP && SYSFS && USE_GENERIC_SMP_HELPERS
 	default y
 

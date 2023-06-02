@@ -62,6 +62,9 @@
 #include <net/dst.h>
 #include <net/checksum.h>
 
+#ifdef CONFIG_TNK
+#include <net/tnkdrv.h>
+#endif
 /*
  * This structure really needs to be cleaned up.
  * Most of it is for TCP, and not used by any of
@@ -345,6 +348,10 @@ struct sock {
   	int			(*sk_backlog_rcv)(struct sock *sk,
 						  struct sk_buff *skb);  
 	void                    (*sk_destruct)(struct sock *sk);
+
+#ifdef CONFIG_TNK
+	struct tnkinfo		sk_tnkinfo;
+#endif
 };
 
 /*

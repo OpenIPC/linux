@@ -697,6 +697,9 @@ static int xs_tcp_send_request(struct rpc_task *task)
 		dprintk("RPC:       xs_tcp_send_request(%u) = %d\n",
 				xdr->len - req->rq_bytes_sent, status);
 
+		if (unlikely(status == -EAGAIN))
+			goto check_nospace;
+
 		if (unlikely(status < 0))
 			break;
 
@@ -711,7 +714,23 @@ static int xs_tcp_send_request(struct rpc_task *task)
 
 		if (status != 0)
 			continue;
-		status = -EAGAIN;
+
+check_nospace:
+		/*  MGB 20-AUG-11  
+		 *  
+		 *  Race condition.  We break out of this loop but before we
+		 *  lock and sleep we get notified of write space.  So cll
+		 *  xs_nospace () inside the loop and continue if 0 return.
+		 *  */
+		// status = -EAGAIN;
+		status = xs_nospace(task);
+
+		if (!status)
+		{
+		    // printk ("%s write space race avoid, looping\n", __func__);
+		    continue;
+		}
+
 		break;
 	}
 
@@ -721,7 +740,11 @@ static int xs_tcp_send_request(struct rpc_task *task)
 		/* Should we call xs_close() here? */
 		break;
 	case -EAGAIN:
-		status = xs_nospace(task);
+		/*  MGB 20-AUG-11  
+		 *
+		 *  dealt with above
+		 */
+ 		// status = xs_nospace(task);
 		break;
 	default:
 		dprintk("RPC:       sendmsg returned unrecognized error %d\n",

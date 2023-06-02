@@ -93,6 +93,12 @@ static struct nand_ecclayout nand_oob_128 = {
 		 .length = 78} }
 };
 
+void (*nand_base_oob_resize)(struct mtd_info *mtd,
+	struct nand_chip *chip) = NULL;
+
+struct nand_flash_dev *(*nand_base_get_special_flash_type)
+	(unsigned char id[8]) = NULL;
+
 static int nand_get_device(struct nand_chip *chip, struct mtd_info *mtd,
 			   int new_state);
 
@@ -2520,6 +2526,12 @@ int nand_erase_nand(struct mtd_info *mtd, struct erase_info *instr,
 	loff_t rewrite_bbt[NAND_MAX_CHIPS] = {0};
 	unsigned int bbt_masked_page = 0xffffffff;
 	loff_t len;
+	int force_erase = 0;
+
+	if (instr->len == (typeof(instr->len))(-1)) {
+		force_erase = 1;
+		instr->len = mtd->erasesize;
+	}
 
 	DEBUG(MTD_DEBUG_LEVEL3, "%s: start = 0x%012llx, len = %llu\n",
 				__func__, (unsigned long long)instr->addr,
@@ -2569,7 +2581,7 @@ int nand_erase_nand(struct mtd_info *mtd, struct erase_info *instr,
 		/*
 		 * heck if we have a bad block, we do not erase bad blocks !
 		 */
-		if (nand_block_checkbad(mtd, ((loff_t) page) <<
+		if (!force_erase && nand_block_checkbad(mtd, ((loff_t) page) <<
 					chip->page_shift, 0, allowbbt)) {
 			printk(KERN_WARNING "%s: attempt to erase a bad block "
 					"at page 0x%08x\n", __func__, page);
@@ -2932,7 +2944,8 @@ static struct nand_flash_dev *nand_get_flash_type(struct mtd_info *mtd,
 
 	chip->cmdfunc(mtd, NAND_CMD_READID, 0x00, -1);
 
-	for (i = 0; i < 2; i++)
+	/* enhance special nand identify, need 8BYTE flash id */
+	for (i = 0; i < 8; i++)
 		id_data[i] = chip->read_byte(mtd);
 
 	if (id_data[0] != *maf_id || id_data[1] != *dev_id) {
@@ -2940,6 +2953,26 @@ static struct nand_flash_dev *nand_get_flash_type(struct mtd_info *mtd,
 		       "%02x,%02x against %02x,%02x\n", __func__,
 		       *maf_id, *dev_id, id_data[0], id_data[1]);
 		return ERR_PTR(-ENODEV);
+	}
+
+	/*
+	 * some nand, the id bytes signification is nonstandard
+	 * with the linux kernel.
+	 */
+	if (!type && nand_base_get_special_flash_type) {
+		type = nand_base_get_special_flash_type(id_data);
+		if (type != NULL) {
+			if (!mtd->name)
+				mtd->name = type->name;
+
+			chip->chipsize = (uint64_t)type->chipsize << 20;
+			mtd->erasesize = type->erasesize;
+			mtd->writesize = type->pagesize;
+			mtd->oobsize   = *(unsigned long *)&type[1];
+			busw = (type->options & NAND_BUSWIDTH_16);
+
+			goto ident_done;
+		}
 	}
 
 	if (!type)
@@ -3063,6 +3096,12 @@ static struct nand_flash_dev *nand_get_flash_type(struct mtd_info *mtd,
 	if (*maf_id != NAND_MFR_SAMSUNG && !type->pagesize)
 		chip->options &= ~NAND_SAMSUNG_LP_OPTIONS;
 ident_done:
+	/*
+	 * the flash oobsize maybe larger than error correct request oobsize,
+	 * so I resize oobsize.
+	 */
+	if (nand_base_oob_resize)
+		nand_base_oob_resize(mtd, chip);
 
 	/*
 	 * Set chip as a default. Board drivers can override it, if necessary
@@ -3216,6 +3255,44 @@ int nand_scan_ident(struct mtd_info *mtd, int maxchips,
 	return 0;
 }
 EXPORT_SYMBOL(nand_scan_ident);
+
+static void nand_panic_wait(struct mtd_info *mtd)
+{
+	struct nand_chip *chip = mtd->priv;
+	int i;
+
+	if (chip->state != FL_READY)
+		for (i = 0; i < 40; i++) {
+			if (chip->dev_ready(mtd))
+				break;
+			mdelay(10);
+		}
+	chip->state = FL_READY;
+}
+
+static int nand_panic_write(struct mtd_info *mtd, loff_t to, size_t len,
+			    size_t *retlen, const u_char *buf)
+{
+	struct nand_chip *chip = mtd->priv;
+	int ret;
+
+	/* Do not allow reads past end of device */
+	if ((to + len) > mtd->size)
+		return -EINVAL;
+	if (!len)
+		return 0;
+
+	nand_panic_wait(mtd);
+
+	chip->ops.len = len;
+	chip->ops.datbuf = (uint8_t *)buf;
+	chip->ops.oobbuf = NULL;
+
+	ret = nand_do_write_ops(mtd, to, &chip->ops);
+
+	*retlen = chip->ops.retlen;
+	return ret;
+}
 
 
 /**
@@ -3380,8 +3457,6 @@ int nand_scan_tail(struct mtd_info *mtd)
 		break;
 
 	case NAND_ECC_NONE:
-		printk(KERN_WARNING "NAND_ECC_NONE selected by board driver. "
-		       "This is not recommended !!\n");
 		chip->ecc.read_page = nand_read_page_raw;
 		chip->ecc.write_page = nand_write_page_raw;
 		chip->ecc.read_oob = nand_read_oob_std;
@@ -3460,6 +3535,7 @@ int nand_scan_tail(struct mtd_info *mtd)
 	mtd->panic_write = panic_nand_write;
 	mtd->read_oob = nand_read_oob;
 	mtd->write_oob = nand_write_oob;
+	mtd->panic_write = nand_panic_write;
 	mtd->sync = nand_sync;
 	mtd->lock = NULL;
 	mtd->unlock = NULL;

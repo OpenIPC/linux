@@ -816,6 +816,38 @@ config CACHE_FEROCEON_L2_WRITETHROUGH
 	  Say Y here to use the Feroceon L2 cache in writethrough mode.
 	  Unless you specifically require this, say N for writeback mode.
 
+config CACHE_HIL2V100
+	bool "Enable the hisilicon L2 cache V100"
+	depends on ARCH_GODBOX_V1 || ARCH_GODBOX || ARCH_GODEYES
+	default n
+	select OUTER_CACHE
+	select OUTER_CACHE_SYNC
+	help
+	  This option enables the hisilicon L2 cache controller.
+
+config CACHE_HIL2V100_DEBUG
+	bool "LEVEL TWO CACHE DEBUG"
+	depends on CACHE_HIL2V100
+	default n
+	help
+	  This option enables the L2 cache controller debug function.
+
+config CACHE_HIL2V200
+	bool "Enable the Hisilicon L2 Cache V200"
+	depends on (ARCH_GODNET || ARCH_GODARM || ARCH_HI3520D)
+	default y if (ARCH_GODNET || ARCH_GODARM || ARCH_HI3520D)
+	select OUTER_CACHE
+	select OUTER_CACHE_SYNC
+	help
+	  This option enables the hisilicon L2 cache controllerv200.
+
+config CACHE_HIL2V200_DEBUG
+	bool "Hisicon L2 Cache V200 DEBUG"
+	depends on CACHE_HIL2V200
+	default n
+	help
+	  This option enables the hisilicon L2 cache controller v200 debug function.
+
 config CACHE_L2X0
 	bool "Enable the L2x0 outer cache controller"
 	depends on REALVIEW_EB_ARM11MP || MACH_REALVIEW_PB11MP || MACH_REALVIEW_PB1176 || \
@@ -867,7 +899,8 @@ config ARM_DMA_MEM_BUFFERABLE
 	bool "Use non-cacheable memory for DMA" if (CPU_V6 || CPU_V6K) && !CPU_V7
 	depends on !(MACH_REALVIEW_PB1176 || REALVIEW_EB_ARM11MP || \
 		     MACH_REALVIEW_PB11MP)
-	default y if CPU_V6 || CPU_V6K || CPU_V7
+#	default y if CPU_V6 || CPU_V6K || CPU_V7
+	default n if CPU_V6 || CPU_V6K || CPU_V7
 	help
 	  Historically, the kernel has used strongly ordered mappings to
 	  provide DMA coherent memory.  With the advent of ARMv7, mapping

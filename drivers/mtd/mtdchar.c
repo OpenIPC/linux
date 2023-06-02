@@ -948,6 +948,199 @@ static int mtd_ioctl(struct file *file, u_int cmd, u_long arg)
 		break;
 	}
 
+	case MEMEWRITEPAGE:
+	{
+		struct mtd_epage_buf buf;
+		struct mtd_epage_buf *buf_user = argp;
+		struct mtd_oob_ops ops;
+
+		if (mtd->type != MTD_NANDFLASH)
+			return -EOPNOTSUPP;
+
+		if (copy_from_user(&buf, argp, sizeof(buf)))
+			return -EFAULT;
+
+		if (buf.oob_len > mtd->oobsize || buf.data_len > mtd->writesize)
+			return -EINVAL;
+
+		if (!mtd->write_oob)
+			return -EOPNOTSUPP;
+
+		ops.len = mtd->writesize;
+		ops.ooblen = buf.oob_len;
+		ops.ooboffs = buf.start & (mtd->oobsize - 1);
+		ops.mode = MTD_OOB_PLACE;
+
+		if (ops.ooboffs && ops.ooblen > (mtd->oobsize - ops.ooboffs))
+			return -EINVAL;
+
+		/* alloc memory and copy oob data from user mode
+		 * to kernel mode
+		 */
+		ops.oobbuf = kmalloc(buf.oob_len, GFP_KERNEL);
+		if (!ops.oobbuf)
+			return -ENOMEM;
+
+		if (copy_from_user(ops.oobbuf, buf.oob_ptr, buf.oob_len)) {
+			kfree(ops.oobbuf);
+			return -EFAULT;
+		}
+
+		/* alloc memory and copy page data from user mode
+		 * to kernel mode
+		 */
+		ops.datbuf = kmalloc(mtd->writesize, GFP_KERNEL);
+		if (!ops.datbuf) {
+			kfree(ops.oobbuf);
+			return -ENOMEM;
+		}
+		if (copy_from_user(ops.datbuf, buf.data_ptr, mtd->writesize)) {
+			kfree(ops.oobbuf);
+			kfree(ops.datbuf);
+			return -EFAULT;
+		}
+
+		buf.start &= ~(mtd->oobsize - 1);
+		ret = mtd->write_oob(mtd, buf.start, &ops);
+
+		kfree(ops.oobbuf);
+		kfree(ops.datbuf);
+
+		if (ret)
+			return ret;
+
+		if (copy_to_user(&buf_user->oob_len, &ops.oobretlen,
+				sizeof(buf_user->oob_len)))
+			return -EFAULT;
+
+		if (copy_to_user(&buf_user->data_len, &ops.retlen,
+				sizeof(buf_user->data_len)))
+			return  -EFAULT;
+
+		break;
+	}
+	case MEMEREADPAGE:
+	{
+		struct mtd_epage_buf buf;
+		struct mtd_epage_buf *buf_user = argp;
+		struct mtd_oob_ops ops;
+		unsigned long ret1, ret2, ret3, ret4;
+
+		if (mtd->type != MTD_NANDFLASH)
+			return -EOPNOTSUPP;
+
+		if (copy_from_user(&buf, argp, sizeof(buf)))
+			return -EFAULT;
+
+		if (buf.oob_len > mtd->oobsize || buf.data_len > mtd->writesize)
+			return -EINVAL;
+
+		if (!mtd->read_oob)
+			return -EOPNOTSUPP;
+
+		ops.len = mtd->writesize;
+		ops.ooblen = buf.oob_len;
+		ops.mode = MTD_OOB_PLACE;
+		ops.ooboffs = buf.start & (mtd->oobsize - 1);
+
+		if (ops.ooboffs && ops.ooblen > (mtd->oobsize - ops.ooboffs))
+			return -EINVAL;
+
+		/* alloc memory and copy oob data from user mode
+		 * to kernel mode
+		 */
+		ops.oobbuf = kmalloc(mtd->oobsize, GFP_KERNEL);
+		if (!ops.oobbuf)
+			return -ENOMEM;
+		/* alloc memory and copy page data from user mode
+		 * to kernel mode
+		 */
+		ops.datbuf = kmalloc(mtd->writesize, GFP_KERNEL);
+		if (!ops.datbuf) {
+			kfree(ops.oobbuf);
+			return -ENOMEM;
+		}
+		buf.start &= ~(mtd->oobsize - 1);
+		ret = mtd->read_oob(mtd, buf.start, &ops);
+
+		if (ret) {
+			kfree(ops.oobbuf);
+			kfree(ops.datbuf);
+			return ret;
+		}
+
+		ret1 = copy_to_user(buf_user->oob_ptr, ops.oobbuf,
+				ops.oobretlen);
+		ret2 = copy_to_user(buf_user->data_ptr, ops.datbuf,
+				ops.retlen);
+		ret3 = copy_to_user(&buf_user->oob_len, &ops.oobretlen,
+				sizeof(buf_user->oob_len));
+		ret4 = copy_to_user(&buf_user->data_len, &ops.retlen,
+				sizeof(buf_user->data_len));
+		if (ret1 || ret2 || ret3 || ret4) {
+			kfree(ops.oobbuf);
+			kfree(ops.datbuf);
+			return -EFAULT;
+		}
+
+		kfree(ops.oobbuf);
+		kfree(ops.datbuf);
+		break;
+	}
+	case MEMFORCEERASEBLOCK:
+	{
+		loff_t offs;
+		struct erase_info *erase;
+
+		if (copy_from_user(&offs, argp, sizeof(loff_t)))
+			return -EFAULT;
+
+		if (!(file->f_mode & FMODE_WRITE))
+			return -EPERM;
+
+		erase = kzalloc(sizeof(struct erase_info), GFP_KERNEL);
+		if (!erase)
+			ret = -ENOMEM;
+		else {
+			wait_queue_head_t waitq;
+			DECLARE_WAITQUEUE(wait, current);
+
+			init_waitqueue_head(&waitq);
+
+			erase->addr = offs;
+			erase->len = (typeof(erase->len))(-1);
+
+			erase->mtd = mtd;
+			erase->callback = mtdchar_erase_callback;
+			erase->priv = (unsigned long)&waitq;
+
+			/*
+				FIXME: Allow INTERRUPTIBLE. Which means
+				not having the wait_queue head on the stack.
+
+				If the wq_head is on the stack, and we
+				leave because we got interrupted, then the
+				wq_head is no longer there when the
+				callback routine tries to wake us up.
+			*/
+			ret = mtd->erase(mtd, erase);
+			if (!ret) {
+				set_current_state(TASK_UNINTERRUPTIBLE);
+				add_wait_queue(&waitq, &wait);
+				if (erase->state != MTD_ERASE_DONE &&
+					erase->state != MTD_ERASE_FAILED)
+					schedule();
+				remove_wait_queue(&waitq, &wait);
+				set_current_state(TASK_RUNNING);
+
+				ret = (erase->state == MTD_ERASE_FAILED)
+					? -EIO : 0;
+			}
+			kfree(erase);
+		}
+		break;
+	}
+
 	default:
 		ret = -ENOTTY;
 	}

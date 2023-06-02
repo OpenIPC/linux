@@ -1447,8 +1447,14 @@ static void ahci_qc_prep(struct ata_queued_cmd *qc)
 	opts = cmd_fis_len | n_elem << 16 | (qc->dev->link->pmp << 12);
 	if (qc->tf.flags & ATA_TFLAG_WRITE)
 		opts |= AHCI_CMD_WRITE;
-	if (is_atapi)
+	if (is_atapi) {
+#if defined(CONFIG_ARCH_GODNET) || defined(CONFIG_ARCH_GODARM)\
+		|| defined(CONFIG_ARCH_HI3520D)
+		opts |= AHCI_CMD_ATAPI;
+#else
 		opts |= AHCI_CMD_ATAPI | AHCI_CMD_PREFETCH;
+#endif
+	}
 
 	ahci_fill_cmd_slot(pp, qc->tag, opts);
 }

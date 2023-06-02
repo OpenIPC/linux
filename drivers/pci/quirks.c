@@ -2181,6 +2181,66 @@ DECLARE_PCI_FIXUP_EARLY(PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_82865_HB,
 DECLARE_PCI_FIXUP_EARLY(PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_82875_HB,
 			quirk_unhide_mch_dev6);
 
+#if defined(CONFIG_HIPCIE)
+#if defined(CONFIG_ARCH_GODBOX)
+#include "hipcie/pcie_godbox.h"
+#endif
+#if defined(CONFIG_ARCH_GODEYES)
+#include "hipcie/pcie_godeyes.h"
+#endif
+#if defined(CONFIG_ARCH_GODBOX) || defined(CONFIG_ARCH_GODEYES)
+/* For hisilicon pcie controller fixup */
+static void __devinit quirk_hisi_isr(struct pci_dev  *dev)
+{
+	unsigned char irq;
+	struct pci_bus *bus;
+
+	/* root bus ignored!*/
+	if (!dev->bus || !dev->bus->parent)
+		return;
+
+	bus = dev->bus->parent;
+	while (bus && bus->parent)
+		bus = bus->parent;
+
+	pci_read_config_byte(dev, PCI_INTERRUPT_PIN, &irq);
+
+	if (irq > 4)
+		irq = 1;
+	dev->pin = irq;
+
+	/* controller 0 */
+	if (!bus->number) {
+		switch (irq) {
+		case 1:
+			irq = PCIE0_IRQ_INTA;
+			break;
+		case 2:
+			irq = PCIE0_IRQ_INTB;
+			break;
+		case 3:
+			irq = PCIE0_IRQ_INTC;
+			break;
+		case 4:
+			irq = PCIE0_IRQ_INTD;
+			break;
+		default:
+			BUG();
+			return;
+		}
+	} else
+		BUG();
+
+	dev->irq = irq;
+
+	pcibios_update_irq(dev, dev->irq);
+
+	return;
+}
+DECLARE_PCI_FIXUP_HEADER(PCI_ANY_ID, PCI_ANY_ID, quirk_hisi_isr);
+#endif
+#endif
+
 #ifdef CONFIG_TILE
 /*
  * The Tilera TILEmpower platform needs to set the link speed

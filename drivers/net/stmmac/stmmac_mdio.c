@@ -29,9 +29,30 @@
 #include <linux/slab.h>
 
 #include "stmmac.h"
+#include "tnk_godnet.h"
+
+#define TNK_HW_PLATFORM_ADJUST
+#ifdef TNK_HW_PLATFORM_ADJUST
 
 #define MII_BUSY 0x00000001
 #define MII_WRITE 0x00000002
+
+#else
+/* Workaround for MDIO not working on ASIC demo board
+ * TODO - remove this workaround when the issues on the
+ * demo board have been resolved
+ */
+
+#undef PHY_SPEED_1000
+#define PHY_SPEED_100
+#undef PHY_SPEED_10
+#define PHY_LINK_IS_UP
+
+#endif
+
+
+static struct mii_bus *stmmac_mii_bus;
+static int stmmac_mii_bus_refcount;
 
 /**
  * stmmac_mdio_read
@@ -45,6 +66,7 @@
  */
 static int stmmac_mdio_read(struct mii_bus *bus, int phyaddr, int phyreg)
 {
+#ifdef TNK_HW_PLATFORM_ADJUST
 	struct net_device *ndev = bus->priv;
 	struct stmmac_priv *priv = netdev_priv(ndev);
 	unsigned int mii_address = priv->hw->mii.addr;
@@ -55,12 +77,61 @@ static int stmmac_mdio_read(struct mii_bus *bus, int phyaddr, int phyreg)
 			((phyreg << 6) & (0x000007C0)));
 	regValue |= MII_BUSY | ((priv->plat->clk_csr & 7) << 2);
 
-	do {} while (((readl(priv->ioaddr + mii_address)) & MII_BUSY) == 1);
-	writel(regValue, priv->ioaddr + mii_address);
-	do {} while (((readl(priv->ioaddr + mii_address)) & MII_BUSY) == 1);
+	do {} while (((readl(priv->mii_ioaddr + mii_address)) & MII_BUSY) == 1);
+	writel(regValue, priv->mii_ioaddr + mii_address);
+	do {} while (((readl(priv->mii_ioaddr + mii_address)) & MII_BUSY) == 1);
 
 	/* Read the data from the MII data register */
-	data = (int)readl(priv->ioaddr + mii_data);
+	data = (int)readl(priv->mii_ioaddr + mii_data);
+
+#else
+	/* Workaround for MDIO not working on ASIC demo board
+	 * TODO - remove this workaround when the issues on the
+	 * demo board have been resolved
+	 */
+
+	int data;
+
+	if (phyreg == 0x0)
+		data = 0x1140;
+
+	if (phyreg == 0x1) {
+#ifdef PHY_LINK_IS_UP
+		data = 0x796d;
+#else
+		data = 0x7949;
+#endif
+	}
+
+	if (phyreg == 0x4)
+		data = 0x1e1;
+
+	if (phyreg == 0x5) {
+#ifdef PHY_SPEED_1000
+		data = 0xc1e1;
+#endif
+#ifdef PHY_SPEED_100
+		data = 0x41e1;
+#endif
+#ifdef PHY_SPEED_10
+		data = 0x4461;
+#endif
+	}
+
+	if (phyreg == 0x9)
+		data = 0x300;
+
+	if (phyreg == 0xa) {
+#ifdef PHY_SPEED_1000
+		data = 0x3c00;
+#else
+		data = 0x0000;
+#endif
+	}
+
+	if (phyreg == 0xf)
+		data = 0x3000;
+#endif
 
 	return data;
 }
@@ -76,27 +147,37 @@ static int stmmac_mdio_read(struct mii_bus *bus, int phyaddr, int phyreg)
 static int stmmac_mdio_write(struct mii_bus *bus, int phyaddr, int phyreg,
 			     u16 phydata)
 {
+#ifdef TNK_HW_PLATFORM_ADJUST
 	struct net_device *ndev = bus->priv;
 	struct stmmac_priv *priv = netdev_priv(ndev);
 	unsigned int mii_address = priv->hw->mii.addr;
 	unsigned int mii_data = priv->hw->mii.data;
 
 	u16 value =
-	    (((phyaddr << 11) & (0x0000F800)) | ((phyreg << 6) & (0x000007C0)))
-	    | MII_WRITE;
+		(((phyaddr << 11) & (0x0000F800)) |
+		 ((phyreg << 6) & (0x000007C0))) |
+		MII_WRITE;
 
 	value |= MII_BUSY | ((priv->plat->clk_csr & 7) << 2);
 
 
 	/* Wait until any existing MII operation is complete */
-	do {} while (((readl(priv->ioaddr + mii_address)) & MII_BUSY) == 1);
+	do {} while (((readl(priv->mii_ioaddr + mii_address)) & MII_BUSY) == 1);
 
 	/* Set the MII address register to write */
-	writel(phydata, priv->ioaddr + mii_data);
-	writel(value, priv->ioaddr + mii_address);
+	writel(phydata, priv->mii_ioaddr + mii_data);
+	writel(value, priv->mii_ioaddr + mii_address);
 
 	/* Wait until any existing MII operation is complete */
-	do {} while (((readl(priv->ioaddr + mii_address)) & MII_BUSY) == 1);
+	do {} while (((readl(priv->mii_ioaddr + mii_address)) & MII_BUSY) == 1);
+
+#else
+/* Workaround for MDIO not working on ASIC demo board
+ * TODO - remove this workaround when the issues on the
+ * demo board have been resolved
+ */
+
+#endif
 
 	return 0;
 }
@@ -121,7 +202,7 @@ static int stmmac_mdio_reset(struct mii_bus *bus)
 	 * It doesn't complete its reset until at least one clock cycle
 	 * on MDC, so perform a dummy mdio read.
 	 */
-	writel(0, priv->ioaddr + mii_address);
+	writel(0, priv->mii_ioaddr + mii_address);
 
 	return 0;
 }
@@ -134,55 +215,70 @@ static int stmmac_mdio_reset(struct mii_bus *bus)
 int stmmac_mdio_register(struct net_device *ndev)
 {
 	int err = 0;
-	struct mii_bus *new_bus;
 	int *irqlist;
 	struct stmmac_priv *priv = netdev_priv(ndev);
 	int addr, found;
+	unsigned long tnkclk;
 
-	new_bus = mdiobus_alloc();
-	if (new_bus == NULL)
-		return -ENOMEM;
+	if (!stmmac_mii_bus) {
+		stmmac_mii_bus = mdiobus_alloc();
+		if (stmmac_mii_bus == NULL)
+			return -ENOMEM;
 
-	irqlist = kzalloc(sizeof(int) * PHY_MAX_ADDR, GFP_KERNEL);
-	if (irqlist == NULL) {
-		err = -ENOMEM;
-		goto irqlist_alloc_fail;
+		irqlist = kzalloc(sizeof(int) * PHY_MAX_ADDR, GFP_KERNEL);
+		if (irqlist == NULL) {
+			err = -ENOMEM;
+			goto irqlist_alloc_fail;
+		}
+
+		/* Assign IRQ to phy at address phy_addr */
+		if (priv->phy_addr != -1)
+			irqlist[priv->phy_addr] = priv->phy_irq;
+
+		tnkclk = mdio_clk_init();
+
+		priv->plat->clk_csr = get_clk_csr(tnkclk);
+		if (priv->plat->clk_csr == -1) {
+			pr_err("Can not get mdio clk.\n");
+			goto bus_register_fail;
+		}
+
+		stmmac_mii_bus->name = "STMMAC MII Bus";
+		stmmac_mii_bus->read = &stmmac_mdio_read;
+		stmmac_mii_bus->write = &stmmac_mdio_write;
+		stmmac_mii_bus->reset = &stmmac_mdio_reset;
+		snprintf(stmmac_mii_bus->id, MII_BUS_ID_SIZE, "%x",
+			 priv->plat->bus_id);
+		stmmac_mii_bus->priv = ndev;
+		stmmac_mii_bus->irq = irqlist;
+		stmmac_mii_bus->phy_mask = priv->phy_mask;
+		stmmac_mii_bus->parent = priv->device;
+		err = mdiobus_register(stmmac_mii_bus);
+		if (err != 0) {
+			pr_err("%s: Cannot register as MDIO bus\n",
+			       stmmac_mii_bus->name);
+			goto bus_register_fail;
+		}
+	} else {
+		irqlist = stmmac_mii_bus->irq;
 	}
-
-	/* Assign IRQ to phy at address phy_addr */
-	if (priv->phy_addr != -1)
-		irqlist[priv->phy_addr] = priv->phy_irq;
-
-	new_bus->name = "STMMAC MII Bus";
-	new_bus->read = &stmmac_mdio_read;
-	new_bus->write = &stmmac_mdio_write;
-	new_bus->reset = &stmmac_mdio_reset;
-	snprintf(new_bus->id, MII_BUS_ID_SIZE, "%x", priv->plat->bus_id);
-	new_bus->priv = ndev;
-	new_bus->irq = irqlist;
-	new_bus->phy_mask = priv->phy_mask;
-	new_bus->parent = priv->device;
-	err = mdiobus_register(new_bus);
-	if (err != 0) {
-		pr_err("%s: Cannot register as MDIO bus\n", new_bus->name);
-		goto bus_register_fail;
-	}
-
-	priv->mii = new_bus;
+	stmmac_mii_bus_refcount++;
+	priv->mii = stmmac_mii_bus;
 
 	found = 0;
 	for (addr = 0; addr < 32; addr++) {
-		struct phy_device *phydev = new_bus->phy_map[addr];
+		struct phy_device *phydev = stmmac_mii_bus->phy_map[addr];
 		if (phydev) {
 			if (priv->phy_addr == -1) {
 				priv->phy_addr = addr;
 				phydev->irq = priv->phy_irq;
 				irqlist[addr] = priv->phy_irq;
 			}
+
 			pr_info("%s: PHY ID %08x at %d IRQ %d (%s)%s\n",
-			       ndev->name, phydev->phy_id, addr,
-			       phydev->irq, dev_name(&phydev->dev),
-			       (addr == priv->phy_addr) ? " active" : "");
+				ndev->name, phydev->phy_id, addr,
+				phydev->irq, dev_name(&phydev->dev),
+				(addr == priv->phy_addr) ? " active" : "");
 			found = 1;
 		}
 	}
@@ -194,7 +290,8 @@ int stmmac_mdio_register(struct net_device *ndev)
 bus_register_fail:
 	kfree(irqlist);
 irqlist_alloc_fail:
-	kfree(new_bus);
+	kfree(stmmac_mii_bus);
+	stmmac_mii_bus = NULL;
 	return err;
 }
 
@@ -207,9 +304,12 @@ int stmmac_mdio_unregister(struct net_device *ndev)
 {
 	struct stmmac_priv *priv = netdev_priv(ndev);
 
-	mdiobus_unregister(priv->mii);
-	priv->mii->priv = NULL;
-	kfree(priv->mii);
+	if (stmmac_mii_bus && (--stmmac_mii_bus_refcount == 0))	{
+		mdiobus_unregister(stmmac_mii_bus);
+		kfree(stmmac_mii_bus);
+		stmmac_mii_bus = NULL;
+	}
+	priv->mii = NULL;
 
 	return 0;
 }

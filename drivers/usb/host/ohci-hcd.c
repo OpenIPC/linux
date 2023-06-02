@@ -899,8 +899,8 @@ static void ohci_stop (struct usb_hcd *hcd)
 	if (quirk_nec(ohci))
 		flush_work_sync(&ohci->nec_work);
 
-	ohci_usb_reset (ohci);
 	ohci_writel (ohci, OHCI_INTR_MIE, &ohci->regs->intrdisable);
+	ohci_usb_reset(ohci);
 	free_irq(hcd->irq, hcd);
 	hcd->irq = -1;
 
@@ -992,6 +992,11 @@ static int ohci_restart (struct ohci_hcd *ohci)
 MODULE_AUTHOR (DRIVER_AUTHOR);
 MODULE_DESCRIPTION(DRIVER_DESC);
 MODULE_LICENSE ("GPL");
+
+#ifdef CONFIG_HIUSB_OHCI
+#include "hiusb-ohci.c"
+#define PLATFORM_DRIVER		hiusb_ohci_hcd_driver
+#endif
 
 #ifdef CONFIG_PCI
 #include "ohci-pci.c"
@@ -1139,6 +1144,15 @@ static int __init ohci_hcd_mod_init(void)
 		sizeof (struct ed), sizeof (struct td));
 	set_bit(USB_OHCI_LOADED, &usb_hcds_loaded);
 
+#ifdef CONFIG_HIUSB_OHCI
+	retval = platform_device_register(&hiusb_ohci_platdev);
+	if (retval < 0) {
+		printk(KERN_ERR "%s->%d, platform_device_register fail.\n",
+						 __func__, __LINE__);
+		return -ENODEV;
+	}
+#endif
+
 #ifdef DEBUG
 	ohci_debug_root = debugfs_create_dir("ohci", usb_debug_root);
 	if (!ohci_debug_root) {
@@ -1257,6 +1271,11 @@ static int __init ohci_hcd_mod_init(void)
 #endif
 
 	clear_bit(USB_OHCI_LOADED, &usb_hcds_loaded);
+
+#ifdef CONFIG_HIUSB_OHCI
+	platform_device_unregister(&hiusb_ohci_platdev);
+#endif
+
 	return retval;
 }
 module_init(ohci_hcd_mod_init);
@@ -1294,6 +1313,10 @@ static void __exit ohci_hcd_mod_exit(void)
 	debugfs_remove(ohci_debug_root);
 #endif
 	clear_bit(USB_OHCI_LOADED, &usb_hcds_loaded);
+
+#ifdef CONFIG_HIUSB_OHCI
+	platform_device_unregister(&hiusb_ohci_platdev);
+#endif
 }
 module_exit(ohci_hcd_mod_exit);
 

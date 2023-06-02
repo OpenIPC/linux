@@ -40,6 +40,10 @@
 #include <linux/gfp.h>
 #include <linux/module.h>
 
+#ifdef CONFIG_TNK
+#include <net/tnkdrv.h>
+#endif
+
 /* People can turn this off for buggy TCP's found in printers etc. */
 int sysctl_tcp_retrans_collapse __read_mostly = 1;
 
@@ -63,6 +67,9 @@ int sysctl_tcp_slow_start_after_idle __read_mostly = 1;
 int sysctl_tcp_cookie_size __read_mostly = 0; /* TCP_COOKIE_MAX */
 EXPORT_SYMBOL_GPL(sysctl_tcp_cookie_size);
 
+#ifdef CONFIG_TNK
+extern struct tnkfuncs *tnk;
+#endif
 
 /* Account for new data that has been sent to the network. */
 static void tcp_event_new_data_sent(struct sock *sk, struct sk_buff *skb)
@@ -908,6 +915,128 @@ static int tcp_transmit_skb(struct sock *sk, struct sk_buff *skb, int clone_it,
 	return net_xmit_eval(err);
 }
 
+#ifdef CONFIG_TNK
+static int tnk_transmit_skb(struct sock *sk, struct sk_buff *skb, int clone_it,
+			    gfp_t gfp_mask, unsigned int rcv_nxt,
+			unsigned int window)
+{
+	const struct inet_connection_sock *icsk = inet_csk(sk);
+	struct inet_sock *inet;
+	struct tcp_sock *tp;
+	struct tcp_skb_cb *tcb;
+	struct tcp_out_options opts;
+	unsigned tcp_options_size, tcp_header_size;
+	struct tcp_md5sig_key *md5;
+	struct tcphdr *th;
+	int err;
+
+	BUG_ON(!skb || !tcp_skb_pcount(skb));
+
+	/* If congestion control is doing timestamping, we must
+	 * take such a timestamp before we potentially clone/copy.
+	 */
+	if (icsk->icsk_ca_ops->flags & TCP_CONG_RTT_STAMP)
+		__net_timestamp(skb);
+
+	if (likely(clone_it)) {
+		if (unlikely(skb_cloned(skb)))
+			skb = pskb_copy(skb, gfp_mask);
+		else
+			skb = skb_clone(skb, gfp_mask);
+		if (unlikely(!skb))
+			return -ENOBUFS;
+	}
+
+	inet = inet_sk(sk);
+	tp = tcp_sk(sk);
+	tcb = TCP_SKB_CB(skb);
+	memset(&opts, 0, sizeof(opts));
+
+	if (unlikely(tcb->flags & TCPHDR_SYN))
+		tcp_options_size = tcp_syn_options(sk, skb, &opts, &md5);
+	else
+		tcp_options_size = tcp_established_options(sk, skb, &opts,
+							   &md5);
+	tcp_header_size = tcp_options_size + sizeof(struct tcphdr);
+
+	if (tcp_packets_in_flight(tp) == 0) {
+		tcp_ca_event(sk, CA_EVENT_TX_START);
+		skb->ooo_okay = 1;
+	} else
+		skb->ooo_okay = 0;
+
+	skb_push(skb, tcp_header_size);
+	skb_reset_transport_header(skb);
+	skb_set_owner_w(skb, sk);
+
+	/* Build TCP header and checksum it. */
+	th = tcp_hdr(skb);
+	th->source		= inet->inet_sport;
+	th->dest		= inet->inet_dport;
+	th->seq			= htonl(tcb->seq);
+	th->ack_seq		= htonl(rcv_nxt);
+	*(((__be16 *)th) + 6)	= htons(((tcp_header_size >> 2) << 12) |
+					tcb->flags);
+
+	if (unlikely(tcb->flags & TCPHDR_SYN)) {
+		/* RFC1323: The window in SYN & SYN/ACK segments
+		 * is never scaled.
+		 */
+		th->window	= htons(min(tp->rcv_wnd, 65535U));
+	} else {
+		th->window	= htons(tcp_select_window(sk));
+	}
+	th->window = htons(window);
+
+	th->check		= 0;
+	th->urg_ptr		= 0;
+
+	/* The urg_mode check is necessary during a below snd_una win probe */
+	if (unlikely(tcp_urg_mode(tp) && before(tcb->seq, tp->snd_up))) {
+		if (before(tp->snd_up, tcb->seq + 0x10000)) {
+			th->urg_ptr = htons(tp->snd_up - tcb->seq);
+			th->urg = 1;
+		} else if (after(tcb->seq + 0xFFFF, tp->snd_nxt)) {
+			th->urg_ptr = htons(0xFFFF);
+			th->urg = 1;
+		}
+	}
+
+	tcp_options_write((__be32 *)(th + 1), tp, &opts);
+	if (likely((tcb->flags & TCPHDR_SYN) == 0))
+		TCP_ECN_send(sk, skb, tcp_header_size);
+
+#ifdef CONFIG_TCP_MD5SIG
+	/* Calculate the MD5 hash, as we have all we need now */
+	if (md5) {
+		sk_nocaps_add(sk, NETIF_F_GSO_MASK);
+		tp->af_specific->calc_md5_hash(opts.hash_location,
+					       md5, sk, NULL, skb);
+	}
+#endif
+
+	icsk->icsk_af_ops->send_check(sk, skb);
+
+	if (likely(tcb->flags & TCPHDR_ACK))
+		tcp_event_ack_sent(sk, tcp_skb_pcount(skb));
+
+	if (skb->len != tcp_header_size)
+		tcp_event_data_sent(tp, skb, sk);
+
+	if (after(tcb->end_seq, tp->snd_nxt) || tcb->seq == tcb->end_seq)
+		TCP_ADD_STATS(sock_net(sk), TCP_MIB_OUTSEGS,
+			      tcp_skb_pcount(skb));
+
+	err = icsk->icsk_af_ops->queue_xmit(skb, &inet->cork.fl);
+	if (likely(err <= 0))
+		return err;
+
+	tcp_enter_cwr(sk, 1);
+
+	return net_xmit_eval(err);
+}
+#endif
+
 /* This routine just queues the buffer for sending.
  *
  * NOTE: probe0 timer is not checked, do not forget tcp_push_pending_frames,
@@ -1278,7 +1407,9 @@ unsigned int tcp_current_mss(struct sock *sk)
 
 	return mss_now;
 }
-
+#ifdef CONFIG_TNK
+EXPORT_SYMBOL(tcp_current_mss);
+#endif
 /* Congestion window validation. (RFC2861) */
 static void tcp_cwnd_validate(struct sock *sk)
 {
@@ -2310,6 +2441,12 @@ void tcp_send_fin(struct sock *sk)
 	struct sk_buff *skb = tcp_write_queue_tail(sk);
 	int mss_now;
 
+#ifdef CONFIG_TNK
+    /*  tnk is active.  Call tnk_tcp_close */
+    if (tnk)
+        tnk->tcp_close (sk, 1);
+#endif
+
 	/* Optimization, tack on the FIN if we have a queue of
 	 * unsent frames.  But be careful about outgoing SACKS
 	 * and IP options.
@@ -2348,6 +2485,12 @@ void tcp_send_fin(struct sock *sk)
 void tcp_send_active_reset(struct sock *sk, gfp_t priority)
 {
 	struct sk_buff *skb;
+
+#ifdef CONFIG_TNK
+        /*  tnk is active.  Call tnk_tcp_close.*/
+        if (tnk)
+        	tnk->tcp_close (sk, 0);
+#endif
 
 	/* NOTE: No TCP options attached and we never retransmit this. */
 	skb = alloc_skb(MAX_TCP_HEADER, priority);
@@ -2736,6 +2879,40 @@ void tcp_send_ack(struct sock *sk)
 	TCP_SKB_CB(buff)->when = tcp_time_stamp;
 	tcp_transmit_skb(sk, buff, 0, GFP_ATOMIC);
 }
+
+#ifdef CONFIG_TNK
+void tnk_send_ack(struct sock *sk, unsigned int rcv_nxt,
+		  unsigned window)
+{
+	struct sk_buff *buff;
+
+	/* If we have been reset, we may not send again. */
+	if (sk->sk_state == TCP_CLOSE)
+		return;
+
+	/* We are not putting this on the write queue, so
+	 * tcp_transmit_skb() will set the ownership to this
+	 * sock.
+	 */
+	buff = alloc_skb(MAX_TCP_HEADER, GFP_ATOMIC);
+	if (buff == NULL) {
+		inet_csk_schedule_ack(sk);
+		inet_csk(sk)->icsk_ack.ato = TCP_ATO_MIN;
+		inet_csk_reset_xmit_timer(sk, ICSK_TIME_DACK,
+				TCP_DELACK_MAX, TCP_RTO_MAX);
+		return;
+	}
+
+	/* Reserve space for headers and prepare control bits. */
+	skb_reserve(buff, MAX_TCP_HEADER);
+	tcp_init_nondata_skb(buff, tcp_sk(sk)->snd_nxt, TCPHDR_ACK);
+
+	/* Send it off, this clears delayed acks for us. */
+	TCP_SKB_CB(buff)->when = tcp_time_stamp;
+	tnk_transmit_skb(sk, buff, 0, GFP_ATOMIC, rcv_nxt, window);
+}
+EXPORT_SYMBOL(tnk_send_ack);
+#endif
 
 /* This routine sends a packet with an out of date sequence
  * number. It assumes the other end will try to ack it.

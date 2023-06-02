@@ -111,6 +111,10 @@ int sata_pmp_qc_defer_cmd_switch(struct ata_queued_cmd *qc)
 	struct ata_link *link = qc->dev->link;
 	struct ata_port *ap = link->ap;
 
+	/* hisilicon: We failed to probe pm before.
+	 * So we change the judgement to avoid this question.
+	 */
+#if 0
 	if (ap->excl_link == NULL || ap->excl_link == link) {
 		if (ap->nr_active_links == 0 || ata_link_active(link)) {
 			qc->flags |= ATA_QCFLAG_CLEAR_EXCL;
@@ -119,6 +123,13 @@ int sata_pmp_qc_defer_cmd_switch(struct ata_queued_cmd *qc)
 
 		ap->excl_link = link;
 	}
+#endif
+	if (ap->nr_active_links == 0 || ata_link_active(link)) {
+		qc->flags |= ATA_QCFLAG_CLEAR_EXCL;
+		return ata_std_qc_defer(qc);
+	}
+
+	ap->excl_link = link;
 
 	return ATA_DEFER_PORT;
 }

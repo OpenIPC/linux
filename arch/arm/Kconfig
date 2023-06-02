@@ -290,6 +290,18 @@ config ARCH_VEXPRESS
 	help
 	  This enables support for the ARM Ltd Versatile Express boards.
 
+config ARCH_GODBOX_V1
+	bool "Hisilicon Godbox v1 family"
+	select ARM_AMBA
+	select HAVE_CLK
+	select CLKDEV_LOOKUP
+	select HAVE_SCHED_CLOCK
+	select GENERIC_TIME
+	select GENERIC_CLOCKEVENTS
+
+	help
+	  This enables support for Hisilicon GODBOX V1 platform.
+
 config ARCH_AT91
 	bool "Atmel AT91"
 	select ARCH_REQUIRE_GPIOLIB
@@ -328,6 +340,22 @@ config ARCH_CNS3XXX
 	select PCI_DOMAINS if PCI
 	help
 	  Support for Cavium Networks CNS3XXX platform.
+
+config ARCH_GODBOX
+	bool "Hisilicon Godbox family"
+	select ARM_AMBA
+	select HAVE_CLK
+	select CLKDEV_LOOKUP
+	select HAVE_SCHED_CLOCK
+	select GENERIC_TIME
+	select GENERIC_CLOCKEVENTS
+	help
+	  This enables support for Hisilicon GODBOX platform.
+	  With the advanced ARM Cortex A9 processor,
+	  GODBOX serial provides high-speed processing capability.
+	  And GODBOX serial constains a very powerfull media process engine,
+	  two ethernet interface, EHCI and OHCI controllers, PCI-Express
+	  controller and many peripheral equipments.
 
 config ARCH_GEMINI
 	bool "Cortina Systems Gemini"
@@ -879,6 +907,80 @@ config ARCH_VT8500
 	select HAVE_PWM
 	help
 	  Support for VIA/WonderMedia VT8500/WM85xx System-on-Chip.
+
+config ARCH_GODNET
+	bool "hisilicon godnet family"
+	select ARM_AMBA
+	select CLKDEV_LOOKUP
+	select HAVE_CLK
+	select HAVE_SCHED_CLOCK
+	select GENERIC_TIME
+	select GENERIC_CLOCKEVENTS
+
+	help
+	  This enables support for Hisilicon godnet platform.
+
+config ARCH_GODCUBE
+       bool "hisilicon godcube family"
+       select ARM_AMBA
+       select CLKDEV_LOOKUP
+       select HAVE_CLK
+       select ARM_VIC
+       select HAVE_SCHED_CLOCK
+       select GENERIC_TIME
+       select GENERIC_CLOCKEVENTS
+       help
+         This enables support for Hisilicon godcube platform.
+
+config ARCH_GODARM
+	bool "hisilicon godarm family"
+	select ARM_AMBA
+	select CLKDEV_LOOKUP
+	select HAVE_CLK
+	select HAVE_SCHED_CLOCK
+	select GENERIC_TIME
+	select GENERIC_CLOCKEVENTS
+
+	help
+	  This enables support for Hisilicon godarm platform.
+
+config ARCH_HI3518
+	bool "hisilicon hi3518 family"
+	select ARM_AMBA
+	select CLKDEV_LOOKUP
+	select HAVE_CLK
+	select ARM_VIC
+	select HAVE_SCHED_CLOCK
+	select GENERIC_TIME
+	select GENERIC_CLOCKEVENTS
+	select ARCH_HAS_CPUFREQ
+	help
+	This enables support for Hisilicon hi3518 platform.
+
+config ARCH_HI3520D
+	bool "hisilicon hi3520d family"
+	select ARM_AMBA
+	select CLKDEV_LOOKUP
+	select HAVE_CLK
+	select HAVE_SCHED_CLOCK
+	select GENERIC_TIME
+	select GENERIC_CLOCKEVENTS
+
+	help
+	  This enables support for Hisilicon hi3520d platform.
+
+config ARCH_PHOENIX
+	bool "hisilicon phoenix family"
+	select ARM_AMBA
+	select CLKDEV_LOOKUP
+	select HAVE_CLK
+	select HAVE_SCHED_CLOCK
+	select GENERIC_TIME
+	select GENERIC_CLOCKEVENTS
+
+	help
+	  This enables support for Hisilicon phoenix platform.
+
 endchoice
 
 #
@@ -886,6 +988,18 @@ endchoice
 # Kconfigs may be included either alphabetically (according to the
 # plat- suffix) or along side the corresponding mach-* source.
 #
+if ARCH_GODNET
+source "arch/arm/mach-godnet/Kconfig"
+endif
+
+if ARCH_GODARM
+source "arch/arm/mach-godarm/Kconfig"
+endif
+
+if ARCH_PHOENIX
+source "arch/arm/mach-phoenix/Kconfig"
+endif
+
 source "arch/arm/mach-at91/Kconfig"
 
 source "arch/arm/mach-bcmring/Kconfig"
@@ -903,6 +1017,18 @@ source "arch/arm/mach-ep93xx/Kconfig"
 source "arch/arm/mach-footbridge/Kconfig"
 
 source "arch/arm/mach-gemini/Kconfig"
+
+if ARCH_GODCUBE
+source "arch/arm/mach-godcube/Kconfig"
+endif
+
+if ARCH_HI3518
+source "arch/arm/mach-hi3518/Kconfig"
+endif
+
+if ARCH_HI3520D
+source "arch/arm/mach-hi3520d/Kconfig"
+endif
 
 source "arch/arm/mach-h720x/Kconfig"
 
@@ -924,6 +1050,10 @@ source "arch/arm/mach-kirkwood/Kconfig"
 
 source "arch/arm/mach-ks8695/Kconfig"
 
+if ARCH_GODBOX_V1
+source "arch/arm/mach-godbox-v1/Kconfig"
+endif
+
 source "arch/arm/mach-loki/Kconfig"
 
 source "arch/arm/mach-lpc32xx/Kconfig"
@@ -931,6 +1061,10 @@ source "arch/arm/mach-lpc32xx/Kconfig"
 source "arch/arm/mach-msm/Kconfig"
 
 source "arch/arm/mach-mv78xx0/Kconfig"
+
+if ARCH_GODBOX
+source "arch/arm/mach-godbox/Kconfig"
+endif
 
 source "arch/arm/plat-mxc/Kconfig"
 
@@ -1262,7 +1396,8 @@ config ISA_DMA_API
 	bool
 
 config PCI
-	bool "PCI support" if MIGHT_HAVE_PCI
+	bool "PCI support" if MIGHT_HAVE_PCI || ARCH_GODBOX || \
+		ARCH_GODEYES || ARCH_GODNET || ARCH_GODCUBE || ARCH_GODARM
 	help
 	  Find out whether you have a PCI motherboard. PCI is the name of a
 	  bus system, i.e. the way the CPU talks to the other stuff inside
@@ -1295,8 +1430,11 @@ config PCI_HOST_ITE8152
 	select DMABOUNCE
 
 source "drivers/pci/Kconfig"
+source "drivers/pci/pcie/Kconfig"
+source "drivers/pci/hotplug/Kconfig"
 
 source "drivers/pcmcia/Kconfig"
+source "drivers/pci/hipcie/Kconfig"
 
 config ARM_ERRATA_764369
 	bool "ARM errata: Data cache line maintenance operation by MVA may not succeed"
@@ -1325,9 +1463,11 @@ config SMP
 	depends on REALVIEW_EB_ARM11MP || REALVIEW_EB_A9MP || \
 		 MACH_REALVIEW_PB11MP || MACH_REALVIEW_PBX || ARCH_OMAP4 || \
 		 ARCH_EXYNOS4 || ARCH_TEGRA || ARCH_U8500 || ARCH_VEXPRESS_CA9X4 || \
-		 ARCH_MSM_SCORPIONMP || ARCH_SHMOBILE
+		 ARCH_MSM_SCORPIONMP || ARCH_SHMOBILE ||ARCH_GODBOX_V1 || \
+		 ARCH_GODNET || ARCH_PHOENIX
 	select USE_GENERIC_SMP_HELPERS
 	select HAVE_ARM_SCU if !ARCH_MSM_SCORPIONMP
+	default y if ARCH_GODBOX_V1 || ARCH_GODNET
 	help
 	  This enables support for systems with more than one CPU. If you have
 	  a system with only one CPU, like most personal computers, say N. If
@@ -1684,6 +1824,15 @@ config DEPRECATED_PARAM_STRUCT
 	help
 	  This was deprecated in 2001 and announced to live on for 5 years.
 	  Some old boot loaders still use this way.
+
+config ARM_FLUSH_CONSOLE_ON_RESTART
+	bool "Force flush the console on restart"
+	help
+	  If the console is locked while the system is rebooted, the messages
+	  in the temporary logbuffer would not have propogated to all the
+	  console drivers. This option forces the console lock to be
+	  released if it failed to be acquired, which will cause all the
+	  pending messages to be flushed.
 
 endmenu
 

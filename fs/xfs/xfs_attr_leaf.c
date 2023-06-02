@@ -1148,6 +1148,7 @@ xfs_attr_leaf_add_work(xfs_dabuf_t *bp, xfs_da_args_t *args, int mapindex)
 		name_rmt->valueblk = 0;
 		args->rmtblkno = 1;
 		args->rmtblkcnt = XFS_B_TO_FSB(mp, args->valuelen);
+		args->rmtvaluelen = args->valuelen;
 	}
 	xfs_da_log_buf(args->trans, bp,
 	     XFS_DA_LOGRANGE(leaf, xfs_attr_leaf_name(leaf, args->index),
@@ -1995,9 +1996,10 @@ xfs_attr_leaf_lookup_int(xfs_dabuf_t *bp, xfs_da_args_t *args)
 			if (!xfs_attr_namesp_match(args->flags, entry->flags))
 				continue;
 			args->index = probe;
+			args->rmtvaluelen = be32_to_cpu(name_rmt->valuelen);
 			args->rmtblkno = be32_to_cpu(name_rmt->valueblk);
 			args->rmtblkcnt = XFS_B_TO_FSB(args->dp->i_mount,
-						   be32_to_cpu(name_rmt->valuelen));
+						   args->rmtvaluelen);
 			return(XFS_ERROR(EEXIST));
 		}
 	}
@@ -2044,18 +2046,20 @@ xfs_attr_leaf_getvalue(xfs_dabuf_t *bp, xfs_da_args_t *args)
 		name_rmt = xfs_attr_leaf_name_remote(leaf, args->index);
 		ASSERT(name_rmt->namelen == args->namelen);
 		ASSERT(memcmp(args->name, name_rmt->name, args->namelen) == 0);
-		valuelen = be32_to_cpu(name_rmt->valuelen);
+		args->rmtvaluelen = be32_to_cpu(name_rmt->valuelen);
 		args->rmtblkno = be32_to_cpu(name_rmt->valueblk);
-		args->rmtblkcnt = XFS_B_TO_FSB(args->dp->i_mount, valuelen);
+		args->rmtblkcnt = XFS_B_TO_FSB(args->dp->i_mount,
+					args->rmtvaluelen);
 		if (args->flags & ATTR_KERNOVAL) {
-			args->valuelen = valuelen;
+			args->valuelen = args->rmtvaluelen;
 			return(0);
 		}
-		if (args->valuelen < valuelen) {
-			args->valuelen = valuelen;
+
+		if (args->valuelen < args->rmtvaluelen) {
+			args->valuelen = args->rmtvaluelen;
 			return(XFS_ERROR(ERANGE));
 		}
-		args->valuelen = valuelen;
+		args->valuelen = args->rmtvaluelen;
 	}
 	return(0);
 }
@@ -2386,6 +2390,7 @@ xfs_attr_leaf_list_int(xfs_dabuf_t *bp, xfs_attr_list_context_t *context)
 				args.dp = context->dp;
 				args.whichfork = XFS_ATTR_FORK;
 				args.valuelen = valuelen;
+				args.rmtvaluelen = valuelen;
 				args.value = kmem_alloc(valuelen, KM_SLEEP | KM_NOFS);
 				args.rmtblkno = be32_to_cpu(name_rmt->valueblk);
 				args.rmtblkcnt = XFS_B_TO_FSB(args.dp->i_mount, valuelen);
@@ -2480,7 +2485,7 @@ xfs_attr_leaf_clearflag(xfs_da_args_t *args)
 		ASSERT((entry->flags & XFS_ATTR_LOCAL) == 0);
 		name_rmt = xfs_attr_leaf_name_remote(leaf, args->index);
 		name_rmt->valueblk = cpu_to_be32(args->rmtblkno);
-		name_rmt->valuelen = cpu_to_be32(args->valuelen);
+		name_rmt->valuelen = cpu_to_be32(args->rmtvaluelen);
 		xfs_da_log_buf(args->trans, bp,
 			 XFS_DA_LOGRANGE(leaf, name_rmt, sizeof(*name_rmt)));
 	}
@@ -2630,7 +2635,7 @@ xfs_attr_leaf_flipflags(xfs_da_args_t *args)
 		ASSERT((entry1->flags & XFS_ATTR_LOCAL) == 0);
 		name_rmt = xfs_attr_leaf_name_remote(leaf1, args->index);
 		name_rmt->valueblk = cpu_to_be32(args->rmtblkno);
-		name_rmt->valuelen = cpu_to_be32(args->valuelen);
+		name_rmt->valuelen = cpu_to_be32(args->rmtvaluelen);
 		xfs_da_log_buf(args->trans, bp1,
 			 XFS_DA_LOGRANGE(leaf1, name_rmt, sizeof(*name_rmt)));
 	}

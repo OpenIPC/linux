@@ -590,7 +590,14 @@ static int pci_raw_set_power_state(struct pci_dev *dev, pci_power_t state)
 			need_restore = true;
 		/* Fall-through: force to D0 */
 	default:
+		/* Change DX-state only, otherwise here DO WILL cause problem
+		   * while hotplug in Hisilicon pcie controller
+		   */
+#if defined(CONFIG_ARCH_GODBOX) || defined(CONFIG_ARCH_GODEYES)
+		pmcsr = ~0x3;
+#else
 		pmcsr = 0;
+#endif
 		break;
 	}
 

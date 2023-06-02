@@ -8,6 +8,13 @@ obj-$(CONFIG_USB)		+= core/
 
 obj-$(CONFIG_USB_MON)		+= mon/
 
+obj-$(CONFIG_ARCH_GODBOX_V1)	+= host/
+obj-$(CONFIG_ARCH_GODBOX)	+= host/
+obj-$(CONFIG_ARCH_GODEYES)	+= host/
+obj-$(CONFIG_ARCH_GODNET)	+= host/
+obj-$(CONFIG_ARCH_GODARM)	+= host/
+obj-$(CONFIG_ARCH_HI3518)	+= host/
+obj-$(CONFIG_ARCH_HI3520D)	+= host/
 obj-$(CONFIG_PCI)		+= host/
 obj-$(CONFIG_USB_EHCI_HCD)	+= host/
 obj-$(CONFIG_USB_ISP116X_HCD)	+= host/

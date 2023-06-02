@@ -32,6 +32,7 @@
 #define GMAC_FLOW_CTRL		0x00000018	/* Flow Control */
 #define GMAC_VLAN_TAG		0x0000001c	/* VLAN Tag */
 #define GMAC_VERSION		0x00000020	/* GMAC CORE Version */
+#define GMAC_DEBUG			0x00000024	/* GMAC Debug */
 #define GMAC_WAKEUP_FILTER	0x00000028	/* Wake-up Frame Filter */
 
 #define GMAC_INT_STATUS		0x00000038	/* interrupt status register */
@@ -61,9 +62,14 @@ enum power_event {
 };
 
 /* GMAC HW ADDR regs */
-#define GMAC_ADDR_HIGH(reg)		(0x00000040+(reg * 8))
-#define GMAC_ADDR_LOW(reg)		(0x00000044+(reg * 8))
-#define GMAC_MAX_UNICAST_ADDRESSES	16
+#define GMAC_ADDR_HIGH(reg)	(((reg > 15) ? 0x00000800 : 0x00000040) + \
+				(((reg > 15) ? (reg - 16) : reg) * 8))
+#define GMAC_ADDR_LOW(reg)	(((reg > 15) ? 0x00000804 : 0x00000044) + \
+				(((reg > 15) ? (reg - 16) : reg) * 8))
+#define GMAC_MAX_PERFECT_ADDRESSES	32
+#define GMAC_MAX_UNICAST_ADDRESSES	8
+#define GMAC_MAX_MULTICAST_ADDRESSES	(GMAC_MAX_PERFECT_ADDRESSES - \
+		GMAC_MAX_UNICAST_ADDRESSES)
 
 #define GMAC_AN_CTRL	0x000000c0	/* AN control */
 #define GMAC_AN_STATUS	0x000000c4	/* AN status */
@@ -98,8 +104,8 @@ enum inter_frame_gap {
 #define GMAC_CONTROL_TE		0x00000008 /* Transmitter Enable */
 #define GMAC_CONTROL_RE		0x00000004 /* Receiver Enable */
 
-#define GMAC_CORE_INIT (GMAC_CONTROL_JD | GMAC_CONTROL_PS | GMAC_CONTROL_ACS | \
-			GMAC_CONTROL_JE | GMAC_CONTROL_BE)
+/* NOTE - we're disabling jumbo frame support for GMACs in TNK */
+#define GMAC_CORE_INIT (GMAC_CONTROL_DM |  GMAC_CONTROL_PS | GMAC_CONTROL_ACS)
 
 /* GMAC Frame Filter defines */
 #define GMAC_FRAME_FILTER_PR	0x00000001	/* Promiscuous Mode */
@@ -128,6 +134,7 @@ enum inter_frame_gap {
 #define DMA_BUS_MODE_DA		0x00000002	/* Arbitration scheme */
 #define DMA_BUS_MODE_DSL_MASK	0x0000007c	/* Descriptor Skip Length */
 #define DMA_BUS_MODE_DSL_SHIFT	2	/*   (in DWORDS)      */
+#define DMA_BUS_MODE_ATDS	0x00000080	/* Alternate Descriptor Size */
 /* Programmable burst length (passed thorugh platform)*/
 #define DMA_BUS_MODE_PBL_MASK	0x00003f00	/* Programmable Burst Len */
 #define DMA_BUS_MODE_PBL_SHIFT	8
@@ -151,7 +158,7 @@ enum rx_tx_priority_ratio {
 /*  DMA Bus Mode register defines */
 #define DMA_BUS_PR_RATIO_MASK	  0x0000c000	/* Rx/Tx priority ratio */
 #define DMA_BUS_PR_RATIO_SHIFT	  14
-#define DMA_BUS_FB	  	  0x00010000	/* Fixed Burst */
+#define DMA_BUS_FB		  0x00010000	/* Fixed Burst */
 
 /* DMA operation mode defines (start/stop tx/rx are placed in common header)*/
 #define DMA_CONTROL_DT		0x04000000 /* Disable Drop TCP/IP csum error */
@@ -203,6 +210,14 @@ enum rtc_control {
 #define GMAC_MMC_CTRL      0x100
 #define GMAC_MMC_RX_INTR   0x104
 #define GMAC_MMC_TX_INTR   0x108
-#define GMAC_MMC_RX_CSUM_OFFLOAD   0x208
+#define GMAC_MMC_RX_INTR_MASK     0x10C
+#define GMAC_MMC_TX_INTR_MASK     0x110
+#define GMAC_MMC_TX_FRAMECOUNT_GB 0x118
+#define GMAC_MMC_RX_CSUM_OFFLOAD        0x208
+#define GMAC_MMC_RX_CSUM_OFFLOAD_MASK   0x200
+
+/* Some GMAC Debug register fields */
+#define GMAC_DEBUG_TX_FRAME_CTRL   0x00300000
+#define GMAC_DEBUG_RX_FIFO_RD_CTRL 0x00000060
 
 extern const struct stmmac_dma_ops dwmac1000_dma_ops;

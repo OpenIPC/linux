@@ -35,3 +35,12 @@ obj-$(CONFIG_USB_HWA_HCD)	+= hwa-hc.o
 obj-$(CONFIG_USB_IMX21_HCD)	+= imx21-hcd.o
 obj-$(CONFIG_USB_FSL_MPH_DR_OF)	+= fsl-mph-dr-of.o
 obj-$(CONFIG_USB_OCTEON2_COMMON) += octeon2-common.o
+obj-$(CONFIG_ARCH_GODBOX_V1)	+= hiusb-godbox_v1.o
+obj-$(CONFIG_ARCH_GODBOX)	+= hiusb-godbox.o
+obj-$(CONFIG_ARCH_GODEYES)	+= hiusb-godeyes.o
+obj-$(CONFIG_ARCH_GODNET)	+= hiusb-godnet.o
+obj-$(CONFIG_ARCH_GODARM)	+= hiusb-godarm.o
+obj-$(CONFIG_ARCH_PHOENIX)	+= hiusb-phoenix.o
+obj-$(CONFIG_ARCH_HI3518)	+= hiusb-3518.o
+obj-$(CONFIG_ARCH_HI3520D)	+= hiusb-hi3520d.o
+

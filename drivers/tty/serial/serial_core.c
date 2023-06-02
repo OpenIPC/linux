@@ -91,6 +91,9 @@ static void __uart_start(struct tty_struct *tty)
 	struct uart_state *state = tty->driver_data;
 	struct uart_port *port = state->uart_port;
 
+	if (port->ops->wake_peer)
+		port->ops->wake_peer(port);
+
 	if (!uart_circ_empty(&state->xmit) && state->xmit.buf &&
 	    !tty->stopped && !tty->hw_stopped)
 		port->ops->start_tx(port);
@@ -134,7 +137,7 @@ uart_update_mctrl(struct uart_port *port, unsigned int set, unsigned int clear)
  * Startup the port.  This will be called once per open.  All calls
  * will be serialised by the per-port mutex.
  */
-static int uart_startup(struct tty_struct *tty, struct uart_state *state, int init_hw)
+int uart_startup(struct tty_struct *tty, struct uart_state *state, int init_hw)
 {
 	struct uart_port *uport = state->uart_port;
 	struct tty_port *port = &state->port;
@@ -205,13 +208,14 @@ static int uart_startup(struct tty_struct *tty, struct uart_state *state, int in
 
 	return retval;
 }
+EXPORT_SYMBOL_GPL(uart_startup);
 
 /*
  * This routine will shutdown a serial port; interrupts are disabled, and
  * DTR is dropped if the hangup on close termio flag is on.  Calls to
  * uart_shutdown are serialised by the per-port semaphore.
  */
-static void uart_shutdown(struct tty_struct *tty, struct uart_state *state)
+void uart_shutdown(struct tty_struct *tty, struct uart_state *state)
 {
 	struct uart_port *uport = state->uart_port;
 	struct tty_port *port = &state->port;
@@ -262,6 +266,7 @@ static void uart_shutdown(struct tty_struct *tty, struct uart_state *state)
 		state->xmit.buf = NULL;
 	}
 }
+EXPORT_SYMBOL_GPL(uart_shutdown);
 
 /**
  *	uart_update_timeout - update per-port FIFO timeout.

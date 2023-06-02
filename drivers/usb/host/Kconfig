@@ -4,6 +4,8 @@
 comment "USB Host Controller Drivers"
 	depends on USB
 
+source "drivers/usb/host/Kconfig.hiusb"
+
 config USB_C67X00_HCD
 	tristate "Cypress C67x00 HCD support"
 	depends on USB

@@ -63,6 +63,10 @@
 #include <net/inet_common.h>
 #include <net/secure_seq.h>
 
+#ifdef CONFIG_TNK
+#include <net/tnkdrv.h>
+#endif
+
 #include <asm/uaccess.h>
 
 #include <linux/proc_fs.h>
@@ -70,6 +74,10 @@
 
 #include <linux/crypto.h>
 #include <linux/scatterlist.h>
+
+#ifdef CONFIG_TNK
+extern struct tnkfuncs *tnk;
+#endif
 
 static void	tcp_v6_send_reset(struct sock *sk, struct sk_buff *skb);
 static void	tcp_v6_reqsk_send_ack(struct sock *sk, struct sk_buff *skb,
@@ -1535,6 +1543,21 @@ static struct sock * tcp_v6_syn_recv_sock(struct sock *sk, struct sk_buff *skb,
 	}
 	__inet6_hash(newsk, NULL);
 
+#ifdef CONFIG_TNK
+        /*  tnk is active.  tnk_tcp_send will return
+         *  the number of bytes successfully queued.  Zero
+         *  indicates no space available, -1 indicates
+         *  this connection is not accelerated.
+         */
+        if (tnk)
+        {
+            // newsk will inherit sk->sk_tnkinfo, so make sure state is reset
+            newsk->sk_tnkinfo.state = 0;
+            tnk->tcp_prepare (newsk, skb, 1);
+            tnk->tcp_open (newsk); 
+        }
+#endif
+
 	return newsk;
 
 out_overflow:
@@ -1596,6 +1619,18 @@ static int tcp_v6_do_rcv(struct sock *sk, struct sk_buff *skb)
 #ifdef CONFIG_TCP_MD5SIG
 	if (tcp_v6_inbound_md5_hash (sk, skb))
 		goto discard;
+#endif
+
+#ifdef CONFIG_TNK
+    if (tnk)
+    {
+        /* If this is an active TOE-accelerated connection, we can't allow
+         * any more packets to enter the sk_receive_queue here */
+        if ((sk->sk_tnkinfo.state == TNKINFO_STATE_ACTIVATING ||
+             sk->sk_tnkinfo.state == TNKINFO_STATE_ACTIVE) &&
+            !tcp_hdr(skb)->fin && !tcp_hdr(skb)->rst)
+            goto discard;
+    }
 #endif
 
 	if (sk_filter(sk, skb))

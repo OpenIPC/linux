@@ -22,6 +22,9 @@
   Author: Giuseppe Cavallaro <peppe.cavallaro@st.com>
 *******************************************************************************/
 
+#ifndef __STMMAC_COMMON_H__
+#define __STMMAC_COMMON_H__
+
 #include <linux/netdevice.h>
 #if defined(CONFIG_VLAN_8021Q) || defined(CONFIG_VLAN_8021Q_MODULE)
 #define STMMAC_VLAN_TAG_USED
@@ -29,6 +32,18 @@
 #endif
 
 #include "descs.h"
+
+#define STMMAC_ALIGN(x)	L1_CACHE_ALIGN(x)
+#define STMMAC_SYNC_BARRIER() do { isb(); dsb(); dmb(); } while (0)
+
+enum tnk_gmac_id {
+	TNK_GMAC0_ID = 0,
+#ifdef CONFIG_STMMAC_DUAL_MAC
+	TNK_GMAC1_ID,
+#endif
+	/* This must always be the last item in the list */
+	TNK_NUM_GMACS
+};
 
 #undef CHIP_DEBUG_PRINT
 /* Turn-on extra printk debug for MAC core, dma and descriptors */
@@ -38,6 +53,19 @@
 #define CHIP_DBG(fmt, args...)  printk(fmt, ## args)
 #else
 #define CHIP_DBG(fmt, args...)  do { } while (0)
+#endif
+
+#define CONTROL_DEBUG_PRINT
+/* Turn-on extra printk debug for control path only, not data path */
+/* #undef CHIP_DEBUG_PRINT */
+
+#ifdef CONTROL_DEBUG_PRINT
+extern int control_dbg;
+#define CONTROL_DBG(fmt, args...) \
+	do { if (control_dbg) printk(fmt, ## args); } while (0);
+#else
+#define CONTROL_DBG(fmt, args...) \
+	do { } while (0)
 #endif
 
 #undef FRAME_FILTER_DEBUG
@@ -91,7 +119,8 @@ struct stmmac_extra_stats {
 	unsigned long normal_irq_n;
 };
 
-#define HASH_TABLE_SIZE 64
+/* FIXME: logic only has 32 multicast addresses, but original code is 64 */
+#define HASH_TABLE_SIZE 32
 #define PAUSE_TIME 0x200
 
 /* Flow Control defines */
@@ -100,9 +129,9 @@ struct stmmac_extra_stats {
 #define FLOW_TX		2
 #define FLOW_AUTO	(FLOW_TX | FLOW_RX)
 
-#define SF_DMA_MODE 1 /* DMA STORE-AND-FORWARD Operation Mode */
+#define SF_DMA_MODE 1		/* DMA STORE-AND-FORWARD Operation Mode */
 
-enum rx_frame_status { /* IPC status */
+enum rx_frame_status {		/* IPC status */
 	good_frame = 0,
 	discard_frame = 1,
 	csum_none = 2,
@@ -120,6 +149,19 @@ enum tx_dma_irq_status {
 #define BUF_SIZE_8KiB 8192
 #define BUF_SIZE_4KiB 4096
 #define BUF_SIZE_2KiB 2048
+
+#define DMA_BUFFER_SIZE BUF_SIZE_2KiB
+
+#define DMA_RING_SIZE   256
+
+/* DMA Programmable Burst Length (PBL) setting */
+#define DMA_BURST_LEN   16
+
+enum tnk_dma_channels {
+	DMA_CHANNEL_GMAC0 = 0,
+	DMA_CHANNEL_GMAC1,
+	DMA_CHANNEL_TOERX
+};
 
 /* Power Down and WOL */
 #define PMT_NOT_SUPPORTED 0
@@ -165,7 +207,8 @@ struct stmmac_desc_ops {
 	int (*get_tx_ls) (struct dma_desc *p);
 	/* Return the transmit status looking at the TDES1 */
 	int (*tx_status) (void *data, struct stmmac_extra_stats *x,
-			  struct dma_desc *p, void __iomem *ioaddr);
+			  struct dma_desc *p,
+			  void __iomem *dma_ioaddr, int dma_channel);
 	/* Get the buffer size from the descriptor */
 	int (*get_tx_len) (struct dma_desc *p);
 	/* Handle extra events on specific interrupts hw dependent */
@@ -176,35 +219,45 @@ struct stmmac_desc_ops {
 	/* Return the reception status looking at the RDES1 */
 	int (*rx_status) (void *data, struct stmmac_extra_stats *x,
 			  struct dma_desc *p);
+	int (*get_rx_dirty_flag) (struct dma_desc *p);
+	void (*set_rx_dirty_flag) (struct dma_desc *p);
+	void (*clear_rx_dirty_flag) (struct dma_desc *p);
+	int (*get_rx_curr_flag) (struct dma_desc *p);
+	void (*set_rx_curr_flag) (struct dma_desc *p);
+	void (*clear_rx_curr_flag) (struct dma_desc *p);
 };
 
 struct stmmac_dma_ops {
 	/* DMA core initialization */
-	int (*init) (void __iomem *ioaddr, int pbl, u32 dma_tx, u32 dma_rx);
+	int (*init) (void __iomem *ioaddr, int channel, int pbl,
+		     u32 dma_tx, u32 dma_rx, int use_atds);
 	/* Dump DMA registers */
-	void (*dump_regs) (void __iomem *ioaddr);
+	void (*dump_regs) (void __iomem *ioaddr, int channel);
 	/* Set tx/rx threshold in the csr6 register
 	 * An invalid value enables the store-and-forward mode */
-	void (*dma_mode) (void __iomem *ioaddr, int txmode, int rxmode);
+	void (*dma_mode) (void __iomem *ioaddr, int channel, int txmode,
+			  int rxmode);
 	/* To track extra statistic (if supported) */
 	void (*dma_diagnostic_fr) (void *data, struct stmmac_extra_stats *x,
-				   void __iomem *ioaddr);
-	void (*enable_dma_transmission) (void __iomem *ioaddr);
-	void (*enable_dma_irq) (void __iomem *ioaddr);
-	void (*disable_dma_irq) (void __iomem *ioaddr);
-	void (*start_tx) (void __iomem *ioaddr);
-	void (*stop_tx) (void __iomem *ioaddr);
-	void (*start_rx) (void __iomem *ioaddr);
-	void (*stop_rx) (void __iomem *ioaddr);
-	int (*dma_interrupt) (void __iomem *ioaddr,
+				   void __iomem *ioaddr, int channel);
+	void (*enable_dma_transmission) (void __iomem *ioaddr, int channel);
+	void (*enable_dma_receive) (void __iomem *ioaddr, int channel);
+	unsigned int (*get_dma_rx_state) (void __iomem *ioaddr, int channel);
+	void (*enable_dma_irq) (void __iomem *ioaddr, int channel);
+	void (*disable_dma_irq) (void __iomem *ioaddr, int channel);
+	void (*start_tx) (void __iomem *ioaddr, int channel);
+	void (*stop_tx) (void __iomem *ioaddr, int channel);
+	void (*start_rx) (void __iomem *ioaddr, int channel);
+	void (*stop_rx) (void __iomem *ioaddr, int channel);
+	int (*dma_interrupt) (void __iomem *ioaddr, int channel,
 			      struct stmmac_extra_stats *x);
 };
 
 struct stmmac_ops {
 	/* MAC core initialization */
-	void (*core_init) (void __iomem *ioaddr) ____cacheline_aligned;
+	void (*core_init) (void __iomem *ioaddr)____cacheline_aligned;
 	/* Support checksum offload engine */
-	int  (*rx_coe) (void __iomem *ioaddr);
+	int (*rx_coe) (void __iomem *ioaddr);
 	/* Dump MAC registers */
 	void (*dump_regs) (void __iomem *ioaddr);
 	/* Handle extra events on specific interrupts hw dependent */
@@ -235,9 +288,9 @@ struct mii_regs {
 };
 
 struct mac_device_info {
-	const struct stmmac_ops		*mac;
-	const struct stmmac_desc_ops	*desc;
-	const struct stmmac_dma_ops	*dma;
+	const struct stmmac_ops *mac;
+	const struct stmmac_desc_ops *desc;
+	const struct stmmac_dma_ops *dma;
 	struct mii_regs mii;	/* MII register Addresses */
 	struct mac_link link;
 };
@@ -249,4 +302,8 @@ extern void stmmac_set_mac_addr(void __iomem *ioaddr, u8 addr[6],
 				unsigned int high, unsigned int low);
 extern void stmmac_get_mac_addr(void __iomem *ioaddr, unsigned char *addr,
 				unsigned int high, unsigned int low);
-extern void dwmac_dma_flush_tx_fifo(void __iomem *ioaddr);
+extern void stmmac_enable_mac_addr(void __iomem *ioaddr,
+				unsigned int high, int enable);
+extern void dwmac_dma_flush_tx_fifo(void __iomem *ioaddr, int channel);
+
+#endif /*  __STMMAC_COMMON_H__ */

@@ -995,6 +995,12 @@ static void qh_link_async (struct ehci_hcd *ehci, struct ehci_qh *qh)
 	head->qh_next.qh = qh;
 	head->hw->hw_next = dma;
 
+	/*
+	 * flush qh descriptor into memory immediately,
+	 * see comments in qh_append_tds.
+	 * */
+	ehci_sync_mem();
+
 	qh_get(qh);
 	qh->xacterrs = 0;
 	qh->qh_state = QH_STATE_LINKED;
@@ -1082,6 +1088,18 @@ static struct ehci_qh *qh_append_tds (
 			wmb ();
 			dummy->hw_token = token;
 
+			/*
+			 * Writing to dma coherent buffer on ARM may
+			 * be delayed to reach memory, so HC may not see
+			 * hw_token of dummy qtd in time, which can cause
+			 * the qtd transaction to be executed very late,
+			 * and degrade performance a lot. ehci_sync_mem
+			 * is added to flush 'token' immediatelly into
+			 * memory, so that ehci can execute the transaction
+			 * ASAP.
+			 * */
+			ehci_sync_mem();
+
 			urb->hcpriv = qh_get (qh);
 		}
 	}
@@ -1153,6 +1171,7 @@ static void end_unlink_async (struct ehci_hcd *ehci)
 {
 	struct ehci_qh		*qh = ehci->reclaim;
 	struct ehci_qh		*next;
+	int qh_cached = 0;
 
 	iaa_watchdog_done(ehci);
 
@@ -1172,12 +1191,17 @@ static void end_unlink_async (struct ehci_hcd *ehci)
 			&& HC_IS_RUNNING (ehci_to_hcd(ehci)->state))
 		qh_link_async (ehci, qh);
 	else {
+		u32 val;
 		/* it's not free to turn the async schedule on/off; leave it
 		 * active but idle for a while once it empties.
 		 */
 		if (HC_IS_RUNNING (ehci_to_hcd(ehci)->state)
 				&& ehci->async->qh_next.qh == NULL)
 			timer_action (ehci, TIMER_ASYNC_OFF);
+
+		val = ehci_readl(ehci, &ehci->regs->async_next);
+		if (val == (u32)qh->qh_dma)
+			qh_cached = 1;
 	}
 	qh_put(qh);			/* refcount from async list */
 
@@ -1186,7 +1210,7 @@ static void end_unlink_async (struct ehci_hcd *ehci)
 		start_unlink_async (ehci, next);
 	}
 
-	if (ehci->has_synopsys_hc_bug)
+	if (ehci->has_synopsys_hc_bug && qh_cached)
 		ehci_writel(ehci, (u32) ehci->async->qh_dma,
 			    &ehci->regs->async_next);
 }

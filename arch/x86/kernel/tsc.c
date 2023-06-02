@@ -104,14 +104,15 @@ int __init notsc_setup(char *str)
 
 __setup("notsc", notsc_setup);
 
-static int no_sched_irq_time;
-
 static int __init tsc_setup(char *str)
 {
 	if (!strcmp(str, "reliable"))
 		tsc_clocksource_reliable = 1;
-	if (!strncmp(str, "noirqtime", 9))
-		no_sched_irq_time = 1;
+	if (!strncmp(str, "noirqtime", 9)) {
+		printk(KERN_WARNING "tsc: tsc=noirqtime is "
+				"obsolete, use noirqtime instead\n");
+		disable_sched_clock_irqtime();
+	}
 	return 1;
 }
 
@@ -1002,8 +1003,7 @@ void __init tsc_init(void)
 	/* now allow native_sched_clock() to use rdtsc */
 	tsc_disabled = 0;
 
-	if (!no_sched_irq_time)
-		enable_sched_clock_irqtime();
+	enable_sched_clock_irqtime();
 
 	lpj = ((u64)tsc_khz * 1000);
 	do_div(lpj, HZ);

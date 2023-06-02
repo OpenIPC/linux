@@ -1345,7 +1345,17 @@ static int sil24_init_one(struct pci_dev *pdev, const struct pci_device_id *ent)
 	/* Set max read request size to 4096.  This slightly increases
 	 * write throughput for pci-e variants.
 	 */
+	/* Hisilicon pcie controller CANNOT support max request size
+	 * more than 128 in GODBOX series (256 while in GODEYE series)
+	 * due to die size.
+	 */
+#if defined(CONFIG_ARCH_GODBOX)
+	pcie_set_readrq(pdev, 128);
+#elif defined(CONFIG_ARCH_GODEYES)
+	pcie_set_readrq(pdev, 256);
+#else
 	pcie_set_readrq(pdev, 4096);
+#endif
 
 	sil24_init_controller(host);
 

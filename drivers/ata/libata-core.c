@@ -1832,8 +1832,25 @@ static u32 ata_pio_mask_no_iordy(const struct ata_device *adev)
 unsigned int ata_do_dev_read_id(struct ata_device *dev,
 					struct ata_taskfile *tf, u16 *id)
 {
+	unsigned int rc;
+
+	/* In original code, ata_device->id is used by both dma and cpu,
+	 * but this region is not cache line aligned yet.
+	 * So here we must consider about cache consistency.*/
+	dma_map_single(&(dev->tdev), dev->id,
+			(sizeof(dev->id[0]) * ATA_ID_WORDS), DMA_TO_DEVICE);
+	rc = ata_exec_internal(dev, tf, NULL, DMA_FROM_DEVICE,
+				     id, sizeof(id[0]) * ATA_ID_WORDS, 0);
+	dma_map_single(&(dev->tdev), dev->id,
+			(sizeof(dev->id[0]) * ATA_ID_WORDS), DMA_TO_DEVICE);
+	dma_map_single(&(dev->tdev), dev->id,
+			(sizeof(dev->id[0]) * ATA_ID_WORDS), DMA_FROM_DEVICE);
+
+	return rc;
+#if 0
 	return ata_exec_internal(dev, tf, NULL, DMA_FROM_DEVICE,
 				     id, sizeof(id[0]) * ATA_ID_WORDS, 0);
+#endif
 }
 
 /**

@@ -457,6 +457,10 @@ extern int tcp_send_synack(struct sock *);
 extern void tcp_push_one(struct sock *, unsigned int mss_now);
 extern void tcp_send_ack(struct sock *sk);
 extern void tcp_send_delayed_ack(struct sock *sk);
+#ifdef CONFIG_TNK
+extern void tnk_send_ack(struct sock *sk, unsigned int rcv_nxt,
+				unsigned window);
+#endif
 
 /* tcp_input.c */
 extern void tcp_cwnd_application_limited(struct sock *sk);
@@ -1404,6 +1408,8 @@ extern struct sk_buff **tcp4_gro_receive(struct sk_buff **head,
 extern int tcp_gro_complete(struct sk_buff *skb);
 extern int tcp4_gro_complete(struct sk_buff *skb);
 
+extern int tcp_nuke_addr(struct net *net, struct sockaddr *addr);
+
 #ifdef CONFIG_PROC_FS
 extern int tcp4_proc_init(void);
 extern void tcp4_proc_exit(void);
@@ -1528,5 +1534,7 @@ static inline struct tcp_extend_values *tcp_xv(struct request_values *rvp)
 
 extern void tcp_v4_init(void);
 extern void tcp_init(void);
+
+extern void tcp_valid_rtt_meas(struct sock *sk, u32 seq_rtt);
 
 #endif	/* _TCP_H */

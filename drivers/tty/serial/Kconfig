@@ -323,6 +323,13 @@ config SERIAL_AMBA_PL011_CONSOLE
 	  your boot loader (lilo or loadlin) about how to pass options to the
 	  kernel at boot time.)
 
+config AMBA_PL011_SHARE_IRQ
+	bool
+	default y if ARCH_HI3518
+	help
+	  User should enable this option only when more than one AMBA_PL011 uart
+	  share the same irq number.
+
 config SERIAL_SB1250_DUART
 	tristate "BCM1xxx on-chip DUART serial support"
 	depends on SIBYTE_SB1xxx_SOC=y

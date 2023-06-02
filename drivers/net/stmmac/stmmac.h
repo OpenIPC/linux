@@ -20,7 +20,12 @@
   Author: Giuseppe Cavallaro <peppe.cavallaro@st.com>
 *******************************************************************************/
 
-#define DRV_MODULE_VERSION	"Nov_2010"
+#ifndef __STMMAC_H__
+#define __STMMAC_H__
+
+#define DRV_MODULE_VERSION	"Jun_2011"
+#include <linux/platform_device.h>
+#include <linux/phy.h>
 #include <linux/stmmac.h>
 
 #include "common.h"
@@ -28,15 +33,21 @@
 #include "stmmac_timer.h"
 #endif
 
+#include "tnklock.h"
+
 struct stmmac_priv {
 	/* Frequently used values are kept adjacent for cache effect */
 	struct dma_desc *dma_tx ____cacheline_aligned;
 	dma_addr_t dma_tx_phy;
 	struct sk_buff **tx_skbuff;
+	struct page **tx_page;
 	unsigned int cur_tx;
 	unsigned int dirty_tx;
 	unsigned int dma_tx_size;
 	int tx_coalesce;
+	atomic_t tx_credits;
+	u32 last_tx_fcount;
+	int slow_port_mode;
 
 	struct dma_desc *dma_rx ;
 	unsigned int cur_rx;
@@ -45,7 +56,16 @@ struct stmmac_priv {
 	dma_addr_t *rx_skbuff_dma;
 	struct sk_buff_head rx_recycle;
 
+	/* add poll timer */
+	struct timer_list poll_timer;
+	/* add over */
+
+	/* add check timer */
+	struct timer_list check_timer;
+	/* add over */
+
 	struct net_device *dev;
+	int id;
 	dma_addr_t dma_rx_phy;
 	unsigned int dma_rx_size;
 	unsigned int dma_buf_sz;
@@ -74,6 +94,8 @@ struct stmmac_priv {
 
 	u32 msg_enable;
 	spinlock_t lock;
+	spinlock_t rxlock;
+	spinlock_t tlock;
 	int wolopts;
 	int wolenabled;
 #ifdef CONFIG_STMMAC_TIMER
@@ -83,6 +105,10 @@ struct stmmac_priv {
 	struct vlan_group *vlgrp;
 #endif
 	struct plat_stmmacenet_data *plat;
+
+	int dma_channel;
+	void __iomem *dma_ioaddr;
+	void __iomem *mii_ioaddr;
 };
 
 extern int stmmac_mdio_unregister(struct net_device *ndev);
@@ -90,3 +116,11 @@ extern int stmmac_mdio_register(struct net_device *ndev);
 extern void stmmac_set_ethtool_ops(struct net_device *netdev);
 extern const struct stmmac_desc_ops enh_desc_ops;
 extern const struct stmmac_desc_ops ndesc_ops;
+
+int stmmac_slow_port_check(int gmac_id);
+
+void stmmac_proc(struct seq_file *s);
+
+extern struct net_device *stmmac_device_list[];
+
+#endif /* __STMMAC_H__ */

@@ -196,6 +196,15 @@ machine-$(CONFIG_MACH_SPEAR300)		:= spear3xx
 machine-$(CONFIG_MACH_SPEAR310)		:= spear3xx
 machine-$(CONFIG_MACH_SPEAR320)		:= spear3xx
 machine-$(CONFIG_MACH_SPEAR600)		:= spear6xx
+machine-$(CONFIG_ARCH_GODBOX_V1)		:= godbox-v1
+machine-$(CONFIG_ARCH_GODNET)			:= godnet
+machine-$(CONFIG_ARCH_GODCUBE)			:= godcube
+machine-$(CONFIG_ARCH_GODBOX)			:= godbox
+machine-$(CONFIG_ARCH_GODARM)			:= godarm
+machine-$(CONFIG_ARCH_HI3518)			:= hi3518
+machine-$(CONFIG_ARCH_HI3520D)			:= hi3520d
+
+machine-$(CONFIG_ARCH_PHOENIX)			:= phoenix
 
 # Platform directory name.  This list is sorted alphanumerically
 # by CONFIG_* macro name.

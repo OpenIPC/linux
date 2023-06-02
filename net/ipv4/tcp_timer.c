@@ -32,6 +32,10 @@ int sysctl_tcp_retries2 __read_mostly = TCP_RETR2;
 int sysctl_tcp_orphan_retries __read_mostly;
 int sysctl_tcp_thin_linear_timeouts __read_mostly;
 
+#ifdef CONFIG_TNK
+EXPORT_SYMBOL(sysctl_tcp_keepalive_time);
+#endif
+
 static void tcp_write_timer(unsigned long);
 static void tcp_delack_timer(unsigned long);
 static void tcp_keepalive_timer (unsigned long data);
@@ -515,6 +519,9 @@ void tcp_set_keepalive(struct sock *sk, int val)
 		inet_csk_delete_keepalive_timer(sk);
 }
 
+#ifdef CONFIG_TNK
+EXPORT_SYMBOL(tcp_set_keepalive);
+#endif
 
 static void tcp_keepalive_timer (unsigned long data)
 {

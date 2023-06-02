@@ -932,11 +932,22 @@ xfs_attr_leaf_addname(xfs_da_args_t *args)
 			xfs_da_brelse(args->trans, bp);
 			return(retval);
 		}
+		/* save the attribute state for later removal*/
 		args->op_flags |= XFS_DA_OP_RENAME;	/* an atomic rename */
 		args->blkno2 = args->blkno;		/* set 2nd entry info*/
 		args->index2 = args->index;
 		args->rmtblkno2 = args->rmtblkno;
 		args->rmtblkcnt2 = args->rmtblkcnt;
+		args->rmtvaluelen2 = args->rmtvaluelen;
+
+		/*
+		 * clear the remote attr state now that it is saved so that the
+		 * values reflect the state of the attribute we are about to
+		 * add, not the attribute we just found and will remove later.
+		 */
+		args->rmtblkno = 0;
+		args->rmtblkcnt = 0;
+		args->rmtvaluelen = 0;
 	}
 
 	/*
@@ -1029,6 +1040,7 @@ xfs_attr_leaf_addname(xfs_da_args_t *args)
 		args->blkno = args->blkno2;
 		args->rmtblkno = args->rmtblkno2;
 		args->rmtblkcnt = args->rmtblkcnt2;
+		args->rmtvaluelen = args->rmtvaluelen2;
 		if (args->rmtblkno) {
 			error = xfs_attr_rmtval_remove(args);
 			if (error)
@@ -1261,13 +1273,21 @@ restart:
 	} else if (retval == EEXIST) {
 		if (args->flags & ATTR_CREATE)
 			goto out;
+		/* save the attribute state for later removal*/
 		args->op_flags |= XFS_DA_OP_RENAME;	/* atomic rename op */
 		args->blkno2 = args->blkno;		/* set 2nd entry info*/
 		args->index2 = args->index;
 		args->rmtblkno2 = args->rmtblkno;
 		args->rmtblkcnt2 = args->rmtblkcnt;
+		args->rmtvaluelen2 = args->rmtvaluelen;
+		/*
+		 * clear the remote attr state now that it is saved so that the
+		 * values reflect the state of the attribute we are about to
+		 * add, not the attribute we just found and will remove later.
+		 */
 		args->rmtblkno = 0;
 		args->rmtblkcnt = 0;
+		args->rmtvaluelen = 0;
 	}
 
 	retval = xfs_attr_leaf_add(blk->bp, state->args);
@@ -1394,6 +1414,7 @@ restart:
 		args->blkno = args->blkno2;
 		args->rmtblkno = args->rmtblkno2;
 		args->rmtblkcnt = args->rmtblkcnt2;
+		args->rmtvaluelen = args->rmtvaluelen2;
 		if (args->rmtblkno) {
 			error = xfs_attr_rmtval_remove(args);
 			if (error)
@@ -1965,10 +1986,11 @@ xfs_attr_rmtval_get(xfs_da_args_t *args)
 	xfs_dablk_t lblkno;
 
 	ASSERT(!(args->flags & ATTR_KERNOVAL));
-
+	ASSERT(args->rmtvaluelen == args->valuelen);
+	valuelen = args->rmtvaluelen;
 	mp = args->dp->i_mount;
 	dst = args->value;
-	valuelen = args->valuelen;
+
 	lblkno = args->rmtblkno;
 	while (valuelen > 0) {
 		nmap = ATTR_RMTVALUE_MAPSIZE;
@@ -2030,7 +2052,7 @@ xfs_attr_rmtval_set(xfs_da_args_t *args)
 	 * Find a "hole" in the attribute address space large enough for
 	 * us to drop the new attribute's value into.
 	 */
-	blkcnt = XFS_B_TO_FSB(mp, args->valuelen);
+	blkcnt = XFS_B_TO_FSB(mp, args->rmtvaluelen);
 	lfileoff = 0;
 	error = xfs_bmap_first_unused(args->trans, args->dp, blkcnt, &lfileoff,
 						   XFS_ATTR_FORK);
@@ -2094,7 +2116,7 @@ xfs_attr_rmtval_set(xfs_da_args_t *args)
 	 * the INCOMPLETE flag.
 	 */
 	lblkno = args->rmtblkno;
-	valuelen = args->valuelen;
+	valuelen = args->rmtvaluelen;
 	while (valuelen > 0) {
 		/*
 		 * Try to remember where we decided to put the value.

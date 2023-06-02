@@ -20,6 +20,10 @@
 
   Author: Giuseppe Cavallaro <peppe.cavallaro@st.com>
 *******************************************************************************/
+
+#ifndef __DESCS_H__
+#define __DESCS_H__
+
 struct dma_desc {
 	/* Receive descriptor */
 	union {
@@ -161,3 +165,41 @@ enum tdes_csum_insertion {
 					 * is not calculated */
 	cic_full = 3,		/* IP header and pseudoheader */
 };
+
+struct tnk_rx_dma_desc {
+	/* Words 0-3 */
+	struct dma_desc base;
+	struct {
+		/* Word 4 */
+		uint32_t des4;
+		/* Word 4 */
+		uint32_t des5;
+		/* Word 6 */
+		uint32_t cid:11;
+		uint32_t flags:19;
+		uint32_t reserved1:2;
+		/* Word 7 */
+		uint32_t urg_ptr:16;
+		uint32_t reserved2:16;
+	} extra;
+};
+
+
+struct tnk_ttx_dma_desc {
+	/* Word 0 */
+	uint32_t ack_offset:24;
+	uint32_t reserved1:7;
+	uint32_t hw_own:1;
+	/* Word 1 */
+	uint32_t buffer_size:24;
+	uint32_t reserved2:7;
+	uint32_t intr_on_completion:1;
+	/* Word 2 */
+	uint32_t buffer_ptr;
+	/* Word 3 */
+	uint32_t next_desc_ptr;
+};
+
+extern const struct stmmac_desc_ops enh_desc_ops;
+
+#endif /*  __DESCS_H__ */

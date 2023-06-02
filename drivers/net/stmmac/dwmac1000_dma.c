@@ -29,47 +29,44 @@
 #include "dwmac1000.h"
 #include "dwmac_dma.h"
 
-static int dwmac1000_dma_init(void __iomem *ioaddr, int pbl, u32 dma_tx,
-			      u32 dma_rx)
+/*  TODO - for debug only, remove later */
+#include "tnkhw_regmap.h"
+
+static int dwmac1000_dma_init(void __iomem *ioaddr, int channel, int pbl,
+			      u32 dma_tx, u32 dma_rx, int use_atds)
 {
-	u32 value = readl(ioaddr + DMA_BUS_MODE);
-	int limit;
+	u32 value = readl(ioaddr + (channel * 0x100) + DMA_BUS_MODE);
 
-	/* DMA SW reset */
-	value |= DMA_BUS_MODE_SFT_RESET;
-	writel(value, ioaddr + DMA_BUS_MODE);
-	limit = 15000;
-	while (limit--) {
-		if (!(readl(ioaddr + DMA_BUS_MODE) & DMA_BUS_MODE_SFT_RESET))
-			break;
-	}
-	if (limit < 0)
-		return -EBUSY;
+	value = /* DMA_BUS_MODE_FB | DMA_BUS_MODE_4PBL | */
+		((pbl << DMA_BUS_MODE_PBL_SHIFT) |
+		 (pbl << DMA_BUS_MODE_RPBL_SHIFT));
 
-	value = /* DMA_BUS_MODE_FB | */ DMA_BUS_MODE_4PBL |
-	    ((pbl << DMA_BUS_MODE_PBL_SHIFT) |
-	     (pbl << DMA_BUS_MODE_RPBL_SHIFT));
+	/* Alternate Descriptor Size
+	 * Descriptor size is 32-bytes if enabled, 16-bytes otherwise */
+	if (use_atds)
+		value |= DMA_BUS_MODE_ATDS;
 
 #ifdef CONFIG_STMMAC_DA
 	value |= DMA_BUS_MODE_DA;	/* Rx has priority over tx */
 #endif
-	writel(value, ioaddr + DMA_BUS_MODE);
+	writel(value, ioaddr + (channel * 0x100) + DMA_BUS_MODE);
 
 	/* Mask interrupts by writing to CSR7 */
-	writel(DMA_INTR_DEFAULT_MASK, ioaddr + DMA_INTR_ENA);
+	writel(DMA_INTR_DEFAULT_MASK,
+	       ioaddr + (channel * 0x100) + DMA_INTR_ENA);
 
 	/* The base address of the RX/TX descriptor lists must be written into
 	 * DMA CSR3 and CSR4, respectively. */
-	writel(dma_tx, ioaddr + DMA_TX_BASE_ADDR);
-	writel(dma_rx, ioaddr + DMA_RCV_BASE_ADDR);
+	writel(dma_tx, ioaddr + (channel * 0x100) + DMA_TX_BASE_ADDR);
+	writel(dma_rx, ioaddr + (channel * 0x100) + DMA_RCV_BASE_ADDR);
 
 	return 0;
 }
 
-static void dwmac1000_dma_operation_mode(void __iomem *ioaddr, int txmode,
-				    int rxmode)
+static void dwmac1000_dma_operation_mode(void __iomem *ioaddr, int channel,
+					 int txmode, int rxmode)
 {
-	u32 csr6 = readl(ioaddr + DMA_CONTROL);
+	u32 csr6 = readl(ioaddr + (channel * 0x100) + DMA_CONTROL);
 
 	if (txmode == SF_DMA_MODE) {
 		CHIP_DBG(KERN_DEBUG "GMAC: enable TX store and forward mode\n");
@@ -99,6 +96,8 @@ static void dwmac1000_dma_operation_mode(void __iomem *ioaddr, int txmode,
 	if (rxmode == SF_DMA_MODE) {
 		CHIP_DBG(KERN_DEBUG "GMAC: enable RX store and forward mode\n");
 		csr6 |= DMA_CONTROL_RSF;
+		/* Disable flushing of received frames, required by TNK */
+		csr6 |= DMA_CONTROL_DFF;
 	} else {
 		CHIP_DBG(KERN_DEBUG "GMAC: disabling RX store and forward mode"
 			      " (threshold = %d)\n", rxmode);
@@ -114,23 +113,26 @@ static void dwmac1000_dma_operation_mode(void __iomem *ioaddr, int txmode,
 			csr6 |= DMA_CONTROL_RTC_128;
 	}
 
-	writel(csr6, ioaddr + DMA_CONTROL);
+	writel(csr6, ioaddr + (channel * 0x100) + DMA_CONTROL);
 }
 
 /* Not yet implemented --- no RMON module */
 static void dwmac1000_dma_diagnostic_fr(void *data,
-		  struct stmmac_extra_stats *x, void __iomem *ioaddr)
+					struct stmmac_extra_stats *x,
+					void __iomem *ioaddr,
+					int channel)
 {
 	return;
 }
 
-static void dwmac1000_dump_dma_regs(void __iomem *ioaddr)
+static void dwmac1000_dump_dma_regs(void __iomem *ioaddr,
+				    int channel)
 {
 	int i;
-	pr_info(" DMA registers\n");
+	pr_info(" DMA registers chan %d\n", channel);
 	for (i = 0; i < 22; i++) {
 		if ((i < 9) || (i > 17)) {
-			int offset = i * 4;
+			int offset = (channel * 0x100) + (i * 4);
 			pr_err("\t Reg No. %d (offset 0x%x): 0x%08x\n", i,
 			       (DMA_BUS_MODE + offset),
 			       readl(ioaddr + DMA_BUS_MODE + offset));
@@ -144,6 +146,8 @@ const struct stmmac_dma_ops dwmac1000_dma_ops = {
 	.dma_mode = dwmac1000_dma_operation_mode,
 	.dma_diagnostic_fr = dwmac1000_dma_diagnostic_fr,
 	.enable_dma_transmission = dwmac_enable_dma_transmission,
+	.enable_dma_receive = dwmac_enable_dma_receive,
+	.get_dma_rx_state = dwmac_get_dma_rx_state,
 	.enable_dma_irq = dwmac_enable_dma_irq,
 	.disable_dma_irq = dwmac_disable_dma_irq,
 	.start_tx = dwmac_dma_start_tx,

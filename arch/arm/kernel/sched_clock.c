@@ -59,13 +59,16 @@ void __init init_sched_clock(struct clock_data *cd, void (*update)(void),
 	 * Start the timer to keep sched_clock() properly updated and
 	 * sets the initial epoch.
 	 */
-	sched_clock_timer.data = msecs_to_jiffies(w - (w / 10));
+//	sched_clock_timer.data = msecs_to_jiffies(w - (w / 10));
+	sched_clock_timer.data = msecs_to_jiffies(w - (w / 2));
 	update();
 
 	/*
 	 * Ensure that sched_clock() starts off at 0ns
 	 */
 	cd->epoch_ns = 0;
+
+	enable_sched_clock_irqtime();
 }
 
 void __init sched_clock_postinit(void)

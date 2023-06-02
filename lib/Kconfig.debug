@@ -298,6 +298,18 @@ config SCHEDSTATS
 	  application, you can say N to avoid the very slight overhead
 	  this adds.
 
+config IRQ_TIME_ACCOUNTING
+       bool "Fine granularity task level IRQ time accounting"
+       depends on X86 || ARM
+       default n
+       ---help---
+         Select this option to enable fine granularity task irq time
+         accounting. This is done by reading a timestamp on each
+         transitions between softirq and hardirq state, so there can be a
+         small performance impact.
+
+         If in doubt, say N here.
+
 config TIMER_STATS
 	bool "Collect kernel timers statistics"
 	depends on DEBUG_KERNEL && PROC_FS
@@ -667,8 +679,9 @@ config DEBUG_LOCKING_API_SELFTESTS
 	  mutexes and rwsems.
 
 config STACKTRACE
-	bool
+	bool "Stacktrace"
 	depends on STACKTRACE_SUPPORT
+	default y
 
 config DEBUG_STACK_USAGE
 	bool "Stack utilization instrumentation"

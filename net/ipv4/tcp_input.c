@@ -73,7 +73,16 @@
 #include <asm/unaligned.h>
 #include <net/netdma.h>
 
+#ifdef CONFIG_TNK
+#include <net/tnkdrv.h>
+#endif
+
+#ifdef CONFIG_TNK
+/* The TOE doesn't generate timestamps, so disable by default */
+int sysctl_tcp_timestamps __read_mostly = 0;
+#else
 int sysctl_tcp_timestamps __read_mostly = 1;
+#endif
 int sysctl_tcp_window_scaling __read_mostly = 1;
 int sysctl_tcp_sack __read_mostly = 1;
 int sysctl_tcp_fack __read_mostly = 1;
@@ -97,6 +106,10 @@ int sysctl_tcp_thin_dupack __read_mostly;
 
 int sysctl_tcp_moderate_rcvbuf __read_mostly = 1;
 int sysctl_tcp_abc __read_mostly;
+
+#ifdef CONFIG_TNK
+extern struct tnkfuncs *tnk;
+#endif
 
 #define FLAG_DATA		0x01 /* Incoming frame contained data.		*/
 #define FLAG_WIN_UPDATE		0x02 /* Incoming ACK was a window update.	*/
@@ -566,6 +579,14 @@ static void tcp_event_data_recv(struct sock *sk, struct sk_buff *skb)
 	struct tcp_sock *tp = tcp_sk(sk);
 	struct inet_connection_sock *icsk = inet_csk(sk);
 	u32 now;
+
+#ifdef CONFIG_TNK
+    /*  If tnk is active then update the byte count on this
+     *  connection.
+     */
+    if (tnk && skb->len > 0 && !tcp_hdr(skb)->fin && !tcp_hdr(skb)->rst)
+        tnk->tcp_update (sk, skb->len);
+#endif
 
 	inet_csk_schedule_ack(sk);
 
@@ -3112,12 +3133,13 @@ static void tcp_fastretrans_alert(struct sock *sk, int pkts_acked, int flag)
 	tcp_xmit_retransmit_queue(sk);
 }
 
-static void tcp_valid_rtt_meas(struct sock *sk, u32 seq_rtt)
+void tcp_valid_rtt_meas(struct sock *sk, u32 seq_rtt)
 {
 	tcp_rtt_estimator(sk, seq_rtt);
 	tcp_set_rto(sk);
 	inet_csk(sk)->icsk_backoff = 0;
 }
+EXPORT_SYMBOL(tcp_valid_rtt_meas);
 
 /* Read draft-ietf-tcplw-high-performance before mucking
  * with this code. (Supersedes RFC1323)
@@ -4045,6 +4067,15 @@ static void tcp_reset(struct sock *sk)
 	default:
 		sk->sk_err = ECONNRESET;
 	}
+
+#ifdef CONFIG_TNK
+        /*  tnk is active.  Call tnk_Tcp_close.
+         */
+    if (tnk)
+        tnk->tcp_close (sk, 0);
+#endif
+
+
 	/* This barrier is coupled with smp_rmb() in tcp_poll() */
 	smp_wmb();
 
@@ -5502,6 +5533,16 @@ static int tcp_rcv_synsent_state_process(struct sock *sk, struct sk_buff *skb,
 		 *    (our SYN has been ACKed), change the connection
 		 *    state to ESTABLISHED..."
 		 */
+		
+#ifdef CONFIG_TNK
+                /*  tnk is active.  Initialise a new connection
+                 */
+                if (tnk)
+                {
+                    tnk->tcp_prepare (sk, skb, 1);
+                    tnk->tcp_open (sk);
+                }
+#endif
 
 		TCP_ECN_rcv_synack(tp, th);
 

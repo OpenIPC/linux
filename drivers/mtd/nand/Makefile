@@ -8,6 +8,8 @@ obj-$(CONFIG_MTD_NAND_BCH)		+= nand_bch.o
 obj-$(CONFIG_MTD_NAND_IDS)		+= nand_ids.o
 obj-$(CONFIG_MTD_SM_COMMON) 		+= sm_common.o
 
+obj-$(CONFIG_MTD_NAND_HINFC300)        += hinfc300/
+obj-$(CONFIG_MTD_NAND_HINFC301)        += hinfc301/
 obj-$(CONFIG_MTD_NAND_CAFE)		+= cafe_nand.o
 obj-$(CONFIG_MTD_NAND_SPIA)		+= spia.o
 obj-$(CONFIG_MTD_NAND_AMS_DELTA)	+= ams-delta.o
@@ -50,4 +52,4 @@ obj-$(CONFIG_MTD_NAND_MPC5121_NFC)	+= mpc5121_nfc.o
 obj-$(CONFIG_MTD_NAND_RICOH)		+= r852.o
 obj-$(CONFIG_MTD_NAND_JZ4740)		+= jz4740_nand.o
 
-nand-objs := nand_base.o nand_bbt.o
+nand-objs := nand_base.o nand_bbt.o nand_spl_ids.o
