@@ -1,0 +1,5 @@
+20210429
+修复ifconfig eth0 down 导致切换到10M/half的问题.张建胜
+
+20210308
+初始化changelog，张建胜

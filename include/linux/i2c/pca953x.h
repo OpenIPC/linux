@@ -13,6 +13,12 @@ struct pca953x_platform_data {
 	/* initial polarity inversion setting */
 	u32		invert;
 
+        /*reset pin */
+	unsigned	reset_n;
+
+	/*irq pin */
+	unsigned	irq_n;
+
 	/* interrupt base */
 	int		irq_base;
 

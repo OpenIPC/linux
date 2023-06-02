@@ -51,10 +51,12 @@
 
 #define PKMAP_BASE		(0xfe000000UL)
 
+#ifndef VMALLOC_END
 #ifdef CONFIG_HIGHMEM
 # define VMALLOC_END	(PKMAP_BASE-2*PAGE_SIZE)
 #else
 # define VMALLOC_END	(FIXADDR_START-2*PAGE_SIZE)
+#endif
 #endif
 
 #ifdef CONFIG_64BIT_PHYS_ADDR

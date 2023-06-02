@@ -37,6 +37,10 @@ extern Elf64_Dyn _DYNAMIC [];
 
 #endif
 
+#ifndef elf_lib_check_arch
+#define elf_lib_check_arch(a)   (1)
+#endif
+
 /* Optional callbacks to write extra ELF notes. */
 struct file;
 

@@ -417,14 +417,20 @@ static int microMIPS32_to_MIPS32(union mips_instruction *insn_ptr)
 			case mm_mtc1_op:
 			case mm_cfc1_op:
 			case mm_ctc1_op:
+			case mm_mfhc1_op:
+			case mm_mthc1_op:
 				if (insn.mm_fp1_format.op == mm_mfc1_op)
 					op = mfc_op;
 				else if (insn.mm_fp1_format.op == mm_mtc1_op)
 					op = mtc_op;
 				else if (insn.mm_fp1_format.op == mm_cfc1_op)
 					op = cfc_op;
-				else
+				else if (insn.mm_fp1_format.op == mm_ctc1_op)
 					op = ctc_op;
+				else if (insn.mm_fp1_format.op == mm_mfhc1_op)
+					op = mfhc_op;
+				else
+					op = mthc_op;
 				mips32_insn.fp1_format.opcode = cop1_op;
 				mips32_insn.fp1_format.op = op;
 				mips32_insn.fp1_format.rt =
@@ -470,6 +476,9 @@ int mm_isBranchInstr(struct pt_regs *regs, struct mm_decoded_insn dec_insn,
 	int bc_false = 0;
 	unsigned int fcr31;
 	unsigned int bit;
+
+	if (!cpu_has_mmips)
+		return 0;
 
 	switch (insn.mm_i_format.opcode) {
 	case mm_pool32a_op:
@@ -859,30 +868,28 @@ static int isBranchInstr(struct pt_regs *regs, struct mm_decoded_insn dec_insn,
  */
 static inline int cop1_64bit(struct pt_regs *xcp)
 {
-#if defined(CONFIG_64BIT) && !defined(CONFIG_MIPS32_O32)
-	return 1;
-#elif defined(CONFIG_64BIT) && defined(CONFIG_MIPS32_O32)
 	return !test_thread_flag(TIF_32BIT_REGS);
-#else
-	return 0;
-#endif
 }
 
 #define SIFROMREG(si, x) ((si) = cop1_64bit(xcp) || !(x & 1) ? \
 			(int)ctx->fpr[x] : (int)(ctx->fpr[x & ~1] >> 32))
 
-#define SITOREG(si, x)	(ctx->fpr[x & ~(cop1_64bit(xcp) == 0)] = \
+#define SITOREG(si, x)	(ctx->fpr[x & ~(cop1_64bit(xcp) == 0 ? 1 : 0)] = \
 			cop1_64bit(xcp) || !(x & 1) ? \
 			ctx->fpr[x & ~1] >> 32 << 32 | (u32)(si) : \
 			ctx->fpr[x & ~1] << 32 >> 32 | (u64)(si) << 32)
 
-#define DIFROMREG(di, x) ((di) = ctx->fpr[x & ~(cop1_64bit(xcp) == 0)])
-#define DITOREG(di, x)	(ctx->fpr[x & ~(cop1_64bit(xcp) == 0)] = (di))
+#define DIFROMREG(di, x) ((di) = ctx->fpr[x & ~(cop1_64bit(xcp) == 0 ? 1 : 0)])
+#define DITOREG(di, x)	(ctx->fpr[x & ~(cop1_64bit(xcp) == 0 ? 1 : 0)] = (di))
 
 #define SPFROMREG(sp, x) SIFROMREG((sp).bits, x)
 #define SPTOREG(sp, x)	SITOREG((sp).bits, x)
 #define DPFROMREG(dp, x)	DIFROMREG((dp).bits, x)
 #define DPTOREG(dp, x)	DITOREG((dp).bits, x)
+
+#define SIFROMHREG(si, x)	((si) = (int)(ctx->fpr[x] >> 32))
+#define SITOHREG(si, x)		(ctx->fpr[x] = \
+				ctx->fpr[x] << 32 >> 32 | (u64)(si) << 32)
 
 /*
  * Emulate the single floating point instruction pointed at by EPC.
@@ -1050,6 +1057,21 @@ static int cop1Emulate(struct pt_regs *xcp, struct mips_fpu_struct *ctx,
 		case dmtc_op:
 			/* copregister fs <- rt */
 			DITOREG(xcp->regs[MIPSInst_RT(ir)], MIPSInst_RD(ir));
+			break;
+#endif
+
+#ifdef CONFIG_CPU_MIPSR2
+		case mfhc_op:
+			/* copregister rd -> gpr[rt] */
+			if (MIPSInst_RT(ir) != 0) {
+				SIFROMHREG(xcp->regs[MIPSInst_RT(ir)],
+					MIPSInst_RD(ir));
+			}
+			break;
+
+		case mthc_op:
+			/* copregister rd <- gpr[rt] */
+			SITOHREG(xcp->regs[MIPSInst_RT(ir)], MIPSInst_RD(ir));
 			break;
 #endif
 

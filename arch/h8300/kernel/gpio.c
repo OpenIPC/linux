@@ -157,6 +157,7 @@ static int gpio_proc_open(struct inode *inode, struct file *file)
 	return single_open(file, gpio_proc_show, PDE_DATA(inode));
 }
 
+sonil
 static const struct file_operations gpio_proc_fops = {
 	.open		= gpio_proc_open,
 	.read		= seq_read,
