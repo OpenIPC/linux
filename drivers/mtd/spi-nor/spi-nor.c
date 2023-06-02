@@ -1470,6 +1470,13 @@ static const struct flash_info spi_nor_ids[] = {
 		SPI_NOR_DUAL_READ), PARAMS(spansion), CLK_MHZ_2X(80) },
 	{ "FM25Q128-SOB-T-G",INFO(0xa14018, 0, 64 * 1024, 256,
 		SPI_NOR_DUAL_READ), PARAMS(spansion), CLK_MHZ_2X(80) },
+
+	/* BoyaMicro 3.3v */
+	{ "BY25Q64AS",INFO(0x684017, 0, 64 * 1024, 128,
+		SPI_NOR_DUAL_READ), PARAMS(spansion), CLK_MHZ_2X(80) },
+	{ "BY25Q128AS",INFO(0x684018, 0, 64 * 1024, 256,
+		SPI_NOR_DUAL_READ), PARAMS(spansion), CLK_MHZ_2X(80) },
+
 	{ },
 };
 
