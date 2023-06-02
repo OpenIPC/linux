@@ -91,6 +91,10 @@ struct jz_gpio_func_def platform_devio_array[] = {
 	#endif
 #endif
 
+#ifndef CONFIG_VIDEO_V4L2
+	MCLK_PORTE_BIT2,
+#endif
+
 #ifdef CONFIG_VIDEO_TX_ISP
 	MCLK_PORTE_BIT2,
 #endif

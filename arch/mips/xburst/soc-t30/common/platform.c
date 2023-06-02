@@ -49,7 +49,9 @@ struct jz_gpio_func_def platform_devio_array[] = {
 #ifdef CONFIG_I2C2_PC27_PC28
 		I2C2_PORTC,
 #endif
-
+#ifndef CONFIG_VIDEO_V4L2
+	MCLK_PORTA,
+#endif
 #ifdef CONFIG_SOC_MCLK
 	MCLK_PORTA,
 #endif
