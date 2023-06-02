@@ -34,7 +34,7 @@
 #define PERI_PMC85	(0x154)
 
 static void __iomem *pmc_base;
-static u32  pmc_phys_addr;
+static u32 __attribute__((used)) pmc_phys_addr;
 
 #define PMC_ADDRESS(reg)	(pmc_base + reg)
 /* set bitfield of reg from start bit to end - 1 bit */
