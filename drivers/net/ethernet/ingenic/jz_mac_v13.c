@@ -875,13 +875,13 @@ static int mii_probe(struct net_device *dev)
 			 PHY_INTERFACE_MODE_RMII);
 #elif defined(CONFIG_JZ_MAC_RGMII)
 	phydev = phy_connect(dev, dev_name(&phydev->dev), &jz_mac_adjust_link,
-			0, PHY_INTERFACE_MODE_RGMII);
+			 PHY_INTERFACE_MODE_RGMII);
 #elif defined(CONFIG_JZ_MAC_GMII)
 	phydev = phy_connect(dev, dev_name(&phydev->dev), &jz_mac_adjust_link,
-			0, PHY_INTERFACE_MODE_GMII);
+			 PHY_INTERFACE_MODE_GMII);
 #else
 	phydev = phy_connect(dev, dev_name(&phydev->dev), &jz_mac_adjust_link,
-			0, PHY_INTERFACE_MODE_MII);
+			 PHY_INTERFACE_MODE_MII);
 #endif
 
 	if (IS_ERR(phydev)) {
