@@ -151,6 +151,9 @@ struct cpufreq_policy {
 
 	/* For cpufreq driver's internal use */
 	void			*driver_data;
+
+	/* Pointer to the cooling device if used for thermal mitigation */
+	struct thermal_cooling_device *cdev;
 };
 
 /* Only for ACPI */
@@ -210,6 +213,7 @@ static inline unsigned int cpufreq_quick_get_max(unsigned int cpu)
 	return 0;
 }
 static inline void disable_cpufreq(void) { }
+static inline void cpufreq_update_policy(unsigned int cpu) { }
 #endif
 
 #ifdef CONFIG_CPU_FREQ_STAT
@@ -376,6 +380,12 @@ struct cpufreq_driver {
  * set.
  */
 #define CPUFREQ_NO_AUTO_DYNAMIC_SWITCHING (1 << 6)
+
+/*
+ * Set by drivers that want the core to automatically register the cpufreq
+ * driver as a thermal cooling device.
+ */
+#define CPUFREQ_IS_COOLING_DEV			BIT(7)
 
 int cpufreq_register_driver(struct cpufreq_driver *driver_data);
 int cpufreq_unregister_driver(struct cpufreq_driver *driver_data);
@@ -931,11 +941,29 @@ static inline bool policy_has_boost_freq(struct cpufreq_policy *policy)
 }
 #endif
 
+#if defined(CONFIG_ENERGY_MODEL) && defined(CONFIG_CPU_FREQ_GOV_SCHEDUTIL)
+void sched_cpufreq_governor_change(struct cpufreq_policy *policy,
+			struct cpufreq_governor *old_gov);
+#else
+static inline void sched_cpufreq_governor_change(struct cpufreq_policy *policy,
+			struct cpufreq_governor *old_gov) { }
+#endif
+
+#if defined(CONFIG_ARCH_ROCKCHIP) && defined(CONFIG_CPU_FREQ_GOV_INTERACTIVE)
+void cpufreq_task_boost(int cpu, unsigned long util);
+#else
+static inline void cpufreq_task_boost(int cpu, unsigned long util)
+{
+}
+#endif
+
 extern void arch_freq_prepare_all(void);
 extern unsigned int arch_freq_get_on_cpu(int cpu);
 
 extern void arch_set_freq_scale(struct cpumask *cpus, unsigned long cur_freq,
 				unsigned long max_freq);
+extern void arch_set_max_freq_scale(struct cpumask *cpus,
+				    unsigned long policy_max_freq);
 
 /* the following are really really optional */
 extern struct freq_attr cpufreq_freq_attr_scaling_available_freqs;
@@ -947,4 +975,13 @@ unsigned int cpufreq_generic_get(unsigned int cpu);
 int cpufreq_generic_init(struct cpufreq_policy *policy,
 		struct cpufreq_frequency_table *table,
 		unsigned int transition_latency);
+#ifdef CONFIG_ARM_ROCKCHIP_CPUFREQ
+unsigned int rockchip_cpufreq_adjust_target(int cpu, unsigned int freq);
+#else
+static inline unsigned int rockchip_cpufreq_adjust_target(int cpu,
+							  unsigned int freq)
+{
+	return freq;
+}
+#endif
 #endif /* _LINUX_CPUFREQ_H */

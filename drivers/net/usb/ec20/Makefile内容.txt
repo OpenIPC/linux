@@ -1,0 +1,1 @@
+obj-$(CONFIG_USB_NET_EC20_GOBINET) += qmi_wwan.o

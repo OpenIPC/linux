@@ -37,7 +37,8 @@ static void adc_keys_poll(struct input_polled_dev *dev)
 {
 	struct adc_keys_state *st = dev->private;
 	int i, value, ret;
-	u32 diff, closest = 0xffffffff;
+	//u32 diff, closest = 0xffffffff;
+	u32 diff, closest = 500;
 	int keycode = 0;
 
 	ret = iio_read_channel_processed(st->channel, &value);

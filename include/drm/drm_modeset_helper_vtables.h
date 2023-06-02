@@ -465,6 +465,11 @@ static inline void drm_crtc_helper_add(struct drm_crtc *crtc,
  */
 struct drm_encoder_helper_funcs {
 	/**
+	 * @loader_protect:
+	 * protect loader logo encoder's power.
+	 */
+	int (*loader_protect)(struct drm_encoder *encoder, bool on);
+	/**
 	 * @dpms:
 	 *
 	 * Callback to control power levels on the encoder.  If the mode passed in
@@ -781,6 +786,12 @@ static inline void drm_encoder_helper_add(struct drm_encoder *encoder,
  */
 struct drm_connector_helper_funcs {
 	/**
+	 * @loader_protect:
+	 *
+	 * protect loader logo connector's power
+	 */
+	int (*loader_protect)(struct drm_connector *connector, bool on);
+	/**
 	 * @get_modes:
 	 *
 	 * This function should fill in all modes currently valid for the sink
@@ -973,7 +984,7 @@ struct drm_connector_helper_funcs {
 	 * deadlock.
 	 */
 	int (*atomic_check)(struct drm_connector *connector,
-			    struct drm_connector_state *state);
+			    struct drm_atomic_state *state);
 
 	/**
 	 * @atomic_commit:

@@ -81,6 +81,53 @@ enum drm_connector_status {
 	connector_status_unknown = 3,
 };
 
+/**
+ * enum drm_connector_registration_status - userspace registration status for
+ * a &drm_connector
+ *
+ * This enum is used to track the status of initializing a connector and
+ * registering it with userspace, so that DRM can prevent bogus modesets on
+ * connectors that no longer exist.
+ */
+enum drm_connector_registration_state {
+	/**
+	 * @DRM_CONNECTOR_INITIALIZING: The connector has just been created,
+	 * but has yet to be exposed to userspace. There should be no
+	 * additional restrictions to how the state of this connector may be
+	 * modified.
+	 */
+	DRM_CONNECTOR_INITIALIZING = 0,
+
+	/**
+	 * @DRM_CONNECTOR_REGISTERED: The connector has been fully initialized
+	 * and registered with sysfs, as such it has been exposed to
+	 * userspace. There should be no additional restrictions to how the
+	 * state of this connector may be modified.
+	 */
+	DRM_CONNECTOR_REGISTERED = 1,
+
+	/**
+	 * @DRM_CONNECTOR_UNREGISTERED: The connector has either been exposed
+	 * to userspace and has since been unregistered and removed from
+	 * userspace, or the connector was unregistered before it had a chance
+	 * to be exposed to userspace (e.g. still in the
+	 * @DRM_CONNECTOR_INITIALIZING state). When a connector is
+	 * unregistered, there are additional restrictions to how its state
+	 * may be modified:
+	 *
+	 * - An unregistered connector may only have its DPMS changed from
+	 *   On->Off. Once DPMS is changed to Off, it may not be switched back
+	 *   to On.
+	 * - Modesets are not allowed on unregistered connectors, unless they
+	 *   would result in disabling its assigned CRTCs. This means
+	 *   disabling a CRTC on an unregistered connector is OK, but enabling
+	 *   one is not.
+	 * - Removing a CRTC from an unregistered connector is OK, but new
+	 *   CRTCs may never be assigned to an unregistered connector.
+	 */
+	DRM_CONNECTOR_UNREGISTERED = 2,
+};
+
 enum subpixel_order {
 	SubPixelUnknown = 0,
 	SubPixelHorizontalRGB,
@@ -158,6 +205,9 @@ struct drm_hdmi_info {
 
 	/** @y420_dc_modes: bitmap of deep color support index */
 	u8 y420_dc_modes;
+
+	/* @colorimetry: bitmap of supported colorimetry modes */
+	u16 colorimetry;
 };
 
 /**
@@ -282,18 +332,46 @@ struct drm_display_info {
 
 #define DRM_BUS_FLAG_DE_LOW		(1<<0)
 #define DRM_BUS_FLAG_DE_HIGH		(1<<1)
-/* drive data on pos. edge */
+
+/*
+ * Don't use those two flags directly, use the DRM_BUS_FLAG_PIXDATA_DRIVE_*
+ * and DRM_BUS_FLAG_PIXDATA_SAMPLE_* variants to qualify the flags explicitly.
+ * The DRM_BUS_FLAG_PIXDATA_SAMPLE_* flags are defined as the opposite of the
+ * DRM_BUS_FLAG_PIXDATA_DRIVE_* flags to make code simpler, as signals are
+ * usually to be sampled on the opposite edge of the driving edge.
+ */
 #define DRM_BUS_FLAG_PIXDATA_POSEDGE	(1<<2)
-/* drive data on neg. edge */
 #define DRM_BUS_FLAG_PIXDATA_NEGEDGE	(1<<3)
+
+/* Drive data on rising edge */
+#define DRM_BUS_FLAG_PIXDATA_DRIVE_POSEDGE	DRM_BUS_FLAG_PIXDATA_POSEDGE
+/* Drive data on falling edge */
+#define DRM_BUS_FLAG_PIXDATA_DRIVE_NEGEDGE	DRM_BUS_FLAG_PIXDATA_NEGEDGE
+/* Sample data on rising edge */
+#define DRM_BUS_FLAG_PIXDATA_SAMPLE_POSEDGE	DRM_BUS_FLAG_PIXDATA_NEGEDGE
+/* Sample data on falling edge */
+#define DRM_BUS_FLAG_PIXDATA_SAMPLE_NEGEDGE	DRM_BUS_FLAG_PIXDATA_POSEDGE
+
 /* data is transmitted MSB to LSB on the bus */
 #define DRM_BUS_FLAG_DATA_MSB_TO_LSB	(1<<4)
 /* data is transmitted LSB to MSB on the bus */
 #define DRM_BUS_FLAG_DATA_LSB_TO_MSB	(1<<5)
-/* drive sync on pos. edge */
+
+/*
+ * Similarly to the DRM_BUS_FLAG_PIXDATA_* flags, don't use these two flags
+ * directly, use one of the DRM_BUS_FLAG_SYNC_(DRIVE|SAMPLE)_* instead.
+ */
 #define DRM_BUS_FLAG_SYNC_POSEDGE	(1<<6)
-/* drive sync on neg. edge */
 #define DRM_BUS_FLAG_SYNC_NEGEDGE	(1<<7)
+
+/* Drive sync on rising edge */
+#define DRM_BUS_FLAG_SYNC_DRIVE_POSEDGE		DRM_BUS_FLAG_SYNC_POSEDGE
+/* Drive sync on falling edge */
+#define DRM_BUS_FLAG_SYNC_DRIVE_NEGEDGE		DRM_BUS_FLAG_SYNC_NEGEDGE
+/* Sample sync on rising edge */
+#define DRM_BUS_FLAG_SYNC_SAMPLE_POSEDGE	DRM_BUS_FLAG_SYNC_NEGEDGE
+/* Sample sync on falling edge */
+#define DRM_BUS_FLAG_SYNC_SAMPLE_NEGEDGE	DRM_BUS_FLAG_SYNC_POSEDGE
 
 	/**
 	 * @bus_flags: Additional information (like pixel signal polarity) for
@@ -460,6 +538,14 @@ struct drm_connector_state {
 	 * drm_writeback_signal_completion()
 	 */
 	struct drm_writeback_job *writeback_job;
+
+	/**
+	 * @hdr_output_metadata:
+	 * DRM blob property for HDR output metadata
+	 */
+	struct drm_property_blob *hdr_output_metadata;
+
+	struct drm_property_blob *hdr_panel_blob_ptr;
 };
 
 /**
@@ -852,10 +938,12 @@ struct drm_connector {
 	bool ycbcr_420_allowed;
 
 	/**
-	 * @registered: Is this connector exposed (registered) with userspace?
+	 * @registration_state: Is this connector initializing, exposed
+	 * (registered) with userspace, or unregistered?
+	 *
 	 * Protected by @mutex.
 	 */
-	bool registered;
+	enum drm_connector_registration_state registration_state;
 
 	/**
 	 * @modes:
@@ -982,6 +1070,11 @@ struct drm_connector {
 	 * need the CRTC driving this output, &drm_connector_state.crtc.
 	 */
 	struct drm_encoder *encoder;
+	/**
+	 * @loader_protect:
+	 * connector loader logo protect state.
+	 */
+	bool loader_protect;
 
 #define MAX_ELD_BYTES	128
 	/** @eld: EDID-like data, if present */
@@ -1075,6 +1168,8 @@ struct drm_connector {
 	 * &drm_mode_config.connector_free_work.
 	 */
 	struct llist_node free_node;
+
+	struct hdr_sink_metadata hdr_sink_metadata;
 };
 
 #define obj_to_connector(x) container_of(x, struct drm_connector, base)
@@ -1083,6 +1178,7 @@ int drm_connector_init(struct drm_device *dev,
 		       struct drm_connector *connector,
 		       const struct drm_connector_funcs *funcs,
 		       int connector_type);
+void drm_connector_attach_edid_property(struct drm_connector *connector);
 int drm_connector_register(struct drm_connector *connector);
 void drm_connector_unregister(struct drm_connector *connector);
 int drm_connector_attach_encoder(struct drm_connector *connector,
@@ -1165,6 +1261,24 @@ static inline void drm_connector_unreference(struct drm_connector *connector)
 	drm_connector_put(connector);
 }
 
+/**
+ * drm_connector_is_unregistered - has the connector been unregistered from
+ * userspace?
+ * @connector: DRM connector
+ *
+ * Checks whether or not @connector has been unregistered from userspace.
+ *
+ * Returns:
+ * True if the connector was unregistered, false if the connector is
+ * registered or has not yet been registered with userspace.
+ */
+static inline bool
+drm_connector_is_unregistered(struct drm_connector *connector)
+{
+	return READ_ONCE(connector->registration_state) ==
+		DRM_CONNECTOR_UNREGISTERED;
+}
+
 const char *drm_get_connector_status_name(enum drm_connector_status status);
 const char *drm_get_subpixel_order_name(enum subpixel_order order);
 const char *drm_get_dpms_name(int val);
@@ -1173,6 +1287,7 @@ const char *drm_get_dvi_i_select_name(int val);
 const char *drm_get_tv_subconnector_name(int val);
 const char *drm_get_tv_select_name(int val);
 const char *drm_get_content_protection_name(int val);
+const char *drm_get_connector_name(int val);
 
 int drm_mode_create_dvi_i_properties(struct drm_device *dev);
 int drm_mode_create_tv_properties(struct drm_device *dev,

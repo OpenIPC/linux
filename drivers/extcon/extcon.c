@@ -33,6 +33,9 @@
 #include <linux/sysfs.h>
 
 #include "extcon.h"
+#ifdef CONFIG_ARCH_ROCKCHIP
+#include "../base/base.h"
+#endif
 
 #define SUPPORTED_CABLE_MAX	32
 
@@ -58,6 +61,11 @@ static const struct __extcon_info {
 		.type = EXTCON_TYPE_USB,
 		.id = EXTCON_USB_HOST,
 		.name = "USB-HOST",
+	},
+	[EXTCON_USB_VBUS_EN] = {
+		.type = EXTCON_TYPE_USB,
+		.id = EXTCON_USB_VBUS_EN,
+		.name = "USB_VBUS_EN",
 	},
 
 	/* Charging external connector */
@@ -1073,6 +1081,19 @@ void extcon_dev_free(struct extcon_dev *edev)
 }
 EXPORT_SYMBOL_GPL(extcon_dev_free);
 
+#ifdef CONFIG_ARCH_ROCKCHIP
+static const char *extcon_get_link_name(struct extcon_dev *edev)
+{
+	const char *dot = strchr(edev->name, '.');
+	const char *name = dot + 1;
+
+	if (!dot || !name || !(*name))
+		name = edev->name;
+
+	return name;
+}
+#endif
+
 /**
  * extcon_dev_register() - Register an new extcon device
  * @edev:	the extcon device to be registered
@@ -1271,6 +1292,18 @@ int extcon_dev_register(struct extcon_dev *edev)
 	list_add(&edev->entry, &extcon_dev_list);
 	mutex_unlock(&extcon_dev_list_lock);
 
+#ifdef CONFIG_ARCH_ROCKCHIP
+	{
+		const char *name = extcon_get_link_name(edev);
+
+		ret = sysfs_create_link(&edev->dev.class->p->subsys.kobj,
+					&edev->dev.kobj, name);
+		if (ret)
+			dev_err(&edev->dev,
+				"failed to create extcon %s link\n", name);
+	}
+#endif
+
 	return 0;
 
 err_dev:
@@ -1317,6 +1350,11 @@ void extcon_dev_unregister(struct extcon_dev *edev)
 				dev_name(&edev->dev));
 		return;
 	}
+
+#ifdef CONFIG_ARCH_ROCKCHIP
+	sysfs_delete_link(&edev->dev.class->p->subsys.kobj,
+			  &edev->dev.kobj, extcon_get_link_name(edev));
+#endif
 
 	device_unregister(&edev->dev);
 

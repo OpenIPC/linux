@@ -177,6 +177,7 @@ const char *pin_get_name(struct pinctrl_dev *pctldev, const unsigned pin)
 
 	return desc->name;
 }
+EXPORT_SYMBOL_GPL(pin_get_name);
 
 /**
  * pin_is_valid() - check if pin exists on controller
@@ -2263,4 +2264,8 @@ static int __init pinctrl_init(void)
 }
 
 /* init early since many drivers really need to initialized pinmux early */
+#ifdef CONFIG_ROCKCHIP_THUNDER_BOOT
+core_initcall_sync(pinctrl_init);
+#else
 core_initcall(pinctrl_init);
+#endif

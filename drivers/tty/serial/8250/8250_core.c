@@ -561,6 +561,7 @@ static void __init serial8250_isa_init_ports(void)
 static void __init
 serial8250_register_ports(struct uart_driver *drv, struct device *dev)
 {
+#ifndef CONFIG_ARCH_ROCKCHIP
 	int i;
 
 	for (i = 0; i < nr_uarts; i++) {
@@ -577,6 +578,7 @@ serial8250_register_ports(struct uart_driver *drv, struct device *dev)
 		serial8250_apply_quirks(up);
 		uart_add_one_port(drv, &up->port);
 	}
+#endif
 }
 
 #ifdef CONFIG_SERIAL_8250_CONSOLE
@@ -1008,7 +1010,9 @@ int serial8250_register_8250_port(struct uart_8250_port *up)
 		uart->port.rs485_config	= up->port.rs485_config;
 		uart->port.rs485	= up->port.rs485;
 		uart->dma		= up->dma;
-
+#ifdef CONFIG_ARCH_ROCKCHIP
+		uart->port.line		= up->port.line;
+#endif
 		/* Take tx_loadsz from fifosize if it wasn't set separately */
 		if (uart->port.fifosize && !uart->tx_loadsz)
 			uart->tx_loadsz = uart->port.fifosize;
@@ -1207,7 +1211,11 @@ static void __exit serial8250_exit(void)
 #endif
 }
 
+#ifdef CONFIG_ROCKCHIP_THUNDER_BOOT
+rootfs_initcall(serial8250_init);
+#else
 module_init(serial8250_init);
+#endif
 module_exit(serial8250_exit);
 
 MODULE_LICENSE("GPL");

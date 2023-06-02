@@ -897,6 +897,10 @@
 			The filter can be disabled or changed to another
 			driver later using sysfs.
 
+	driver_async_probe=  [KNL]
+			List of driver names to be probed asynchronously.
+			Format: <driver_name1>,<driver_name2>...
+
 	drm.edid_firmware=[<connector>:]<file>[,[<connector>:]<file>]
 			Broken monitors, graphic adapters, KVMs and EDIDless
 			panels may send no or incorrect EDID data sets.
@@ -1630,6 +1634,15 @@
 			modules and initcalls.
 
 	initrd=		[BOOT] Specify the location of the initial ramdisk
+
+	init_on_alloc=	[MM] Fill newly allocated pages and heap objects with
+			zeroes.
+			Format: 0 | 1
+			Default set by CONFIG_INIT_ON_ALLOC_DEFAULT_ON.
+
+	init_on_free=	[MM] Fill freed pages and heap objects with zeroes.
+			Format: 0 | 1
+			Default set by CONFIG_INIT_ON_FREE_DEFAULT_ON.
 
 	init_pkru=	[x86] Specify the default memory protection keys rights
 			register contents for all processes.  0x55555554 by
@@ -3108,6 +3121,12 @@
 			This can be set from sysctl after boot.
 			See Documentation/sysctl/vm.txt for details.
 
+	of_devlink	[OF, KNL] Create device links between consumer and
+			supplier devices by scanning the devictree to infer the
+			consumer/supplier relationships.  A consumer device
+			will not be probed until all the supplier devices have
+			probed successfully.
+
 	ohci1394_dma=early	[HW] enable debugging via the ohci1394 driver.
 			See Documentation/debugging-via-ohci1394.txt for more
 			info.
@@ -3584,6 +3603,10 @@
 	prompt_ramdisk=	[RAM] List of RAM disks to prompt for floppy disk
 			before loading.
 			See Documentation/blockdev/ramdisk.txt.
+
+	psi=		[KNL] Enable or disable pressure stall information
+			tracking.
+			Format: <bool>
 
 	psmouse.proto=	[HW,MOUSE] Highest PS2 mouse protocol extension to
 			probe for; one of (bare|imps|exps|lifebook|any).

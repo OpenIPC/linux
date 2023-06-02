@@ -57,6 +57,10 @@ KBUILD_AFLAGS	+= $(lseinstr) $(brokengasinst)
 KBUILD_CFLAGS	+= $(call cc-option,-mabi=lp64)
 KBUILD_AFLAGS	+= $(call cc-option,-mabi=lp64)
 
+ifeq ($(CONFIG_SHADOW_CALL_STACK), y)
+KBUILD_CFLAGS	+= -ffixed-x18
+endif
+
 ifeq ($(CONFIG_CPU_BIG_ENDIAN), y)
 KBUILD_CPPFLAGS	+= -mbig-endian
 CHECKFLAGS	+= -D__AARCH64EB__
@@ -92,10 +96,19 @@ else
 TEXT_OFFSET := 0x00080000
 endif
 
+ifeq ($(CONFIG_KASAN_SW_TAGS), y)
+KASAN_SHADOW_SCALE_SHIFT := 4
+else
+KASAN_SHADOW_SCALE_SHIFT := 3
+endif
+
+KBUILD_CFLAGS += -DKASAN_SHADOW_SCALE_SHIFT=$(KASAN_SHADOW_SCALE_SHIFT)
+KBUILD_CPPFLAGS += -DKASAN_SHADOW_SCALE_SHIFT=$(KASAN_SHADOW_SCALE_SHIFT)
+KBUILD_AFLAGS += -DKASAN_SHADOW_SCALE_SHIFT=$(KASAN_SHADOW_SCALE_SHIFT)
+
 # KASAN_SHADOW_OFFSET = VA_START + (1 << (VA_BITS - KASAN_SHADOW_SCALE_SHIFT))
 #				 - (1 << (64 - KASAN_SHADOW_SCALE_SHIFT))
 # in 32-bit arithmetic
-KASAN_SHADOW_SCALE_SHIFT := 3
 KASAN_SHADOW_OFFSET := $(shell printf "0x%08x00000000\n" $$(( \
 	(0xffffffff & (-1 << ($(CONFIG_ARM64_VA_BITS) - 32))) \
 	+ (1 << ($(CONFIG_ARM64_VA_BITS) - 32 - $(KASAN_SHADOW_SCALE_SHIFT))) \
@@ -171,3 +184,19 @@ define archhelp
   echo  '                  (distribution) /sbin/installkernel or'
   echo  '                  install to $$(INSTALL_PATH) and run lilo'
 endef
+
+kernel.img: Image.lz4
+	$(Q)scripts/mkkrnlimg $(objtree)/arch/arm64/boot/Image $(objtree)/kernel.img >/dev/null
+	@echo '  Image:  kernel.img is ready'
+ifdef CONFIG_MODULES
+	$(Q)if [ "$(srctree)" = "$(objtree)" ]; then $(MAKE) modules; fi
+endif
+
+LOGO := $(notdir $(wildcard $(srctree)/logo.bmp))
+LOGO_KERNEL := $(notdir $(wildcard $(srctree)/logo_kernel.bmp))
+
+%.img: rockchip/%.dtb kernel.img $(LOGO) $(LOGO_KERNEL)
+	$(Q)$(srctree)/scripts/mkimg --dtb $*.dtb
+
+CLEAN_DIRS += out
+CLEAN_FILES += boot.img kernel.img resource.img zboot.img

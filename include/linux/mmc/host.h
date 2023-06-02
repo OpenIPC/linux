@@ -140,6 +140,7 @@ struct mmc_host_ops {
 
 	/* Check if the card is pulling dat[0:3] low */
 	int	(*card_busy)(struct mmc_host *host);
+	int     (*set_sdio_status)(struct mmc_host *host, int val);
 
 	/* The tuning command opcode value is different for SD and eMMC cards */
 	int	(*execute_tuning)(struct mmc_host *host, u32 opcode);
@@ -367,10 +368,21 @@ struct mmc_host {
 #define MMC_CAP2_CQE		(1 << 23)	/* Has eMMC command queue engine */
 #define MMC_CAP2_CQE_DCMD	(1 << 24)	/* CQE can issue a direct command */
 #define MMC_CAP2_AVOID_3_3V	(1 << 25)	/* Host must negotiate down from 3.3V */
+#define MMC_CAP2_CRYPTO		(1 << 27)	/* Host supports inline encryption */
 
 	int			fixed_drv_type;	/* fixed driver type for non-removable media */
 
 	mmc_pm_flag_t		pm_caps;	/* supported pm features */
+	u32			restrict_caps;  /* Indicate slot specific card type */
+#define RESTRICT_CARD_TYPE_SD   (1 << 0)        /* Can support Secure-Digital Card */
+#define RESTRICT_CARD_TYPE_SDIO (1 << 1)        /* Can support Secure-Digital I/O Card or Combo-Mem */
+#define RESTRICT_CARD_TYPE_EMMC (1 << 2)        /* Can support embedded Multi-Media Card */
+
+#ifdef CONFIG_SDIO_KEEPALIVE
+	bool		support_chip_alive;
+	bool		chip_alive;
+	bool		logic_remove_card;
+#endif
 
 	/* host specific block data */
 	unsigned int		max_seg_size;	/* see blk_queue_max_segment_size */
@@ -458,6 +470,9 @@ struct mmc_host {
 	int			cqe_qdepth;
 	bool			cqe_enabled;
 	bool			cqe_on;
+#ifdef CONFIG_MMC_CRYPTO
+	struct keyslot_manager	*ksm;
+#endif /* CONFIG_MMC_CRYPTO */
 
 	unsigned long		private[0] ____cacheline_aligned;
 };
@@ -470,6 +485,9 @@ void mmc_remove_host(struct mmc_host *);
 void mmc_free_host(struct mmc_host *);
 int mmc_of_parse(struct mmc_host *host);
 int mmc_of_parse_voltage(struct device_node *np, u32 *mask);
+
+extern struct mmc_host *primary_sdio_host;
+int mmc_host_rescan(struct mmc_host *host, int val, int is_cap_sdio_irq);
 
 static inline void *mmc_priv(struct mmc_host *host)
 {
@@ -586,5 +604,7 @@ static inline enum dma_data_direction mmc_get_dma_dir(struct mmc_data *data)
 
 int mmc_send_tuning(struct mmc_host *host, u32 opcode, int *cmd_error);
 int mmc_abort_tuning(struct mmc_host *host, u32 opcode);
+void mmc_retune_enable(struct mmc_host *host);
+void mmc_retune_disable(struct mmc_host *host);
 
 #endif /* LINUX_MMC_HOST_H */

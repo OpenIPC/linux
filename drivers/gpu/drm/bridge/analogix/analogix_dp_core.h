@@ -38,6 +38,8 @@
 #define DPCD_VOLTAGE_SWING_SET(x)		(((x) & 0x3) << 0)
 #define DPCD_VOLTAGE_SWING_GET(x)		(((x) >> 0) & 0x3)
 
+struct gpio_desc;
+
 enum link_lane_count_type {
 	LANE_COUNT1 = 1,
 	LANE_COUNT2 = 2,
@@ -131,6 +133,7 @@ enum dp_irq_type {
 
 struct video_info {
 	char *name;
+	struct drm_display_mode mode;
 
 	bool h_sync_polarity;
 	bool v_sync_polarity;
@@ -143,6 +146,8 @@ struct video_info {
 
 	int max_link_rate;
 	enum link_lane_count_type max_lane_count;
+
+	bool video_bist_enable;
 };
 
 struct link_train {
@@ -171,13 +176,13 @@ struct analogix_dp_device {
 	struct link_train	link_train;
 	struct phy		*phy;
 	int			dpms_mode;
-	int			hpd_gpio;
+	struct gpio_desc	*hpd_gpiod;
 	bool                    force_hpd;
 	bool			psr_enable;
 	bool			fast_train_enable;
 
 	struct mutex		panel_lock;
-	bool			panel_is_modeset;
+	bool			panel_is_prepared;
 
 	struct analogix_dp_plat_data *plat_data;
 };
@@ -257,5 +262,7 @@ int analogix_dp_send_psr_spd(struct analogix_dp_device *dp,
 			     struct edp_vsc_psr *vsc, bool blocking);
 ssize_t analogix_dp_transfer(struct analogix_dp_device *dp,
 			     struct drm_dp_aux_msg *msg);
+void analogix_dp_set_video_format(struct analogix_dp_device *dp);
+void analogix_dp_video_bist_enable(struct analogix_dp_device *dp);
 
 #endif /* _ANALOGIX_DP_CORE_H */

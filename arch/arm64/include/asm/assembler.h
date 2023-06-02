@@ -23,6 +23,8 @@
 #ifndef __ASM_ASSEMBLER_H
 #define __ASM_ASSEMBLER_H
 
+#include <asm-generic/export.h>
+
 #include <asm/asm-offsets.h>
 #include <asm/cpufeature.h>
 #include <asm/debug-monitors.h>
@@ -135,6 +137,14 @@
 	bic	\tmp, \tmp, \idx
 	and	\idx, \idx, \tmp, asr #63
 	csdb
+	.endm
+
+/*
+ * Speculation barrier
+ */
+	.macro	sb
+	dsb	nsh
+	isb
 	.endm
 
 /*
@@ -488,6 +498,13 @@ USER(\label, ic	ivau, \tmp2)			// invalidate I line PoU
 #else
 #define NOKPROBE(x)
 #endif
+
+#ifdef CONFIG_KASAN
+#define EXPORT_SYMBOL_NOKASAN(name)
+#else
+#define EXPORT_SYMBOL_NOKASAN(name)	EXPORT_SYMBOL(name)
+#endif
+
 	/*
 	 * Emit a 64-bit absolute little endian symbol reference in a way that
 	 * ensures that it will be resolved at build time, even when building a

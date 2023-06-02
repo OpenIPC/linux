@@ -12,12 +12,14 @@
 #include <linux/usb/ch9.h>
 #include <linux/usb/gadget.h>
 #include <linux/usb/video.h>
+#include <linux/pm_qos.h>
 
 #include <media/v4l2-dev.h>
 
 #include "uvc.h"
 #include "uvc_queue.h"
 #include "uvc_video.h"
+#include "u_uvc.h"
 
 /* --------------------------------------------------------------------------
  * Video codecs
@@ -87,6 +89,7 @@ uvc_video_encode_bulk(struct usb_request *req, struct uvc_video *video,
 		video->fid ^= UVC_STREAM_FID;
 
 		video->payload_size = 0;
+		req->zero = 1;
 	}
 
 	if (video->payload_size == video->max_payload_size ||
@@ -133,7 +136,7 @@ static int uvcg_video_ep_queue(struct uvc_video *video, struct usb_request *req)
 	if (ret < 0) {
 		printk(KERN_INFO "Failed to queue request (%d).\n", ret);
 		/* Isochronous endpoints can't be halted. */
-		if (usb_endpoint_xfer_bulk(video->ep->desc))
+		if (video->ep->desc && usb_endpoint_xfer_bulk(video->ep->desc))
 			usb_ep_set_halt(video->ep);
 	}
 
@@ -224,8 +227,13 @@ static int
 uvc_video_free_requests(struct uvc_video *video)
 {
 	unsigned int i;
+	struct uvc_device *uvc;
+	struct f_uvc_opts *opts;
 
-	for (i = 0; i < UVC_NUM_REQUESTS; ++i) {
+	uvc = container_of(video, struct uvc_device, video);
+	opts = fi_to_f_uvc_opts(uvc->func.fi);
+
+	for (i = 0; i < opts->uvc_num_request; ++i) {
 		if (video->req[i]) {
 			usb_ep_free_request(video->ep, video->req[i]);
 			video->req[i] = NULL;
@@ -248,14 +256,24 @@ uvc_video_alloc_requests(struct uvc_video *video)
 	unsigned int req_size;
 	unsigned int i;
 	int ret = -ENOMEM;
+	struct uvc_device *uvc;
+	struct f_uvc_opts *opts;
+
+	uvc = container_of(video, struct uvc_device, video);
+	opts = fi_to_f_uvc_opts(uvc->func.fi);
 
 	BUG_ON(video->req_size);
 
-	req_size = video->ep->maxpacket
-		 * max_t(unsigned int, video->ep->maxburst, 1)
-		 * (video->ep->mult);
+	if (!usb_endpoint_xfer_bulk(video->ep->desc)) {
+		req_size = video->ep->maxpacket
+			 * max_t(unsigned int, video->ep->maxburst, 1)
+			 * (video->ep->mult);
+	} else {
+		req_size = video->ep->maxpacket
+			 * max_t(unsigned int, video->ep->maxburst, 1);
+	}
 
-	for (i = 0; i < UVC_NUM_REQUESTS; ++i) {
+	for (i = 0; i < opts->uvc_num_request; ++i) {
 		video->req_buffer[i] = kmalloc(req_size, GFP_KERNEL);
 		if (video->req_buffer[i] == NULL)
 			goto error;
@@ -352,6 +370,8 @@ int uvcg_video_enable(struct uvc_video *video, int enable)
 {
 	unsigned int i;
 	int ret;
+	struct uvc_device *uvc;
+	struct f_uvc_opts *opts;
 
 	if (video->ep == NULL) {
 		printk(KERN_INFO "Video enable failed, device is "
@@ -359,16 +379,23 @@ int uvcg_video_enable(struct uvc_video *video, int enable)
 		return -ENODEV;
 	}
 
+	uvc = container_of(video, struct uvc_device, video);
+	opts = fi_to_f_uvc_opts(uvc->func.fi);
+
 	if (!enable) {
-		for (i = 0; i < UVC_NUM_REQUESTS; ++i)
+		for (i = 0; i < opts->uvc_num_request; ++i)
 			if (video->req[i])
 				usb_ep_dequeue(video->ep, video->req[i]);
 
 		uvc_video_free_requests(video);
 		uvcg_queue_enable(&video->queue, 0);
+		if (pm_qos_request_active(&uvc->pm_qos))
+			pm_qos_remove_request(&uvc->pm_qos);
 		return 0;
 	}
 
+	pm_qos_add_request(&uvc->pm_qos, PM_QOS_CPU_DMA_LATENCY,
+			   opts->pm_qos_latency);
 	if ((ret = uvcg_queue_enable(&video->queue, 1)) < 0)
 		return ret;
 

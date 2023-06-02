@@ -47,6 +47,10 @@ extern int register_restart_handler(struct notifier_block *);
 extern int unregister_restart_handler(struct notifier_block *);
 extern void do_kernel_restart(char *cmd);
 
+extern int register_pre_restart_handler(struct notifier_block *);
+extern int unregister_pre_restart_handler(struct notifier_block *);
+extern void do_kernel_pre_restart(char *cmd);
+
 /*
  * Architecture-specific implementations of sys_reboot commands.
  */

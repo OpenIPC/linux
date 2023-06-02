@@ -106,6 +106,7 @@ extern char core_pattern[];
 extern unsigned int core_pipe_limit;
 #endif
 extern int pid_max;
+extern int extra_free_kbytes;
 extern int pid_max_min, pid_max_max;
 extern int percpu_pagelist_fraction;
 extern int latencytop_enabled;
@@ -323,6 +324,13 @@ static struct ctl_table kern_table[] = {
 	},
 #ifdef CONFIG_SCHED_DEBUG
 	{
+		.procname       = "sched_cstate_aware",
+		.data           = &sysctl_sched_cstate_aware,
+		.maxlen         = sizeof(unsigned int),
+		.mode           = 0644,
+		.proc_handler   = proc_dointvec,
+	},
+	{
 		.procname	= "sched_min_granularity_ns",
 		.data		= &sysctl_sched_min_granularity,
 		.maxlen		= sizeof(unsigned int),
@@ -339,6 +347,13 @@ static struct ctl_table kern_table[] = {
 		.proc_handler	= sched_proc_update_handler,
 		.extra1		= &min_sched_granularity_ns,
 		.extra2		= &max_sched_granularity_ns,
+	},
+	{
+		.procname	= "sched_sync_hint_enable",
+		.data		= &sysctl_sched_sync_hint_enable,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec,
 	},
 	{
 		.procname	= "sched_wakeup_granularity_ns",
@@ -447,6 +462,22 @@ static struct ctl_table kern_table[] = {
 		.mode		= 0644,
 		.proc_handler	= sched_rr_handler,
 	},
+#ifdef CONFIG_UCLAMP_TASK
+	{
+		.procname	= "sched_util_clamp_min",
+		.data		= &sysctl_sched_uclamp_util_min,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0644,
+		.proc_handler	= sysctl_sched_uclamp_handler,
+	},
+	{
+		.procname	= "sched_util_clamp_max",
+		.data		= &sysctl_sched_uclamp_util_max,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0644,
+		.proc_handler	= sysctl_sched_uclamp_handler,
+	},
+#endif
 #ifdef CONFIG_SCHED_AUTOGROUP
 	{
 		.procname	= "sched_autogroup_enabled",
@@ -466,6 +497,26 @@ static struct ctl_table kern_table[] = {
 		.mode		= 0644,
 		.proc_handler	= proc_dointvec_minmax,
 		.extra1		= &one,
+	},
+#endif
+#ifdef CONFIG_ROCKCHIP_SCHED_PERFORMANCE_BIAS
+	{
+		.procname	= "sched_performance_bias",
+		.data		= &sysctl_sched_performance_bias,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec,
+	},
+#endif
+#if defined(CONFIG_ENERGY_MODEL) && defined(CONFIG_CPU_FREQ_GOV_SCHEDUTIL)
+	{
+		.procname	= "sched_energy_aware",
+		.data		= &sysctl_sched_energy_aware,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0644,
+		.proc_handler	= sched_energy_aware_handler,
+		.extra1		= &zero,
+		.extra2		= &one,
 	},
 #endif
 #ifdef CONFIG_PROVE_LOCKING
@@ -1460,6 +1511,14 @@ static struct ctl_table vm_table[] = {
 		.proc_handler	= watermark_scale_factor_sysctl_handler,
 		.extra1		= &one,
 		.extra2		= &one_thousand,
+	},
+	{
+		.procname	= "extra_free_kbytes",
+		.data		= &extra_free_kbytes,
+		.maxlen		= sizeof(extra_free_kbytes),
+		.mode		= 0644,
+		.proc_handler	= min_free_kbytes_sysctl_handler,
+		.extra1		= &zero,
 	},
 	{
 		.procname	= "percpu_pagelist_fraction",

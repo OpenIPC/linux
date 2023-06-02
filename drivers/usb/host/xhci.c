@@ -17,6 +17,7 @@
 #include <linux/slab.h>
 #include <linux/dmi.h>
 #include <linux/dma-mapping.h>
+#include <linux/usb/quirks.h>
 
 #include "xhci.h"
 #include "xhci-trace.h"
@@ -773,6 +774,15 @@ void xhci_shutdown(struct usb_hcd *hcd)
 {
 	struct xhci_hcd *xhci = hcd_to_xhci(hcd);
 
+	if (!hcd->rh_registered)
+		return;
+
+	/* Don't poll the roothubs on shutdown */
+	clear_bit(HCD_FLAG_POLL_RH, &hcd->flags);
+	del_timer_sync(&hcd->rh_timer);
+	clear_bit(HCD_FLAG_POLL_RH, &xhci->shared_hcd->flags);
+	del_timer_sync(&xhci->shared_hcd->rh_timer);
+
 	if (xhci->quirks & XHCI_SPURIOUS_REBOOT)
 		usb_disable_xhci_ports(to_pci_dev(hcd->self.sysdev));
 
@@ -951,6 +961,26 @@ static bool xhci_pending_portevent(struct xhci_hcd *xhci)
 	return false;
 }
 
+static void xhci_warm_port_reset_quirk(struct xhci_hcd *xhci)
+{
+	struct xhci_port	**ports;
+	int			port_index;
+	u32			portsc;
+
+	port_index = xhci->usb3_rhub.num_ports;
+	ports = xhci->usb3_rhub.ports;
+	while (port_index--) {
+		portsc = readl(ports[port_index]->addr);
+		/* Do warm port reset if no USB3 device connected */
+		if (!(portsc & PORT_CONNECT)) {
+			portsc |= PORT_WR;
+			writel(portsc, ports[port_index]->addr);
+			/* flush write */
+			readl(ports[port_index]->addr);
+		}
+	}
+}
+
 /*
  * Stop HC (not bus-specific)
  *
@@ -977,6 +1007,13 @@ int xhci_suspend(struct xhci_hcd *xhci, bool do_wakeup)
 	/* Clear root port wake on bits if wakeup not allowed. */
 	if (!do_wakeup)
 		xhci_disable_port_wake_on_bits(xhci);
+
+	/*
+	 * Do a warm reset for USB3 port to resets the USB3 link,
+	 * forcing the link to enter the Rx.Detect state.
+	 */
+	if (xhci->quirks & XHCI_WARM_RESET_ON_SUSPEND)
+		xhci_warm_port_reset_quirk(xhci);
 
 	/* Don't poll the roothubs on bus suspend. */
 	xhci_dbg(xhci, "%s: stopping port polling.\n", __func__);
@@ -5097,6 +5134,9 @@ int xhci_gen_setup(struct usb_hcd *hcd, xhci_get_quirks_t get_quirks)
 		/* xHCI private pointer was set in xhci_pci_probe for the second
 		 * registered roothub.
 		 */
+		if (xhci->quirks & XHCI_DIS_AUTOSUSPEND)
+			xhci->shared_hcd->self.root_hub->quirks |=
+				USB_QUIRK_AUTO_SUSPEND;
 		return 0;
 	}
 

@@ -1,0 +1,750 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2020 Rockchip Electronics Co., Ltd.
+ */
+
+/dts-v1/;
+#include "rv1126.dtsi"
+//#include "rv1109.dtsi"
+#include "rv1126-ipc.dtsi"
+#include <dt-bindings/display/drm_mipi_dsi.h>
+#include <dt-bindings/input/input.h>
+/ {
+
+	model = "Rockchip RV1109 38 V10 SPI NAND DDR3 Board";
+	compatible = "rockchip,rv1109-38-v10-spi-nand", "rockchip,rv1109";
+
+	chosen {   
+		//bootargs = "earlycon=uart8250,mmio32,0xff570000 console=ttyFIQ0 ubi.mtd=3  ubi.block=0,rootfs root=/dev/ubiblock0_0 rootfstype=ubifs  snd_aloop.index=7";
+		bootargs = "earlycon=uart8250,mmio32,0xff570000 console=ttyFIQ0 ubi.mtd=3 root=ubi0:rootfs rootfstype=ubifs snd_aloop.index=7";
+	};
+
+	/delete-node/ vdd-npu;
+	/delete-node/ vdd-vepu;
+
+	cam_ircut0: cam_ircut {
+		compatible = "rockchip,ircut";
+		status = "okay";
+		ircut-open-gpios = <&gpio3 RK_PB0 GPIO_ACTIVE_HIGH>;
+		ircut-close-gpios = <&gpio3 RK_PB1 GPIO_ACTIVE_HIGH>;
+		//ircut-open-gpios = <&gpio3 RK_PB1 GPIO_ACTIVE_HIGH>;
+		//ircut-close-gpios = <&gpio3 RK_PB0 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&ircut_pins>;
+		rockchip,camera-module-index = <1>;
+		rockchip,camera-module-facing = "front";
+	};
+	adc-keys {
+                compatible = "adc-keys";
+                io-channels = <&saradc 1>;
+                io-channel-names = "buttons";
+                poll-interval = <1000>;
+                keyup-threshold-microvolt = <1800000>;
+                led-key {
+                        label = "esc";
+                        linux,code = <1>;
+                        press-threshold-microvolt = <0>;
+                };
+		
+        };
+	vcc_1v8: vcc-1v8 {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc_1v8";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+	};
+
+	vcc_dvdd: vcc-dvdd {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc_dvdd";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <1200000>;
+		regulator-max-microvolt = <1200000>;
+	};
+
+	vcc3v3_sys: vcc33sys {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc3v3_sys";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+	};
+
+	vcc_sd: vcc-sd {
+		compatible = "regulator-fixed";
+		gpio = <&gpio0 RK_PA4 GPIO_ACTIVE_HIGH>;
+		pinctrl-0 = <&sdmmc_pwr>;
+		pinctrl-names = "default";
+		regulator-name = "vcc_sd";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		startup-delay-us = <100000>;
+		vin-supply = <&vcc3v3_sys>;
+		enable-active-high;
+	};
+
+	vdd_arm: vdd-arm {
+		compatible = "pwm-regulator";
+		pwms = <&pwm0 0 5000 1>;
+		regulator-name = "vdd_arm";
+		regulator-min-microvolt = <720000>;
+		regulator-max-microvolt = <1000000>;
+		regulator-init-microvolt = <825000>;
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-settling-time-up-us = <250>;
+		pwm-supply = <&vcc3v3_sys>;
+		status = "okay";
+	};
+
+	/*
+	 * pwm1 is reserved as voltage adjustment in hardware
+	 * use fixed regulator to avoid voltage adjustment by software
+	 */
+	vdd_logic_npu_vepu: vdd-logic-npu-vepu {
+		compatible = "pwm-regulator";
+		pwms = <&pwm1 0 5000 1>;
+		regulator-name = "vdd_logic_npu_vepu";
+		regulator-min-microvolt = <720000>;
+		regulator-max-microvolt = <880000>;
+		regulator-init-microvolt = <825000>;
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-settling-time-up-us = <250>;
+		pwm-supply = <&vcc3v3_sys>;
+		status = "okay";
+	};
+
+	vdd_logic_npu_vepu_fixed: vdd-logic-npu-vepu-fixed {
+		compatible = "regulator-fixed";
+		regulator-name = "vdd_logic_npu_vepu-fixed";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <825000>;
+		regulator-max-microvolt = <825000>;
+	};
+
+	i2s0_sound: i2s0-sound {
+		status = "okay";
+		compatible = "simple-audio-card";
+		simple-audio-card,format = "i2s";
+		simple-audio-card,mclk-fs = <256>;
+		simple-audio-card,name = "rockchip,i2s0-sound";
+		simple-audio-card,cpu {
+			sound-dai = <&i2s0_8ch>;
+		};
+		simple-audio-card,codec {
+			sound-dai = <&es8311>;
+		};
+	};
+/*	sdio_pwrseq: sdio-pwrseq {//add by zt
+                compatible = "mmc-pwrseq-simple";
+                pinctrl-names = "default";
+                pinctrl-0 = <&wifi_enable_h>;
+	        reset-gpios = <&gpio0 RK_PA4 GPIO_ACTIVE_LOW>;
+        };*/
+	
+	
+	wireless_wlan: wireless-wlan {
+                compatible = "wlan-platdata";
+                rockchip,grf = <&grf>;
+		wifi_chip_type = "USB-WiFi";
+                //WIFI,poweren_gpio = <&gpio0 RK_PC0 GPIO_ACTIVE_LOW>;
+                WIFI,poweren_gpio = <&gpio0 RK_PC0 GPIO_ACTIVE_HIGH>;
+                status = "okay";
+        };
+/*	wireless_wlan: wireless-wlan {
+                compatible = "wlan-platdata";
+                rockchip,grf = <&grf>;
+		pinctrl-0 = <&wifi_wake_host>;
+		wifi_chip_type = "ap6255";
+                WIFI,poweren_gpio = <&gpio0 RK_PA4 GPIO_ACTIVE_HIGH>;
+                WIFI,host_wake_irq = <&gpio0 RK_PC0 GPIO_ACTIVE_HIGH>;
+                
+		status = "okay";
+        };*/
+};
+
+&csi_dphy0 {
+	status = "okay";
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		port@0 {
+			reg = <0>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			mipi_in_ucam0: endpoint@1 {
+				reg = <1>;
+				remote-endpoint = <&ucam_out0>;
+//				data-lanes = <1 2 3 4>;
+				data-lanes = <1 2>;    // only for GC2053
+			};
+		};
+		port@1 {
+			reg = <1>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			csidphy0_out: endpoint@0 {
+				reg = <0>;
+				remote-endpoint = <&mipi_csi2_input>;
+			};
+		};
+	};
+};
+
+
+&gmac {
+	phy-mode = "rmii";
+	clock_in_out = "output";
+
+	snps,reset-gpio = <&gpio3 RK_PC5 GPIO_ACTIVE_LOW>;
+	snps,reset-active-low;
+	snps,reset-delays-us = <0 50000 50000>;
+
+	assigned-clocks = <&cru CLK_GMAC_SRC>, <&cru CLK_GMAC_TX_RX>;
+	assigned-clock-parents = <&cru CLK_GMAC_SRC_M0>, <&cru RMII_MODE_CLK>;
+	assigned-clock-rates = <50000000>;
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&rmiim0_miim &rgmiim0_rxer &rmiim0_bus2 &rgmiim0_mclkinout_level0>;
+
+	phy-handle = <&phy>;
+	status = "okay";
+};
+
+&i2c0 {
+        status = "okay";
+};
+
+
+&i2c1 {
+		status = "okay";
+		clock-frequency = <400000>;
+
+		gc2053: gc2053@37 {
+
+		compatible = "galaxycore,gc2053";
+		reg = <0x37>;
+
+		clocks = <&cru CLK_MIPICSI_OUT>;
+		clock-names = "xvclk";
+
+		power-domains = <&power RV1126_PD_VI>;
+		pinctrl-names = "rockchip,camera_default";
+		pinctrl-0 = <&mipicsi_clk0>;
+		
+//		pwdn-gpios = <&gpio1 RK_PD4 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&gpio1 RK_PD5 GPIO_ACTIVE_LOW>;
+		ir-cut = <&cam_ircut0>;
+		avdd-supply = <&vcc3v3_sys>;
+		dovdd-supply = <&vcc_1v8>;
+		dvdd-supply = <&vcc_dvdd>;
+
+	//GC2053 电压配置，现在硬件已经固定不是通过PMU来配置的，
+        //因此此处不需要配置电源输出，实际需要的电压就是2V8  1.8V  1.2V 
+//		avdd-supply = <&vcc2v8_avdd>;
+//		dovdd-supply = <&vcc_dovdd>;
+//		dvdd-supply = <&vcc1v2_dvdd>;
+//
+		rockchip,camera-module-index = <1>;
+		rockchip,camera-module-facing = "front";
+		rockchip,camera-module-name = "CMK-OT1726-PG1";
+		rockchip,camera-module-lens-name = "29IR-2MP-F25";
+		port {
+			ucam_out0: endpoint {
+				remote-endpoint = <&mipi_in_ucam0>;
+				data-lanes = <1 2>;
+			};
+		};
+	};
+};
+
+
+&i2c4 {
+	status = "okay";
+	clock-frequency = <400000>;
+	pinctrl-0 = <&i2c4m1_xfer>;
+
+	es8311: es8311@18 {
+		compatible = "everest,es8311";
+		reg = <0x18>;
+		clocks = <&cru MCLK_I2S0_TX_OUT2IO>;
+		clock-names = "mclk";
+		adc-volume = <0xbf>;  /* 0dB */
+		dac-volume = <0xbf>;  /* 0dB */
+		aec-mode = "dac left, adc right";
+		pinctrl-names = "default";
+		pinctrl-0 = <&i2s0m0_mclk &spk_ctl>;
+		assigned-clocks = <&cru MCLK_I2S0_TX_OUT2IO>;
+		assigned-clock-parents = <&cru MCLK_I2S0_TX>;
+		spk-ctl-gpios = <&gpio2 RK_PA5 GPIO_ACTIVE_HIGH>;
+		#sound-dai-cells = <0>;
+	};
+};
+
+&i2s0_8ch {
+	status = "okay";
+	rockchip,clk-trcm = <1>;
+	#sound-dai-cells = <0>;
+	pinctrl-0 = <&i2s0m0_sclk_tx
+		     &i2s0m0_lrck_tx
+		     &i2s0m0_sdi0
+		     &i2s0m0_sdo0>;
+};
+
+/*
+&i2c1 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	imx335: imx335@1a {
+		compatible = "sony,imx335";
+		reg = <0x1a>;
+		clocks = <&cru CLK_MIPICSI_OUT>;
+		clock-names = "xvclk";
+		power-domains = <&power RV1126_PD_VI>;
+		pinctrl-names = "rockchip,camera_default";
+		pinctrl-0 = <&mipicsi_clk0>;
+		avdd-supply = <&vcc3v3_sys>;
+		dovdd-supply = <&vcc_1v8>;
+		dvdd-supply = <&vcc_dvdd>;
+		reset-gpios = <&gpio1 RK_PD5 GPIO_ACTIVE_LOW>;
+		rockchip,camera-module-index = <1>;
+		rockchip,camera-module-facing = "front";
+		rockchip,camera-module-name = "MTV4-IR-E-P";
+		rockchip,camera-module-lens-name = "40IRC-4MP-F16";
+		ir-cut = <&cam_ircut0>;
+		port {
+			ucam_out0: endpoint {
+				remote-endpoint = <&mipi_in_ucam0>;
+				data-lanes = <1 2 3 4>;
+			};
+		};
+	};
+};
+*/
+
+/*
+&i2c1 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	imx415: imx415@1a {
+		   compatible = "sony,imx415";
+		   reg = <0x1a>;
+		   clocks = <&cru CLK_MIPICSI_OUT>;
+		   clock-names = "xvclk";
+		   power-domains = <&power RV1126_PD_VI>;
+		   pinctrl-names = "rockchip,camera_default";
+		   pinctrl-0 = <&mipicsi_clk0>;
+		   avdd-supply = <&vcc3v3_sys>;
+		   dovdd-supply = <&vcc_1v8>;
+		   dvdd-supply = <&vcc_dvdd>;
+		   reset-gpios = <&gpio1 RK_PD5 GPIO_ACTIVE_LOW>;
+		   rockchip,camera-module-index = <1>;
+		   rockchip,camera-module-facing = "front";
+		   rockchip,camera-module-name = "YT10092";
+		   rockchip,camera-module-lens-name = "IR0147-28IRC-8M-F20";
+		   ir-cut = <&cam_ircut0>;
+	//	   flash-leds = <&flash_ir>;
+		   port {
+				   ucam_out0: endpoint {
+						   remote-endpoint = <&mipi_in_ucam0>;
+						   data-lanes = <1 2 3 4>;
+				   };
+		   };
+	};
+
+};
+*/
+
+&mdio {
+	phy: phy@0 {
+		compatible = "ethernet-phy-ieee802.3-c22";
+		reg = <0x0>;
+	};
+};
+
+&mipi_csi2 {
+	status = "okay";
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			mipi_csi2_input: endpoint@1 {
+				reg = <1>;
+				remote-endpoint = <&csidphy0_out>;
+//				data-lanes = <1 2 3 4>;   
+				data-lanes = <1 2>;    // only for GC2053
+			};
+		};
+
+		port@1 {
+			reg = <1>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			mipi_csi2_output: endpoint@0 {
+				reg = <0>;
+				remote-endpoint = <&cif_mipi_in>;
+//				data-lanes = <1 2 3 4>;
+				data-lanes = <1 2>;    // only for GC2053
+			};
+		};
+	};
+};
+
+&npu {
+	npu-supply = <&vdd_logic_npu_vepu_fixed>;
+};
+
+&nandc {
+    status = "okay";
+};
+
+
+&pinctrl {
+	ircut {
+		/omit-if-no-ref/
+		ircut_pins: ircut-pins {
+			rockchip,pins = <3 RK_PB0 RK_FUNC_GPIO &pcfg_pull_up>,
+					<3 RK_PB1 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+
+	es8311 {
+		spk_ctl: spk-ctl {
+			rockchip,pins = <2 RK_PA5 0 &pcfg_pull_none>;
+		};
+	};
+
+	sdmmc-pwr {
+		/omit-if-no-ref/
+		sdmmc_pwr: sdmmc-pwr {
+			rockchip,pins = <0 RK_PA4 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+		/*sdio-pwrseq {
+					/omit-if-no-ref/
+					wifi_enable_h: wifi-enable-h {
+					rockchip,pins = <0 RK_PA4 RK_FUNC_GPIO &pcfg_pull_none>;
+					};
+				};
+
+		wireless-wlan {
+					/omit-if-no-ref/
+					wifi_wake_host: wifi-wake-host {
+					rockchip,pins = <0 RK_PC0 0 &pcfg_pull_up>;
+					};
+				};*/
+};
+
+&pmu_io_domains {
+	status = "okay";
+
+	pmuio0-supply = <&vcc3v3_sys>;
+	pmuio1-supply = <&vcc3v3_sys>;
+	vccio2-supply = <&vcc3v3_sys>;
+	vccio4-supply = <&vcc_1v8>;
+	vccio5-supply = <&vcc3v3_sys>;
+	vccio6-supply = <&vcc3v3_sys>;
+	vccio7-supply = <&vcc3v3_sys>;
+};
+
+
+
+
+
+&pwm3 {
+	status = "okay";
+	pinctrl-names = "active";
+	pinctrl-0 = <&pwm3m0_pins_pull_down>;
+};
+
+&rkcif {
+	status = "okay";
+};
+
+&rkcif_mmu {
+	status = "disabled";
+};
+
+&rkcif_mipi_lvds {
+	status = "okay";
+
+	port {
+		/* MIPI CSI-2 endpoint */
+		cif_mipi_in: endpoint {
+			remote-endpoint = <&mipi_csi2_output>;
+//			data-lanes = <1 2 3 4>;
+			data-lanes = <1 2>;    // only for GC2053
+		};
+	};
+};
+
+&rkcif_mipi_lvds_sditf {
+	status = "okay";
+
+	port {
+		/* MIPI CSI-2 endpoint */
+		mipi_lvds_sditf: endpoint {
+			remote-endpoint = <&isp_in>;
+//			data-lanes = <1 2 3 4>;
+			data-lanes = <1 2>;    // only for GC2053
+		};
+	};
+};
+
+&rkisp_vir0 {
+	status = "okay";
+
+	ports {
+		port@0 {
+			reg = <0>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			isp_in: endpoint@0 {
+				reg = <0>;
+				remote-endpoint = <&mipi_lvds_sditf>;
+			};
+		};
+	};
+};
+
+
+
+&rkvenc {
+	venc-supply = <&vdd_logic_npu_vepu_fixed>;
+};
+
+&rockchip_suspend {
+	status = "okay";
+	rockchip,sleep-debug-en = <1>;
+	rockchip,sleep-mode-config = <
+		(0
+		| RKPM_SLP_ARMOFF
+		| RKPM_SLP_PMU_PMUALIVE_32K
+		| RKPM_SLP_PMU_DIS_OSC
+		)
+	>;
+};
+
+&sdmmc0_bus4 {
+	rockchip,pins =
+		/* sdmmc0_d0 */
+		<1 RK_PA4 1 &pcfg_pull_up_drv_level_0>,
+		/* sdmmc0_d1 */
+		<1 RK_PA5 1 &pcfg_pull_up_drv_level_0>,
+		/* sdmmc0_d2 */
+		<1 RK_PA6 1 &pcfg_pull_up_drv_level_0>,
+		/* sdmmc0_d3 */
+		<1 RK_PA7 1 &pcfg_pull_up_drv_level_0>;
+};
+
+&sdmmc0_clk {
+	rockchip,pins =
+		/* sdmmc0_clk */
+		<1 RK_PB0 1 &pcfg_pull_up_drv_level_3>;
+};
+
+&sdmmc0_cmd {
+	rockchip,pins =
+		/* sdmmc0_cmd */
+		<1 RK_PB1 1 &pcfg_pull_up_drv_level_0>;
+};
+
+&sdmmc {
+	bus-width = <4>;
+	cap-mmc-highspeed;
+	cap-sd-highspeed;
+	card-detect-delay = <200>;
+	rockchip,default-sample-phase = <90>;
+	supports-sd;
+	status = "okay";
+	vmmc-supply = <&vcc_sd>;
+};
+
+/*
+//&sdio {
+&sdmmc {
+        max-frequency = <20000000>;
+        bus-width = <4>;
+        cap-sd-highspeed;
+        cap-sdio-irq;
+        keep-power-in-suspend;
+       //non-removable;
+        rockchip,default-sample-phase = <135>;
+        //sd-uhs-sdr104;
+        supports-sdio;
+       	//mmc-pwrseq = <&sdio_pwrseq>;
+        //pinctrl-names = "default";
+         //pinctrl-0 = <&sdmmc1_clk &sdmmc1_cmd &sdmmc1_bus4>;
+        // pinctrl-0 = <&sdmmc0_clk &sdmmc0_cmd &sdmmc0_bus4>;
+	status = "okay";
+};
+*/
+
+
+&sfc {
+	status = "okay";
+};
+/*
+&uart0 {
+        status = "okay";
+};
+
+&uart1 {
+        status = "okay";
+};
+
+&uart2 {
+        status = "okay";
+};
+*/
+
+&uart3 {
+        wakeup-source;
+        pinctrl-names = "default";
+        pinctrl-0 = <&uart3m2_xfer &uart3m2_ctsn &uart3m2_rtsn>;
+        status = "okay";
+};
+
+&u2phy_host {
+        status = "okay";
+};
+
+&u2phy1 {
+        status = "okay";
+};
+
+&usb_host0_ehci {
+        status = "okay";
+};
+
+&usb_host0_ohci {
+        status = "okay";
+};
+
+
+&display_subsystem {
+	status = "okay";
+};
+
+
+&dsi {
+	status = "okay";
+
+	rockchip,lane-rate = <480>;
+	panel@0 {
+		compatible = "simple-panel-dsi";
+		reg = <0>;
+		//backlight = <&backlight>;
+		//power-supply = <&vcc18_lcd_n>;
+		prepare-delay-ms = <5>;
+		reset-delay-ms = <1>;
+		init-delay-ms = <80>;
+		disable-delay-ms = <10>;
+		unprepare-delay-ms = <5>;
+
+		width-mm = <68>;
+		height-mm = <121>;
+
+		dsi,flags = <(MIPI_DSI_MODE_VIDEO | MIPI_DSI_MODE_VIDEO_BURST | MIPI_DSI_MODE_LPM | MIPI_DSI_MODE_EOT_PACKET)>;
+		dsi,format = <MIPI_DSI_FMT_RGB888>;
+		dsi,lanes = <4>;
+
+
+		display-timings {
+			native-mode = <&timing0>;
+
+			timing0: timing0 {
+				clock-frequency = <33359000>;
+				hactive = <800>;
+				vactive = <480>;
+				hfront-porch = <210>;
+				hsync-len = <1>;
+				hback-porch = <46>;
+				vfront-porch = <22>;
+				vsync-len = <1>;
+				vback-porch = <23>;
+				hsync-active = <0>;
+				vsync-active = <0>;
+				de-active = <0>;
+				pixelclk-active = <0>;
+			};
+		};
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+				panel_in_dsi: endpoint {
+					remote-endpoint = <&dsi_out_panel>;
+				};
+			};
+		};
+	};
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@1 {
+			reg = <1>;
+			dsi_out_panel: endpoint {
+				remote-endpoint = <&panel_in_dsi>;
+			};
+		};
+	};
+};
+
+&i2c3 {
+	pinctrl-names = "default";
+        pinctrl-0 = <&i2c3m1_xfer>;
+        status = "okay";
+	
+};
+
+&vdpu {
+	status = "okay";
+};
+
+&vop {
+	status = "okay";
+};
+
+&vop_mmu {
+	status = "okay";
+};
+
+&route_dsi {
+	status = "okay";
+};
+
+&mipi_dphy {
+	status = "okay";
+};
+
+
+&saradc {
+        status = "okay";
+        vref-supply = <&vcc_1v8>;
+};
+

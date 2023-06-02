@@ -63,6 +63,13 @@
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
 	};
+
+	xin32k: xin32k {
+		compatible = "fixed-clock";
+		clock-frequency = <32768>;
+		clock-output-names = "xin32k";
+		#clock-cells = <0>;
+	};
 };
 
 &cpu0 {
@@ -84,6 +91,7 @@
 &emmc {
 	bus-width = <8>;
 	cap-mmc-highspeed;
+	mmc-hs200-1_8v;
 	non-removable;
 	pinctrl-names = "default";
 	pinctrl-0 = <&emmc_clk &emmc_cmd &emmc_bus8>;
@@ -118,7 +126,7 @@
 		interrupt-parent = <&gpio2>;
 		interrupts = <6 IRQ_TYPE_LEVEL_LOW>;
 		#clock-cells = <1>;
-		clock-output-names = "xin32k", "rk805-clkout2";
+		clock-output-names = "rk805-clkout1", "rk805-clkout2";
 		pinctrl-names = "default";
 		pinctrl-0 = <&pmic_int_l>;
 		rockchip,system-power-controller;
@@ -265,10 +273,6 @@
 &tsadc {
 	rockchip,hw-tshut-mode = <0>;
 	rockchip,hw-tshut-polarity = <0>;
-	status = "okay";
-};
-
-&uart2 {
 	status = "okay";
 };
 

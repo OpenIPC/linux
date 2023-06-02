@@ -2139,7 +2139,8 @@ probe_aux_dev_err:
 	soc_remove_aux_devices(card);
 
 probe_dai_err:
-	soc_remove_dai_links(card);
+	if (ret != -ENODEV)
+		soc_remove_dai_links(card);
 
 card_probe_error:
 	if (card->remove)

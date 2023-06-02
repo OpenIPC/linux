@@ -219,4 +219,12 @@ source "drivers/siox/Kconfig"
 
 source "drivers/slimbus/Kconfig"
 
+source "drivers/energy_model/Kconfig"
+
+source "drivers/rkflash/Kconfig"
+
+source "drivers/rk_nand/Kconfig"
+
+source "drivers/headset_observe/Kconfig"
+
 endmenu

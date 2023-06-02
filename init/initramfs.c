@@ -10,6 +10,7 @@
 #include <linux/syscalls.h>
 #include <linux/utime.h>
 #include <linux/file.h>
+#include <linux/initramfs.h>
 
 static ssize_t __init xwrite(int fd, const char *p, size_t count)
 {
@@ -457,6 +458,15 @@ static char * __init unpack_to_rootfs(char *buf, unsigned long len)
 	state = Start;
 	this_header = 0;
 	message = NULL;
+
+#ifdef CONFIG_ROCKCHIP_THUNDER_BOOT_CRYPTO
+	if (rk_tb_crypto_sha256_wait_compare_done())
+		panic("Timeout, campare the sha256 digest fail, the ramdisk is untrusted.\n");
+#endif
+
+#if defined(CONFIG_ROCKCHIP_THUNDER_BOOT) && defined(CONFIG_ROCKCHIP_HW_DECOMPRESS) && defined(CONFIG_INITRD_ASYNC)
+	wait_initrd_hw_decom_done();
+#endif
 	while (!message && len) {
 		loff_t saved_offset = this_header;
 		if (*buf == '0' && !(this_header & 3)) {
@@ -491,6 +501,11 @@ static char * __init unpack_to_rootfs(char *buf, unsigned long len)
 			error("junk in compressed archive");
 		if (state != Reset)
 			error("junk in compressed archive");
+		#ifdef CONFIG_ARCH_ROCKCHIP
+		else
+			break;
+		#endif
+
 		this_header = saved_offset + my_inptr;
 		buf += my_inptr;
 		len -= my_inptr;
@@ -512,6 +527,17 @@ static int __init retain_initrd_param(char *str)
 	return 1;
 }
 __setup("retain_initrd", retain_initrd_param);
+
+static int __initdata do_dump_initrd;
+
+static int __init dump_initrd_param(char *str)
+{
+	if (*str)
+		return 0;
+	do_dump_initrd = 1;
+	return 1;
+}
+__setup("dump_initrd", dump_initrd_param);
 
 extern char __initramfs_start[];
 extern unsigned long __initramfs_size;
@@ -599,10 +625,29 @@ static void __init clean_rootfs(void)
 }
 #endif
 
+static int __initdata do_skip_initramfs;
+
+static int __init skip_initramfs_param(char *str)
+{
+	if (*str)
+		return 0;
+	do_skip_initramfs = 1;
+	return 1;
+}
+__setup("skip_initramfs", skip_initramfs_param);
+
 static int __init populate_rootfs(void)
 {
+	char *err;
+
+	if (do_skip_initramfs) {
+		if (initrd_start)
+			free_initrd();
+		return default_rootfs();
+	}
+
 	/* Load the built in initramfs */
-	char *err = unpack_to_rootfs(__initramfs_start, __initramfs_size);
+	err = unpack_to_rootfs(__initramfs_start, __initramfs_size);
 	if (err)
 		panic("%s", err); /* Failed to decompress INTERNAL initramfs */
 	/* If available load the bootloader supplied initrd */
@@ -612,14 +657,19 @@ static int __init populate_rootfs(void)
 		printk(KERN_INFO "Trying to unpack rootfs image as initramfs...\n");
 		err = unpack_to_rootfs((char *)initrd_start,
 			initrd_end - initrd_start);
-		if (!err)
+		if (!err) {
+			if (do_dump_initrd)
+				goto dump;
+
 			goto done;
+		}
 
 		clean_rootfs();
 		unpack_to_rootfs(__initramfs_start, __initramfs_size);
 
 		printk(KERN_INFO "rootfs image is not initramfs (%s)"
 				"; looks like an initrd\n", err);
+	dump:
 		fd = ksys_open("/initrd.image",
 			      O_WRONLY|O_CREAT, 0700);
 		if (fd >= 0) {
@@ -652,4 +702,23 @@ static int __init populate_rootfs(void)
 
 	return 0;
 }
+
+#if IS_BUILTIN(CONFIG_INITRD_ASYNC)
+#include <linux/kthread.h>
+#include <linux/async.h>
+
+static void __init unpack_rootfs_async(void *unused, async_cookie_t cookie)
+{
+	populate_rootfs();
+}
+
+static int __init populate_rootfs_async(void)
+{
+	async_schedule(unpack_rootfs_async, NULL);
+	return 0;
+}
+
+pure_initcall(populate_rootfs_async);
+#else
 rootfs_initcall(populate_rootfs);
+#endif

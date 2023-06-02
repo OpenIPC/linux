@@ -399,6 +399,13 @@ int phy_calibrate(struct phy *phy)
 	if (!phy || !phy->ops->calibrate)
 		return 0;
 
+	if (phy->dev.parent &&
+	    of_device_is_compatible(phy->dev.parent->of_node,
+				    "rockchip,rv1126-usb2phy")) {
+		ret = phy->ops->calibrate(phy);
+		return ret;
+	}
+
 	mutex_lock(&phy->mutex);
 	ret = phy->ops->calibrate(phy);
 	mutex_unlock(&phy->mutex);
@@ -1048,7 +1055,11 @@ static int __init phy_core_init(void)
 
 	return 0;
 }
+#ifdef CONFIG_ROCKCHIP_THUNDER_BOOT
+subsys_initcall(phy_core_init);
+#else
 module_init(phy_core_init);
+#endif
 
 static void __exit phy_core_exit(void)
 {

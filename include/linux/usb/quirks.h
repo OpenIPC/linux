@@ -72,4 +72,7 @@
 /* device has blacklisted endpoints */
 #define USB_QUIRK_ENDPOINT_BLACKLIST		BIT(15)
 
+/* device can't support auto suspend function */
+#define USB_QUIRK_AUTO_SUSPEND			BIT(16)
+
 #endif /* __LINUX_USB_QUIRKS_H */

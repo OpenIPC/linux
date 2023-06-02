@@ -613,4 +613,12 @@ config USB_NET_CH9200
 	  To compile this driver as a module, choose M here: the
 	  module will be called ch9200.
 
+config USB_NET_EC20_GOBINET
+ tristate "GobiNet Driver for EC20"
+ depends on USB_USBNET
+ help
+   This option adds support for EC20 by lwx.
+   This driver should work with at least the following devices:
+   This driver creates an interface named "ethX", where X depends on
+
 endif # USB_NET_DRIVERS

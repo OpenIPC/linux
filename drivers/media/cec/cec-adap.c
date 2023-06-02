@@ -182,6 +182,11 @@ void cec_queue_pin_hpd_event(struct cec_adapter *adap, bool is_high, ktime_t ts)
 	};
 	struct cec_fh *fh;
 
+	if (!adap)
+		return;
+	/* hdmi HPD may occur before devnode is registered */
+	if (!adap->devnode.registered)
+		return;
 	mutex_lock(&adap->devnode.lock);
 	list_for_each_entry(fh, &adap->devnode.fhs, list)
 		cec_queue_event_fh(fh, &ev, ktime_to_ns(ts));
@@ -535,8 +540,11 @@ int cec_thread_func(void *_adap)
 		if (data->msg.len == 1 && adap->is_configured)
 			attempts = 2;
 		else
+#ifdef CONFIG_ANDROID
+			attempts = 1;
+#else
 			attempts = 4;
-
+#endif
 		/* Set the suggested signal free time */
 		if (data->attempts) {
 			/* should be >= 3 data bit periods for a retry */

@@ -61,6 +61,8 @@ struct usb_ep;
  *	invalidated by the error may first be dequeued.
  * @context: For use by the completion callback
  * @list: For use by the gadget driver.
+ * @frame_number: Reports the interval number in (micro)frame in which the
+ *	isochronous transfer was transmitted or received.
  * @status: Reports completion code, zero or a negative errno.
  *	Normally, faults block the transfer queue from advancing until
  *	the completion callback returns.
@@ -111,6 +113,8 @@ struct usb_request {
 					struct usb_request *req);
 	void			*context;
 	struct list_head	list;
+
+	unsigned		frame_number;		/* ISO ONLY */
 
 	int			status;
 	unsigned		actual;
@@ -209,6 +213,7 @@ struct usb_ep_caps {
  *	enabled and remains valid until the endpoint is disabled.
  * @comp_desc: In case of SuperSpeed support, this is the endpoint companion
  *	descriptor that is used to configure the endpoint
+ * @transfer_type: Used to specify transfer type of EP.
  *
  * the bus controller driver lists all the general purpose endpoints in
  * gadget->ep_list.  the control endpoint (gadget->ep0) is not in that list,
@@ -232,6 +237,9 @@ struct usb_ep {
 	u8			address;
 	const struct usb_endpoint_descriptor	*desc;
 	const struct usb_ss_ep_comp_descriptor	*comp_desc;
+#ifdef CONFIG_ARCH_ROCKCHIP
+	u8			transfer_type;
+#endif
 };
 
 /*-------------------------------------------------------------------------*/

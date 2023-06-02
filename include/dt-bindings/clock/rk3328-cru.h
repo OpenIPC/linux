@@ -172,6 +172,7 @@
 #define PCLK_HDCP		232
 #define PCLK_DCF		233
 #define PCLK_SARADC		234
+#define PCLK_ACODEC		235
 
 /* hclk gates */
 #define HCLK_PERI		308
@@ -193,6 +194,7 @@
 #define HCLK_VPU_PRE		324
 #define HCLK_VIO_PRE		325
 #define HCLK_VPU		326
+#define HCLK_VIO		327
 #define HCLK_BUS_PRE		328
 #define HCLK_PERI_PRE		329
 #define HCLK_H264		330

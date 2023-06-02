@@ -548,11 +548,7 @@ static int pwm_backlight_probe(struct platform_device *pdev)
 		pb->levels = data->levels;
 	}
 
-	/*
-	 * FIXME: pwm_apply_args() should be removed when switching to
-	 * the atomic PWM API.
-	 */
-	pwm_apply_args(pb->pwm);
+	pwm_adjust_config(pb->pwm);
 
 	/*
 	 * The DT case will set the pwm_period_ns field to 0 and store the

@@ -58,6 +58,7 @@ static LIST_HEAD(usb_serial_driver_list);
  * disconnected, return with the parent usb_serial structure's disc_mutex held
  * and its refcount incremented.  Otherwise return NULL.
  */
+
 struct usb_serial_port *usb_serial_port_get_by_minor(unsigned minor)
 {
 	struct usb_serial *serial;
@@ -1366,6 +1367,12 @@ int usb_serial_register_drivers(struct usb_serial_driver *const serial_drivers[]
 	udriver->resume = usb_serial_resume;
 	udriver->probe = usb_serial_probe;
 	udriver->disconnect = usb_serial_disconnect;
+
+// zhang
+	#if 1
+	 //Added by Quectel
+	 udriver->reset_resume = usb_serial_resume; 
+#endif
 
 	/* we only set the reset_resume field if the serial_driver has one */
 	for (sd = serial_drivers; *sd; ++sd) {

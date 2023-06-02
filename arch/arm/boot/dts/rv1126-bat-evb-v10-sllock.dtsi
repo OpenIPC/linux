@@ -1,0 +1,190 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2021 Rockchip Electronics Co., Ltd.
+ */
+
+#include "rv1126-bat-evb-v10.dtsi"
+
+/ {
+	leds {
+		status = "disabled";
+	};
+
+	gpio_keys {
+		compatible = "gpio-keys";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&cap_key>;
+
+		capture_key: capture-key {
+			label = "GPIO Key Capture";
+			gpios = <&gpio3 RK_PB7 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_F22>;
+			linux,input-type = <1>;
+			wakeup-source;
+			debounce-interval = <100>;
+		};
+	};
+};
+
+&csi_dphy0 {
+	status = "okay";
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		port@0 {
+			reg = <0>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			mipi_in_ucam0: endpoint@1 {
+				reg = <1>;
+				remote-endpoint = <&ucam_out1>;
+				data-lanes = <1 2>;
+			};
+		};
+		port@1 {
+			reg = <1>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			csidphy0_out: endpoint@0 {
+				reg = <0>;
+				remote-endpoint = <&mipi_csi2_input>;
+			};
+		};
+	};
+};
+
+&mipi_csi2 {
+	status = "okay";
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			mipi_csi2_input: endpoint@1 {
+				reg = <1>;
+				remote-endpoint = <&csidphy0_out>;
+				data-lanes = <1 2>;
+			};
+		};
+
+		port@1 {
+                        reg = <1>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			mipi_csi2_output: endpoint@0 {
+				reg = <1>;
+				remote-endpoint = <&cif_mipi_in>;
+				data-lanes = <1 2>;
+			};
+		};
+	};
+};
+
+&rkcif {
+        status = "okay";
+};
+
+&rkcif_mmu {
+        status = "disabled";
+};
+
+&rkcif_mipi_lvds {
+	status = "okay";
+
+	port {
+		/* MIPI CSI-2 endpoint */
+		cif_mipi_in: endpoint {
+			/* csi2 host port */
+			remote-endpoint = <&mipi_csi2_output>;
+			data-lanes = <1 2>;
+		};
+	};
+};
+
+&rkcif_mipi_lvds_sditf {
+	status = "okay";
+
+	port {
+		/* MIPI CSI-2 endpoint */
+		mipi_lvds_sditf: endpoint {
+			/*remote-endpoint = <&isp_in>;*/
+			data-lanes = <1 2>;
+		};
+	};
+};
+
+
+&i2c1 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	os04c10: os04c10@36 {
+		status = "disabled";
+	};
+
+	gt24c1024:gt24c1024@50{
+		compatible = "atmel,24c1024";
+		reg = <0x50>;
+	};
+
+	rk803:rk803@63{
+		compatible = "rockchip,rk803";
+		reg = <0x63>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&strobe_input>;
+		gpio-encc1-gpios = <&gpio2 RK_PB2 GPIO_ACTIVE_HIGH>;
+		gpio-encc2-gpios = <&gpio2 RK_PB1 GPIO_ACTIVE_HIGH>;
+	};
+
+	ov9281: ov9281@60 {
+		status = "okay";
+		compatible = "ovti,ov9281";
+		reg = <0x60>;
+		clocks = <&cru CLK_MIPICSI_OUT>;
+		clock-names = "xvclk";
+		power-domains = <&power RV1126_PD_VI>;
+		avdd-supply = <&vcc2v8_avdd>;
+		dovdd-supply = <&vcc1v8_dovdd>;
+		dvdd-supply = <&vcc1v2_dvdd>;
+		pwdn-gpios = <&gpio1 RK_PD4 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&gpio1 RK_PD5 GPIO_ACTIVE_HIGH>;
+		rockchip,camera-module-index = <1>;
+		rockchip,camera-module-facing = "front";
+		rockchip,camera-module-name = "DW-RV04C";
+		rockchip,camera-module-lens-name = "2G2P650IR-F21";
+		pinctrl-names = "default";
+		pinctrl-0 = <&mipicsi_clk0>;
+
+		port {
+			ucam_out1: endpoint {
+				remote-endpoint = <&mipi_in_ucam0>;
+				data-lanes = <1 2>;
+			};
+		};
+	};
+};
+
+&pinctrl {
+	strobe {
+		strobe_input: strobe-input {
+			rockchip,pins = <0 RK_PB0 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+
+	capture {
+		cap_key: cap-key {
+			rockchip,pins = <3 RK_PB7 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+};

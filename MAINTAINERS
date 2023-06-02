@@ -5999,6 +5999,7 @@ T:	git git://git.kernel.org/pub/scm/linux/kernel/git/tytso/fscrypt.git
 S:	Supported
 F:	fs/crypto/
 F:	include/linux/fscrypt*.h
+F:	include/uapi/linux/fscrypt.h
 F:	Documentation/filesystems/fscrypt.rst
 
 FSI-ATTACHED I2C DRIVER
@@ -6016,6 +6017,18 @@ L:	linux-fsdevel@vger.kernel.org
 S:	Maintained
 F:	fs/notify/
 F:	include/linux/fsnotify*.h
+
+FSVERITY: READ-ONLY FILE-BASED AUTHENTICITY PROTECTION
+M:	Eric Biggers <ebiggers@kernel.org>
+M:	Theodore Y. Ts'o <tytso@mit.edu>
+L:	linux-fscrypt@vger.kernel.org
+Q:	https://patchwork.kernel.org/project/linux-fscrypt/list/
+T:	git git://git.kernel.org/pub/scm/fs/fscrypt/fscrypt.git fsverity
+S:	Supported
+F:	fs/verity/
+F:	include/linux/fsverity.h
+F:	include/uapi/linux/fsverity.h
+F:	Documentation/filesystems/fsverity.rst
 
 FUJITSU LAPTOP EXTRAS
 M:	Jonathan Woithe <jwoithe@just42.net>
@@ -10284,6 +10297,12 @@ W:	http://www.netlab.is.tsukuba.ac.jp/~yokota/izumi/ninja/
 S:	Maintained
 F:	Documentation/scsi/NinjaSCSI.txt
 F:	drivers/scsi/nsp32*
+
+NINTENDO HID DRIVER
+M:	Daniel J. Ogorchock <djogorchock@gmail.com>
+L:	linux-input@vger.kernel.org
+S:	Maintained
+F:	drivers/hid/hid-nintendo*
 
 NIOS2 ARCHITECTURE
 M:	Ley Foon Tan <lftan@altera.com>
@@ -15303,6 +15322,12 @@ F:	Documentation/ABI/testing/sysfs-bus-typec
 F:	Documentation/driver-api/usb/typec_bus.rst
 F:	drivers/usb/typec/altmodes/
 F:	include/linux/usb/typec_altmode.h
+
+USB TYPEC PORT CONTROLLER DRIVERS
+M:	Guenter Roeck <linux@roeck-us.net>
+L:	linux-usb@vger.kernel.org
+S:	Maintained
+F:	drivers/usb/typec/tcpm/
 
 USB UHCI DRIVER
 M:	Alan Stern <stern@rowland.harvard.edu>

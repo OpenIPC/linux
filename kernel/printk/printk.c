@@ -58,6 +58,24 @@
 #include "braille.h"
 #include "internal.h"
 
+#ifdef CONFIG_PRINTK_TIME_FROM_ARM_ARCH_TIMER
+#include <clocksource/arm_arch_timer.h>
+static u64 get_local_clock(void)
+{
+	u64 ns;
+
+	ns = arch_timer_read_counter() * 1000;
+	do_div(ns, 24);
+
+	return ns;
+}
+#else
+static inline u64 get_local_clock(void)
+{
+	return local_clock();
+}
+#endif
+
 int console_printk[4] = {
 	CONSOLE_LOGLEVEL_DEFAULT,	/* console_loglevel */
 	MESSAGE_LOGLEVEL_DEFAULT,	/* default_message_loglevel */
@@ -364,6 +382,12 @@ struct printk_log {
 	u8 facility;		/* syslog facility */
 	u8 flags:5;		/* internal record flags */
 	u8 level:3;		/* syslog level */
+#ifdef CONFIG_PRINTK_PROCESS
+	char process[16];	/* process name */
+	pid_t pid;		/* process id */
+	u8 cpu;			/* cpu id */
+	u8 in_interrupt;	/* interrupt context */
+#endif
 }
 #ifdef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
 __packed __aligned(4)
@@ -429,7 +453,11 @@ static u64 exclusive_console_stop_seq;
 static u64 clear_seq;
 static u32 clear_idx;
 
+#ifdef CONFIG_PRINTK_PROCESS
+#define PREFIX_MAX		48
+#else
 #define PREFIX_MAX		32
+#endif
 #define LOG_LINE_MAX		(1024 - PREFIX_MAX)
 
 #define LOG_LEVEL(v)		((v) & 0x07)
@@ -498,6 +526,25 @@ static u32 log_next(u32 idx)
 	}
 	return idx + msg->len;
 }
+
+#ifdef CONFIG_PRINTK_PROCESS
+static bool printk_process = true;
+static size_t print_process(const struct printk_log *msg, char *buf)
+{
+	if (!printk_process)
+		return 0;
+
+	if (!buf)
+		return snprintf(NULL, 0, "%c[%1d:%15s:%5d] ", ' ', 0, " ", 0);
+
+	return sprintf(buf, "%c[%1d:%15s:%5d] ",
+			msg->in_interrupt ? 'I' : ' ',
+			msg->cpu,
+			msg->process,
+			msg->pid);
+}
+module_param_named(process, printk_process, bool, 0644);
+#endif
 
 /*
  * Check whether there is enough free space for the given message.
@@ -631,9 +678,19 @@ static int log_store(int facility, int level,
 	if (ts_nsec > 0)
 		msg->ts_nsec = ts_nsec;
 	else
-		msg->ts_nsec = local_clock();
+		msg->ts_nsec = get_local_clock();
 	memset(log_dict(msg) + dict_len, 0, pad_len);
 	msg->len = size;
+
+#ifdef CONFIG_PRINTK_PROCESS
+	if (printk_process) {
+		strncpy(msg->process, current->comm, sizeof(msg->process) - 1);
+		msg->process[sizeof(msg->process) - 1] = '\0';
+		msg->pid = task_pid_nr(current);
+		msg->cpu = raw_smp_processor_id();
+		msg->in_interrupt = in_interrupt() ? 1 : 0;
+	}
+#endif
 
 	/* insert message */
 	log_next_idx += msg->len;
@@ -1143,7 +1200,11 @@ void __init setup_log_buf(int early)
 		free, (free * 100) / __LOG_BUF_LEN);
 }
 
+#ifdef CONFIG_PSTORE_CONSOLE_FORCE_ON
+static bool __read_mostly ignore_loglevel = true;
+#else
 static bool __read_mostly ignore_loglevel;
+#endif
 
 static int __init ignore_loglevel_setup(char *str)
 {
@@ -1157,6 +1218,61 @@ early_param("ignore_loglevel", ignore_loglevel_setup);
 module_param(ignore_loglevel, bool, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(ignore_loglevel,
 		 "ignore loglevel setting (prints all kernel messages to the console)");
+
+#ifdef CONFIG_PSTORE_CONSOLE_FORCE
+static bool __read_mostly pstore_con_force = IS_ENABLED(CONFIG_PSTORE_CONSOLE_FORCE_ON);
+
+static int __init pstore_con_force_setup(char *str)
+{
+	bool force;
+	int ret = strtobool(str, &force);
+
+	if (ret)
+		return ret;
+
+	ignore_loglevel = force;
+	pstore_con_force = force;
+	if (force)
+		pr_info("debug: pstore console ignoring loglevel setting.\n");
+
+	return 0;
+}
+
+early_param("pstore_con_force", pstore_con_force_setup);
+module_param(pstore_con_force, bool, S_IRUGO | S_IWUSR);
+MODULE_PARM_DESC(pstore_con_force,
+		 "ignore loglevel setting (prints all kernel messages to the pstore console)");
+
+static void call_console_drivers_level(int level, const char *ext_text, size_t ext_len,
+				       const char *text, size_t len)
+{
+	struct console *con;
+
+	trace_console_rcuidle(text, len);
+
+	if (!console_drivers)
+		return;
+
+	for_each_console(con) {
+		if (pstore_con_force &&
+		    !(con->flags & CON_PSTORE) && level >= console_loglevel)
+			continue;
+		if (exclusive_console && con != exclusive_console)
+			continue;
+		if (!(con->flags & CON_ENABLED))
+			continue;
+		if (!con->write)
+			continue;
+		if (!cpu_online(smp_processor_id()) &&
+		    !(con->flags & CON_ANYTIME))
+			continue;
+		if (con->flags & CON_EXTENDED)
+			con->write(con, ext_text, ext_len);
+		else
+			con->write(con, text, len);
+	}
+}
+#endif
 
 static bool suppress_message_printing(int level)
 {
@@ -1257,6 +1373,9 @@ static size_t print_prefix(const struct printk_log *msg, bool syslog, char *buf)
 	}
 
 	len += print_time(msg->ts_nsec, buf ? buf + len : NULL);
+#ifdef CONFIG_PRINTK_PROCESS
+	len += print_process(msg, buf ? buf + len : NULL);
+#endif
 	return len;
 }
 
@@ -1710,6 +1829,9 @@ static int console_trylock_spinning(void)
  * log_buf[start] to log_buf[end - 1].
  * The console_lock must be held.
  */
+#ifdef CONFIG_PSTORE_CONSOLE_FORCE
+__maybe_unused
+#endif
 static void call_console_drivers(const char *ext_text, size_t ext_len,
 				 const char *text, size_t len)
 {
@@ -1793,7 +1915,7 @@ static bool cont_add(int facility, int level, enum log_flags flags, const char *
 		cont.facility = facility;
 		cont.level = level;
 		cont.owner = current;
-		cont.ts_nsec = local_clock();
+		cont.ts_nsec = get_local_clock();
 		cont.flags = flags;
 	}
 
@@ -2426,7 +2548,11 @@ skip:
 		console_lock_spinning_enable();
 
 		stop_critical_timings();	/* don't trace print latency */
+#ifdef CONFIG_PSTORE_CONSOLE_FORCE
+		call_console_drivers_level(msg->level, ext_text, ext_len, text, len);
+#else
 		call_console_drivers(ext_text, ext_len, text, len);
+#endif
 		start_critical_timings();
 
 		if (console_lock_spinning_disable_and_check()) {

@@ -45,6 +45,7 @@
 #include <linux/seq_file.h>
 #endif /* CONFIG_DEBUG_FS */
 #include <linux/net_tstamp.h>
+#include <linux/udp.h>
 #include <net/pkt_cls.h>
 #include "stmmac_ptp.h"
 #include "stmmac.h"
@@ -233,7 +234,7 @@ static void stmmac_clk_csr_set(struct stmmac_priv *priv)
 {
 	u32 clk_rate;
 
-	clk_rate = clk_get_rate(priv->plat->stmmac_clk);
+	clk_rate = clk_get_rate(priv->plat->pclk);
 
 	/* Platform provided default clk_csr would be assumed valid
 	 * for all other cases except for the below mentioned ones.
@@ -534,7 +535,7 @@ static void stmmac_get_rx_hwtstamp(struct stmmac_priv *priv, struct dma_desc *p,
 }
 
 /**
- *  stmmac_hwtstamp_ioctl - control hardware timestamping.
+ *  stmmac_hwtstamp_set - control hardware timestamping.
  *  @dev: device pointer.
  *  @ifr: An IOCTL specific structure, that can contain a pointer to
  *  a proprietary structure used to pass information to the driver.
@@ -544,7 +545,7 @@ static void stmmac_get_rx_hwtstamp(struct stmmac_priv *priv, struct dma_desc *p,
  *  Return Value:
  *  0 on success and an appropriate -ve integer on failure.
  */
-static int stmmac_hwtstamp_ioctl(struct net_device *dev, struct ifreq *ifr)
+static int stmmac_hwtstamp_set(struct net_device *dev, struct ifreq *ifr)
 {
 	struct stmmac_priv *priv = netdev_priv(dev);
 	struct hwtstamp_config config;
@@ -573,7 +574,7 @@ static int stmmac_hwtstamp_ioctl(struct net_device *dev, struct ifreq *ifr)
 	}
 
 	if (copy_from_user(&config, ifr->ifr_data,
-			   sizeof(struct hwtstamp_config)))
+			   sizeof(config)))
 		return -EFAULT;
 
 	netdev_dbg(priv->dev, "%s config flags:0x%x, tx_type:0x%x, rx_filter:0x%x\n",
@@ -597,12 +598,13 @@ static int stmmac_hwtstamp_ioctl(struct net_device *dev, struct ifreq *ifr)
 		case HWTSTAMP_FILTER_PTP_V1_L4_EVENT:
 			/* PTP v1, UDP, any kind of event packet */
 			config.rx_filter = HWTSTAMP_FILTER_PTP_V1_L4_EVENT;
-			/* take time stamp for all event messages */
-			if (xmac)
-				snap_type_sel = PTP_GMAC4_TCR_SNAPTYPSEL_1;
-			else
-				snap_type_sel = PTP_TCR_SNAPTYPSEL_1;
-
+			/* 'xmac' hardware can support Sync, Pdelay_Req and
+			 * Pdelay_resp by setting bit14 and bits17/16 to 01
+			 * This leaves Delay_Req timestamps out.
+			 * Enable all events *and* general purpose message
+			 * timestamping
+			 */
+			snap_type_sel = PTP_TCR_SNAPTYPSEL_1;
 			ptp_over_ipv4_udp = PTP_TCR_TSIPV4ENA;
 			ptp_over_ipv6_udp = PTP_TCR_TSIPV6ENA;
 			break;
@@ -633,10 +635,7 @@ static int stmmac_hwtstamp_ioctl(struct net_device *dev, struct ifreq *ifr)
 			config.rx_filter = HWTSTAMP_FILTER_PTP_V2_L4_EVENT;
 			ptp_v2 = PTP_TCR_TSVER2ENA;
 			/* take time stamp for all event messages */
-			if (xmac)
-				snap_type_sel = PTP_GMAC4_TCR_SNAPTYPSEL_1;
-			else
-				snap_type_sel = PTP_TCR_SNAPTYPSEL_1;
+			snap_type_sel = PTP_TCR_SNAPTYPSEL_1;
 
 			ptp_over_ipv4_udp = PTP_TCR_TSIPV4ENA;
 			ptp_over_ipv6_udp = PTP_TCR_TSIPV6ENA;
@@ -669,12 +668,8 @@ static int stmmac_hwtstamp_ioctl(struct net_device *dev, struct ifreq *ifr)
 			/* PTP v2/802.AS1 any layer, any kind of event packet */
 			config.rx_filter = HWTSTAMP_FILTER_PTP_V2_EVENT;
 			ptp_v2 = PTP_TCR_TSVER2ENA;
-			/* take time stamp for all event messages */
-			if (xmac)
-				snap_type_sel = PTP_GMAC4_TCR_SNAPTYPSEL_1;
-			else
-				snap_type_sel = PTP_TCR_SNAPTYPSEL_1;
-
+			snap_type_sel = PTP_TCR_SNAPTYPSEL_1;
+			ts_event_en = PTP_TCR_TSEVNTENA;
 			ptp_over_ipv4_udp = PTP_TCR_TSIPV4ENA;
 			ptp_over_ipv6_udp = PTP_TCR_TSIPV6ENA;
 			ptp_over_ethernet = PTP_TCR_TSIPENA;
@@ -765,8 +760,31 @@ static int stmmac_hwtstamp_ioctl(struct net_device *dev, struct ifreq *ifr)
 				(u32)now.tv_sec, now.tv_nsec);
 	}
 
+	memcpy(&priv->tstamp_config, &config, sizeof(config));
+
 	return copy_to_user(ifr->ifr_data, &config,
-			    sizeof(struct hwtstamp_config)) ? -EFAULT : 0;
+			    sizeof(config)) ? -EFAULT : 0;
+}
+
+/**
+ *  stmmac_hwtstamp_get - read hardware timestamping.
+ *  @dev: device pointer.
+ *  @ifr: An IOCTL specific structure, that can contain a pointer to
+ *  a proprietary structure used to pass information to the driver.
+ *  Description:
+ *  This function obtain the current hardware timestamping settings
+    as requested.
+ */
+static int stmmac_hwtstamp_get(struct net_device *dev, struct ifreq *ifr)
+{
+	struct stmmac_priv *priv = netdev_priv(dev);
+	struct hwtstamp_config *config = &priv->tstamp_config;
+
+	if (!(priv->dma_cap.time_stamp || priv->dma_cap.atime_stamp))
+		return -EOPNOTSUPP;
+
+	return copy_to_user(ifr->ifr_data, config,
+			    sizeof(*config)) ? -EFAULT : 0;
 }
 
 /**
@@ -2151,10 +2169,13 @@ static void stmmac_check_ether_addr(struct stmmac_priv *priv)
 {
 	if (!is_valid_ether_addr(priv->dev->dev_addr)) {
 		stmmac_get_umac_addr(priv, priv->hw, priv->dev->dev_addr, 0);
+		if (likely(priv->plat->get_eth_addr))
+			priv->plat->get_eth_addr(priv->plat->bsp_priv,
+				priv->dev->dev_addr);
 		if (!is_valid_ether_addr(priv->dev->dev_addr))
 			eth_hw_addr_random(priv->dev);
-		netdev_info(priv->dev, "device MAC address %pM\n",
-			    priv->dev->dev_addr);
+		dev_info(priv->device, "device MAC address %pM\n",
+			 priv->dev->dev_addr);
 	}
 }
 
@@ -2632,6 +2653,8 @@ static int stmmac_open(struct net_device *dev)
 		goto init_error;
 	}
 
+	stmmac_check_ether_addr(priv);
+
 	ret = stmmac_hw_setup(dev, true);
 	if (ret < 0) {
 		netdev_err(priv->dev, "%s: Hw setup failed\n", __func__);
@@ -2827,16 +2850,22 @@ static netdev_tx_t stmmac_tso_xmit(struct sk_buff *skb, struct net_device *dev)
 	int nfrags = skb_shinfo(skb)->nr_frags;
 	u32 queue = skb_get_queue_mapping(skb);
 	unsigned int first_entry, des;
+	u8 proto_hdr_len, hdr;
 	struct stmmac_tx_queue *tx_q;
 	int tmp_pay_len = 0;
 	u32 pay_len, mss;
-	u8 proto_hdr_len;
 	int i;
 
 	tx_q = &priv->tx_queue[queue];
 
 	/* Compute header lengths */
-	proto_hdr_len = skb_transport_offset(skb) + tcp_hdrlen(skb);
+	if (skb_shinfo(skb)->gso_type & SKB_GSO_UDP_L4) {
+		proto_hdr_len = skb_transport_offset(skb) + sizeof(struct udphdr);
+		hdr = sizeof(struct udphdr);
+	} else {
+		proto_hdr_len = skb_transport_offset(skb) + tcp_hdrlen(skb);
+		hdr = tcp_hdrlen(skb);
+	}
 
 	/* Desc availability based on threshold should be enough safe */
 	if (unlikely(stmmac_tx_avail(priv, queue) <
@@ -2866,8 +2895,8 @@ static netdev_tx_t stmmac_tso_xmit(struct sk_buff *skb, struct net_device *dev)
 	}
 
 	if (netif_msg_tx_queued(priv)) {
-		pr_info("%s: tcphdrlen %d, hdr_len %d, pay_len %d, mss %d\n",
-			__func__, tcp_hdrlen(skb), proto_hdr_len, pay_len, mss);
+		pr_info("%s: hdrlen %d, hdr_len %d, pay_len %d, mss %d\n",
+			__func__, hdr, proto_hdr_len, pay_len, mss);
 		pr_info("\tskb->len %d, skb->data_len %d\n", skb->len,
 			skb->data_len);
 	}
@@ -2965,7 +2994,7 @@ static netdev_tx_t stmmac_tso_xmit(struct sk_buff *skb, struct net_device *dev)
 			proto_hdr_len,
 			pay_len,
 			1, tx_q->tx_skbuff_dma[first_entry].last_segment,
-			tcp_hdrlen(skb) / 4, (skb->len - proto_hdr_len));
+			hdr / 4, (skb->len - proto_hdr_len));
 
 	/* If context desc is used to change MSS */
 	if (mss_desc) {
@@ -3025,6 +3054,7 @@ static netdev_tx_t stmmac_xmit(struct sk_buff *skb, struct net_device *dev)
 	int i, csum_insertion = 0, is_jumbo = 0;
 	u32 queue = skb_get_queue_mapping(skb);
 	int nfrags = skb_shinfo(skb)->nr_frags;
+	int gso = skb_shinfo(skb)->gso_type;
 	int entry;
 	unsigned int first_entry;
 	struct dma_desc *desc, *first;
@@ -3039,7 +3069,9 @@ static netdev_tx_t stmmac_xmit(struct sk_buff *skb, struct net_device *dev)
 
 	/* Manage oversized TCP frames for GMAC4 device */
 	if (skb_is_gso(skb) && priv->tso) {
-		if (skb_shinfo(skb)->gso_type & (SKB_GSO_TCPV4 | SKB_GSO_TCPV6))
+		if (gso & (SKB_GSO_TCPV4 | SKB_GSO_TCPV6))
+			return stmmac_tso_xmit(skb, dev);
+		if (priv->plat->has_gmac4 && (gso & SKB_GSO_UDP_L4))
 			return stmmac_tso_xmit(skb, dev);
 	}
 
@@ -3799,7 +3831,10 @@ static int stmmac_ioctl(struct net_device *dev, struct ifreq *rq, int cmd)
 		ret = phy_mii_ioctl(dev->phydev, rq, cmd);
 		break;
 	case SIOCSHWTSTAMP:
-		ret = stmmac_hwtstamp_ioctl(dev, rq);
+		ret = stmmac_hwtstamp_set(dev, rq);
+		break;
+	case SIOCGHWTSTAMP:
+		ret = stmmac_hwtstamp_get(dev, rq);
 		break;
 	default:
 		break;
@@ -3866,11 +3901,13 @@ static u16 stmmac_select_queue(struct net_device *dev, struct sk_buff *skb,
 			       struct net_device *sb_dev,
 			       select_queue_fallback_t fallback)
 {
-	if (skb_shinfo(skb)->gso_type & (SKB_GSO_TCPV4 | SKB_GSO_TCPV6)) {
+	int gso = skb_shinfo(skb)->gso_type;
+
+	if (gso & (SKB_GSO_TCPV4 | SKB_GSO_TCPV6 | SKB_GSO_UDP_L4)) {
 		/*
-		 * There is no way to determine the number of TSO
+		 * There is no way to determine the number of TSO/USO
 		 * capable Queues. Let's use always the Queue 0
-		 * because if TSO is supported then at least this
+		 * because if TSO/USO is supported then at least this
 		 * one will be capable.
 		 */
 		return 0;
@@ -4332,8 +4369,6 @@ int stmmac_dvr_probe(struct device *device,
 	if (ret)
 		goto error_hw_init;
 
-	stmmac_check_ether_addr(priv);
-
 	/* Configure real RX and TX queues */
 	netif_set_real_num_rx_queues(ndev, priv->plat->rx_queues_to_use);
 	netif_set_real_num_tx_queues(ndev, priv->plat->tx_queues_to_use);
@@ -4350,6 +4385,8 @@ int stmmac_dvr_probe(struct device *device,
 
 	if ((priv->plat->tso_en) && (priv->dma_cap.tsoen)) {
 		ndev->hw_features |= NETIF_F_TSO | NETIF_F_TSO6;
+		if (priv->plat->has_gmac4)
+			ndev->hw_features |= NETIF_F_GSO_UDP_L4;
 		priv->tso = true;
 		dev_info(priv->device, "TSO feature enabled\n");
 	}
@@ -4619,8 +4656,6 @@ int stmmac_resume(struct device *dev)
 			stmmac_mdio_reset(priv->mii);
 	}
 
-	netif_device_attach(ndev);
-
 	mutex_lock(&priv->lock);
 
 	stmmac_reset_queues_param(priv);
@@ -4634,6 +4669,8 @@ int stmmac_resume(struct device *dev)
 	stmmac_enable_all_queues(priv);
 
 	stmmac_start_all_queues(priv);
+
+	netif_device_attach(ndev);
 
 	mutex_unlock(&priv->lock);
 

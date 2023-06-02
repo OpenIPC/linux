@@ -16,6 +16,8 @@
 
 #include <linux/file.h>
 #include <linux/fs.h>
+#include <linux/miscdevice.h>
+#include <linux/module.h>
 #include <linux/uaccess.h>
 #include <linux/slab.h>
 #include <linux/sync_file.h>
@@ -198,9 +200,12 @@ static const struct dma_fence_ops timeline_fence_ops = {
  * A sync implementation should call this any time one of it's fences
  * has signaled or has an error condition.
  */
-static void sync_timeline_signal(struct sync_timeline *obj, unsigned int inc)
+void sync_timeline_signal(struct sync_timeline *obj, unsigned int inc)
 {
 	struct sync_pt *pt, *next;
+
+	if (WARN_ON(!obj))
+		return;
 
 	trace_sync_timeline(obj);
 
@@ -228,6 +233,7 @@ static void sync_timeline_signal(struct sync_timeline *obj, unsigned int inc)
 
 	spin_unlock_irq(&obj->lock);
 }
+EXPORT_SYMBOL(sync_timeline_signal);
 
 /**
  * sync_pt_create() - creates a sync pt
@@ -419,3 +425,13 @@ const struct file_operations sw_sync_debugfs_fops = {
 	.unlocked_ioctl = sw_sync_ioctl,
 	.compat_ioctl	= sw_sync_ioctl,
 };
+
+static struct miscdevice sw_sync_dev = {
+	.minor	= MISC_DYNAMIC_MINOR,
+	.name	= "sw_sync",
+	.fops	= &sw_sync_debugfs_fops,
+};
+
+module_misc_device(sw_sync_dev);
+
+MODULE_LICENSE("GPL v2");

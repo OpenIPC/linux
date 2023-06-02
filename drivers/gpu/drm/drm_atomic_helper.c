@@ -307,6 +307,26 @@ update_connector_routing(struct drm_atomic_state *state,
 		return 0;
 	}
 
+	crtc_state = drm_atomic_get_new_crtc_state(state,
+						   new_connector_state->crtc);
+	/*
+	 * For compatibility with legacy users, we want to make sure that
+	 * we allow DPMS On->Off modesets on unregistered connectors. Modesets
+	 * which would result in anything else must be considered invalid, to
+	 * avoid turning on new displays on dead connectors.
+	 *
+	 * Since the connector can be unregistered at any point during an
+	 * atomic check or commit, this is racy. But that's OK: all we care
+	 * about is ensuring that userspace can't do anything but shut off the
+	 * display on a connector that was destroyed after its been notified,
+	 * not before.
+	 */
+	if (drm_connector_is_unregistered(connector) && crtc_state->active) {
+		DRM_DEBUG_ATOMIC("[CONNECTOR:%d:%s] is not registered\n",
+				 connector->base.id, connector->name);
+		return -EINVAL;
+	}
+
 	funcs = connector->helper_private;
 
 	if (funcs->atomic_best_encoder)
@@ -351,7 +371,6 @@ update_connector_routing(struct drm_atomic_state *state,
 
 	set_best_encoder(state, new_connector_state, new_encoder);
 
-	crtc_state = drm_atomic_get_new_crtc_state(state, new_connector_state->crtc);
 	crtc_state->connectors_changed = true;
 
 	DRM_DEBUG_ATOMIC("[CONNECTOR:%d:%s] using [ENCODER:%d:%s] on [CRTC:%d:%s]\n",
@@ -641,7 +660,7 @@ drm_atomic_helper_check_modeset(struct drm_device *dev,
 		}
 
 		if (funcs->atomic_check)
-			ret = funcs->atomic_check(connector, new_connector_state);
+			ret = funcs->atomic_check(connector, state);
 		if (ret)
 			return ret;
 
@@ -683,7 +702,7 @@ drm_atomic_helper_check_modeset(struct drm_device *dev,
 			continue;
 
 		if (funcs->atomic_check)
-			ret = funcs->atomic_check(connector, new_connector_state);
+			ret = funcs->atomic_check(connector, state);
 		if (ret)
 			return ret;
 	}
@@ -921,6 +940,7 @@ disable_outputs(struct drm_device *dev, struct drm_atomic_state *old_state)
 
 	for_each_oldnew_connector_in_state(old_state, connector, old_conn_state, new_conn_state, i) {
 		const struct drm_encoder_helper_funcs *funcs;
+		const struct drm_connector_helper_funcs *conn_funcs;
 		struct drm_encoder *encoder;
 
 		/* Shut down everything that's in the changeset and currently
@@ -947,12 +967,32 @@ disable_outputs(struct drm_device *dev, struct drm_atomic_state *old_state)
 		DRM_DEBUG_ATOMIC("disabling [ENCODER:%d:%s]\n",
 				 encoder->base.id, encoder->name);
 
+		conn_funcs = connector->helper_private;
+		if (connector->loader_protect) {
+			drm_bridge_pre_enable(encoder->bridge);
+
+			if (funcs->enable)
+				funcs->enable(encoder);
+			else
+				funcs->commit(encoder);
+
+			drm_bridge_enable(encoder->bridge);
+
+			if (conn_funcs->loader_protect)
+				conn_funcs->loader_protect(connector, false);
+			connector->loader_protect = false;
+		}
 		/*
 		 * Each encoder has at most one connector (since we always steal
 		 * it away), so we won't call disable hooks twice.
 		 */
 		drm_bridge_disable(encoder->bridge);
 
+		if (encoder->loader_protect) {
+			if (funcs->loader_protect)
+				funcs->loader_protect(encoder, false);
+			encoder->loader_protect = false;
+		}
 		/* Right function depends upon target state. */
 		if (funcs) {
 			if (new_conn_state->crtc && funcs->prepare)
@@ -2818,6 +2858,7 @@ int __drm_atomic_helper_disable_plane(struct drm_plane *plane,
 
 	return 0;
 }
+EXPORT_SYMBOL_GPL(__drm_atomic_helper_disable_plane);
 
 static int update_output_state(struct drm_atomic_state *state,
 			       struct drm_mode_set *set)
@@ -3753,6 +3794,9 @@ __drm_atomic_helper_connector_duplicate_state(struct drm_connector *connector,
 		drm_connector_get(connector);
 	state->commit = NULL;
 
+	if (state->hdr_output_metadata)
+		drm_property_blob_get(state->hdr_output_metadata);
+
 	/* Don't copy over a writeback job, they are used only once */
 	state->writeback_job = NULL;
 }
@@ -3884,6 +3928,8 @@ __drm_atomic_helper_connector_destroy_state(struct drm_connector_state *state)
 
 	if (state->commit)
 		drm_crtc_commit_put(state->commit);
+
+	drm_property_blob_put(state->hdr_output_metadata);
 }
 EXPORT_SYMBOL(__drm_atomic_helper_connector_destroy_state);
 

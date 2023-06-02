@@ -28,10 +28,14 @@
 
 /* DEVFREQ notifier interface */
 #define DEVFREQ_TRANSITION_NOTIFIER	(0)
+#define DEVFREQ_POLICY_NOTIFIER		(1)
 
 /* Transition notifiers of DEVFREQ_TRANSITION_NOTIFIER */
 #define	DEVFREQ_PRECHANGE		(0)
 #define DEVFREQ_POSTCHANGE		(1)
+
+/* Policy Notifiers  */
+#define	DEVFREQ_ADJUST			(0)
 
 struct devfreq;
 struct devfreq_governor;
@@ -45,6 +49,7 @@ struct devfreq_governor;
  * @busy_time:		The time that the device was working among the
  *			total_time.
  * @current_frequency:	The operating frequency.
+ * @update:		Whether need to update total_time and busy_time.
  * @private_data:	An entry not specified by the devfreq framework.
  *			A device and a specific governor may have their
  *			own protocol with private_data. However, because
@@ -56,6 +61,7 @@ struct devfreq_dev_status {
 	unsigned long total_time;
 	unsigned long busy_time;
 	unsigned long current_frequency;
+	bool update;
 	void *private_data;
 };
 
@@ -110,6 +116,16 @@ struct devfreq_dev_profile {
 };
 
 /**
+ * struct devfreq_policy - Devfreq frequency limits
+ * @min_:	minimum frequency (adjustable by policy notifiers)
+ * @max:	maximum frequency (adjustable by policy notifiers)
+ */
+struct devfreq_policy {
+	unsigned long min;
+	unsigned long max;
+};
+
+/**
  * struct devfreq - Device devfreq structure
  * @node:	list node - contains the devices with devfreq that have been
  *		registered.
@@ -126,6 +142,7 @@ struct devfreq_dev_profile {
  * @previous_freq:	previously configured frequency value.
  * @data:	Private data of the governor. The devfreq framework does not
  *		touch this.
+ * @policy:	Frequency limits of the device
  * @min_freq:	Limit minimum frequency requested by user (0: none)
  * @max_freq:	Limit maximum frequency requested by user (0: none)
  * @scaling_min_freq:	Limit minimum frequency requested by OPP interface
@@ -136,6 +153,7 @@ struct devfreq_dev_profile {
  * @time_in_state:	Statistics of devfreq states
  * @last_stat_updated:	The last time stat updated
  * @transition_notifier_list: list head of DEVFREQ_TRANSITION_NOTIFIER notifier
+ * @policy_notifier_list: list head of DEVFREQ_POLICY_NOTIFIER notifier
  *
  * This structure stores the devfreq information for a give device.
  *
@@ -161,6 +179,8 @@ struct devfreq {
 
 	void *data; /* private data for governors */
 
+	struct devfreq_policy policy;
+
 	unsigned long min_freq;
 	unsigned long max_freq;
 	unsigned long scaling_min_freq;
@@ -174,6 +194,7 @@ struct devfreq {
 	unsigned long last_stat_updated;
 
 	struct srcu_notifier_head transition_notifier_list;
+	struct srcu_notifier_head policy_notifier_list;
 };
 
 struct devfreq_freqs {
@@ -225,6 +246,29 @@ extern void devm_devfreq_unregister_notifier(struct device *dev,
 				unsigned int list);
 extern struct devfreq *devfreq_get_devfreq_by_phandle(struct device *dev,
 						int index);
+
+/**
+ * devfreq_verify_within_limits() - Adjust a devfreq policy if needed to make
+ *                                  sure its min/max values are within a
+ *                                  specified range.
+ * @policy:	the policy
+ * @min:	the minimum frequency
+ * @max:	the maximum frequency
+ */
+static inline void devfreq_verify_within_limits(struct devfreq_policy *policy,
+		unsigned int min, unsigned int max)
+{
+	if (policy->min < min)
+		policy->min = min;
+	if (policy->max < min)
+		policy->max = min;
+	if (policy->min > max)
+		policy->min = max;
+	if (policy->max > max)
+		policy->max = max;
+	if (policy->min > policy->max)
+		policy->min = policy->max;
+}
 
 #if IS_ENABLED(CONFIG_DEVFREQ_GOV_SIMPLE_ONDEMAND)
 /**
@@ -378,6 +422,11 @@ static inline struct devfreq *devfreq_get_devfreq_by_phandle(struct device *dev,
 							int index)
 {
 	return ERR_PTR(-ENODEV);
+}
+
+static inline void devfreq_verify_within_limits(struct devfreq_policy *policy,
+		unsigned int min, unsigned int max)
+{
 }
 
 static inline int devfreq_update_stats(struct devfreq *df)

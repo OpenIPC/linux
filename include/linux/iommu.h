@@ -42,6 +42,9 @@
  */
 #define IOMMU_PRIV	(1 << 5)
 
+/* For shoting entire IOMMU tlb once */
+#define IOMMU_TLB_SHOT_ENTIRE	(1 << 6)
+
 struct iommu_ops;
 struct iommu_group;
 struct bus_type;
@@ -377,6 +380,8 @@ static inline void iommu_tlb_sync(struct iommu_domain *domain)
 extern struct iommu_group *pci_device_group(struct device *dev);
 /* Generic device grouping function */
 extern struct iommu_group *generic_device_group(struct device *dev);
+extern void rk_iommu_mask_irq(struct device *dev);
+extern void rk_iommu_unmask_irq(struct device *dev);
 
 /**
  * struct iommu_fwspec - per-device IOMMU instance data
@@ -684,6 +689,18 @@ const struct iommu_ops *iommu_ops_from_fwnode(struct fwnode_handle *fwnode)
 	return NULL;
 }
 
+static inline int iommu_is_available(struct device *dev)
+{
+	return -ENODEV;
+}
+
+static inline void rk_iommu_mask_irq(struct device *dev)
+{
+}
+
+static inline void rk_iommu_unmask_irq(struct device *dev)
+{
+}
 #endif /* CONFIG_IOMMU_API */
 
 #ifdef CONFIG_IOMMU_DEBUGFS

@@ -1,0 +1,24 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2021 Rockchip Electronics Co., Ltd.
+ */
+
+/ {
+	/*
+	 * Minimize coherent pool size to 64K (default: 256K): coherent_pool=64K
+	 * chosen {
+	 *     bootargs = "coherent_pool=64K earlycon=uart8250,mmio32,0xff570000 console=ttyFIQ0 root=PARTUUID=614e0000-0000 rootwait";
+	 * };
+	 */
+
+	/* Disable general CMA */
+	reserved-memory {
+		linux,cma {
+			size = <0x0>;
+		};
+	};
+};
+
+&ramoops {
+	status = "disabled";
+};

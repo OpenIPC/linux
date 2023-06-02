@@ -283,16 +283,33 @@ void dwc3_ep0_out_start(struct dwc3 *dwc)
 
 static struct dwc3_ep *dwc3_wIndex_to_dep(struct dwc3 *dwc, __le16 wIndex_le)
 {
-	struct dwc3_ep		*dep;
+	struct dwc3_ep		*dep = NULL;
 	u32			windex = le16_to_cpu(wIndex_le);
-	u32			epnum;
+	u32			epnum, ep_index;
+	u8			num, direction;
 
-	epnum = (windex & USB_ENDPOINT_NUMBER_MASK) << 1;
-	if ((windex & USB_ENDPOINT_DIR_MASK) == USB_DIR_IN)
-		epnum |= 1;
+	epnum = windex & USB_ENDPOINT_NUMBER_MASK;
+	direction = windex & USB_ENDPOINT_DIR_MASK;
+	ep_index = 0;
 
-	dep = dwc->eps[epnum];
-	if (dep->flags & DWC3_EP_ENABLED)
+	for (num = 0; num < dwc->num_eps; num++) {
+		dep = dwc->eps[num];
+		if (!dep) {
+			dev_warn(dwc->dev, "dep is NULL, num %d, windex 0x%08x\n",
+				 num, windex);
+			return NULL;
+		}
+
+		if ((direction == USB_DIR_IN && dep->direction) ||
+		    (direction == USB_DIR_OUT && !dep->direction))
+			ep_index++;
+
+		if (ep_index == epnum + 1)
+			break;
+	}
+
+
+	if (dep && (dep->flags & DWC3_EP_ENABLED))
 		return dep;
 
 	return NULL;
@@ -381,7 +398,7 @@ static int dwc3_ep0_handle_u1(struct dwc3 *dwc, enum usb_device_state state,
 		return -EINVAL;
 
 	reg = dwc3_readl(dwc->regs, DWC3_DCTL);
-	if (set)
+	if (set && !dwc->dis_u1u2_quirk)
 		reg |= DWC3_DCTL_INITU1ENA;
 	else
 		reg &= ~DWC3_DCTL_INITU1ENA;
@@ -403,7 +420,7 @@ static int dwc3_ep0_handle_u2(struct dwc3 *dwc, enum usb_device_state state,
 		return -EINVAL;
 
 	reg = dwc3_readl(dwc->regs, DWC3_DCTL);
-	if (set)
+	if (set && !dwc->dis_u1u2_quirk)
 		reg |= DWC3_DCTL_INITU2ENA;
 	else
 		reg &= ~DWC3_DCTL_INITU2ENA;
@@ -626,7 +643,12 @@ static int dwc3_ep0_set_config(struct dwc3 *dwc, struct usb_ctrlrequest *ctrl)
 			 * nothing is pending from application.
 			 */
 			reg = dwc3_readl(dwc->regs, DWC3_DCTL);
-			reg |= (DWC3_DCTL_ACCEPTU1ENA | DWC3_DCTL_ACCEPTU2ENA);
+			if (dwc->dis_u1u2_quirk)
+				reg &= ~(DWC3_DCTL_ACCEPTU1ENA |
+					 DWC3_DCTL_ACCEPTU2ENA);
+			else
+				reg |= (DWC3_DCTL_ACCEPTU1ENA |
+					DWC3_DCTL_ACCEPTU2ENA);
 			dwc3_writel(dwc->regs, DWC3_DCTL, reg);
 		}
 		break;
@@ -1129,8 +1151,10 @@ void dwc3_ep0_interrupt(struct dwc3 *dwc,
 	case DWC3_DEPEVT_EPCMDCMPLT:
 		cmd = DEPEVT_PARAMETER_CMD(event->parameters);
 
-		if (cmd == DWC3_DEPCMD_ENDTRANSFER)
+		if (cmd == DWC3_DEPCMD_ENDTRANSFER) {
+			dep->flags &= ~DWC3_EP_END_TRANSFER_PENDING;
 			dep->flags &= ~DWC3_EP_TRANSFER_STARTED;
+		}
 		break;
 	}
 }

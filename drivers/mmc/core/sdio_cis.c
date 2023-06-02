@@ -24,6 +24,50 @@
 #include "sdio_cis.h"
 #include "sdio_ops.h"
 
+#if (defined(CONFIG_SDIO_KEEPALIVE) && defined(CONFIG_SDIO_CIS_CYW43438))
+#define CYW43438_FUNC_NUMS		2
+static const char commom_cis_cyw43438[] = {
+						0x20, 0x04, 0xd0, 0x02, 0xa6, 0xa9,
+						0x21, 0x02, 0x0c, 0x00,
+						0x22, 0x04, 0x00, 0x20, 0x00, 0x58,
+						0x80, 0x02, 0x00, 0x0b,
+						0x80, 0x03, 0x02, 0x01, 0x11,
+						0x80, 0x03, 0x1b, 0x26, 0x07,
+						0x80, 0x07, 0x19, 0x70, 0x66, 0x55, 0xff, 0xcb,
+						0x0f, 0x81, 0x01, 0x01,
+						0xff
+					};
+
+static const char func_cis_cyw43438_func1[] = {
+						0x20, 0x04, 0xd0, 0x02, 0xa6, 0xa9,
+						0x21, 0x02, 0x0c, 0x00,
+						0x22, 0x2a, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+						0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x00,
+						0x00, 0xff, 0xff, 0x80, 0x00, 0x00, 0x00, 0x00,
+						0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+						0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+						0x00, 0x00, 0x00, 0x00,
+						0xff
+					};
+
+static const char func_cis_cyw43438_func2[] = {
+						0x20, 0x04, 0xd0, 0x02, 0xa6, 0xa9,
+						0x21, 0x02, 0x0c, 0x00,
+						0x22, 0x2a, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00,
+						0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02,
+						0x00, 0xff, 0xff, 0x80, 0x00, 0x00, 0x00, 0x00,
+						0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xc8, 0x00,
+						0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+						0x00, 0x00, 0x00, 0x00,
+						0xff
+					};
+
+static const char *func_cis_cyw43438[CYW43438_FUNC_NUMS] = {
+						func_cis_cyw43438_func1,
+						func_cis_cyw43438_func2
+					};
+#endif /* (defined(CONFIG_SDIO_KEEPALIVE) && defined(CONFIG_SDIO_CIS_CYW43438)) */
+
 static int cistpl_vers_1(struct mmc_card *card, struct sdio_func *func,
 			 const unsigned char *buf, unsigned size)
 {
@@ -231,11 +275,123 @@ static const struct cis_tpl cis_tpl_list[] = {
 	{	0x91,	2,	/* cistpl_sdio_std */	},
 };
 
+#if (defined(CONFIG_SDIO_KEEPALIVE) && defined(CONFIG_SDIO_CIS_CYW43438))
+static int sdio_parse_keepalive_cis(
+				struct mmc_card *card,
+				struct sdio_func *func,
+				const char *common_cis,
+				const char **func_cis,
+				int func_nums)
+{
+	int ret;
+	struct sdio_func_tuple *this, **prev;
+	const char *ptr;
+
+	if (func) {
+		if ((func->num > 0) && (func->num <= func_nums))
+			ptr = func_cis[func->num - 1];
+		else
+			return -EINVAL;
+	} else {
+		ptr = common_cis;
+	}
+
+	if (func)
+		prev = &func->tuples;
+	else
+		prev = &card->tuples;
+
+	if (*prev)
+		return -EINVAL;
+
+	do {
+		unsigned char tpl_code, tpl_link;
+
+		tpl_code = *ptr++;
+
+		/* 0xff means we're done */
+		if (tpl_code == 0xff)
+			break;
+
+		/* null entries have no link field or data */
+		if (tpl_code == 0x00)
+			continue;
+
+		tpl_link = *ptr++;
+
+		/* a size of 0xff also means we're done */
+		if (tpl_link == 0xff)
+			break;
+
+		this = kmalloc(sizeof(*this) + tpl_link, GFP_KERNEL);
+		if (!this)
+			return -ENOMEM;
+
+		memcpy(this->data, ptr, tpl_link);
+
+		/* Try to parse the CIS tuple */
+		ret = cis_tpl_parse(card, func, "CIS",
+				    cis_tpl_list, ARRAY_SIZE(cis_tpl_list),
+				    tpl_code, this->data, tpl_link);
+		if (ret == -EILSEQ || ret == -ENOENT) {
+			/*
+			 * The tuple is unknown or known but not parsed.
+			 * Queue the tuple for the function driver.
+			 */
+			this->next = NULL;
+			this->code = tpl_code;
+			this->size = tpl_link;
+			*prev = this;
+			prev = &this->next;
+
+			if (ret == -ENOENT) {
+				/* warn about unknown tuples */
+				pr_warn_ratelimited("%s: queuing unknown CIS tuple 0x%02x (%u bytes)\n",
+				       mmc_hostname(card->host),
+				       tpl_code, tpl_link);
+			}
+
+			/* keep on analyzing tuples */
+			ret = 0;
+		} else {
+			/*
+			 * We don't need the tuple anymore if it was
+			 * successfully parsed by the SDIO core or if it is
+			 * not going to be queued for a driver.
+			 */
+			kfree(this);
+		}
+
+		ptr += tpl_link;
+	} while (!ret);
+
+	/*
+	 * Link in all unknown tuples found in the common CIS so that
+	 * drivers don't have to go digging in two places.
+	 */
+	if (func)
+		*prev = card->tuples;
+
+	return ret;
+}
+#endif /* (defined(CONFIG_SDIO_KEEPALIVE) && defined(CONFIG_SDIO_CIS_CYW43438)) */
+
 static int sdio_read_cis(struct mmc_card *card, struct sdio_func *func)
 {
 	int ret;
 	struct sdio_func_tuple *this, **prev;
 	unsigned i, ptr = 0;
+
+#if (defined(CONFIG_SDIO_KEEPALIVE) && defined(CONFIG_SDIO_CIS_CYW43438))
+	if (card->host->chip_alive) {
+		return sdio_parse_keepalive_cis(
+					card,
+					func,
+					commom_cis_cyw43438,
+					func_cis_cyw43438,
+					CYW43438_FUNC_NUMS);
+	}
+#endif  /* (defined(CONFIG_SDIO_KEEPALIVE) && defined(CONFIG_SDIO_CIS_CYW43438)) */
 
 	/*
 	 * Note that this works for the common CIS (function number 0) as

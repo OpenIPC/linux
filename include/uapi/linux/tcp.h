@@ -299,4 +299,18 @@ struct tcp_zerocopy_receive {
 	__u32 length;		/* in/out: number of bytes to map/mapped */
 	__u32 recv_skip_hint;	/* out: amount of bytes to skip */
 };
+
+#ifdef CONFIG_SDIO_KEEPALIVE
+#define TCP_EXT_INFO   37
+struct tcp_ext_info {
+	__u16 ip_id;
+	__u16 dummy;
+	__u32 snd_nxt;
+	__u32 rcv_nxt;
+	__u32 window;
+	__u32 tsval;
+	__u32 tsecr;
+};
+#endif
+
 #endif /* _UAPI_LINUX_TCP_H */

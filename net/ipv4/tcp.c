@@ -3232,6 +3232,42 @@ void tcp_get_info(struct sock *sk, struct tcp_info *info)
 }
 EXPORT_SYMBOL_GPL(tcp_get_info);
 
+#ifdef CONFIG_SDIO_KEEPALIVE
+static void tcp_get_ext_info(struct sock *sk, struct tcp_ext_info *info)
+{
+	const struct inet_connection_sock *icsk = inet_csk(sk);
+	const struct tcp_sock *tp = tcp_sk(sk);
+	bool slow;
+	u32 win;
+
+	if (sk->sk_type != SOCK_STREAM)
+		return;
+
+	memset(info, 0, sizeof(*info));
+
+	slow = lock_sock_fast(sk);
+
+	info->ip_id = icsk->icsk_inet.inet_id;
+	info->snd_nxt = tp->snd_nxt;
+	info->rcv_nxt = tp->rcv_nxt;
+
+	if (!tp->rx_opt.rcv_wscale &&
+	    sock_net(sk)->ipv4.sysctl_tcp_workaround_signed_windows)
+		win = min(tp->rcv_wnd, MAX_TCP_WINDOW);
+	else
+		win = min(tp->rcv_wnd, (65535U << tp->rx_opt.rcv_wscale));
+
+	info->window = win >> tp->rx_opt.rcv_wscale;
+
+	if (likely(tp->rx_opt.tstamp_ok)) {
+		info->tsval = tcp_time_stamp_raw() + tp->tsoffset;
+		info->tsecr = tp->rx_opt.ts_recent;
+	}
+
+	unlock_sock_fast(sk, slow);
+}
+#endif
+
 static size_t tcp_opt_stats_get_size(void)
 {
 	return
@@ -3581,6 +3617,23 @@ static int do_tcp_getsockopt(struct sock *sk, int level,
 		if (!err && copy_to_user(optval, &zc, len))
 			err = -EFAULT;
 		return err;
+	}
+#endif
+#ifdef CONFIG_SDIO_KEEPALIVE
+	case TCP_EXT_INFO:{
+		struct tcp_ext_info info;
+
+		if (get_user(len, optlen))
+			return -EFAULT;
+
+		tcp_get_ext_info(sk, &info);
+
+		len = min_t(unsigned int, len, sizeof(info));
+		if (put_user(len, optlen))
+			return -EFAULT;
+		if (copy_to_user(optval, &info, len))
+			return -EFAULT;
+		return 0;
 	}
 #endif
 	default:

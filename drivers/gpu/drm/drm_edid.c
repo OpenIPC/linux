@@ -2902,6 +2902,8 @@ add_detailed_modes(struct drm_connector *connector, struct edid *edid,
 #define VIDEO_BLOCK     0x02
 #define VENDOR_BLOCK    0x03
 #define SPEAKER_BLOCK	0x04
+#define COLORIMETRY_DATA_BLOCK		0x5
+#define HDR_STATIC_METADATA_BLOCK	0x6
 #define USE_EXTENDED_TAG 0x07
 #define EXT_VIDEO_CAPABILITY_BLOCK 0x00
 #define EXT_VIDEO_DATA_BLOCK_420	0x0E
@@ -3925,6 +3927,77 @@ static void fixup_detailed_cea_mode_clock(struct drm_display_mode *mode)
 	mode->clock = clock;
 }
 
+static bool cea_db_is_hdmi_colorimetry_data_block(const u8 *db)
+{
+	if (cea_db_tag(db) != USE_EXTENDED_TAG)
+		return false;
+
+	if (db[1] != COLORIMETRY_DATA_BLOCK)
+		return false;
+
+	return true;
+}
+
+static void
+drm_parse_colorimetry_data_block(struct drm_connector *connector, const u8 *db)
+{
+	struct drm_hdmi_info *info = &connector->display_info.hdmi;
+	u16 len;
+
+	len = cea_db_payload_len(db);
+	/* As per CEA 861-G spec */
+	info->colorimetry = ((db[3] & (0x1 << 7)) << 1) | db[2];
+}
+
+static bool cea_db_is_hdmi_hdr_metadata_block(const u8 *db)
+{
+	if (cea_db_tag(db) != USE_EXTENDED_TAG)
+		return false;
+
+	if (db[1] != HDR_STATIC_METADATA_BLOCK)
+		return false;
+
+	if (cea_db_payload_len(db) < 3)
+		return false;
+
+	return true;
+}
+
+static uint8_t eotf_supported(const u8 *edid_ext)
+{
+	return edid_ext[2] &
+		(BIT(HDMI_EOTF_TRADITIONAL_GAMMA_SDR) |
+		 BIT(HDMI_EOTF_TRADITIONAL_GAMMA_HDR) |
+		 BIT(HDMI_EOTF_SMPTE_ST2084) |
+		 BIT(HDMI_EOTF_BT_2100_HLG));
+}
+
+static uint8_t hdr_metadata_type(const u8 *edid_ext)
+{
+	return edid_ext[3] &
+		BIT(HDMI_STATIC_METADATA_TYPE1);
+}
+
+static void
+drm_parse_hdr_metadata_block(struct drm_connector *connector, const u8 *db)
+{
+	u16 len;
+
+	len = cea_db_payload_len(db);
+
+	connector->hdr_sink_metadata.hdmi_type1.eotf =
+						eotf_supported(db);
+	connector->hdr_sink_metadata.hdmi_type1.metadata_type =
+						hdr_metadata_type(db);
+
+	if (len >= 4)
+		connector->hdr_sink_metadata.hdmi_type1.max_cll = db[4];
+	if (len >= 5)
+		connector->hdr_sink_metadata.hdmi_type1.max_fall = db[5];
+	if (len >= 6)
+		connector->hdr_sink_metadata.hdmi_type1.min_cll = db[6];
+}
+
 static void
 drm_parse_hdmi_vsdb_audio(struct drm_connector *connector, const u8 *db)
 {
@@ -4500,16 +4573,9 @@ static void drm_parse_hdmi_deep_color_info(struct drm_connector *connector,
 		  connector->name, dc_bpc);
 	info->bpc = dc_bpc;
 
-	/*
-	 * Deep color support mandates RGB444 support for all video
-	 * modes and forbids YCRCB422 support for all video modes per
-	 * HDMI 1.3 spec.
-	 */
-	info->color_formats = DRM_COLOR_FORMAT_RGB444;
-
 	/* YCRCB444 is optional according to spec. */
 	if (hdmi[6] & DRM_EDID_HDMI_DC_Y444) {
-		info->color_formats |= DRM_COLOR_FORMAT_YCRCB444;
+		info->edid_hdmi_dc_modes |= DRM_EDID_HDMI_DC_Y444;
 		DRM_DEBUG("%s: HDMI sink does YCRCB444 in deep color.\n",
 			  connector->name);
 	}
@@ -4575,6 +4641,10 @@ static void drm_parse_cea_ext(struct drm_connector *connector,
 			drm_parse_hdmi_forum_vsdb(connector, db);
 		if (cea_db_is_y420cmdb(db))
 			drm_parse_y420cmdb_bitmap(connector, db);
+		if (cea_db_is_hdmi_hdr_metadata_block(db))
+			drm_parse_hdr_metadata_block(connector, db);
+		if (cea_db_is_hdmi_colorimetry_data_block(db))
+			drm_parse_colorimetry_data_block(connector, db);
 	}
 }
 
@@ -4594,6 +4664,7 @@ drm_reset_display_info(struct drm_connector *connector)
 	info->cea_rev = 0;
 	info->max_tmds_clock = 0;
 	info->dvi_dual = false;
+	info->edid_hdmi_dc_modes = 0;
 	info->has_hdmi_infoframe = false;
 	memset(&info->hdmi, 0, sizeof(info->hdmi));
 
@@ -4614,6 +4685,8 @@ u32 drm_add_display_info(struct drm_connector *connector, const struct edid *edi
 	info->non_desktop = !!(quirks & EDID_QUIRK_NON_DESKTOP);
 
 	DRM_DEBUG_KMS("non_desktop set to %d\n", info->non_desktop);
+
+	memset(&info->hdmi, 0, sizeof(info->hdmi));
 
 	if (edid->revision < 3)
 		return quirks;
@@ -4952,6 +5025,78 @@ void drm_set_preferred_mode(struct drm_connector *connector,
 	}
 }
 EXPORT_SYMBOL(drm_set_preferred_mode);
+
+static inline bool is_eotf_supported(u8 output_eotf, u8 sink_eotf)
+{
+	return sink_eotf & BIT(output_eotf);
+}
+
+/**
+ * drm_hdmi_infoframe_set_hdr_metadata() - fill an HDMI DRM infoframe with
+ *                                         HDR metadata from userspace
+ * @frame: HDMI DRM infoframe
+ * @hdr_metadata: hdr_source_metadata info from userspace
+ *
+ * Return: 0 on success or a negative error code on failure.
+ */
+int
+drm_hdmi_infoframe_set_hdr_metadata(struct hdmi_drm_infoframe *frame,
+				    const struct drm_connector_state *conn_state)
+{
+	struct drm_connector *connector;
+	struct hdr_output_metadata *hdr_metadata;
+	int err;
+
+	if (!frame || !conn_state)
+		return -EINVAL;
+
+	connector = conn_state->connector;
+
+	if (!conn_state->hdr_output_metadata)
+		return -EINVAL;
+
+	hdr_metadata = conn_state->hdr_output_metadata->data;
+
+	if (!hdr_metadata || !connector)
+		return -EINVAL;
+
+	/* Sink EOTF is Bit map while infoframe is absolute values */
+	if (!is_eotf_supported(hdr_metadata->hdmi_metadata_type1.eotf,
+	    connector->hdr_sink_metadata.hdmi_type1.eotf)) {
+		DRM_DEBUG_KMS("EOTF Not Supported\n");
+		return -EINVAL;
+	}
+
+	err = hdmi_drm_infoframe_init(frame);
+	if (err < 0)
+		return err;
+
+	frame->eotf = hdr_metadata->hdmi_metadata_type1.eotf;
+	frame->metadata_type = hdr_metadata->hdmi_metadata_type1.metadata_type;
+
+	BUILD_BUG_ON(sizeof(frame->display_primaries) !=
+		     sizeof(hdr_metadata->hdmi_metadata_type1.display_primaries));
+	BUILD_BUG_ON(sizeof(frame->white_point) !=
+		     sizeof(hdr_metadata->hdmi_metadata_type1.white_point));
+
+	memcpy(&frame->display_primaries,
+	       &hdr_metadata->hdmi_metadata_type1.display_primaries,
+	       sizeof(frame->display_primaries));
+
+	memcpy(&frame->white_point,
+	       &hdr_metadata->hdmi_metadata_type1.white_point,
+	       sizeof(frame->white_point));
+
+	frame->max_display_mastering_luminance =
+		hdr_metadata->hdmi_metadata_type1.max_display_mastering_luminance;
+	frame->min_display_mastering_luminance =
+		hdr_metadata->hdmi_metadata_type1.min_display_mastering_luminance;
+	frame->max_fall = hdr_metadata->hdmi_metadata_type1.max_fall;
+	frame->max_cll = hdr_metadata->hdmi_metadata_type1.max_cll;
+
+	return 0;
+}
+EXPORT_SYMBOL(drm_hdmi_infoframe_set_hdr_metadata);
 
 /**
  * drm_hdmi_avi_infoframe_from_display_mode() - fill an HDMI AVI infoframe with

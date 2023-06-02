@@ -55,6 +55,7 @@ struct rockchip_saradc {
 	struct clk		*clk;
 	struct completion	completion;
 	struct regulator	*vref;
+	int			uv_vref;
 	struct reset_control	*reset;
 	const struct rockchip_saradc_data *data;
 	u16			last_val;
@@ -65,7 +66,6 @@ static int rockchip_saradc_read_raw(struct iio_dev *indio_dev,
 				    int *val, int *val2, long mask)
 {
 	struct rockchip_saradc *info = iio_priv(indio_dev);
-	int ret;
 
 	switch (mask) {
 	case IIO_CHAN_INFO_RAW:
@@ -93,13 +93,11 @@ static int rockchip_saradc_read_raw(struct iio_dev *indio_dev,
 		mutex_unlock(&indio_dev->mlock);
 		return IIO_VAL_INT;
 	case IIO_CHAN_INFO_SCALE:
-		ret = regulator_get_voltage(info->vref);
-		if (ret < 0) {
-			dev_err(&indio_dev->dev, "failed to get voltage\n");
-			return ret;
-		}
+		/* It is a dummy regulator */
+		if (info->uv_vref < 0)
+			return info->uv_vref;
 
-		*val = ret / 1000;
+		*val = info->uv_vref / 1000;
 		*val2 = info->data->num_bits;
 		return IIO_VAL_FRACTIONAL_LOG2;
 	default:
@@ -303,6 +301,8 @@ static int rockchip_saradc_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	info->uv_vref = regulator_get_voltage(info->vref);
+
 	ret = clk_prepare_enable(info->pclk);
 	if (ret < 0) {
 		dev_err(&pdev->dev, "failed to enable pclk\n");
@@ -402,7 +402,21 @@ static struct platform_driver rockchip_saradc_driver = {
 	},
 };
 
+#ifdef CONFIG_ROCKCHIP_THUNDER_BOOT
+static int __init rockchip_saradc_driver_init(void)
+{
+	return platform_driver_register(&rockchip_saradc_driver);
+}
+fs_initcall(rockchip_saradc_driver_init);
+
+static void __exit rockchip_saradc_driver_exit(void)
+{
+	platform_driver_unregister(&rockchip_saradc_driver);
+}
+module_exit(rockchip_saradc_driver_exit);
+#else
 module_platform_driver(rockchip_saradc_driver);
+#endif
 
 MODULE_AUTHOR("Heiko Stuebner <heiko@sntech.de>");
 MODULE_DESCRIPTION("Rockchip SARADC driver");

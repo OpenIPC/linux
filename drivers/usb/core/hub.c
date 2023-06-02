@@ -18,6 +18,7 @@
 #include <linux/sched/mm.h>
 #include <linux/list.h>
 #include <linux/slab.h>
+#include <linux/kcov.h>
 #include <linux/ioctl.h>
 #include <linux/usb.h>
 #include <linux/usbdevice_fs.h>
@@ -1196,6 +1197,11 @@ static void hub_activate(struct usb_hub *hub, enum hub_activation_type type)
 #ifdef CONFIG_PM
 			udev->reset_resume = 1;
 #endif
+			/* Don't set the change_bits when the device
+			 * was powered off.
+			 */
+			if (test_bit(port1, hub->power_bits))
+				set_bit(port1, hub->change_bits);
 
 		} else {
 			/* The power session is gone; tell hub_wq */
@@ -1783,7 +1789,8 @@ static int hub_probe(struct usb_interface *intf, const struct usb_device_id *id)
 	 * bus_resume methods.
 	 */
 	if (hdev->parent) {		/* normal device */
-		usb_enable_autosuspend(hdev);
+		if (!(hdev->parent->quirks & USB_QUIRK_AUTO_SUSPEND))
+			usb_enable_autosuspend(hdev);
 	} else {			/* root hub */
 		const struct hc_driver *drv = bus_to_hcd(hdev->bus)->driver;
 
@@ -3051,6 +3058,15 @@ static int check_port_resume_type(struct usb_device *udev,
 		if (portchange & USB_PORT_STAT_C_ENABLE)
 			usb_clear_port_feature(hub->hdev, port1,
 					USB_PORT_FEAT_C_ENABLE);
+
+		/*
+		 * Whatever made this reset-resume necessary may have
+		 * turned on the port1 bit in hub->change_bits.  But after
+		 * a successful reset-resume we want the bit to be clear;
+		 * if it was on it would indicate that something happened
+		 * following the reset-resume.
+		 */
+		clear_bit(port1, hub->change_bits);
 	}
 
 	return status;
@@ -5123,7 +5139,8 @@ loop:
 done:
 	hub_port_disable(hub, port1, 1);
 	if (hcd->driver->relinquish_port && !hub->hdev->parent) {
-		if (status != -ENOTCONN && status != -ENODEV)
+		if ((status != -ENOTCONN && status != -ENODEV) ||
+		    (status == -ENOTCONN && hcd->rk3288_relinquish_port_quirk))
 			hcd->driver->relinquish_port(hcd, port1);
 	}
 }
@@ -5285,7 +5302,24 @@ static void port_event(struct usb_hub *hub, int port1)
 		} else {
 			usb_unlock_port(port_dev);
 			usb_lock_device(udev);
-			usb_reset_device(udev);
+
+			/**
+			 * Some special SoCs (e.g. rk322xh) USB3 PHY lose the
+			 * ability to detect a disconnection when USB3 device
+			 * plug out, fortunately, it can detect port link state
+			 * change here, so we can do soft disconnect according
+			 * to the PLC here.
+			 *
+			 * And we only need to do the soft disconnect for root
+			 * hub. In addition, we just reuse the autosuspend quirk
+			 * but not add a new quirk for this issue. Because this
+			 * issue always occurs with autosuspend problem.
+			 */
+			if (!hub->hdev->parent && (hdev->quirks &
+			    USB_QUIRK_AUTO_SUSPEND))
+				usb_remove_device(udev);
+			else
+				usb_reset_device(udev);
 			usb_unlock_device(udev);
 			usb_lock_port(port_dev);
 			connect_change = 0;
@@ -5310,6 +5344,8 @@ static void hub_event(struct work_struct *work)
 	hdev = hub->hdev;
 	hub_dev = hub->intfdev;
 	intf = to_usb_interface(hub_dev);
+
+	kcov_remote_start_usb((u64)hdev->bus->busnum);
 
 	dev_dbg(hub_dev, "state %d ports %d chg %04x evt %04x\n",
 			hdev->state, hdev->maxchild,
@@ -5417,6 +5453,8 @@ out_hdev_lock:
 	/* Balance the stuff in kick_hub_wq() and allow autosuspend */
 	usb_autopm_put_interface(intf);
 	kref_put(&hub->kref, hub_release);
+
+	kcov_remote_stop();
 }
 
 static const struct usb_device_id hub_id_table[] = {
