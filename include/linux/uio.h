@@ -96,6 +96,13 @@ static inline size_t iov_iter_count(struct iov_iter *i)
 {
 	return i->count;
 }
+/*
+ * Get one of READ or WRITE out of iter->type without any other flags OR'd in
+ * with it.
+ *
+ * The ?: is just for type safety.
+ */
+#define iov_iter_rw(i) ((0 ? (struct iov_iter *)0 : (i))->type & RW_MASK)
 
 /*
  * Cap the iov_iter by given limit; note that the second argument is

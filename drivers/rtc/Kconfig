@@ -701,6 +701,14 @@ endif # SPI_MASTER
 
 comment "Platform RTC drivers"
 
+config RTC_DRV_HIBVT
+	tristate "HiSilicon BVT RTC support"
+	help
+	  Generic RTC framework driver for HiSilicon BVT SoCs.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called rtc-hibvt.
+	  
 # this 'CMOS' RTC driver is arch dependent because <asm-generic/rtc.h>
 # requires <asm/mc146818rtc.h> defining CMOS_READ/CMOS_WRITE, and a
 # global rtc_lock ... it's not yet just another platform_device.

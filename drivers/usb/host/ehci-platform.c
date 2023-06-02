@@ -43,7 +43,8 @@
 struct ehci_platform_priv {
 	struct clk *clks[EHCI_MAX_CLKS];
 	struct reset_control *rst;
-	struct phy *phy;
+	struct phy **phys;
+	int num_phys;
 };
 
 static const char hcd_name[] = "ehci-platform";
@@ -78,7 +79,7 @@ static int ehci_platform_power_on(struct platform_device *dev)
 {
 	struct usb_hcd *hcd = platform_get_drvdata(dev);
 	struct ehci_platform_priv *priv = hcd_to_ehci_priv(hcd);
-	int clk, ret;
+	int clk, ret, phy_num;
 
 	for (clk = 0; clk < EHCI_MAX_CLKS && priv->clks[clk]; clk++) {
 		ret = clk_prepare_enable(priv->clks[clk]);
@@ -86,20 +87,24 @@ static int ehci_platform_power_on(struct platform_device *dev)
 			goto err_disable_clks;
 	}
 
-	if (priv->phy) {
-		ret = phy_init(priv->phy);
-		if (ret)
-			goto err_disable_clks;
-
-		ret = phy_power_on(priv->phy);
+	for (phy_num = 0; phy_num < priv->num_phys; phy_num++) {
+		ret = phy_init(priv->phys[phy_num]);
 		if (ret)
 			goto err_exit_phy;
+		ret = phy_power_on(priv->phys[phy_num]);
+		if (ret) {
+			phy_exit(priv->phys[phy_num]);
+			goto err_exit_phy;
+		}
 	}
 
 	return 0;
 
 err_exit_phy:
-	phy_exit(priv->phy);
+	while (--phy_num >= 0) {
+		phy_power_off(priv->phys[phy_num]);
+		phy_exit(priv->phys[phy_num]);
+	}
 err_disable_clks:
 	while (--clk >= 0)
 		clk_disable_unprepare(priv->clks[clk]);
@@ -111,11 +116,11 @@ static void ehci_platform_power_off(struct platform_device *dev)
 {
 	struct usb_hcd *hcd = platform_get_drvdata(dev);
 	struct ehci_platform_priv *priv = hcd_to_ehci_priv(hcd);
-	int clk;
+	int clk, phy_num;
 
-	if (priv->phy) {
-		phy_power_off(priv->phy);
-		phy_exit(priv->phy);
+	for (phy_num = 0; phy_num < priv->num_phys; phy_num++) {
+		phy_power_off(priv->phys[phy_num]);
+		phy_exit(priv->phys[phy_num]);
 	}
 
 	for (clk = EHCI_MAX_CLKS - 1; clk >= 0; clk--)
@@ -143,7 +148,7 @@ static int ehci_platform_probe(struct platform_device *dev)
 	struct usb_ehci_pdata *pdata = dev_get_platdata(&dev->dev);
 	struct ehci_platform_priv *priv;
 	struct ehci_hcd *ehci;
-	int err, irq, clk = 0;
+	int err, irq, phy_num, clk = 0;
 
 	if (usb_disabled())
 		return -ENODEV;
@@ -190,12 +195,24 @@ static int ehci_platform_probe(struct platform_device *dev)
 		if (of_property_read_bool(dev->dev.of_node, "big-endian"))
 			ehci->big_endian_mmio = ehci->big_endian_desc = 1;
 
-		priv->phy = devm_phy_get(&dev->dev, "usb");
-		if (IS_ERR(priv->phy)) {
-			err = PTR_ERR(priv->phy);
-			if (err == -EPROBE_DEFER)
-				goto err_put_hcd;
-			priv->phy = NULL;
+		priv->num_phys = of_count_phandle_with_args(dev->dev.of_node,
+				"phys", "#phy-cells");
+
+		if (priv->num_phys > 0) {
+			priv->phys = devm_kcalloc(&dev->dev, priv->num_phys,
+					    sizeof(struct phy *), GFP_KERNEL);
+			if (!priv->phys)
+				return -ENOMEM;
+		} else
+			priv->num_phys = 0;
+
+		for (phy_num = 0; phy_num < priv->num_phys; phy_num++) {
+			priv->phys[phy_num] = devm_of_phy_get_by_index(
+					&dev->dev, dev->dev.of_node, phy_num);
+			if (IS_ERR(priv->phys[phy_num])) {
+				err = PTR_ERR(priv->phys[phy_num]);
+					goto err_put_hcd;
+			}
 		}
 
 		for (clk = 0; clk < EHCI_MAX_CLKS; clk++) {
@@ -311,7 +328,7 @@ static int ehci_platform_remove(struct platform_device *dev)
 	return 0;
 }
 
-#ifdef CONFIG_PM
+#ifdef CONFIG_PM_SLEEP
 
 static int ehci_platform_suspend(struct device *dev)
 {
@@ -349,10 +366,7 @@ static int ehci_platform_resume(struct device *dev)
 	return 0;
 }
 
-#else /* !CONFIG_PM */
-#define ehci_platform_suspend	NULL
-#define ehci_platform_resume	NULL
-#endif /* CONFIG_PM */
+#endif /* CONFIG_PM_SLEEP */
 
 static const struct of_device_id vt8500_ehci_ids[] = {
 	{ .compatible = "via,vt8500-ehci", },
@@ -368,10 +382,8 @@ static const struct platform_device_id ehci_platform_table[] = {
 };
 MODULE_DEVICE_TABLE(platform, ehci_platform_table);
 
-static const struct dev_pm_ops ehci_platform_pm_ops = {
-	.suspend	= ehci_platform_suspend,
-	.resume		= ehci_platform_resume,
-};
+static SIMPLE_DEV_PM_OPS(ehci_platform_pm_ops, ehci_platform_suspend,
+		       ehci_platform_resume);
 
 static struct platform_driver ehci_platform_driver = {
 	.id_table	= ehci_platform_table,

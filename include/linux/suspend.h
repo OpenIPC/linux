@@ -321,6 +321,14 @@ static inline void __init register_nosave_region_late(unsigned long b, unsigned 
 {
 	__register_nosave_region(b, e, 1);
 }
+#ifdef	CONFIG_HISI_SNAPSHOT_BOOT
+/*snapshot boot add*/
+extern void *register_save_region(unsigned long start_pfn, unsigned long);
+extern void unregister_save_region(void *);
+extern void *register_nosave_region_runtime(unsigned long start_pfn,
+		unsigned long);
+extern void unregister_nosave_region_runtime(void *);
+#endif
 extern int swsusp_page_is_forbidden(struct page *);
 extern void swsusp_set_page_free(struct page *);
 extern void swsusp_unset_page_free(struct page *);
@@ -338,7 +346,20 @@ static inline void register_nosave_region_late(unsigned long b, unsigned long e)
 static inline int swsusp_page_is_forbidden(struct page *p) { return 0; }
 static inline void swsusp_set_page_free(struct page *p) {}
 static inline void swsusp_unset_page_free(struct page *p) {}
-
+#ifdef	CONFIG_HISI_SNAPSHOT_BOOT
+/*snapshot boot add*/
+static inline void *register_save_region(unsigned long b, unsigned long e)
+{
+	return NULL;
+}
+static inline void unregister_save_region(void *mem) {}
+static inline void *register_nosave_region_runtime(unsigned long b,
+		unsigned long e)
+{
+	return NULL;
+}
+static inline void unregister_nosave_region_runtime(void *mem) {}
+#endif
 static inline void hibernation_set_ops(const struct platform_hibernation_ops *ops) {}
 static inline int hibernate(void) { return -ENOSYS; }
 static inline bool system_entering_hibernation(void) { return false; }
@@ -352,7 +373,13 @@ static inline bool hibernation_available(void) { return false; }
 #define PM_POST_SUSPEND		0x0004 /* Suspend finished */
 #define PM_RESTORE_PREPARE	0x0005 /* Going to restore a saved image */
 #define PM_POST_RESTORE		0x0006 /* Restore failed */
-
+#ifdef	CONFIG_HISI_SNAPSHOT_BOOT
+/*snapshot boot add*/
+#define PM_POST_FREEZE_PROCESS   0x0101
+#define PM_THAW_PROCESS_PREPARE  0x0102
+#define PM_POST_DEVICE_SUSPEND   0x0103
+#define PM_RESUME_DEVICE_PREPARE 0x0104
+#endif
 extern struct mutex pm_mutex;
 
 #ifdef CONFIG_PM_SLEEP
@@ -379,6 +406,7 @@ extern bool pm_get_wakeup_count(unsigned int *count, bool block);
 extern bool pm_save_wakeup_count(unsigned int count);
 extern void pm_wakep_autosleep_enabled(bool set);
 extern void pm_print_active_wakeup_sources(void);
+extern void pm_get_active_wakeup_sources(char *pending_sources, size_t max);
 
 static inline void lock_system_sleep(void)
 {

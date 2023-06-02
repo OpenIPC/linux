@@ -1,0 +1,98 @@
+#ifndef __HISI_PCIE_H__
+#define __HISI_PCIE_H__
+
+#include <mach/io.h>
+
+#define MISC_CTRL_BASE		0x12120000
+#define PERI_CRG_BASE		0x12040000
+#define PCIE_SYS_STAT		IO_ADDRESS(0x1205008C)
+
+#define PCIE0_MEM_BASE		0x28000000
+#define PCIE0_EP_CONF_BASE	0x20000000
+#define PCIE0_DBI_BASE		0x122F0000
+#define PCIE_DBI_BASE		PCIE0_MEM_BASE
+
+#define PCIE1_MEM_BASE		0x38000000
+#define PCIE1_EP_CONF_BASE	0x30000000
+#define PCIE1_DBI_BASE		0x122F8000
+
+#define PERI_CRG_72		0x120
+#define COMPHY_CLK_REST_VAL	((0x2 << 14) | (0x2 << 12) \
+				| (0x1 << 9) | (0x1 << 8) \
+				| (0x2 << 6) | (0x2 << 4) | 0x3)
+
+#define PERI_CRG73		0x124
+
+#define PCIE0_X2_SRST_REQ	6
+#define PCIE0_X2_AUX_CKEN	3
+#define PCIE0_X2_PIPE_CKEN	2
+#define PCIE0_X2_SYS_CKEN	1
+#define PCIE0_X2_BUS_CKEN	0
+
+#define PCIE_PAD_OE_MASK	(0x7 << 8)
+
+#define PCIE1_X2_SRST_REQ	14
+#define PCIE1_X2_AUX_CKEN	11
+#define PCIE1_X2_PIPE_CKEN	10
+#define PCIE1_X2_SYS_CKEN	9
+#define PCIE1_X2_BUS_CKEN	8
+
+#define PCIE_SYS_CTRL0		0x1000
+#define PCIE_DEVICE_TYPE	28
+#define PCIE_WM_EP		0x0
+#define PCIE_WM_LEGACY		0x1
+#define PCIE_WM_RC		0x4
+
+#define PCIE_SYS_CTRL7		0x101C
+#define PCIE_APP_LTSSM_ENBALE	11
+#define PCIE_ACCESS_ENABLE	13
+
+#define PCIE_SYS_STATE0		0x1100
+#define PCIE_XMLH_LINK_UP	15
+#define PCIE_RDLH_LINK_UP	5
+
+#define PCIE0_IRQ_INTA		94
+#define PCIE0_IRQ_INTB		95
+#define PCIE0_IRQ_INTC		96
+#define PCIE0_IRQ_INTD		97
+#define PCIE0_IRQ_EDMA		98
+#define PCIE0_IRQ_MSI		99
+#define PCIE0_IRQ_LINK_DOWN	100
+
+#define PCIE1_IRQ_INTA		101
+#define PCIE1_IRQ_INTB		102
+#define PCIE1_IRQ_INTC		103
+#define PCIE1_IRQ_INTD		104
+#define PCIE1_IRQ_EDMA		105
+#define PCIE1_IRQ_MSI		106
+#define PCIE1_IRQ_LINK_DOWN	107
+
+#define PCIE_INTA_PIN		1
+#define PCIE_INTB_PIN		2
+#define PCIE_INTC_PIN		3
+#define PCIE_INTD_PIN		4
+
+#define MISC_CTRL3			0xC
+#define MISC_CTRL81			0x144
+#define MISC_CTRL80			0x140
+
+#define PCIE_COMBPHY_TEST_ADDR_EN	0x1
+#define PCIE_COMBPHY_TEST_DATA_EN	(0x9 << 8)
+
+#define PCIE_COMBPHY_TEST_WR_EN		(0x1 << 6)
+#define PCIE_COMBPHY_RECOVER		0x0
+
+#define PCIE0_REGCLK_OUTPUT_EN		(1 << 0)
+#define PCIE0_REGCLK_INPUT_EN		(1 << 1)
+#define PCIE0_REGCLK_SRC_SEL_PHY	(1 << 6)
+
+#define PCIE1_REGCLK_OUTPUT_EN		(1 << 2)
+#define PCIE1_REGCLK_INPUT_EN		(1 << 3)
+#define PCIE1_REGCLK_SRC_SEL_PHY	(1 << 7)
+
+#define REG_GPIO_15_BASE			0x12240000
+#define GPIO_15_DATA				0x4
+#define GPIO_15_DIR					0x400
+#define GPIO_15_DIR_SET_OUTPUT		1
+
+#endif

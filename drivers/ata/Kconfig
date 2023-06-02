@@ -2,6 +2,8 @@
 # SATA/PATA driver configuration
 #
 
+source "drivers/ata/Kconfig.hiahci"
+
 config HAVE_PATA_PLATFORM
 	bool
 	help

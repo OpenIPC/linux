@@ -50,6 +50,14 @@ config USB_XHCI_RCAR
 	  Say 'Y' to enable the support for the xHCI host controller
 	  found in Renesas R-Car ARM SoCs.
 
+config USB_XHCI_HISILICON
+	tristate "xHCI support for Hisilicon SoCs"
+	select USB_XHCI_PLATFORM
+	---help---
+	  Say 'Y' to enable the support for the xHCI host controller
+	  found in Hisilicon ARM SOCs. When you select the option, usb
+	  driver can be loaded.
+
 endif # USB_XHCI_HCD
 
 config USB_EHCI_HCD

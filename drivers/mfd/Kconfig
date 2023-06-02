@@ -223,6 +223,18 @@ config MFD_HI6421_PMIC
 	  menus in order to enable them.
 	  We communicate with the Hi6421 via memory-mapped I/O.
 
+config MFD_HISI_FMC
+	tristate "Hisilicon Flash Memory Controller"
+	depends on OF
+	select MFD_CORE
+	select REGMAP_MMIO
+	default y if (HIFMC_SPI_NAND && SPI_HISI_SFC && HIFMC_NAND)
+	help
+	  If you need to use SPI nor flash or SPI nand flash at same time,
+	  enable this option for swap controller. if your enable
+	  HIFMC_SPI_NAND and SPI_HISI_SFC at same time, this function should
+	  be select.
+
 config HTC_EGPIO
 	bool "HTC EGPIO support"
 	depends on GPIOLIB && ARM

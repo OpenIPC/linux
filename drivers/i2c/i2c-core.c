@@ -881,9 +881,14 @@ static int i2c_check_client_addr_validity(const struct i2c_client *client)
 		if (client->addr > 0x3ff)
 			return -EINVAL;
 	} else {
+#ifdef	CONFIG_HI_I2C
 		/* 7-bit address, reject the general call address */
+		if (client->addr == 0x00 || client->addr > 0xfe)
+			return -EINVAL;
+#else
 		if (client->addr == 0x00 || client->addr > 0x7f)
 			return -EINVAL;
+#endif
 	}
 	return 0;
 }
@@ -2123,7 +2128,11 @@ int i2c_master_send(const struct i2c_client *client, const char *buf, int count)
 	struct i2c_msg msg;
 
 	msg.addr = client->addr;
+#ifdef CONFIG_HI_I2C
+	msg.flags = client->flags;
+#else
 	msg.flags = client->flags & I2C_M_TEN;
+#endif
 	msg.len = count;
 	msg.buf = (char *)buf;
 
@@ -2152,7 +2161,11 @@ int i2c_master_recv(const struct i2c_client *client, char *buf, int count)
 	int ret;
 
 	msg.addr = client->addr;
+#ifdef CONFIG_HI_I2C
+	msg.flags = client->flags;
+#else
 	msg.flags = client->flags & I2C_M_TEN;
+#endif
 	msg.flags |= I2C_M_RD;
 	msg.len = count;
 	msg.buf = buf;

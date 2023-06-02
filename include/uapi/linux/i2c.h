@@ -76,6 +76,9 @@ struct i2c_msg {
 #define I2C_M_IGNORE_NAK	0x1000	/* if I2C_FUNC_PROTOCOL_MANGLING */
 #define I2C_M_NO_RD_ACK		0x0800	/* if I2C_FUNC_PROTOCOL_MANGLING */
 #define I2C_M_RECV_LEN		0x0400	/* length will be first received byte */
+#define I2C_M_16BIT_REG		0x0002	/* indicate reg bit-width is 16bit */
+#define I2C_M_16BIT_DATA	0x0008	/* indicate data bit-width is 16bit */
+#define I2C_M_DMA			0x0004  /* indicate use dma mode */
 	__u16 len;		/* msg length				*/
 	__u8 *buf;		/* pointer to msg data			*/
 };

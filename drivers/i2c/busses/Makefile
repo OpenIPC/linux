@@ -47,7 +47,9 @@ obj-$(CONFIG_I2C_EFM32)		+= i2c-efm32.o
 obj-$(CONFIG_I2C_EG20T)		+= i2c-eg20t.o
 obj-$(CONFIG_I2C_EXYNOS5)	+= i2c-exynos5.o
 obj-$(CONFIG_I2C_GPIO)		+= i2c-gpio.o
+obj-$(CONFIG_I2C_HIBVT)		+= i2c-hibvt.o
 obj-$(CONFIG_I2C_HIGHLANDER)	+= i2c-highlander.o
+obj-$(CONFIG_I2C_HISI_V110)     += i2c-hisi-v110.o
 obj-$(CONFIG_I2C_HIX5HD2)	+= i2c-hix5hd2.o
 obj-$(CONFIG_I2C_IBM_IIC)	+= i2c-ibm_iic.o
 obj-$(CONFIG_I2C_IMX)		+= i2c-imx.o
@@ -103,4 +105,5 @@ obj-$(CONFIG_I2C_PCA_ISA)	+= i2c-pca-isa.o
 obj-$(CONFIG_I2C_SIBYTE)	+= i2c-sibyte.o
 obj-$(CONFIG_SCx200_ACB)	+= scx200_acb.o
 
+obj-$(CONFIG_HI_I2C)		+= i2c-hisilicon.o
 ccflags-$(CONFIG_I2C_DEBUG_BUS) := -DDEBUG

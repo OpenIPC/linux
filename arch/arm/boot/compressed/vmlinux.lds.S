@@ -48,6 +48,7 @@ SECTIONS
     *(.rodata)
     *(.rodata.*)
   }
+  . = ALIGN(16);
   .piggydata : {
     *(.piggydata)
   }

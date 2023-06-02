@@ -620,6 +620,10 @@ int hfs_inode_setattr(struct dentry *dentry, struct iattr * attr)
 		return hsb->s_quiet ? 0 : error;
 	}
 
+	error = setattr_killpriv(dentry, attr);
+	if (error)
+		return error;
+
 	if (attr->ia_valid & ATTR_MODE) {
 		/* Only the 'w' bits can ever change and only all together. */
 		if (attr->ia_mode & S_IWUSR)

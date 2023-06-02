@@ -289,6 +289,9 @@ static inline void *phys_to_virt(phys_addr_t x)
  */
 #define __pa(x)			__virt_to_phys((unsigned long)(x))
 #define __va(x)			((void *)__phys_to_virt((phys_addr_t)(x)))
+#ifdef	CONFIG_HISI_SNAPSHOT_BOOT
+#define __pa_symbol(x)      __pa(RELOC_HIDE((unsigned long)(x), 0))
+#endif
 #define pfn_to_kaddr(pfn)	__va((pfn) << PAGE_SHIFT)
 
 extern phys_addr_t (*arch_virt_to_idmap)(unsigned long x);

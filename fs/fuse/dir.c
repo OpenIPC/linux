@@ -1693,9 +1693,10 @@ int fuse_flush_times(struct inode *inode, struct fuse_file *ff)
  * vmtruncate() doesn't allow for this case, so do the rlimit checking
  * and the actual truncation by hand.
  */
-int fuse_do_setattr(struct inode *inode, struct iattr *attr,
+int fuse_do_setattr(struct dentry *entry, struct iattr *attr,
 		    struct file *file)
 {
+	struct inode *inode = entry->d_inode;
 	struct fuse_conn *fc = get_fuse_conn(inode);
 	struct fuse_inode *fi = get_fuse_inode(inode);
 	struct fuse_req *req;
@@ -1711,6 +1712,10 @@ int fuse_do_setattr(struct inode *inode, struct iattr *attr,
 		attr->ia_valid |= ATTR_FORCE;
 
 	err = inode_change_ok(inode, attr);
+	if (err)
+		return err;
+
+	err = setattr_killpriv(entry, attr);
 	if (err)
 		return err;
 
@@ -1809,15 +1814,13 @@ error:
 
 static int fuse_setattr(struct dentry *entry, struct iattr *attr)
 {
-	struct inode *inode = entry->d_inode;
-
-	if (!fuse_allow_current_process(get_fuse_conn(inode)))
+	if (!fuse_allow_current_process(get_fuse_conn(entry->d_inode)))	
 		return -EACCES;
 
 	if (attr->ia_valid & ATTR_FILE)
-		return fuse_do_setattr(inode, attr, attr->ia_file);
+		return fuse_do_setattr(entry, attr, attr->ia_file);	
 	else
-		return fuse_do_setattr(inode, attr, NULL);
+		return fuse_do_setattr(entry, attr, NULL);
 }
 
 static int fuse_getattr(struct vfsmount *mnt, struct dentry *entry,

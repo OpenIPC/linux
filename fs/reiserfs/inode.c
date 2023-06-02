@@ -3316,6 +3316,10 @@ int reiserfs_setattr(struct dentry *dentry, struct iattr *attr)
 	if (error)
 		return error;
 
+	error = setattr_killpriv(dentry, attr);
+	if (error)
+		return error;
+
 	/* must be turned off for recursive notify_change calls */
 	ia_valid = attr->ia_valid &= ~(ATTR_KILL_SUID|ATTR_KILL_SGID);
 

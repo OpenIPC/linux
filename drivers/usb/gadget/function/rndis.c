@@ -41,6 +41,24 @@
 
 #include "rndis.h"
 
+typedef enum
+{
+	RNDIS_SKB_IDLE=0,
+	RNDIS_SKB_COMBINING,
+	RNDIS_SKB_COMBINED,
+}rndis_skb_status;
+
+typedef struct{
+	rndis_skb_status status;
+	int msgtype;
+	int msglen;
+	int halflen;
+	int datalen;
+	int dataoffset;
+	struct sk_buff *skb;
+}rndis_skb_recombine;
+rndis_skb_recombine g_skb[2];
+
 
 /* The driver for your USB chip needs to support ep0 OUT to work with
  * RNDIS, plus all three CDC Ethernet endpoints (interrupt not optional).
@@ -58,6 +76,16 @@ MODULE_PARM_DESC (rndis_debug, "enable debugging");
 #endif
 
 #define RNDIS_MAX_CONFIGS	1
+
+int rndis_ul_max_pkt_per_xfer_rcvd;
+module_param(rndis_ul_max_pkt_per_xfer_rcvd, int, S_IRUGO);
+MODULE_PARM_DESC(rndis_ul_max_pkt_per_xfer_rcvd,
+		"Max num of REMOTE_NDIS_PACKET_MSGs received in a single transfer");
+
+int rndis_ul_max_xfer_size_rcvd;
+module_param(rndis_ul_max_xfer_size_rcvd, int, S_IRUGO);
+MODULE_PARM_DESC(rndis_ul_max_xfer_size_rcvd,
+		"Max size of bus transfer received");
 
 
 static rndis_params rndis_per_dev_params[RNDIS_MAX_CONFIGS];
@@ -585,12 +613,12 @@ static int rndis_init_response(int configNr, rndis_init_msg_type *buf)
 	resp->MinorVersion = cpu_to_le32(RNDIS_MINOR_VERSION);
 	resp->DeviceFlags = cpu_to_le32(RNDIS_DF_CONNECTIONLESS);
 	resp->Medium = cpu_to_le32(RNDIS_MEDIUM_802_3);
-	resp->MaxPacketsPerTransfer = cpu_to_le32(1);
-	resp->MaxTransferSize = cpu_to_le32(
-		  params->dev->mtu
+	resp->MaxPacketsPerTransfer = cpu_to_le32(params->max_pkt_per_xfer);
+	resp->MaxTransferSize = cpu_to_le32(params->max_pkt_per_xfer *
+		(params->dev->mtu
 		+ sizeof(struct ethhdr)
 		+ sizeof(struct rndis_packet_msg_type)
-		+ 22);
+		+ 22));
 	resp->PacketAlignmentFactor = cpu_to_le32(0);
 	resp->AFListOffset = cpu_to_le32(0);
 	resp->AFListSize = cpu_to_le32(0);
@@ -686,6 +714,12 @@ static int rndis_reset_response(int configNr, rndis_reset_msg_type *buf)
 	rndis_reset_cmplt_type *resp;
 	rndis_resp_t *r;
 	struct rndis_params *params = rndis_per_dev_params + configNr;
+	u32 length;
+	u8 *xbuf;
+
+	/* drain the response queue */
+	while ((xbuf = rndis_get_next_response(configNr, &length)))
+		rndis_free_response(configNr, xbuf);
 
 	r = rndis_add_response(configNr, sizeof(rndis_reset_cmplt_type));
 	if (!r)
@@ -917,6 +951,8 @@ int rndis_set_param_dev(u8 configNr, struct net_device *dev, u16 *cdc_filter)
 	rndis_per_dev_params[configNr].dev = dev;
 	rndis_per_dev_params[configNr].filter = cdc_filter;
 
+	rndis_ul_max_xfer_size_rcvd = 0;
+	rndis_ul_max_pkt_per_xfer_rcvd = 0;
 	return 0;
 }
 EXPORT_SYMBOL_GPL(rndis_set_param_dev);
@@ -945,6 +981,13 @@ int rndis_set_param_medium(u8 configNr, u32 medium, u32 speed)
 	return 0;
 }
 EXPORT_SYMBOL_GPL(rndis_set_param_medium);
+
+void rndis_set_max_pkt_xfer(u8 configNr, u8 max_pkt_per_xfer)
+{
+	pr_debug("%s:\n", __func__);
+
+	rndis_per_dev_params[configNr].max_pkt_per_xfer = max_pkt_per_xfer;
+}
 
 void rndis_add_hdr(struct sk_buff *skb)
 {
@@ -1021,23 +1064,135 @@ int rndis_rm_hdr(struct gether *port,
 			struct sk_buff *skb,
 			struct sk_buff_head *list)
 {
-	/* tmp points to a struct rndis_packet_msg_type */
-	__le32 *tmp = (void *)skb->data;
+	int num_pkts = 1,i = 0;
 
-	/* MessageType, MessageLength */
-	if (cpu_to_le32(RNDIS_MSG_PACKET)
-			!= get_unaligned(tmp++)) {
-		dev_kfree_skb_any(skb);
-		return -EINVAL;
-	}
-	tmp++;
+	if (skb->len > rndis_ul_max_xfer_size_rcvd)
+		rndis_ul_max_xfer_size_rcvd = skb->len;
 
-	/* DataOffset, DataLength */
-	if (!skb_pull(skb, get_unaligned_le32(tmp++) + 8)) {
-		dev_kfree_skb_any(skb);
-		return -EOVERFLOW;
+	while (skb->len) {
+		struct rndis_packet_msg_type *hdr;
+		struct sk_buff          *skb2;
+		u32             msg_len, data_offset, data_len;
+		/*recombine broken packet and add to skb process queue*/
+		int index = 0;
+		for(i=0;i< (sizeof(g_skb)/sizeof(rndis_skb_recombine));i++){
+			if(RNDIS_SKB_COMBINING == g_skb[i].status){
+				g_skb[i].status = RNDIS_SKB_COMBINED;
+				memcpy(g_skb[i].skb->data+g_skb[i].halflen,skb->data,g_skb[i].msglen-g_skb[i].halflen);
+				skb_pull(skb, g_skb[i].msglen-g_skb[i].halflen);//update skb
+				g_skb[i].skb->data += g_skb[i].dataoffset+8;
+				g_skb[i].skb->len = g_skb[i].datalen;
+				g_skb[i].skb->tail = g_skb[i].skb->data + g_skb[i].skb->len;
+				index = i + 1;
+				break;
+			}
+		}
+		if(index){
+			if((g_skb[i].dataoffset + g_skb[i].datalen + 8) > g_skb[i].msglen){
+				pr_err("invalid rndis message: %d/%d/%d/%d, len:%d\n",
+						g_skb[i].msgtype,g_skb[i].msglen, g_skb[i].dataoffset, g_skb[i].datalen, skb->len);
+				dev_kfree_skb_any(g_skb[i].skb);
+				continue;
+			}
+			if (g_skb[i].msgtype != RNDIS_MSG_PACKET) {
+				pr_err("invalid rndis message: %d/%d/%d/%d, len:%d\n",
+						g_skb[i].msgtype,g_skb[i].msglen, g_skb[i].dataoffset, g_skb[i].datalen, skb->len);
+				dev_kfree_skb_any(g_skb[i].skb);
+				continue;
+			}
+			skb_queue_tail(list, g_skb[i].skb);
+			num_pkts++;
+			continue;
+		}
+		/* some rndis hosts send extra byte to avoid zlp, ignore it */
+		if (skb->len == 1) {
+			dev_kfree_skb_any(skb);
+			return 0;
+		}
+
+		if (skb->len < sizeof *hdr) {
+			pr_err("invalid rndis pkt: skblen:%u hdr_len:%u",
+					skb->len, sizeof *hdr);
+			dev_kfree_skb_any(skb);
+			return -EINVAL;
+		}
+
+		hdr = (void *)skb->data;
+		msg_len = le32_to_cpu(hdr->MessageLength);
+		data_offset = le32_to_cpu(hdr->DataOffset);
+		data_len = le32_to_cpu(hdr->DataLength);
+		/*backup the broken packet for recombining*/
+		if(skb->len < msg_len){
+			int size = 1558+20;
+			for(i=0;i< (sizeof(g_skb)/sizeof(rndis_skb_recombine));i++){
+				if(RNDIS_SKB_IDLE == g_skb[i].status){
+					g_skb[i].status = RNDIS_SKB_COMBINING;
+					g_skb[i].skb = alloc_skb(size + NET_IP_ALIGN, GFP_ATOMIC);
+					if (g_skb[i].skb == NULL) {
+						g_skb[i].status = RNDIS_SKB_IDLE;
+						return -EINVAL;
+					}
+					skb_reserve(g_skb[i].skb, NET_IP_ALIGN);
+					g_skb[i].msgtype = le32_to_cpu(hdr->MessageType);
+					g_skb[i].msglen = msg_len;
+					g_skb[i].dataoffset = data_offset;
+					g_skb[i].datalen = data_len;
+					g_skb[i].halflen = skb->len;
+					memcpy(g_skb[i].skb->data,skb->data,g_skb[i].halflen);
+					skb_pull(skb,g_skb[i].halflen);
+					break;
+				}
+			}
+			if(!skb->len)
+				break;
+			pr_err("invalid rndis message: %d/%d/%d/%d, len:%d\n",
+					le32_to_cpu(hdr->MessageType),
+					msg_len, data_offset, data_len, skb->len);
+			dev_kfree_skb_any(skb);
+			return -EOVERFLOW;
+		}
+        if((data_offset + data_len + 8) > msg_len){
+			pr_err("invalid rndis message: %d/%d/%d/%d, len:%d\n",
+					le32_to_cpu(hdr->MessageType),
+					msg_len, data_offset, data_len, skb->len);
+			dev_kfree_skb_any(skb);
+			return -EOVERFLOW;
+		}
+		if (le32_to_cpu(hdr->MessageType) != RNDIS_MSG_PACKET) {
+			int len = skb->len;
+			skb_pull(skb,len);
+			break;
+		}
+
+		skb_pull(skb, data_offset + 8);
+
+		if (msg_len == skb->len) {
+			skb_trim(skb, data_len);
+			break;
+		}
+
+		skb2 = skb_clone(skb, GFP_ATOMIC);
+		if (!skb2) {
+			pr_err("%s:skb clone failed\n", __func__);
+			dev_kfree_skb_any(skb);
+			return -ENOMEM;
+		}
+
+		skb_pull(skb, msg_len - sizeof *hdr);
+		skb_trim(skb2, data_len);
+		skb_queue_tail(list, skb2);
+
+		num_pkts++;
 	}
-	skb_trim(skb, get_unaligned_le32(tmp++));
+
+	if (num_pkts > rndis_ul_max_pkt_per_xfer_rcvd)
+		rndis_ul_max_pkt_per_xfer_rcvd = num_pkts;
+	/*recombinant is finished, update combining status*/
+
+	if(RNDIS_SKB_COMBINED == g_skb[0].status)
+		g_skb[0].status = RNDIS_SKB_IDLE;
+	if(RNDIS_SKB_COMBINED == g_skb[1].status)
+		g_skb[1].status = RNDIS_SKB_IDLE;
 
 	skb_queue_tail(list, skb);
 	return 0;

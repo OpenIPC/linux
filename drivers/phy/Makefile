@@ -16,6 +16,15 @@ obj-$(CONFIG_TI_PIPE3)			+= phy-ti-pipe3.o
 obj-$(CONFIG_TWL4030_USB)		+= phy-twl4030-usb.o
 obj-$(CONFIG_PHY_EXYNOS5250_SATA)	+= phy-exynos5250-sata.o
 obj-$(CONFIG_PHY_HIX5HD2_SATA)		+= phy-hix5hd2-sata.o
+obj-$(CONFIG_HI_NANO_PHY_SATA)		+= phy-hisi-nano-phy-sata.o
+ifdef CONFIG_ARCH_HI3516CV300
+obj-$(CONFIG_PHY_HISI_INNO_USB2)	+= phy-hisi-inno-usb2.o
+else
+obj-$(CONFIG_PHY_HISI_INNO_USB2)	+= phy-hisi-usb.o
+endif
+obj-$(CONFIG_PHY_HI35x1D_INNO_USB2)	+= phy-hi35x1d-usb.o
+obj-$(CONFIG_PHY_HI3531D_USB3)		+= phy-hi3531d-usb3.o
+obj-$(CONFIG_PHY_HISI_USB3)		+= phy-hisi-usb3.o
 obj-$(CONFIG_PHY_SUN4I_USB)		+= phy-sun4i-usb.o
 obj-$(CONFIG_PHY_SAMSUNG_USB2)		+= phy-exynos-usb2.o
 phy-exynos-usb2-y			+= phy-samsung-usb2.o

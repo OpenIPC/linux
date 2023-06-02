@@ -2855,7 +2855,8 @@ static void fuse_do_truncate(struct file *file)
 	attr.ia_file = file;
 	attr.ia_valid |= ATTR_FILE;
 
-	fuse_do_setattr(inode, &attr, file);
+	/* XXX Is file->f_dentry->d_inode always the same as inode? */
+	fuse_do_setattr(file->f_dentry, &attr, file);
 }
 
 static inline loff_t fuse_round_up(loff_t off)
