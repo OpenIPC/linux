@@ -73,7 +73,7 @@
 
 #define ATH9K_RSSI_BAD			-128
 
-#define ATH9K_NUM_CHANNELS	38
+#define ATH9K_NUM_CHANNELS	82
 
 /* Register read/write primitives */
 #define REG_WRITE(_ah, _reg, _val) \
@@ -1144,6 +1144,9 @@ void ath9k_hw_ani_monitor(struct ath_hw *ah, struct ath9k_channel *chan);
 void ath9k_hw_set_ack_timeout(struct ath_hw *ah, u32 us);
 void ath9k_hw_set_cts_timeout(struct ath_hw *ah, u32 us);
 void ath9k_hw_setslottime(struct ath_hw *ah, u32 us);
+
+extern u8 tx_power_man;
+extern u8 thresh62_man;
 
 #ifdef CONFIG_ATH9K_BTCOEX_SUPPORT
 void ar9003_hw_attach_aic_ops(struct ath_hw *ah);
