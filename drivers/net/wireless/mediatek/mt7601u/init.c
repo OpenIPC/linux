@@ -612,8 +612,9 @@ int mt7601u_register_device(struct mt7601u_dev *dev)
 
 	SET_IEEE80211_PERM_ADDR(hw, dev->macaddr);
 
-	wiphy->features |= NL80211_FEATURE_ACTIVE_MONITOR;
-	wiphy->interface_modes = BIT(NL80211_IFTYPE_STATION);
+	wiphy->features |= NL80211_FEATURE_ACTIVE_MONITOR | NL80211_FEATURE_AP_SCAN;
+	wiphy->interface_modes = BIT(NL80211_IFTYPE_STATION) | BIT(NL80211_IFTYPE_AP) | BIT(NL80211_IFTYPE_MONITOR);
+	wiphy->software_iftypes = BIT(NL80211_IFTYPE_STATION) | BIT(NL80211_IFTYPE_AP) | BIT(NL80211_IFTYPE_MONITOR);
 
 	ret = mt76_init_sband_2g(dev);
 	if (ret)
