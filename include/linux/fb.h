@@ -237,7 +237,14 @@ struct fb_deferred_io {
 	void (*deferred_io)(struct fb_info *info, struct list_head *pagelist);
 };
 #endif
+#ifdef CONFIG_ARCH_HISI_BVT
+#define FBIOGET_DMABUF		_IOR('F', 0x21, struct fb_dmabuf_export)
 
+struct fb_dmabuf_export {
+	__u32 fd;
+	__u32 flags;
+};
+#endif
 /*
  * Frame buffer operations
  *
@@ -320,6 +327,12 @@ struct fb_ops {
 	/* called at KDB enter and leave time to prepare the console */
 	int (*fb_debug_enter)(struct fb_info *info);
 	int (*fb_debug_leave)(struct fb_info *info);
+#ifdef CONFIG_ARCH_HISI_BVT
+#ifdef CONFIG_DMA_SHARED_BUFFER
+	/* Export the frame buffer as a dmabuf object */
+	struct dma_buf *(*fb_dmabuf_export)(struct fb_info *info);
+#endif
+#endif
 };
 
 #ifdef CONFIG_FB_TILEBLITTING

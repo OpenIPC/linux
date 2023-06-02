@@ -555,4 +555,6 @@ config CRYPTO_DEV_ROCKCHIP
 
 source "drivers/crypto/chelsio/Kconfig"
 
+source "drivers/crypto/hisi-cipher/Kconfig"
+
 endif # CRYPTO_HW

@@ -47,6 +47,8 @@
 #include <linux/mtd/partitions.h>
 #include <linux/of.h>
 
+#include "hinfc_gen.h"
+
 static int nand_get_device(struct mtd_info *mtd, int new_state);
 
 static int nand_do_write_oob(struct mtd_info *mtd, loff_t to,
@@ -2808,6 +2810,10 @@ static int nand_do_write_ops(struct mtd_info *mtd, loff_t to,
 	int ret;
 	int oob_required = oob ? 1 : 0;
 
+#ifdef CONFIG_ARCH_HISI_BVT
+    oob_required = 1;
+#endif
+
 	ops->retlen = 0;
 	if (!writelen)
 		return 0;
@@ -4058,7 +4064,7 @@ static struct nand_flash_dev *nand_get_flash_type(struct mtd_info *mtd,
 						  int *maf_id, int *dev_id,
 						  struct nand_flash_dev *type)
 {
-	int busw;
+	int busw = 0;
 	int i, maf_idx;
 	u8 id_data[8];
 
@@ -4096,6 +4102,34 @@ static struct nand_flash_dev *nand_get_flash_type(struct mtd_info *mtd,
 			*maf_id, *dev_id, id_data[0], id_data[1]);
 		return ERR_PTR(-ENODEV);
 	}
+
+#ifdef CONFIG_ARCH_HISI_BVT
+
+#ifndef CONFIG_MTD_SPI_NAND_HISI_BVT
+	/* Parallel Nand Flash */
+
+	/* The 3rd id byte holds MLC / multichip data */
+	chip->bits_per_cell = nand_get_bits_per_cell(id_data[2]);
+#endif
+
+#ifdef CONFIG_MTD_NAND_HINFC610
+	type = hinfc_get_flash_type(mtd, chip, id_data, &busw);
+#else
+	if (get_spi_nand_flash_type_hook)
+		type = get_spi_nand_flash_type_hook(mtd, id_data);
+#endif
+
+	if (type)
+		goto ident_done;
+#ifdef CONFIG_MTD_SPI_NAND_HISI_BVT
+	else {
+		pr_info("This device[%02x,%02x] cannot found in spi nand id table!!\n",
+				*maf_id, *dev_id);
+		return ERR_PTR(-ENODEV);
+	}
+#endif
+
+#endif /* endif CONFIG_ARCH_HISI_BVT */
 
 	if (!type)
 		type = nand_flash_ids;
@@ -4144,6 +4178,9 @@ static struct nand_flash_dev *nand_get_flash_type(struct mtd_info *mtd,
 	if (*maf_id != NAND_MFR_SAMSUNG && !type->pagesize)
 		chip->options &= ~NAND_SAMSUNG_LP_OPTIONS;
 ident_done:
+#ifdef CONFIG_ARCH_HISI_BVT
+	hinfc_nand_param_adjust(mtd, chip);
+#endif
 
 	/* Try to identify manufacturer */
 	for (maf_idx = 0; nand_manuf_ids[maf_idx].id != 0x0; maf_idx++) {
@@ -4205,9 +4242,13 @@ ident_done:
 		pr_info("%s %s\n", nand_manuf_ids[maf_idx].name,
 				type->name);
 
-	pr_info("%d MiB, %s, erase size: %d KiB, page size: %d, OOB size: %d\n",
+	pr_info("%dMiB, %s, page size: %d\n",
 		(int)(chip->chipsize >> 20), nand_is_slc(chip) ? "SLC" : "MLC",
-		mtd->erasesize >> 10, mtd->writesize, mtd->oobsize);
+		mtd->writesize);
+
+	/* Print ecc type and ecc mode about hisilicon flash controller */
+	hinfc_show_info(mtd, nand_manuf_ids[maf_idx].name, type->name);
+
 	return type;
 }
 
@@ -4727,7 +4768,7 @@ int nand_scan_tail(struct mtd_info *mtd)
 		break;
 
 	case NAND_ECC_NONE:
-		pr_warn("NAND_ECC_NONE selected by board driver. This is not recommended!\n");
+		pr_warn(" ECC provided by Flash Memory Controller\n");
 		ecc->read_page = nand_read_page_raw;
 		ecc->write_page = nand_write_page_raw;
 		ecc->read_oob = nand_read_oob_std;
@@ -4814,8 +4855,13 @@ int nand_scan_tail(struct mtd_info *mtd)
 		break;
 	}
 
+#ifdef CONFIG_MTD_UBI
+	/* mtd->type = MTD_MLCNANDFLASH isn't support by mtd_util ubi tools jet */
+	mtd->type = MTD_NANDFLASH;
+#else
 	/* Fill in remaining MTD driver data */
 	mtd->type = nand_is_slc(chip) ? MTD_NANDFLASH : MTD_MLCNANDFLASH;
+#endif
 	mtd->flags = (chip->options & NAND_ROM) ? MTD_CAP_ROM :
 						MTD_CAP_NANDFLASH;
 	mtd->_erase = nand_erase;

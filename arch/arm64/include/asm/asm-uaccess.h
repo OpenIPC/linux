@@ -1,5 +1,6 @@
 #ifndef __ASM_ASM_UACCESS_H
 #define __ASM_ASM_UACCESS_H
+#include <asm/kernel-pgtable.h>
 
 /*
  * Remove the address tag from a virtual address, if present.

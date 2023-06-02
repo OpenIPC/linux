@@ -70,6 +70,7 @@ obj-y				+= base/ block/ misc/ mfd/ nfc/
 obj-$(CONFIG_LIBNVDIMM)		+= nvdimm/
 obj-$(CONFIG_DEV_DAX)		+= dax/
 obj-$(CONFIG_DMA_SHARED_BUFFER) += dma-buf/
+obj-$(CONFIG_SYNC_FILE)		+= hi_fence/
 obj-$(CONFIG_NUBUS)		+= nubus/
 obj-y				+= macintosh/
 obj-$(CONFIG_IDE)		+= ide/
@@ -174,3 +175,8 @@ obj-$(CONFIG_STM)		+= hwtracing/stm/
 obj-$(CONFIG_ANDROID)		+= android/
 obj-$(CONFIG_NVMEM)		+= nvmem/
 obj-$(CONFIG_FPGA)		+= fpga/
+obj-$(CONFIG_HI_DMAC)		+= hidmac/
+obj-$(CONFIG_HIEDMAC)		+= hiedmac/
+
+obj-$(CONFIG_ARCH_HISI_BVT)	+= hisilicon/
+obj-$(CONFIG_HI_VDMA_V100) += hi_vdmav100/

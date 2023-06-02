@@ -75,6 +75,9 @@ static cputime_t irqtime_account_update(u64 irqtime, int idx, cputime_t maxtime)
 	u64 *cpustat = kcpustat_this_cpu->cpustat;
 	cputime_t irq_cputime;
 
+	if (nsecs_to_cputime64(irqtime) <= cpustat[idx])
+		return 0;
+
 	irq_cputime = nsecs_to_cputime64(irqtime) - cpustat[idx];
 	irq_cputime = min(irq_cputime, maxtime);
 	cpustat[idx] += irq_cputime;

@@ -26,6 +26,16 @@
 
 #define DRV_NAME "ahci"
 
+#ifdef CONFIG_HISI_SATA_NCQ
+static unsigned int ncq_en = CONFIG_HISI_SATA_NCQ;
+module_param(ncq_en, uint, 0600);
+MODULE_PARM_DESC(ncq_en, "ahci ncq flag (default:1)");
+#endif
+
+#ifdef CONFIG_HISI_SATA
+extern unsigned int sata_port_map;
+#endif
+
 static const struct ata_port_info ahci_port_info = {
 	.flags		= AHCI_FLAG_COMMON,
 	.pio_mask	= ATA_PIO4,
@@ -54,8 +64,21 @@ static int ahci_probe(struct platform_device *pdev)
 	of_property_read_u32(dev->of_node,
 			     "ports-implemented", &hpriv->force_port_map);
 
+#ifdef CONFIG_HISI_SATA
+	hpriv->type = ORI_AHCI;
+	hpriv->force_port_map = sata_port_map;
+#ifndef CONFIG_HISI_ESATA
+	hpriv->flags |= AHCI_HFLAG_NO_SXS;
+#endif
+
+#ifdef CONFIG_HISI_SATA_NCQ
+	if (!ncq_en)
+		 hpriv->flags |= AHCI_HFLAG_NO_NCQ;
+#endif
+#else
 	if (of_device_is_compatible(dev->of_node, "hisilicon,hisi-ahci"))
 		hpriv->flags |= AHCI_HFLAG_NO_FBS | AHCI_HFLAG_NO_NCQ;
+#endif
 
 	rc = ahci_platform_init_host(pdev, hpriv, &ahci_port_info,
 				     &ahci_platform_sht);

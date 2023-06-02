@@ -24,6 +24,7 @@ struct sched_param {
 #include <linux/cpumask.h>
 #include <linux/errno.h>
 #include <linux/nodemask.h>
+#include <linux/percpu.h>
 #include <linux/mm_types.h>
 #include <linux/preempt.h>
 
@@ -38,7 +39,6 @@ struct sched_param {
 #include <linux/compiler.h>
 #include <linux/completion.h>
 #include <linux/pid.h>
-#include <linux/percpu.h>
 #include <linux/topology.h>
 #include <linux/seccomp.h>
 #include <linux/rcupdate.h>

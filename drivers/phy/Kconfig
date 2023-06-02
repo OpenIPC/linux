@@ -481,6 +481,7 @@ config PHY_CYGNUS_PCIE
 	  If unsure, say N.
 
 source "drivers/phy/tegra/Kconfig"
+source "drivers/phy/hibvt/Kconfig"
 
 config PHY_NS2_PCIE
 	tristate "Broadcom Northstar2 PCIe PHY driver"

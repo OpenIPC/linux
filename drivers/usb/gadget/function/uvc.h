@@ -17,6 +17,7 @@
 #include <linux/types.h>
 #include <linux/usb/ch9.h>
 
+#define UVC_SG_REQ
 #define UVC_EVENT_FIRST			(V4L2_EVENT_PRIVATE_START + 0)
 #define UVC_EVENT_CONNECT		(V4L2_EVENT_PRIVATE_START + 0)
 #define UVC_EVENT_DISCONNECT		(V4L2_EVENT_PRIVATE_START + 1)
@@ -95,8 +96,11 @@ extern unsigned int uvc_gadget_trace_param;
 /* ------------------------------------------------------------------------
  * Driver specific constants
  */
-
-#define UVC_NUM_REQUESTS			4
+#ifdef UVC_SG_REQ
+#define UVC_NUM_REQUESTS	1
+#else
+#define UVC_NUM_REQUESTS	32
+#endif
 #define UVC_MAX_REQUEST_SIZE			64
 #define UVC_MAX_EVENTS				4
 
@@ -106,6 +110,7 @@ extern unsigned int uvc_gadget_trace_param;
 
 struct uvc_video
 {
+	struct uvc_device *uvc;
 	struct usb_ep *ep;
 
 	/* Frame parameters */
@@ -115,6 +120,9 @@ struct uvc_video
 	unsigned int height;
 	unsigned int imagesize;
 	struct mutex mutex;	/* protects frame parameters */
+
+	unsigned int num_sgs; /* record base */
+	__u8 *sg_buf;
 
 	/* Requests */
 	unsigned int req_size;

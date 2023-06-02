@@ -1,0 +1,17 @@
+Hisilicon PWM controller
+
+Required properties:
+-compatible: should contain one SoC specific compatible string and one generic compatible
+string "hisilicon, hibvt-pwm". The SoC specific strings supported including:
+	"hisilicon,hi3516cv500-pwm"
+- reg: physical base address and length of the controller's registers.
+- clocks: phandle and clock specifier of the PWM reference clock.
+- resets: phandle and reset specifier for the PWM controller reset.
+
+Example:
+	pwm: pwm@12070000 {
+		compatible = "hisilicon,hi3516xx-pwm", "hisilicon,hibvt-pwm";
+		reg = <0x12070000 0x10000>;
+		clocks = <&crg_ctrl HI3516CV500_PWM_CLK>;
+		resets = <&crg_ctrl 0x1bc 6>;
+	};

@@ -1236,6 +1236,7 @@ int mmc_attach_sd(struct mmc_host *host)
 	if (err)
 		return err;
 
+	host->type = MMC_HOST_TYPE_SD;
 	mmc_attach_bus(host, &mmc_sd_ops);
 	if (host->ocr_avail_sd)
 		host->ocr_avail = host->ocr_avail_sd;

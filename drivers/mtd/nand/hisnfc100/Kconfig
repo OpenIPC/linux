@@ -1,0 +1,55 @@
+#
+# drivers/mtd/nand/hisnfc100/Kconfig
+# add by hisilicon 2017.10.26
+#
+
+menuconfig MTD_NAND_HISNFC100
+	tristate "Hisilicon SPI Nand Controller v100 SPI Nand devices support"
+	depends on MTD_SPI_NAND_HISI_BVT && (ARCH_HI3516A)
+	select YAFFS_FS
+	select MISC_FILESYSTEMS
+	select MTD_BLOCK
+	select YAFFS_YAFFS2
+	help
+	  Hisilicon SPI Nand Controller version 100 is called HISNFC100 for
+	  short. The controller support registers and DMA transfers while
+	  reading or writing the spi nand flash.
+
+if MTD_NAND_HISNFC100
+
+config HISNFC100_MAX_CHIP
+	int "number of spi nand flash chip (1, 2)"
+	range 1 2
+	default 1
+	help
+	  spi nand controller v100 device only support 1 or 2 spi nand
+	  flash chip, your should not config other value.
+
+choice
+	prompt "Pagesize and Ecc Type Select"
+
+config HISNFC100_HARDWARE_PAGESIZE_ECC
+	bool "Hardware"
+	help
+	  the configure of page size and ecc type lie on switch
+	  on the board.
+	  so the page size and ecc type is controlled by Hardware
+	  see demo board of SOC.
+
+config HISNFC100_AUTO_PAGESIZE_ECC
+	bool "Auto"
+	help
+	  auto-sensed the page size and ecc type value. driver will
+	  try each of page size and ecc type one by one till flash
+	  can be read and wrote accurately.
+	  so the page size and ecc type is match adaptively without
+	  switch on the board
+
+config HISNFC100_PAGESIZE_AUTO_ECC_NONE
+	bool "Pagesize Auto, Ecc None"
+	help
+	  select pagesize 2K, ecc none.
+
+endchoice
+
+endif # MTD_NAND_HISNFC100

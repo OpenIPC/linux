@@ -1276,10 +1276,17 @@ static inline void check_irqs_on(void)
  */
 static void bh_lru_install(struct buffer_head *bh)
 {
-	struct buffer_head *evictee = NULL;
+#ifdef CONFIG_HISI_MC
+	struct buffer_head *evictee = bh;
+	struct bh_lru *b;
+	int i;
+#else
+	struct buffer_head *evictee = NULL;	
+#endif	
 
 	check_irqs_on();
 	bh_lru_lock();
+#ifndef CONFIG_HISI_MC
 	if (__this_cpu_read(bh_lrus.bhs[0]) != bh) {
 		struct buffer_head *bhs[BH_LRU_SIZE];
 		int in;
@@ -1310,6 +1317,22 @@ static void bh_lru_install(struct buffer_head *bh)
 
 	if (evictee)
 		__brelse(evictee);
+#endif
+
+#ifdef CONFIG_HISI_MC
+	b = this_cpu_ptr(&bh_lrus);
+	for (i = 0; i < BH_LRU_SIZE; i++) {
+		swap(evictee, b->bhs[i]);
+		if (evictee == bh) {
+			bh_lru_unlock();
+			return;
+		}
+	}
+
+	get_bh(bh);
+	bh_lru_unlock();
+	brelse(evictee);
+#endif	
 }
 
 /*

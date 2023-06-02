@@ -168,7 +168,7 @@ struct nand_flash_dev nand_flash_ids[] = {
 /* Manufacturer IDs */
 struct nand_manufacturers nand_manuf_ids[] = {
 	{NAND_MFR_TOSHIBA, "Toshiba"},
-	{NAND_MFR_ESMT, "ESMT"},
+	{NAND_MFR_GD_ESMT,	"GD/ESMT"},
 	{NAND_MFR_SAMSUNG, "Samsung"},
 	{NAND_MFR_FUJITSU, "Fujitsu"},
 	{NAND_MFR_NATIONAL, "National"},
@@ -179,9 +179,17 @@ struct nand_manufacturers nand_manuf_ids[] = {
 	{NAND_MFR_AMD, "AMD/Spansion"},
 	{NAND_MFR_MACRONIX, "Macronix"},
 	{NAND_MFR_EON, "Eon"},
+	{NAND_MFR_WINBOND,	"Winbond"},
+	{NAND_MFR_ATO,		"ATO"},
+	{NAND_MFR_MXIC,		"MXIC"},
+	{NAND_MFR_ALL_FLASH,	"All-flash"},
+	{NAND_MFR_PARAGON,	"Paragon"},
 	{NAND_MFR_SANDISK, "SanDisk"},
 	{NAND_MFR_INTEL, "Intel"},
 	{NAND_MFR_ATO, "ATO"},
+	{NAND_MFR_HEYANGTEK, "HeYangTek"},
+	{NAND_MFR_DOSILICON, "Dosilicon"},
+	{NAND_MFR_FIDELIX, "Fidelix/Dosi"}, /* Fidelix was purchased by Dosilicon */
 	{0x0, "Unknown"}
 };
 

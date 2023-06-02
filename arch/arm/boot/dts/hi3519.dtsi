@@ -173,7 +173,7 @@
 		};
 
 		sysctrl: system-controller@12020000 {
-			compatible = "hisilicon,hi3519-sysctrl", "syscon";
+			compatible = "hisilicon,sysctrl", "syscon";
 			reg = <0x12020000 0x1000>;
 		};
 

@@ -1,0 +1,293 @@
+/*
+ * Copyright (c) 2013-2014 Linaro Ltd.
+ * Copyright (c) 2015 HiSilicon Technologies Co., Ltd.
+ *
+ * This program is free software; you can redistribute  it and/or modify it
+ * under  the terms of  the GNU General  Public License as published by the
+ * Free Software Foundation;  either version 2 of the  License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+/dts-v1/;
+#include "hi3519av100.dtsi"
+
+/ {
+	model = "Hisilicon Hi3519AV100 SMP Board";
+	compatible = "hisilicon,hi3519av100";
+
+	chosen {
+		linux,initrd-start = <0x23000040>;
+		linux,initrd-end = <0x24000000>;
+	};
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		enable-method = "hisilicon,hi3519av100-smp";
+
+		cpu@0 {
+			compatible = "arm,cortex-a53";
+			device_type = "cpu";
+			reg = <0>;
+			cci-control-port = <&cci_control0>;
+		};
+		
+		cpu@100 {
+			compatible = "arm,cortex-a53";
+			device_type = "cpu";
+			reg = <0x100>;
+			cci-control-port = <&cci_control1>;
+		};
+
+	};
+
+	memory {
+		device_type = "memory";
+		reg = <0x22000000 0x10000000>;
+	};
+};
+
+&ipcm {
+	status = "okay";
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&i2c_bus0 {
+	status = "okay";
+};
+
+&i2c_bus1 {
+	status = "okay";
+};
+
+&i2c_bus2 {
+	status = "okay";
+};
+
+&i2c_bus3 {
+	status = "okay";
+};
+
+&i2c_bus4 {
+	status = "okay";
+};
+
+&i2c_bus5 {
+	status = "okay";
+};
+
+&i2c_bus6 {
+	status = "okay";
+};
+
+&i2c_bus7 {
+	status = "okay";
+};
+
+&i2c_bus8 {
+	status = "okay";
+};
+
+&i2c_bus9 {
+	status = "okay";
+};
+
+&spi_bus0{
+	status = "okay";
+	
+	spidev@0 {
+		compatible = "rohm,dh2228fv";
+		reg = <0>;
+		pl022,interface = <0>;
+		pl022,com-mode = <0>;
+		spi-max-frequency = <50000000>;
+	};
+};
+
+&spi_bus1{
+	status = "okay";
+	
+	spidev@0 {
+		compatible = "rohm,dh2228fv";
+		reg = <0>;
+		pl022,interface = <0>;
+		pl022,com-mode = <0>;
+		spi-max-frequency = <50000000>;
+	};
+};
+
+&spi_bus2{
+	status = "okay";
+	
+	spidev@0 {
+		compatible = "rohm,dh2228fv";
+		reg = <0>;
+		pl022,interface = <0>;
+		pl022,com-mode = <0>;
+		spi-max-frequency = <50000000>;
+	};
+};
+
+&spi_bus3{
+	status = "okay";
+	
+	spidev@0 {
+		compatible = "rohm,dh2228fv";
+		reg = <0>;
+		pl022,interface = <0>;
+		pl022,com-mode = <0>;
+		spi-max-frequency = <50000000>;
+	};
+};
+
+&spi_bus4{
+	status = "okay";
+	
+	spidev@0 {
+		compatible = "rohm,dh2228fv";
+		reg = <0>;
+		pl022,interface = <0>;
+		pl022,com-mode = <0>;
+		spi-max-frequency = <50000000>;
+	};
+};
+
+&mdio {
+	ethphy: ethernet-phy@1 {
+		reg = <1>;
+	};
+};
+
+&higmac {
+	phy-handle = <&ethphy>;
+	phy-mode = "rgmii";
+};
+
+&hisfc {
+	hi_sfc {
+		compatible = "jedec,spi-nor";
+		reg = <0>;
+		spi-max-frequency = <160000000>;
+		m25p,fast-read;
+	};
+};
+
+&hisnfc {
+	hinand {
+		compatible = "jedec,spi-nand";
+		reg = <0>;
+		spi-max-frequency = <160000000>;
+	};
+};
+
+&hinfc {
+	hinand {
+		compatible = "jedec,nand";
+		reg = <0>;
+		nand-max-frequency = <200000000>;
+	};
+};
+
+&hivdmac {
+	        status = "okay";
+};
+
+&hidmac {
+	status = "okay";
+};
+
+&hiedmacv310_0 {
+    status = "disabled";
+};
+
+&hiedmacv310_1 {
+    status = "disabled";
+};
+
+/*&mmc0 {
+	status = "okay";
+};*/
+
+&mmc1 {
+	status = "okay";
+};
+
+&mmc2 {
+	status = "okay";
+};
+
+&gpio_chip0 {
+	status = "okay";
+};
+
+&gpio_chip1 {
+	status = "okay";
+};
+
+&gpio_chip2 {
+	status = "okay";
+};
+
+&gpio_chip3 {
+	status = "okay";
+};
+
+&gpio_chip4 {
+	status = "okay";
+};
+
+&gpio_chip5 {
+	status = "okay";
+};
+
+&gpio_chip6 {
+	status = "okay";
+};
+
+&gpio_chip7 {
+	status = "okay";
+};
+
+&gpio_chip8 {
+	status = "okay";
+};
+
+&gpio_chip9 {
+	status = "okay";
+};
+
+&gpio_chip10 {
+	status = "okay";
+};
+
+&gpio_chip11 {
+	status = "okay";
+};
+
+&gpio_chip12 {
+	status = "okay";
+};
+
+&gpio_chip13 {
+	status = "okay";
+};
+
+&gpio_chip14 {
+	status = "okay";
+};
+
+&adc {
+	status = "okay";
+};

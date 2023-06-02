@@ -966,15 +966,6 @@ static void usb_gadget_state_work(struct work_struct *work)
 	if (udc)
 		sysfs_notify(&udc->dev.kobj, NULL, "state");
 }
-
-void usb_gadget_set_state(struct usb_gadget *gadget,
-		enum usb_device_state state)
-{
-	gadget->state = state;
-	schedule_work(&gadget->work);
-}
-EXPORT_SYMBOL_GPL(usb_gadget_set_state);
-
 /* ------------------------------------------------------------------------- */
 
 static void usb_udc_connect_control(struct usb_udc *udc)
@@ -983,6 +974,24 @@ static void usb_udc_connect_control(struct usb_udc *udc)
 		usb_gadget_connect(udc->gadget);
 	else
 		usb_gadget_disconnect(udc->gadget);
+}
+
+/* should be called with udc_lock held */
+static int check_pending_gadget_drivers(struct usb_udc *udc)
+{
+       struct usb_gadget_driver *driver;
+       int ret = 0;
+
+       list_for_each_entry(driver, &gadget_driver_pending_list, pending)
+               if (!driver->udc_name || strcmp(driver->udc_name,
+                                               dev_name(&udc->dev)) == 0) {
+                       ret = udc_bind_to_driver(udc, driver);
+                       if (ret != -EPROBE_DEFER)
+                               list_del(&driver->pending);
+                       break;
+               }
+
+       return ret;
 }
 
 /**
@@ -1004,6 +1013,15 @@ void usb_udc_vbus_handler(struct usb_gadget *gadget, bool status)
 	}
 }
 EXPORT_SYMBOL_GPL(usb_udc_vbus_handler);
+
+/* ------------------------------------------------------------------------- */
+void usb_gadget_set_state(struct usb_gadget *gadget,
+                enum usb_device_state state)
+{
+        gadget->state = state;
+}
+EXPORT_SYMBOL_GPL(usb_gadget_set_state);
+/* ------------------------------------------------------------------------- */
 
 /**
  * usb_gadget_udc_reset - notifies the udc core that bus reset occurs
@@ -1078,24 +1096,6 @@ static const struct attribute_group *usb_udc_attr_groups[];
 static void usb_udc_nop_release(struct device *dev)
 {
 	dev_vdbg(dev, "%s\n", __func__);
-}
-
-/* should be called with udc_lock held */
-static int check_pending_gadget_drivers(struct usb_udc *udc)
-{
-	struct usb_gadget_driver *driver;
-	int ret = 0;
-
-	list_for_each_entry(driver, &gadget_driver_pending_list, pending)
-		if (!driver->udc_name || strcmp(driver->udc_name,
-						dev_name(&udc->dev)) == 0) {
-			ret = udc_bind_to_driver(udc, driver);
-			if (ret != -EPROBE_DEFER)
-				list_del(&driver->pending);
-			break;
-		}
-
-	return ret;
 }
 
 /**

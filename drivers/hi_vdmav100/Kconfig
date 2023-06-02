@@ -1,0 +1,26 @@
+menuconfig HI_VDMA_V100
+	tristate "Hisilicon VDMA Controller V100"
+	depends on ARCH_HI3556AV100 || ARCH_HI3519AV100
+	default n if ARCH_HI3556AV100 || ARCH_HI3519AV100
+	help
+	  This is the driver for hisilicon VDMA controoller
+	  IP.
+
+if HI_VDMA_V100
+
+config HI_VDMA_CHN_NUM
+	int "HI_VDMAV100 max channel number"
+	default 32
+
+config HI_VDMA_TRANSFER_THRESHOLD
+        int "Hi VDMA data transfer threshold KBytes"
+        range 4 16384
+        default "128" if (ARCH_HI3556AV100 || ARCH_HI3519AV100)
+
+config HI_VDMA_MISC_DEV
+	bool "HI_VDMAV100 misc dev"
+	default y if (ARCH_HI3556AV100 || ARCH_HI3519AV100)
+	depends on HI_VDMA_V100
+
+
+endif

@@ -1,0 +1,8 @@
+
+config HISILICON_FENCE
+	bool "Hisilicon fence suppport"
+	default y
+	select SW_SYNC
+	select SYNC_FILE
+	help
+	  Hisilicon fence suppport

@@ -1,0 +1,21 @@
+#
+# Sensor device configuration
+#
+
+config HI_DMAC
+	tristate "Hisilicon DMAC Controller support"
+	depends on (ARCH_HISI_BVT)
+	help
+	  The Direction Memory Access(DMA) is a high-speed data transfer
+	  operation. It supports data read/write between peripherals and
+	  memories without using the CPU.
+	  Hisilicon DMA Controller(DMAC) directly transfers data between
+	  a memory and a peripheral, between peripherals, or between memories.
+	  This avoids the CPU intervention and reduces the interrupt handling
+	  overhead of the CPU.
+
+if HI_DMAC
+config HI_DMAC_CHANNEL_NUM
+	int "hi dmac channel num"
+	default "4"
+endif

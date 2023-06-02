@@ -555,6 +555,16 @@ config I2C_GPIO
 	  This is a very simple bitbanging I2C driver utilizing the
 	  arch-neutral GPIO API to control the SCL and SDA lines.
 
+config I2C_HIBVT
+	tristate "Hisilicon BVT I2C Controller"
+	depends on ARCH_HISI_BVT
+	help
+	  Say Y here to include support for Hisilicon BVT I2C controller in the
+	  Hisilicon BVT SoCs.
+
+	  This driver can also be built as a module.  If so, the module
+	  will be called i2c-hibvt.
+
 config I2C_HIGHLANDER
 	tristate "Highlander FPGA SMBus interface"
 	depends on SH_HIGHLANDER
@@ -1214,4 +1224,28 @@ config I2C_OPAL
 	  This driver can also be built as a module. If so, the module will be
 	  called as i2c-opal.
 
+config I2C_HISI
+	tristate "Hisilicon I2C Controller support"
+	depends on ARCH_HI3516A || ARCH_HI3518EV20X || ARCH_HI3521A || ARCH_HI3531A
+	help
+	  Hisilicon I2C controller has 3 buses.
+	  We can access some sensors though it.
+	  This IP is used in HI3516A/HI3518EV20X/HI3521A/HI3531A chips.
+
+config DMA_MSG_MIN_LEN
+	int "Hisilicon I2C support DMA minimum LEN"
+	depends on I2C_HIBVT
+	range 1 4090
+	default 5
+	help
+		The i2c_msg minimum LEN of i2c support DMA,range from 1 to 4091
+
+config DMA_MSG_MAX_LEN
+	int "Hisilicon I2C support DMA maximum LEN"
+	depends on I2C_HIBVT
+	range DMA_MSG_MIN_LEN 4090
+	default 4090
+	help
+		The i2c_msg maximum LEN of i2c support DMA,range from i2c_msg minimum LEN to 4090,
+		because DMA for 0xFFC one-time  largest data transfers;
 endmenu

@@ -409,6 +409,10 @@ extern void fat_time_fat2unix(struct msdos_sb_info *sbi, struct timespec *ts,
 			      __le16 __time, __le16 __date, u8 time_cs);
 extern void fat_time_unix2fat(struct msdos_sb_info *sbi, struct timespec *ts,
 			      __le16 *time, __le16 *date, u8 *time_cs);
+#ifdef CONFIG_HISI_MC
+extern void fat_time_fat2str(struct msdos_sb_info *sbi, char *d_createtime,
+		__le16 __time, __le16 __date, u8 time_cs);
+#endif
 extern int fat_sync_bhs(struct buffer_head **bhs, int nr_bhs);
 
 int fat_cache_init(void);

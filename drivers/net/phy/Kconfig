@@ -105,6 +105,13 @@ config MDIO_HISI_FEMAC
 	  This module provides a driver for the MDIO busses found in the
 	  Hisilicon SoC that have an Fast Ethernet MAC.
 
+config MDIO_HISI_GEMAC
+	tristate "Hisilicon GEMAC MDIO bus controller"
+	depends on HAS_IOMEM && OF_MDIO
+	help
+	  This module provides a driver for the MDIO busses found in the
+	  Hisilicon SoC that have an Gigabit Ethernet MAC.
+
 config MDIO_MOXART
         tristate "MOXA ART MDIO interface support"
         depends on ARCH_MOXART
