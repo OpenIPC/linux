@@ -179,7 +179,7 @@
 
 &higmac {
 	phy-handle = <&ethphy>;
-	phy-mode = "rgmii";
+	phy-mode = "rmii";
 };
 
 &gpio_chip0 {

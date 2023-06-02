@@ -242,7 +242,7 @@ root=/dev/mtdblock2 rootfstype=jffs2 mtdparts=hi_sfc:1M(boot),
 &higmac {
 	compatible = "hisilicon,higmac-v3", "hisilicon,higmac";
 	phy-handle = <&ethphy>;
-	phy-mode = "rgmii";
+	phy-mode = "rmii";
 };
 
 &gpio_chip0 {
