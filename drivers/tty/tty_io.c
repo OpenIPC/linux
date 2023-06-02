@@ -137,21 +137,10 @@ EXPORT_SYMBOL(tty_mutex);
 /* Spinlock to protect the tty->tty_files list */
 DEFINE_SPINLOCK(tty_files_lock);
 
-static ssize_t tty_read(struct file *, char __user *, size_t, loff_t *);
-static ssize_t tty_write(struct file *, const char __user *, size_t, loff_t *);
 ssize_t redirected_tty_write(struct file *, const char __user *,
 							size_t, loff_t *);
-static unsigned int tty_poll(struct file *, poll_table *);
 static int tty_open(struct inode *, struct file *);
-long tty_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
-#ifdef CONFIG_COMPAT
-static long tty_compat_ioctl(struct file *file, unsigned int cmd,
-				unsigned long arg);
-#else
-#define tty_compat_ioctl NULL
-#endif
 static int __tty_fasync(int fd, struct file *filp, int on);
-static int tty_fasync(int fd, struct file *filp, int on);
 static void release_tty(struct tty_struct *tty, int idx);
 static void __proc_set_tty(struct task_struct *tsk, struct tty_struct *tty);
 static void proc_set_tty(struct task_struct *tsk, struct tty_struct *tty);
@@ -935,7 +924,7 @@ EXPORT_SYMBOL(start_tty);
  *	read calls may be outstanding in parallel.
  */
 
-static ssize_t tty_read(struct file *file, char __user *buf, size_t count,
+ssize_t tty_read(struct file *file, char __user *buf, size_t count,
 			loff_t *ppos)
 {
 	int i;
@@ -1112,7 +1101,7 @@ void tty_write_message(struct tty_struct *tty, char *msg)
  *	write method will not be invoked in parallel for each device.
  */
 
-static ssize_t tty_write(struct file *file, const char __user *buf,
+ssize_t tty_write(struct file *file, const char __user *buf,
 						size_t count, loff_t *ppos)
 {
 	struct inode *inode = file->f_path.dentry->d_inode;
@@ -1968,7 +1957,7 @@ got_driver:
  *	may be re-entered freely by other callers.
  */
 
-static unsigned int tty_poll(struct file *filp, poll_table *wait)
+unsigned int tty_poll(struct file *filp, poll_table *wait)
 {
 	struct tty_struct *tty = file_tty(filp);
 	struct tty_ldisc *ld;
@@ -2025,7 +2014,7 @@ out:
 	return retval;
 }
 
-static int tty_fasync(int fd, struct file *filp, int on)
+int tty_fasync(int fd, struct file *filp, int on)
 {
 	int retval;
 	tty_lock();
@@ -3211,11 +3200,6 @@ struct tty_struct *get_current_tty(void)
 	return tty;
 }
 EXPORT_SYMBOL_GPL(get_current_tty);
-
-void tty_default_fops(struct file_operations *fops)
-{
-	*fops = tty_fops;
-}
 
 /*
  * Initialize the console device. This is called *early*, so
