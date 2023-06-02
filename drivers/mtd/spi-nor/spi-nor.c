@@ -987,6 +987,23 @@ static const struct spi_nor_basic_flash_parameter mxic_params = {
 
 };
 
+static const struct spi_nor_basic_flash_parameter xmc_params = {
+	.rd_modes		= SNOR_RD_MODES,
+	.reads[SNOR_MIDX_SLOW]	= SNOR_OP_READ(0, 0, SPINOR_OP_READ),
+	.reads[SNOR_MIDX_1_1_1]	= SNOR_OP_READ(0, 8, SPINOR_OP_READ_FAST),
+	.reads[SNOR_MIDX_1_1_2]	= SNOR_OP_READ(0, 8, SPINOR_OP_READ_1_1_2),
+	.reads[SNOR_MIDX_1_2_2]	= SNOR_OP_READ(0, 8, SPINOR_OP_READ_1_2_2),
+	.reads[SNOR_MIDX_1_1_4]	= SNOR_OP_READ(0, 8, SPINOR_OP_READ_1_1_4),
+	.reads[SNOR_MIDX_1_4_4]	= SNOR_OP_READ(0, 24, SPINOR_OP_READ_1_4_4),
+
+	.wr_modes		= SNOR_WR_MODES,
+	.page_programs[SNOR_MIDX_1_1_1]	= SPINOR_OP_PP,
+	.page_programs[SNOR_MIDX_1_1_4]	= SPINOR_OP_PP_1_1_4,
+
+	.erase_types[0]		= SNOR_OP_ERASE_64K(SPINOR_OP_SE),
+
+};
+
 static const struct spi_nor_basic_flash_parameter micron_params = {
 	.rd_modes		= SNOR_RD_MODES,
 	.reads[SNOR_MIDX_SLOW]	= SNOR_OP_READ(0, 0, SPINOR_OP_READ),
@@ -1371,6 +1388,22 @@ static const struct flash_info spi_nor_ids[] = {
 	/* Paragon 3.3V */
 	{ "pn25f16s", INFO(0xe04015, 0, 64 * 1024,  32, 0), PARAMS(paragon) },
 	{ "pn25f32s", INFO(0xe04016, 0, 64 * 1024,  64, 0), PARAMS(paragon) },
+
+	/* XMC */
+	{ "xm25qh64a", INFO(0x207017, 0, 64 * 1024,   128, SPI_NOR_DUAL_READ),
+			PARAMS(xmc) },
+	{ "xm25qh64b", INFO(0x206017, 0, 64 * 1024,   128, SPI_NOR_DUAL_READ),
+			PARAMS(xmc) },
+	{ "xm25qh128a", INFO(0x207018, 0, 64 * 1024,   256, SPI_NOR_DUAL_READ),
+			PARAMS(xmc) },
+	{ "xm25qh128b", INFO(0x206018, 0, 64 * 1024,   256, SPI_NOR_DUAL_READ),
+			PARAMS(xmc) },
+
+	/* FM 3.3v */
+	{ "FM25Q64-SOB-T-G",INFO(0xa14017, 0, 64 * 1024, 128,
+			SPI_NOR_DUAL_READ), PARAMS(spansion) },
+	{ "FM25Q128-SOB-T-G",INFO(0xa14018, 0, 64 * 1024, 256,
+			SPI_NOR_DUAL_READ), PARAMS(spansion) },
 
 	{ },
 };
