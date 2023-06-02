@@ -57,6 +57,30 @@ MODULE_PARM_DESC(skip_host_reset, "skip global host reset (0=don't skip, 1=skip)
 module_param_named(ignore_sss, ahci_ignore_sss, int, 0444);
 MODULE_PARM_DESC(ignore_sss, "Ignore staggered spinup flag (0=don't ignore, 1=ignore)");
 
+#ifdef CONFIG_HISI_SATA_FBS
+static int fbs_en = CONFIG_HISI_SATA_FBS;
+module_param(fbs_en, uint, 0600);
+MODULE_PARM_DESC(fbs_en, "ahci fbs flags (default:1)");
+
+#define AHCI_TIMEOUT_COUNT	10
+#define AHCI_POLL_TIMER		(20 * HZ)
+
+struct ata_fbs_ctrl {
+	unsigned int fbs_enable_ctrl; /* fbs enable or disable control switch */
+	unsigned int fbs_mode_ctrl;   /* 1.5G: fbs disable, 3G/6G: fbs enable */
+	unsigned int fbs_enable_flag;
+	unsigned int fbs_disable_flag;
+	unsigned int fbs_cmd_issue_flag;
+	struct timer_list poll_timer;
+};
+static struct ata_fbs_ctrl fbs_ctrl[4];
+extern void hisi_sata_set_fifoth(void *mmio);
+#endif
+#ifdef CONFIG_HISI_SATA
+extern void hisi_sata_reset_rxtx_assert(unsigned int port_no);
+extern void hisi_sata_reset_rxtx_deassert(unsigned int port_no);
+#endif
+
 static int ahci_set_lpm(struct ata_link *link, enum ata_lpm_policy policy,
 			unsigned hints);
 static ssize_t ahci_led_show(struct ata_port *ap, char *buf);
@@ -502,6 +526,13 @@ void ahci_save_initial_config(struct device *dev, struct ahci_host_priv *hpriv)
 		dev_info(dev, "controller can't do FBS, turning off CAP_FBS\n");
 		cap &= ~HOST_CAP_FBS;
 	}
+
+#ifdef CONFIG_HISI_SATA
+	if ((cap & HOST_CAP_SXS) && (hpriv->flags & AHCI_HFLAG_NO_SXS)) {
+		dev_info(dev, "controller can't support eSATA, turning off CAP_SXS\n");
+		cap &= ~HOST_CAP_SXS;
+	}
+#endif
 
 	if (hpriv->force_port_map && port_map != hpriv->force_port_map) {
 		dev_info(dev, "forcing port_map 0x%x -> 0x%x\n",
@@ -1380,7 +1411,27 @@ int ahci_do_softreset(struct ata_link *link, unsigned int *class,
 	bool fbs_disabled = false;
 	int rc;
 
+#ifdef CONFIG_HISI_SATA_FBS
+	unsigned int port_num = ap->port_no;
+#endif
+
 	DPRINTK("ENTER\n");
+
+#ifdef CONFIG_HISI_SATA_FBS
+	if (fbs_ctrl[port_num].fbs_enable_ctrl &&
+			(link->pmp == SATA_PMP_CTRL_PORT) &&
+			(hpriv->type == ORI_AHCI)) {
+		struct ahci_port_priv *pp = ap->private_data;
+
+		if (pp->fbs_enabled == false)
+			ahci_enable_fbs(ap);
+
+		fbs_ctrl[port_num].fbs_enable_flag = 0;
+		fbs_ctrl[port_num].fbs_disable_flag = 0;
+		fbs_ctrl[port_num].fbs_cmd_issue_flag = 0;
+
+	}
+#endif
 
 	/* prepare for SRST (AHCI-1.1 10.4.1) */
 	rc = ahci_kick_engine(ap);
@@ -1410,6 +1461,10 @@ int ahci_do_softreset(struct ata_link *link, unsigned int *class,
 				 AHCI_CMD_RESET | AHCI_CMD_CLR_BUSY, msecs)) {
 		rc = -EIO;
 		reason = "1st FIS failed";
+#ifdef CONFIG_HISI_SATA
+		hisi_sata_reset_rxtx_assert(ap->port_no);
+		hisi_sata_reset_rxtx_deassert(ap->port_no);
+#endif
 		goto fail;
 	}
 
@@ -1599,6 +1654,68 @@ static int ahci_pmp_qc_defer(struct ata_queued_cmd *qc)
 	struct ata_port *ap = qc->ap;
 	struct ahci_port_priv *pp = ap->private_data;
 
+#ifdef CONFIG_HISI_SATA_FBS
+	struct ahci_host_priv *hpriv = ap->host->private_data;
+	int is_atapi = ata_is_atapi(qc->tf.protocol);
+	void __iomem *port_mmio = ahci_port_base(ap);
+	unsigned int port_num = ap->port_no;
+	unsigned int cmd_timeout_count;
+
+	if (fbs_ctrl[port_num].fbs_enable_ctrl &&
+			(ap->link.pmp == SATA_PMP_CTRL_PORT) &&
+			(hpriv->type == ORI_AHCI)) {
+		if (is_atapi || fbs_ctrl[ap->port_no].fbs_cmd_issue_flag) {
+			mod_timer(&fbs_ctrl[port_num].poll_timer,
+					jiffies + AHCI_POLL_TIMER);
+
+			if (!fbs_ctrl[port_num].fbs_disable_flag) {
+				cmd_timeout_count = 0;
+				while (readl(port_mmio + PORT_SCR_ACT)
+						|| readl(port_mmio
+							+ PORT_CMD_ISSUE)
+						|| readl(port_mmio
+							+ PORT_IRQ_STAT)) {
+					cmd_timeout_count++;
+					if (cmd_timeout_count >=
+							AHCI_TIMEOUT_COUNT) {
+						fbs_ctrl[ap->port_no].
+							fbs_cmd_issue_flag = 1;
+						return ATA_DEFER_LINK;
+					}
+				}
+
+				if (pp->fbs_enabled == true)
+					ahci_disable_fbs(ap);
+
+				ap->excl_link = NULL;
+				ap->nr_active_links = 0;
+				fbs_ctrl[port_num].fbs_disable_flag = 1;
+				fbs_ctrl[port_num].fbs_enable_flag = 0;
+				fbs_ctrl[ap->port_no].fbs_cmd_issue_flag = 0;
+			}
+		} else {
+			if (fbs_ctrl[port_num].fbs_enable_flag) {
+				cmd_timeout_count = 0;
+				while (readl(port_mmio + PORT_SCR_ACT)
+						|| readl(port_mmio
+							+ PORT_CMD_ISSUE)
+						|| readl(port_mmio
+							+ PORT_IRQ_STAT)) {
+					cmd_timeout_count++;
+					if (cmd_timeout_count >=
+							AHCI_TIMEOUT_COUNT) {
+						return ATA_DEFER_LINK;
+					}
+				}
+
+				if (pp->fbs_enabled == false)
+					ahci_enable_fbs(ap);
+				fbs_ctrl[port_num].fbs_enable_flag = 0;
+				fbs_ctrl[port_num].fbs_disable_flag = 0;
+			}
+		}
+	}
+#endif
 	if (!sata_pmp_attached(ap) || pp->fbs_enabled)
 		return ata_std_qc_defer(qc);
 	else
@@ -1643,6 +1760,7 @@ static void ahci_qc_prep(struct ata_queued_cmd *qc)
 	ahci_fill_cmd_slot(pp, qc->tag, opts);
 }
 
+#ifndef CONFIG_HISI_SATA_FBS
 static void ahci_fbs_dec_intr(struct ata_port *ap)
 {
 	struct ahci_port_priv *pp = ap->private_data;
@@ -1666,6 +1784,7 @@ static void ahci_fbs_dec_intr(struct ata_port *ap)
 	if (fbs & PORT_FBS_DEC)
 		dev_err(ap->host->dev, "failed to clear device error\n");
 }
+#endif
 
 static void ahci_error_intr(struct ata_port *ap, u32 irq_stat)
 {
@@ -1773,7 +1892,9 @@ static void ahci_error_intr(struct ata_port *ap, u32 irq_stat)
 		ata_port_freeze(ap);
 	else if (fbs_need_dec) {
 		ata_link_abort(link);
+#ifndef CONFIG_HISI_SATA_FBS
 		ahci_fbs_dec_intr(ap);
+#endif
 	} else
 		ata_port_abort(ap);
 }
@@ -2170,7 +2291,9 @@ static void ahci_enable_fbs(struct ata_port *ap)
 	writel(fbs | PORT_FBS_EN, port_mmio + PORT_FBS);
 	fbs = readl(port_mmio + PORT_FBS);
 	if (fbs & PORT_FBS_EN) {
+#ifndef CONFIG_HISI_SATA_FBS
 		dev_info(ap->host->dev, "FBS is enabled\n");
+#endif
 		pp->fbs_enabled = true;
 		pp->fbs_last_dev = -1; /* initialization */
 	} else
@@ -2210,6 +2333,9 @@ static void ahci_disable_fbs(struct ata_port *ap)
 	}
 
 	hpriv->start_engine(ap);
+#ifdef CONFIG_HISI_SATA_FBS
+	hisi_sata_set_fifoth(port_mmio);
+#endif
 }
 
 static void ahci_pmp_attach(struct ata_port *ap)
@@ -2218,11 +2344,23 @@ static void ahci_pmp_attach(struct ata_port *ap)
 	struct ahci_port_priv *pp = ap->private_data;
 	u32 cmd;
 
+#ifdef CONFIG_HISI_SATA_FBS
+	struct ahci_host_priv *hpriv = ap->host->private_data;
+	unsigned int port_num = ap->port_no;
+#endif
+
 	cmd = readl(port_mmio + PORT_CMD);
 	cmd |= PORT_CMD_PMP;
 	writel(cmd, port_mmio + PORT_CMD);
 
 	ahci_enable_fbs(ap);
+
+#ifdef CONFIG_HISI_SATA_FBS
+	if (hpriv->type == ORI_AHCI) {
+		if (!fbs_ctrl[port_num].fbs_enable_ctrl)
+			ahci_disable_fbs(ap);
+	}
+#endif
 
 	pp->intr_mask |= PORT_IRQ_BAD_PMP;
 
@@ -2289,6 +2427,19 @@ static int ahci_port_suspend(struct ata_port *ap, pm_message_t mesg)
 
 	ahci_rpm_put_port(ap);
 	return rc;
+}
+#endif
+
+#ifdef CONFIG_HISI_SATA_FBS
+static void ahci_poll_func(unsigned long arg)
+{
+	struct ata_port *ap = (struct ata_port *)arg;
+	unsigned int port_num = ap->port_no;
+
+	if (ap->link.pmp == SATA_PMP_CTRL_PORT) {
+		fbs_ctrl[port_num].fbs_enable_flag = 1;
+		fbs_ctrl[port_num].fbs_disable_flag = 0;
+	}
 }
 #endif
 
@@ -2384,6 +2535,20 @@ static int ahci_port_start(struct ata_port *ap)
 	}
 
 	ap->private_data = pp;
+
+#ifdef CONFIG_HISI_SATA_FBS
+	if (hpriv->type == ORI_AHCI) {
+		fbs_ctrl[ap->port_no].fbs_enable_ctrl = fbs_en;
+		fbs_ctrl[ap->port_no].fbs_enable_flag = 0;
+		fbs_ctrl[ap->port_no].fbs_disable_flag = 0;
+		fbs_ctrl[ap->port_no].fbs_cmd_issue_flag = 0;
+
+		init_timer(&fbs_ctrl[ap->port_no].poll_timer);
+		fbs_ctrl[ap->port_no].poll_timer.function = ahci_poll_func;
+		fbs_ctrl[ap->port_no].poll_timer.data = (unsigned long)ap;
+		fbs_ctrl[ap->port_no].poll_timer.expires = jiffies + AHCI_POLL_TIMER;
+	}
+#endif
 
 	/* engage engines, captain */
 	return ahci_port_resume(ap);

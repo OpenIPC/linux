@@ -812,7 +812,7 @@ static int crng_fast_load(const char *cp, size_t len)
 	if (crng_init_cnt >= CRNG_INIT_CNT_THRESH) {
 		crng_init = 1;
 		wake_up_interruptible(&crng_init_wait);
-		pr_notice("random: fast init done\n");
+		printk_once("random: fast init done\n");
 	}
 	spin_unlock_irqrestore(&primary_crng.lock, flags);
 	return 1;
@@ -850,7 +850,7 @@ static void crng_reseed(struct crng_state *crng, struct entropy_store *r)
 		crng_init = 2;
 		process_random_ready_list();
 		wake_up_interruptible(&crng_init_wait);
-		pr_notice("random: crng init done\n");
+		printk_once("random: crng init done\n");
 	}
 	spin_unlock_irqrestore(&primary_crng.lock, flags);
 }
@@ -1744,7 +1744,7 @@ urandom_read(struct file *file, char __user *buf, size_t nbytes, loff_t *ppos)
 
 	if (!crng_ready() && maxwarn > 0) {
 		maxwarn--;
-		printk(KERN_NOTICE "random: %s: uninitialized urandom read "
+		printk_once(KERN_NOTICE "random: %s: uninitialized urandom read "
 		       "(%zd bytes read)\n",
 		       current->comm, nbytes);
 		spin_lock_irqsave(&primary_crng.lock, flags);

@@ -124,6 +124,22 @@ dwc3_gadget_link_string(enum dwc3_link_state link_state)
 	}
 }
 
+static inline const char *dwc3_ep0_state_string(enum dwc3_ep0_state state)
+{
+	switch (state) {
+	case EP0_UNCONNECTED:
+		return "Unconnected";
+	case EP0_SETUP_PHASE:
+		return "Setup Phase";
+	case EP0_DATA_PHASE:
+		return "Data Phase";
+	case EP0_STATUS_PHASE:
+		return "Status Phase";
+	default:
+		return "UNKNOWN";
+	}
+}
+
 /**
  * dwc3_gadget_event_string - returns event name
  * @event: the event code
@@ -184,10 +200,11 @@ dwc3_gadget_event_string(const struct dwc3_event_devt *event)
  * @event: then event code
  */
 static inline const char *
-dwc3_ep_event_string(const struct dwc3_event_depevt *event)
+dwc3_ep_event_string(const struct dwc3_event_depevt *event, u32 ep0state)
 {
 	u8 epnum = event->endpoint_number;
 	static char str[256];
+	size_t len;
 	int status;
 	int ret;
 
@@ -196,17 +213,34 @@ dwc3_ep_event_string(const struct dwc3_event_depevt *event)
 	if (ret < 0)
 		return "UNKNOWN";
 
+	status = event->status;
+
 	switch (event->endpoint_event) {
 	case DWC3_DEPEVT_XFERCOMPLETE:
-		strcat(str, "Transfer Complete");
+		len = strlen(str);
+		sprintf(str + len, "Transfer Complete (%c%c%c)",
+				status & DEPEVT_STATUS_SHORT ? 'S' : 's',
+				status & DEPEVT_STATUS_IOC ? 'I' : 'i',
+				status & DEPEVT_STATUS_LST ? 'L' : 'l');
+
+		len = strlen(str);
+
+		if (epnum <= 1)
+			sprintf(str + len, " [%s]", dwc3_ep0_state_string(ep0state));
 		break;
 	case DWC3_DEPEVT_XFERINPROGRESS:
-		strcat(str, "Transfer In-Progress");
+		len = strlen(str);
+
+		sprintf(str + len, "Transfer In Progress (%c%c%c)",
+				status & DEPEVT_STATUS_SHORT ? 'S' : 's',
+				status & DEPEVT_STATUS_IOC ? 'I' : 'i',
+				status & DEPEVT_STATUS_LST ? 'M' : 'm');
 		break;
 	case DWC3_DEPEVT_XFERNOTREADY:
 		strcat(str, "Transfer Not Ready");
-		status = event->status & DEPEVT_STATUS_TRANSFER_ACTIVE;
-		strcat(str, status ? " (Active)" : " (Not Active)");
+		strcat(str, status & DEPEVT_STATUS_TRANSFER_ACTIVE ?
+				" (Active)" : " (Not Active)");
+
 		break;
 	case DWC3_DEPEVT_RXTXFIFOEVT:
 		strcat(str, "FIFO");
@@ -270,14 +304,14 @@ static inline const char *dwc3_gadget_event_type_string(u8 event)
 	}
 }
 
-static inline const char *dwc3_decode_event(u32 event)
+static inline const char *dwc3_decode_event(u32 event, u32 ep0state)
 {
 	const union dwc3_event evt = (union dwc3_event) event;
 
 	if (evt.type.is_devspec)
 		return dwc3_gadget_event_string(&evt.devt);
 	else
-		return dwc3_ep_event_string(&evt.depevt);
+		return dwc3_ep_event_string(&evt.depevt, ep0state);
 }
 
 static inline const char *dwc3_ep_cmd_status_string(int status)
@@ -310,7 +344,13 @@ static inline const char *dwc3_gadget_generic_cmd_status_string(int status)
 	}
 }
 
+
+#if IS_ENABLED(CONFIG_FTRACE)
 void dwc3_trace(void (*trace)(struct va_format *), const char *fmt, ...);
+#else
+static inline void dwc3_trace(void (*trace)(struct va_format *), const char *fmt, ...)
+{  }
+#endif
 
 #ifdef CONFIG_DEBUG_FS
 extern void dwc3_debugfs_init(struct dwc3 *);

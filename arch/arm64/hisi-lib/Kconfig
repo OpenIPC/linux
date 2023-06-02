@@ -1,0 +1,13 @@
+
+menuconfig ARM64_HISI_LIB
+	bool "ARM64 HISILICON LIB"
+	depends on ARM64
+	help
+	  Say Y here to compile hisilicon libs.
+
+if ARM64_HISI_LIB
+
+config HISI_LIB_FLOATING_POINT_SAMPLE
+	tristate "HISI FLOATING POINT LIB SAMPLE"
+	depends on ARM64 && KERNEL_MODE_NEON
+endif

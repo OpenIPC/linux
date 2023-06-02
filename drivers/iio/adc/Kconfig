@@ -225,6 +225,16 @@ config HI8435
 	  This driver can also be built as a module. If so, the module will be
 	  called hi8435.
 
+config HIBVT_LSADC
+	tristate "HIBVT LSADC driver"
+	depends on ARCH_HISI_BVT || COMPILE_TEST
+	help
+	  Say yes here to build support for the LSADC found in SoCs from
+	  hisilicon BVT chip.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called hibvt_lsadc.
+
 config INA2XX_ADC
 	tristate "Texas Instruments INA2xx Power Monitors IIO driver"
 	depends on I2C && !SENSORS_INA2XX

@@ -5,3 +5,5 @@ obj-$(CONFIG_SCSI_UFS_QCOM) += ufs-qcom.o
 obj-$(CONFIG_SCSI_UFSHCD) += ufshcd.o
 obj-$(CONFIG_SCSI_UFSHCD_PCI) += ufshcd-pci.o
 obj-$(CONFIG_SCSI_UFSHCD_PLATFORM) += ufshcd-pltfrm.o
+obj-$(CONFIG_SCSI_UFS_HI3559AV100) += hi3559av100_ufs.o
+obj-$(CONFIG_SCSI_UFS_CARD) += ufs_proc.o

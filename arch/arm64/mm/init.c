@@ -83,8 +83,18 @@ early_param("initrd", early_initrd);
  */
 static phys_addr_t __init max_zone_dma_phys(void)
 {
+#ifdef CONFIG_ARCH_HISI_BVT
+	phys_addr_t max_dma_phys;
+	extern phys_addr_t hisi_get_zones_start(void);
+#endif
 	phys_addr_t offset = memblock_start_of_DRAM() & GENMASK_ULL(63, 32);
+
+#ifdef CONFIG_ARCH_HISI_BVT
+	max_dma_phys =  min(offset + (1ULL << 32), memblock_end_of_DRAM());
+	return min(max_dma_phys, hisi_get_zones_start());
+#else
 	return min(offset + (1ULL << 32), memblock_end_of_DRAM());
+#endif
 }
 
 #ifdef CONFIG_NUMA
@@ -296,6 +306,9 @@ void __init arm64_memblock_init(void)
 		arm64_dma_phys_limit = max_zone_dma_phys();
 	else
 		arm64_dma_phys_limit = PHYS_MASK + 1;
+
+	high_memory = __va(memblock_end_of_DRAM() - 1) + 1;
+
 	dma_contiguous_reserve(arm64_dma_phys_limit);
 
 	memblock_allow_resize();
@@ -322,7 +335,6 @@ void __init bootmem_init(void)
 	sparse_init();
 	zone_sizes_init(min, max);
 
-	high_memory = __va((max << PAGE_SHIFT) - 1) + 1;
 	memblock_dump_all();
 }
 

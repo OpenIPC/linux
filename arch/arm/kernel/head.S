@@ -121,6 +121,13 @@ ENTRY(stext)
 	bl	__vet_atags
 #ifdef CONFIG_SMP_ON_UP
 	bl	__fixup_smp
+
+#if defined CONFIG_ARCH_HI3556AV100 || defined CONFIG_ARCH_HI3519AV100	
+	ldr r3, =0x40
+	ldr r4, =0x0
+	MCRR p15, 1, r3, r4, c15 /* Write CPU Extended Control Register */
+#endif
+
 #endif
 #ifdef CONFIG_ARM_PATCH_PHYS_VIRT
 	bl	__fixup_pv_table
@@ -378,6 +385,20 @@ ENTRY(secondary_startup)
 	 */
 
  ARM_BE8(setend	be)				@ ensure we are in BE8 mode
+
+#if defined CONFIG_ARCH_HI3556AV100 || defined CONFIG_ARCH_HI3519AV100
+ 	/*
+  	 * enable coherence function
+  	 */
+ 	ldr r0, =0x04528000
+ 	ldr r1, [r0]
+ 	orr r1, r1, #0x200       /* bit 9 set to 1 */
+ 	str r1, [r0]
+
+	ldr r0, =0x40
+	ldr r1, =0x0
+	MCRR p15, 1, r0, r1, c15 /* Write CPU Extended Control Register */
+#endif 
 
 #ifdef CONFIG_ARM_VIRT_EXT
 	bl	__hyp_stub_install_secondary

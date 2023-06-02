@@ -594,6 +594,14 @@ uvc_function_bind(struct usb_configuration *c, struct usb_function *f)
 	opts->streaming_maxpacket = clamp(opts->streaming_maxpacket, 1U, 3072U);
 	opts->streaming_maxburst = min(opts->streaming_maxburst, 15U);
 
+	/* For SS, wMaxPacketSize has to be 1024 if bMaxBurst is not 0 */
+	if (opts->streaming_maxburst &&
+	    (opts->streaming_maxpacket % 1024) != 0) {
+		opts->streaming_maxpacket = roundup(opts->streaming_maxpacket, 1024);
+		INFO(cdev, "overriding streaming_maxpacket to %d\n",
+		     opts->streaming_maxpacket);
+	}
+
 	/* Fill in the FS/HS/SS Video Streaming specific descriptors from the
 	 * module parameters.
 	 *
@@ -619,12 +627,12 @@ uvc_function_bind(struct usb_configuration *c, struct usb_function *f)
 		cpu_to_le16(max_packet_size | ((max_packet_mult - 1) << 11));
 	uvc_hs_streaming_ep.bInterval = opts->streaming_interval;
 
-	uvc_ss_streaming_ep.wMaxPacketSize = cpu_to_le16(max_packet_size);
+	uvc_ss_streaming_ep.wMaxPacketSize = cpu_to_le16(min(opts->streaming_maxpacket, 1024U));
 	uvc_ss_streaming_ep.bInterval = opts->streaming_interval;
-	uvc_ss_streaming_comp.bmAttributes = max_packet_mult - 1;
+	uvc_ss_streaming_comp.bmAttributes = 0;
 	uvc_ss_streaming_comp.bMaxBurst = opts->streaming_maxburst;
 	uvc_ss_streaming_comp.wBytesPerInterval =
-		cpu_to_le16(max_packet_size * max_packet_mult *
+		cpu_to_le16(uvc_ss_streaming_ep.wMaxPacketSize *
 			    (opts->streaming_maxburst + 1));
 
 	/* Allocate endpoints. */
@@ -720,7 +728,7 @@ uvc_function_bind(struct usb_configuration *c, struct usb_function *f)
 	}
 
 	/* Initialise video. */
-	ret = uvcg_video_init(&uvc->video);
+	ret = uvcg_video_init(&uvc->video, uvc);
 	if (ret < 0)
 		goto error;
 
@@ -765,6 +773,11 @@ static struct usb_function_instance *uvc_alloc_inst(void)
 	struct uvc_color_matching_descriptor *md;
 	struct uvc_descriptor_header **ctl_cls;
 
+	struct UVC_EXTENSION_UNIT_DESCRIPTOR(1, 2) *ed;
+	/* GUID of the UVC H.264 extension unit */
+    static char extension_guid[] = {0x41, 0x76, 0x9E, 0xA2, 0x04, 0xDE, 0xE3, 0x47,
+		0x8B, 0x2B, 0xF4, 0x34, 0x1A, 0xFF, 0x00, 0x3B};
+
 	opts = kzalloc(sizeof(*opts), GFP_KERNEL);
 	if (!opts)
 		return ERR_PTR(-ENOMEM);
@@ -799,6 +812,20 @@ static struct usb_function_instance *uvc_alloc_inst(void)
 	pd->bmControls[1]		= 0;
 	pd->iProcessing			= 0;
 
+	ed = &opts->uvc_extension;
+	ed->bLength			= UVC_DT_EXTENSION_UNIT_SIZE(1, 2);
+	ed->bDescriptorType		= USB_DT_CS_INTERFACE;
+	ed->bDescriptorSubType		= UVC_VC_EXTENSION_UNIT;
+	ed->bUnitID			= 10;
+	memcpy(ed->guidExtensionCode, extension_guid, sizeof(extension_guid));
+	ed->bNrInPins			= 1;
+	ed->baSourceID[0]      	= 2;
+	ed->bNumControls		= 15;
+	ed->bControlSize		= 2;
+	ed->bmControls[0]		= 1;
+	ed->bmControls[1]		= 0;
+	ed->iExtension			= 0;
+
 	od = &opts->uvc_output_terminal;
 	od->bLength			= UVC_DT_OUTPUT_TERMINAL_SIZE;
 	od->bDescriptorType		= USB_DT_CS_INTERFACE;
@@ -822,8 +849,9 @@ static struct usb_function_instance *uvc_alloc_inst(void)
 	ctl_cls[0] = NULL;	/* assigned elsewhere by configfs */
 	ctl_cls[1] = (struct uvc_descriptor_header *)cd;
 	ctl_cls[2] = (struct uvc_descriptor_header *)pd;
-	ctl_cls[3] = (struct uvc_descriptor_header *)od;
-	ctl_cls[4] = NULL;	/* NULL-terminate */
+	ctl_cls[3] = (struct uvc_descriptor_header *)ed;
+	ctl_cls[4] = (struct uvc_descriptor_header *)od;
+	ctl_cls[5] = NULL;	/* NULL-terminate */
 	opts->fs_control =
 		(const struct uvc_descriptor_header * const *)ctl_cls;
 
@@ -832,13 +860,14 @@ static struct usb_function_instance *uvc_alloc_inst(void)
 	ctl_cls[0] = NULL;	/* assigned elsewhere by configfs */
 	ctl_cls[1] = (struct uvc_descriptor_header *)cd;
 	ctl_cls[2] = (struct uvc_descriptor_header *)pd;
-	ctl_cls[3] = (struct uvc_descriptor_header *)od;
-	ctl_cls[4] = NULL;	/* NULL-terminate */
+	ctl_cls[3] = (struct uvc_descriptor_header *)ed;
+	ctl_cls[4] = (struct uvc_descriptor_header *)od;
+	ctl_cls[5] = NULL;	/* NULL-terminate */
 	opts->ss_control =
 		(const struct uvc_descriptor_header * const *)ctl_cls;
 
 	opts->streaming_interval = 1;
-	opts->streaming_maxpacket = 1024;
+	opts->streaming_maxpacket = 3072;
 
 	uvcg_attach_configfs(opts);
 	return &opts->func_inst;

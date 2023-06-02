@@ -305,6 +305,14 @@ config ARM_ARCH_TIMER_EVTSTREAM
 	  This must be disabled for hardware validation purposes to detect any
 	  hardware anomalies of missing events.
 
+config ARM_ARCH_TIMER_VCT_ACCESS
+	bool "Support for ARM architected timer virtual counter access in userspace"
+	default n 
+	depends on ARM_ARCH_TIMER
+	help
+	  This option enables support for reading the ARM architected timer's
+	  virtual counter in userspace.
+
 config FSL_ERRATUM_A008585
 	bool "Workaround for Freescale/NXP Erratum A-008585"
 	default y
@@ -327,6 +335,12 @@ config ARM_TIMER_SP804
 	depends on GENERIC_SCHED_CLOCK && CLKDEV_LOOKUP
 	select CLKSRC_MMIO
 	select CLKSRC_OF if OF
+
+config TIMER_HISP804
+    bool "Support for hisilicon SP804 module"
+    depends on GENERIC_SCHED_CLOCK && CLKDEV_LOOKUP
+    select CLKSRC_MMIO
+    select CLKSRC_OF if OF
 
 config CLKSRC_ARM_GLOBAL_TIMER_SCHED_CLOCK
 	bool

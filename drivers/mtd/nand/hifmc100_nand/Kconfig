@@ -1,0 +1,50 @@
+#
+# drivers/mtd/nand/hifmc100_nand/Kconfig
+# add by hisilicon 2017.10.26
+#
+
+menuconfig MTD_NAND_HIFMC100
+	bool "Hisilicon Flash Memory Controller v100 Nand devices support"
+	depends on MFD_HISI_FMC && !MTD_SPI_NAND_HISI_BVT
+	select MISC_FILESYSTEMS
+	select MTD_BLOCK
+	select YAFFS_FS
+	select YAFFS_YAFFS2
+	help
+	  Hisilicon Flash Memory Controller version 100 is called hifmc100 for
+	  short. The controller support DMA transfers while reading or writing
+	  the Nand flash.
+
+if MTD_NAND_HIFMC100
+
+config HIFMC100_NAND_EDO_MODE
+	bool "the Extended Data Out(EDO) mode"
+	help
+	  In Extended data out (EDO), a new data cycle is started while the data
+	  output of the previous cycle is still active. This process of cycle
+	  overlapping, called pipelining, increases processing speed by about
+	  10 nanoseconds per cycle,increasing computer performance by about 5
+	  percent compared to performance using FMP.
+
+config RW_H_WIDTH
+	int "the width of Read/Write HIGH Hold Time (0 to 15)"
+	range 0 15
+	default 10 if ARCH_HI3559AV100
+	help
+	  the Read/Write HIGH Hold Time of nand flash
+
+config R_L_WIDTH
+	int "the Read pulse width (0 to 15)"
+	range 0 15
+	default 10 if ARCH_HI3559AV100
+	help
+	  the Read/Write LOW Hold Time of nand flash
+
+config W_L_WIDTH
+	int "the Write pulse width (0 to 15)"
+	range 0 15
+	default 10 if ARCH_HI3559AV100
+	help
+	  the Read/Write LOW Hold Time of nand flash
+
+endif # End of MTD_NAND_HIFMC100

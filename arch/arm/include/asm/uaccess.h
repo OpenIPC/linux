@@ -524,7 +524,12 @@ __clear_user(void __user *addr, unsigned long n)
 	uaccess_restore(__ua_flags);
 	return n;
 }
-
+#ifdef CONFIG_HI_VDMA_V100
+extern unsigned long hi_copy_from_user(void *to,
+				const void __user *from, unsigned long n);
+extern unsigned long hi_copy_to_user(void *to,
+				const void __user *from, unsigned long n);
+#endif
 #else
 #define __copy_from_user(to, from, n)	(memcpy(to, (void __force *)from, n), 0)
 #define __copy_to_user(to, from, n)	(memcpy((void __force *)to, from, n), 0)
@@ -535,7 +540,11 @@ static inline unsigned long __must_check copy_from_user(void *to, const void __u
 {
 	unsigned long res = n;
 	if (likely(access_ok(VERIFY_READ, from, n)))
+#ifdef CONFIG_HI_VDMA_V100
+		res = hi_copy_from_user(to, from, n);
+#else
 		res = __copy_from_user(to, from, n);
+#endif
 	if (unlikely(res))
 		memset(to + (n - res), 0, res);
 	return res;
@@ -544,7 +553,11 @@ static inline unsigned long __must_check copy_from_user(void *to, const void __u
 static inline unsigned long __must_check copy_to_user(void __user *to, const void *from, unsigned long n)
 {
 	if (access_ok(VERIFY_WRITE, to, n))
+#ifdef CONFIG_HI_VDMA_V100
+		n = hi_copy_to_user(to, from, n);
+#else
 		n = __copy_to_user(to, from, n);
+#endif
 	return n;
 }
 

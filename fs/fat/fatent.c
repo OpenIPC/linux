@@ -380,6 +380,9 @@ static int fat_mirror_bhs(struct super_block *sb, struct buffer_head **bhs,
 	int err, n, copy;
 
 	err = 0;
+#ifdef CONFIG_HISI_MC
+	return 0;
+#endif	
 	for (copy = 1; copy < sbi->fats; copy++) {
 		sector_t backup_fat = sbi->fat_length * copy;
 

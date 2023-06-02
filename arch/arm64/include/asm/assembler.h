@@ -30,6 +30,34 @@
 #include <asm/ptrace.h>
 #include <asm/thread_info.h>
 
+	.macro save_and_disable_daif, flags
+	mrs     \flags, daif
+	msr     daifset, #0xf
+	.endm
+	
+	.macro disable_daif
+	msr     daifset, #0xf
+	.endm
+	
+	.macro enable_daif
+	msr     daifclr, #0xf
+	.endm
+	
+	.macro  restore_daif, flags:req
+	msr     daif, \flags
+	.endm
+
+	/* Only on aarch64 pstate, PSR_D_BIT is different for aarch32 */
+	.macro  inherit_daif, pstate:req, tmp:req
+	and     \tmp, \pstate, #(PSR_D_BIT | PSR_A_BIT | PSR_I_BIT | PSR_F_BIT)
+	msr     daif, \tmp
+	.endm
+
+	/* IRQ is the lowest priority flag, unconditionally unmask the rest. */
+	.macro enable_da_f
+	msr     daifclr, #(8 | 4 | 1)
+	.endm
+
 /*
  * Enable and disable interrupts.
  */
@@ -42,10 +70,15 @@
 	.endm
 
 /*
- * Enable and disable debug exceptions.
+ * Save/disable and restore interrupts.
  */
-	.macro	disable_dbg
-	msr	daifset, #8
+	.macro  save_and_disable_irq, flags
+	mrs	\flags, daif
+	msr	daifset, #2
+	.endm
+
+	.macro	restore_irq, flags
+	msr	daif, \flags
 	.endm
 
 	.macro	enable_dbg
@@ -61,9 +94,9 @@
 9990:
 	.endm
 
+	/* call with daif masked */
 	.macro	enable_step_tsk, flgs, tmp
 	tbz	\flgs, #TIF_SINGLESTEP, 9990f
-	disable_dbg
 	mrs	\tmp, mdscr_el1
 	orr	\tmp, \tmp, #1
 	msr	mdscr_el1, \tmp
@@ -71,19 +104,28 @@
 	.endm
 
 /*
- * Enable both debug exceptions and interrupts. This is likely to be
- * faster than two daifclr operations, since writes to this register
- * are self-synchronising.
- */
-	.macro	enable_dbg_and_irq
-	msr	daifclr, #(8 | 2)
-	.endm
-
-/*
  * SMP data memory barrier
  */
 	.macro	smp_dmb, opt
 	dmb	\opt
+	.endm
+
+/*
+ * Value prediction barrier
+ */
+	.macro	csdb
+	hint	#20
+	.endm
+
+/*
+ * Sanitise a 64-bit bounded index wrt speculation, returning zero if out
+ * of bounds.
+ */
+	.macro	mask_nospec64, idx, limit, tmp
+	sub	\tmp, \idx, \limit
+	bic	\tmp, \tmp, \idx
+	and	\idx, \idx, \tmp, asr #63
+	csdb
 	.endm
 
 /*
@@ -112,7 +154,7 @@
 /*
  * Register aliases.
  */
-lr	.req	x30		// link register
+//lr	.req	x30		// link register gcc 6.3.0 not support
 
 /*
  * Vector entry
@@ -411,6 +453,17 @@ alternative_endif
 	movk	\reg, :abs_g1_nc:\val
 	.endif
 	movk	\reg, :abs_g0_nc:\val
+	.endm
+
+/*
+ * Return the current thread_info.
+ */
+	.macro  get_thread_info, rd
+	mrs     \rd, sp_el0
+	.endm
+
+	.macro	pte_to_phys, phys, pte
+	and	\phys, \pte, #(((1 << (48 - PAGE_SHIFT)) - 1) << PAGE_SHIFT)
 	.endm
 
 #endif	/* __ASM_ASSEMBLER_H */

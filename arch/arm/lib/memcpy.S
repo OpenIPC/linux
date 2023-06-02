@@ -62,9 +62,17 @@
 /* Prototype: void *memcpy(void *dest, const void *src, size_t n); */
 
 ENTRY(mmiocpy)
+#ifdef CONFIG_HI_VDMA_V100
+ENTRY(_memcpy)
+#else
 ENTRY(memcpy)
+#endif
 
 #include "copy_template.S"
 
+#ifdef CONFIG_HI_VDMA_V100
+ENDPROC(_memcpy)
+#else
 ENDPROC(memcpy)
+#endif
 ENDPROC(mmiocpy)

@@ -109,12 +109,20 @@ struct vendor_data {
 
 static unsigned int get_fifosize_arm(struct amba_device *dev)
 {
+#ifdef CONFIG_ARCH_HISI_BVT
+	return 64;
+#else
 	return amba_rev(dev) < 3 ? 16 : 32;
+#endif
 }
 
 static struct vendor_data vendor_arm = {
 	.reg_offset		= pl011_std_offsets,
+#ifdef CONFIG_ARCH_HISI_BVT
+	.ifls			= UART011_IFLS_RX1_8|UART011_IFLS_TX1_8,
+#else
 	.ifls			= UART011_IFLS_RX4_8|UART011_IFLS_TX4_8,
+#endif
 	.fr_busy		= UART01x_FR_BUSY,
 	.fr_dsr			= UART01x_FR_DSR,
 	.fr_cts			= UART01x_FR_CTS,
@@ -405,7 +413,11 @@ static void pl011_dma_probe(struct uart_amba_port *uap)
 				 pl011_reg_to_offset(uap, REG_DR),
 		.dst_addr_width = DMA_SLAVE_BUSWIDTH_1_BYTE,
 		.direction = DMA_MEM_TO_DEV,
+#ifdef  CONFIG_ARCH_HISI_BVT
+		.dst_maxburst = 7,
+#else
 		.dst_maxburst = uap->fifosize >> 1,
+#endif
 		.device_fc = false,
 	};
 	struct dma_chan *chan;
@@ -461,7 +473,11 @@ static void pl011_dma_probe(struct uart_amba_port *uap)
 				pl011_reg_to_offset(uap, REG_DR),
 			.src_addr_width = DMA_SLAVE_BUSWIDTH_1_BYTE,
 			.direction = DMA_DEV_TO_MEM,
+#ifdef CONFIG_ARCH_HISI_BVT
+			.src_maxburst = 7,
+#else
 			.src_maxburst = uap->fifosize >> 2,
+#endif
 			.device_fc = false,
 		};
 		struct dma_slave_caps caps;

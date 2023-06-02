@@ -564,6 +564,19 @@ config ZX_DMA
 	help
 	  Support the DMA engine for ZTE ZX296702 platform devices.
 
+config HIEDMACV310
+        tristate "Hisilicon EDMAC Controller support"
+        depends on (ARCH_HI3559AV100 || ARCH_HI3519AV100 || ARCH_HI3556AV100 || ARCH_HI3516CV500 || ARCH_HI3516DV300 || ARCH_HI3559V200 || ARCH_HI3556V200 || ARCH_HI3516EV300 || ARCH_HI3516EV200 || ARCH_HI3518EV300 || ARCH_HI3516DV200)
+	select DMA_ENGINE
+	select DMA_VIRTUAL_CHANNELS
+        help
+          The Direction Memory Access(EDMA) is a high-speed data transfer
+          operation. It supports data read/write between peripherals and
+          memories without using the CPU.
+          Hisilicon EDMA Controller(EDMAC) directly transfers data between
+          a memory and a peripheral, between peripherals, or between memories.
+          This avoids the CPU intervention and reduces the interrupt handling
+          overhead of the CPU.
 
 # driver files
 source "drivers/dma/bestcomm/Kconfig"

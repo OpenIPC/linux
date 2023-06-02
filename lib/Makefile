@@ -1,12 +1,20 @@
 #
 # Makefile for some libs needed in the kernel.
 #
+ifdef CONFIG_JFFS2_ZLIB
+	CONFIG_ZLIB_INFLATE:=y
+	CONFIG_ZLIB_DEFLATE:=y
+endif
+
+ifdef CONFIG_JFFS2_LZMA
+	CONFIG_LZMA_DECOMPRESS:=y
+	CONFIG_LZMA_COMPRESS:=y
+endif
 
 ifdef CONFIG_FUNCTION_TRACER
 ORIG_CFLAGS := $(KBUILD_CFLAGS)
 KBUILD_CFLAGS = $(subst $(CC_FLAGS_FTRACE),,$(ORIG_CFLAGS))
 endif
-
 # These files are disabled because they produce lots of non-interesting and/or
 # flaky coverage that is not a function of syscall inputs. For example,
 # rbtree can be global and individual rotations don't correlate with inputs.
@@ -108,6 +116,8 @@ obj-$(CONFIG_LZ4HC_COMPRESS) += lz4/
 obj-$(CONFIG_LZ4_DECOMPRESS) += lz4/
 obj-$(CONFIG_XZ_DEC) += xz/
 obj-$(CONFIG_RAID6_PQ) += raid6/
+obj-$(CONFIG_LZMA_COMPRESS) += lzma/
+obj-$(CONFIG_LZMA_DECOMPRESS) += lzma/
 
 lib-$(CONFIG_DECOMPRESS_GZIP) += decompress_inflate.o
 lib-$(CONFIG_DECOMPRESS_BZIP2) += decompress_bunzip2.o

@@ -35,6 +35,8 @@
 #include <linux/phy/phy.h>
 
 #define DWC3_MSG_MAX	500
+#define DWC3_PIPE_TRANS_LIMIT_MASK	(0xf << 8)
+#define DWC3_PIPE_TRANS_LIMIT		(0x7 << 8)
 
 /* Global constants */
 #define DWC3_ZLP_BUF_SIZE	1024	/* size of a superspeed bulk */
@@ -386,6 +388,9 @@
 
 #define DWC3_DSTS_RXFIFOEMPTY		(1 << 17)
 
+#define DWC3_EVENT_PRAM_MAX_SOFFN			0x3fff
+#define DWC3_EVENT_PRAM_SOFFN_MASK			0x3fff
+
 #define DWC3_DSTS_SOFFN_MASK		(0x3fff << 3)
 #define DWC3_DSTS_SOFFN(n)		(((n) & DWC3_DSTS_SOFFN_MASK) >> 3)
 
@@ -488,7 +493,7 @@ struct dwc3_event_buffer {
 #define DWC3_EP_DIRECTION_TX	true
 #define DWC3_EP_DIRECTION_RX	false
 
-#define DWC3_TRB_NUM		256
+#define DWC3_TRB_NUM		4096
 
 /**
  * struct dwc3_ep - device side endpoint representation
@@ -535,7 +540,7 @@ struct dwc3_ep {
 #define DWC3_EP_WEDGE		(1 << 2)
 #define DWC3_EP_BUSY		(1 << 4)
 #define DWC3_EP_PENDING_REQUEST	(1 << 5)
-#define DWC3_EP_MISSED_ISOC	(1 << 6)
+#define DWC3_EP_UPDATE		(1 << 7)
 
 	/* This last one is specific to EP0 */
 #define DWC3_EP0_DIR_IN		(1 << 31)
@@ -549,14 +554,15 @@ struct dwc3_ep {
 	 * By using u8 types we ensure that our % operator when incrementing
 	 * enqueue and dequeue get optimized away by the compiler.
 	 */
-	u8			trb_enqueue;
-	u8			trb_dequeue;
+	u32			trb_enqueue;
+	u32			trb_dequeue;
 
 	u8			number;
 	u8			type;
 	u8			resource_index;
 	u32			allocated_requests;
 	u32			queued_requests;
+	u32			frame_number;
 	u32			interval;
 
 	char			name[20];
@@ -806,6 +812,7 @@ struct dwc3_scratchpad_array {
  * @start_config_issued: true when StartConfig command has been issued
  * @three_stage_setup: set if we perform a three phase setup
  * @usb3_lpm_capable: set if hadrware supports Link Power Management
+ * @usb2_lpm_disable: set to disable usb2 lpm
  * @disable_scramble_quirk: set if we enable the disable scramble quirk
  * @u2exit_lfps_quirk: set if we enable u2exit lfps quirk
  * @u2ss_inp3_quirk: set if we enable P3 OK for U2/SS Inactive quirk
@@ -929,6 +936,12 @@ struct dwc3 {
 
 	u8			num_out_eps;
 	u8			num_in_eps;
+/*
+ * NOTICE: eps_directions bitmap[0~31] 0: out ep, 1: in ep
+ * and used with total ep numbers(num_out_eps + num_in_eps)
+ */
+#define DWC3_EPS_DEFAULT_DIRECTIONS 0xaaaaaaaa
+	u32			eps_directions;
 
 	void			*mem;
 
@@ -940,6 +953,13 @@ struct dwc3 {
 	u8			test_mode_nr;
 	u8			lpm_nyet_threshold;
 	u8			hird_threshold;
+
+	struct proc_dir_entry* parent_entry;
+	struct proc_dir_entry* csts_entry;
+	u8			udc_connect_status;
+	#define UDC_DISCONNECTED 	0
+	#define UDC_CONNECT_HOST 	1
+	#define UDC_CONNECT_CHARGER	2
 
 	const char		*hsphy_interface;
 
@@ -956,6 +976,7 @@ struct dwc3 {
 	unsigned		setup_packet_pending:1;
 	unsigned		three_stage_setup:1;
 	unsigned		usb3_lpm_capable:1;
+	unsigned		usb2_lpm_disable:1;
 
 	unsigned		disable_scramble_quirk:1;
 	unsigned		u2exit_lfps_quirk:1;
@@ -971,6 +992,11 @@ struct dwc3 {
 	unsigned		dis_rxdet_inp3_quirk:1;
 	unsigned		dis_u2_freeclk_exists_quirk:1;
 	unsigned		dis_del_phy_power_chg_quirk:1;
+
+	unsigned		dis_initiate_u1:1;
+	unsigned		dis_initiate_u2:1;
+
+	unsigned		eps_new_init:1;
 
 	unsigned		tx_de_emphasis_quirk:1;
 	unsigned		tx_de_emphasis:2;
@@ -1174,6 +1200,9 @@ static inline int dwc3_send_gadget_generic_command(struct dwc3 *dwc,
 		int cmd, u32 param)
 { return 0; }
 #endif
+
+int dwc3_proc_init(struct dwc3 *dwc);
+int dwc3_proc_shutdown(struct dwc3 *dwc);
 
 /* power management interface */
 #if !IS_ENABLED(CONFIG_USB_DWC3_HOST)

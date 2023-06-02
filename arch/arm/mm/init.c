@@ -268,6 +268,12 @@ void __init arm_memblock_init(const struct machine_desc *mdesc)
 	/* reserve any platform specific memblock areas */
 	if (mdesc->reserve)
 		mdesc->reserve();
+#if defined CONFIG_CMA && defined CONFIG_ARCH_HISI_BVT
+	else {
+		extern int hisi_declare_heap_memory(void);
+		hisi_declare_heap_memory();
+	}
+#endif
 
 	early_init_fdt_reserve_self();
 	early_init_fdt_scan_reserved_mem();

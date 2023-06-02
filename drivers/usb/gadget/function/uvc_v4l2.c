@@ -60,8 +60,13 @@ struct uvc_format
 };
 
 static struct uvc_format uvc_formats[] = {
+#ifndef CONFIG_HISI_MC	
 	{ 16, V4L2_PIX_FMT_YUYV  },
+#else
+	{ 12, V4L2_PIX_FMT_YUV420 },
+#endif	
 	{ 0,  V4L2_PIX_FMT_MJPEG },
+	{ 0,  V4L2_PIX_FMT_H264 },
 };
 
 static int

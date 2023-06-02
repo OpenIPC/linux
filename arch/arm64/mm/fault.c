@@ -78,6 +78,50 @@ static inline int notify_page_fault(struct pt_regs *regs, unsigned int esr)
 }
 #endif
 
+static void data_abort_decode(unsigned int esr)
+{
+	pr_alert("Data abort info:\n");
+
+	if (esr & ESR_ELx_ISV) {
+		pr_alert("  Access size = %u byte(s)\n",
+				1U << ((esr & ESR_ELx_SAS) >> ESR_ELx_SAS_SHIFT));
+		pr_alert("  SSE = %lu, SRT = %lu\n",
+				(esr & ESR_ELx_SSE) >> ESR_ELx_SSE_SHIFT,
+				(esr & ESR_ELx_SRT_MASK) >> ESR_ELx_SRT_SHIFT);
+		pr_alert("  SF = %lu, AR = %lu\n",
+				(esr & ESR_ELx_SF) >> ESR_ELx_SF_SHIFT,
+				(esr & ESR_ELx_AR) >> ESR_ELx_AR_SHIFT);
+	} else {
+		pr_alert("  ISV = 0, ISS = 0x%08lu\n", esr & ESR_ELx_ISS_MASK);
+	}
+
+	pr_alert("  CM = %lu, WnR = %lu\n",
+			(esr & ESR_ELx_CM) >> ESR_ELx_CM_SHIFT,
+			(esr & ESR_ELx_WNR) >> ESR_ELx_WNR_SHIFT);
+}
+
+/*
+ * Decode mem abort information
+ */
+static void mem_abort_decode(unsigned int esr)
+{
+	pr_alert("Mem abort info:\n");
+
+	pr_alert("  ESR = 0x%08x\n", esr);
+	pr_alert("  Exception class = %s, IL = %u bits\n",
+			esr_get_class_string(esr),
+			(esr & ESR_ELx_IL) ? 32 : 16);
+	pr_alert("  SET = %lu, FnV = %lu\n",
+			(esr & ESR_ELx_SET_MASK) >> ESR_ELx_SET_SHIFT,
+			(esr & ESR_ELx_FnV) >> ESR_ELx_FnV_SHIFT);
+	pr_alert("  EA = %lu, S1PTW = %lu\n",
+			(esr & ESR_ELx_EA) >> ESR_ELx_EA_SHIFT,
+			(esr & ESR_ELx_S1PTW) >> ESR_ELx_S1PTW_SHIFT);
+
+	if (esr_is_data_abort(esr))
+		data_abort_decode(esr);
+}
+
 /*
  * Dump out the page tables associated with 'addr' in mm 'mm'.
  */
@@ -194,6 +238,8 @@ static void __do_kernel_fault(struct mm_struct *mm, unsigned long addr,
 		 (addr < PAGE_SIZE) ? "NULL pointer dereference" :
 		 "paging request", addr);
 
+	mem_abort_decode(esr);
+
 	show_pte(mm, addr);
 	die("Oops", regs, esr);
 	bust_spinlocks(0);
@@ -286,13 +332,23 @@ out:
 	return fault;
 }
 
-static inline bool is_permission_fault(unsigned int esr)
+static inline bool is_permission_fault(unsigned int esr, struct pt_regs *regs,
+					unsigned long addr)
 {
 	unsigned int ec       = ESR_ELx_EC(esr);
 	unsigned int fsc_type = esr & ESR_ELx_FSC_TYPE;
 
-	return (ec == ESR_ELx_EC_DABT_CUR && fsc_type == ESR_ELx_FSC_PERM) ||
-	       (ec == ESR_ELx_EC_IABT_CUR && fsc_type == ESR_ELx_FSC_PERM);
+	if (ec != ESR_ELx_EC_DABT_CUR && ec != ESR_ELx_EC_IABT_CUR)
+		return false;
+
+	if (fsc_type == ESR_ELx_FSC_PERM)
+		return true;
+
+	if (addr < TASK_SIZE && system_uses_ttbr0_pan())
+		return fsc_type == ESR_ELx_FSC_FAULT &&
+			(regs->pstate & PSR_PAN_BIT);
+
+	return false;
 }
 
 static bool is_el0_instruction_abort(unsigned int esr)
@@ -332,7 +388,7 @@ static int __kprobes do_page_fault(unsigned long addr, unsigned int esr,
 		mm_flags |= FAULT_FLAG_WRITE;
 	}
 
-	if (is_permission_fault(esr) && (addr < USER_DS)) {
+	if (addr < TASK_SIZE && is_permission_fault(esr, regs, addr)) {
 		/* regs->orig_addr_limit may be 0 if we entered from EL0 */
 		if (regs->orig_addr_limit == KERNEL_DS)
 			die("Accessing user space memory with fs=KERNEL_DS", regs, esr);
@@ -577,14 +633,41 @@ asmlinkage void __exception do_mem_abort(unsigned long addr, unsigned int esr,
 	if (!inf->fn(addr, esr, regs))
 		return;
 
-	pr_alert("Unhandled fault: %s (0x%08x) at 0x%016lx\n",
-		 inf->name, esr, addr);
+	pr_alert("Unhandled fault: %s at 0x%016lx\n",
+			inf->name, addr);
+
+	mem_abort_decode(esr);
+
+	if (!user_mode(regs))
+		show_pte(current->mm, addr);
 
 	info.si_signo = inf->sig;
 	info.si_errno = 0;
 	info.si_code  = inf->code;
 	info.si_addr  = (void __user *)addr;
 	arm64_notify_die("", regs, &info, esr);
+}
+
+asmlinkage void __exception do_el0_irq_bp_hardening(void)
+{
+	/* PC has already been checked in entry.S */
+	arm64_apply_bp_hardening();
+}
+
+asmlinkage void __exception do_el0_ia_bp_hardening(unsigned long addr,
+						   unsigned int esr,
+						   struct pt_regs *regs)
+{
+	/*
+	 * We've taken an instruction abort from userspace and not yet
+	 * re-enabled IRQs. If the address is a kernel address, apply
+	 * BP hardening prior to enabling IRQs and pre-emption.
+	 */
+	if (addr > TASK_SIZE)
+		arm64_apply_bp_hardening();
+
+	local_irq_enable();
+	do_mem_abort(addr, esr, regs);
 }
 
 /*
@@ -596,6 +679,12 @@ asmlinkage void __exception do_sp_pc_abort(unsigned long addr,
 {
 	struct siginfo info;
 	struct task_struct *tsk = current;
+
+	if (user_mode(regs)) {
+		if (instruction_pointer(regs) > TASK_SIZE)
+			arm64_apply_bp_hardening();
+		local_irq_enable();
+	}
 
 	if (show_unhandled_signals && unhandled_signal(tsk, SIGBUS))
 		pr_info_ratelimited("%s[%d]: %s exception: pc=%p sp=%p\n",
@@ -655,6 +744,9 @@ asmlinkage int __exception do_debug_exception(unsigned long addr,
 	 */
 	if (interrupts_enabled(regs))
 		trace_hardirqs_off();
+
+	if (user_mode(regs) && instruction_pointer(regs) > TASK_SIZE)
+		arm64_apply_bp_hardening();
 
 	if (!inf->fn(addr, esr, regs)) {
 		rv = 1;

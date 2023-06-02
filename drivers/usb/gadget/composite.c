@@ -24,6 +24,13 @@
 
 #include "u_os_desc.h"
 
+#if defined(CONFIG_ARCH_HI3516A) || defined(CONFIG_ARCH_HI3518EV20X)
+#define USB2_BASE_REG           0x20120000
+#define DWC_OTG_EN              (1 << 31)
+#define USB2_PHY_DPPULL_DOWN    (0x3 << 26)
+#define USB2_OTG_BASE           0x78
+#endif
+
 /**
  * struct usb_os_string - represents OS String to be reported by a gadget
  * @bLength: total length of the entire descritor, always 0x12
@@ -205,7 +212,7 @@ ep_found:
 
 	if (g->speed == USB_SPEED_HIGH && (usb_endpoint_xfer_isoc(_ep->desc) ||
 				usb_endpoint_xfer_int(_ep->desc)))
-		_ep->mult = ((usb_endpoint_maxp(_ep->desc) & 0x1800) >> 11) + 1;
+		_ep->mult = usb_endpoint_maxp_mult(_ep->desc);
 
 	if (!want_comp_desc)
 		return 0;
@@ -315,6 +322,9 @@ void usb_remove_function(struct usb_configuration *c, struct usb_function *f)
 	list_del(&f->list);
 	if (f->unbind)
 		f->unbind(c, f);
+
+	if (f->bind_deactivated)
+		usb_function_activate(f);
 }
 EXPORT_SYMBOL_GPL(usb_remove_function);
 
@@ -956,12 +966,8 @@ static void remove_config(struct usb_composite_dev *cdev,
 
 		f = list_first_entry(&config->functions,
 				struct usb_function, list);
-		list_del(&f->list);
-		if (f->unbind) {
-			DBG(cdev, "unbind function '%s'/%p\n", f->name, f);
-			f->unbind(config, f);
-			/* may free memory for "f" */
-		}
+
+		usb_remove_function(config, f);
 	}
 	list_del(&config->list);
 	if (config->unbind) {
@@ -2185,6 +2191,10 @@ void composite_dev_cleanup(struct usb_composite_dev *cdev)
 static int composite_bind(struct usb_gadget *gadget,
 		struct usb_gadget_driver *gdriver)
 {
+#if defined(CONFIG_ARCH_HI3516A) || defined(CONFIG_ARCH_HI3518EV20X)
+	void __iomem *usb2_base_reg = ioremap_nocache(USB2_BASE_REG, 0x1000);
+	int usb2_reg;
+#endif
 	struct usb_composite_dev	*cdev;
 	struct usb_composite_driver	*composite = to_cdriver(gdriver);
 	int				status = -ENOMEM;
@@ -2223,6 +2233,13 @@ static int composite_bind(struct usb_gadget *gadget,
 	if (composite->needs_serial && !cdev->desc.iSerialNumber)
 		WARNING(cdev, "userspace failed to provide iSerialNumber\n");
 
+#if defined(CONFIG_ARCH_HI3516A) || defined(CONFIG_ARCH_HI3518EV20X)
+        usb2_reg = readl(usb2_base_reg + USB2_OTG_BASE);
+        usb2_reg &= ~(USB2_PHY_DPPULL_DOWN);
+        usb2_reg |= DWC_OTG_EN;
+        writel(usb2_reg, usb2_base_reg + USB2_OTG_BASE);
+        iounmap(usb2_base_reg);
+#endif
 	INFO(cdev, "%s ready\n", composite->name);
 	return 0;
 
@@ -2347,6 +2364,16 @@ EXPORT_SYMBOL_GPL(usb_composite_probe);
  */
 void usb_composite_unregister(struct usb_composite_driver *driver)
 {
+#if defined(CONFIG_ARCH_HI3516A) || defined(CONFIG_ARCH_HI3518EV20X)
+	void __iomem *usb2_base_reg = ioremap_nocache(USB2_BASE_REG, 0x1000);
+	int usb2_reg;
+
+	usb2_reg = readl(usb2_base_reg + USB2_OTG_BASE);
+	usb2_reg |= USB2_PHY_DPPULL_DOWN;
+	usb2_reg &= ~DWC_OTG_EN;
+	writel(usb2_reg, usb2_base_reg + USB2_OTG_BASE);
+	iounmap(usb2_base_reg);
+#endif
 	usb_gadget_unregister_driver(&driver->gadget_driver);
 }
 EXPORT_SYMBOL_GPL(usb_composite_unregister);

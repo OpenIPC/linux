@@ -1,0 +1,14 @@
+#
+# Copyright (C) Hisilicon 2018
+# License terms: GNU General Public License (GPL) version 2
+#
+
+menuconfig CRYPTO_DEV_HISI_OTP
+    bool "Hisi Otp Support"
+    depends on CRYPTO_HW
+    default n
+    help
+	  This driver interfaces with the hardware hisi otp.Supporting
+	  otp writekey and crc.
+	  To compile this driver as a module,
+	  This select support:the module will be called hisi-otp.

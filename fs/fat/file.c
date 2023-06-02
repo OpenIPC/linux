@@ -167,8 +167,17 @@ int fat_file_fsync(struct file *filp, loff_t start, loff_t end, int datasync)
 
 	return res ? res : err;
 }
+#ifdef CONFIG_HISI_MC
+int fat_file_flush(struct file *file, fl_owner_t id)
+{
+	struct address_space * mapping = file->f_mapping;
+	struct inode *inode = mapping->host;
 
+	inode->i_sb->s_op->write_inode(inode, NULL);
 
+	return 0;
+}
+#endif
 const struct file_operations fat_file_operations = {
 	.llseek		= generic_file_llseek,
 	.read_iter	= generic_file_read_iter,
@@ -182,6 +191,9 @@ const struct file_operations fat_file_operations = {
 	.fsync		= fat_file_fsync,
 	.splice_read	= generic_file_splice_read,
 	.fallocate	= fat_fallocate,
+#ifdef CONFIG_HISI_MC
+	.flush		= fat_file_flush,
+#endif	
 };
 
 static int fat_cont_expand(struct inode *inode, loff_t size)
@@ -431,7 +443,13 @@ static int fat_allow_set_time(struct msdos_sb_info *sbi, struct inode *inode)
 	/* use a default check */
 	return 0;
 }
-
+#ifdef CONFIG_HISI_MC
+void reset_mmu_private(struct inode *inode, loff_t offset)
+{
+	MSDOS_I(inode)->mmu_private = offset;
+	inode->i_ctime = inode->i_mtime = CURRENT_TIME_SEC;
+}
+#endif
 #define TIMES_SET_FLAGS	(ATTR_MTIME_SET | ATTR_ATIME_SET | ATTR_TIMES_SET)
 /* valid file mode bits */
 #define FAT_VALID_MODE	(S_IFREG | S_IFDIR | S_IRWXUGO)
@@ -464,6 +482,7 @@ int fat_setattr(struct dentry *dentry, struct iattr *attr)
 	 * hole before it. XXX: this is no longer true with new truncate
 	 * sequence.
 	 */
+#ifndef CONFIG_HISI_MC
 	if (attr->ia_valid & ATTR_SIZE) {
 		inode_dio_wait(inode);
 
@@ -474,7 +493,7 @@ int fat_setattr(struct dentry *dentry, struct iattr *attr)
 			attr->ia_valid &= ~ATTR_SIZE;
 		}
 	}
-
+#endif
 	if (((attr->ia_valid & ATTR_UID) &&
 	     (!uid_eq(attr->ia_uid, sbi->options.fs_uid))) ||
 	    ((attr->ia_valid & ATTR_GID) &&
@@ -504,6 +523,9 @@ int fat_setattr(struct dentry *dentry, struct iattr *attr)
 			goto out;
 		down_write(&MSDOS_I(inode)->truncate_lock);
 		truncate_setsize(inode, attr->ia_size);
+#ifdef CONFIG_HISI_MC
+		reset_mmu_private(inode, attr->ia_size);
+#endif		
 		fat_truncate_blocks(inode, attr->ia_size);
 		up_write(&MSDOS_I(inode)->truncate_lock);
 	}

@@ -81,6 +81,35 @@ config ARCH_HISI
 	help
 	  This enables support for Hisilicon ARMv8 SoC family
 
+config ARCH_HISI_BVT
+	bool "Hisilicon BVT SoC Family"
+	select ARM_TIMER_SP804
+	select HISILICON_IRQ_MBIGEN if PCI
+	select PINCTRL
+	help
+	  This enables support for Hisilicon BVT ARMv8 SoC family
+
+config ARCH_HI3559AV100
+    bool "Hisilicon hi3559av100 family"
+    depends on ARCH_HISI_BVT
+	select ARM_TIMER_SP804
+	select HISILICON_IRQ_MBIGEN if PCI
+	select PINCTRL
+        help
+          Support for Hisilicon Hi3559AV100 Soc family
+
+config ACCESS_M7_DEV
+    bool "Enable to access the devices of m7"
+    depends on ARCH_HI3559AV100
+    help
+      supprot to access the devices of M7
+
+config ARCH_HISI_BVT_AMP
+        bool "Hisilicon AMP solution"
+        depends on ARCH_HI3559AV100
+        help
+          Support for Hisilicon Hi3559AV100 AMP
+
 config ARCH_MEDIATEK
 	bool "Mediatek MT65xx & MT81xx ARMv8 SoC"
 	select ARM_GIC

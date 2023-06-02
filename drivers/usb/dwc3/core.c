@@ -44,10 +44,26 @@
 #include "core.h"
 #include "gadget.h"
 #include "io.h"
+#include "dwc3-hisi.h"
 
 #include "debug.h"
 
 #define DWC3_DEFAULT_AUTOSUSPEND_DELAY	5000 /* ms */
+
+
+/*
+ * Default to the number of outstanding pipelined transfer
+ * requests is 0x3[11:8], modify the field change to 0x7.
+ */
+static void dwc3_outstanding_pipe_choose(struct dwc3 *dwc)
+{
+	u32	reg;
+
+	reg = dwc3_readl(dwc->regs, DWC3_GSBUSCFG1);
+	reg &= ~DWC3_PIPE_TRANS_LIMIT_MASK;
+	reg |= DWC3_PIPE_TRANS_LIMIT;
+	dwc3_writel(dwc->regs, DWC3_GSBUSCFG1, reg);
+}
 
 /**
  * dwc3_get_dr_mode - Validates and sets dr_mode
@@ -982,7 +998,8 @@ static int dwc3_probe(struct platform_device *pdev)
 	 */
 	hird_threshold = 12;
 
-	dwc->maximum_speed = usb_get_maximum_speed(dev);
+	dwc->maximum_speed = usb_get_max_speed(dev);
+
 	dwc->dr_mode = usb_get_dr_mode(dev);
 	dwc->hsphy_mode = of_usb_get_phy_mode(dev->of_node);
 
@@ -996,6 +1013,8 @@ static int dwc3_probe(struct platform_device *pdev)
 				&hird_threshold);
 	dwc->usb3_lpm_capable = device_property_read_bool(dev,
 				"snps,usb3_lpm_capable");
+	dwc->usb2_lpm_disable = device_property_read_bool(dev,
+				"snps,usb2-lpm-disable");
 
 	dwc->disable_scramble_quirk = device_property_read_bool(dev,
 				"snps,disable_scramble_quirk");
@@ -1025,6 +1044,16 @@ static int dwc3_probe(struct platform_device *pdev)
 				"snps,dis-u2-freeclk-exists-quirk");
 	dwc->dis_del_phy_power_chg_quirk = device_property_read_bool(dev,
 				"snps,dis-del-phy-power-chg-quirk");
+
+	dwc->dis_initiate_u1 = device_property_read_bool(dev,
+				"snps,dis_initiate_u1");
+	dwc->dis_initiate_u2 = device_property_read_bool(dev,
+				"snps,dis_initiate_u2");
+
+	dwc->eps_new_init = device_property_read_bool(dev,
+				"snps,eps_new_init");
+	device_property_read_u32(dev, "eps_directions",
+				 &dwc->eps_directions);
 
 	dwc->tx_de_emphasis_quirk = device_property_read_bool(dev,
 				"snps,tx_de_emphasis_quirk");
@@ -1086,6 +1115,8 @@ static int dwc3_probe(struct platform_device *pdev)
 		dev_err(dev, "failed to initialize core\n");
 		goto err4;
 	}
+
+	dwc3_outstanding_pipe_choose(dwc);
 
 	/* Check the maximum_speed parameter */
 	switch (dwc->maximum_speed) {
@@ -1176,6 +1207,10 @@ static int dwc3_remove(struct platform_device *pdev)
 
 	dwc3_free_event_buffers(dwc);
 	dwc3_free_scratch_buffers(dwc);
+
+	hisi_dwc3_exited();
+
+	dwc3_set_mode(dwc, DWC3_GCTL_PRTCAP_HOST);
 
 	return 0;
 }

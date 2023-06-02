@@ -80,6 +80,22 @@ config SCSI_UFSHCD_PLATFORM
 
 	  If unsure, say N.
 
+config SCSI_UFS_HI3559AV100
+	tristate "Hi3559av100 Platform Support Using A Test Chip"
+	depends on SCSI_UFSHCD_PLATFORM
+	---help---
+		Synopsys Test Chip is a PHY for prototyping purposes.
+
+		If unsure, say N.
+
+config SCSI_UFS_CARD
+	tristate "UFS Card Hotplug Support for HI3559AV100"
+	depends on SCSI_UFS_HI3559AV100
+	---help---
+		This selects the UFS card hotplug support.
+
+		If unsure, say N.
+
 config SCSI_UFS_DWC_TC_PLATFORM
 	tristate "DesignWare platform support using a G210 Test Chip"
 	depends on SCSI_UFSHCD_PLATFORM

@@ -705,6 +705,8 @@ dma_mark_declared_memory_occupied(struct device *dev,
 /*
  * Managed DMA API
  */
+void hi_dmac_map_area(const void *kaddr, size_t size,
+			enum dma_data_direction dir);
 extern void *dmam_alloc_coherent(struct device *dev, size_t size,
 				 dma_addr_t *dma_handle, gfp_t gfp);
 extern void dmam_free_coherent(struct device *dev, size_t size, void *vaddr,

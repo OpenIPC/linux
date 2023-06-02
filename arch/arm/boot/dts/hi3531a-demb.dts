@@ -1,0 +1,146 @@
+/*
+ * Copyright (c) 2013-2014 Linaro Ltd.
+ * Copyright (c) 2015-2017 HiSilicon Technologies Co., Ltd.
+ *
+ * This program is free software; you can redistribute  it and/or modify it
+ * under  the terms of  the GNU General  Public License as published by the
+ * Free Software Foundation;  either version 2 of the  License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+/dts-v1/;
+#include "hi3531a.dtsi"
+
+/ {
+	model = "Hisilicon HI3531A DEMO Board";
+	compatible = "hisilicon,hi3531a";
+
+	chosen{
+		linux,initrd-start = <0x42000000>;
+	};
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		enable-method = "hisilicon,hi3531a-smp";
+
+		cpu@0 {
+			compatible = "arm,cortex-a9";
+			device_type = "cpu";
+			reg = <0>;
+			next-level-cache = <&L2>;
+		};
+
+		cpu@1 {
+			compatible = "arm,cortex-a9";
+			device_type = "cpu";
+			reg = <1>;
+			next-level-cache = <&L2>;
+		};
+	};
+
+	memory {
+		device_type = "memory";
+		reg = <0x40000000 0xc0000000>;
+	};
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&hidmac {
+	status = "okay";
+};
+
+&hisfc {
+	hi_sfc {
+		compatible = "jedec,spi-nor";
+		reg = <0>;
+		spi-max-frequency = <160000000>;
+		m25p,fast-read;
+	};
+};
+
+&hisnfc {
+	hinand {
+		compatible = "jedec,spi-nand";
+		reg = <0>;
+		spi-max-frequency = <160000000>;
+	};
+};
+
+&hinfc610 {
+	assigned-clocks = <&clock HI3531A_NFC_CLK>;
+	assigned-clock-rates = <200000000>;
+
+	hinand {
+		compatible = "jedec,nand";
+		reg = <0>;
+		nand-max-frequency = <200000000>;
+	};
+};
+
+&mdio {
+	ethphy: ethernet-phy@1 {
+		reg = <1>;
+	};
+};
+
+&higmac {
+	phy-handle = <&ethphy>;
+	phy-mode = "rgmii";
+};
+
+&i2c_bus0 {
+   status = "okay";
+};
+
+&i2c_bus1 {
+   status = "okay";
+};
+
+&spi_bus0{
+	status = "okay";
+	num-cs = <4>;
+
+	spidev@0 {
+		compatible = "rohm,dh2228fv";
+		reg = <0>;
+		pl022,interface = <0>;
+		pl022,com-mode = <0>;
+		spi-max-frequency = <31250000>;
+	};
+
+	spidev@1 {
+		compatible = "rohm,dh2228fv";
+		reg = <1>;
+		pl022,interface = <0>;
+		pl022,com-mode = <0>;
+		spi-max-frequency = <31250000>;
+	};
+
+	spidev@2 {
+		compatible = "rohm,dh2228fv";
+		reg = <2>;
+		pl022,interface = <0>;
+		pl022,com-mode = <0>;
+		spi-max-frequency = <31250000>;
+	};
+	spidev@3 {
+		compatible = "rohm,dh2228fv";
+		reg = <3>;
+		pl022,interface = <0>;
+		pl022,com-mode = <0>;
+		spi-max-frequency = <31250000>;
+	};
+};

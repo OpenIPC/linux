@@ -82,9 +82,16 @@ struct usb_ep *usb_ep_autoconfig_ss(
 	}
 
 	/* Second, look at endpoints until an unclaimed one looks usable */
-	list_for_each_entry (ep, &gadget->ep_list, ep_list) {
-		if (usb_gadget_ep_match_desc(gadget, ep, desc, ep_comp))
-			goto found_ep;
+	if (type == USB_ENDPOINT_XFER_INT) {
+		list_for_each_entry_reverse(ep, &gadget->ep_list, ep_list) {
+			if (usb_gadget_ep_match_desc(gadget, ep, desc, ep_comp))
+				goto found_ep;
+		}
+	} else {
+		list_for_each_entry(ep, &gadget->ep_list, ep_list) {
+			if (usb_gadget_ep_match_desc(gadget, ep, desc, ep_comp))
+				goto found_ep;
+		}
 	}
 
 	/* Fail */

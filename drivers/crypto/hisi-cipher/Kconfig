@@ -1,0 +1,15 @@
+#
+# Copyright (C) Hisilicon 2018
+# License terms: GNU General Public License (GPL) version 2
+#
+
+menuconfig CRYPTO_DEV_HISI_CIPHER
+    bool "Hisi Cipher Support"
+    depends on CRYPTO_HW
+    default n
+    help
+	  This driver interfaces with the hardware hisi cipher.Supporting
+	  aes/des/des3 cipher algorithm(cbc/ecb/ofb/cfb/ctr/ccm/gcm mode avalible),
+	  sha/hmac, rng, rsa algorithm support.
+	  To compile this driver as a module,
+	  This select support:the module will be called hisi-cipher.

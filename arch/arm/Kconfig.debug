@@ -287,6 +287,126 @@ choice
 		  Say Y here if you want kernel low-level debugging support
 		  on HI3620 UART.
 
+	config DEBUG_HI3516A_UART
+		bool "Hisilicon Hi3516A Debug UART"
+		depends on ARCH_HI3516A
+		select DEBUG_UART_PL01X
+		help
+			Say Y here if you want kernel low-level debugging support
+			on HI3516A UART.
+
+	config DEBUG_HI3516CV500_UART
+		bool "Hisilicon Hi3516CV500 Debug UART"
+		depends on ARCH_HI3516CV500
+		select DEBUG_UART_PL01X
+		help
+			Say Y here if you want kernel low-level debugging support
+			on HI3516CV500 UART.
+
+	config DEBUG_HI3516EV200_UART
+		bool "Hisilicon Hi3516EV200 Debug UART"
+		depends on ARCH_HI3516EV200
+		select DEBUG_UART_PL01X
+		help
+			Say Y here if you want kernel low-level debugging support
+			on HI3516EV200 UART.
+
+	config DEBUG_HI3516EV300_UART
+		bool "Hisilicon Hi3516EV300 Debug UART"
+		depends on ARCH_HI3516EV300
+		select DEBUG_UART_PL01X
+		help
+			Say Y here if you want kernel low-level debugging support
+			on HI3516EV300 UART.
+
+	config DEBUG_HI3518EV300_UART
+		bool "Hisilicon Hi3518EV300 Debug UART"
+		depends on ARCH_HI3518EV300
+		select DEBUG_UART_PL01X
+		help
+			Say Y here if you want kernel low-level debugging support
+			on HI3518EV300 UART.
+
+	config DEBUG_HI3516DV200_UART
+		bool "Hisilicon Hi3516DV200 Debug UART"
+		depends on ARCH_HI3516DV200
+		select DEBUG_UART_PL01X
+		help
+			Say Y here if you want kernel low-level debugging support
+			on HI3516DV200 UART.
+
+	config DEBUG_HI3516DV300_UART
+		bool "Hisilicon Hi3516DV300 Debug UART"
+		depends on ARCH_HI3516DV300
+		select DEBUG_UART_PL01X
+		help
+			Say Y here if you want kernel low-level debugging support
+			on HI3516DV300 UART.
+
+	config DEBUG_HI3556V200_UART
+		bool "Hisilicon Hi3556V200 Debug UART"
+		depends on ARCH_HI3556V200
+		select DEBUG_UART_PL01X
+		help
+			Say Y here if you want kernel low-level debugging support
+			on HI3556V200 UART.
+
+	config DEBUG_HI3559V200_UART
+		bool "Hisilicon Hi3559V200 Debug UART"
+		depends on ARCH_HI3559V200
+		select DEBUG_UART_PL01X
+		help
+			Say Y here if you want kernel low-level debugging support
+			on HI3559V200 UART.
+
+	config DEBUG_HI3518EV20X_UART
+		bool "Hisilicon Hi3518EV20X Debug UART"
+		depends on ARCH_HI3518EV20X
+		select DEBUG_UART_PL01X
+		help
+			Say Y here if you want kernel low-level debugging support
+			on HI3518EV20X UART.
+
+	config DEBUG_HI3536DV100_UART
+		bool "Hisilicon Hi3536DV100 Debug UART"
+		depends on ARCH_HI3536DV100
+		select DEBUG_UART_PL01X
+		help
+			Say Y here if you want kernel low-level debugging support
+			on HI3536DV100 UART.
+
+	config DEBUG_HI3521A_UART
+		bool "Hisilicon Hi3521A Debug UART"
+		depends on ARCH_HI3521A
+		select DEBUG_UART_PL01X
+		help
+			Say Y here if you want kernel low-level debugging support
+			on HI3521A UART.
+
+	config DEBUG_HI3531A_UART
+		bool "Hisilicon Hi3531A Debug UART"
+		depends on ARCH_HI3531A
+		select DEBUG_UART_PL01X
+		help
+			Say Y here if you want kernel low-level debugging support
+			on HI3531A UART.
+	
+	config DEBUG_HI3556AV100_UART
+		bool "Hisilicon Hi3556AV100 Debug UART"
+		depends on ARCH_HI3556AV100
+		select DEBUG_UART_PL01X
+		help
+			Say Y here if you want kernel low-level debugging support
+			on HI3556AV100 UART.
+			
+	config DEBUG_HI3519AV100_UART
+		bool "Hisilicon Hi3519AV100 Debug UART"
+		depends on ARCH_HI3519AV100
+		select DEBUG_UART_PL01X
+		help
+			Say Y here if you want kernel low-level debugging support
+			on HI3519AV100 UART.
+
 	config DEBUG_HIGHBANK_UART
 		bool "Kernel low-level debugging messages via Highbank UART"
 		depends on ARCH_HIGHBANK
@@ -1530,6 +1650,20 @@ config DEBUG_UART_PHYS
 	default 0xf991e000 if DEBUG_QCOM_UARTDM
 	default 0xfc00c000 if DEBUG_AT91_SAMA5D4_USART3
 	default 0xfcb00000 if DEBUG_HI3620_UART
+	default 0x20080000 if DEBUG_HI3516A_UART
+	default 0x120a0000 if DEBUG_HI3516CV500_UART
+	default 0x12040000 if DEBUG_HI3516EV200_UART
+	default 0x12040000 if DEBUG_HI3516EV300_UART
+	default 0x12040000 if DEBUG_HI3518EV300_UART
+	default 0x120a0000 if DEBUG_HI3516DV300_UART
+	default 0x120a0000 if DEBUG_HI3556V200_UART
+	default 0x120a0000 if DEBUG_HI3559V200_UART
+	default 0x20080000 if DEBUG_HI3518EV20X_UART
+	default 0x12080000 if DEBUG_HI3536DV100_UART
+	default 0x12080000 if DEBUG_HI3521A_UART
+	default 0x12080000 if DEBUG_HI3531A_UART
+	default 0x04540000 if DEBUG_HI3556AV100_UART
+	default 0x04540000 if DEBUG_HI3519AV100_UART
 	default 0xfd883000 if DEBUG_ALPINE_UART0
 	default 0xfe800000 if ARCH_IOP32X
 	default 0xff690000 if DEBUG_RK32_UART2
@@ -1619,6 +1753,20 @@ config DEBUG_UART_VIRT
 	default 0xfe300000 if DEBUG_BCM_KONA_UART
 	default 0xfe800000 if ARCH_IOP32X
 	default 0xfeb00000 if DEBUG_HI3620_UART || DEBUG_HIX5HD2_UART
+	default 0xfe900000 if DEBUG_HI3516A_UART
+	default 0xfe4a0000 if DEBUG_HI3516CV500_UART
+	default 0xfe440000 if DEBUG_HI3516EV200_UART
+	default 0xfe440000 if DEBUG_HI3516EV300_UART
+	default 0xfe440000 if DEBUG_HI3518EV300_UART
+	default 0xfe4a0000 if DEBUG_HI3516DV300_UART
+	default 0xfe4a0000 if DEBUG_HI3556V200_UART
+	default 0xfe4a0000 if DEBUG_HI3559V200_UART
+	default 0xfe180000 if DEBUG_HI3518EV20X_UART
+	default 0xfe480000 if DEBUG_HI3536DV100_UART
+	default 0xfe480000 if DEBUG_HI3521A_UART
+	default 0xfe880000 if DEBUG_HI3531A_UART
+	default 0xfef00000 if DEBUG_HI3556AV100_UART
+	default 0xfef00000 if DEBUG_HI3519AV100_UART
 	default 0xfeb24000 if DEBUG_RK3X_UART0
 	default 0xfeb26000 if DEBUG_RK3X_UART1
 	default 0xfeb30c00 if DEBUG_KEYSTONE_UART0

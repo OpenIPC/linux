@@ -49,6 +49,11 @@ struct hisi_clock_data *hisi_clk_alloc(struct platform_device *pdev,
 		return NULL;
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	if (!res) {
+		dev_err(&pdev->dev, "Invalid mem resource./n");
+		return NULL;
+	}
+
 	clk_data->base = devm_ioremap(&pdev->dev,
 				res->start, resource_size(res));
 	if (!clk_data->base)

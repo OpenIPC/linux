@@ -1,0 +1,4 @@
+menu "Hisilicon driver support"
+
+source "drivers/hisilicon/cma/Kconfig"
+endmenu

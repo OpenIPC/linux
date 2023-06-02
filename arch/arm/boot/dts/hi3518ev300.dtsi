@@ -1,0 +1,680 @@
+/*
+ * Copyright (c) 2013-2014 Linaro Ltd.
+ * Copyright (c) 2015-2017 HiSilicon Technologies Co., Ltd.
+ *
+ * This program is free software; you can redistribute  it and/or modify it
+ * under  the terms of  the GNU General  Public License as published by the
+ * Free Software Foundation;  either version 2 of the  License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+#include <../../../../../include/generated/autoconf.h>
+#include "skeleton.dtsi"
+#include <dt-bindings/clock/hi3518ev300-clock.h>
+/ {
+	aliases {
+		serial0 = &uart0;
+		serial1 = &uart1;
+		serial2 = &uart2;
+#ifndef CONFIG_ARCH_HISI_BVT_AMP
+		i2c0 = &i2c_bus0;
+		i2c1 = &i2c_bus1;
+		i2c2 = &i2c_bus2;
+#endif
+#ifndef CONFIG_ARCH_HISI_BVT_AMP
+		spi0 = &spi_bus0;
+		spi1 = &spi_bus1;
+#endif
+		gpio0 = &gpio_chip0;
+		gpio1 = &gpio_chip1;
+		gpio2 = &gpio_chip2;
+		gpio4 = &gpio_chip4;
+		gpio5 = &gpio_chip5;
+		gpio6 = &gpio_chip6;
+		gpio7 = &gpio_chip7;
+		gpio8 = &gpio_chip8;
+	};
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		enable-method = "hisilicon,hi3518ev300";
+
+		cpu@0 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a7";
+			clock-frequency = <HI3518EV300_FIXED_1000M>;
+			reg = <0>;
+		};
+
+	};
+
+	pmu {
+		compatible = "arm,armv7-pmu";
+		interrupts = <0 58 4>;
+	};
+
+	clock: clock@12010000 {
+		compatible = "hisilicon,hi3518ev300-clock", "syscon";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		#clock-cells = <1>;
+		#reset-cells = <2>;
+		reg = <0x12010000 0x1000>;
+	};
+
+	gic: interrupt-controller@10300000 {
+		compatible = "arm,cortex-a7-gic";
+		#interrupt-cells = <3>;
+		#address-cells = <0>;
+		interrupt-controller;
+		/* gic dist base, gic cpu base , no virtual support */
+		reg = <0x10301000 0x1000>, <0x10302000 0x100>;
+	 };
+
+	syscounter {
+		compatible = "arm,armv7-timer";
+		interrupt-parent = <&gic>;
+		interrupts = <1 13 0xf08>,
+			<1 14 0xf08>;
+		clock-frequency = <50000000>;
+	};
+
+	soc {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "simple-bus";
+		interrupt-parent = <&gic>;
+		ranges;
+
+		clk_3m: clk_3m {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <3000000>;
+		};
+
+		clk_apb: clk_apb {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <50000000>;
+		};
+
+		pmu {
+			compatible = "arm,cortex-a7-pmu";
+			interrupts = <0 58 4>;
+		};
+#ifdef CONFIG_HIEDMACV310
+		hiedmacv310_0: hiedma-controller@100B0000 {
+		    compatible = "hisilicon,hiedmacv310";
+		    reg = <0x100B0000 0x1000>;
+		    interrupts = <0 38 4>;
+		    clocks = <&clock HI3518EV300_EDMAC_CLK>, <&clock HI3518EV300_EDMAC_AXICLK>;
+		    clock-names = "apb_pclk", "axi_aclk";
+			clock-cells = <2>;
+			resets = <&clock 0x194 0>;
+		    reset-names = "dma-reset";
+		    dma-requests = <32>;
+		    dma-channels = <4>;
+		    devid = <0>;
+		    #dma-cells = <2>;
+		    status = "okay";
+		};
+#endif
+#ifdef CONFIG_HIEDMAC
+		hiedmacv310_0: hiedma-controller@100B0000 {
+		    compatible = "hisilicon,hiedmacv310_n";
+		    reg = <0x100B0000 0x1000>;
+		    interrupts = <0 38 4>;
+		    clocks = <&clock HI3518EV300_EDMAC_CLK>, <&clock HI3518EV300_EDMAC_AXICLK>;
+		    clock-names = "apb_pclk", "axi_aclk";
+			clock-cells = <2>;
+			resets = <&clock 0x194 0>;
+		    reset-names = "dma-reset";
+		    dma-requests = <32>;
+		    dma-channels = <4>;
+		    devid = <0>;
+		    #dma-cells = <2>;
+		    status = "disabled";
+		};
+#endif
+		sysctrl: system-controller@12020000 {
+			compatible = "hisilicon,sysctrl";
+			reg = <0x12020000 0x1000>;
+			reboot-offset = <0x4>;
+			#clock-cells = <1>;
+		};
+
+		amba {
+			#address-cells = <1>;
+			#size-cells = <1>;
+			compatible = "arm,amba-bus";
+			ranges;
+
+			dual_timer0: dual_timer@12000000 {
+				compatible = "arm,sp804", "arm,primecell";
+				/* timer0 & timer1 */
+				interrupts = <0 5 4>;
+				reg = <0x12000000 0x1000>;
+				clocks = <&clk_3m>, <&clk_3m>, <&clk_apb>;
+				clock-names = "timer00", "timer01", "apb_pclk";
+				status = "disabled";
+			};
+
+			dual_timer1: dual_timer@12001000 {
+				compatible = "arm,sp804", "arm,primecell";
+				/* timer2 & timer3 */
+				interrupts = <0 6 4>;
+				reg = <0x12001000 0x1000>;
+				clocks = <&clk_3m>, <&clk_3m>, <&clk_apb>;
+				clock-names = "timer10", "timer11", "apb_pclk";
+				status = "disabled";
+			};
+
+			uart0: uart@12040000 {
+				compatible = "arm,pl011", "arm,primecell";
+				reg = <0x12040000 0x1000>;
+				interrupts = <0 7 4>;
+				clocks = <&clock HI3518EV300_UART0_CLK>;
+				clock-names = "apb_pclk";
+				status = "disabled";
+			};
+
+			uart1: uart@12041000 {
+				compatible = "arm,pl011", "arm,primecell";
+				reg = <0x12041000 0x1000>;
+				interrupts = <0 8 4>;
+				clocks = <&clock HI3518EV300_UART1_CLK>;
+				clock-names = "apb_pclk";
+#ifdef CONFIG_HIEDMACV310
+				dmas = <&hiedmacv310_0 19 19>, <&hiedmacv310_0 18 18>;
+				dma-names = "tx","rx";
+#endif
+				status = "disabled";
+			};
+
+			uart2: uart@12042000 {
+				compatible = "arm,pl011", "arm,primecell";
+				reg = <0x12042000 0x1000>;
+				interrupts = <0 9 4>;
+				clocks = <&clock HI3518EV300_UART2_CLK>;
+				clock-names = "apb_pclk";
+#ifdef CONFIG_HIEDMACV310
+				dmas = <&hiedmacv310_0 21 21>, <&hiedmacv310_0 20 20>;
+				dma-names = "tx","rx";
+#endif
+				status = "disabled";
+			};
+
+		};
+
+		i2c_bus0: i2c@12060000 {
+			compatible = "hisilicon,hi3518ev300-i2c",
+					"hisilicon,hibvt-i2c";
+			reg = <0x12060000 0x1000>;
+			clocks = <&clock HI3518EV300_I2C0_CLK>;
+			status = "disabled";
+		};
+
+		i2c_bus1: i2c@12061000 {
+			compatible = "hisilicon,hi3518ev300-i2c",
+					"hisilicon,hibvt-i2c";
+			reg = <0x12061000 0x1000>;
+			clocks = <&clock HI3518EV300_I2C1_CLK>;
+			status = "disabled";
+		};
+
+		i2c_bus2: i2c@12062000 {
+			compatible = "hisilicon,hi3518ev300-i2c",
+					"hisilicon,hibvt-i2c";
+			reg = <0x12062000 0x1000>;
+			clocks = <&clock HI3518EV300_I2C2_CLK>;
+			status = "disabled";
+		};
+
+        spi_bus0: spi@12070000 {
+            compatible = "arm,pl022", "arm,primecell";
+            arm,primecell-periphid = <0x00800022>;
+            reg = <0x12070000 0x1000>;
+            interrupts = <0 14 4>;
+            clocks = <&clock HI3518EV300_SPI0_CLK>;
+            clock-names = "apb_pclk";
+            #address-cells = <1>;
+            #size-cells = <0>;
+#ifdef CONFIG_HIEDMACV310
+            dmas = <&hiedmacv310_0 27 27>, <&hiedmacv310_0 26 26>;
+            dma-names = "tx","rx";
+#endif
+            status = "disabled";
+        };
+
+        spi_bus1: spi@12071000 {
+            compatible = "arm,pl022", "arm,primecell";
+            arm,primecell-periphid = <0x00800022>;
+            reg = <0x12071000 0x1000>, <0x12028000 0x4>;
+            interrupts = <0 15 4>;
+            clocks = <&clock HI3518EV300_SPI1_CLK>;
+            clock-names = "apb_pclk";
+            #address-cells = <1>;
+            #size-cells = <0>;
+            num-cs = <2>;
+            hisi,spi_cs_sb = <2>;
+            hisi,spi_cs_mask_bit = <0x4>;//0100
+#ifdef CONFIG_HIEDMACV310
+            dmas = <&hiedmacv310_0 29 29>, <&hiedmacv310_0 28 28>;
+            dma-names = "tx","rx";
+#endif
+            status = "disabled";
+        };
+
+		mdio0: mdio@10041100 {
+			compatible = "hisilicon,hisi-femac-mdio";
+			reg = <0x10041100 0x10>,<0x12028024 0x4>;
+			clocks = <&clock HI3518EV300_ETH0_CLK>;
+			clock-names = "mdio";
+			resets = <&clock 0x16c 3>;
+			reset-names = "internal-phy";
+			#address-cells = <1>;
+			#size-cells = <0>;
+		};
+
+		hisi_femac0: ethernet@10040000 {
+			compatible = "hisilicon,hi3518ev300-femac",
+				"hisilicon,hisi-femac-v2";
+			reg = <0x10040000 0x1000>,<0x10041300 0x200>;
+			interrupts = <0 33 4>;
+			clocks = <&clock HI3518EV300_ETH0_CLK>;
+			resets = <&clock 0x16c 0>;
+			reset-names = "mac";
+		};
+
+		fmc: flash-memory-controller@10000000 {
+			compatible = "hisilicon,hisi-fmc";
+			reg = <0x10000000 0x1000>, <0x14000000 0x10000>;
+			reg-names = "control", "memory";
+			clocks = <&clock HI3518EV300_FMC_CLK>;
+			max-dma-size = <0x2000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			hisfc:spi-nor@0 {
+					compatible = "hisilicon,fmc-spi-nor";
+					assigned-clocks = <&clock HI3518EV300_FMC_CLK>;
+					assigned-clock-rates = <24000000>;
+					#address-cells = <1>;
+					#size-cells = <0>;
+			};
+
+			hisnfc:spi-nand@0 {
+					compatible = "hisilicon,fmc-spi-nand";
+					assigned-clocks = <&clock HI3518EV300_FMC_CLK>;
+					assigned-clock-rates = <24000000>;
+					#address-cells = <1>;
+					#size-cells = <0>;
+			};
+		};
+
+		iocfg_ctrl: iocfg-controller@100c0000 {
+			compatible = "hisilicon,hisi-iocfgctrl", "syscon";
+			reg = <0x100C0000 0x10000>;
+		};
+
+		iocfg_ctrl2: iocfg-controller2@112c0000 {
+			compatible = "hisilicon,hisi-iocfgctrl", "syscon";
+			reg = <0x112C0000 0x10000>;
+		};
+
+		mmc0: sdhci@0x10010000 {
+			compatible = "hisi-sdhci";
+			reg = <0x10010000 0x1000>;
+			interrupts = <0 30 4>;
+			clocks = <&clock HI3518EV300_MMC0_CLK>;
+			clock-names = "mmc_clk";
+			resets = <&clock 0x1f4 27>, <&clock 0x1f4 29>;
+			reset-names = "crg_reset", "dll_reset";
+			max-frequency = <150000000>;
+			crg_regmap = <&clock>;
+			iocfg_regmap = <&iocfg_ctrl>;
+			bus-width = <4>;
+			cap-mmc-highspeed;
+			cap-mmc-hw-reset;
+			cap-sd-highspeed;
+			mmc-hs200-1_8v;
+			full-pwr-cycle;
+			devid = <0>;
+			status = "enable";
+		};
+
+		mmc1: sdhci@0x10020000 {
+			compatible = "hisi-sdhci";
+			reg = <0x10020000 0x1000>;
+			interrupts = <0 31 4>;
+			clocks = <&clock HI3518EV300_MMC1_CLK>;
+			clock-names = "mmc_clk";
+			resets = <&clock 0x22c 27>, <&clock 0x22c 29>;
+			reset-names = "crg_reset", "dll_reset";
+			max-frequency = <50000000>;
+			crg_regmap = <&clock>;
+			iocfg_regmap = <&iocfg_ctrl2>;
+			bus-width = <4>;
+			cap-sd-highspeed;
+			full-pwr-cycle;
+			devid = <2>;
+			status = "enable";
+		};
+
+		usb2_phy0: phy2-0 {
+			compatible = "hisilicon,hixvp-usb2-phy";
+			reg = <0x100D0000  0x1000>, 
+				<0x12010000 0x1000>,
+				<0x100c0000 0x1000>;
+			clocks = <&clock HI3518EV300_USB2_PHY_APB_CLK>,
+					 <&clock HI3518EV300_USB2_PHY_PLL_CLK>,
+					 <&clock HI3518EV300_USB2_PHY_XO_CLK>;
+			clock-names = "clk_u2phy_apb_ref",
+						  "clk_u2phy_pll_ref",
+						  "clk_u2phy_xo_ref";
+			resets = <&clock 0x140 0>,
+					 <&clock 0x140 1>;
+			reset-names = "phy_por_reset",
+						  "phy_tpor_reset";
+			phy_pll_offset = <0x14>;
+			phy_pll_mask = <0x03>;
+			phy_pll_val = <0x00>;
+			crg_offset = <0x140>;
+			crg_defal_mask = <0x0c07>;
+			crg_defal_val = <0x0807>;
+			vbus_offset = <0x7c>;
+			vbus_val = <0x0531>;
+			pwren_offset = <0x80>;
+			pwren_val = <0x1>;
+			ana_cfg_0_eye_val = <0x0433c003>;
+			ana_cfg_0_offset = <0x00>;
+			ana_cfg_2_eye_val = <0x00120e0f>;
+			ana_cfg_2_offset = <0x08>;
+			ana_cfg_4_eye_val = <0x655>;
+			ana_cfg_4_offset = <0x10>;
+			trim_otp_addr = <0x12028004>;
+			trim_otp_mask = <0x1f>;
+			trim_otp_bit_offset = <0x00>;
+			trim_otp_min = <0x09>;
+			trim_otp_max = <0x1d>;
+			svb_otp_addr = <0x12020158>;
+			svb_otp_predev5_min = <0x2bc>;
+			svb_otp_predev5_max = <0x32a>;
+			svb_phy_predev5_val = <0x05>;
+			svb_otp_predev4_min = <0x32a>;
+			svb_otp_predev4_max = <0x398>;
+			svb_phy_predev4_val = <0x04>;
+			svb_otp_predev3_min = <0x398>;
+			svb_otp_predev3_max = <0x3ca>;
+			svb_phy_predev3_val = <0x03>;
+			svb_otp_predev2_min = <0x3ca>;
+			svb_otp_predev2_max = <0x44c>;
+			svb_phy_predev2_val = <0x02>;
+			#phy-cells = <0>;
+		};
+
+		usbdrd3_0: usb3-0{
+			compatible = "hisi,dwusb2";
+			reg = <0x10030000  0x10000>,
+				<0x12010000 0x1000>;
+			#address-cells = <1>;
+			#size-cells = <1>;
+			crg_offset = <0x140>;
+			crg_ctrl_def_mask = <0x3308>;
+			crg_ctrl_def_val = <0x1308>;
+			clocks = <&clock HI3518EV300_USB2_BUS_CLK>,
+					 <&clock HI3518EV300_USB2_REF_CLK>,
+					 <&clock HI3518EV300_USB2_UTMI_CLK>;
+			clock-names = "usb2_bus_clk",
+						  "usb2_ref_clk",
+						  "usb2_utmi_clk";
+			resets = <&clock 0x140 3>;
+			reset-names = "vcc_reset";
+			ranges;
+
+			hidwc3@0x100e0000 {
+				compatible = "snps,dwc3";
+				reg = <0x10030000 0x10000>;
+				interrupts = <0 39 4>;
+				interrupt-names = "peripheral";
+				phys = <&usb2_phy0>;
+				phy-names = "usb2-phy";
+				maximum-speed = "high-speed";
+				dr_mode = "peripheral";
+				eps_directions = <0x6a>;
+				snps,eps_new_init;
+				snps,usb2-lpm-disable;
+			};
+		};
+
+		gpio_chip0: gpio_chip@120b0000 {
+			compatible = "arm,pl061", "arm,primecell";
+			reg = <0x120b0000 0x1000>;
+			interrupts = <0 16 4>;
+			clocks = <&clock  HI3518EV300_SYSAPB_CLK>;
+			clock-names = "apb_pclk";
+			#gpio-cells = <2>;
+			status = "disabled";
+		};
+
+		gpio_chip1: gpio_chip@120b1000 {
+			compatible = "arm,pl061", "arm,primecell";
+			reg = <0x120b1000 0x1000>;
+			interrupts = <0 17 4>;
+			clocks = <&clock  HI3518EV300_SYSAPB_CLK>;
+			clock-names = "apb_pclk";
+			#gpio-cells = <2>;
+			status = "disabled";
+		};
+
+		gpio_chip2: gpio_chip@120b2000 {
+			compatible = "arm,pl061", "arm,primecell";
+			reg = <0x120b2000 0x1000>;
+			interrupts = <0 18 4>;
+			clocks = <&clock  HI3518EV300_SYSAPB_CLK>;
+			clock-names = "apb_pclk";
+			#gpio-cells = <2>;
+			status = "disabled";
+		};
+
+		gpio_chip4: gpio_chip@120b4000 {
+			compatible = "arm,pl061", "arm,primecell";
+			reg = <0x120b4000 0x1000>;
+			interrupts = <0 20 4>;
+			clocks = <&clock  HI3518EV300_SYSAPB_CLK>;
+			clock-names = "apb_pclk";
+			#gpio-cells = <2>;
+			status = "disabled";
+		};
+
+		gpio_chip5: gpio_chip@120b5000 {
+			compatible = "arm,pl061", "arm,primecell";
+			reg = <0x120b5000 0x1000>;
+			interrupts = <0 21 4>;
+			clocks = <&clock  HI3518EV300_SYSAPB_CLK>;
+			clock-names = "apb_pclk";
+			#gpio-cells = <2>;
+			status = "disabled";
+		};
+
+		gpio_chip6: gpio_chip@120b6000 {
+			compatible = "arm,pl061", "arm,primecell";
+			reg = <0x120b6000 0x1000>;
+			interrupts = <0 22 4>;
+			clocks = <&clock  HI3518EV300_SYSAPB_CLK>;
+			clock-names = "apb_pclk";
+			#gpio-cells = <2>;
+			status = "disabled";
+		};
+
+		gpio_chip7: gpio_chip@120b7000 {
+			compatible = "arm,pl061", "arm,primecell";
+			reg = <0x120b7000 0x1000>;
+			interrupts = <0 23 4>;
+			clocks = <&clock  HI3518EV300_SYSAPB_CLK>;
+			clock-names = "apb_pclk";
+			#gpio-cells = <2>;
+			status = "disabled";
+		};
+
+		gpio_chip8: gpio_chip@120b8000 {
+			compatible = "arm,pl061", "arm,primecell";
+			reg = <0x120b8000 0x1000>;
+			interrupts = <0 24 4>;
+			clocks = <&clock  HI3518EV300_SYSAPB_CLK>;
+			clock-names = "apb_pclk";
+			#gpio-cells = <2>;
+			status = "disabled";
+		};
+
+		cipher: cipher@0x10050000 {
+		    compatible = "hisilicon,hisi-cipher";
+		    reg = <0x10050000 0x10000>;
+		    reg-names = "cipher";
+		    interrupts = <0 34 4>, <0 34 4>;
+		    interrupt-names = "cipher", "hash";
+		};
+
+		rtc: rtc@120e0000 {
+			compatible = "hisilicon,hi35xx-rtc";
+			reg = <0x120e0000 0x1000>;
+			interrupts = <0 0 4>;
+		};		
+		
+		adc: adc@120a0000 {
+			compatible = "hisilicon,hisi-lsadc";
+			reg = <0x120a0000 0x1000>;
+			interrupts = <0 4 4>;
+			interrupt-names = "hi_adc";
+			resets = <&clock 0x1bc 2>;
+			reset-names = "lsadc-crg";
+			status = "okay";
+		};
+
+		wdg: wdg@0x12030000 {
+                compatible = "hisilicon,hi_wdg";
+                reg = <0x12030000 0x1000>;
+                reg-names = "hi_wdg";
+                interrupts = <0 2 4>;
+                interrupt-names = "hi_wdg";
+        };
+
+	};
+
+	media {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "simple-bus";
+		interrupt-parent = <&gic>;
+		ranges;
+
+		osal: osal {
+			compatible = "hisilicon,osal";
+		};
+
+		sys: sys@12010000 {
+			compatible = "hisilicon,hisi-sys";
+		};
+
+		mipi: mipi@0x11240000 {
+			compatible = "hisilicon,hisi-mipi";
+			reg = <0x11240000 0x10000>;
+			reg-names = "mipi_rx";
+			interrupts = <0 45 4>;
+			interrupt-names = "mipi_rx";
+		};
+
+		vi: vi@11000000 {
+			compatible = "hisilicon,hisi-vi";
+			reg = <0x11000000 0x200000>, <0x11200000 0x40000>;
+			reg-names = "VI_CAP0", "VI_PROC0";
+			interrupts = <0 43 4>, <0 44 4>;
+			interrupt-names = "VI_CAP0", "VI_PROC0";
+		};
+
+		isp: isp@11220000 {
+		 compatible = "hisilicon,hisi-isp";
+		 reg = <0x11220000 0x20000>;
+		 reg-names = "ISP";
+		 interrupts = <0 43 4>;
+		 interrupt-names = "ISP";
+		};
+
+		vpss: vpss@11400000 {
+			compatible = "hisilicon,hisi-vpss";
+			reg = <0x11400000 0x10000>;
+			reg-names = "vpss0";
+			interrupts = <0 46 4>;
+			interrupt-names = "vpss0";
+		};
+
+		vo: vo@11280000 {
+			compatible = "hisilicon,hisi-vo";
+			reg = <0x11280000 0x40000>;
+			reg-names = "vo";
+			interrupts = <0 40 4>;
+			interrupt-names = "vo";
+		};
+
+		hifb: hifb@11280000 {
+			compatible = "hisilicon,hisi-hifb";
+			reg = <0x11280000 0x40000>;
+			reg-names = "hifb";
+			interrupts = <0 41 4>;
+			interrupt-names = "hifb";
+		};
+
+		vgs: vgs@11300000 {
+		compatible = "hisilicon,hisi-vgs";
+		reg = <0x11300000 0x10000>;
+		reg-names = "vgs0";
+		interrupts = <0 49 4>;
+		interrupt-names = "vgs0";
+		};
+		
+		gzip: gzip@11310000 {
+			compatible = "hisilicon,hisi-gzip";
+			reg = <0x11310000 0x10000>;
+			reg-names = "gzip";
+			interrupts = <0 50 4>;
+			interrupt-names = "gzip";
+		};
+
+		vedu: vedu@11410000 {
+			compatible = "hisilicon,hisi-vedu";
+			reg = <0x11410000 0x10000>, <0x11420000 0x10000>;
+			reg-names = "vedu0", "jpge";
+			interrupts = <0 47 4>, <0 48 4>;
+			interrupt-names = "vedu0","jpge";
+		};
+			
+		venc: venc {
+			compatible = "hisilicon,hisi-venc";
+		};
+
+		aiao: aiao@100e0000 {
+			compatible = "hisilicon,hisi-aiao";
+			reg = <0x100e0000 0x10000>,<0x100f0000 0x10000>;
+			reg-names = "aiao","acodec";
+			interrupts = <0 42 4>;
+			interrupt-names = "AIO";
+		};
+
+		ive: ive@11320000 {
+			compatible = "hisilicon,hisi-ive";
+			reg = <0x11320000 0x10000>;
+			reg-names = "ive";
+			interrupts = <0 51 4>;
+			interrupt-names = "ive";
+		};
+	};
+};

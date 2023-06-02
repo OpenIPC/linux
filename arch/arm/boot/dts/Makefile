@@ -174,6 +174,58 @@ dtb-$(CONFIG_ARCH_HISI) += \
 	hi3519-demb.dtb
 dtb-$(CONFIG_ARCH_HIX5HD2) += \
 	hisi-x5hd2-dkb.dtb
+dtb-$(CONFIG_ARCH_HI3516A) += \
+	hi3516a-demb.dtb
+dtb-$(CONFIG_ARCH_HI3516CV500) += \
+	hi3516cv500-demb.dtb
+dtb-$(CONFIG_ARCH_HI3516EV200) += \
+	hi3516ev200-demb.dtb
+dtb-$(CONFIG_ARCH_HI3516EV300) += \
+	hi3516ev300-demb.dtb
+dtb-$(CONFIG_ARCH_HI3518EV300) += \
+	hi3518ev300-demb.dtb
+dtb-$(CONFIG_ARCH_HI3516DV200) += \
+	hi3516dv200-demb.dtb
+
+dtb-$(CONFIG_ARCH_HI3516DV300) += \
+	hi3516dv300-demb.dtb
+dtb-$(CONFIG_ARCH_HI3556V200) += \
+	hi3556v200-demb.dtb
+dtb-$(CONFIG_ARCH_HI3559V200) += \
+	hi3559v200-demb.dtb
+dtb-$(CONFIG_ARCH_HI3518EV20X) += \
+	hi3518ev20x-demb.dtb
+dtb-$(CONFIG_ARCH_HI3521A) += \
+	hi3521a-demb.dtb
+dtb-$(CONFIG_ARCH_HI3531A) += \
+	hi3531a-demb.dtb
+dtb-$(CONFIG_ARCH_HI3536DV100) += \
+	hi3536dv100-demb.dtb
+
+ifdef CONFIG_ARCH_HISI_BVT_AMP
+
+ifdef CONFIG_MFD_HISI_FMC
+dtb-$(CONFIG_ARCH_HI3556AV100) += \
+	hi3556av100-flash.dtb
+dtb-$(CONFIG_ARCH_HI3519AV100) += \
+	hi3519av100-flash.dtb
+else # no define CONFIG_MFD_HISI_FMC
+dtb-$(CONFIG_ARCH_HI3556AV100) += \
+	hi3556av100-emmc.dtb
+dtb-$(CONFIG_ARCH_HI3519AV100) += \
+	hi3519av100-emmc.dtb
+endif
+
+else # no define CONFIG_ARCH_HISI_BVT_AMP
+
+ifdef CONFIG_MFD_HISI_FMC
+dtb-$(CONFIG_ARCH_HI3519AV100) += \
+	hi3519av100-smp-flash.dtb
+else #CONFIG_MFD_HISI_FMC
+dtb-$(CONFIG_ARCH_HI3519AV100) += \
+	hi3519av100-smp-emmc.dtb
+endif
+endif
 dtb-$(CONFIG_ARCH_INTEGRATOR) += \
 	integratorap.dtb \
 	integratorcp.dtb

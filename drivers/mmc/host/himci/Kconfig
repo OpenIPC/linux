@@ -1,0 +1,23 @@
+#
+#  himci family SD/MMC device configuration
+#
+menuconfig HIMCI
+	tristate "himci driver support"
+	depends on ARCH_HI3516A || ARCH_HI3518EV20X || ARCH_HI3516CV500 || ARCH_HI3516DV300 || ARCH_HI3556V200 || ARCH_HI3559V200
+	default y if ARCH_HI3516A
+	select MMC_UNSAFE_RESUME
+	select MMC_EMBEDDED_SDIO
+	select MMC_BLOCK
+	select MMC_BLOCK_BOUNCE
+	help
+	  This selects the Hisilicon Synopsys MultiMedia Card Driver
+	  support. If you want use SD/MMC/SDIO driver,
+	  Say Y or M here.
+
+	  default is Y.
+
+config SEND_AUTO_STOP
+	bool "Send Auto Stop to terminate data transfer between host and SD card"
+	depends on HIMCI
+	default y
+

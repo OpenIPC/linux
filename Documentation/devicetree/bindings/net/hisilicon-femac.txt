@@ -4,7 +4,11 @@ Required properties:
 - compatible: should contain one of the following version strings:
 	* "hisilicon,hisi-femac-v1"
 	* "hisilicon,hisi-femac-v2"
-	and the soc string "hisilicon,hi3516cv300-femac".
+	and one of the following soc strings:
+	* "hisilicon,hi3516cv500-femac"
+	* "hisilicon,hi3516cv300-femac"
+	* "hisilicon,hi3536dv100-femac"
+	* "hisilicon,hi3518ev20x-femac"
 - reg: specifies base physical address(s) and size of the device registers.
   The first region is the MAC core register base and size.
   The second region is the global MAC control register.

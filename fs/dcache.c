@@ -1137,7 +1137,12 @@ void shrink_dcache_sb(struct super_block *sb)
 
 		this_cpu_sub(nr_dentry_unused, freed);
 		shrink_dentry_list(&dispose);
-	} while (freed > 0);
+#ifdef CONFIG_HISI_MC		
+		cond_resched();
+	} while (list_lru_count(&sb->s_dentry_lru) > 0);
+#else
+	} while (freed > 0);	
+#endif	
 }
 EXPORT_SYMBOL(shrink_dcache_sb);
 

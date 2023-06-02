@@ -1,0 +1,24 @@
+Hisilicon BVT Low Speed (LS) A/D Converter bindings
+
+Required properties:
+- compatible: should be "hisilicon,<name>-lsadc"
+   - "hisilicon,hi3519av100-lsadc": for hi3519av100
+
+- reg: physical base address of the controller and length of memory mapped
+	   region.
+- interrupts: The interrupt number for the ADC device.
+			  see .../interrupt-controller/interrupts.txt for details.
+
+Optional properties:
+- resets: Must contain an entry for each entry in reset-names if need support
+		  this option. See .../reset/reset.txt for details.
+- reset-names: Must include the name "lsadc-crg".
+
+Example:
+	adc: adc@120e0000 {
+		compatible = "hisilicon,hi3519av100-lsadc";
+                reg = <0x045d0000 0x1000>;
+                interrupts = <0 83 4>;
+                resets = <&clock 0x194 16>;
+                reset-names = "lsadc-crg";
+	};
