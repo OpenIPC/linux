@@ -21,7 +21,9 @@
 #define MSC0_PORTB_4BIT							\
 	{ .name = "msc0-pb-4bit",	.port = GPIO_PORT_B, .func = GPIO_FUNC_0, .pins = (0x3<<4|0xf<<0), }
 #define MSC1_PORTC							\
-	{ .name = "msc1-pC",		.port = GPIO_PORT_C, .func = GPIO_FUNC_0, .pins = (0x3f<<2), }
+	{ .name = "msc1-pC",		.port = GPIO_PORT_C, .func = GPIO_FUNC_0, .pins = (0x3f<<2), }, \
+	{ .name = "wyze-mmc-enable",	.port = GPIO_PORT_B, .func = GPIO_OUTPUT0, .pins = 0x620<<10, }, \
+	{ .name = "wyze-mmc-detect",	.port = GPIO_PORT_B, .func = GPIO_OUTPUT1, .pins = 0x20<<10, }
 
 /*******************************************************************************************************************/
 /*****************************************************************************************************************/

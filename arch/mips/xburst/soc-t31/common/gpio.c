@@ -981,6 +981,10 @@ int __init setup_gpio_pins(void)
 			pr_info("Skipping MSC1_PB GPIO setup\n");
 			continue;
 		}
+		if ((!strcmp(g->name,"wyze-mmc-enable") || !strcmp(g->name,"wyze-mmc-detect")) && !disable_gmac){
+			pr_info("Skipping WYZE GPIO setup\n");
+			continue;
+		}
 
 		jz = &jz_gpio_chips[g->port];
 		if (GPIO_AS_FUNC(g->func)) {
