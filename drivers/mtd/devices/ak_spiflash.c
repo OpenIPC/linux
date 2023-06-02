@@ -2310,9 +2310,10 @@ static int __devinit ak_spiflash_probe(struct spi_device *spi)
 		kfree(flash);
 		return -EINVAL;
 	}
-	ret = ak_mount_partitions(spi);
-	if (ret)
-		printk(KERN_ERR "Add MTD partitions failed\n");
+	// Disable parsing anyka partitions from env
+	//ret = ak_mount_partitions(spi);
+	//if (ret)
+	//	printk(KERN_ERR "Add MTD partitions failed\n");
 
     printk("Init AK SPI Flash finish.\n"); 
 
