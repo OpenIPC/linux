@@ -134,6 +134,8 @@
 #define FLASH_IC_MICRON_N25Q128  0x0E03UL      // 16M
 #define FLASH_IC_NUMONYX_M25PX16 0x0E04UL      // 2M
 
+//PY
+#define FLASH_IC_PUYA_PY25Q128HA    0x1500UL    // 128M
 
 //ZB
 #define FLASH_IC_ZB25Q64        0x1002UL       // 8M
@@ -169,6 +171,7 @@
 #define MID_NUMONYX             0x20UL
 #define MID_AM                  0x37UL
 #define MID_25Q                 0x68UL
+#define MID_PY                  0x85UL
 #define MID_ZB                  0x5EUL
 #define MID_WUHAN               0x20UL
 #define MID_XTX                 0x0BUL
