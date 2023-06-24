@@ -1020,7 +1020,7 @@ ms_i2c_xfer_read(u8 u8Port, struct i2c_msg *pmsg, u8 *pbuf, int length)
 				perrBuf += sprintf(perrBuf,"%#x ", *pbuf);
 				pbuf++;
 			}
-			pr_info("ERROR: Bus[%d] in ms_i2c_xfer_read: Slave dev NAK, Addr: %#x, Data: %s \r\n", (u16Offset/256),(((pmsg->addr & I2C_BYTE_MASK) << 1) | ((pmsg->flags & I2C_M_RD) ? 1 : 0)),errBuf);
+			pr_debug("ERROR: Bus[%d] in ms_i2c_xfer_read: Slave dev NAK, Addr: %#x, Data: %s \r\n", (u16Offset/256),(((pmsg->addr & I2C_BYTE_MASK) << 1) | ((pmsg->flags & I2C_M_RD) ? 1 : 0)),errBuf);
 			return -ETIMEDOUT;
 		} else {
 			return 0;
@@ -1051,7 +1051,7 @@ ms_i2c_xfer_read(u8 u8Port, struct i2c_msg *pmsg, u8 *pbuf, int length)
 			perrBuf += sprintf(perrBuf,"%#x ", *pbuf);
             pbuf++;
 		 }
-		 pr_info("ERROR: Bus[%d] in ms_i2c_xfer_read: Slave dev NAK, Addr: %#x, Data: %s \r\n", (u16Offset/256),(((pmsg->addr & I2C_BYTE_MASK) << 1) | ((pmsg->flags & I2C_M_RD) ? 1 : 0)),errBuf);
+		 pr_debug("ERROR: Bus[%d] in ms_i2c_xfer_read: Slave dev NAK, Addr: %#x, Data: %s \r\n", (u16Offset/256),(((pmsg->addr & I2C_BYTE_MASK) << 1) | ((pmsg->flags & I2C_M_RD) ? 1 : 0)),errBuf);
 
         return -ETIMEDOUT;
     }
@@ -1141,7 +1141,7 @@ ms_i2c_xfer_write(u8 u8Port, struct i2c_msg *pmsg, u8 *pbuf, int length)
 				perrBuf += sprintf(perrBuf,"%#x ", *pbuf);
 				pbuf++;
 			}
-			pr_info("ERROR: Bus[%d] in ms_i2c_xfer_write: Slave dev NAK, Addr: %#x, Data: %s \r\n", (u16Offset/256),(((pmsg->addr & I2C_BYTE_MASK) << 1) | ((pmsg->flags & I2C_M_RD) ? 1 : 0)),errBuf);
+			pr_debug("ERROR: Bus[%d] in ms_i2c_xfer_write: Slave dev NAK, Addr: %#x, Data: %s \r\n", (u16Offset/256),(((pmsg->addr & I2C_BYTE_MASK) << 1) | ((pmsg->flags & I2C_M_RD) ? 1 : 0)),errBuf);
 			return -ETIMEDOUT;
 		}else{
 			return 0;
@@ -1173,7 +1173,7 @@ ms_i2c_xfer_write(u8 u8Port, struct i2c_msg *pmsg, u8 *pbuf, int length)
 			perrBuf += sprintf(perrBuf,"%#x ", *pbuf);
             pbuf++;
 		 }
-		 pr_info("ERROR: Bus[%d] in ms_i2c_xfer_write: Slave dev NAK, Addr: %#x, Data: %s \r\n", (u16Offset/256),(((pmsg->addr & I2C_BYTE_MASK) << 1) | ((pmsg->flags & I2C_M_RD) ? 1 : 0)),errBuf);
+		 pr_debug("ERROR: Bus[%d] in ms_i2c_xfer_write: Slave dev NAK, Addr: %#x, Data: %s \r\n", (u16Offset/256),(((pmsg->addr & I2C_BYTE_MASK) << 1) | ((pmsg->flags & I2C_M_RD) ? 1 : 0)),errBuf);
          return -ETIMEDOUT;
      }
 
@@ -1188,7 +1188,7 @@ ms_i2c_xfer_write(u8 u8Port, struct i2c_msg *pmsg, u8 *pbuf, int length)
         }
         else
         {
-			pr_info("ERROR: Bus[%d] in ms_i2c_xfer_write: Slave data NAK, Addr: %#x, Data: %#x \r\n", (u16Offset/256),(((pmsg->addr & I2C_BYTE_MASK) << 1) | ((pmsg->flags & I2C_M_RD) ? 1 : 0)),*pbuf);
+			pr_debug("ERROR: Bus[%d] in ms_i2c_xfer_write: Slave data NAK, Addr: %#x, Data: %#x \r\n", (u16Offset/256),(((pmsg->addr & I2C_BYTE_MASK) << 1) | ((pmsg->flags & I2C_M_RD) ? 1 : 0)),*pbuf);
             return -ETIMEDOUT;
         }
     }
