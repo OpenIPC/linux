@@ -968,7 +968,7 @@ static int mstar_spinand_probe(struct platform_device *pdev)
         NULL,
     };
 #endif
-#if defined(CONFIG_ARCH_INFINITY2)
+#if defined(CONFIG_ARCH_INFINITY2) || defined(CONFIG_ARCH_INFINITY6C)
     if (Chip_Get_Storage_Type() != MS_STORAGE_SPINAND_ECC)
         return 0;
 #endif
