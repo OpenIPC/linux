@@ -919,9 +919,9 @@ static int watchdog_release(struct inode *inode, struct file *file)
 	 */
 	if (!watchdog_active(wdd))
 		err = 0;
-	//else if (test_and_clear_bit(_WDOG_ALLOW_RELEASE, &wd_data->status) ||
-	//	 !(wdd->info->options & WDIOF_MAGICCLOSE))
-	//	err = watchdog_stop(wdd);
+	else if (test_and_clear_bit(_WDOG_ALLOW_RELEASE, &wd_data->status) ||
+		 !(wdd->info->options & WDIOF_MAGICCLOSE))
+		err = watchdog_stop(wdd);
 
 	/* If the watchdog was not stopped, send a keepalive ping */
 	if (err < 0) {
