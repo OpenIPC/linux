@@ -135,13 +135,13 @@ typedef struct usb_ctrlrequest devctrlrequest;
 #define AP_PROFILE_PATH                 "/ramdisk/etc/Wireless/RT2870AP/RT2870AP.dat"
 #define AP_RTMP_FIRMWARE_FILE_NAME "/ramdisk/etc/Wireless/RT2870AP/RT2870AP.bin"
 #else
-#define AP_PROFILE_PATH			"/etc/Wireless/RT2870AP/RT2870AP.dat"
-#define AP_RTMP_FIRMWARE_FILE_NAME "/etc/Wireless/RT2870AP/RT2870AP.bin"
+#define AP_PROFILE_PATH			"/etc/mediatek/RT2870AP.dat"
+#define AP_RTMP_FIRMWARE_FILE_NAME "/etc/mediatek/RT2870AP.bin"
 #endif
 #define AP_NIC_DEVICE_NAME			"RT2870AP"
 #define AP_DRIVER_VERSION			"3.0.0.6_android"
 #ifdef MULTIPLE_CARD_SUPPORT
-#define CARD_INFO_PATH			"/etc/Wireless/RT2870AP/RT2870APCard.dat"
+#define CARD_INFO_PATH			"/etc/mediatek/RT2870APCard.dat"
 #endif /* MULTIPLE_CARD_SUPPORT */
 #endif /* RTMP_MAC_USB */
 
@@ -159,12 +159,12 @@ typedef struct usb_ctrlrequest devctrlrequest;
 #ifdef ALLWINNER
 #define STA_PROFILE_PATH                        "/system/vendor/modules/RT2870STA.dat"
 #else
-#define STA_PROFILE_PATH			"/etc/Wireless/RT2870STA/RT2870STA.dat"
+#define STA_PROFILE_PATH			"/etc/mediatek/RT2870STA.dat"
 #endif
 #define STA_DRIVER_VERSION			"3.0.0.6_android"
 #define DRIVER_ROLE			"STA"
 #ifdef MULTIPLE_CARD_SUPPORT
-#define CARD_INFO_PATH			"/etc/Wireless/RT2870STA/RT2870STACard.dat"
+#define CARD_INFO_PATH			"/etc/mediatek/RT2870STACard.dat"
 #endif /* MULTIPLE_CARD_SUPPORT */
 #endif /* RTMP_MAC_USB */
 
@@ -172,7 +172,7 @@ typedef struct usb_ctrlrequest devctrlrequest;
 extern	const struct iw_handler_def rt28xx_iw_handler_def;
 
 #ifdef SINGLE_SKU_V2
-#define SINGLE_SKU_TABLE_FILE_NAME	"/etc/Wireless/RT2870STA/SingleSKU.dat"
+#define SINGLE_SKU_TABLE_FILE_NAME	"/etc/mediatek/SingleSKU.dat"
 #endif /* SINGLE_SKU_V2 */
 
 #endif /* CONFIG_STA_SUPPORT */
