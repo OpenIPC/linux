@@ -253,6 +253,10 @@ enum {
 
 	AHCI_FLAG_COMMON		= ATA_FLAG_SATA | ATA_FLAG_PIO_DMA |
 					  ATA_FLAG_ACPI_SATA | ATA_FLAG_AN,
+#ifdef CONFIG_SSTAR_SATA_AHCI_PLATFORM_HOST
+    SATA_SSTAR_HOST_FLAGS   = ATA_FLAG_SATA | ATA_FLAG_PIO_DMA |
+					  ATA_FLAG_ACPI_SATA | ATA_FLAG_AN | ATA_FLAG_NCQ,
+#endif
 
 	ICH_MAP				= 0x90, /* ICH MAP register */
 
@@ -374,6 +378,12 @@ extern struct device_attribute *ahci_sdev_attrs[];
  * This must be instantiated by the edge drivers.  Read the comments
  * for ATA_BASE_SHT
  */
+#ifdef CONFIG_SSTAR_SATA_AHCI_PLATFORM_HOST
+#define AHCI_SHT(drv_name)						\
+	ATA_NCQ_SHT(drv_name),						\
+	.shost_attrs		= ahci_shost_attrs,			\
+	.sdev_attrs		= ahci_sdev_attrs
+#else
 #define AHCI_SHT(drv_name)						\
 	ATA_NCQ_SHT(drv_name),						\
 	.can_queue		= AHCI_MAX_CMDS - 1,			\
@@ -381,7 +391,7 @@ extern struct device_attribute *ahci_sdev_attrs[];
 	.dma_boundary		= AHCI_DMA_BOUNDARY,			\
 	.shost_attrs		= ahci_shost_attrs,			\
 	.sdev_attrs		= ahci_sdev_attrs
-
+#endif
 extern struct ata_port_operations ahci_ops;
 extern struct ata_port_operations ahci_platform_ops;
 extern struct ata_port_operations ahci_pmp_retry_srst_ops;

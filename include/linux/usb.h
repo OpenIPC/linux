@@ -7,6 +7,9 @@
 #define USB_MAJOR			180
 #define USB_DEVICE_MAJOR		189
 
+#if (CONFIG_MP_USB_MSTAR==1)
+#define HOTPLUG                 //tony add for hotplug
+#endif
 
 #ifdef __KERNEL__
 
@@ -544,6 +547,9 @@ struct usb3_lpm_parameters {
  */
 struct usb_device {
 	int		devnum;
+#if (CONFIG_MP_USB_MSTAR==1) && defined(HOTPLUG)
+	int		devnum1;  //tony for hotplug check
+#endif
 	char		devpath[16];
 	u32		route;
 	enum usb_device_state	state;

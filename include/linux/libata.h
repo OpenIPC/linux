@@ -885,6 +885,10 @@ struct ata_port {
 #endif
 	/* owned by EH */
 	u8			sector_buf[ATA_SECT_SIZE] ____cacheline_aligned;
+#if 1//def CONFIG_MS_SATA_HOST
+        /*phys_addr_t*/void *           ss_private_data;
+        unsigned int            sactive;
+#endif
 };
 
 /* The following initializer overrides a method to NULL whether one of

@@ -8,7 +8,9 @@
  *  May 1999. AV. Fixed the bogosity with FAT32 (read "FAT28"). Fscking lusers.
  */
 
+#include <linux/fs.h>
 #include <linux/slab.h>
+#include <linux/buffer_head.h>
 #include "fat.h"
 
 /* this must be > 0. */
@@ -221,6 +223,87 @@ static inline void cache_init(struct fat_cache_id *cid, int fclus, int dclus)
 	cid->nr_contig = 0;
 }
 
+#ifdef CONFIG_MP_KERNEL_COMPAT_PATCH_FIX_INODE_CLUSTER_LIST
+int fat_fix_inode_cluster(struct inode *inode, int *fclus, int max_clus)
+{
+	struct super_block *sb = inode->i_sb;
+	struct msdos_sb_info *sbi = MSDOS_SB(inode->i_sb);
+	const int limit = sb->s_maxbytes >> MSDOS_SB(sb)->cluster_bits;
+	struct fat_entry fatent;
+	int nr;
+       int dclus;
+       int ret;
+
+	*fclus = 0;
+	dclus = MSDOS_I(inode)->i_start;
+
+       if(0 == dclus)
+       {
+            if(max_clus)
+                 return 0;
+            return 1;
+       }
+       else if(sbi->max_cluster <= dclus)
+       {
+            printk("dclus %08x >=  sbi->max_cluster %08lx \n",dclus,sbi->max_cluster);
+            return 0;
+       }
+
+	fatent_init(&fatent);
+	while (1) {
+		/* prevent the infinite loop of cluster chain */
+		if (*fclus > limit) {
+			fat_fs_error_ratelimit((void*)sb, "%s: detected the cluster chain loop in fat_fix_inode_cluster"
+				     " (i_pos %lld)", __func__,
+				     MSDOS_I(inode)->i_pos);
+			ret = -EIO;
+			goto out;
+		}
+
+		nr = fat_ent_read(inode, &fatent, dclus);
+		if (nr < 0)
+              {
+                     printk("fatal error, failed to read dclus %08x\n", (unsigned int)dclus);
+                     ret = -EIO;
+			goto out;
+              }
+		else if (nr == FAT_ENT_FREE) {
+                     if(*fclus < max_clus)
+                     {
+                             printk("detect inode %lld cluster list broken at cluster %08x, truncate it!!!\n", 
+				     MSDOS_I(inode)->i_pos, dclus);
+                         fat_ent_write(inode, &fatent, FAT_ENT_EOF, 1);
+                     }
+			ret = 0;
+                     (*fclus)++;
+			goto out;
+		} else if (nr == FAT_ENT_EOF) {
+		       if(*fclus >= max_clus)
+                            fat_ent_write(inode, &fatent, FAT_ENT_FREE, 1);
+		       (*fclus)++;
+                      if(*fclus != max_clus)
+                           ret = 0;
+                      else
+                           ret = 1;
+			goto out;
+		}
+		(*fclus)++;
+    		 if(*fclus == max_clus)
+              {
+                     printk("detect inode %lld cluster list is too large than used, truncate it at cluster %08x!!!\n", 
+				     MSDOS_I(inode)->i_pos, (unsigned int)dclus);
+                      fat_ent_write(inode, &fatent, FAT_ENT_EOF, 1);
+              }
+		dclus = nr;
+	}
+out:
+       if(*fclus > max_clus)
+          *fclus = max_clus;
+       fat_cache_inval_inode(inode);
+	   fatent_brelse(&fatent);
+       return ret;
+}
+#endif
 int fat_get_cluster(struct inode *inode, int cluster, int *fclus, int *dclus)
 {
 	struct super_block *sb = inode->i_sb;
@@ -260,13 +343,21 @@ int fat_get_cluster(struct inode *inode, int cluster, int *fclus, int *dclus)
 		if (nr < 0)
 			goto out;
 		else if (nr == FAT_ENT_FREE) {
-			fat_fs_error_ratelimit(sb,
-				       "%s: invalid cluster chain (i_pos %lld)",
-				       __func__,
-				       MSDOS_I(inode)->i_pos);
+#ifdef CONFIG_MP_KERNEL_COMPAT_PATCH_FIX_INODE_CLUSTER_LIST
+                    fat_ent_write(inode, &fatent, FAT_ENT_EOF, 1);
+                    goto fat_eof;
+#else
+			WARN_ON(1);
+			fat_fs_error_ratelimit(sb, "%s: invalid cluster chain"
+				     " (i_pos %lld)", __func__,
+				     MSDOS_I(inode)->i_pos);
 			nr = -EIO;
 			goto out;
+#endif
 		} else if (nr == FAT_ENT_EOF) {
+#ifdef CONFIG_MP_KERNEL_COMPAT_PATCH_FIX_INODE_CLUSTER_LIST
+fat_eof:
+#endif
 			fat_cache_add(inode, &cid);
 			goto out;
 		}

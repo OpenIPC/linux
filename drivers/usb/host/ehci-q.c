@@ -17,6 +17,14 @@
  */
 
 /* this file is part of ehci-hcd.c */
+#ifndef MP_USB_MSTAR
+#include <mstar/mpatch_macro.h>
+#endif
+
+#if (MP_USB_MSTAR==1) && (_USB_T3_WBTIMEOUT_PATCH)
+extern void Chip_Flush_Memory(void);
+extern void Chip_Read_Memory( void ) ;
+#endif
 
 /*-------------------------------------------------------------------------*/
 
@@ -217,6 +225,9 @@ static int qtd_copy_status (
 	/* serious "can't proceed" faults reported by the hardware */
 	if (token & QTD_STS_HALT) {
 		if (token & QTD_STS_BABBLE) {
+#if (MP_USB_MSTAR==1)
+			printk("QTD_STS_BABBLE :%x\n",token);
+#endif
 			/* FIXME "must" disable babbling device's port too */
 			status = -EOVERFLOW;
 		/* CERR nonzero + halt --> stall */
@@ -228,6 +239,9 @@ static int qtd_copy_status (
 		 * Which to test first is rather arbitrary.
 		 */
 		} else if (token & QTD_STS_MMF) {
+#if (MP_USB_MSTAR==1)
+			printk("QTD_STS_MMF!\n");
+#endif
 			/* fs/ls interrupt xfer missed the complete-split */
 			status = -EPROTO;
 		} else if (token & QTD_STS_DBE) {
@@ -411,7 +425,27 @@ qh_completions (struct ehci_hcd *ehci, struct ehci_qh *qh)
 				stopped = 1;
 				qh->unlink_reason |= QH_UNLINK_SHORT_READ;
 			}
+#if (MP_USB_MSTAR==1) && (_USB_SPLIT_MDATA_BLOCKING_PATCH)
+			else if((token & QTD_STS_STS)					/* SplitXstate = 1 in qTD */
+				&& (hc32_to_cpu(ehci, qh->hw->hw_info2) & QH_HUBADDR)	/* hub addr */
+				&& (hc32_to_cpu(ehci, qh->hw->hw_info2) & QH_CMASK)	/* split complite mask */
+				&& usb_pipeint(urb->pipe) && usb_pipein(urb->pipe)	/* Interrupt IN transaction */
+				&& (urb->dev->speed == USB_SPEED_LOW || urb->dev->speed == USB_SPEED_FULL))
+			{
+				u32 hw_token;
 
+				hw_token = hc32_to_cpu(ehci, qh->hw->hw_token);
+				/*
+				 * MDATA: should toggle
+				 * zero-size pkg: should "not" toggle
+				 */
+				//hw_token ^= QTD_TOGGLE;
+				hw_token &= (u32)(~QTD_STS_STS);
+
+				wmb ();
+				qh->hw->hw_token = cpu_to_hc32(ehci, hw_token);
+			}
+#endif
 		/* stop scanning when we reach qtds the hc is using */
 		} else if (likely (!stopped
 				&& ehci->rh_state >= EHCI_RH_RUNNING)) {
@@ -661,6 +695,13 @@ qh_urb_transaction (
 	for (;;) {
 		int this_qtd_len;
 
+#if (MP_USB_MSTAR==1) && (_USB_SHORT_PACKET_LOSE_INT_PATCH)
+		if (is_input && usb_pipebulk (urb->pipe) &&
+			(!(urb->transfer_flags & URB_NO_INTERRUPT)) && (!(urb->transfer_flags & URB_SHORT_NOT_OK)))
+		{
+			token |= QTD_IOC;
+		}
+#endif
 		this_qtd_len = qtd_fill(ehci, qtd, buf, this_sg_len, token,
 				maxpacket);
 		this_sg_len -= this_qtd_len;
@@ -1070,7 +1111,9 @@ static struct ehci_qh *qh_append_tds (
 			 */
 			token = qtd->hw_token;
 			qtd->hw_token = HALT_BIT(ehci);
-
+#if (MP_USB_MSTAR==1) && _USB_FRIENDLY_CUSTOMER_PATCH
+			wmb ();
+#endif
 			dummy = qh->dummy;
 
 			dma = dummy->qtd_dma;
@@ -1150,6 +1193,10 @@ submit_async (
 	 */
 	if (likely (qh->qh_state == QH_STATE_IDLE))
 		qh_link_async(ehci, qh);
+
+#if (MP_USB_MSTAR==1) && (_USB_T3_WBTIMEOUT_PATCH)
+	Chip_Flush_Memory();
+#endif
  done:
 	spin_unlock_irqrestore (&ehci->lock, flags);
 	if (unlikely (qh == NULL))
@@ -1279,6 +1326,13 @@ static void single_unlink_async(struct ehci_hcd *ehci, struct ehci_qh *qh)
 	prev->qh_next = qh->qh_next;
 	if (ehci->qh_scan_next == qh)
 		ehci->qh_scan_next = qh->qh_next.qh;
+
+#if (MP_USB_MSTAR==1) && (_USB_T3_WBTIMEOUT_PATCH)
+	/* must make sure the qh is unlinked before send IAAD to HC.
+	 * wifi driver uses urb with 32KB buffer for iperf test would makes bulk-in timeout.
+	 */
+	Chip_Flush_Memory();
+#endif
 }
 
 static void start_iaa_cycle(struct ehci_hcd *ehci)
@@ -1408,6 +1462,9 @@ static void end_unlink_async(struct ehci_hcd *ehci)
 		return;
 
 	/* Process the idle QHs */
+#if (MP_USB_MSTAR==1) && (_USB_T3_WBTIMEOUT_PATCH)
+	Chip_Read_Memory();	//Flush Read buffer when H/W finished
+#endif
 	ehci->async_unlinking = true;
 	while (!list_empty(&ehci->async_idle)) {
 		qh = list_first_entry(&ehci->async_idle, struct ehci_qh,

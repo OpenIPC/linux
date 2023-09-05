@@ -1,0 +1,30 @@
+config USB_GADGET_MSB250X
+        tristate "MSB250X USB Device Controller"
+        help
+                Mstar USB device
+
+config USB_MSB250X
+        tristate
+        depends on USB_GADGET_MSB250X
+        default USB_GADGET
+        select USB_GADGET_SELECTED
+
+config USB_MSB250X_BULK_OUT_WITHOUT_DMA
+        boolean "Bulk out without DMA for MSB250x udc"
+
+config USB_MSB250X_DEBUG
+        boolean "MSB250X udc debug messages"
+        depends on USB_GADGET_MSB250X
+
+config USB_MSB250X_PROC
+        boolean "MSB250X udc proc system"
+        depends on USB_GADGET_MSB250X && PROC_FS
+
+config USB_MSB250X_FPGA
+        boolean "MSB250X udc FPGA verification only"
+        depends on USB_GADGET_MSB250X
+
+config USB_CHARGER_DETECT
+        boolean "MSB250X udc charger detection"
+        depends on USB_GADGET_MSB250X
+        #default y

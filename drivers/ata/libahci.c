@@ -47,6 +47,10 @@
 #include "ahci.h"
 #include "libata.h"
 
+#ifdef CONFIG_SSTAR_SATA_AHCI_PLATFORM_HOST
+extern void Chip_Flush_Memory(void);
+#endif
+
 static int ahci_skip_host_reset;
 int ahci_ignore_sss;
 EXPORT_SYMBOL_GPL(ahci_ignore_sss);
@@ -199,6 +203,59 @@ MODULE_PARM_DESC(ahci_em_messages,
 static int devslp_idle_timeout __read_mostly = 1000;
 module_param(devslp_idle_timeout, int, 0644);
 MODULE_PARM_DESC(devslp_idle_timeout, "device sleep idle timeout");
+
+#ifdef CONFIG_SSTAR_SATA_AHCI_PLATFORM_HOST
+enum {
+    E_PORT_SPEED_MASK = (0xF << 4),
+    E_PORT_SPEED_NO_RESTRICTION = (0x0 < 4),
+    E_PORT_SPEED_GEN1 = (0x1 << 4),
+    E_PORT_SPEED_GEN2 = (0x2 << 4),
+    E_PORT_SPEED_GEN3 = (0x3 << 4),
+};
+
+#define MIU_INTERVAL_SATA 0x60000000
+static int ahci_port_max_speed = E_PORT_SPEED_GEN3;
+
+phys_addr_t ahci_sata_bus_address(phys_addr_t phy_address)
+{
+    if (phy_address >= MIU_INTERVAL_SATA)
+    {
+        return phy_address + 0x20000000;
+    }
+    else
+    {
+        return phy_address - 0x20000000;
+    }
+}
+
+u32 ahci_sata_get_max_speed(void)
+{
+    return ahci_port_max_speed;
+}
+
+int ahci_port_set_max_speed(void __iomem *port_mmio)
+{
+    u32 temp;
+    // set to speed limit with gen 1, gen 2 or auto
+
+    temp = readl(port_mmio + PORT_SCR_CTL);
+    temp = temp & (~E_PORT_SPEED_MASK);
+    temp = temp | ahci_sata_get_max_speed();
+    writel(temp, port_mmio + PORT_SCR_CTL);
+    //printk("[ahci_port_set_max_speed]MAC SATA SPEED= 0x%x\n", temp);
+    return 0;
+}
+
+int ahci_port_save_max_speed(void __iomem *port_mmio, u32 *PortMaxSpeed)
+{
+    u32 temp;
+
+    temp = readl(port_mmio + PORT_SCR_CTL);
+    *PortMaxSpeed = temp & (E_PORT_SPEED_MASK);
+    //printk("==== Save Old SPEED= 0x%x\n", *PortMaxSpeed);
+    return 0;
+}
+#endif
 
 static void ahci_enable_ahci(void __iomem *mmio)
 {
@@ -443,7 +500,9 @@ void ahci_save_initial_config(struct device *dev, struct ahci_host_priv *hpriv)
 	int i;
 
 	/* make sure AHCI mode is enabled before accessing CAP */
+#ifdef CONFIG_SSTAR_SATA_AHCI_PLATFORM_HOST // Not required as this has already been done in sstar driver
 	ahci_enable_ahci(mmio);
+#endif
 
 	/* Values prefixed with saved_ are written back to host after
 	 * reset.  Values without are used for driver operation.
@@ -580,7 +639,7 @@ static void ahci_restore_initial_config(struct ata_host *host)
 	(void) readl(mmio + HOST_PORTS_IMPL);	/* flush */
 }
 
-static unsigned ahci_scr_offset(struct ata_port *ap, unsigned int sc_reg)
+unsigned ahci_scr_offset(struct ata_port *ap, unsigned int sc_reg)
 {
 	static const int offset[] = {
 		[SCR_STATUS]		= PORT_SCR_STAT,
@@ -596,8 +655,9 @@ static unsigned ahci_scr_offset(struct ata_port *ap, unsigned int sc_reg)
 		return offset[sc_reg];
 	return 0;
 }
+EXPORT_SYMBOL_GPL(ahci_scr_offset);
 
-static int ahci_scr_read(struct ata_link *link, unsigned int sc_reg, u32 *val)
+int ahci_scr_read(struct ata_link *link, unsigned int sc_reg, u32 *val)
 {
 	void __iomem *port_mmio = ahci_port_base(link->ap);
 	int offset = ahci_scr_offset(link->ap, sc_reg);
@@ -608,8 +668,9 @@ static int ahci_scr_read(struct ata_link *link, unsigned int sc_reg, u32 *val)
 	}
 	return -EINVAL;
 }
+EXPORT_SYMBOL_GPL(ahci_scr_read);
 
-static int ahci_scr_write(struct ata_link *link, unsigned int sc_reg, u32 val)
+int ahci_scr_write(struct ata_link *link, unsigned int sc_reg, u32 val)
 {
 	void __iomem *port_mmio = ahci_port_base(link->ap);
 	int offset = ahci_scr_offset(link->ap, sc_reg);
@@ -620,6 +681,7 @@ static int ahci_scr_write(struct ata_link *link, unsigned int sc_reg, u32 val)
 	}
 	return -EINVAL;
 }
+EXPORT_SYMBOL_GPL(ahci_scr_write);
 
 void ahci_start_engine(struct ata_port *ap)
 {
@@ -904,6 +966,10 @@ int ahci_reset_controller(struct ata_host *host)
 	struct ahci_host_priv *hpriv = host->private_data;
 	void __iomem *mmio = hpriv->mmio;
 	u32 tmp;
+
+#ifdef CONFIG_SSTAR_SATA_AHCI_PLATFORM_HOST
+    ahci_port_save_max_speed((mmio + 0x100), &ahci_port_max_speed);
+#endif
 
 	/* we must be in AHCI mode, before using anything
 	 * AHCI-specific, such as HOST_RESET.
@@ -1214,6 +1280,11 @@ static void ahci_port_init(struct device *dev, struct ata_port *ap,
 	tmp = readl(port_mmio + PORT_CMD);
 	if ((tmp & PORT_CMD_ESP) && (hpriv->cap & HOST_CAP_SXS))
 		ap->pflags |= ATA_PFLAG_EXTERNAL;
+
+#ifdef CONFIG_SSTAR_SATA_AHCI_PLATFORM_HOST
+	//printk("PR.PxSCTL.spd=0 - set speed GEN1\n");
+    ahci_port_set_max_speed(port_mmio);
+#endif
 }
 
 void ahci_init_controller(struct ata_host *host)
@@ -1280,6 +1351,9 @@ void ahci_fill_cmd_slot(struct ahci_port_priv *pp, unsigned int tag,
 	pp->cmd_slot[tag].status = 0;
 	pp->cmd_slot[tag].tbl_addr = cpu_to_le32(cmd_tbl_dma & 0xffffffff);
 	pp->cmd_slot[tag].tbl_addr_hi = cpu_to_le32((cmd_tbl_dma >> 16) >> 16);
+#ifdef CONFIG_SSTAR_SATA_AHCI_PLATFORM_HOST
+	Chip_Flush_Memory();
+#endif
 }
 EXPORT_SYMBOL_GPL(ahci_fill_cmd_slot);
 
@@ -1585,9 +1659,13 @@ static unsigned int ahci_fill_sg(struct ata_queued_cmd *qc, void *cmd_tbl)
 	for_each_sg(qc->sg, sg, qc->n_elem, si) {
 		dma_addr_t addr = sg_dma_address(sg);
 		u32 sg_len = sg_dma_len(sg);
-
+#ifdef CONFIG_SSTAR_SATA_AHCI_PLATFORM_HOST
+        ahci_sg[si].addr = (u32)(ahci_sata_bus_address(cpu_to_le32(addr & 0xffffffff)));
+        ahci_sg[si].addr_hi = (u32)(ahci_sata_bus_address(cpu_to_le32((addr >> 16) >> 16)));
+#else
 		ahci_sg[si].addr = cpu_to_le32(addr & 0xffffffff);
 		ahci_sg[si].addr_hi = cpu_to_le32((addr >> 16) >> 16);
+#endif
 		ahci_sg[si].flags_size = cpu_to_le32(sg_len - 1);
 	}
 
@@ -1845,7 +1923,11 @@ static void ahci_handle_port_interrupt(struct ata_port *ap,
 		}
 	} else {
 		/* pp->active_link is valid iff any command is in flight */
+#ifdef CONFIG_SSTAR_SATA_AHCI_PLATFORM_HOST
 		if (ap->qc_active && pp->active_link->sactive)
+#else
+		if (ap->qc_active && ap->sactive)
+#endif
 			qc_active = readl(port_mmio + PORT_SCR_ACT);
 		else
 			qc_active = readl(port_mmio + PORT_CMD_ISSUE);
@@ -2039,6 +2121,16 @@ static void ahci_thaw(struct ata_port *ap)
 	writel(tmp, port_mmio + PORT_IRQ_STAT);
 	writel(1 << ap->port_no, mmio + HOST_IRQ_STAT);
 
+#ifdef CONFIG_SSTAR_SATA_AHCI_PLATFORM_HOST
+    // Clear Port 0 IRQ on HBA
+    tmp = readl(HOST_IRQ_STAT + mmio);
+    writel(tmp, HOST_IRQ_STAT + mmio);
+
+    //tmp = readl(mmio + HOST_CTL);
+    //writel(tmp | HOST_IRQ_EN, mmio + HOST_CTL);
+    //tmp = readl(mmio + HOST_CTL);
+#endif
+
 	/* turn IRQ back on */
 	writel(pp->intr_mask, port_mmio + PORT_IRQ_MASK);
 }
@@ -2221,8 +2313,9 @@ static void ahci_pmp_attach(struct ata_port *ap)
 	cmd = readl(port_mmio + PORT_CMD);
 	cmd |= PORT_CMD_PMP;
 	writel(cmd, port_mmio + PORT_CMD);
-
+#ifdef CONFIG_SSTAR_SATA_AHCI_PLATFORM_HOST
 	ahci_enable_fbs(ap);
+#endif
 
 	pp->intr_mask |= PORT_IRQ_BAD_PMP;
 
@@ -2257,11 +2350,33 @@ static void ahci_pmp_detach(struct ata_port *ap)
 		writel(pp->intr_mask, port_mmio + PORT_IRQ_MASK);
 }
 
+#ifdef CONFIG_SSTAR_SATA_AHCI_PLATFORM_HOST
+int ahci_port_clear_is(struct ata_port *ap)
+{
+    //struct ahci_host_priv *hpriv = ap->host->private_data;
+    void __iomem *port_mmio = ahci_port_base(ap);
+    u32 tmp;
+
+    // Clear IS , Interrupt Status
+    /* clear SError */
+    tmp = readl(port_mmio + PORT_SCR_ERR);
+    writel(0xFFFFFFFF/*tmp^0x1*/, port_mmio + PORT_IRQ_STAT);
+    writel(0xFFFFFFFF/*tmp^(0x1<<2)*/, port_mmio + PORT_SCR_ERR);
+
+    ahci_port_set_max_speed(port_mmio);
+
+    return 0;
+}
+#endif
+
 int ahci_port_resume(struct ata_port *ap)
 {
 	ahci_rpm_get_port(ap);
 
 	ahci_power_up(ap);
+#ifdef CONFIG_SSTAR_SATA_AHCI_PLATFORM_HOST
+	ahci_port_clear_is(ap);
+#endif
 	ahci_start_port(ap);
 
 	if (sata_pmp_attached(ap))
@@ -2348,6 +2463,10 @@ static int ahci_port_start(struct ata_port *ap)
 	 * 32 bytes each in size
 	 */
 	pp->cmd_slot = mem;
+#ifdef CONFIG_SSTAR_SATA_AHCI_PLATFORM_HOST
+	// Translate physical address to bus address since SATA engine uses bus address.
+	mem_dma = (dma_addr_t)ahci_sata_bus_address(mem_dma);
+#endif
 	pp->cmd_slot_dma = mem_dma;
 
 	mem += AHCI_CMD_SLOT_SZ;

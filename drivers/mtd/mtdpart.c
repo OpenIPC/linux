@@ -54,6 +54,178 @@ static inline struct mtd_part *mtd_to_part(const struct mtd_info *mtd)
 	return container_of(mtd, struct mtd_part, mtd);
 }
 
+#ifdef CONFIG_SKIP_SQUASHFS_BAD_BLOCK
+#include <linux/mtd/nand.h>
+#define MAX_PARTITION_MAPPING   4
+
+struct part_map{
+    struct mtd_info *part_mtd;  /* Mapping partition mtd */
+    unsigned *map_table;        /* Mapping from logic block to phys block */
+    unsigned nBlock;            /* Logic block number */
+};
+
+static struct part_map *part_mapping[MAX_PARTITION_MAPPING];
+static int part_mapping_count = -1;
+
+static loff_t ajust_offset(struct mtd_info *mtd, loff_t from)
+{
+    struct mtd_part *part = mtd_to_part(mtd);
+    struct nand_chip *this = part->master->priv;
+    unsigned logic_b, phys_b;
+    unsigned index;
+
+    if(part_mapping_count <= 0)
+        return from;
+
+    for( index = 0; index < MAX_PARTITION_MAPPING; index++ )
+    {
+        if(!part_mapping[index] || part_mapping[index]->part_mtd != mtd)
+            continue;
+
+        /* remap from logic block to physical block */
+        logic_b = from >> this->bbt_erase_shift;
+        if ( logic_b < part_mapping[index]->nBlock )
+        {
+            phys_b = part_mapping[index]->map_table[logic_b];
+            from = phys_b << this->bbt_erase_shift | (from&(mtd->erasesize-1));
+            break;
+        }
+    }
+
+    return from;
+}
+
+static int part_create_partition_mapping ( struct mtd_info *part_mtd )
+{
+    struct mtd_part *part = mtd_to_part(part_mtd);
+    struct nand_chip *this = part->master->priv;
+    struct part_map *map_part;
+    int index;
+    unsigned offset;
+    int logical_b, phys_b;
+
+    if (!part_mtd || !this || part_mtd->type == MTD_NORFLASH)
+    {
+        printk("null mtd or it is no nand chip!");
+        return -1;
+    }
+
+    if ( part_mapping_count < 0 )
+    {
+        /* Init the part mapping table when this function called first time */
+        memset(part_mapping, 0, sizeof(struct part_map *)*MAX_PARTITION_MAPPING);
+        part_mapping_count = 0;
+    }
+
+    for ( index = 0; index < MAX_PARTITION_MAPPING; index++ )
+    {
+        if ( part_mapping[index] == NULL )
+            break;
+    }
+
+    if ( index >= MAX_PARTITION_MAPPING )
+    {
+        printk("partition mapping is full!");
+        return -1;
+    }
+
+    map_part = kmalloc(sizeof(struct part_map), GFP_KERNEL);
+    if ( !map_part )
+    {
+        printk ("memory allocation error while creating partitions mapping for %s/n",
+                part_mtd->name);
+        return -1;
+    }
+
+    map_part->map_table = kmalloc(sizeof(unsigned)*(part_mtd->size>>this->bbt_erase_shift),
+                                  GFP_KERNEL);
+    if ( !map_part->map_table )
+    {
+        printk ("memory allocation error while creating partitions mapping for %s/n", part_mtd->name);
+        kfree(map_part);
+        return -1;
+    }
+    memset(map_part->map_table, 0xFF, sizeof(unsigned)*(part_mtd->size>>this->bbt_erase_shift));
+
+    /* Create partition mapping table */
+    logical_b = 0;
+    for ( offset=0; offset<part_mtd->size; offset+=part_mtd->erasesize )
+    {
+        if ( part_mtd->_block_isbad &&
+             part_mtd->_block_isbad(part_mtd, offset) )
+             continue;
+
+        phys_b = offset >> this->bbt_erase_shift;
+        map_part->map_table[logical_b] = phys_b;
+        //printk("part[%s]: logic[%u]=phys[%u]\n",part_mtd->name, logical_b, phys_b);
+        logical_b++;
+    }
+    map_part->nBlock = logical_b;
+    map_part->part_mtd = part_mtd;
+
+    part_mapping[index] = map_part;
+    part_mapping_count++;
+
+    return 0;
+}
+
+static void part_del_partition_mapping( struct mtd_info *part_mtd )
+{
+    int index;
+    struct part_map *map_part;
+
+    if (part_mapping_count <= 0)
+        return;
+
+    for (index = 0; index < MAX_PARTITION_MAPPING; index++ )
+    {
+        map_part = part_mapping[index];
+
+        if(!map_part || map_part->part_mtd != part_mtd)
+            continue;
+
+        kfree(map_part->map_table);
+        kfree(map_part);
+        part_mapping[index] = NULL;
+        part_mapping_count--;
+    }
+}
+
+static int part_is_squashfs( struct mtd_info *part_mtd )
+{
+	struct mtd_part *part = mtd_to_part(part_mtd);
+    struct nand_chip *this = part->master->priv;
+
+    u_char buf[16];
+    size_t retlen;
+    unsigned offset;
+
+    if (!part_mtd || !this || part_mtd->type == MTD_NORFLASH)
+    {
+        //printk("null mtd or it is no nand chip!");
+        return 0;
+    }
+
+    for (offset=0; offset<part_mtd->erasesize*2; offset+=part_mtd->erasesize)
+    {
+        if (part_mtd->_block_isbad &&
+             part_mtd->_block_isbad(part_mtd, offset))
+             continue;
+
+        if(part_mtd->_read)
+        {
+            part_mtd->_read(part_mtd, offset, 16, &retlen, buf);
+            if(!memcmp(buf, "hsqs", 4))
+            {
+                //printk("%s:%d partition is squashfs\n", __func__, __LINE__);
+                return 1;
+            }
+        }
+    }
+
+    return 0;
+}
+#endif
 
 /*
  * MTD methods which simply translate the effective address and pass through
@@ -66,6 +238,10 @@ static int part_read(struct mtd_info *mtd, loff_t from, size_t len,
 	struct mtd_part *part = mtd_to_part(mtd);
 	struct mtd_ecc_stats stats;
 	int res;
+
+	#ifdef CONFIG_SKIP_SQUASHFS_BAD_BLOCK
+	from = ajust_offset(mtd, from);
+	#endif
 
 	stats = part->master->ecc_stats;
 	res = part->master->_read(part->master, from + part->offset, len,
@@ -112,6 +288,10 @@ static int part_read_oob(struct mtd_info *mtd, loff_t from,
 {
 	struct mtd_part *part = mtd_to_part(mtd);
 	int res;
+
+	#ifdef CONFIG_SKIP_SQUASHFS_BAD_BLOCK
+	from = ajust_offset(mtd, from);
+	#endif
 
 	if (from >= mtd->size)
 		return -EINVAL;
@@ -368,6 +548,9 @@ int del_mtd_partitions(struct mtd_info *master)
 	mutex_lock(&mtd_partitions_mutex);
 	list_for_each_entry_safe(slave, next, &mtd_partitions, list)
 		if (slave->master == master) {
+			#ifdef CONFIG_SKIP_SQUASHFS_BAD_BLOCK
+			part_del_partition_mapping(&slave->mtd);
+			#endif
 			ret = del_mtd_device(&slave->mtd);
 			if (ret < 0) {
 				err = ret;
@@ -649,8 +832,13 @@ int mtd_add_partition(struct mtd_info *master, const char *name,
 	mutex_unlock(&mtd_partitions_mutex);
 
 	add_mtd_device(&new->mtd);
-
+	
 	mtd_add_partition_attrs(new);
+
+    #ifdef CONFIG_SKIP_SQUASHFS_BAD_BLOCK
+        if(part_is_squashfs(&new->mtd))
+            part_create_partition_mapping(&new->mtd);
+    #endif
 
 	return ret;
 }
@@ -667,6 +855,11 @@ int mtd_del_partition(struct mtd_info *master, int partno)
 		    (slave->mtd.index == partno)) {
 			sysfs_remove_files(&slave->mtd.dev.kobj,
 					   mtd_partition_attrs);
+
+            #ifdef CONFIG_SKIP_SQUASHFS_BAD_BLOCK
+            part_del_partition_mapping(&slave->mtd);
+            #endif
+
 			ret = del_mtd_device(&slave->mtd);
 			if (ret < 0)
 				break;
@@ -713,6 +906,11 @@ int add_mtd_partitions(struct mtd_info *master,
 
 		add_mtd_device(&slave->mtd);
 		mtd_add_partition_attrs(slave);
+
+		#ifdef CONFIG_SKIP_SQUASHFS_BAD_BLOCK
+            if(part_is_squashfs(&slave->mtd))
+                part_create_partition_mapping(&slave->mtd);
+        #endif
 
 		cur_offset = slave->offset + slave->mtd.size;
 	}
@@ -891,3 +1089,7 @@ uint64_t mtd_get_device_size(const struct mtd_info *mtd)
 	return mtd_to_part(mtd)->master->size;
 }
 EXPORT_SYMBOL_GPL(mtd_get_device_size);
+#if defined(CONFIG_MS_NAND) || defined(CONFIG_MS_NAND_MODULE) || defined(CONFIG_MS_SPINAND)|| defined(CONFIG_MS_SPINAND_MODULE)
+EXPORT_SYMBOL_GPL(parse_mtd_partitions);
+EXPORT_SYMBOL_GPL(add_mtd_partitions);
+#endif

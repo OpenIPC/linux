@@ -1,0 +1,5 @@
+config MS_PADMUX
+    tristate "padmux driver"
+    default n
+    help
+

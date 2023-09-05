@@ -1,0 +1,47 @@
+menuconfig ARCH_SSTAR
+    bool "SStar ARM SoCs"
+
+if ARCH_SSTAR
+
+config LH_RTOS
+    bool "Enable Hypervisor" if ARCH_MULTI_V7
+    help
+      Enable LH + RTOS.
+
+comment "Options"
+config MS_BUILTIN_DTB
+    string "Builtin DTB"
+    default ""
+
+config MS_L2X0_PATCH
+    bool "L2X0 patch"
+    depends on CACHE_L2X0
+    default y
+
+config MS_KERNEL_TYPE
+	string 
+	default ""
+	
+config MS_ARMV7_XIP
+    bool
+    default y
+	depends on XIP_KERNEL
+
+
+config SSTAR_CHIP_FOLDER
+    string
+    option env="SSTAR_CHIP_MODEL"
+
+config SSTAR_CHIP_NAME
+    string
+    default SSTAR_CHIP_FOLDER
+    
+config SKIP_SQUASHFS_BAD_BLOCK
+    bool "Skip squashfs bad block"
+    depends on MTD
+    default y
+
+source "arch/arm/mach-sstar/$SSTAR_CHIP_NAME/Kconfig"
+
+endif
+

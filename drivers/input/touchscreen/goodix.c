@@ -19,6 +19,7 @@
 #include <linux/dmi.h>
 #include <linux/firmware.h>
 #include <linux/gpio/consumer.h>
+#include <linux/gpio.h>
 #include <linux/i2c.h>
 #include <linux/input.h>
 #include <linux/input/mt.h>
@@ -121,7 +122,6 @@ static int goodix_i2c_read(struct i2c_client *client,
 	struct i2c_msg msgs[2];
 	u16 wbuf = cpu_to_be16(reg);
 	int ret;
-
 	msgs[0].flags = 0;
 	msgs[0].addr  = client->addr;
 	msgs[0].len   = 2;
@@ -131,7 +131,6 @@ static int goodix_i2c_read(struct i2c_client *client,
 	msgs[1].addr  = client->addr;
 	msgs[1].len   = len;
 	msgs[1].buf   = buf;
-
 	ret = i2c_transfer(client->adapter, msgs, 2);
 	return ret < 0 ? ret : (ret != ARRAY_SIZE(msgs) ? -EIO : 0);
 }
@@ -397,29 +396,36 @@ static int goodix_int_sync(struct goodix_ts_data *ts)
 static int goodix_reset(struct goodix_ts_data *ts)
 {
 	int error;
+    unsigned gpio_rst;
+    unsigned gpio_int;
+    gpio_rst = desc_to_gpio(ts->gpiod_rst);
+    gpio_int = desc_to_gpio(ts->gpiod_int);
+
+    gpio_request(gpio_rst,"touchscreen_rst");
+    gpio_request(gpio_int,"touchscreen_int");
 
 	/* begin select I2C slave addr */
-	error = gpiod_direction_output(ts->gpiod_rst, 0);
+	error = gpio_direction_output(gpio_rst, 0);
 	if (error)
 		return error;
 
 	msleep(20);				/* T2: > 10ms */
 
 	/* HIGH: 0x28/0x29, LOW: 0xBA/0xBB */
-	error = gpiod_direction_output(ts->gpiod_int, ts->client->addr == 0x14);
+	error = gpio_direction_output(gpio_int, ts->client->addr == 0x14);
 	if (error)
 		return error;
 
 	usleep_range(100, 2000);		/* T3: > 100us */
 
-	error = gpiod_direction_output(ts->gpiod_rst, 1);
+	error = gpio_direction_output(gpio_rst, 1);
 	if (error)
 		return error;
 
 	usleep_range(6000, 10000);		/* T4: > 5ms */
 
 	/* end select I2C slave addr */
-	error = gpiod_direction_input(ts->gpiod_rst);
+	error = gpio_direction_input(gpio_rst);
 	if (error)
 		return error;
 
@@ -435,6 +441,7 @@ static int goodix_reset(struct goodix_ts_data *ts)
  *
  * @ts: goodix_ts_data pointer
  */
+/*
 static int goodix_get_gpio_config(struct goodix_ts_data *ts)
 {
 	int error;
@@ -445,7 +452,7 @@ static int goodix_get_gpio_config(struct goodix_ts_data *ts)
 		return -EINVAL;
 	dev = &ts->client->dev;
 
-	/* Get the interrupt GPIO pin number */
+	//Get the interrupt GPIO pin number
 	gpiod = devm_gpiod_get_optional(dev, GOODIX_GPIO_INT_NAME, GPIOD_IN);
 	if (IS_ERR(gpiod)) {
 		error = PTR_ERR(gpiod);
@@ -454,10 +461,9 @@ static int goodix_get_gpio_config(struct goodix_ts_data *ts)
 				GOODIX_GPIO_INT_NAME, error);
 		return error;
 	}
-
 	ts->gpiod_int = gpiod;
 
-	/* Get the reset line GPIO pin number */
+	//Get the reset line GPIO pin number
 	gpiod = devm_gpiod_get_optional(dev, GOODIX_GPIO_RST_NAME, GPIOD_IN);
 	if (IS_ERR(gpiod)) {
 		error = PTR_ERR(gpiod);
@@ -471,7 +477,7 @@ static int goodix_get_gpio_config(struct goodix_ts_data *ts)
 
 	return 0;
 }
-
+*/
 /**
  * goodix_read_config - Read the embedded configuration of the panel
  *
@@ -678,7 +684,6 @@ static void goodix_config_cb(const struct firmware *cfg, void *ctx)
 		if (error)
 			goto err_release_cfg;
 	}
-
 	goodix_configure_dev(ts);
 
 err_release_cfg:
@@ -691,6 +696,8 @@ static int goodix_ts_probe(struct i2c_client *client,
 {
 	struct goodix_ts_data *ts;
 	int error;
+    u32 gpiod_rst;
+    u32 gpiod_int;
 
 	dev_dbg(&client->dev, "I2C Address: 0x%02x\n", client->addr);
 
@@ -707,10 +714,18 @@ static int goodix_ts_probe(struct i2c_client *client,
 	i2c_set_clientdata(client, ts);
 	init_completion(&ts->firmware_loading_complete);
 
+    if(0 != of_property_read_u32(client->dev.of_node, "reset-gpio", &gpiod_rst))
+        return -EINVAL;
+    ts->gpiod_rst = gpio_to_desc(gpiod_rst);
+    if(0 != of_property_read_u32(client->dev.of_node, "irq-gpio", &gpiod_int))
+        return -EINVAL;
+    ts->client->irq = gpio_to_irq(gpiod_int);
+    ts->gpiod_int = gpio_to_desc(gpiod_int);
+    /*
 	error = goodix_get_gpio_config(ts);
 	if (error)
 		return error;
-
+    */
 	if (ts->gpiod_int && ts->gpiod_rst) {
 		/* reset the controller */
 		error = goodix_reset(ts);

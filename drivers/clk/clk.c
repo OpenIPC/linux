@@ -796,7 +796,12 @@ unlock_out:
 		clk_core_disable_unprepare(core->parent);
 }
 
+#ifdef	CONFIG_LH_RTOS
+/* for dual OS system, not to off clocks that may be used in RTOS. */
+static bool clk_ignore_unused = true;
+#else
 static bool clk_ignore_unused;
+#endif
 static int __init clk_ignore_unused_setup(char *__unused)
 {
 	clk_ignore_unused = true;

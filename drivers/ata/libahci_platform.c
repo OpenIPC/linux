@@ -362,9 +362,12 @@ struct ahci_host_priv *ahci_platform_get_resources(struct platform_device *pdev)
 		goto err_out;
 
 	devres_add(dev, hpriv);
-
-	hpriv->mmio = devm_ioremap_resource(dev,
+#ifdef CONFIG_SSTAR_SATA_AHCI_PLATFORM_HOST
+	hpriv->mmio = (void __iomem *)(platform_get_resource(pdev, IORESOURCE_MEM, 0)->start);
+#else
+    hpriv->mmio = devm_ioremap_resource(dev,
 			      platform_get_resource(pdev, IORESOURCE_MEM, 0));
+#endif
 	if (IS_ERR(hpriv->mmio)) {
 		dev_err(dev, "no mmio space\n");
 		rc = PTR_ERR(hpriv->mmio);
@@ -596,7 +599,16 @@ EXPORT_SYMBOL_GPL(ahci_platform_init_host);
 
 static void ahci_host_stop(struct ata_host *host)
 {
+#ifdef CONFIG_SSTAR_SATA_AHCI_PLATFORM_HOST
+    struct device *dev = host->dev;
+    struct ahci_platform_data *pdata = dev_get_platdata(dev);
+#endif
 	struct ahci_host_priv *hpriv = host->private_data;
+
+#ifdef CONFIG_SSTAR_SATA_AHCI_PLATFORM_HOST
+    if (pdata && pdata->exit)
+        pdata->exit(dev);
+#endif
 
 	ahci_platform_disable_resources(hpriv);
 }

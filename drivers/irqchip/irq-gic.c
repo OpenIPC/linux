@@ -378,6 +378,13 @@ static void __exception_irq_entry gic_handle_irq(struct pt_regs *regs)
 			 */
 			smp_rmb();
 			handle_IPI(irqnr, regs);
+#elif	defined(CONFIG_LH_RTOS)
+			{
+				void handle_rsq(int);
+				irq_enter();
+				handle_rsq(irqnr);
+				irq_exit();
+			}
 #endif
 			continue;
 		}

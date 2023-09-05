@@ -1,0 +1,16 @@
+config ARCH_INFINITY2M
+    bool "SoC iNfinity2m (ARCH_MULTI_V7)" if ARCH_MULTI_V7
+    select SOC_BUS
+    select ARM_GIC
+    select VFP
+    select VFPv3
+    select WIRELESS_EXT if WIRELESS && NET
+    select WEXT_PRIV    if WIRELESS && NET
+    help
+      Support for iNfinity2m SoC
+
+config INFINITY2M_FPGA
+    bool "iNfinity2m FPGA environment" if ARCH_INFINITY2M
+    depends on ARCH_INFINITY2M
+    help
+      Support for iNfinity2m FPGA environment

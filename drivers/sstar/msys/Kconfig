@@ -1,0 +1,11 @@
+config MS_MSYS
+    bool 
+    default y
+    
+config MS_ZEN
+    bool
+    default y
+
+config MS_MSYS_LOG
+    bool "Log Redirection"
+    default n

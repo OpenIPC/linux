@@ -143,6 +143,13 @@ static struct uvc_format_desc uvc_fmts[] = {
 		.guid		= UVC_GUID_FORMAT_BGR3,
 		.fcc		= V4L2_PIX_FMT_BGR24,
 	},
+#if defined(CONFIG_SS_HOST_UVC) || defined(CONFIG_SS_HOST_UVC_MODULE)
+	{
+		.name		= "H.265",
+		.guid		= UVC_GUID_FORMAT_H265,
+		.fcc		= V4L2_PIX_FMT_H265,
+	},
+#endif
 	{
 		.name		= "H.264",
 		.guid		= UVC_GUID_FORMAT_H264,

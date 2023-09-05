@@ -4,7 +4,7 @@
 # 15 Aug 2000, Christoph Hellwig <hch@infradead.org>
 # Rewritten to use lists instead of if-statements.
 #
-
+EXTRA_CFLAGS      += -Idrivers/sstar/include/$(CONFIG_SSTAR_CHIP_NAME)/usb
 ccflags-y := -Idrivers/scsi
 
 obj-$(CONFIG_USB_UAS)		+= uas.o

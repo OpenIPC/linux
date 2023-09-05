@@ -2,8 +2,11 @@
 #define _FAT_H
 
 #include <linux/buffer_head.h>
+#include <linux/string.h>
 #include <linux/nls.h>
+#include <linux/fs.h>
 #include <linux/hash.h>
+#include <linux/mutex.h>
 #include <linux/ratelimit.h>
 #include <linux/msdos_fs.h>
 
@@ -283,6 +286,9 @@ static inline void fatwchar_to16(__u8 *dst, const wchar_t *src, size_t len)
 
 /* fat/cache.c */
 extern void fat_cache_inval_inode(struct inode *inode);
+#ifdef CONFIG_MP_KERNEL_COMPAT_PATCH_FIX_INODE_CLUSTER_LIST
+extern int fat_fix_inode_cluster(struct inode *inode, int *fclus,  int max_clus);
+#endif
 extern int fat_get_cluster(struct inode *inode, int cluster,
 			   int *fclus, int *dclus);
 extern int fat_get_mapped_cluster(struct inode *inode, sector_t sector,

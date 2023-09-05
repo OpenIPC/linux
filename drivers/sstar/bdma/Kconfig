@@ -1,0 +1,5 @@
+config MS_BDMA
+	bool "Mstar BDMA driver"
+	default n
+	help
+

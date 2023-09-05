@@ -99,6 +99,11 @@ config FAT_DEFAULT_IOCHARSET
 
 	  Enable any character sets you need in File Systems/Native Language
 	  Support.
+config MP_KERNEL_COMPAT_PATCH_FIX_INODE_CLUSTER_LIST
+	bool "fix fat mate data"
+	def_bool y
+	help
+	  This options for fix fat mate data
 
 config FAT_DEFAULT_UTF8
 	bool "Enable FAT UTF-8 option by default"

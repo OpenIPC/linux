@@ -11,12 +11,22 @@
  */
 
 #include <linux/module.h>
+#include <linux/init.h>
+#include <linux/time.h>
+#include <linux/slab.h>
+#include <linux/seq_file.h>
 #include <linux/pagemap.h>
 #include <linux/mpage.h>
+#include <linux/buffer_head.h>
+#include <linux/mount.h>
+#include <linux/aio.h>
 #include <linux/vfs.h>
 #include <linux/seq_file.h>
 #include <linux/parser.h>
 #include <linux/uio.h>
+#include <linux/writeback.h>
+#include <linux/log2.h>
+#include <linux/hash.h>
 #include <linux/blkdev.h>
 #include <linux/backing-dev.h>
 #include <asm/unaligned.h>
@@ -503,7 +513,9 @@ int fat_fill_inode(struct inode *inode, struct msdos_dir_entry *de)
 {
 	struct msdos_sb_info *sbi = MSDOS_SB(inode->i_sb);
 	int error;
-
+#ifdef CONFIG_MP_KERNEL_COMPAT_PATCH_FIX_INODE_CLUSTER_LIST
+	int fclus;
+#endif
 	MSDOS_I(inode)->i_pos = 0;
 	inode->i_uid = sbi->options.fs_uid;
 	inode->i_gid = sbi->options.fs_gid;
@@ -518,7 +530,23 @@ int fat_fill_inode(struct inode *inode, struct msdos_dir_entry *de)
 
 		MSDOS_I(inode)->i_start = fat_get_start(sbi, de);
 		MSDOS_I(inode)->i_logstart = MSDOS_I(inode)->i_start;
-		error = fat_calc_dir_size(inode);
+#ifdef CONFIG_MP_KERNEL_COMPAT_PATCH_FIX_INODE_CLUSTER_LIST
+        if(0 != fat_fix_inode_cluster(inode, &fclus, (inode->i_sb->s_maxbytes >> sbi->cluster_bits)))
+        {
+            printk("Detect FAT FS ERROR and it has already been fixed\n");
+        }
+#endif
+        if (sbi->max_cluster <= MSDOS_I(inode)->i_start)
+	    {
+            printk("invalid dir inode \n");
+
+            MSDOS_I(inode)->i_start = 0;    //for damaged inode(dir entry)
+            inode->i_size = 0;
+            error =  -EPERM;
+        }
+        else
+		    error = fat_calc_dir_size(inode);
+
 		if (error < 0)
 			return error;
 		MSDOS_I(inode)->mmu_private = inode->i_size;
@@ -541,6 +569,23 @@ int fat_fill_inode(struct inode *inode, struct msdos_dir_entry *de)
 		inode->i_fop = &fat_file_operations;
 		inode->i_mapping->a_ops = &fat_aops;
 		MSDOS_I(inode)->mmu_private = inode->i_size;
+#ifdef CONFIG_MP_KERNEL_COMPAT_PATCH_FIX_INODE_CLUSTER_LIST
+        if(0 == fat_fix_inode_cluster(inode, &fclus, (int)((inode->i_size+sbi->cluster_size-1)>>sbi->cluster_bits)))
+        {
+            if(inode->i_size>fclus*sbi->cluster_size || 0==fclus)
+            {
+                MSDOS_I(inode)->mmu_private = inode->i_size = fclus*sbi->cluster_size;
+                de->size = cpu_to_le32(inode->i_size);
+                if(0==fclus)
+                {
+                    MSDOS_I(inode)->i_start = 0;
+                    de->start = de->starthi = 0;
+                 }
+                 fat_sync_inode(inode);
+            }
+                  //mark_inode_dirty(inode);
+         }
+#endif
 	}
 	if (de->attr & ATTR_SYS) {
 		if (sbi->options.sys_immutable)

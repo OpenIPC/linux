@@ -1,0 +1,46 @@
+config MS_IR
+
+tristate "IR Remote Control Receiver"
+
+help
+    Titania IrDA driver function
+
+#===================================================
+# FANTASY PROTOCOL
+#===================================================
+if MS_IR
+
+config MS_IR_FANTASY_MODE
+  bool "Support fantasy protocol"
+  default n
+  help
+    Support fantasy protocol
+
+config MS_IR_INPUT_DEVICE
+  bool "IR input layer device"
+  default n
+  select VIDEO_IR
+  help
+    Use MStar IR driver as input layer device like keyboard,
+    This depend on VIDEO_IR and will auto enable it.
+
+config IR_SUPPLY_RNG
+bool "Supply to random number generator device"
+default n
+help
+    Supply to random number generator device
+
+config MS_IR_MULTIPLE_MODE
+  bool "Support multiple protocol"
+  default n
+  help
+    Support multiple protocol
+
+config MSTAR_PM_SWIR
+bool "Support PM receive SWIR decode"
+default n
+help
+    Support PM receive SWIR decode
+
+endif
+

@@ -27,21 +27,40 @@
 #define DRV_NAME "ahci"
 
 static const struct ata_port_info ahci_port_info = {
-	.flags		= AHCI_FLAG_COMMON,
+#ifdef CONFIG_SSTAR_SATA_AHCI_PLATFORM_HOST
+	.flags		= SATA_SSTAR_HOST_FLAGS,
 	.pio_mask	= ATA_PIO4,
 	.udma_mask	= ATA_UDMA6,
 	.port_ops	= &ahci_platform_ops,
+#else
+    .flags		= AHCI_FLAG_COMMON,
+	.pio_mask	= ATA_PIO4,
+	.udma_mask	= ATA_UDMA6,
+	.port_ops	= &ahci_platform_ops,
+#endif
 };
 
+#ifdef CONFIG_SSTAR_SATA_AHCI_PLATFORM_HOST
+static struct scsi_host_template ahci_platform_sht = {
+    AHCI_SHT("DRV_NAME"),
+    .can_queue = 31,//SATA_SSTAR_QUEUE_DEPTH,
+    .sg_tablesize = 24, //SATA_SSTAR_USED_PRD,
+    .dma_boundary = 0xffffUL, //ATA_DMA_BOUNDARY,
+};
+#else
 static struct scsi_host_template ahci_platform_sht = {
 	AHCI_SHT(DRV_NAME),
 };
+#endif
 
 static int ahci_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct ahci_host_priv *hpriv;
 	int rc;
+#ifdef CONFIG_SSTAR_SATA_AHCI_PLATFORM_HOST
+	struct ahci_platform_data *pdata = dev_get_platdata(dev);
+#endif
 
 	hpriv = ahci_platform_get_resources(pdev);
 	if (IS_ERR(hpriv))
@@ -57,6 +76,14 @@ static int ahci_probe(struct platform_device *pdev)
 	if (of_device_is_compatible(dev->of_node, "hisilicon,hisi-ahci"))
 		hpriv->flags |= AHCI_HFLAG_NO_FBS | AHCI_HFLAG_NO_NCQ;
 
+#ifdef CONFIG_SSTAR_SATA_AHCI_PLATFORM_HOST
+    if (pdata && pdata->init)
+    {
+        rc = pdata->init(dev, hpriv->mmio);
+        if (rc)
+            goto disable_resources;
+    }
+#endif
 	rc = ahci_platform_init_host(pdev, hpriv, &ahci_port_info,
 				     &ahci_platform_sht);
 	if (rc)

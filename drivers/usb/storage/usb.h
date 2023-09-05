@@ -205,6 +205,9 @@ extern int usb_stor_probe1(struct us_data **pus,
 		struct scsi_host_template *sht);
 extern int usb_stor_probe2(struct us_data *us);
 extern void usb_stor_disconnect(struct usb_interface *intf);
+#if defined(CONFIG_SUSPEND) && defined(CONFIG_MP_USB_STR_PATCH)
+extern bool is_suspending(void);
+#endif /* CONFIG_SUSPEND && CONFIG_MP_USB_STR_PATCH */
 
 extern void usb_stor_adjust_quirks(struct usb_device *dev,
 		unsigned long *fflags);

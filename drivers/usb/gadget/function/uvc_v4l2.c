@@ -23,6 +23,7 @@
 #include <media/v4l2-ioctl.h>
 
 #include "f_uvc.h"
+#include "u_uvc.h"
 #include "uvc.h"
 #include "uvc_queue.h"
 #include "uvc_video.h"
@@ -61,7 +62,10 @@ struct uvc_format
 
 static struct uvc_format uvc_formats[] = {
 	{ 16, V4L2_PIX_FMT_YUYV  },
+	{ 12, V4L2_PIX_FMT_NV12  },
 	{ 0,  V4L2_PIX_FMT_MJPEG },
+	{ 0,  V4L2_PIX_FMT_H264  },
+	{ 0,  V4L2_PIX_FMT_H265  },
 };
 
 static int
@@ -132,6 +136,7 @@ uvc_v4l2_set_format(struct file *file, void *fh, struct v4l2_format *fmt)
 	video->width = fmt->fmt.pix.width;
 	video->height = fmt->fmt.pix.height;
 	video->imagesize = imagesize;
+	video->max_payload_size = imagesize; // for bulk mode
 
 	fmt->fmt.pix.field = V4L2_FIELD_NONE;
 	fmt->fmt.pix.bytesperline = bpl;
@@ -172,7 +177,14 @@ uvc_v4l2_qbuf(struct file *file, void *fh, struct v4l2_buffer *b)
 	struct uvc_device *uvc = video_get_drvdata(vdev);
 	struct uvc_video *video = &uvc->video;
 	int ret;
-
+#if defined(CONFIG_SS_GADGET) ||defined(CONFIG_SS_GADGET_MODULE)
+	/* verify the FrameEnd flags */
+	if (b->reserved == 1)
+		video->queue.bFrameEnd = false;
+	else
+		video->queue.bFrameEnd = true;
+	b->reserved = 0;
+#endif
 	ret = uvcg_queue_buffer(&video->queue, b);
 	if (ret < 0)
 		return ret;
@@ -196,6 +208,9 @@ uvc_v4l2_streamon(struct file *file, void *fh, enum v4l2_buf_type type)
 	struct video_device *vdev = video_devdata(file);
 	struct uvc_device *uvc = video_get_drvdata(vdev);
 	struct uvc_video *video = &uvc->video;
+#if defined(CONFIG_SS_GADGET) ||defined(CONFIG_SS_GADGET_MODULE)
+	struct f_uvc_opts *opts = fi_to_f_uvc_opts(uvc->func.fi);
+#endif
 	int ret;
 
 	if (type != video->queue.queue.type)
@@ -206,12 +221,19 @@ uvc_v4l2_streamon(struct file *file, void *fh, enum v4l2_buf_type type)
 	if (ret < 0)
 		return ret;
 
+#if defined(CONFIG_SS_GADGET) ||defined(CONFIG_SS_GADGET_MODULE)
+	if (opts->bulk_streaming_ep)
+		uvc->state = UVC_STATE_STREAMING;
+	else
+#endif
+	{
 	/*
 	 * Complete the alternate setting selection setup phase now that
 	 * userspace is ready to provide video frames.
 	 */
-	uvc_function_setup_continue(uvc);
-	uvc->state = UVC_STATE_STREAMING;
+		uvc_function_setup_continue(uvc);
+		uvc->state = UVC_STATE_STREAMING;
+	}
 
 	return 0;
 }
@@ -231,7 +253,7 @@ uvc_v4l2_streamoff(struct file *file, void *fh, enum v4l2_buf_type type)
 
 static int
 uvc_v4l2_subscribe_event(struct v4l2_fh *fh,
-			 const struct v4l2_event_subscription *sub)
+			const struct v4l2_event_subscription *sub)
 {
 	if (sub->type < UVC_EVENT_FIRST || sub->type > UVC_EVENT_LAST)
 		return -EINVAL;
@@ -241,14 +263,14 @@ uvc_v4l2_subscribe_event(struct v4l2_fh *fh,
 
 static int
 uvc_v4l2_unsubscribe_event(struct v4l2_fh *fh,
-			   const struct v4l2_event_subscription *sub)
+			const struct v4l2_event_subscription *sub)
 {
 	return v4l2_event_unsubscribe(fh, sub);
 }
 
 static long
 uvc_v4l2_ioctl_default(struct file *file, void *fh, bool valid_prio,
-		       unsigned int cmd, void *arg)
+			unsigned int cmd, void *arg)
 {
 	struct video_device *vdev = video_devdata(file);
 	struct uvc_device *uvc = video_get_drvdata(vdev);
@@ -256,7 +278,6 @@ uvc_v4l2_ioctl_default(struct file *file, void *fh, bool valid_prio,
 	switch (cmd) {
 	case UVCIOC_SEND_RESPONSE:
 		return uvc_send_response(uvc, arg);
-
 	default:
 		return -ENOIOCTLCMD;
 	}
