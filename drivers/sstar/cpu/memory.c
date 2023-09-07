@@ -914,9 +914,9 @@ void __init prom_meminit(void)
     if ((linux_memory_address | linux_memory_length | linux_memory2_address | linux_memory2_length
                 | linux_memory3_address | linux_memory3_length) & (0x100000-1))
     {
-        printk("[ERROR] LX_MEM, LX_MEM2, LX_MEM3 should be aligned to 1MB\n");
-        printk("[ERROR] LX_MEM, LX_MEM2, LX_MEM3 should be aligned to 1MB\n");
-        printk("[ERROR] LX_MEM, LX_MEM2, LX_MEM3 should be aligned to 1MB\n");
+        //printk("[ERROR] LX_MEM, LX_MEM2, LX_MEM3 should be aligned to 1MB\n");
+        //printk("[ERROR] LX_MEM, LX_MEM2, LX_MEM3 should be aligned to 1MB\n");
+        //printk("[ERROR] LX_MEM, LX_MEM2, LX_MEM3 should be aligned to 1MB\n");
         //while(1); can't block it, it will cause printk message not output
     }
 
