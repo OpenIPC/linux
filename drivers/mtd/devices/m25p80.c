@@ -971,6 +971,11 @@ static const struct spi_device_id m25p_ids[] = {
 	M25P80_4_WIRE_ALL_SUPPORT) },
 	{ "XM25QH64A", INFO(0x207017, 0, 64 * 1024, 128, 0,
 	M25P80_4_WIRE_ALL_SUPPORT) },
+	
+	// BY25Q64AS 
+	{ "by25q64as", INFO(0x684017, 0, 64 * 1024, 128, 0, 0 )},
+
+
 	{ },
 };
 MODULE_DEVICE_TABLE(spi, m25p_ids);
