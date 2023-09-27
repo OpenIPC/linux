@@ -537,18 +537,18 @@
 
         sound {
             compatible = "sstar,audio";
-//            reg = <0x1F000000 0x1000000>;
+            //reg = <0x1F000000 0x1000000>;
             interrupts=<GIC_SPI INT_IRQ_BACH IRQ_TYPE_LEVEL_HIGH>;
             playback-volume-level=<64>;    //0~94
             capture-volume-level=<64>;
-           // micin-pregain-level=<1>;    //0~3
+            //micin-pregain-level=<1>;    //0~3
             micin-pregain-level=<0>;    //0~3
             micin-gain-level=<3>;    //0~7
             linein-gain-level=<2>;  //0~7
-            amp-gpio = <PAD_FUART_TX  1>; // QFN88: PAD_FUART_TX  QFN128: PAD_PM_GPIO0 
+            amp-gpio = <PAD_UNKNOWN 1>;
             clocks = <&CLK_upll_384m>;
 #ifdef CONFIG_CAM_CLK
-      camclk = <CAMCLK_upll_384m >;
+            camclk = <CAMCLK_upll_384m >;
 #endif
 
             /*
@@ -698,17 +698,6 @@
             clocks = <&CLK_rtc>;
 #ifdef CONFIG_CAM_CLK
       camclk = <CAMCLK_rtc >;
-#endif
-#if 0
-                tm_sec; /*秒 - 取值區間為[0, 59]*/  
-                tm_min; /*分 - 取值區間為[0, 59]*/  
-                tm_hour; /*時 - 取值區間為[0, 23]*/  
-                tm_mday; /*日 - 取值區間為[1, 31]*/  
-                tm_mon; /*月份 - 取值區間為[0, 11]*/  
-                tm_year; /*年份 - 其值為1900年至今年數*/  
-                tm_wday; /*星期 - 取值區間[0, 6]，0代表星期天，1代表星期1，以此類推*/  
-                tm_yday; /*從每年的1月1日開始的天數-取值區間為[0, 365]，0代表1月1日*/  
-            default_date = <0 0 0 5 10 83 6 0>;
 #endif
             status = "disabled";
         };
