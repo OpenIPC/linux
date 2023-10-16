@@ -7,6 +7,7 @@
  * the Free Software Foundation; either version 2 of the License.
  */
 
+#include <linux/device.h>
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/interrupt.h>
