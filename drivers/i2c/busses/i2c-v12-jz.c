@@ -436,7 +436,7 @@ static irqreturn_t i2c_jz_irq(int irqno, void *dev_id)
 #endif
 
 	if ((intst & I2C_INTST_TXABT) && (intmsk & I2C_INTM_MTXABT)) {
-		dev_err(&(i2c->adap.dev),
+		dev_dbg(&(i2c->adap.dev),
 				"%s %d, I2C transfer error, ABORT interrupt\n",
 				__func__, __LINE__);
 		goto END_TRSF_IRQ_HND;
@@ -567,10 +567,10 @@ static void txabrt(struct i2c_jz *i2c, int src)
 {
 	int i;
 
-	dev_err(&(i2c->adap.dev), "--I2C txabrt:\n");
+	dev_dbg(&(i2c->adap.dev), "--I2C txabrt:\n");
 	for (i = 0; i < 16; i++) {
 		if (src & (0x1 << i))
-			dev_info(&(i2c->adap.dev), "--I2C TXABRT[%d]=%s\n", i,
+			dev_dbg(&(i2c->adap.dev), "--I2C TXABRT[%d]=%s\n", i,
 					abrt_src[i]);
 	}
 }
