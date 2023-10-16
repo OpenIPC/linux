@@ -508,16 +508,24 @@ static int jz_gpio_request(struct gpio_chip *chip, unsigned offset)
 {
 	struct jzgpio_chip *jz = gpio2jz(chip);
 
+	int debug_level;
+
 	if(!test_bit(offset, jz->gpio_map)) {
-		printk(KERN_WARNING "gpio has conflict\n");
+		dev_dbg(chip->dev, "gpio has conflict\n");
 		return -EINVAL;
 	}
 	if(jz->dev_map[0] & (1 << offset)) {
-		printk("gpio:jz->reg = 0x%x\n", (unsigned int)jz->reg);
-		printk("gpio pin: 0x%x\n", 1 << offset);
-		printk("jz->dev_map[0]: 0x%x\n", (unsigned int)jz->dev_map[0]);
-		dump_stack();
-		printk("%s:gpio functions has redefinition", __FILE__);
+		dev_dbg(chip->dev, "gpio:jz->reg = 0x%x\n", (unsigned int)jz->reg);
+		dev_dbg(chip->dev, "gpio pin: 0x%x\n", 1 << offset);
+		dev_dbg(chip->dev, "jz->dev_map[0]: 0x%x\n", (unsigned int)jz->dev_map[0]);
+
+		// Get the debug level
+		debug_level = printk_get_level(KERN_DEBUG "debug");
+		if (debug_level <= console_loglevel) {
+			dump_stack();
+		}
+
+		dev_dbg(chip->dev, "%s:gpio functions has redefinition", __FILE__);
 	}
 	jz->dev_map[0] |= 1 << offset;
 
