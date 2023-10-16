@@ -332,9 +332,9 @@ static int enable_write(struct file *file, const char __user *buffer,size_t coun
 		else if(count && (buffer[0] == '0'))
 			clk_disable(tmp);
 		else
-                        printk("To control the state of an Ingenic SOC clock, use:\n"
-                               "\"echo 0 > /proc/jz/clock/[CLOCK_NAME]/enable\" to disable the clock\n"
-                               "\"echo 1 > /proc/jz/clock/[CLOCK_NAME]/enable\" to enable the clock\n");
+			printk("To control the state of an Ingenic SOC clock, use:\n"
+				"\"echo 0 > /proc/jz/clock/[CLOCK_NAME]/enable\" to disable the clock\n"
+				"\"echo 1 > /proc/jz/clock/[CLOCK_NAME]/enable\" to enable the clock\n");
 		clk_put(tmp);
 	}
 	return count;
