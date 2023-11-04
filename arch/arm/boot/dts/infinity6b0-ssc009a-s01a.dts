@@ -48,7 +48,7 @@
         Sstar-ehci-1 {
             compatible = "Sstar-ehci-1";
             dpdm_swap=<0>;
-            power-enable-pad = <PAD_SAR_GPIO2>;
+            power-enable-pad = <PAD_UNKNOWN>;
         };
 
         vif {

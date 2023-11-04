@@ -86,7 +86,7 @@ int Enable_USB_VBUS(int param)
         }
         ret = gpio_request(power_en_gpio, "USB0-power-enable");
         if (ret < 0) {
-            printk(KERN_INFO "Failed to request USB0-power-enable GPIO(%d)\n", power_en_gpio);
+            //printk(KERN_INFO "Failed to request USB0-power-enable GPIO(%d)\n", power_en_gpio);
             power_en_gpio =-1;
             return ret;
         }
