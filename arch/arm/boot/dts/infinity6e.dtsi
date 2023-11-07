@@ -258,7 +258,7 @@
         sound {
             compatible = "sstar,audio";
             interrupts=<GIC_SPI INT_IRQ_BACH IRQ_TYPE_LEVEL_HIGH>;
-            amp-gpio = <PAD_PM_GPIO1  1>;
+            amp-gpio = <PAD_UNKNOWN 1>;
             clocks = <&CLK_bach>;
 #ifdef CONFIG_CAM_CLK
             camclk = <CAMCLK_bach>;
