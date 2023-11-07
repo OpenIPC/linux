@@ -113,6 +113,7 @@
 #define FLASH_IC_EN25P16         0x090EUL      // 2M
 #define FLASH_IC_EN25F40         0x090AUL      // 512k
 #define FLASH_IC_EN25QH16        0x090BUL      // 2M
+#define FLASH_IC_EN25Q128A       0x090CUL      // 16M
 
 // ESMT
 #define FLASH_IC_ESMT_F25L016A   0x0A00UL      // 2M
@@ -134,28 +135,46 @@
 #define FLASH_IC_MICRON_N25Q128  0x0E03UL      // 16M
 #define FLASH_IC_NUMONYX_M25PX16 0x0E04UL      // 2M
 
-//PY
-#define FLASH_IC_PUYA_PY25Q128HA    0x1500UL    // 128M
+//ISSI
+#define FLASH_IC_IS25LP064D      0x0D01UL
 
 //ZB
 #define FLASH_IC_ZB25Q64        0x1002UL       // 8M
-#define FLASH_IC_ZB25VQ128       0x1003UL       // 16M
+#define FLASH_IC_ZB25VQ128      0x1003UL       // 16M
+#define FLASH_IC_ZB25VQ64       0x1004UL       // 8M
 
 //Wuhan Xinxin
 #define FLASH_IC_WUHAN_XM25QH16A    0x1200UL      // 2M
 #define FLASH_IC_WUHAN_XM25QH32A    0x1201UL      // 4M
 #define FLASH_IC_WUHAN_XM25QH64A    0x1202UL      // 8M
 #define FLASH_IC_WUHAN_XM25QH128A   0x1203UL      // 16M
+#define FLASH_IC_WUHAN_XM25QH128B   0x1204UL      // 16M
+#define FLASH_IC_WUHAN_XM25QH64B    0x1205UL      // 8M
+#define FLASH_IC_WUHAN_XM25QH128C   0x1206UL      // 16M
+#define FLASH_IC_WUHAN_XM25QH64C    0x1207UL      // 8M
+#define FLASH_IC_WUHAN_XM25QH256C   0x1208UL      // 32M
+
+// NM
+#define FLASH_IC_NM25Q64            0x1406UL
+#define FLASH_IC_NM25Q128           0x1403UL
 
 //XTX
 #define FLASH_IC_XTX_XT25F16B       0x1300UL      // 2M
 #define FLASH_IC_XTX_XT25F32B       0x1301UL      // 4M
 #define FLASH_IC_XTX_XT25F64B       0x1302UL      // 8M
 #define FLASH_IC_XTX_XT25F128B      0x1303UL      // 16M
+#define FLASH_IC_XTX_XT25F256B      0x1304UL      // 32M
 
 
 #define FLASH_IC_25Q128AS       0x1100UL       // 25q128as
 
+//BYT
+#define FLASH_IC_BYT_BY25Q64AS       0x1400UL      // 64M
+#define FLASH_IC_BYT_BY25Q128AS      0x1401UL      // 128M
+
+//PY
+#define FLASH_IC_PUYA_PY25Q128HA      0x1500UL      // 16MB
+#define FLASH_IC_PUYA_PY25Q64HA       0x1501UL      // 16MB
 
 // Flash Manufacture ID
 #define MID_MXIC                0xC2UL
@@ -171,11 +190,12 @@
 #define MID_NUMONYX             0x20UL
 #define MID_AM                  0x37UL
 #define MID_25Q                 0x68UL
-#define MID_PY                  0x85UL
 #define MID_ZB                  0x5EUL
 #define MID_WUHAN               0x20UL
 #define MID_XTX                 0x0BUL
-
+#define MID_NM                  0x52UL
+#define MID_IS                  0x9DUL
+#define MID_PY                  0x85UL
 
 // Flash Storage Size
 #define SIZE_1KB                0x400UL
