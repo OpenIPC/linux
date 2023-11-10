@@ -876,6 +876,9 @@ static int mstar_spinand_probe(struct platform_device *pdev)
     struct mtd_info* mtd;
     int err = 0;
 
+    if(Chip_Get_Storage_Type()!= MS_STORAGE_SPINAND_ECC)
+        return 0;
+
     _enableClock(pdev);
     spi_nand_msg("mstar_spinand enableClock");
 
