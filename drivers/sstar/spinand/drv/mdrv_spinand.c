@@ -974,7 +974,7 @@ static int mstar_spinand_probe(struct platform_device *pdev)
 #if defined(CONFIG_MTD_CMDLINE_PARTS) || defined(CONFIG_MTD_CMDLINE_PARTS_MODULE)
         static const char *part_probes[] = { "cmdlinepart", NULL, };
 #endif
-#if defined(CONFIG_ARCH_INFINITY2)
+#if defined(CONFIG_ARCH_INFINITY2) || defined(CONFIG_ARCH_INFINITY6B0)
     if(Chip_Get_Storage_Type()!= MS_STORAGE_SPINAND_ECC)
         return 0;
 #endif
