@@ -823,7 +823,7 @@
 #endif
             interrupts = <GIC_SPI INT_IRQ_UHC IRQ_TYPE_LEVEL_HIGH>;
             dpdm_swap=<0>;
-            power-enable-pad = <PAD_GPIO8>;
+            power-enable-pad = <PAD_UNKNOWN>;
             status = "ok";
         };
 
