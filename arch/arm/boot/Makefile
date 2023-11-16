@@ -75,7 +75,7 @@ $(obj)/zImage:	$(obj)/compressed/vmlinux FORCE
 	if [ -e ${MS_BUILTIN_DTB} ]; then \
 	    echo "  IMAGE   $(obj)/Image"; \
 	    echo "  BNDTB ${MS_BUILTIN_DTB}"; \
-	    python scripts/ms_builtin_dtb_update.py $(obj)/Image ${MS_BUILTIN_DTB}; \
+	    python3 scripts/ms_builtin_dtb_update.py $(obj)/Image ${MS_BUILTIN_DTB}; \
 	    echo; \
 	fi;
 #update Image-fpga DTB
@@ -83,12 +83,12 @@ $(obj)/zImage:	$(obj)/compressed/vmlinux FORCE
 	    echo "  IMAGE   $(obj)/Image-fpga"; \
 	    cp -f $(obj)/Image $(obj)/Image-fpga; \
 	    echo "  BNDTB   $(CHIP_NAME)-fpga.dtb"; \
-	    python scripts/ms_builtin_dtb_update.py $(obj)/Image-fpga "arch/arm/boot/dts/$(CHIP_NAME)-fpga.dtb"; \
+	    python3 scripts/ms_builtin_dtb_update.py $(obj)/Image-fpga "arch/arm/boot/dts/$(CHIP_NAME)-fpga.dtb"; \
 	    echo; \
 	fi;
 
     #update the image size into Image
-	@python scripts/ms_bin_option_update_int.py  $(obj)/Image '#IMG_SZ#' $$(stat -c %s $(obj)/Image)
+	@python3 scripts/ms_bin_option_update_int.py  $(obj)/Image '#IMG_SZ#' $$(stat -c %s $(obj)/Image)
 
 	#build Image
 	@LD_ADDR=0x20008000; \

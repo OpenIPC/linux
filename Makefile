@@ -1053,14 +1053,14 @@ else
 	@echo '  changelist ${COMMITNUMBER}'
 	@echo '  BRANCHID   ${BRANCH_ID} '
 	@echo '  MS_PLATFORM_ID: $(MS_PLATFORM_ID)'
-	@python scripts/ms_gen_mvxv_h.py drivers/sstar/include/ms_version.h --comp_id KL_LX409 \
+	@python3 scripts/ms_gen_mvxv_h.py drivers/sstar/include/ms_version.h --comp_id KL_LX409 \
 	--changelist $(COMMITNUMBER) --chip_id $(MS_PLATFORM_ID) --branch $(BRANCH_ID) $(MS_KERNEL_TYPE)
 endif
 
 
 ifneq ($(CONFIG_CAM_DRIVERS),)
 	@mkdir -p drivers/sstar/camdriver/include
-	@python scripts/ms_gen_mvxv_h.py drivers/sstar/camdriver/include/mdrv_ms_version.h \
+	@python3 scripts/ms_gen_mvxv_h.py drivers/sstar/camdriver/include/mdrv_ms_version.h \
 	--changelist g$(shell cd drivers/sstar/camdriver;git log --format=%h -n 1 2> /dev/null) \
 	--branch $(shell cd drivers/sstar/camdriver;git rev-parse --abbrev-ref HEAD 2> /dev/null | sed -e 's/\//_/g') \
 	$(MS_KERNEL_TYPE) --chip_id $(MS_PLATFORM_ID) --comp_id CAMDRV_LX409
