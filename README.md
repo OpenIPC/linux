@@ -33,6 +33,7 @@ Branch | Devices
 [sigmastar-infinity3](https://github.com/OpenIPC/linux/tree/sigmastar-infinity3) | msc313e, msc316dc, msc316dm
 [sigmastar-infinity6](https://github.com/OpenIPC/linux/tree/sigmastar-infinity6) | ssc325
 [sigmastar-infinity6b0](https://github.com/OpenIPC/linux/tree/sigmastar-infinity6b0) | ssc333, ssc335, ssc335de, ssc337, ssc337de
+[sigmastar-infinity6c](https://github.com/OpenIPC/linux/tree/sigmastar-infinity6c) | ssc377
 [sigmastar-infinity6e](https://github.com/OpenIPC/linux/tree/sigmastar-infinity6e) | ssc30kq, ssc338q
 [ti-dm36x](https://github.com/OpenIPC/linux/tree/ti-dm36x) | dm365, dm368
 [xiongmai-xm510](https://github.com/OpenIPC/linux/tree/xiongmai-xm510) | xm510
