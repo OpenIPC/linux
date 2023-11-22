@@ -25,6 +25,7 @@
 #include <linux/rwsem.h>
 #include <linux/interrupt.h>
 #include <linux/idr.h>
+#include <linux/android_kabi.h>
 
 #define MAX_TOPO_LEVEL		6
 
@@ -53,6 +54,17 @@
 #define USB_PID_STALL			0x1e
 #define USB_PID_MDATA			0x0f	/* USB 2.0 */
 
+#ifdef CONFIG_ARCH_SSTAR
+//usb port power control
+struct usb_ppc {
+	uintptr_t	port_addr;
+	u8	bit_addr;
+	u8	out_en_bit_addr;
+	u8	out_en_hi_active;
+	u8	reserved[1];
+};
+#endif
+
 /*-------------------------------------------------------------------------*/
 
 /*
@@ -71,6 +83,14 @@ struct giveback_urb_bh {
 	struct tasklet_struct bh;
 	struct usb_host_endpoint *completing_ep;
 };
+
+#ifdef CONFIG_ARCH_SSTAR
+struct comp_port {
+	uintptr_t	comp_port_addr;
+	uintptr_t	u3top_base;
+	u8	port_index;
+};
+#endif
 
 enum usb_dev_authorize_policy {
 	USB_DEVICE_AUTHORIZE_NONE	= 0,
@@ -215,15 +235,49 @@ struct usb_hcd {
 
 #define	HC_IS_RUNNING(state) ((state) & __ACTIVE)
 #define	HC_IS_SUSPENDED(state) ((state) & __SUSPEND)
+#ifdef CONFIG_ARCH_SSTAR
+		// Refactoring --- 2011.10.27 ---
+		u32 	port_index;
+		uintptr_t	  utmi_base;
+		uintptr_t	  ehc_base;
+		uintptr_t	  usbc_base;
+		uintptr_t	  bc_base;
 
-	/* memory pool for HCs having local memory, or %NULL */
-	struct gen_pool         *localmem_pool;
+		uintptr_t	  xhci_base;
+		uintptr_t	  u3top_base;
+		uintptr_t	  u3dphy_base[2];
+		struct	comp_port  companion;
+		u32 	ms_flag;
+	/* ms_flag */
+#define	MS_FLAG_P0_SSC	1<<0
+#define MS_FLAG_P1_SSC	1<<1
+#define MS_FLAG_SW_FRM_IDX 1<<2
 
+		u8		rootflag;
+
+		u8		startup_conn_flag;	//120210, for port reset when connected at startup
+		u8		bc_enable_flag;
+		u8		bc_apple_enable_flag;
+		u8      reduce_wait_reset_time_flag;  //190802, for some 3.0 device can't wait so long during bus reset
+#ifdef CONFIG_EHCI_SSTAR_RESET_LOCK_PATCH
+		/* lock for usb reset */
+		spinlock_t usb_reset_lock;
+#endif
+
+		struct usb_ppc	ppc;
+		uintptr_t adjust_async_ladr;
+#endif
+	struct gen_pool *localmem_pool;
 	/* more shared queuing code would be good; it should support
 	 * smarter scheduling, handle transaction translators, etc;
 	 * input size of periodic table to an interrupt scheduler.
 	 * (ohci 32, uhci 1024, ehci 256/512/1024).
 	 */
+
+	ANDROID_KABI_RESERVE(1);
+	ANDROID_KABI_RESERVE(2);
+	ANDROID_KABI_RESERVE(3);
+	ANDROID_KABI_RESERVE(4);
 
 	/* The HC driver's private data is stored at the end of
 	 * this structure.
@@ -410,6 +464,10 @@ struct hc_driver {
 	/* Call for power on/off the port if necessary */
 	int	(*port_power)(struct usb_hcd *hcd, int portnum, bool enable);
 
+	ANDROID_KABI_RESERVE(1);
+	ANDROID_KABI_RESERVE(2);
+	ANDROID_KABI_RESERVE(3);
+	ANDROID_KABI_RESERVE(4);
 };
 
 static inline int hcd_giveback_urb_in_bh(struct usb_hcd *hcd)
@@ -561,6 +619,11 @@ struct usb_tt {
 	spinlock_t		lock;
 	struct list_head	clear_list;	/* of usb_tt_clear */
 	struct work_struct	clear_work;
+
+	ANDROID_KABI_RESERVE(1);
+	ANDROID_KABI_RESERVE(2);
+	ANDROID_KABI_RESERVE(3);
+	ANDROID_KABI_RESERVE(4);
 };
 
 struct usb_tt_clear {

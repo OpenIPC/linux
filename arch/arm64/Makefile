@@ -32,6 +32,7 @@ ifeq ($(CONFIG_ARM64_USE_LSE_ATOMICS), y)
   ifneq ($(CONFIG_ARM64_LSE_ATOMICS), y)
 $(warning LSE atomics not supported by binutils)
   endif
+KBUILD_CFLAGS  += -march=armv8.1-a
 endif
 
 cc_has_k_constraint := $(call try-run,echo				\
@@ -44,8 +45,7 @@ ifeq ($(CONFIG_BROKEN_GAS_INST),y)
 $(warning Detected assembler with broken .inst; disassembly will be unreliable)
 endif
 
-KBUILD_CFLAGS	+= -mgeneral-regs-only	\
-		   $(compat_vdso) $(cc_has_k_constraint)
+KBUILD_CFLAGS	+= -mgeneral-regs-only $(compat_vdso) $(cc_has_k_constraint)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, psabi)
 KBUILD_AFLAGS	+= $(compat_vdso)
 
@@ -96,6 +96,11 @@ ifeq ($(CONFIG_AS_HAS_ARMV8_4), y)
 asm-arch := armv8.4-a
 endif
 
+ifeq ($(CONFIG_AS_HAS_ARMV8_5), y)
+# make sure to pass the newest target architecture to -march.
+asm-arch := armv8.5-a
+endif
+
 ifdef asm-arch
 KBUILD_CFLAGS	+= -Wa,-march=$(asm-arch) \
 		   -DARM64_ASM_ARCH='"$(asm-arch)"'
@@ -136,7 +141,7 @@ head-y		:= arch/arm64/kernel/head.o
 
 ifeq ($(CONFIG_KASAN_SW_TAGS), y)
 KASAN_SHADOW_SCALE_SHIFT := 4
-else
+else ifeq ($(CONFIG_KASAN_GENERIC), y)
 KASAN_SHADOW_SCALE_SHIFT := 3
 endif
 
@@ -152,8 +157,21 @@ libs-$(CONFIG_EFI_STUB) += $(objtree)/drivers/firmware/efi/libstub/lib.a
 boot		:= arch/arm64/boot
 KBUILD_IMAGE	:= $(boot)/Image.gz
 
+ifeq ($(CONFIG_ARCH_SSTAR),)
+# Don't compile Image in mixed build with "all" target
+ifndef KBUILD_MIXED_TREE
 all:	Image.gz
+endif
 
+else
+all:	Image.gz uImage Image.xz uImage.xz
+
+uImage: Image
+	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
+
+uImage.%: Image.%
+	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
+endif
 
 Image: vmlinux
 	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@

@@ -1,32 +1,55 @@
 # SPDX-License-Identifier: GPL-2.0
-subdir-y += actions
-subdir-y += allwinner
-subdir-y += altera
-subdir-y += amazon
-subdir-y += amd
-subdir-y += amlogic
-subdir-y += apm
-subdir-y += arm
-subdir-y += bitmain
-subdir-y += broadcom
-subdir-y += cavium
-subdir-y += exynos
-subdir-y += freescale
-subdir-y += hisilicon
-subdir-y += intel
-subdir-y += lg
-subdir-y += marvell
-subdir-y += mediatek
-subdir-y += microchip
-subdir-y += nvidia
-subdir-y += qcom
-subdir-y += realtek
-subdir-y += renesas
-subdir-y += rockchip
-subdir-y += socionext
-subdir-y += sprd
-subdir-y += synaptics
-subdir-y += ti
-subdir-y += toshiba
-subdir-y += xilinx
-subdir-y += zte
+dts-dirs += actions
+dts-dirs += allwinner
+dts-dirs += altera
+dts-dirs += amazon
+dts-dirs += amd
+dts-dirs += amlogic
+dts-dirs += apm
+dts-dirs += arm
+dts-dirs += bitmain
+dts-dirs += broadcom
+dts-dirs += cavium
+dts-dirs += exynos
+dts-dirs += freescale
+dts-dirs += hisilicon
+dts-dirs += intel
+dts-dirs += lg
+dts-dirs += marvell
+dts-dirs += mediatek
+dts-dirs += microchip
+dts-dirs += nvidia
+dts-dirs += qcom
+dts-dirs += realtek
+dts-dirs += renesas
+dts-dirs += rockchip
+dts-dirs += socionext
+dts-dirs += sprd
+dts-dirs += sstar
+dts-dirs += synaptics
+dts-dirs += ti
+dts-dirs += toshiba
+dts-dirs += xilinx
+dts-dirs += zte
+
+subdir-y	:= $(dts-dirs)
+
+dtstree		:= $(srctree)/$(src)
+
+dtb-$(CONFIG_OF_ALL_DTBS) := $(patsubst $(dtstree)/%.dts,%.dtb, $(foreach d,$(dts-dirs), $(wildcard $(dtstree)/$(d)/*.dts)))
+
+always-y	:= $(dtb-y)
+
+targets += dtbs
+
+DTB_NAMES := $(subst $\",,$(CONFIG_BUILD_ARM64_APPENDED_DTB_IMAGE_NAMES))
+ifneq ($(DTB_NAMES),)
+DTB_LIST := $(addsuffix .dtb,$(DTB_NAMES))
+else
+DTB_LIST := $(dtb-y)
+endif
+targets += $(DTB_LIST)
+
+dtbs: $(addprefix $(obj)/, $(DTB_LIST))
+
+clean-files := dts/*.dtb *.dtb

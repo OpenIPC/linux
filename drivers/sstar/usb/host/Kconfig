@@ -1,0 +1,16 @@
+menuconfig EHCI_SSTAR_PATCH
+	bool "SigmaStar EHCI HCD(USB 2.0) patch"
+	depends on USB_EHCI_HCD && ARCH_SSTAR
+	default y
+
+if EHCI_SSTAR_PATCH
+
+config EHCI_SSTAR_HANDSHAKE_CHIRP_PATCH
+	bool "Patch to adjust judging handshake chirp K signal by disconnect current"
+	default y
+
+config EHCI_SSTAR_RESET_LOCK_PATCH
+	bool "Patch for locking host controller registers accessing when utmi reset"
+	default y
+
+endif # EHCI_SSTAR_PATCH

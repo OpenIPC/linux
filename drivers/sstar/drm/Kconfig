@@ -1,0 +1,12 @@
+config SSTAR_DRM
+	tristate "DRM Support for Sigmastar"
+	select DRM_KMS_HELPER
+	select VIDEOMODE_HELPERS
+	select DRM_GEM_CMA_HELPER
+	select DRM_KMS_CMA_HELPER
+	select DRM_PANEL
+	select DRM_DW_HDMI
+	select DRM_KMS_FB_HELPER
+	depends on DRM
+	help
+	  enable sigmastar drm graphics support

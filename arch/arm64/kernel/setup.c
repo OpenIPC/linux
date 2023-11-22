@@ -81,6 +81,9 @@ static struct resource mem_res[] = {
  * The recorded values of x0 .. x3 upon kernel entry.
  */
 u64 __cacheline_aligned boot_args[4];
+#ifdef CONFIG_ARCH_SSTAR
+extern void __init prom_meminit(void);
+#endif
 
 void __init smp_setup_processor_id(void)
 {
@@ -168,6 +171,28 @@ static void __init smp_build_mpidr_hash(void)
 		pr_warn("Large number of MPIDR hash buckets detected\n");
 }
 
+static void *early_fdt_ptr __initdata;
+
+void __init *get_early_fdt_ptr(void)
+{
+	return early_fdt_ptr;
+}
+
+asmlinkage void __init early_fdt_map(u64 dt_phys)
+{
+	int fdt_size;
+
+	early_fixmap_init();
+	early_fdt_ptr = fixmap_remap_fdt(dt_phys, &fdt_size, PAGE_KERNEL);
+}
+
+#ifdef CONFIG_SS_BUILTIN_DTB
+#define FDT_VIRT(physbase)                                                     \
+	((void *)(__fix_to_virt(FIX_FDT) | (physbase) % SECTION_SIZE))
+extern void *builtin_dtb_start;
+extern unsigned int builtin_dtb_size;
+extern int early_atags_to_fdt(void *atag_list, void *fdt, int total_space);
+#endif
 static void __init setup_machine_fdt(phys_addr_t dt_phys)
 {
 	int size;
@@ -176,6 +201,22 @@ static void __init setup_machine_fdt(phys_addr_t dt_phys)
 
 	if (dt_virt)
 		memblock_reserve(dt_phys, size);
+
+#ifdef CONFIG_SS_BUILTIN_DTB
+	/* When using builtin dtb, there is no dtb image passed to kernel.
+	 * The atags which come from uboot, is mapping to the FDT area.
+	 * We use atags to parse the bootargs. If it exist, then replacing
+	 * the bootargs in the dtb. If not, do nothing.
+	 */
+	dt_virt = FDT_VIRT(dt_phys);
+	if (dt_virt &&
+	    !early_atags_to_fdt(dt_virt, builtin_dtb_start, builtin_dtb_size)) {
+		pr_info("early_atags_to_fdt() success\n");
+	}
+
+	/* Use the built in dtb */
+	dt_virt = builtin_dtb_start;
+#endif
 
 	if (!dt_virt || !early_init_dt_scan(dt_virt)) {
 		pr_crit("\n"
@@ -276,7 +317,7 @@ arch_initcall(reserve_memblock_reserved_regions);
 
 u64 __cpu_logical_map[NR_CPUS] = { [0 ... NR_CPUS-1] = INVALID_HWID };
 
-u64 cpu_logical_map(int cpu)
+u64 cpu_logical_map(unsigned int cpu)
 {
 	return __cpu_logical_map[cpu];
 }
@@ -308,7 +349,9 @@ void __init __no_sanitize_address setup_arch(char **cmdline_p)
 	 */
 	jump_label_init();
 	parse_early_param();
-
+#ifdef CONFIG_ARCH_SSTAR
+	prom_meminit();
+#endif
 	/*
 	 * Unmask asynchronous aborts and fiq after bringing up possible
 	 * earlycon. (Report possible System Errors once we can report this
@@ -358,7 +401,7 @@ void __init __no_sanitize_address setup_arch(char **cmdline_p)
 	smp_build_mpidr_hash();
 
 	/* Init percpu seeds for random tags after cpus are set up. */
-	kasan_init_tags();
+	kasan_init_sw_tags();
 
 #ifdef CONFIG_ARM64_SW_TTBR0_PAN
 	/*

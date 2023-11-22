@@ -1,0 +1,267 @@
+/*
+* infinity6e-default.sys - Sigmastar
+*
+* Copyright (c) [2019~2020] SigmaStar Technology.
+*
+*
+* This software is licensed under the terms of the GNU General Public
+* License version 2, as published by the Free Software Foundation, and
+* may be copied, distributed, and modified under those terms.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License version 2 for more details.
+*
+*/
+
+#include <../../../../camclk/hal/infinity6e/pub/camclk.h>
+#include <../../../../gpio/hal/infinity6e/pub/gpio.h>
+#include <../../../../int/hal/infinity6e/pub/irqs.h>
+
+version : 01.00
+
+<vif>
+	[camclk_u8] CAMCLK_sr00_mclk, CAMCLK_sr1_mclk, CAMCLK_sr01_mclk;
+	[interrupts_u8] INT_IRQ_VIF;
+	[reg_u32_u32] 0x1F260800 0x600,
+				  0x0 0x0,
+				  0x0 0x0,
+				  0x0 0x0,
+				  0x0 0x0,
+				  0x0 0x0,
+				  0x1F207800 0x200,
+				  0x1F226600 0x200,
+				  0x1F207000 0x200,
+				  0x1F000000 0x400000,
+				  0x1F203C00 0x200;
+	[vif_sr0_par_mode_u8] 2;
+	[vif_sr0_mipi_mode_u8] 1;
+	[vif_sr0_bt656_mode_u8] 1;
+	[vif_sr0_mclk_mode_u8] 0;
+	[vif_sr0_parallel_rst_mode_u8] 0;
+	[vif_sr0_parallel_pdn_mode_u8] 0;
+	[vif_sr0_mipi_rst_mode_u8] 0;
+	[vif_sr0_mipi_pdn_mode_u8] 1;
+	[vif_sr0_mipi_ctrl_mode_u8] 1;
+	[vif_sr1_par_mode_u8] 0;
+	[vif_sr1_mipi_mode_u8] 1;
+	[vif_sr1_bt656_mode_u8] 0;
+	[vif_sr1_mipi_ctrl_mode_u8] 1;
+	[vif_sr1_mclk_mode_u8] 0;
+	[vif_sr1_rst_mode_u8] 0;
+	[vif_sr2_mipi_mode_u8] 0;
+	[vif_sr2_mipi_ctrl_mode_u8] 0;
+	[vif_sr2_mclk_mode_u8] 0;
+	[vif_sr2_rst_mode_u8] 0;
+	[vif_sr0_mclk_37p125_u8] 1;
+	[vif_sr1_mclk_37p125_u8] 1;
+	[vif_sr2_mclk_37p125_u8] 1;
+
+<csi>
+	[camclk_u8] CAMCLK_csi_mac_lptx_top_i_m00,
+				CAMCLK_csi_mac_top_i_m00,
+				CAMCLK_ns_top_i_m00,
+				CAMCLK_csi_mac_lptx_top_i_m1,
+				CAMCLK_csi_mac_top_i_m1,
+				CAMCLK_ns_top_i_m1,
+				CAMCLK_csi_mac_lptx_top_i_m01,
+				CAMCLK_csi_mac_top_i_m01,
+				CAMCLK_ns_top_i_m01;
+	[interrupts_u8] INT_IRQ_MIPI_CSI2;
+	[io_phy_addr_u32] 0x1f000000;
+	[banks_u16] 0x120b, 0x120c, 0x120d, 0x1208, 0x1209, 0x120a, 0x1202, 0x1203, 0x1204, 0x1038, 0x120e;
+	[csi_sr0_lane_num_u8] 4;
+	[csi_sr1_lane_num_u8] 4;
+	[csi_sr2_lane_num_u8] 2;
+	[csi_sr0_lane_select_u8] 2, 4, 3, 1, 0; 
+	[csi_sr1_lane_select_u8] 0, 0, 0, 0, 0;
+	[csi_sr2_lane_select_u8] 0, 0, 0;
+	[csi_sr0_lane_pn_swap_u8] 1, 1, 1, 1, 1;
+	[csi_sr1_lane_pn_swap_u8] 0, 0, 0, 0, 0;
+	[csi_sr2_lane_pn_swap_u8] 0, 0, 0;
+
+<iopower>
+	[pm_sar_atop_vddp1_u8] 0;
+	[pm_sar_atop_pmspi_u8] 0;
+	[status_u8] 0;
+
+<ipu>
+	[operating_points_u32_u32] 900000 1000000,
+							   800000 1000000,
+							   600000 900000,
+							   500000 900000,
+							   400000 900000,
+							   300000 850000;
+
+<venc>
+	[camclk_u8] CAMCLK_vhe, CAMCLK_mfe;
+	[interrupts_u8] INT_IRQ_MHE;
+	[reg_u32_u16] 0x1F345200 0x800,
+				  0x1F2C5200 0x100,
+				  0x1F203C00 0x100,
+				  0x1F207800 0x100;
+	[reg_name_str] "vpu-bit venc-brige hw-uart0 hw-uart1";
+
+<dip>
+	[camclk_u8] CAMCLK_dip;
+	[interrupts_u8] INT_IRQ_DIP0;
+
+<dla>
+	[interrupts_u8] INT_IRQ_DLA_TOP;
+
+<gop>
+	[camclk_u8] CAMCLK_gop0, CAMCLK_fclk1, CAMCLK_dip, CAMCLK_ldcfeye;
+
+<isp>
+	[camclk_u8] CAMCLK_isp;
+	[clock_freq_index_u8] 0;
+	[interrupts_u8] INT_IRQ_ISP;
+	[io_phy_addr_u32] 0x1f000000;
+	[banks_u16] 0x1302;
+
+<pnl>
+	[camclk_u8] CAMCLK_odclk;
+	[interrupts_u8] INT_IRQ_SC2_TOP_INT;
+	[ttl_24bit_mode_u8] 0;
+	[ttl_16bit_mode_u8] 1;
+	[jtag_mode_u8] 1;
+
+<disp>
+	[camclk_u8] CAMCLK_odclk;
+	[interrupts_u8] INT_IRQ_SC2_TOP_INT, INT_IRQ_SC_TOP, INT_IRQ_SC1_TOP_INT, INT_IRQ_CMDQ;
+
+<mipitx_csi>
+	[camclk_u8] CAMCLK_mipi1_tx_csi;
+	[interrupts_u8] INT_IRQ_TX_CSI;
+
+<sound>
+	[camclk_u8] CAMCLK_bach;
+	[interrupts_u8] INT_IRQ_BACH;
+	[playback_volume_level_u8] 64;
+	[capture_volume_level_u8] 64;
+	[micin_pregain_level_u8] 0;
+	[micin_gain_level_u8] 3;
+	[linein_gain_level_u8] 2;
+	[amp_gpio_u16_u8] PAD_PM_GPIO1 1;
+	[digmic_padmux_u8] 6;
+	[i2s_trx_shared_padmux_u8] 1;
+	[i2s_tx_padmux_u8] 0;
+	[i2s_rx_padmux_u8] 0;
+	[i2smck_padmux_u8] 1;
+	[i2smod_padmux_u8] 0;
+	[keep_i2s_clk_u8] 0;
+	[i2s_rx_tdm_ws_pgm_u8] 0;
+	[i2s_rx_tdm_ws_width_u8] 0;
+	[i2s_rx_tdm_ch_swap_u8] 0, 0;
+	[i2s_tx_tdm_ws_pgm_u8] 0;
+	[i2s_tx_tdm_ws_widt_u8] 0;
+	[i2s_tx_tdm_ch_swap_u8] 0, 0;
+	[i2s_tx_tdm_active_slot_u8] 0x03;
+
+<sensorif>
+	[sensorif_grp0_i2c_u8] 1;
+	[sensorif_grp1_i2c_u8] 2;
+	[sensorif_grp2_i2c_u8] 1;
+
+<jpe0>
+	[camclk_u8] CAMCLK_jpe;
+	[clk_name_str] "CKG_jpe";
+	[clk_select_u8] 0;
+	[interrupts_u8] INT_IRQ_JPE;
+	[reg_u32_u16] 0x1F2C4000 0x100;
+
+<spi0>
+	[camclk_u8] CAMCLK_mspi0, CAMCLK_mspi;
+	[interrupts_u8] INT_IRQ_MSPI_0;
+	[mspi_group_u8] 0;
+	[reg_u32_u16] 0x1F222000 0x200;
+	[use_dma_u8] 1;
+
+<spi1>
+	[camclk_u8] CAMCLK_mspi1, CAMCLK_mspi;
+	[interrupts_u8] INT_IRQ_MSPI_1;
+	[mspi_group_u8] 1;
+	[reg_u32_u16] 0x1F222200 0x200;
+	[use_dma_u8] 1;
+
+<cmdq0>
+	[camclk_u8] CAMCLK_mcu;
+	[interrupts_u8] INT_IRQ_CMDQ;
+
+<cmdq1>
+	[camclk_u8] CAMCLK_mcu;
+	[interrupts_u8] INT_IRQ_CMDQ;
+
+<cmdq2>
+	[camclk_u8] CAMCLK_mcu;
+	[interrupts_u8] INT_IRQ_CMDQ;
+
+<cmdq3>
+	[camclk_u8] CAMCLK_mcu;
+	[interrupts_u8] INT_IRQ_CMDQ;
+
+<ldc>
+	[camclk_u8] CAMCLK_ldcfeye;
+	[clk_select_u8] 1;
+	[interrupts_u8] INT_IRQ_LDC_FEYE;
+	[reg_u32_u16] 0x1F287800 0x100,
+				  0x1F287A00 0x100;
+
+<vpe>
+	[camclk_u8] CAMCLK_fclk1, CAMCLK_odclk;
+	[clk_select_u8] 2;
+	[interrupts_u8] INT_IRQ_SC_TOP, INT_IRQ_SC1_TOP_INT, INT_IRQ_SC2_TOP_INT, INT_IRQ_CMDQ;
+	[reg_u32_u16] 0x1F242000 0x100;
+
+<flashisp>
+	[camclk_u8] CAMCLK_bdma;
+	[quadread_u8] 0;
+
+<spinandflash>
+	[camclk_u8] CAMCLK_bdma;
+
+<emmc>
+	[camclk_u8] CAMCLK_sd, CAMCLK_ecc;
+	[interrupts_u8] INT_IRQ_SD;
+	[bus_width_u8] 8;
+
+<sdmmc>
+	[camclk_u8] CAMCLK_sd, CAMCLK_sdio, CAMCLK_VOID;
+	[interrupts_u8] INT_IRQ_SD, INT_IRQ_SDIO, INT_FIQ_SD_CDZ_0, INT_FIQ_SD_CDZ_1;
+	[interrupt_names_str] "mie0_irq mie1_irq cdz_slot0_irq cdz_slot1_irq";
+	[slotnum_u8] 2;
+	[revcdz_u8] 0;
+	[slot_ip_orders_u8] 0, 1, 2;
+	[slot_max_clks_u32] 48000000, 48000000, 48000000;
+	[slot_intcdzs_u8] 1, 1, 0;
+	[slot_pwr_gpios_u16] PAD_SD0_GPIO0, PAD_SD1_GPIO0, PAD_UNKNOWN;
+	[slot_pwr_off_delay_u8] 30, 30, 30;
+	[slot_pwr_on_delay_u8] 1, 1, 1;
+	[slot_fakecdzs_u8] 0, 0, 0;
+	[slot_pad_orders_u8] 0, 2, 1;
+	[slot_cdzs_gpios_u16] PAD_SD0_CDZ, PAD_I2C0_SDA, PAD_UNKNOWN;
+	[slot_sdio_use_u8] 0, 0, 0;
+	[slot_removable_u8] 1, 1, 1;
+
+<ive0>
+	[camclk_u8] CAMCLK_ive;
+	[interrupts_u8] INT_IRQ_IVE;
+	[reg_u32_u16] 0x1F2A4000 0x100,
+				  0x1F2A4200 0x100;
+
+<Sstar_ehci_1>
+	[camclk_u8] CAMCLK_utmi;
+	[interrupts_u8] INT_IRQ_UHC;
+	[dpdm_swap_u8] 0;
+	[power_enable_pad_u16] PAD_GPIO8;
+	
+<Sstar_udc>
+	[interrupts_u8] INT_IRQ_OTG;
+
+<dw3>
+	[camclk_u8] CAMCLK_ns_top_i_m00;
+	[interrupts_u8] INT_IRQ_USB3_GP2TOP;
+	[reg_u32_u16] 0x1F344200 0xcfff;
+	[phy_type_str] "utmi_wide";
+	[maximum_speed_str] "super-speed";

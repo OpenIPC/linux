@@ -36,6 +36,8 @@
 
 menu "USB Gadget precomposed configurations"
 
+source "drivers/sstar/usb/gadget/legacy/Kconfig"
+
 config USB_ZERO
 	tristate "Gadget Zero (DEVELOPMENT)"
 	select USB_LIBCOMPOSITE
@@ -496,6 +498,7 @@ config USB_G_DBGP_SERIAL
 endchoice
 endif
 
+if !ARCH_SSTAR
 # put drivers that need isochronous transfer support (for audio
 # or video class gadget drivers), or specific hardware, here.
 config USB_G_WEBCAM
@@ -511,6 +514,7 @@ config USB_G_WEBCAM
 
 	  Say "y" to link the driver statically, or "m" to build a
 	  dynamically linked module called "g_webcam".
+endif
 
 config USB_RAW_GADGET
 	tristate "USB Raw Gadget"

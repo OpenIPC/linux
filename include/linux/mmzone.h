@@ -20,6 +20,7 @@
 #include <linux/atomic.h>
 #include <linux/mm_types.h>
 #include <linux/page-flags.h>
+#include <linux/android_kabi.h>
 #include <asm/page.h>
 
 /* Free memory management - zoned buddy allocator.  */
@@ -38,12 +39,12 @@
  */
 #define PAGE_ALLOC_COSTLY_ORDER 3
 
+#define MAX_KSWAPD_THREADS 16
+
 enum migratetype {
 	MIGRATE_UNMOVABLE,
 	MIGRATE_MOVABLE,
 	MIGRATE_RECLAIMABLE,
-	MIGRATE_PCPTYPES,	/* the number of types on the pcp lists */
-	MIGRATE_HIGHATOMIC = MIGRATE_PCPTYPES,
 #ifdef CONFIG_CMA
 	/*
 	 * MIGRATE_CMA migration type is designed to mimic the way
@@ -60,6 +61,8 @@ enum migratetype {
 	 */
 	MIGRATE_CMA,
 #endif
+	MIGRATE_PCPTYPES, /* the number of types on the pcp lists */
+	MIGRATE_HIGHATOMIC = MIGRATE_PCPTYPES,
 #ifdef CONFIG_MEMORY_ISOLATION
 	MIGRATE_ISOLATE,	/* can't allocate from here */
 #endif
@@ -72,9 +75,11 @@ extern const char * const migratetype_names[MIGRATE_TYPES];
 #ifdef CONFIG_CMA
 #  define is_migrate_cma(migratetype) unlikely((migratetype) == MIGRATE_CMA)
 #  define is_migrate_cma_page(_page) (get_pageblock_migratetype(_page) == MIGRATE_CMA)
+#  define get_cma_migrate_type() MIGRATE_CMA
 #else
 #  define is_migrate_cma(migratetype) false
 #  define is_migrate_cma_page(_page) false
+#  define get_cma_migrate_type() MIGRATE_MOVABLE
 #endif
 
 static inline bool is_migrate_movable(int mt)
@@ -155,9 +160,7 @@ enum zone_stat_item {
 	NR_PAGETABLE,		/* used for pagetables */
 	/* Second 128 byte cacheline */
 	NR_BOUNCE,
-#if IS_ENABLED(CONFIG_ZSMALLOC)
 	NR_ZSPAGES,		/* allocated in zsmalloc */
-#endif
 	NR_FREE_CMA_PAGES,
 	NR_VM_ZONE_STAT_ITEMS };
 
@@ -274,6 +277,207 @@ enum lruvec_flags {
 					 */
 };
 
+#endif /* !__GENERATING_BOUNDS_H */
+
+/*
+ * Evictable pages are divided into multiple generations. The youngest and the
+ * oldest generation numbers, max_seq and min_seq, are monotonically increasing.
+ * They form a sliding window of a variable size [MIN_NR_GENS, MAX_NR_GENS]. An
+ * offset within MAX_NR_GENS, i.e., gen, indexes the LRU list of the
+ * corresponding generation. The gen counter in page->flags stores gen+1 while
+ * a page is on one of lrugen->lists[]. Otherwise it stores 0.
+ *
+ * A page is added to the youngest generation on faulting. The aging needs to
+ * check the accessed bit at least twice before handing this page over to the
+ * eviction. The first check takes care of the accessed bit set on the initial
+ * fault; the second check makes sure this page hasn't been used since then.
+ * This process, AKA second chance, requires a minimum of two generations,
+ * hence MIN_NR_GENS. And to maintain ABI compatibility with the active/inactive
+ * LRU, e.g., /proc/vmstat, these two generations are considered active; the
+ * rest of generations, if they exist, are considered inactive. See
+ * lru_gen_is_active().
+ *
+ * PG_active is always cleared while a page is on one of lrugen->lists[] so that
+ * the aging needs not to worry about it. And it's set again when a page
+ * considered active is isolated for non-reclaiming purposes, e.g., migration.
+ * See lru_gen_add_page() and lru_gen_del_page().
+ *
+ * MAX_NR_GENS is set to 4 so that the multi-gen LRU can support twice the
+ * number of categories of the active/inactive LRU when keeping track of
+ * accesses through page tables. This requires order_base_2(MAX_NR_GENS+1) bits
+ * in page->flags.
+ */
+#define MIN_NR_GENS		2U
+#define MAX_NR_GENS		4U
+
+/*
+ * Each generation is divided into multiple tiers. A page accessed N times
+ * through file descriptors is in tier order_base_2(N). A page in the first tier
+ * (N=0,1) is marked by PG_referenced unless it was faulted in through page
+ * tables or read ahead. A page in any other tier (N>1) is marked by
+ * PG_referenced and PG_workingset. This implies a minimum of two tiers is
+ * supported without using additional bits in page->flags.
+ *
+ * In contrast to moving across generations which requires the LRU lock, moving
+ * across tiers only involves atomic operations on page->flags and therefore
+ * has a negligible cost in the buffered access path. In the eviction path,
+ * comparisons of refaulted/(evicted+protected) from the first tier and the
+ * rest infer whether pages accessed multiple times through file descriptors
+ * are statistically hot and thus worth protecting.
+ *
+ * MAX_NR_TIERS is set to 4 so that the multi-gen LRU can support twice the
+ * number of categories of the active/inactive LRU when keeping track of
+ * accesses through file descriptors. This uses MAX_NR_TIERS-2 spare bits in
+ * page->flags.
+ */
+#define MAX_NR_TIERS		4U
+
+#ifndef __GENERATING_BOUNDS_H
+
+struct lruvec;
+struct page_vma_mapped_walk;
+
+#define LRU_GEN_MASK		((BIT(LRU_GEN_WIDTH) - 1) << LRU_GEN_PGOFF)
+#define LRU_REFS_MASK		((BIT(LRU_REFS_WIDTH) - 1) << LRU_REFS_PGOFF)
+
+#ifdef CONFIG_LRU_GEN
+
+enum {
+	LRU_GEN_ANON,
+	LRU_GEN_FILE,
+};
+
+enum {
+	LRU_GEN_CORE,
+	LRU_GEN_MM_WALK,
+	LRU_GEN_NONLEAF_YOUNG,
+	NR_LRU_GEN_CAPS
+};
+
+#define MIN_LRU_BATCH		BITS_PER_LONG
+#define MAX_LRU_BATCH		(MIN_LRU_BATCH * 64)
+
+/* whether to keep historical stats from evicted generations */
+#ifdef CONFIG_LRU_GEN_STATS
+#define NR_HIST_GENS		MAX_NR_GENS
+#else
+#define NR_HIST_GENS		1U
+#endif
+
+/*
+ * The youngest generation number is stored in max_seq for both anon and file
+ * types as they are aged on an equal footing. The oldest generation numbers are
+ * stored in min_seq[] separately for anon and file types as clean file pages
+ * can be evicted regardless of swap constraints.
+ *
+ * Normally anon and file min_seq are in sync. But if swapping is constrained,
+ * e.g., out of swap space, file min_seq is allowed to advance and leave anon
+ * min_seq behind.
+ *
+ * The number of pages in each generation is eventually consistent and therefore
+ * can be transiently negative when reset_batch_size() is pending.
+ */
+struct lru_gen_struct {
+	/* the aging increments the youngest generation number */
+	unsigned long max_seq;
+	/* the eviction increments the oldest generation numbers */
+	unsigned long min_seq[ANON_AND_FILE];
+	/* the birth time of each generation in jiffies */
+	unsigned long timestamps[MAX_NR_GENS];
+	/* the multi-gen LRU lists, lazily sorted on eviction */
+	struct list_head lists[MAX_NR_GENS][ANON_AND_FILE][MAX_NR_ZONES];
+	/* the multi-gen LRU sizes, eventually consistent */
+	long nr_pages[MAX_NR_GENS][ANON_AND_FILE][MAX_NR_ZONES];
+	/* the exponential moving average of refaulted */
+	unsigned long avg_refaulted[ANON_AND_FILE][MAX_NR_TIERS];
+	/* the exponential moving average of evicted+protected */
+	unsigned long avg_total[ANON_AND_FILE][MAX_NR_TIERS];
+	/* the first tier doesn't need protection, hence the minus one */
+	unsigned long protected[NR_HIST_GENS][ANON_AND_FILE][MAX_NR_TIERS - 1];
+	/* can be modified without holding the LRU lock */
+	atomic_long_t evicted[NR_HIST_GENS][ANON_AND_FILE][MAX_NR_TIERS];
+	atomic_long_t refaulted[NR_HIST_GENS][ANON_AND_FILE][MAX_NR_TIERS];
+	/* whether the multi-gen LRU is enabled */
+	bool enabled;
+};
+
+enum {
+	MM_LEAF_TOTAL,		/* total leaf entries */
+	MM_LEAF_OLD,		/* old leaf entries */
+	MM_LEAF_YOUNG,		/* young leaf entries */
+	MM_NONLEAF_TOTAL,	/* total non-leaf entries */
+	MM_NONLEAF_FOUND,	/* non-leaf entries found in Bloom filters */
+	MM_NONLEAF_ADDED,	/* non-leaf entries added to Bloom filters */
+	NR_MM_STATS
+};
+
+/* double-buffering Bloom filters */
+#define NR_BLOOM_FILTERS	2
+
+struct lru_gen_mm_state {
+	/* set to max_seq after each iteration */
+	unsigned long seq;
+	/* where the current iteration continues (inclusive) */
+	struct list_head *head;
+	/* where the last iteration ended (exclusive) */
+	struct list_head *tail;
+	/* to wait for the last page table walker to finish */
+	struct wait_queue_head wait;
+	/* Bloom filters flip after each iteration */
+	unsigned long *filters[NR_BLOOM_FILTERS];
+	/* the mm stats for debugging */
+	unsigned long stats[NR_HIST_GENS][NR_MM_STATS];
+	/* the number of concurrent page table walkers */
+	int nr_walkers;
+};
+
+struct lru_gen_mm_walk {
+	/* the lruvec under reclaim */
+	struct lruvec *lruvec;
+	/* unstable max_seq from lru_gen_struct */
+	unsigned long max_seq;
+	/* the next address within an mm to scan */
+	unsigned long next_addr;
+	/* to batch promoted pages */
+	int nr_pages[MAX_NR_GENS][ANON_AND_FILE][MAX_NR_ZONES];
+	/* to batch the mm stats */
+	int mm_stats[NR_MM_STATS];
+	/* total batched items */
+	int batched;
+	bool can_swap;
+	bool force_scan;
+};
+
+void lru_gen_init_lruvec(struct lruvec *lruvec);
+void lru_gen_look_around(struct page_vma_mapped_walk *pvmw);
+
+#ifdef CONFIG_MEMCG
+void lru_gen_init_memcg(struct mem_cgroup *memcg);
+void lru_gen_exit_memcg(struct mem_cgroup *memcg);
+#endif
+
+#else /* !CONFIG_LRU_GEN */
+
+static inline void lru_gen_init_lruvec(struct lruvec *lruvec)
+{
+}
+
+static inline void lru_gen_look_around(struct page_vma_mapped_walk *pvmw)
+{
+}
+
+#ifdef CONFIG_MEMCG
+static inline void lru_gen_init_memcg(struct mem_cgroup *memcg)
+{
+}
+
+static inline void lru_gen_exit_memcg(struct mem_cgroup *memcg)
+{
+}
+#endif
+
+#endif /* CONFIG_LRU_GEN */
+
 struct lruvec {
 	struct list_head		lists[NR_LRU_LISTS];
 	/*
@@ -289,6 +493,12 @@ struct lruvec {
 	unsigned long			refaults[ANON_AND_FILE];
 	/* Various lruvec state flags (enum lruvec_flags) */
 	unsigned long			flags;
+#ifdef CONFIG_LRU_GEN
+	/* evictable pages divided into generations */
+	struct lru_gen_struct		lrugen;
+	/* to concurrently iterate lru_gen_mm_list */
+	struct lru_gen_mm_state		mm_state;
+#endif
 #ifdef CONFIG_MEMCG
 	struct pglist_data *pgdat;
 #endif
@@ -476,6 +686,9 @@ struct zone {
 	 * bootmem allocator):
 	 *	managed_pages = present_pages - reserved_pages;
 	 *
+	 * cma pages is present pages that are assigned for CMA use
+	 * (MIGRATE_CMA).
+	 *
 	 * So present_pages may be used by memory hotplug or memory power
 	 * management logic to figure out unmanaged pages by checking
 	 * (present_pages - managed_pages). And managed_pages should be used
@@ -500,6 +713,9 @@ struct zone {
 	atomic_long_t		managed_pages;
 	unsigned long		spanned_pages;
 	unsigned long		present_pages;
+#ifdef CONFIG_CMA
+	unsigned long		cma_pages;
+#endif
 
 	const char		*name;
 
@@ -573,6 +789,11 @@ struct zone {
 	/* Zone statistics */
 	atomic_long_t		vm_stat[NR_VM_ZONE_STAT_ITEMS];
 	atomic_long_t		vm_numa_stat[NR_VM_NUMA_STAT_ITEMS];
+
+	ANDROID_KABI_RESERVE(1);
+	ANDROID_KABI_RESERVE(2);
+	ANDROID_KABI_RESERVE(3);
+	ANDROID_KABI_RESERVE(4);
 } ____cacheline_internodealigned_in_smp;
 
 enum pgdat_flags {
@@ -595,6 +816,15 @@ enum zone_flags {
 static inline unsigned long zone_managed_pages(struct zone *zone)
 {
 	return (unsigned long)atomic_long_read(&zone->managed_pages);
+}
+
+static inline unsigned long zone_cma_pages(struct zone *zone)
+{
+#ifdef CONFIG_CMA
+	return zone->cma_pages;
+#else
+	return 0;
+#endif
 }
 
 static inline unsigned long zone_end_pfn(const struct zone *zone)
@@ -749,16 +979,19 @@ typedef struct pglist_data {
 	wait_queue_head_t pfmemalloc_wait;
 	struct task_struct *kswapd;	/* Protected by
 					   mem_hotplug_begin/end() */
+	struct task_struct *mkswapd[MAX_KSWAPD_THREADS];
 	int kswapd_order;
 	enum zone_type kswapd_highest_zoneidx;
 
 	int kswapd_failures;		/* Number of 'reclaimed == 0' runs */
 
+	ANDROID_OEM_DATA(1);
 #ifdef CONFIG_COMPACTION
 	int kcompactd_max_order;
 	enum zone_type kcompactd_highest_zoneidx;
 	wait_queue_head_t kcompactd_wait;
 	struct task_struct *kcompactd;
+	bool proactive_compact_trigger;
 #endif
 	/*
 	 * This is a per-node reserve of pages that are not available
@@ -800,6 +1033,11 @@ typedef struct pglist_data {
 	struct lruvec		__lruvec;
 
 	unsigned long		flags;
+
+#ifdef CONFIG_LRU_GEN
+	/* kswap mm walk data */
+	struct lru_gen_mm_walk	mm_walk;
+#endif
 
 	ZONE_PADDING(_pad2_)
 
@@ -990,6 +1228,7 @@ extern struct pglist_data contig_page_data;
 extern struct pglist_data *first_online_pgdat(void);
 extern struct pglist_data *next_online_pgdat(struct pglist_data *pgdat);
 extern struct zone *next_zone(struct zone *zone);
+extern int isolate_anon_lru_page(struct page *page);
 
 /**
  * for_each_online_pgdat - helper macro to iterate over all online nodes

@@ -214,6 +214,7 @@ machine-$(CONFIG_ARCH_SA1100)		+= sa1100
 machine-$(CONFIG_ARCH_RENESAS)	 	+= shmobile
 machine-$(CONFIG_ARCH_SIRF)		+= prima2
 machine-$(CONFIG_ARCH_SOCFPGA)		+= socfpga
+machine-$(CONFIG_ARCH_SSTAR)		+= sstar
 machine-$(CONFIG_ARCH_STI)		+= sti
 machine-$(CONFIG_ARCH_STM32)		+= stm32
 machine-$(CONFIG_ARCH_SUNXI)		+= sunxi
@@ -300,7 +301,7 @@ stack_protector_prepare: prepare0
 	$(eval GCC_PLUGINS_CFLAGS += $(SSP_PLUGIN_CFLAGS))
 endif
 
-all:	$(notdir $(KBUILD_IMAGE))
+all:	$(notdir $(KBUILD_IMAGE)) uImage
 
 
 archheaders:
@@ -317,7 +318,11 @@ INSTALL_TARGETS	= zinstall uinstall install
 
 PHONY += bzImage $(BOOT_TARGETS) $(INSTALL_TARGETS)
 
+ifeq ($(CONFIG_ARCH_SSTAR),)
 bootpImage uImage: zImage
+else
+bootpImage uImage: Image
+endif
 zImage: Image
 
 $(BOOT_TARGETS): vmlinux

@@ -12,3 +12,13 @@ config PCI_EPF_TEST
 	   for PCI Endpoint.
 
 	   If in doubt, say "N" to disable Endpoint test driver.
+
+config PCI_EPF_VHOST
+	tristate "PCI Endpoint VHOST driver"
+	depends on PCI_ENDPOINT && ARCH_SSTAR
+	help
+	   Select this configuration option to enable the VHOST driver
+	   for PCI Endpoint. EPF VHOST driver implements VIRTIO backend
+	   for EPF and uses the VHOST framework to bind any VHOST driver
+	   to the VHOST device created by this driver.
+	   If in doubt, say "N" to disable Endpoint VHOST driver.

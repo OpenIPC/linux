@@ -26,6 +26,9 @@ struct nand_flash_dev nand_flash_ids[] = {
 	 * listed by full ID. We list them first so that we can easily identify
 	 * the most specific match.
 	 */
+#ifdef CONFIG_SS_NAND_ONEBIN
+	EXTENDED_ID_NAND("nand0",  0xEE, 128, LP_OPTIONS),
+#endif
 	{"TC58NVG0S3E 1G 3.3V 8-bit",
 		{ .id = {0x98, 0xd1, 0x90, 0x15, 0x76, 0x14, 0x01, 0x00} },
 		  SZ_2K, SZ_128, SZ_128K, 0, 8, 64, NAND_ECC_INFO(1, SZ_512), },
@@ -197,11 +200,13 @@ static const struct nand_manufacturer_desc nand_manufacturer_descs[] = {
  */
 const struct nand_manufacturer_desc *nand_get_manufacturer_desc(u8 id)
 {
+#ifndef CONFIG_SS_NAND_ONEBIN
 	int i;
 
 	for (i = 0; i < ARRAY_SIZE(nand_manufacturer_descs); i++)
 		if (nand_manufacturer_descs[i].id == id)
 			return &nand_manufacturer_descs[i];
+#endif
 
 	return NULL;
 }

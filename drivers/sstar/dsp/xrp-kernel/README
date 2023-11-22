@@ -1,0 +1,25 @@
+Driver parameters:
+
+- firmware_command_timeout, int: a number of seconds that the host waits for
+  the DSP to respond to a synchronization request or a command. Can be changed
+  at runtime through the following sysfs entry:
+    /sys/module/xrp/parameters/firmware_command_timeout
+
+- firmware_reboot, 0/1: controls whether the driver reboots firmware on
+  command timeout. Enabled by default and can be changed at runtime through
+  the following sysfs entry: /sys/module/xrp/parameters/firmware_reboot
+
+- loopback, 0/1/2/3: controls level of interaction between the driver and
+  the firmware.
+  0: normal operation. The driver loads firmware, controls DSP and interacts
+     with the firmware through shared memory;
+  1: no-communication loopback. The driver loads the firmware and controls
+     DSP, but does not communicate with firmware. Initial synchronization
+     is not performed and command submission is completed immediately after
+     all normal preparation steps related to buffer mapping. Communication
+     area is not touched by the driver.
+  2: no-control loopback. The driver loads the firmware, but does not control
+     DSP nor does it communicate with the firmware. Neither communication
+     area nor DSP MMIO area are touched by the driver.
+  3: no-firmware loopback. The driver doesn't load firmware, doesn't control
+     DSP and doesn't communicate with DSP.

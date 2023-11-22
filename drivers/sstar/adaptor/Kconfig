@@ -1,0 +1,9 @@
+config SS_RTK_MI_ADAPTOR
+depends on SS_DUALOS && !(SS_SWTOE)
+
+bool "SS_RTK_MI_ADAPTOR"
+default n
+
+help
+Enable compilation option for DualOS RTK MI Adaptor
+

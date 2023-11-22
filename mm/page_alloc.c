@@ -62,6 +62,7 @@
 #include <linux/sched/rt.h>
 #include <linux/sched/mm.h>
 #include <linux/page_owner.h>
+#include <linux/page_pinner.h>
 #include <linux/kthread.h>
 #include <linux/memcontrol.h>
 #include <linux/ftrace.h>
@@ -70,6 +71,7 @@
 #include <linux/psi.h>
 #include <linux/padata.h>
 #include <linux/khugepaged.h>
+#include <trace/hooks/mm.h>
 
 #include <asm/sections.h>
 #include <asm/tlbflush.h>
@@ -106,9 +108,775 @@ typedef int __bitwise fpi_t;
  */
 #define FPI_TO_TAIL		((__force fpi_t)BIT(1))
 
+/*
+ * Don't poison memory with KASAN (only for the tag-based modes).
+ * During boot, all non-reserved memblock memory is exposed to page_alloc.
+ * Poisoning all that memory lengthens boot time, especially on systems with
+ * large amount of RAM. This flag is used to skip that poisoning.
+ * This is only done for the tag-based KASAN modes, as those are able to
+ * detect memory corruptions with the memory tags assigned by default.
+ * All memory allocated normally after boot gets poisoned as usual.
+ */
+#define FPI_SKIP_KASAN_POISON	((__force fpi_t)BIT(2))
+
 /* prevent >1 _updater_ of zone percpu pageset ->high and ->batch fields */
 static DEFINE_MUTEX(pcp_batch_high_lock);
 #define MIN_PERCPU_PAGELIST_FRACTION	(8)
+
+#ifdef CONFIG_MP_DEBUG_TOOL_MEMORY_USAGE_MONITOR
+#include <linux/timer.h>
+#include <linux/cma.h>
+#include <linux/crc32.h>
+#include <linux/kallsyms.h>
+#include "../arch/arm/include/asm/bitops.h"
+#include "cma.h"
+#include <linux/proc_fs.h>
+static int search_cnt = 0;
+static int cmp_cnt = 0;
+#define PAGE_ALLOC_STACK_HASH_BITS 12
+
+#ifdef  CONFIG_MAX_STACK_COUNT_1024
+#define MAX_STACK_COUNT  ((1 << PAGE_ALLOC_STACK_HASH_BITS) >> 2)
+#elif defined CONFIG_MAX_STACK_COUNT_2048
+#define MAX_STACK_COUNT  ((1 << PAGE_ALLOC_STACK_HASH_BITS) >> 1)
+#elif defined CONFIG_MAX_STACK_COUNT_4096
+#define MAX_STACK_COUNT  ((1 << PAGE_ALLOC_STACK_HASH_BITS))
+#elif defined CONFIG_MAX_STACK_COUNT_6144
+#define MAX_STACK_COUNT  (((1 << PAGE_ALLOC_STACK_HASH_BITS) >> 2) * 4)
+#elif defined CONFIG_MAX_STACK_COUNT_8192
+#define MAX_STACK_COUNT  ((1 << PAGE_ALLOC_STACK_HASH_BITS) << 2)
+#endif
+
+static int init_show_mm_time = 0;
+static int monitor_period = 15;
+static int  TRACE_PRT_LOW_LIMIT = 100;             // Edie
+static int  dump_increase_only = 0;
+static char cma_info[1024];
+struct timer_list Show_MM_Timer;
+volatile unsigned long last_show_mm_time = 0;      // specify the show_mm_time's time diff
+volatile int show_debug_info = 1;                  // specify if we are in hang case (__alloc_pages_nodemask() costs over 900000)
+volatile int durations = 0;                        // test times in second
+//volatile int lastdurations = 0;
+
+#ifdef CONFIG_CMA
+
+//extern void get_cma_status(char *info);
+extern struct cma *dma_contiguous_default_area;
+
+static int get_cma_freebits(struct cma *cma)
+{
+	int total_free	= 0;
+	int start	= 0;
+	int pos		= 0;
+	int next	= 0;
+
+	while (1) {
+		pos = find_next_zero_bit(cma->bitmap, cma->count, start);
+
+		if (pos >= cma->count)
+			break;
+		start = pos + 1;
+		next = find_next_bit(cma->bitmap, cma->count, start);
+
+		if (next >= cma->count) {
+			total_free += (cma->count - pos);
+			break;
+		}
+
+		total_free += (next - pos);
+		start = next + 1;
+
+		if (start >= cma->count)
+			break;
+	}
+
+	return total_free;
+}
+
+void get_system_heap_info(struct cma *system_cma, int *mali_heap_info)
+{
+	int freebits;
+
+	// mutex_lock(&system_cma->lock); //edie
+	freebits = get_cma_freebits(system_cma);
+	mali_heap_info[0] = system_cma->count - freebits;	// alloc
+	mali_heap_info[1] = 0;
+	mali_heap_info[2] = 0;
+	mali_heap_info[3] = freebits;						// free
+	// mutex_unlock(&system_cma->lock); //edie
+}
+
+void get_cma_status(char *info)
+{
+	int cma_status[4] = {0};
+	char cma_info[64] = {0};
+	// char name[16] = {0};
+	get_system_heap_info(dma_contiguous_default_area, cma_status);
+
+	sprintf(cma_info,"%s (%dkb %dkb %dkb %dkb) ", " DEFAULT_CMA_BUFFER", cma_status[0]*4, cma_status[1]*4, cma_status[2]*4, cma_status[3]*4);
+	strcat(info, cma_info);
+}
+
+static inline int is_cma_page(struct page *page)
+{
+	unsigned mt = get_pageblock_migratetype(page);
+	if (mt == MIGRATE_ISOLATE || mt == MIGRATE_CMA)
+		return true;
+	return false;
+}
+#endif //CONFIG_CMA
+
+#ifdef CONFIG_MP_CMA_PATCH_COMPACTION_FROM_NONCMA_TO_CMA_DEBUG
+extern void show_freemem_info(void);
+#endif
+
+#ifdef CONFIG_MP_CMA_PATCH_DO_FORK_PAGE_POOL
+extern atomic_t thread_info_cache_cnt;
+#endif
+
+#define PAGE_TRACE_STACK_DEPTH 8
+static DEFINE_HASHTABLE(page_alloc_stack_table, PAGE_ALLOC_STACK_HASH_BITS);
+LIST_HEAD(page_alloc_stack_heap_head);
+unsigned int g_total_stack_cnt;
+struct mstar_page_alloc_stack *g_stack_head;
+
+struct mstar_page_alloc_stack {
+	u32 crc32;
+	unsigned int alloc_page_cnt;
+	unsigned int ksm_pages;
+	unsigned int anon_pages;
+	unsigned int file_pages;
+	unsigned int last_page_cnt;
+	union {
+		struct hlist_node hlist;
+		struct list_head list;
+	};
+	unsigned long trace[PAGE_TRACE_STACK_DEPTH];
+};
+
+struct mstar_page_trace_struct {
+	unsigned char allocated;
+	unsigned char lock_state;
+	unsigned short stack_index;
+	gfp_t  gfp_mask;
+};
+
+db_time_table time_cnt_table[DB_MAX_CNT] = {
+	{"__alloc_pages_nodemask"},
+	{"*__perform_reclaim"},
+	{"**try_to_free_pages"},
+	{"***do_try_to_free_pages"},
+	{"*****shrink_zones"},
+	{"******shrink_slab"},
+	{"*******do_shrink_slab"},
+	//{"lowmem_shrink"},//no
+	//{"wait_iff_congested"},//no
+	{"__alloc_pages_direct_compact"},
+};
+
+extern void list_sort(void *priv, struct list_head *head,
+		int (*cmp)(void *priv, struct list_head *a,
+			struct list_head *b));
+
+extern char _text[], _end[];
+
+static DEFINE_SPINLOCK(monitor_list_spinlock);
+struct mstar_page_trace_struct  *monitor_array_root = NULL;
+
+struct mstar_page_trace_struct  *monitor_array_LX = NULL;
+struct mstar_page_trace_struct  *monitor_array_LX2 = NULL;
+struct mstar_page_trace_struct  *monitor_array_LX3 = NULL;
+
+unsigned long monitor_array_LX_base = 0;
+unsigned long monitor_array_LX_size = 0;
+unsigned long monitor_array_LX2_base = 0;
+unsigned long monitor_array_LX2_size = 0;
+unsigned long monitor_array_LX3_base = 0;
+unsigned long monitor_array_LX3_size = 0;
+
+
+unsigned long g_mon_reserve_pfn = 0;
+extern unsigned long lx_mem_addr;// = PHYS_OFFSET;
+extern unsigned long lx_mem_size;// = INVALID_PHY_ADDR; //default setting
+extern unsigned long lx_mem2_addr;// = INVALID_PHY_ADDR; //default setting
+extern unsigned long lx_mem2_size;// = INVALID_PHY_ADDR; //default setting
+extern unsigned long lx_mem3_addr;// = INVALID_PHY_ADDR; //default setting
+extern unsigned long lx_mem3_size;// = INVALID_PHY_ADDR; //default setting
+
+static void init_array_pointer(void)
+{
+	struct page *page = pfn_to_page(g_mon_reserve_pfn);
+	int i;
+
+	monitor_array_root = (struct mstar_page_trace_struct*)page_address(page);
+	//	memset(monitor_array_root, 0, sizeof(struct mstar_page_trace_struct)*(monitor_array_LX_size+monitor_array_LX2_size+monitor_array_LX3_size));//Edie
+	memset(monitor_array_root, 0, sizeof(struct mstar_page_trace_struct)*(monitor_array_LX_size));
+	monitor_array_LX = monitor_array_root;
+
+	//	if (monitor_array_LX2_size)
+	//		monitor_array_LX2=monitor_array_LX+monitor_array_LX_size;
+	//	if (monitor_array_LX3_size)
+	//		monitor_array_LX3=monitor_array_LX+monitor_array_LX_size+monitor_array_LX2_size;
+
+	//	g_stack_head = (struct mstar_page_alloc_stack*)(monitor_array_LX+monitor_array_LX_size+monitor_array_LX2_size+monitor_array_LX3_size);//Edie
+	g_stack_head = (struct mstar_page_alloc_stack*)(monitor_array_LX+monitor_array_LX_size);
+
+	for (i=0; i<MAX_STACK_COUNT; i++)
+		list_add(&g_stack_head[i].list, &page_alloc_stack_heap_head);
+	g_total_stack_cnt = 0;
+}
+
+static struct mstar_page_trace_struct *get_traceinfo(unsigned long pfn)
+{
+	struct mstar_page_trace_struct *trace_info;
+
+	if (!monitor_array_root) {
+		unsigned long flags;
+		spin_lock_irqsave(&monitor_list_spinlock, flags);
+		init_array_pointer();
+		spin_unlock_irqrestore(&monitor_list_spinlock, flags);
+	}
+	BUG_ON(monitor_array_root == NULL);
+
+	if (pfn>=monitor_array_LX_base && pfn<(monitor_array_LX_base+monitor_array_LX_size))
+		trace_info = monitor_array_LX + (pfn - monitor_array_LX_base);
+	//	else  if(pfn>=monitor_array_LX2_base && pfn<(monitor_array_LX2_base+monitor_array_LX2_size)) //Edie
+	//		trace_info = monitor_array_LX2+(pfn-monitor_array_LX2_base);
+	//	else  if(pfn>=monitor_array_LX3_base && pfn<(monitor_array_LX3_base+monitor_array_LX3_size))
+	//		trace_info = monitor_array_LX3+(pfn-monitor_array_LX3_base);
+	else {
+		printk("%s Pfn Error! \r\n", __FUNCTION__);
+		BUG();
+	}
+	return trace_info;
+}
+
+static unsigned long get_trace_pfn(struct mstar_page_trace_struct *info)
+{
+
+	BUG_ON(monitor_array_root == NULL);
+	if (info>=monitor_array_LX && info<monitor_array_LX+monitor_array_LX_size)
+		return monitor_array_LX_base+(info-monitor_array_LX);
+	if (monitor_array_LX2_size &&
+			info>=monitor_array_LX2 && info<monitor_array_LX2+monitor_array_LX2_size)
+		return monitor_array_LX2_base+(info-monitor_array_LX2);
+	if (monitor_array_LX3_size &&
+			info>=monitor_array_LX3 && info<monitor_array_LX3+monitor_array_LX3_size)
+		return monitor_array_LX3_base+(info-monitor_array_LX3);
+
+	BUG();
+	return (unsigned long)-1;
+}
+
+unsigned long monitor_get_reserve_size(void )
+{
+	unsigned long total_size = lx_mem_size;
+
+	monitor_array_LX_base = __phys_to_pfn(lx_mem_addr);
+	monitor_array_LX_size = lx_mem_size/PAGE_SIZE;
+
+	if (lx_mem2_addr != 0xFFFFFFFFUL) {
+		total_size += lx_mem2_size;
+
+		monitor_array_LX2_base = __phys_to_pfn(lx_mem2_addr);
+		monitor_array_LX2_size = lx_mem2_size/PAGE_SIZE;
+	}
+	if (lx_mem3_addr != 0xFFFFFFFFUL) {
+		total_size += lx_mem3_size;
+
+		monitor_array_LX3_base = __phys_to_pfn(lx_mem3_addr);
+		monitor_array_LX3_size = lx_mem3_size/PAGE_SIZE;
+	}
+
+	BUG_ON(total_size & (PAGE_SIZE-1));
+	total_size /= PAGE_SIZE;
+	return ((sizeof(struct mstar_page_trace_struct) * total_size) + (sizeof(struct mstar_page_alloc_stack) * MAX_STACK_COUNT));
+}
+
+void notify_free_page(struct page *page, int count)
+{
+	struct mstar_page_trace_struct *trace_info;
+	int i;
+	unsigned long flags;
+	unsigned long pfn = page_to_pfn(page);
+
+	rcu_read_lock();
+	for (i=0;i<count;i++) {
+		trace_info = get_traceinfo(pfn+i);
+
+		if (trace_info->lock_state) {
+			break;
+		}
+		trace_info->allocated = 0;
+		trace_info->stack_index = 0xFFFF;
+	}
+	rcu_read_unlock();
+
+	if (i<count) {
+		spin_lock_irqsave(&monitor_list_spinlock, flags);
+		for (; i<count; i++) {
+			trace_info = get_traceinfo(pfn+i);
+			trace_info->allocated = 0;
+			trace_info->stack_index = 0xFFFF;
+		}
+		spin_unlock_irqrestore(&monitor_list_spinlock, flags);
+	}
+
+}
+
+static void __show_page_trace_statics(struct rcu_head *head)
+{
+
+	int i;
+	unsigned long flags;
+	int total_free_slot=0, total_free_traced=0, total_alloc_traced=0;
+
+	struct mstar_page_trace_struct *trace_info1;
+	struct sysinfo meminfo;
+	__kernel_ulong_t total_prt = 0, tmp_rec;
+	unsigned long debug_reserve= ALIGN(monitor_get_reserve_size(), PAGE_SIZE)/PAGE_SIZE;
+	unsigned long kernel_reserve = ALIGN(_end - _text, PAGE_SIZE)/PAGE_SIZE;
+	struct mstar_page_alloc_stack *stk;
+	struct hlist_node *tmp;
+	unsigned long pfn;
+	struct page *page;
+	bool rule_a, rule_b = 0;
+
+	hash_for_each_safe(page_alloc_stack_table, i, tmp, stk, hlist) {
+		stk->alloc_page_cnt = 0;
+		stk->ksm_pages = 0;
+		stk->anon_pages = 0;
+		stk->file_pages = 0;
+		//            stk->last_page_cnt = 0;
+	}
+
+	si_meminfo(&meminfo);
+	spin_lock_irqsave(&monitor_list_spinlock, flags);
+
+	//    for (i = 0;i < monitor_array_LX_size + monitor_array_LX2_size + monitor_array_LX3_size; i++)
+	for (i = 0; i < monitor_array_LX_size; i++) {
+		if (!monitor_array_root) {
+			printk("monitor_array_root is null \n");
+			return ;
+		}
+		trace_info1 = monitor_array_root + i;
+
+		//if(PageBuddy(pfn_to_page(trace_info1->pfn)))
+		if (trace_info1->allocated == 0) {
+			total_free_traced++;
+			trace_info1->lock_state = 0;//we will not trace this page at this time, release it
+			continue;
+		}
+		pfn = get_trace_pfn(trace_info1);
+		page = pfn_to_page(pfn);
+		BUG_ON(trace_info1->stack_index>=MAX_STACK_COUNT);
+
+		g_stack_head[trace_info1->stack_index].alloc_page_cnt++;
+
+		if (PageLRU(page)) {
+			if (PageKsm(page))
+				g_stack_head[trace_info1->stack_index].ksm_pages++;
+			else if (PageAnon(page))
+				g_stack_head[trace_info1->stack_index].anon_pages++;
+			else if (page_is_file_cache(page))
+				g_stack_head[trace_info1->stack_index].file_pages++;
+		}
+
+
+		total_alloc_traced++;
+		trace_info1->lock_state = 0;//we will not trace this page at this time, release it
+	}
+
+	tmp_rec = total_alloc_traced;
+	spin_unlock_irqrestore(&monitor_list_spinlock, flags);
+
+	printk(KERN_ERR "Build at %s: %s  \n   In show_page_alloc_statics(%d, %d, %d, %d)\n    total %u stacks\n",
+			__DATE__, __TIME__,
+			total_free_slot, total_free_traced, total_alloc_traced, total_free_traced + total_alloc_traced, g_total_stack_cnt);
+	hash_for_each_safe(page_alloc_stack_table, i, tmp, stk, hlist) {
+		if (stk->last_page_cnt == 0) {
+			stk->last_page_cnt = stk->alloc_page_cnt;
+		}
+		rule_a = stk->alloc_page_cnt * 4 > TRACE_PRT_LOW_LIMIT;//K
+
+		if (dump_increase_only) {
+			if ((stk->alloc_page_cnt - stk->last_page_cnt!=0))
+				rule_b = 1;
+			else
+				rule_b = 0;
+		} else {
+			rule_b = 1;
+		}
+
+		if (rule_a && rule_b) {
+			int k;
+			printk(KERN_ERR "%dk(+%dk)(ksm%dk anon%dk file%dk others%dk) mem allocated from stack:\n",
+					stk->alloc_page_cnt * 4, stk->alloc_page_cnt * 4 - stk->last_page_cnt* 4, stk->ksm_pages * 4, stk->anon_pages * 4, stk->file_pages * 4,
+					stk->alloc_page_cnt * 4 - stk->ksm_pages * 4 - stk->anon_pages * 4 - stk->file_pages * 4);
+
+			for (k=0; k < PAGE_TRACE_STACK_DEPTH; k++) {
+				if (stk->trace[k] == ULONG_MAX)
+					break;
+				printk(KERN_ERR "       ");
+				printk("[<%p>] %pS\n", (void *) stk->trace[k], (void *) stk->trace[k]);
+			}
+			total_prt += stk->alloc_page_cnt;
+		}
+		total_alloc_traced -= stk->alloc_page_cnt;
+		stk->last_page_cnt = stk->alloc_page_cnt;
+	}
+
+	BUG_ON(total_alloc_traced);
+	//	BUG_ON(meminfo.totalram > monitor_array_LX_size + monitor_array_LX2_size + monitor_array_LX3_size); //Edie
+	BUG_ON(meminfo.totalram > monitor_array_LX_size);
+	printk(KERN_ERR "\n\n\n   total ram size=%ldk, total_free_size=%ldk, total allocated size=%ldk,"
+			"total print size=%ldk, debug_reserve%ldk, kernel_reserve%ldk, untraced%ldk\n", meminfo.totalram*4, meminfo.freeram*4, tmp_rec*4, total_prt*4,
+			debug_reserve*4, kernel_reserve*4,
+			meminfo.totalram*4 - meminfo.freeram*4 - tmp_rec*4);
+
+	printk(KERN_ERR "\n search%d, cmp%d\n",
+			search_cnt, cmp_cnt);
+	search_cnt = cmp_cnt =0;
+}
+
+void show_page_trace_statics(void)
+{
+	static struct rcu_head rcu_list_head;
+	int i;
+	struct mstar_page_trace_struct *trace_info;
+
+	//        for(i = 0; i < monitor_array_LX_size + monitor_array_LX2_size + monitor_array_LX3_size; i++)  //Edie
+	for (i = 0; i < monitor_array_LX_size; i++) {
+		if (!monitor_array_root) {
+			printk("monitor_array_root is NULL!\n");
+			break;
+		}
+		trace_info = monitor_array_root+i;
+		BUG_ON(trace_info->lock_state);
+		trace_info->lock_state = 1;
+	}
+	call_rcu(&rcu_list_head, __show_page_trace_statics);
+}
+void create_memleak_proc(void);
+
+static void show_free_page(void)
+{
+	//    int i = 0;
+	struct zone *zone;
+	//    for_each_zone(zone){
+	zone = (first_online_pgdat())->node_zones;
+	printk("zone normal free_area [%ld, %ld, %ld, %ld, %ld, %ld, %ld, %ld, %ld, %ld]\n", zone->free_area[0].nr_free,
+			zone->free_area[1].nr_free,
+			zone->free_area[2].nr_free,
+			zone->free_area[3].nr_free,
+			zone->free_area[4].nr_free,
+			zone->free_area[5].nr_free,
+			zone->free_area[6].nr_free,
+			zone->free_area[7].nr_free,
+			zone->free_area[8].nr_free,
+			zone->free_area[9].nr_free);
+	//        }
+}
+
+void show_mm_time(void)
+{
+	int i, j;
+
+	if (!init_show_mm_time) {
+		printk("\033[35mFunction = %s, Line = %d, init a timer\033[m\n", __PRETTY_FUNCTION__, __LINE__);
+		create_memleak_proc();
+		init_show_mm_time = 1;
+		init_timer(&Show_MM_Timer);
+		Show_MM_Timer.data = 1;
+		Show_MM_Timer.function = (void *)show_mm_time;
+		/* first timer is 10s */
+		Show_MM_Timer.expires = jiffies + (monitor_period * HZ);
+		add_timer(&Show_MM_Timer);
+		last_show_mm_time = jiffies;
+		return;
+	}
+	durations++;
+	printk("\033[35mFunction = %s, Line = %d, before last show_mm_time: %d\033[m\n", __PRETTY_FUNCTION__, __LINE__, jiffies_to_usecs(jiffies-last_show_mm_time));
+	last_show_mm_time = jiffies;
+
+	for (i = 0; i < DB_MAX_CNT; i++) {
+		if (i == 0) {
+			//if( jiffies_to_usecs(time_cnt_table[i].lone_time.counter) >= 900000 )
+			//			if( (jiffies_to_usecs(time_cnt_table[i].lone_time.counter) >= 900000) && (atomic_read(&time_cnt_table[0].do_cnt) > 25000) )
+			{
+				show_debug_info++;
+			}
+			//			else
+			//			{
+			//				show_debug_info = 0;
+			//			}
+			printk("durations is %d\n", durations);
+			printk("show_debug_info is %d\n", show_debug_info);
+		}
+		if (i == 0) {
+			printk("======== [%s ] ========\n", time_cnt_table[i].name);
+			/*MAX_ORDER: SStar this value 10, a value of 11 means that the largest free memory block is 2^10 pages.*/
+			printk("alloc failed order cnt [%d, %d, %d, %d, %d, %d, %d, %d, %d, %d]\n", time_cnt_table[i].failed_order[0].counter,
+					time_cnt_table[i].failed_order[1].counter,
+					time_cnt_table[i].failed_order[2].counter,
+					time_cnt_table[i].failed_order[3].counter,
+					time_cnt_table[i].failed_order[4].counter,
+					time_cnt_table[i].failed_order[5].counter,
+					time_cnt_table[i].failed_order[6].counter,
+					time_cnt_table[i].failed_order[7].counter,
+					time_cnt_table[i].failed_order[8].counter,
+					time_cnt_table[i].failed_order[9].counter);
+
+			printk("alloc pass order cnt [%d, %d, %d, %d, %d, %d, %d, %d, %d, %d]\n", time_cnt_table[i].pass_order[0].counter,
+					time_cnt_table[i].pass_order[1].counter,
+					time_cnt_table[i].pass_order[2].counter,
+					time_cnt_table[i].pass_order[3].counter,
+					time_cnt_table[i].pass_order[4].counter,
+					time_cnt_table[i].pass_order[5].counter,
+					time_cnt_table[i].pass_order[6].counter,
+					time_cnt_table[i].pass_order[7].counter,
+					time_cnt_table[i].pass_order[8].counter,
+					time_cnt_table[i].pass_order[9].counter);
+
+
+			show_free_page();
+			/* migratetype */
+			printk("order_0 min_cnt [U: %d, M: %d, R: %d, P: %d, C: %d, I: %d]\n",
+					time_cnt_table[i].order0_cnt[0].counter,
+					time_cnt_table[i].order0_cnt[1].counter,
+					time_cnt_table[i].order0_cnt[2].counter,
+					time_cnt_table[i].order0_cnt[3].counter,
+					time_cnt_table[i].order0_cnt[4].counter,
+					time_cnt_table[i].order0_cnt[5].counter);
+
+			printk("MIN NR_FREE_PAGES: %d, MIN NR_FREE_CMA_PAGES: %d, MIN NR_FILE_PAGES: %d\n",
+					time_cnt_table[i].min_page_cnt[0].counter,
+					time_cnt_table[i].min_page_cnt[1].counter,
+					time_cnt_table[i].min_page_cnt[2].counter);
+
+			printk("MAX NR_FREE_PAGES: %d, MAX NR_FREE_CMA_PAGES: %d, MAX NR_FILE_PAGES: %d\n",
+					time_cnt_table[i].max_page_cnt[0].counter,
+					time_cnt_table[i].max_page_cnt[1].counter,
+					time_cnt_table[i].max_page_cnt[2].counter);
+			printk("========================================\n");
+			printk("[Name, Time, CNT, Pass, Fail]\n");
+		}
+
+		printk("[%s, %d, %d, %d, %d]\n",
+			time_cnt_table[i].name,
+			jiffies_to_usecs(time_cnt_table[i].lone_time.counter),
+			time_cnt_table[i].do_cnt.counter,
+			time_cnt_table[i].pass_cnt.counter,
+			time_cnt_table[i].failed_cnt.counter);
+
+		/* reset data */
+		atomic_set(&time_cnt_table[i].lone_time, 0);
+		atomic_set(&time_cnt_table[i].do_cnt, 0);
+		atomic_set(&time_cnt_table[i].pass_cnt, 0);
+		atomic_set(&time_cnt_table[i].failed_cnt, 0);
+
+		for (j = 0; j < MAX_ORDER; j++) {
+			atomic_set(&time_cnt_table[i].failed_order[j], 0);
+			atomic_set(&time_cnt_table[i].pass_order[j], 0);
+		}
+		for (j = 0; j < MIGRATE_TYPES; j++) {
+			atomic_set(&time_cnt_table[i].order0_cnt[j], 99999);
+		}
+		for (j = 0; j < CNT_PAGES_TYPE; j++) {
+			atomic_set(&time_cnt_table[i].min_page_cnt[j], 99999);
+		}
+		for (j = 0; j < CNT_PAGES_TYPE; j++) {
+			atomic_set(&time_cnt_table[i].max_page_cnt[j], 0);
+		}
+	}
+
+	Show_MM_Timer.expires = jiffies + monitor_period * HZ;
+
+	add_timer(&Show_MM_Timer);
+#ifdef CONFIG_MP_CMA_PATCH_COMPACTION_FROM_NONCMA_TO_CMA
+	show_freemem_info();
+#endif
+
+	memset(cma_info,0,sizeof(cma_info));
+	get_cma_status(cma_info);
+	printk("CMA Free: %lu kB \nCMA heap info(name,alloc,in cache,fail,total free):%s \n"
+			,(global_page_state(NR_FREE_CMA_PAGES)) << (PAGE_SHIFT - 10)
+			,cma_info);
+#ifdef CONFIG_MP_DEBUG_TOOL_THREAD_CREATE_MONITOR
+	{
+		unsigned long flags;
+		spin_lock_irqsave(&thread_info_cache_lock, flags);
+		show_thread_trace_info();
+		spin_unlock_irqrestore(&thread_info_cache_lock, flags);
+	}
+#endif
+
+#ifdef CONFIG_MP_DEBUG_TOOL_MEMORY_USAGE_TRACE
+	show_page_trace_statics();
+#endif
+}
+
+static inline struct mstar_page_alloc_stack *find_page_stack_struct(unsigned long back_trace[])
+{
+	struct mstar_page_alloc_stack *stk;
+	unsigned long flags;
+	unsigned long key;
+	u32 crc;
+	static int conflict_check_times = 10000;
+
+	search_cnt++;
+
+	crc = crc32(0xA7561348, back_trace, sizeof(unsigned long)*PAGE_TRACE_STACK_DEPTH);
+	key = hash_32(crc, PAGE_ALLOC_STACK_HASH_BITS);
+	hash_for_each_possible(page_alloc_stack_table, stk, hlist, key)
+
+		if (crc ==  stk->crc32) {
+			cmp_cnt++;
+
+			if (conflict_check_times> 0) {
+				conflict_check_times--;
+				BUG_ON(memcmp(back_trace, stk->trace, sizeof(unsigned long)*PAGE_TRACE_STACK_DEPTH));
+			}
+			return stk;
+		} else
+			cmp_cnt++;
+
+	spin_lock_irqsave(&monitor_list_spinlock, flags);
+
+	if (!monitor_array_root)
+		init_array_pointer();
+
+	if (list_empty(&page_alloc_stack_heap_head)) {
+		printk(KERN_ERR "Too much alloc stack found(%d), more than max%d !!!\n",
+				g_total_stack_cnt, MAX_STACK_COUNT);
+		//	  BUG();
+	}
+
+	stk = container_of(page_alloc_stack_heap_head.next,  struct mstar_page_alloc_stack, list);
+	list_del(&stk->list);
+	stk->crc32 = crc;
+	stk->alloc_page_cnt = 0;
+	stk->ksm_pages = 0;
+	stk->anon_pages = 0;
+	stk->file_pages = 0;
+	stk->last_page_cnt = 0;
+
+	memcpy(stk->trace, back_trace, sizeof(unsigned long)*PAGE_TRACE_STACK_DEPTH);
+	hash_add(page_alloc_stack_table, &stk->hlist, key);
+	spin_unlock_irqrestore(&monitor_list_spinlock, flags);
+
+	g_total_stack_cnt++;
+	conflict_check_times = 10000;
+#if 0
+
+	printk(KERN_ERR "add new page alloc stack %d\n", ++g_total_stack_cnt);
+	{
+		int i;
+		for (i=0; i<PAGE_TRACE_STACK_DEPTH; i++) {
+			if (stk->trace[i] == ULONG_MAX)
+				break;
+			print_ip_sym(stk->trace[i]);
+		}
+	}
+#endif
+	return stk;
+}
+
+void notify_alloc_page(struct page *page, int count, gfp_t gfp_mask)
+{
+	int i = 0;
+	unsigned long pfn = page_to_pfn(page);
+	struct mstar_page_trace_struct *trace_info;
+	unsigned long back_trace[10];
+	struct stack_trace stack_trace;
+	unsigned long flags;
+	int cpy_count, cpy_beg;
+	struct mstar_page_alloc_stack *stk;
+
+	//memset(back_trace, 0, sizeof(back_trace));
+	memset(&stack_trace, 0, sizeof(stack_trace));
+	stack_trace.max_entries = 10;
+	stack_trace.entries = back_trace;
+	save_stack_trace(&stack_trace);
+
+
+	for (cpy_count=0;cpy_count<8; cpy_count++) {
+		if (back_trace[cpy_count+2] == ULONG_MAX) {
+			break;
+		}
+	}
+	if (cpy_count<8)
+		cpy_count++;//we need to cpy ULONG_MAX
+
+
+	if (cpy_count>=PAGE_TRACE_STACK_DEPTH) {
+		cpy_beg += cpy_count - PAGE_TRACE_STACK_DEPTH + 2;
+		cpy_count = PAGE_TRACE_STACK_DEPTH;
+	} else {
+		memset(back_trace + 2 + cpy_count, 0, sizeof(unsigned long)*(PAGE_TRACE_STACK_DEPTH - cpy_count));
+		cpy_beg = 2;
+	}
+	stk = find_page_stack_struct(back_trace + cpy_beg);
+
+	rcu_read_lock();
+
+	for (i = 0; i < count; i++) {
+		trace_info = get_traceinfo(pfn+i);
+
+		if (trace_info->lock_state) {
+			//	        printk("pfn+i:%ld %s %d trace_info->lock_state \n", pfn+i,  __FUNCTION__, __LINE__);
+			break;
+		}
+
+		if (trace_info->allocated) {
+			//            int i;
+			BUG_ON( trace_info->stack_index >= MAX_STACK_COUNT);
+
+			//            for (i=0;i<PAGE_TRACE_STACK_DEPTH; i++) {
+			//                if (g_stack_head[trace_info->stack_index].trace[i] == ULONG_MAX)
+			//                    break;
+			//                printk(KERN_ERR "		 ");
+			//                print_ip_sym(g_stack_head[trace_info->stack_index].trace[i]);
+			//            }
+			//            printk("trace_info->allocated, %lx \r\n", pfn);
+			//            BUG();//Edie
+		}
+		//memcpy(trace_info->trace, back_trace+cpy_beg, sizeof(unsigned long)*cpy_count);
+		trace_info->allocated = 1;
+		trace_info->stack_index = stk - g_stack_head;
+		trace_info->gfp_mask = gfp_mask;
+	}
+
+	rcu_read_unlock();
+
+	if (i < count) {
+		spin_lock_irqsave(&monitor_list_spinlock, flags);
+		for ( ; i<count; i++) {
+			trace_info = get_traceinfo(pfn+i);
+
+			if (trace_info->allocated) {
+				int i;
+
+				printk(KERN_ERR "last_alloced from stack:\n");
+				BUG_ON(trace_info->stack_index>=MAX_STACK_COUNT);
+
+				for (i=0; i<PAGE_TRACE_STACK_DEPTH; i++) {
+					if (g_stack_head[trace_info->stack_index].trace[i] == ULONG_MAX)
+						break;
+					printk(KERN_ERR "		");
+					print_ip_sym(g_stack_head[trace_info->stack_index].trace[i]);
+				}
+				//                    BUG(); //edie
+			}
+			//memcpy(trace_info->trace, back_trace+cpy_beg, sizeof(unsigned long)*cpy_count);
+			trace_info->allocated = 1;
+			trace_info->stack_index = stk - g_stack_head;
+			trace_info->gfp_mask = gfp_mask;
+		}
+		spin_unlock_irqrestore(&monitor_list_spinlock, flags);
+	}
+}
+#endif
 
 #ifdef CONFIG_USE_PERCPU_NUMA_NODE_ID
 DEFINE_PER_CPU(int, numa_node);
@@ -165,53 +933,26 @@ unsigned long totalcma_pages __read_mostly;
 
 int percpu_pagelist_fraction;
 gfp_t gfp_allowed_mask __read_mostly = GFP_BOOT_MASK;
-#ifdef CONFIG_INIT_ON_ALLOC_DEFAULT_ON
-DEFINE_STATIC_KEY_TRUE(init_on_alloc);
-#else
 DEFINE_STATIC_KEY_FALSE(init_on_alloc);
-#endif
 EXPORT_SYMBOL(init_on_alloc);
 
-#ifdef CONFIG_INIT_ON_FREE_DEFAULT_ON
-DEFINE_STATIC_KEY_TRUE(init_on_free);
-#else
 DEFINE_STATIC_KEY_FALSE(init_on_free);
-#endif
 EXPORT_SYMBOL(init_on_free);
 
+static bool _init_on_alloc_enabled_early __read_mostly
+				= IS_ENABLED(CONFIG_INIT_ON_ALLOC_DEFAULT_ON);
 static int __init early_init_on_alloc(char *buf)
 {
-	int ret;
-	bool bool_result;
 
-	ret = kstrtobool(buf, &bool_result);
-	if (ret)
-		return ret;
-	if (bool_result && page_poisoning_enabled())
-		pr_info("mem auto-init: CONFIG_PAGE_POISONING is on, will take precedence over init_on_alloc\n");
-	if (bool_result)
-		static_branch_enable(&init_on_alloc);
-	else
-		static_branch_disable(&init_on_alloc);
-	return 0;
+	return kstrtobool(buf, &_init_on_alloc_enabled_early);
 }
 early_param("init_on_alloc", early_init_on_alloc);
 
+static bool _init_on_free_enabled_early __read_mostly
+				= IS_ENABLED(CONFIG_INIT_ON_FREE_DEFAULT_ON);
 static int __init early_init_on_free(char *buf)
 {
-	int ret;
-	bool bool_result;
-
-	ret = kstrtobool(buf, &bool_result);
-	if (ret)
-		return ret;
-	if (bool_result && page_poisoning_enabled())
-		pr_info("mem auto-init: CONFIG_PAGE_POISONING is on, will take precedence over init_on_free\n");
-	if (bool_result)
-		static_branch_enable(&init_on_free);
-	else
-		static_branch_disable(&init_on_free);
-	return 0;
+	return kstrtobool(buf, &_init_on_free_enabled_early);
 }
 early_param("init_on_free", early_init_on_free);
 
@@ -324,10 +1065,10 @@ const char * const migratetype_names[MIGRATE_TYPES] = {
 	"Unmovable",
 	"Movable",
 	"Reclaimable",
-	"HighAtomic",
 #ifdef CONFIG_CMA
 	"CMA",
 #endif
+	"HighAtomic",
 #ifdef CONFIG_MEMORY_ISOLATION
 	"Isolate",
 #endif
@@ -344,6 +1085,11 @@ compound_page_dtor * const compound_page_dtors[NR_COMPOUND_DTORS] = {
 #endif
 };
 
+/*
+ * Try to keep at least this much lowmem free.  Do not allow normal
+ * allocations below this point, only high priority ones. Automatically
+ * tuned according to the amount of memory in the system.
+ */
 int min_free_kbytes = 1024;
 int user_min_free_kbytes = -1;
 #ifdef CONFIG_DISCONTIGMEM
@@ -361,6 +1107,13 @@ int watermark_boost_factor __read_mostly;
 int watermark_boost_factor __read_mostly = 15000;
 #endif
 int watermark_scale_factor = 10;
+
+/*
+ * Extra memory for the system to try freeing. Used to temporarily
+ * free memory, to make space for new workloads. Anyone can allocate
+ * down to the min watermarks controlled by min_free_kbytes above.
+ */
+int extra_free_kbytes = 0;
 
 static unsigned long nr_kernel_pages __initdata;
 static unsigned long nr_all_pages __initdata;
@@ -397,7 +1150,7 @@ int page_group_by_mobility_disabled __read_mostly;
 static DEFINE_STATIC_KEY_TRUE(deferred_pages);
 
 /*
- * Calling kasan_free_pages() only after deferred memory initialization
+ * Calling kasan_poison_pages() only after deferred memory initialization
  * has completed. Poisoning pages during deferred memory init will greatly
  * lengthen the process and cause problem in large memory systems as the
  * deferred pages initialization is done with interrupt disabled.
@@ -409,10 +1162,12 @@ static DEFINE_STATIC_KEY_TRUE(deferred_pages);
  * on-demand allocation and then freed again before the deferred pages
  * initialization is done, but this is not likely to happen.
  */
-static inline void kasan_free_nondeferred_pages(struct page *page, int order)
+static inline bool should_skip_kasan_poison(struct page *page, fpi_t fpi_flags)
 {
-	if (!static_branch_unlikely(&deferred_pages))
-		kasan_free_pages(page, order);
+	return static_branch_unlikely(&deferred_pages) ||
+	       (!IS_ENABLED(CONFIG_KASAN_GENERIC) &&
+		(fpi_flags & FPI_SKIP_KASAN_POISON)) ||
+	       PageSkipKASanPoison(page);
 }
 
 /* Returns true if the struct page for the pfn is uninitialised */
@@ -463,7 +1218,12 @@ defer_init(int nid, unsigned long pfn, unsigned long end_pfn)
 	return false;
 }
 #else
-#define kasan_free_nondeferred_pages(p, o)	kasan_free_pages(p, o)
+static inline bool should_skip_kasan_poison(struct page *page, fpi_t fpi_flags)
+{
+	return (!IS_ENABLED(CONFIG_KASAN_GENERIC) &&
+		(fpi_flags & FPI_SKIP_KASAN_POISON)) ||
+	       PageSkipKASanPoison(page);
+}
 
 static inline bool early_page_uninitialised(unsigned long pfn)
 {
@@ -528,6 +1288,24 @@ unsigned long get_pfnblock_flags_mask(struct page *page, unsigned long pfn,
 {
 	return __get_pfnblock_flags_mask(page, pfn, mask);
 }
+EXPORT_SYMBOL_GPL(get_pfnblock_flags_mask);
+
+int isolate_anon_lru_page(struct page *page)
+{
+	int ret;
+
+	if (!PageLRU(page) || !PageAnon(page))
+		return -EINVAL;
+
+	if (!get_page_unless_zero(page))
+		return -EINVAL;
+
+	ret = isolate_lru_page(page);
+	put_page(page);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(isolate_anon_lru_page);
 
 static __always_inline int get_pfnblock_migratetype(struct page *page, unsigned long pfn)
 {
@@ -730,19 +1508,6 @@ static int __init early_debug_pagealloc(char *buf)
 }
 early_param("debug_pagealloc", early_debug_pagealloc);
 
-void init_debug_pagealloc(void)
-{
-	if (!debug_pagealloc_enabled())
-		return;
-
-	static_branch_enable(&_debug_pagealloc_enabled);
-
-	if (!debug_guardpage_minorder())
-		return;
-
-	static_branch_enable(&_debug_guardpage_enabled);
-}
-
 static int __init debug_guardpage_minorder_setup(char *buf)
 {
 	unsigned long res;
@@ -793,6 +1558,57 @@ static inline bool set_page_guard(struct zone *zone, struct page *page,
 static inline void clear_page_guard(struct zone *zone, struct page *page,
 				unsigned int order, int migratetype) {}
 #endif
+
+/*
+ * Enable static keys related to various memory debugging and hardening options.
+ * Some override others, and depend on early params that are evaluated in the
+ * order of appearance. So we need to first gather the full picture of what was
+ * enabled, and then make decisions.
+ */
+void init_mem_debugging_and_hardening(void)
+{
+	bool page_poisoning_requested = false;
+
+#ifdef CONFIG_PAGE_POISONING
+	/*
+	 * Page poisoning is debug page alloc for some arches. If
+	 * either of those options are enabled, enable poisoning.
+	 */
+	if (page_poisoning_enabled() ||
+	     (!IS_ENABLED(CONFIG_ARCH_SUPPORTS_DEBUG_PAGEALLOC) &&
+	      debug_pagealloc_enabled())) {
+		static_branch_enable(&_page_poisoning_enabled);
+		page_poisoning_requested = true;
+	}
+#endif
+
+	if (_init_on_alloc_enabled_early) {
+		if (page_poisoning_requested)
+			pr_info("mem auto-init: CONFIG_PAGE_POISONING is on, "
+				"will take precedence over init_on_alloc\n");
+		else
+			static_branch_enable(&init_on_alloc);
+	}
+	if (_init_on_free_enabled_early) {
+		if (page_poisoning_requested)
+			pr_info("mem auto-init: CONFIG_PAGE_POISONING is on, "
+				"will take precedence over init_on_free\n");
+		else
+			static_branch_enable(&init_on_free);
+	}
+
+#ifdef CONFIG_DEBUG_PAGEALLOC
+	if (!debug_pagealloc_enabled())
+		return;
+
+	static_branch_enable(&_debug_pagealloc_enabled);
+
+	if (!debug_guardpage_minorder())
+		return;
+
+	static_branch_enable(&_debug_guardpage_enabled);
+#endif
+}
 
 static inline void set_buddy_order(struct page *page, unsigned int order)
 {
@@ -1007,7 +1823,9 @@ static inline void __free_one_page(struct page *page,
 
 	VM_BUG_ON_PAGE(pfn & ((1 << order) - 1), page);
 	VM_BUG_ON_PAGE(bad_range(zone, page), page);
-
+#ifdef CONFIG_MP_DEBUG_TOOL_MEMORY_USAGE_TRACE
+    notify_free_page(page, (1<<order));
+#endif
 continue_merging:
 	while (order < max_order - 1) {
 		if (compaction_capture(capc, page, order, migratetype)) {
@@ -1191,21 +2009,32 @@ out:
 	return ret;
 }
 
-static void kernel_init_free_pages(struct page *page, int numpages)
+static void kernel_init_free_pages(struct page *page, int numpages, bool zero_tags)
 {
 	int i;
 
+	if (zero_tags) {
+		for (i = 0; i < numpages; i++)
+			tag_clear_highpage(page + i);
+		return;
+	}
+
 	/* s390's use of memset() could override KASAN redzones. */
 	kasan_disable_current();
-	for (i = 0; i < numpages; i++)
+	for (i = 0; i < numpages; i++) {
+		u8 tag = page_kasan_tag(page + i);
+		page_kasan_tag_reset(page + i);
 		clear_highpage(page + i);
+		page_kasan_tag_set(page + i, tag);
+	}
 	kasan_enable_current();
 }
 
 static __always_inline bool free_pages_prepare(struct page *page,
-					unsigned int order, bool check_free)
+			unsigned int order, bool check_free, fpi_t fpi_flags)
 {
 	int bad = 0;
+	bool skip_kasan_poison = should_skip_kasan_poison(page, fpi_flags);
 
 	VM_BUG_ON_PAGE(PageTail(page), page);
 
@@ -1219,6 +2048,7 @@ static __always_inline bool free_pages_prepare(struct page *page,
 		if (memcg_kmem_enabled() && PageKmemcg(page))
 			__memcg_kmem_uncharge_page(page, order);
 		reset_page_owner(page, order);
+		free_page_pinner(page, order);
 		return false;
 	}
 
@@ -1256,6 +2086,7 @@ static __always_inline bool free_pages_prepare(struct page *page,
 	page_cpupid_reset_last(page);
 	page->flags &= ~PAGE_FLAGS_CHECK_AT_PREP;
 	reset_page_owner(page, order);
+	free_page_pinner(page, order);
 
 	if (!PageHighMem(page)) {
 		debug_check_no_locks_freed(page_address(page),
@@ -1263,10 +2094,29 @@ static __always_inline bool free_pages_prepare(struct page *page,
 		debug_check_no_obj_freed(page_address(page),
 					   PAGE_SIZE << order);
 	}
-	if (want_init_on_free())
-		kernel_init_free_pages(page, 1 << order);
 
-	kernel_poison_pages(page, 1 << order, 0);
+	kernel_poison_pages(page, 1 << order);
+
+	/*
+	 * As memory initialization might be integrated into KASAN,
+	 * kasan_free_pages and kernel_init_free_pages must be
+	 * kept together to avoid discrepancies in behavior.
+	 *
+	 * With hardware tag-based KASAN, memory tags must be set before the
+	 * page becomes unavailable via debug_pagealloc or arch_free_page.
+	 */
+	if (kasan_has_integrated_init()) {
+		if (!skip_kasan_poison)
+			kasan_free_pages(page, order);
+	} else {
+		bool init = want_init_on_free();
+
+		if (init)
+			kernel_init_free_pages(page, 1 << order, false);
+		if (!skip_kasan_poison)
+			kasan_poison_pages(page, order, init);
+	}
+
 	/*
 	 * arch_free_page() can make the page's contents inaccessible.  s390
 	 * does this.  So nothing which can access the page's contents should
@@ -1274,10 +2124,7 @@ static __always_inline bool free_pages_prepare(struct page *page,
 	 */
 	arch_free_page(page, order);
 
-	if (debug_pagealloc_enabled_static())
-		kernel_map_pages(page, 1 << order, 0);
-
-	kasan_free_nondeferred_pages(page, order);
+	debug_pagealloc_unmap_pages(page, 1 << order);
 
 	return true;
 }
@@ -1290,7 +2137,7 @@ static __always_inline bool free_pages_prepare(struct page *page,
  */
 static bool free_pcp_prepare(struct page *page)
 {
-	return free_pages_prepare(page, 0, true);
+	return free_pages_prepare(page, 0, true, FPI_NONE);
 }
 
 static bool bulkfree_pcp_prepare(struct page *page)
@@ -1310,9 +2157,9 @@ static bool bulkfree_pcp_prepare(struct page *page)
 static bool free_pcp_prepare(struct page *page)
 {
 	if (debug_pagealloc_enabled_static())
-		return free_pages_prepare(page, 0, true);
+		return free_pages_prepare(page, 0, true, FPI_NONE);
 	else
-		return free_pages_prepare(page, 0, false);
+		return free_pages_prepare(page, 0, false, FPI_NONE);
 }
 
 static bool bulkfree_pcp_prepare(struct page *page)
@@ -1518,7 +2365,7 @@ static void __free_pages_ok(struct page *page, unsigned int order,
 	int migratetype;
 	unsigned long pfn = page_to_pfn(page);
 
-	if (!free_pages_prepare(page, order, true))
+	if (!free_pages_prepare(page, order, true, fpi_flags))
 		return;
 
 	migratetype = get_pfnblock_migratetype(page, pfn);
@@ -1555,7 +2402,7 @@ void __free_pages_core(struct page *page, unsigned int order)
 	 * Bypass PCP and place fresh pages right to the tail, primarily
 	 * relevant for memory onlining.
 	 */
-	__free_pages_ok(page, order, FPI_TO_TAIL);
+	__free_pages_ok(page, order, FPI_TO_TAIL | FPI_SKIP_KASAN_POISON);
 }
 
 #ifdef CONFIG_NEED_MULTIPLE_NODES
@@ -2143,6 +2990,7 @@ void __init init_cma_reserved_pageblock(struct page *page)
 	}
 
 	adjust_managed_page_count(page, pageblock_nr_pages);
+	page_zone(page)->cma_pages += pageblock_nr_pages;
 }
 #endif
 
@@ -2209,12 +3057,6 @@ static inline int check_new_page(struct page *page)
 	return 1;
 }
 
-static inline bool free_pages_prezeroed(void)
-{
-	return (IS_ENABLED(CONFIG_PAGE_POISONING_ZERO) &&
-		page_poisoning_enabled()) || want_init_on_free();
-}
-
 #ifdef CONFIG_DEBUG_VM
 /*
  * With DEBUG_VM enabled, order-0 pages are checked for expected state when
@@ -2272,10 +3114,31 @@ inline void post_alloc_hook(struct page *page, unsigned int order,
 	set_page_refcounted(page);
 
 	arch_alloc_page(page, order);
-	if (debug_pagealloc_enabled_static())
-		kernel_map_pages(page, 1 << order, 1);
-	kasan_alloc_pages(page, order);
-	kernel_poison_pages(page, 1 << order, 1);
+	debug_pagealloc_map_pages(page, 1 << order);
+
+	/*
+	 * Page unpoisoning must happen before memory initialization.
+	 * Otherwise, the poison pattern will be overwritten for __GFP_ZERO
+	 * allocations and the page unpoisoning code will complain.
+	 */
+	kernel_unpoison_pages(page, 1 << order);
+
+	/*
+	 * As memory initialization might be integrated into KASAN,
+	 * kasan_alloc_pages and kernel_init_free_pages must be
+	 * kept together to avoid discrepancies in behavior.
+	 */
+	if (kasan_has_integrated_init()) {
+		kasan_alloc_pages(page, order, gfp_flags);
+	} else {
+		bool init = !want_init_on_free() && want_init_on_alloc(gfp_flags);
+
+		kasan_unpoison_pages(page, order, init);
+		if (init)
+			kernel_init_free_pages(page, 1 << order,
+					       gfp_flags & __GFP_ZEROTAGS);
+	}
+
 	set_page_owner(page, order, gfp_flags);
 }
 
@@ -2283,9 +3146,6 @@ static void prep_new_page(struct page *page, unsigned int order, gfp_t gfp_flags
 							unsigned int alloc_flags)
 {
 	post_alloc_hook(page, order, gfp_flags);
-
-	if (!free_pages_prezeroed() && want_init_on_alloc(gfp_flags))
-		kernel_init_free_pages(page, 1 << order);
 
 	if (order && (gfp_flags & __GFP_COMP))
 		prep_compound_page(page, order);
@@ -2846,35 +3706,34 @@ __rmqueue(struct zone *zone, unsigned int order, int migratetype,
 {
 	struct page *page;
 
-	if (IS_ENABLED(CONFIG_CMA)) {
-		/*
-		 * Balance movable allocations between regular and CMA areas by
-		 * allocating from CMA when over half of the zone's free memory
-		 * is in the CMA area.
-		 */
-		if (alloc_flags & ALLOC_CMA &&
-		    zone_page_state(zone, NR_FREE_CMA_PAGES) >
-		    zone_page_state(zone, NR_FREE_PAGES) / 2) {
-			page = __rmqueue_cma_fallback(zone, order);
-			if (page)
-				goto out;
-		}
-	}
 retry:
 	page = __rmqueue_smallest(zone, order, migratetype);
-	if (unlikely(!page)) {
-		if (alloc_flags & ALLOC_CMA)
-			page = __rmqueue_cma_fallback(zone, order);
 
-		if (!page && __rmqueue_fallback(zone, order, migratetype,
-								alloc_flags))
-			goto retry;
-	}
-out:
-	if (page)
-		trace_mm_page_alloc_zone_locked(page, order, migratetype);
+	if (unlikely(!page) && __rmqueue_fallback(zone, order, migratetype,
+						  alloc_flags))
+		goto retry;
+
+	trace_mm_page_alloc_zone_locked(page, order, migratetype);
 	return page;
 }
+
+#ifdef CONFIG_CMA
+static struct page *__rmqueue_cma(struct zone *zone, unsigned int order,
+				  int migratetype,
+				  unsigned int alloc_flags)
+{
+	struct page *page = __rmqueue_cma_fallback(zone, order);
+	trace_mm_page_alloc_zone_locked(page, order, MIGRATE_CMA);
+	return page;
+}
+#else
+static inline struct page *__rmqueue_cma(struct zone *zone, unsigned int order,
+					 int migratetype,
+					 unsigned int alloc_flags)
+{
+	return NULL;
+}
+#endif
 
 /*
  * Obtain a specified number of elements from the buddy allocator, all under
@@ -2889,8 +3748,14 @@ static int rmqueue_bulk(struct zone *zone, unsigned int order,
 
 	spin_lock(&zone->lock);
 	for (i = 0; i < count; ++i) {
-		struct page *page = __rmqueue(zone, order, migratetype,
-								alloc_flags);
+		struct page *page;
+
+		if (is_migrate_cma(migratetype))
+			page = __rmqueue_cma(zone, order, migratetype,
+					     alloc_flags);
+		else
+			page = __rmqueue(zone, order, migratetype, alloc_flags);
+
 		if (unlikely(page == NULL))
 			break;
 
@@ -2923,6 +3788,28 @@ static int rmqueue_bulk(struct zone *zone, unsigned int order,
 	__mod_zone_page_state(zone, NR_FREE_PAGES, -(i << order));
 	spin_unlock(&zone->lock);
 	return alloced;
+}
+
+/*
+ * Return the pcp list that corresponds to the migrate type if that list isn't
+ * empty.
+ * If the list is empty return NULL.
+ */
+static struct list_head *get_populated_pcp_list(struct zone *zone,
+			unsigned int order, struct per_cpu_pages *pcp,
+			int migratetype, unsigned int alloc_flags)
+{
+	struct list_head *list = &pcp->lists[migratetype];
+
+	if (list_empty(list)) {
+		pcp->count += rmqueue_bulk(zone, order,
+				pcp->batch, list,
+				migratetype, alloc_flags);
+
+		if (list_empty(list))
+			list = NULL;
+	}
+	return list;
 }
 
 #ifdef CONFIG_NUMA
@@ -3376,16 +4263,28 @@ static inline void zone_statistics(struct zone *preferred_zone, struct zone *z)
 static struct page *__rmqueue_pcplist(struct zone *zone, int migratetype,
 			unsigned int alloc_flags,
 			struct per_cpu_pages *pcp,
-			struct list_head *list)
+			gfp_t gfp_flags)
 {
-	struct page *page;
+	struct page *page = NULL;
+	struct list_head *list = NULL;
 
 	do {
-		if (list_empty(list)) {
-			pcp->count += rmqueue_bulk(zone, 0,
-					pcp->batch, list,
+		/* First try to get CMA pages */
+		if (migratetype == MIGRATE_MOVABLE &&
+				alloc_flags & ALLOC_CMA) {
+			list = get_populated_pcp_list(zone, 0, pcp,
+					get_cma_migrate_type(), alloc_flags);
+		}
+
+		if (list == NULL) {
+			/*
+			 * Either CMA is not suitable or there are no
+			 * free CMA pages.
+			 */
+			list = get_populated_pcp_list(zone, 0, pcp,
 					migratetype, alloc_flags);
-			if (unlikely(list_empty(list)))
+			if (unlikely(list == NULL) ||
+					unlikely(list_empty(list)))
 				return NULL;
 		}
 
@@ -3403,14 +4302,13 @@ static struct page *rmqueue_pcplist(struct zone *preferred_zone,
 			int migratetype, unsigned int alloc_flags)
 {
 	struct per_cpu_pages *pcp;
-	struct list_head *list;
 	struct page *page;
 	unsigned long flags;
 
 	local_irq_save(flags);
 	pcp = &this_cpu_ptr(zone->pageset)->pcp;
-	list = &pcp->lists[migratetype];
-	page = __rmqueue_pcplist(zone,  migratetype, alloc_flags, pcp, list);
+	page = __rmqueue_pcplist(zone,  migratetype, alloc_flags, pcp,
+				 gfp_flags);
 	if (page) {
 		__count_zid_vm_events(PGALLOC, page_zonenum(page), 1);
 		zone_statistics(preferred_zone, zone);
@@ -3432,16 +4330,9 @@ struct page *rmqueue(struct zone *preferred_zone,
 	struct page *page;
 
 	if (likely(order == 0)) {
-		/*
-		 * MIGRATE_MOVABLE pcplist could have the pages on CMA area and
-		 * we need to skip it when CMA area isn't allowed.
-		 */
-		if (!IS_ENABLED(CONFIG_CMA) || alloc_flags & ALLOC_CMA ||
-				migratetype != MIGRATE_MOVABLE) {
-			page = rmqueue_pcplist(preferred_zone, zone, gfp_flags,
-					migratetype, alloc_flags);
-			goto out;
-		}
+		page = rmqueue_pcplist(preferred_zone, zone, gfp_flags,
+				       migratetype, alloc_flags);
+		goto out;
 	}
 
 	/*
@@ -3464,8 +4355,15 @@ struct page *rmqueue(struct zone *preferred_zone,
 			if (page)
 				trace_mm_page_alloc_zone_locked(page, order, migratetype);
 		}
-		if (!page)
-			page = __rmqueue(zone, order, migratetype, alloc_flags);
+		if (!page) {
+			if (migratetype == MIGRATE_MOVABLE &&
+					alloc_flags & ALLOC_CMA)
+				page = __rmqueue_cma(zone, order, migratetype,
+						     alloc_flags);
+			if (!page)
+				page = __rmqueue(zone, order, migratetype,
+						 alloc_flags);
+		}
 	} while (page && check_new_pages(page, order));
 	spin_unlock(&zone->lock);
 	if (!page)
@@ -3475,6 +4373,8 @@ struct page *rmqueue(struct zone *preferred_zone,
 
 	__count_zid_vm_events(PGALLOC, page_zonenum(page), 1 << order);
 	zone_statistics(preferred_zone, zone);
+	trace_android_vh_rmqueue(preferred_zone, zone, order,
+			gfp_flags, alloc_flags, migratetype);
 	local_irq_restore(flags);
 
 out:
@@ -3643,6 +4543,14 @@ bool __zone_watermark_ok(struct zone *z, unsigned int order, unsigned long mark,
 			continue;
 
 		for (mt = 0; mt < MIGRATE_PCPTYPES; mt++) {
+#ifdef CONFIG_CMA
+			/*
+			 * Note that this check is needed only
+			 * when MIGRATE_CMA < MIGRATE_PCPTYPES.
+			 */
+			if (mt == MIGRATE_CMA)
+				continue;
+#endif
 			if (!free_area_empty(area, mt))
 				return true;
 		}
@@ -3665,6 +4573,7 @@ bool zone_watermark_ok(struct zone *z, unsigned int order, unsigned long mark,
 	return __zone_watermark_ok(z, order, mark, highest_zoneidx, alloc_flags,
 					zone_page_state(z, NR_FREE_PAGES));
 }
+EXPORT_SYMBOL_GPL(zone_watermark_ok);
 
 static inline bool zone_watermark_fast(struct zone *z, unsigned int order,
 				unsigned long mark, int highest_zoneidx,
@@ -3717,6 +4626,7 @@ bool zone_watermark_ok_safe(struct zone *z, unsigned int order,
 	return __zone_watermark_ok(z, order, mark, highest_zoneidx, 0,
 								free_pages);
 }
+EXPORT_SYMBOL_GPL(zone_watermark_ok_safe);
 
 #ifdef CONFIG_NUMA
 static bool zone_allows_reclaim(struct zone *local_zone, struct zone *zone)
@@ -3778,7 +4688,8 @@ static inline unsigned int current_alloc_flags(gfp_t gfp_mask,
 	unsigned int pflags = current->flags;
 
 	if (!(pflags & PF_MEMALLOC_NOCMA) &&
-			gfp_migratetype(gfp_mask) == MIGRATE_MOVABLE)
+			gfp_migratetype(gfp_mask) == MIGRATE_MOVABLE &&
+			gfp_mask & __GFP_CMA)
 		alloc_flags |= ALLOC_CMA;
 
 #endif
@@ -4103,7 +5014,9 @@ __alloc_pages_direct_compact(gfp_t gfp_mask, unsigned int order,
 	struct page *page = NULL;
 	unsigned long pflags;
 	unsigned int noreclaim_flag;
-
+#ifdef CONFIG_MP_DEBUG_TOOL_MEMORY_USAGE_MONITOR
+	unsigned long time_start = jiffies;
+#endif
 	if (!order)
 		return NULL;
 
@@ -4136,6 +5049,10 @@ __alloc_pages_direct_compact(gfp_t gfp_mask, unsigned int order,
 		zone->compact_blockskip_flush = false;
 		compaction_defer_reset(zone, order, true);
 		count_vm_event(COMPACTSUCCESS);
+#ifdef CONFIG_MP_DEBUG_TOOL_MEMORY_USAGE_MONITOR
+			atomic_add((jiffies-time_start), &time_cnt_table[7].lone_time);
+			atomic_inc(&time_cnt_table[7].do_cnt);
+#endif
 		return page;
 	}
 
@@ -4146,7 +5063,10 @@ __alloc_pages_direct_compact(gfp_t gfp_mask, unsigned int order,
 	count_vm_event(COMPACTFAIL);
 
 	cond_resched();
-
+#ifdef CONFIG_MP_DEBUG_TOOL_MEMORY_USAGE_MONITOR
+	atomic_add((jiffies-time_start), &time_cnt_table[7].lone_time);
+	atomic_inc(&time_cnt_table[7].do_cnt);
+#endif
 	return NULL;
 }
 
@@ -4321,6 +5241,9 @@ static unsigned long
 __perform_reclaim(gfp_t gfp_mask, unsigned int order,
 					const struct alloc_context *ac)
 {
+#ifdef CONFIG_MP_DEBUG_TOOL_MEMORY_USAGE_MONITOR
+	unsigned long time_start = jiffies;
+#endif
 	unsigned int noreclaim_flag;
 	unsigned long pflags, progress;
 
@@ -4341,6 +5264,10 @@ __perform_reclaim(gfp_t gfp_mask, unsigned int order,
 
 	cond_resched();
 
+#ifdef CONFIG_MP_DEBUG_TOOL_MEMORY_USAGE_MONITOR
+	atomic_add((jiffies-time_start), &time_cnt_table[1].lone_time);
+	atomic_inc(&time_cnt_table[1].do_cnt);
+#endif
 	return progress;
 }
 
@@ -4350,13 +5277,19 @@ __alloc_pages_direct_reclaim(gfp_t gfp_mask, unsigned int order,
 		unsigned int alloc_flags, const struct alloc_context *ac,
 		unsigned long *did_some_progress)
 {
+#ifdef CONFIG_MP_DEBUG_TOOL_MEMORY_USAGE_MONITOR
+	unsigned long time_start = jiffies;
+#endif
 	struct page *page = NULL;
 	bool drained = false;
 
 	*did_some_progress = __perform_reclaim(gfp_mask, order, ac);
-	if (unlikely(!(*did_some_progress)))
+	if (unlikely(!(*did_some_progress))) {
+#ifdef CONFIG_MP_DEBUG_TOOL_MEMORY_USAGE_MONITOR
+		atomic_add((jiffies-time_start), &time_cnt_table[0].lone_time);
+#endif
 		return NULL;
-
+       }
 retry:
 	page = get_page_from_freelist(gfp_mask, order, alloc_flags, ac);
 
@@ -4371,7 +5304,9 @@ retry:
 		drained = true;
 		goto retry;
 	}
-
+#ifdef CONFIG_MP_DEBUG_TOOL_MEMORY_USAGE_MONITOR
+	atomic_add((jiffies-time_start), &time_cnt_table[0].lone_time);
+#endif
 	return page;
 }
 
@@ -4624,7 +5559,7 @@ __alloc_pages_slowpath(gfp_t gfp_mask, unsigned int order,
 	int no_progress_loops;
 	unsigned int cpuset_mems_cookie;
 	int reserve_flags;
-
+	unsigned long alloc_start = jiffies;
 	/*
 	 * We also sanity check to catch abuse of atomic reserves being used by
 	 * callers that are not in atomic context.
@@ -4866,6 +5801,7 @@ fail:
 	warn_alloc(gfp_mask, ac->nodemask,
 			"page allocation failure: order:%u", order);
 got_pg:
+	trace_android_vh_alloc_pages_slowpath(gfp_mask, order, alloc_start);
 	return page;
 }
 
@@ -7623,6 +8559,11 @@ unsigned long free_reserved_area(void *start, void *end, int poison, const char 
 		 * alias for the memset().
 		 */
 		direct_map_addr = page_address(page);
+		/*
+		 * Perform a kasan-unchecked memset() since this memory
+		 * has not been initialized.
+		 */
+		direct_map_addr = kasan_reset_tag(direct_map_addr);
 		if ((unsigned int)poison <= 0xFF)
 			memset(direct_map_addr, poison, PAGE_SIZE);
 
@@ -7635,6 +8576,9 @@ unsigned long free_reserved_area(void *start, void *end, int poison, const char 
 
 	return pages;
 }
+#ifdef CONFIG_ARCH_SSTAR
+EXPORT_SYMBOL(free_reserved_area);
+#endif
 
 #ifdef	CONFIG_HIGHMEM
 void free_highmem_page(struct page *page)
@@ -7845,6 +8789,7 @@ static void setup_per_zone_lowmem_reserve(void)
 static void __setup_per_zone_wmarks(void)
 {
 	unsigned long pages_min = min_free_kbytes >> (PAGE_SHIFT - 10);
+	unsigned long pages_low = extra_free_kbytes >> (PAGE_SHIFT - 10);
 	unsigned long lowmem_pages = 0;
 	struct zone *zone;
 	unsigned long flags;
@@ -7856,11 +8801,13 @@ static void __setup_per_zone_wmarks(void)
 	}
 
 	for_each_zone(zone) {
-		u64 tmp;
+		u64 tmp, low;
 
 		spin_lock_irqsave(&zone->lock, flags);
 		tmp = (u64)pages_min * zone_managed_pages(zone);
 		do_div(tmp, lowmem_pages);
+		low = (u64)pages_low * zone_managed_pages(zone);
+		do_div(low, nr_free_zone_pages(gfp_zone(GFP_HIGHUSER_MOVABLE)));
 		if (is_highmem(zone)) {
 			/*
 			 * __GFP_HIGH and PF_MEMALLOC allocations usually don't
@@ -7894,8 +8841,8 @@ static void __setup_per_zone_wmarks(void)
 				      watermark_scale_factor, 10000));
 
 		zone->watermark_boost = 0;
-		zone->_watermark[WMARK_LOW]  = min_wmark_pages(zone) + tmp;
-		zone->_watermark[WMARK_HIGH] = min_wmark_pages(zone) + tmp * 2;
+		zone->_watermark[WMARK_LOW]  = min_wmark_pages(zone) + low + tmp;
+		zone->_watermark[WMARK_HIGH] = min_wmark_pages(zone) + low + tmp * 2;
 
 		spin_unlock_irqrestore(&zone->lock, flags);
 	}
@@ -7980,7 +8927,7 @@ postcore_initcall(init_per_zone_wmark_min)
 /*
  * min_free_kbytes_sysctl_handler - just a wrapper around proc_dointvec() so
  *	that we can call two helper functions whenever min_free_kbytes
- *	changes.
+ *	or extra_free_kbytes changes.
  */
 int min_free_kbytes_sysctl_handler(struct ctl_table *table, int write,
 		void *buffer, size_t *length, loff_t *ppos)
@@ -8411,27 +9358,64 @@ static unsigned long pfn_max_align_down(unsigned long pfn)
 			     pageblock_nr_pages) - 1);
 }
 
-static unsigned long pfn_max_align_up(unsigned long pfn)
+unsigned long pfn_max_align_up(unsigned long pfn)
 {
 	return ALIGN(pfn, max_t(unsigned long, MAX_ORDER_NR_PAGES,
 				pageblock_nr_pages));
 }
 
+#if defined(CONFIG_DYNAMIC_DEBUG) || \
+	(defined(CONFIG_DYNAMIC_DEBUG_CORE) && defined(DYNAMIC_DEBUG_MODULE))
+/* Usage: See admin-guide/dynamic-debug-howto.rst */
+static void alloc_contig_dump_pages(struct list_head *page_list)
+{
+	DEFINE_DYNAMIC_DEBUG_METADATA(descriptor, "migrate failure");
+
+	if (DYNAMIC_DEBUG_BRANCH(descriptor)) {
+		struct page *page;
+		unsigned long nr_skip = 0;
+		unsigned long nr_pages = 0;
+
+		dump_stack();
+		list_for_each_entry(page, page_list, lru) {
+			nr_pages++;
+			/* The page will be freed by putback_movable_pages soon */
+			if (page_count(page) == 1) {
+				nr_skip++;
+				continue;
+			}
+			dump_page(page, "migration failure");
+		}
+		pr_warn("total dump_pages %lu skipping %lu\n", nr_pages, nr_skip);
+	}
+}
+#else
+static inline void alloc_contig_dump_pages(struct list_head *page_list)
+{
+}
+#endif
+
 /* [start, end) must belong to a single zone. */
 static int __alloc_contig_migrate_range(struct compact_control *cc,
-					unsigned long start, unsigned long end)
+					unsigned long start, unsigned long end,
+					struct acr_info *info)
 {
 	/* This function is based on compact_zone() from compaction.c. */
 	unsigned int nr_reclaimed;
 	unsigned long pfn = start;
 	unsigned int tries = 0;
+	unsigned int max_tries = 5;
 	int ret = 0;
+	struct page *page;
 	struct migration_target_control mtc = {
 		.nid = zone_to_nid(cc->zone),
 		.gfp_mask = GFP_USER | __GFP_MOVABLE | __GFP_RETRY_MAYFAIL,
 	};
 
-	migrate_prep();
+	if (cc->alloc_contig && cc->mode == MIGRATE_ASYNC)
+		max_tries = 1;
+
+	lru_cache_disable();
 
 	while (pfn < end || !list_empty(&cc->migratepages)) {
 		if (fatal_signal_pending(current)) {
@@ -8447,20 +9431,39 @@ static int __alloc_contig_migrate_range(struct compact_control *cc,
 				break;
 			}
 			tries = 0;
-		} else if (++tries == 5) {
+		} else if (++tries == max_tries) {
 			ret = ret < 0 ? ret : -EBUSY;
 			break;
 		}
 
 		nr_reclaimed = reclaim_clean_pages_from_list(cc->zone,
 							&cc->migratepages);
+		info->nr_reclaimed += nr_reclaimed;
 		cc->nr_migratepages -= nr_reclaimed;
+
+		list_for_each_entry(page, &cc->migratepages, lru)
+			info->nr_mapped += page_mapcount(page);
 
 		ret = migrate_pages(&cc->migratepages, alloc_migration_target,
 				NULL, (unsigned long)&mtc, cc->mode, MR_CONTIG_RANGE);
+		if (!ret)
+			info->nr_migrated += cc->nr_migratepages;
 	}
+
+	lru_cache_enable();
 	if (ret < 0) {
+		if (ret == -EBUSY) {
+			alloc_contig_dump_pages(&cc->migratepages);
+			page_pinner_mark_migration_failed_pages(&cc->migratepages);
+		}
+
+		if (!list_empty(&cc->migratepages)) {
+			page = list_first_entry(&cc->migratepages, struct page , lru);
+			info->failed_pfn = page_to_pfn(page);
+		}
+
 		putback_movable_pages(&cc->migratepages);
+		info->err |= ACR_ERR_MIGRATE;
 		return ret;
 	}
 	return 0;
@@ -8488,7 +9491,8 @@ static int __alloc_contig_migrate_range(struct compact_control *cc,
  * need to be freed with free_contig_range().
  */
 int alloc_contig_range(unsigned long start, unsigned long end,
-		       unsigned migratetype, gfp_t gfp_mask)
+		       unsigned migratetype, gfp_t gfp_mask,
+		       struct acr_info *info)
 {
 	unsigned long outer_start, outer_end;
 	unsigned int order;
@@ -8498,7 +9502,7 @@ int alloc_contig_range(unsigned long start, unsigned long end,
 		.nr_migratepages = 0,
 		.order = -1,
 		.zone = page_zone(pfn_to_page(start)),
-		.mode = MIGRATE_SYNC,
+		.mode = gfp_mask & __GFP_NORETRY ? MIGRATE_ASYNC : MIGRATE_SYNC,
 		.ignore_skip_hint = true,
 		.no_set_skip_hint = true,
 		.gfp_mask = current_gfp_context(gfp_mask),
@@ -8531,9 +9535,14 @@ int alloc_contig_range(unsigned long start, unsigned long end,
 	 */
 
 	ret = start_isolate_page_range(pfn_max_align_down(start),
-				       pfn_max_align_up(end), migratetype, 0);
-	if (ret)
+				       pfn_max_align_up(end), migratetype, 0,
+				       &info->failed_pfn);
+	if (ret) {
+		info->err |= ACR_ERR_ISOLATE;
 		return ret;
+	}
+
+	drain_all_pages(cc.zone);
 
 	/*
 	 * In case of -EBUSY, we'd like to know which page causes problem.
@@ -8545,8 +9554,8 @@ int alloc_contig_range(unsigned long start, unsigned long end,
 	 * allocated.  So, if we fall through be sure to clear ret so that
 	 * -EBUSY is not accidentally used or returned to caller.
 	 */
-	ret = __alloc_contig_migrate_range(&cc, start, end);
-	if (ret && ret != -EBUSY)
+	ret = __alloc_contig_migrate_range(&cc, start, end, info);
+	if (ret && (ret != -EBUSY || (gfp_mask & __GFP_NORETRY)))
 		goto done;
 	ret =0;
 
@@ -8566,8 +9575,6 @@ int alloc_contig_range(unsigned long start, unsigned long end,
 	 * We don't have to hold zone->lock here because the pages are
 	 * isolated thus they won't get removed from buddy.
 	 */
-
-	lru_add_drain_all();
 
 	order = 0;
 	outer_start = start;
@@ -8593,10 +9600,11 @@ int alloc_contig_range(unsigned long start, unsigned long end,
 	}
 
 	/* Make sure the range is really isolated. */
-	if (test_pages_isolated(outer_start, end, 0)) {
+	if (test_pages_isolated(outer_start, end, 0, &info->failed_pfn)) {
 		pr_info_ratelimited("%s: [%lx, %lx) PFNs busy\n",
 			__func__, outer_start, end);
 		ret = -EBUSY;
+		info->err |= ACR_ERR_TEST;
 		goto done;
 	}
 
@@ -8623,10 +9631,11 @@ EXPORT_SYMBOL(alloc_contig_range);
 static int __alloc_contig_pages(unsigned long start_pfn,
 				unsigned long nr_pages, gfp_t gfp_mask)
 {
+	struct acr_info dummy;
 	unsigned long end_pfn = start_pfn + nr_pages;
 
 	return alloc_contig_range(start_pfn, end_pfn, MIGRATE_MOVABLE,
-				  gfp_mask);
+				  gfp_mask, &dummy);
 }
 
 static bool pfn_range_valid_contig(struct zone *z, unsigned long start_pfn,

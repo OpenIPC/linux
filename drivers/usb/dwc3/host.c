@@ -44,7 +44,9 @@ out:
 
 int dwc3_host_init(struct dwc3 *dwc)
 {
-	struct property_entry	props[4];
+    //struct property_entry	props[4];
+	struct property_entry	props[] = {PROPERTY_ENTRY_BOOL("usb3-lpm-capable"), PROPERTY_ENTRY_BOOL("usb2-lpm-disable"), 
+                                      PROPERTY_ENTRY_BOOL("quirk-broken-port-ped"), PROPERTY_ENTRY_STRING("compatible", "sstar,xhci-sstar-v1")};
 	struct platform_device	*xhci;
 	int			ret, irq;
 	struct resource		*res;
@@ -75,7 +77,7 @@ int dwc3_host_init(struct dwc3 *dwc)
 		return -ENOMEM;
 	}
 
-	xhci->dev.parent	= dwc->dev;
+	xhci->dev.parent	= dwc->sysdev;
 	ACPI_COMPANION_SET(&xhci->dev, ACPI_COMPANION(dwc->dev));
 
 	dwc->xhci = xhci;
@@ -90,11 +92,13 @@ int dwc3_host_init(struct dwc3 *dwc)
 	memset(props, 0, sizeof(struct property_entry) * ARRAY_SIZE(props));
 
 	if (dwc->usb3_lpm_capable)
-		props[prop_idx++] = PROPERTY_ENTRY_BOOL("usb3-lpm-capable");
+        prop_idx++;
+		//props[prop_idx++] = PROPERTY_ENTRY_BOOL("usb3-lpm-capable");
 
 	if (dwc->usb2_lpm_disable)
-		props[prop_idx++] = PROPERTY_ENTRY_BOOL("usb2-lpm-disable");
-
+        prop_idx++;
+		//props[prop_idx++] = PROPERTY_ENTRY_BOOL("usb2-lpm-disable");
+    
 	/**
 	 * WORKAROUND: dwc3 revisions <=3.00a have a limitation
 	 * where Port Disable command doesn't work.
@@ -105,8 +109,13 @@ int dwc3_host_init(struct dwc3 *dwc)
 	 * This following flag tells XHCI to do just that.
 	 */
 	if (DWC3_VER_IS_WITHIN(DWC3, ANY, 300A))
-		props[prop_idx++] = PROPERTY_ENTRY_BOOL("quirk-broken-port-ped");
-
+        prop_idx++;
+		//props[prop_idx++] = PROPERTY_ENTRY_BOOL("quirk-broken-port-ped");
+    
+    if (IS_ENABLED(CONFIG_ARCH_SSTAR)) {
+        prop_idx++;
+    }
+    
 	if (prop_idx) {
 		ret = platform_device_add_properties(xhci, props);
 		if (ret) {

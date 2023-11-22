@@ -17,7 +17,7 @@
 #include <linux/hashtable.h>
 
 #include <net/af_vsock.h>
-#include "vhost.h"
+#include <uapi/linux/vhost.h>
 
 #define VHOST_VSOCK_DEFAULT_HOST_CID	2
 /* Max number of bytes transferred before requeueing the job.
@@ -757,26 +757,20 @@ static int vhost_vsock_set_cid(struct vhost_vsock *vsock, u64 guest_cid)
 
 static int vhost_vsock_set_features(struct vhost_vsock *vsock, u64 features)
 {
-	struct vhost_virtqueue *vq;
-	int i;
+	struct vhost_dev *vdev = &vsock->dev;
 
 	if (features & ~VHOST_VSOCK_FEATURES)
 		return -EOPNOTSUPP;
 
-	mutex_lock(&vsock->dev.mutex);
+	mutex_lock(&vdev->mutex);
 	if ((features & (1 << VHOST_F_LOG_ALL)) &&
-	    !vhost_log_access_ok(&vsock->dev)) {
-		mutex_unlock(&vsock->dev.mutex);
+	    !vhost_log_access_ok(vdev)) {
+		mutex_unlock(&vdev->mutex);
 		return -EFAULT;
 	}
 
-	for (i = 0; i < ARRAY_SIZE(vsock->vqs); i++) {
-		vq = &vsock->vqs[i];
-		mutex_lock(&vq->mutex);
-		vq->acked_features = features;
-		mutex_unlock(&vq->mutex);
-	}
-	mutex_unlock(&vsock->dev.mutex);
+	vdev->features = features;
+	mutex_unlock(&vdev->mutex);
 	return 0;
 }
 

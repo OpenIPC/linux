@@ -1,0 +1,20 @@
+config CAM_CLK
+	bool "CamClk driver driver"
+	default n
+
+config CAM_CLK_SYSFS
+	bool "CamClk support for sysfs"
+	depends on CAM_CLK
+
+config CAMCLK_AUTOENABLE
+	bool "CamClk support for auto enable all clk"
+	depends on CAM_CLK
+
+config CAM_CLK_PROFILING
+	bool "CamClk support for initial profiling"
+	depends on CAM_CLK
+	depends on SS_PROFILING_TIME
+
+config NOTTOGATED
+	bool "CamClk support for not to gated clk gen"
+	depends on CAM_CLK

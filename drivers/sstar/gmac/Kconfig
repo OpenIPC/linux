@@ -1,0 +1,78 @@
+menu "SSTAR GMAC"
+config SSTAR_GMAC
+	select NET
+	select NET_ETHERNET
+	select MII
+	select PACKET
+	select USE_POLICY_FWD
+	select INET
+	select NETDEVICES
+	select ETHERNET
+	select STMMAC_ETH
+	bool "SSTAR GMAC"
+	default y
+
+config SSTAR_SNPS_GMAC_RX_ZERO_COPY
+	depends on SSTAR_GMAC
+	bool "SSTAR_SNPS_GMAC_RX_ZERO_COPY"
+	default y
+	help
+		SSTAR GMAC Rx Zero copy
+
+config SSTAR_SNPS_GMAC_RXIC
+	depends on SSTAR_GMAC
+	bool "SSTAR_SNPS_GMAC_RXIC"
+	default n
+	help
+		SSTAR GMAC Rx adaptive RX Interrupt
+
+config SSTAR_SNPS_GMAC_CODING_OPTIMIZE
+	depends on SSTAR_GMAC
+	bool "SSTAR_SNPS_GMAC_CODING_OPTIMIZE"
+	default y
+	help
+		SSTAR GMAC coding optimization
+
+config SSTAR_SNPS_GMAC_SET_AFFINITY
+	depends on SSTAR_GMAC
+	bool "SSTAR_SNPS_GMAC_SET_AFFINITY"
+	default n
+	help
+		GMAC interrupt separate on each CPU
+
+config SSTAR_GMAC_DELAY_SCALE
+	depends on SSTAR_GMAC
+	int "SSTAR_GMAC_DELAY_SCALE"
+	default 1
+	help
+		SSTAR GMAC delay time scale
+
+config SSTAR_SNPS_GMAC_STORM_PROTECT
+	depends on SSTAR_GMAC
+	bool "SSTAR_SNPS_GMAC_DYN_STORM_PROTECT"
+	default n
+	help
+		SSTAR GMAC Dynamic Storm Protect for Bcast and Mcast Packet
+
+config SSTAR_SNPS_GMAC_EEE_REDUCTION
+	depends on SSTAR_GMAC
+	bool "SSTAR_SNPS_GMAC_EEE_REDUCTION"
+	default n
+	help
+		SSTAR GMAC EEE : reduce number of enter/exit LPI mode
+
+config SSTAR_SNPS_GMAC_TEST
+	depends on SSTAR_GMAC
+	bool "SSTAR_SNPS_GMAC_TEST"
+	default n
+	help
+		SSTAR GMAC Test function
+
+config SSTAR_SNPS_SW_TX_FLOW_CTL
+	depends on SSTAR_GMAC
+	bool "SSTAR_SNPS_SW_TX_FLOW_CTL"
+	default n
+	help
+		SSTAR GMAC SW Tx flow control
+
+endmenu

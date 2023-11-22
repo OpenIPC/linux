@@ -1221,8 +1221,10 @@ int ehci_hub_control(
 			}
 			break;
 		case USB_PORT_FEAT_RESET:
+#ifndef CONFIG_ARCH_SSTAR
 			if (temp & (PORT_SUSPEND|PORT_RESUME))
 				goto error;
+#endif
 			/* line status bits may report this as low speed,
 			 * which can be fine if this root hub has a
 			 * transaction translator built in.

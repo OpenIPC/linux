@@ -19,6 +19,23 @@ struct ahci_host_priv;
 struct platform_device;
 struct scsi_host_template;
 
+//#if 1//def CONFIG_SS_SATA_AHCI_PLATFORM_HOST
+#if 0
+struct ahci_platform_data {
+#if defined(CONFIG_ARCH_INFINITY2)
+	int (*init)(struct device *dev, void __iomem *addr , int id);
+#elif defined(CONFIG_ARCH_INFINITY2M)
+	int (*init)(struct device *dev, void __iomem *addr);
+#endif
+	void (*exit)(struct device *dev);
+	int (*suspend)(struct device *dev);
+	int (*resume)(struct device *dev);
+	const struct ata_port_info *ata_port_info;
+	unsigned int force_port_map;
+	unsigned int mask_port_map;
+};
+#endif
+
 int ahci_platform_enable_phys(struct ahci_host_priv *hpriv);
 void ahci_platform_disable_phys(struct ahci_host_priv *hpriv);
 int ahci_platform_enable_clks(struct ahci_host_priv *hpriv);

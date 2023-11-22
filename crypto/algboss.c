@@ -217,7 +217,10 @@ static int cryptomgr_schedule_test(struct crypto_alg *alg)
 	struct task_struct *thread;
 	struct crypto_test_param *param;
 	u32 type;
-
+#ifdef CONFIG_CRYPTO_MANAGER_NO_TESTS_THREAD
+	crypto_alg_tested(alg->cra_driver_name, 0);
+	return NOTIFY_STOP;
+#endif
 	if (!try_module_get(THIS_MODULE))
 		goto err;
 

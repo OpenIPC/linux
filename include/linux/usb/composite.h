@@ -52,7 +52,11 @@
 #define USB_GADGET_DELAYED_STATUS       0x7fff	/* Impossibly large value */
 
 /* big enough to hold our biggest descriptor */
+#ifdef CONFIG_ARCH_SSTAR
+#define USB_COMP_EP0_BUFSIZ 4096 * 4
+#else
 #define USB_COMP_EP0_BUFSIZ	4096
+#endif
 
 /* OS feature descriptor length <= 4kB */
 #define USB_COMP_EP0_OS_DESC_BUFSIZ	4096
@@ -254,6 +258,13 @@ int config_ep_by_speed_and_alt(struct usb_gadget *g, struct usb_function *f,
 
 int config_ep_by_speed(struct usb_gadget *g, struct usb_function *f,
 			struct usb_ep *_ep);
+
+#ifdef CONFIG_ARCH_SSTAR
+int config_ep_by_endp_desc(struct usb_gadget *g,
+			   struct usb_endpoint_descriptor *chosen_desc,
+			   struct usb_ss_ep_comp_descriptor *comp_desc,
+			   struct usb_ep *_ep);
+#endif
 
 #define	MAX_CONFIG_INTERFACES		16	/* arbitrary; max 255 */
 
@@ -525,6 +536,8 @@ extern struct usb_string *usb_gstrings_attach(struct usb_composite_dev *cdev,
 extern int usb_string_ids_n(struct usb_composite_dev *c, unsigned n);
 
 extern void composite_disconnect(struct usb_gadget *gadget);
+extern void composite_reset(struct usb_gadget *gadget);
+
 extern int composite_setup(struct usb_gadget *gadget,
 		const struct usb_ctrlrequest *ctrl);
 extern void composite_suspend(struct usb_gadget *gadget);
@@ -590,6 +603,7 @@ struct usb_function_instance {
 	struct config_group group;
 	struct list_head cfs_list;
 	struct usb_function_driver *fd;
+	struct usb_function *f;
 	int (*set_inst_name)(struct usb_function_instance *inst,
 			      const char *name);
 	void (*free_func_inst)(struct usb_function_instance *inst);

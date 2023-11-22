@@ -72,6 +72,9 @@ struct virtio_shm_region {
  * @set_vq_affinity: set the affinity for a virtqueue (optional).
  * @get_vq_affinity: get the affinity for a virtqueue (optional).
  * @get_shm_region: get a shared memory region based on the index.
+ * @alloc_buffer: Allocate and provide buffer addresses that can be
+ *      accessed by both virtio and vhost
+ * @free_buffer: Free the allocated buffer address
  */
 typedef void vq_callback_t(struct virtqueue *);
 struct virtio_config_ops {
@@ -97,6 +100,12 @@ struct virtio_config_ops {
 			int index);
 	bool (*get_shm_region)(struct virtio_device *vdev,
 			       struct virtio_shm_region *region, u8 id);
+	void * (*alloc_buffer)(struct virtio_device *vdev, size_t size);
+	void (*free_buffer)(struct virtio_device *vdev, void *addr,
+			    size_t size);
+#if defined(CONFIG_ARCH_SSTAR)
+	dma_addr_t (*map_virt)(struct virtio_device *vdev, void *data);
+#endif
 };
 
 /* If driver didn't advertise the feature, it will never appear. */
@@ -241,6 +250,41 @@ const char *virtio_bus_name(struct virtio_device *vdev)
 	return vdev->config->bus_name(vdev);
 }
 
+/**
+ * virtio_alloc_buffer - Allocate buffer from the reserved memory
+ * @vdev: Virtio device which manages the reserved memory
+ * @size: Size of the buffer to be allocated
+ *
+ * Certain vhost devices can have restriction on the range of memory
+ * it can access on the virtio. The virtio drivers attached to
+ * such vhost devices reserves memory that can be accessed by
+ * vhost. This function allocates buffer for such reserved region.
+ */
+static inline void *
+virtio_alloc_buffer(struct virtio_device *vdev, size_t size)
+{
+	if (!vdev->config->alloc_buffer)
+		return NULL;
+
+	return vdev->config->alloc_buffer(vdev, size);
+}
+
+/**
+ * virtio_free_buffer - Free the allocated buffer
+ * @vdev: Virtio device which manages the reserved memory
+ * @addr: Address returned by virtio_alloc_buffer()
+ * @size: Size of the buffer that has to be freed
+ *
+ * Free the allocated buffer address given by virtio_alloc_buffer().
+ */
+static inline void
+virtio_free_buffer(struct virtio_device *vdev, void *addr, size_t size)
+{
+	if (!vdev->config->free_buffer)
+		return;
+
+	return vdev->config->free_buffer(vdev, addr, size);
+}
 /**
  * virtqueue_set_affinity - setting affinity for a virtqueue
  * @vq: the virtqueue

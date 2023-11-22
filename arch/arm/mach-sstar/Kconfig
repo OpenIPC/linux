@@ -1,0 +1,277 @@
+menuconfig ARCH_SSTAR
+	bool "SStar ARM SoCs"
+
+if ARCH_SSTAR
+
+config SS_DUALOS
+	bool "SStar Dual-OS"
+
+choice
+	prompt "Select types of SStar Dual-OS"
+	depends on SS_DUALOS
+
+	config LH_RTOS
+		bool "Enable Hypervisor" if ARCH_MULTI_V7
+		help
+		  Enable LH + RTOS.
+
+	config SS_AMP
+		bool "Enable SStar AMP" if ARCH_MULTI_V7
+		help
+		  Enable SStar AMP.
+endchoice
+
+config SS_CLK_IGNORE_UNUSED
+	bool "Ignore CLK unuse flow"
+	default n
+
+config CNTVOFF_INITED
+	bool "cntvoff has inited"
+	default n
+
+config MODULES_AREA_SIZE
+	hex "Modules area size"
+	depends on MMU && THUMB2_KERNEL
+	default 0x00800000
+	help
+	  Config memory use for modules install. Because ARM can only branch relatively within +/- 32MB.
+	  If the difference between the lowest module address and the highest of .text is greater than
+	  32MB, it's impossible to load modules they will fail to link.
+
+config DISABLE_DUALOS_NODE
+	bool "Disable Dual-OS node"
+	depends on SS_DUALOS
+	default n
+
+comment "Options"
+config SS_DTB_NAME
+	string "Sstar DTB NAME"
+	default ""
+	depends on SS_BUILTIN_DTB
+
+config SS_BUILTIN_DTB
+	bool "Sstar Builtin DTB"
+	default y
+
+config MS_L2X0_PATCH
+	bool "L2X0 patch"
+	depends on CACHE_L2X0
+	default y
+
+config MS_KERNEL_TYPE
+	string
+	default ""
+
+config MS_ARMV7_XIP
+	bool
+	default y
+	depends on XIP_KERNEL
+
+config SSTAR_CHIP_NAME
+	string
+	default $(SSTAR_CHIP_NAME)
+
+config SSTAR_SHORT_NAME
+	string "Short Name"
+	default ""
+
+config MP_IRQ_TRACE
+	bool "MP_IRQ_TRACE"
+	default n
+
+config SS_GIC_SET_MULTI_CPUS
+	bool "Set GIC affinity to multiple CPUs according to affinity_hint"
+	depends on SMP
+	default y
+
+config SKIP_SQUASHFS_BAD_BLOCK
+	bool "Skip squashfs bad block"
+	depends on MTD
+	default y
+
+menu "Fast boot"
+config SS_BUILTIN_UNFDT
+	bool "FB_DTS: Builtin unflatted device tree"
+	depends on SS_BUILTIN_DTB
+	default n
+
+config FB_DTS_SKIP_CRC
+	bool "FB_DTS: Skip check DTB CRC "
+	default n
+
+config FB_DTS_SCAN_MEMORY_ONCE
+	bool "FB_DTS: Only search once for memory node"
+	default n
+
+config FB_DTS_SKIP_ATAGS_TO_FDT
+	bool "FB_DTS: Search ATAG_INITRD2 and ATAG_CMDLINE from atags instead of early_atags_to_fdt"
+	default n
+
+config DISABLE_CLK_DEBUGFS_SUPPORT
+	bool "Do not create the debugfs clk directory"
+	default y
+
+config DEFERRED_INIICALLS
+	bool "Support deferred initcalls"
+	default y
+
+config DEFERRED_INIICALLS_SLAB_SYSFS
+	bool "defer slab_sysfs_init"
+	depends on DEFERRED_INIICALLS
+	default n
+
+config DEFERRED_INIICALLS_PARAM_SYSFS
+	bool "defer param_sysfs_init"
+	depends on DEFERRED_INIICALLS
+	default n
+
+config DEFERRED_INIICALLS_PPERF_SYSFS
+	bool "defer perf_event_sysfs_init"
+	depends on DEFERRED_INIICALLS
+	default n
+
+config DEFERRED_INIICALLS_MORE_SYSFS
+	bool "defer irq_sysfs_init, init_clocksource_sysfs,clockevents_init_sysfs"
+	depends on DEFERRED_INIICALLS
+	default n
+
+config DEFERRED_CREATE_DTS_SYSNODE
+	bool "defer of_core_init"
+	depends on DEFERRED_INIICALLS
+	default n
+
+config DEFERRED_LINUX_ADAPTOR_INIT
+	bool "defer linux_adaptor_init"
+	depends on (DEFERRED_INIICALLS && SS_RTK_MI_ADAPTOR)
+	default n
+
+config DEFERRED_CRYPTIO_WQ_INIT
+	bool "defer crypto_wq_init"
+	depends on DEFERRED_INIICALLS
+	default n
+
+config DEFERRED_RTC_HCTOSYS
+	bool "defer rtc_hctosys"
+	depends on DEFERRED_INIICALLS
+	default n
+
+config CRYPTO_MANAGER_NO_TESTS_THREAD
+	bool "Do not create cryto test thread"
+	depends on CRYPTO_MANAGER_DISABLE_TESTS
+	default n
+
+config WAIT_TASK_INACTIVE_SPEED_UP
+	bool "WAIT_TASK_INACTIVE speed up"
+	depends on SMP
+	default y
+endmenu
+
+menu "Light memory footprint"
+config SS_EMAC_RX_DESC_NUM_CUSTOMIZED
+	bool "Customized the number of EMAC Rx descriptors"
+	depends on MS_EMAC
+	default n
+
+config SS_EMAC_RX_DESC_NUM
+	hex "EMAC Rx descriptor number"
+	depends on SS_EMAC_RX_DESC_NUM_CUSTOMIZED
+	default 0x40
+	help
+	  more EMAC Rx descriptors can avoid Rx packets loss during CPU busy,
+	  however it consumes more memory usage also.
+	  0x40 is the minimal value recommended, it should not be less than 0x40.
+
+config SLUB_SYSFS_DISABLE
+	bool "Disable slab sysfs"
+	depends on SLUB
+	default n
+
+config KERNEL_PARAM_SYSFS_DISABLE
+	bool "Disable kernel built-in parameters sysfs"
+	default n
+
+config DTS_SYSFS_DISABLE
+	bool "Disable device tree sysfs"
+	default n
+endmenu
+
+config MP_DEBUG_TOOL_MEMORY_USAGE_MONITOR
+	bool "To monitor the order and migratetype of buddy system pages, and the page_alloc time cose"
+	default n
+
+config MP_DEBUG_TOOL_MEMORY_USAGE_TRACE
+	bool "Tools to trace all page allocation, we can used it to analysis mem leak, or trace migration failed pages"
+	default n
+
+if MP_DEBUG_TOOL_MEMORY_USAGE_TRACE
+choice
+	prompt "MAX_STACK_COUNT"
+	default MAX_STACK_COUNT_2048
+config MAX_STACK_COUNT_1024
+	bool "1024 count"
+config MAX_STACK_COUNT_2048
+	bool "2048 count"
+config MAX_STACK_COUNT_4096
+	bool "4096 count"
+config MAX_STACK_COUNT_6144
+	bool "6144 count"
+config MAX_STACK_COUNT_8192
+	bool "8192 count"
+endchoice
+
+endif
+
+config SS_PM_POWER_SAVING_SCHEME
+	bool "Enable power saving scheme when entring PM suspend."
+	default n
+
+if SS_PM_POWER_SAVING_SCHEME
+
+config SS_PM_POWER_SAVING_DEBUG_MODE
+    bool "Debug STR power saving mode"
+	default n
+    help
+      Help to debug in power saving mode by not disable critical powers.
+
+choice
+    prompt "Select power saving scheme when going suspend"
+    default SS_PM_NORMAL
+
+config SS_PM_USB_SUSPEND_MODE
+    bool "USB suspend mode"
+    help
+      When system enter USB suspend mode, all clock will be gating and waiting for
+      USB wakeup interrupt.
+
+config SS_PM_VAD_LOOP_MODE
+    bool "VAD loop mode"
+    help
+      When system enter VAD loop mode, the voice data through ADC and
+      Bach engine then write voice data to IMI. SW only need to allocate
+      one buffer and Bach engine will use ring buffer mode to store audio data.
+
+config SS_PM_VAD_INT_MODE
+    bool "VAD interrupt mode"
+    help
+      When system enter VAD INT mode, the audio data will not
+      be stored until the interrupt is received. This mode will
+      gating all clk except for 12M_CORE_v_live.
+
+config SS_PM_NORMAL
+    bool "Low power mode"
+    help
+      CPU enters WFI mode. When the interrupt is activated then cpu wakes up. This mode will keep xtal.
+
+config SS_PM_AOV
+    bool "For AOV scenario"
+    help
+      For AOV scenario.
+
+endchoice
+
+endif
+
+source "arch/arm/mach-sstar/$(SSTAR_CHIP_NAME)/Kconfig"
+
+endif
+

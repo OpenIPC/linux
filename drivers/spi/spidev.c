@@ -15,7 +15,6 @@
 #include <linux/err.h>
 #include <linux/list.h>
 #include <linux/errno.h>
-#include <linux/mutex.h>
 #include <linux/slab.h>
 #include <linux/compat.h>
 #include <linux/of.h>
@@ -64,20 +63,6 @@ static DECLARE_BITMAP(minors, N_SPI_MINORS);
 				| SPI_NO_CS | SPI_READY | SPI_TX_DUAL \
 				| SPI_TX_QUAD | SPI_TX_OCTAL | SPI_RX_DUAL \
 				| SPI_RX_QUAD | SPI_RX_OCTAL)
-
-struct spidev_data {
-	dev_t			devt;
-	spinlock_t		spi_lock;
-	struct spi_device	*spi;
-	struct list_head	device_entry;
-
-	/* TX/RX buffers are NULL unless this device is open (users > 0) */
-	struct mutex		buf_lock;
-	unsigned		users;
-	u8			*tx_buffer;
-	u8			*rx_buffer;
-	u32			speed_hz;
-};
 
 static LIST_HEAD(device_list);
 static DEFINE_MUTEX(device_list_lock);
@@ -141,6 +126,25 @@ spidev_sync_read(struct spidev_data *spidev, size_t len)
 
 /*-------------------------------------------------------------------------*/
 
+ssize_t
+mspidev_read(struct spidev_data	*mspidev, char *buf, size_t count)
+{
+    ssize_t         status = 0;
+
+    /* chipselect only toggles at start or end of operation */
+    if (count > bufsiz)
+        return -EMSGSIZE;
+
+    mutex_lock(&mspidev->buf_lock);
+    status = spidev_sync_read(mspidev, count);
+    if (status > 0) {
+        memcpy((void *)buf, (void *)mspidev->rx_buffer, status);
+    }
+    mutex_unlock(&mspidev->buf_lock);
+
+    return status;
+}
+
 /* Read-only message with current device setup */
 static ssize_t
 spidev_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
@@ -170,6 +174,24 @@ spidev_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
 	return status;
 }
 
+ssize_t
+mspidev_write(struct spidev_data	*mspidev, const char  *buf,
+        size_t count)
+{
+    ssize_t         status = 0;
+
+    /* chipselect only toggles at start or end of operation */
+    if (count > bufsiz)
+        return -EMSGSIZE;
+
+    mutex_lock(&mspidev->buf_lock);
+    memcpy((void *)mspidev->tx_buffer, (void *)buf, count);
+    status = spidev_sync_write(mspidev, count);
+    mutex_unlock(&mspidev->buf_lock);
+
+    return status;
+}
+
 /* Write-only message with current device setup */
 static ssize_t
 spidev_write(struct file *filp, const char __user *buf,
@@ -195,7 +217,110 @@ spidev_write(struct file *filp, const char __user *buf,
 
 	return status;
 }
+int mspidev_transfer(struct spidev_data *mspidev,struct mspi_ioc_transfer *m_xfers, unsigned n_xfers)
+{
+    struct spi_message	msg;
+    struct spi_transfer	*k_xfers;
+    struct spi_transfer	*k_tmp;
+    struct mspi_ioc_transfer *m_tmp;
+    unsigned		n, total, tx_total, rx_total;
+    u8			*tx_buf, *rx_buf;
+    int			status = -EFAULT;
+    mutex_lock(&mspidev->buf_lock);
+    spi_message_init(&msg);
+    k_xfers = kcalloc(n_xfers, sizeof(*k_tmp), GFP_KERNEL);
+    if (k_xfers == NULL)
+        return -ENOMEM;
 
+    /* Construct spi_message, copying any tx data to bounce buffer.
+     * We walk the array of user-provided transfers, using each one
+     * to initialize a kernel version of the same transfer.
+     */
+    tx_buf = mspidev->tx_buffer;
+    rx_buf = mspidev->rx_buffer;
+    total = 0;
+    tx_total = 0;
+    rx_total = 0;
+    for (n = n_xfers, k_tmp = k_xfers, m_tmp = m_xfers;
+            n;
+            n--, k_tmp++, m_tmp++) {
+        k_tmp->len = m_tmp->len;
+
+        total += k_tmp->len;
+        /* Since the function returns the total length of transfers
+         * on success, restrict the total to positive int values to
+         * avoid the return value looking like an error.  Also check
+         * each transfer length to avoid arithmetic overflow.
+        */
+        if (total > INT_MAX || k_tmp->len > INT_MAX) {
+            status = -EMSGSIZE;
+            goto done;
+        }
+
+        if (m_tmp->rx_buf) {
+            /* this transfer needs space in RX bounce buffer */
+            rx_total += k_tmp->len;
+            if (rx_total > bufsiz) {
+                status = -EMSGSIZE;
+                goto done;
+            }
+            k_tmp->rx_buf = rx_buf;
+            rx_buf += k_tmp->len;
+        }
+        if (m_tmp->tx_buf) {
+            /* this transfer needs space in TX bounce buffer */
+            tx_total += k_tmp->len;
+            if (tx_total > bufsiz) {
+                status = -EMSGSIZE;
+                goto done;
+            }
+            k_tmp->tx_buf = tx_buf;
+            memcpy((void*)tx_buf, (const void*)m_tmp->tx_buf, m_tmp->len);
+            tx_buf += k_tmp->len;
+        }
+
+        k_tmp->cs_change = !!m_tmp->cs_change;
+        k_tmp->tx_nbits = m_tmp->tx_nbits;
+        k_tmp->rx_nbits = m_tmp->rx_nbits;
+        k_tmp->bits_per_word = m_tmp->bits_per_word;
+        k_tmp->delay_usecs = m_tmp->delay_usecs;
+        k_tmp->speed_hz = m_tmp->speed_hz;
+        if (!k_tmp->speed_hz)
+            k_tmp->speed_hz = mspidev->speed_hz;
+#ifdef VERBOSE
+        dev_dbg(&mspidev->spi->dev,
+            "  xfer len %u %s%s%s%dbits %u usec %uHz\n",
+            m_tmp->len,
+            m_tmp->rx_buf ? "rx " : "",
+            m_tmp->tx_buf ? "tx " : "",
+            m_tmp->cs_change ? "cs " : "",
+            m_tmp->bits_per_word ? : mspidev->spi->bits_per_word,
+            m_tmp->delay_usecs,
+            m_tmp->speed_hz ? : mspidev->spi->max_speed_hz);
+#endif
+        spi_message_add_tail(k_tmp, &msg);
+    }
+
+    status = spidev_sync(mspidev, &msg);
+    if (status < 0)
+        goto done;
+
+    /* copy any rx data out of bounce buffer */
+    rx_buf = mspidev->rx_buffer;
+    for (n = n_xfers, m_tmp = m_xfers; n; n--, m_tmp++) {
+        if (m_tmp->rx_buf) {
+            memcpy((void*)m_tmp->rx_buf, (const void*)rx_buf, m_tmp->len);
+            rx_buf += m_tmp->len;
+        }
+    }
+    status = total;
+
+done:
+    mutex_unlock(&mspidev->buf_lock);
+    kfree(k_xfers);
+    return status;
+
+}
 static int spidev_message(struct spidev_data *spidev,
 		struct spi_ioc_transfer *u_xfers, unsigned n_xfers)
 {
@@ -338,6 +463,80 @@ spidev_get_ioc_message(unsigned int cmd, struct spi_ioc_transfer __user *u_ioc,
 
 	/* copy into scratch area */
 	return memdup_user(u_ioc, tmp);
+}
+
+int mspidev_set(struct spidev_data *mspidev,struct spidev_cfg *mspidev_cfg)
+{
+    int         status = 0;
+    u32         save;
+    u32         tmp;
+    struct spi_device   *spi;
+    spin_lock_irq(&mspidev->spi_lock);
+    spi = spi_dev_get(mspidev->spi);
+    spin_unlock_irq(&mspidev->spi_lock);
+    if (spi == NULL)
+    {
+        return -ESHUTDOWN;
+    }
+
+    mutex_lock(&mspidev->buf_lock);
+    /* use the buffer lock here for triple duty:
+     *  - prevent I/O (from us) so calling spi_setup() is safe;
+     *  - prevent concurrent SPI_IOC_WR_* from morphing
+     *    data fields while SPI_IOC_RD_* reads them;
+     *  - SPI_IOC_MESSAGE needs the buffer locked "normally".
+     */
+
+    if(mspidev_cfg->mode & ~SPI_MODE_MASK)
+    {
+        status = -EINVAL;
+        goto out;
+    }
+    else
+    {
+        save = spi->mode;
+        tmp = (mspidev_cfg->mode | (spi->mode & ~SPI_MODE_MASK));
+        spi->mode = tmp;
+        status = spi_setup(spi);
+        if(status < 0)
+        {
+            spi->mode = save;
+            goto out;
+        }
+        else
+        {
+            dev_dbg(&spi->dev, "spi mode %x\n", mspidev_cfg->mode);
+        }
+    }
+    save = spi->bits_per_word;
+    spi->bits_per_word = mspidev_cfg->bits_per_word;
+    status = spi_setup(spi);
+    if(status < 0)
+    {
+        spi->bits_per_word = save;
+        goto out;
+    }
+    else
+    {
+        dev_dbg(&spi->dev, "%d bits per word\n", mspidev_cfg->bits_per_word);
+    }
+    save = spi->max_speed_hz;
+    spi->max_speed_hz = mspidev_cfg->max_speed_hz;
+    status = spi_setup(spi);
+    if(status >= 0)
+    {
+        mspidev->speed_hz = mspidev_cfg->max_speed_hz;
+    }
+    else
+    {
+        dev_dbg(&spi->dev, "%d Hz (max)\n", mspidev_cfg->max_speed_hz);
+    }
+    spi->max_speed_hz = save;
+
+out:
+    mutex_unlock(&mspidev->buf_lock);
+    spi_dev_put(spi);
+    return status;
 }
 
 static long
@@ -559,6 +758,53 @@ spidev_compat_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 #define spidev_compat_ioctl NULL
 #endif /* CONFIG_COMPAT */
 
+struct spidev_data * mspidev_open(int mspi_nr)
+{
+    struct spidev_data	*spidev;
+    int         status = -ENXIO;
+
+    mutex_lock(&device_list_lock);
+
+    list_for_each_entry(spidev, &device_list, device_entry) {
+        if (spidev->spi->master->bus_num == mspi_nr) {
+            status = 0;
+            break;
+        }
+    }
+
+    if (status) {
+        pr_debug("spidev: can't find spidev %d\n", mspi_nr);
+        goto err_find_dev;
+    }
+
+    if (!spidev->tx_buffer) {
+        spidev->tx_buffer = kmalloc(bufsiz, GFP_KERNEL);
+        if (!spidev->tx_buffer) {
+            dev_dbg(&spidev->spi->dev, "open/ENOMEM\n");
+            goto err_find_dev;
+        }
+    }
+
+    if (!spidev->rx_buffer) {
+        spidev->rx_buffer = kmalloc(bufsiz, GFP_KERNEL);
+        if (!spidev->rx_buffer) {
+            dev_dbg(&spidev->spi->dev, "open/ENOMEM\n");
+            goto err_alloc_rx_buf;
+        }
+    }
+
+    spidev->users++;
+    mutex_unlock(&device_list_lock);
+    return spidev;
+
+err_alloc_rx_buf:
+    kfree(spidev->tx_buffer);
+    spidev->tx_buffer = NULL;
+err_find_dev:
+    mutex_unlock(&device_list_lock);
+    return NULL;
+}
+
 static int spidev_open(struct inode *inode, struct file *filp)
 {
 	struct spidev_data	*spidev;
@@ -609,6 +855,43 @@ err_alloc_rx_buf:
 err_find_dev:
 	mutex_unlock(&device_list_lock);
 	return status;
+}
+
+int mspidev_release(struct spidev_data *mspidev)
+{
+	struct spidev_data	*spidev;
+
+	mutex_lock(&device_list_lock);
+	spidev = mspidev;
+	mspidev = NULL;
+
+	/* last close? */
+	spidev->users--;
+	if (!spidev->users) {
+		int		dofree;
+
+		kfree(spidev->tx_buffer);
+		spidev->tx_buffer = NULL;
+
+		kfree(spidev->rx_buffer);
+		spidev->rx_buffer = NULL;
+
+		spin_lock_irq(&spidev->spi_lock);
+		if (spidev->spi)
+			spidev->speed_hz = spidev->spi->max_speed_hz;
+
+		/* ... after we unbound from the underlying device? */
+		dofree = (spidev->spi == NULL);
+		spin_unlock_irq(&spidev->spi_lock);
+
+		if (dofree)
+			kfree(spidev);
+	}
+#ifdef CONFIG_SPI_SLAVE
+	spi_slave_abort(spidev->spi);
+#endif
+	mutex_unlock(&device_list_lock);
+	return 0;
 }
 
 static int spidev_release(struct inode *inode, struct file *filp)

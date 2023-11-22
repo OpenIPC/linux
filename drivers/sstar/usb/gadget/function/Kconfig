@@ -1,0 +1,93 @@
+if ARCH_SSTAR
+
+config USB_GADGET_SSTAR_FUNCTION
+	bool
+	default y if ARCH_SSTAR
+
+config USB_U_SSTAR_AUDIO
+	tristate
+
+config USB_F_SSTAR_UAC1
+	tristate
+
+config USB_F_SSTAR_UVC
+	tristate
+
+config USB_F_SSTAR_DFU
+	tristate
+
+config USB_CONFIGFS_F_SSTAR_UAC1
+	bool "Audio Class 1.0"
+	depends on USB_CONFIGFS
+	depends on SND
+	select USB_LIBCOMPOSITE
+	select SND_PCM
+	select USB_U_SSTAR_AUDIO
+	select USB_F_SSTAR_UAC1
+	help
+	  This Audio function implements 1 AudioControl interface,
+	  1 AudioStreaming Interface each for USB-OUT and USB-IN.
+	  This driver doesn't expect any real Audio codec to be present
+	  on the device - the audio streams are simply sinked to and
+	  sourced from a virtual ALSA sound card created. The user-space
+	  application may choose to do whatever it wants with the data
+	  received from the USB Host and choose to provide whatever it
+	  wants as audio data to the USB Host.
+
+config USB_CONFIGFS_F_SSTAR_UAC2
+	bool "Audio Class 2.0"
+	depends on USB_CONFIGFS
+	depends on SND
+	select USB_LIBCOMPOSITE
+	select SND_PCM
+	select USB_U_SSTAR_AUDIO
+	select USB_F_UAC2
+	help
+	  This Audio function is compatible with USB Audio Class
+	  specification 2.0. It implements 1 AudioControl interface,
+	  1 AudioStreaming Interface each for USB-OUT and USB-IN.
+	  This driver doesn't expect any real Audio codec to be present
+	  on the device - the audio streams are simply sinked to and
+	  sourced from a virtual ALSA sound card created. The user-space
+	  application may choose to do whatever it wants with the data
+	  received from the USB Host and choose to provide whatever it
+	  wants as audio data to the USB Host.
+
+config USB_CONFIGFS_F_SSTAR_UVC
+	bool "USB Webcam function"
+	depends on USB_CONFIGFS
+	depends on VIDEO_V4L2
+	depends on VIDEO_DEV
+	select VIDEOBUF2_VMALLOC
+	select USB_F_SSTAR_UVC
+	help
+	  The Webcam function acts as a composite USB Audio and Video Class
+	  device. It provides a userspace API to process UVC control requests
+	  and stream video data to the host.
+
+config UVC_STREAM_ERR_SUPPORT
+	bool "Set UVC_STREAM_ERR bit in header to indicate an error frame"
+	depends on USB_CONFIGFS_F_SSTAR_UVC
+	default n
+	help
+	  If udc controller reports NOSNR (Out of streams resources) error, it means
+	  there are data lost during frame data transmission.
+	  Indicate host that the sending frame might be corrupted and should be drop by
+	  set UVC_STREAM_ERR bit in payload header.
+
+config UVC_VER150_SUPPORT
+	bool "UVC 1.5 Support"
+	depends on USB_CONFIGFS_F_SSTAR_UVC
+	default n
+	help
+	  Support uvc 1.5 for sstar uvc
+
+config USB_CONFIGFS_F_SSTAR_DFU
+	bool "DFU function"
+	depends on USB_CONFIGFS
+	select USB_F_SSTAR_DFU
+	help
+	  The DFU function driver enables the Device Firmware
+	  Upgrade(DFU) mode for the platform USB device.
+
+endif

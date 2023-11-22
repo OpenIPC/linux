@@ -1,0 +1,14 @@
+config MS_EMMC
+	tristate "EMMC driver"
+	depends on MMC
+	help
+	  To enable MSTAR EMMC driver.
+
+config MS_EMMC_UNIFY_DRIVER
+	tristate "UNIFY EMMC DRIVER"
+	depends on MS_EMMC
+
+config MS_EMMC_UT_VERIFY
+        bool "Support eMMC UT verify"
+        depends on MS_EMMC
+        default n

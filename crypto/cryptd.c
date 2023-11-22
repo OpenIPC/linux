@@ -1093,7 +1093,12 @@ static void __exit cryptd_exit(void)
 	crypto_unregister_template(&cryptd_tmpl);
 }
 
+#ifdef CONFIG_DEFERRED_CRYPTIO_WQ_INIT
+deferred_module_init(cryptd_init);
+//subsys_initcall(cryptd_init);
+#else
 subsys_initcall(cryptd_init);
+#endif
 module_exit(cryptd_exit);
 
 MODULE_LICENSE("GPL");

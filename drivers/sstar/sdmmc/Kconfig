@@ -1,0 +1,16 @@
+config MS_SDMMC
+        tristate "SStar SD/MMC Card Interface Support"
+        depends on MMC
+        default n
+  help
+        Enable SD/MMC Driver Support for SStar Product
+
+config SUPPORT_SD30
+        bool "Support SD30"
+        depends on MS_SDMMC
+        default n
+
+config SUPPORT_UT_VERIFY
+        bool "Support SD UT verify"
+        depends on MS_SDMMC
+        default n

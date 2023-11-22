@@ -46,6 +46,12 @@ struct mtd_oob_buf64 {
 	__u64 usr_ptr;
 };
 
+struct sstar_bbt_info_user {
+	__u32 u32_offset;
+	__u8 u8_type;
+	__u8 padding[3];
+};
+
 /**
  * MTD operation modes
  *
@@ -205,6 +211,10 @@ struct otp_info {
  * without OOB, e.g., NOR flash.
  */
 #define MEMWRITE		_IOWR('M', 24, struct mtd_write_req)
+/* Get an block info in bbt:good block,factory bad block or running time bad block*/
+#define MEMGETBBTBLKINFO		_IOR('M', 51, struct sstar_bbt_info_user)
+/* Set an block info in bbt:good block,factory bad block or running time bad block*/
+#define MEMSETBBTBLKINFO		_IOWR('M', 52, struct sstar_bbt_info_user)
 
 /*
  * Obsolete legacy interface. Keep it in order not to break userspace

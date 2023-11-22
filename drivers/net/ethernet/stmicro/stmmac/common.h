@@ -26,6 +26,10 @@
 #include "hwif.h"
 #include "mmc.h"
 
+#if defined(CONFIG_ARCH_SSTAR)
+#include "sstar_gmac.h"
+#endif
+
 /* Synopsys Core versions */
 #define	DWMAC_CORE_3_40		0x34
 #define	DWMAC_CORE_3_50		0x35
@@ -51,11 +55,30 @@
 #define DMA_DEFAULT_TX_SIZE	512
 #define DMA_MIN_RX_SIZE		64
 #define DMA_MAX_RX_SIZE		1024
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RXIC)
+#define DMA_DEFAULT_RX_SIZE	1024
+#else
 #define DMA_DEFAULT_RX_SIZE	512
+#endif
+
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_CODING_OPTIMIZE)
+#define STMMAC_GET_ENTRY(x, size)	((x + 1) & (size##_msk))
+#else
 #define STMMAC_GET_ENTRY(x, size)	((x + 1) & (size - 1))
+#endif
 
 #undef FRAME_FILTER_DEBUG
 /* #define FRAME_FILTER_DEBUG */
+
+struct stmmac_txq_stats {
+	unsigned long tx_pkt_n;
+	unsigned long tx_normal_irq_n;
+};
+
+struct stmmac_rxq_stats {
+	unsigned long rx_pkt_n;
+	unsigned long rx_normal_irq_n;
+};
 
 /* Extra statistic and debug information exposed by ethtool */
 struct stmmac_extra_stats {
@@ -107,7 +130,16 @@ struct stmmac_extra_stats {
 	unsigned long normal_irq_n;
 	unsigned long rx_normal_irq_n;
 	unsigned long napi_poll;
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RXIC)
+	unsigned long napi_poll_rx;
+	unsigned long napi_poll_rx_irq;
+	unsigned long napi_poll_rx_tmr;
+#endif
 	unsigned long tx_normal_irq_n;
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RXIC)
+	unsigned long tx_normal_ti_irq_n;
+	unsigned long tx_normal_tbu_irq_n;
+#endif
 	unsigned long tx_clean;
 	unsigned long tx_set_ic_bit;
 	unsigned long irq_receive_pmt_irq_n;
@@ -182,6 +214,9 @@ struct stmmac_extra_stats {
 	/* TSO */
 	unsigned long tx_tso_frames;
 	unsigned long tx_tso_nfrags;
+	/* per queue statistics */
+	struct stmmac_txq_stats txq_stats[MTL_MAX_TX_QUEUES];
+	struct stmmac_rxq_stats rxq_stats[MTL_MAX_RX_QUEUES];
 };
 
 /* Safety Feature statistics exposed by ethtool */

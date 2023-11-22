@@ -59,6 +59,7 @@
 #include <asm/unwind.h>
 #include <asm/memblock.h>
 #include <asm/virt.h>
+#include <asm/kasan.h>
 
 #include "atags.h"
 
@@ -1082,6 +1083,21 @@ void __init hyp_mode_check(void)
 #endif
 }
 
+static void (*__arm_pm_restart)(enum reboot_mode reboot_mode, const char *cmd);
+
+static int arm_restart(struct notifier_block *nb, unsigned long action,
+		       void *data)
+{
+	__arm_pm_restart(action, data);
+	return NOTIFY_DONE;
+}
+
+static struct notifier_block arm_restart_nb = {
+	.notifier_call = arm_restart,
+	.priority = 128,
+};
+
+void __init prom_meminit(void);
 void __init setup_arch(char **cmdline_p)
 {
 	const struct machine_desc *mdesc = NULL;
@@ -1091,12 +1107,16 @@ void __init setup_arch(char **cmdline_p)
 		atags_vaddr = FDT_VIRT_BASE(__atags_pointer);
 
 	setup_processor();
+#ifdef CONFIG_SS_BUILTIN_DTB
+	mdesc = setup_machine_fdt(atags_vaddr);
+#else
 	if (atags_vaddr) {
 		mdesc = setup_machine_fdt(atags_vaddr);
 		if (mdesc)
 			memblock_reserve(__atags_pointer,
 					 fdt_totalsize(atags_vaddr));
 	}
+#endif
 	if (!mdesc)
 		mdesc = setup_machine_tags(atags_vaddr, __machine_arch_type);
 	if (!mdesc) {
@@ -1128,7 +1148,9 @@ void __init setup_arch(char **cmdline_p)
 	early_ioremap_init();
 
 	parse_early_param();
-
+#ifdef CONFIG_ARCH_SSTAR
+	prom_meminit();
+#endif
 #ifdef CONFIG_MMU
 	early_mm_init(mdesc);
 #endif
@@ -1147,10 +1169,13 @@ void __init setup_arch(char **cmdline_p)
 	early_ioremap_reset();
 
 	paging_init(mdesc);
+	kasan_init();
 	request_standard_resources(mdesc);
 
-	if (mdesc->restart)
-		arm_pm_restart = mdesc->restart;
+	if (mdesc->restart) {
+		__arm_pm_restart = mdesc->restart;
+		register_restart_handler(&arm_restart_nb);
+	}
 
 	unflatten_device_tree();
 

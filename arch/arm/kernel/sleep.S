@@ -7,6 +7,15 @@
 #include <asm/glue-proc.h>
 	.text
 
+
+#include "../mm/proc-macros.S"
+
+#ifdef CONFIG_ARCH_INFINITY6C
+#define Mode_MON		0x16
+#define Mode_SVC		0x13
+#define FBIT			0x40
+#define IBIT			0x80
+#endif
 /*
  * Implementation of MPIDR hash algorithm through shifting
  * and OR'ing.
@@ -144,6 +153,45 @@ ARM_BE8(setend be)			@ ensure we are in BE mode
 #endif
 	safe_svcmode_maskall r1
 no_hyp:
+
+#ifdef CONFIG_ARCH_INFINITY6C
+#ifndef CONFIG_SS_DUALOS
+	mov r0, #Mode_MON|FBIT|IBIT
+	msr cpsr_c, r0
+
+#ifdef CONFIG_SS_PM_AOV
+	ldr r0, =SSCHIPVER_PA
+#else
+	ldr r0, =SSCHIPVER
+#endif
+	ldr r1, [r0]
+	ldr r3, =0x00
+	teq  r1, r3
+	beq disableWS1
+	bne default1
+
+disableWS1:
+	//Disabled Write-streamingmode
+	mrrc p15, 0, r0, r1, c15
+	orr r0, r0, #0x1 << 25
+	orr r0, r0, #0x1 << 26
+	orr r0, r0, #0x1 << 28
+	mcrr p15, 0, r0, r1, c15
+default1:
+	mrc p15, 0, r0, c1, c1, 0       /* Get Secure Config */
+	orr r0, r0, #1
+	mcr p15, 0, r0, c1, c1, 0       /* Set Non Secure bit */
+	isb
+
+	mov  r0, #0
+	mcrr p15, 4, r0, r0, c14  /* CNTVOFF = 0 */
+	isb
+
+	mov r0, #Mode_SVC|FBIT|IBIT
+	msr cpsr_c, r0
+#endif
+#endif
+
 	mov	r1, #0
 	ALT_SMP(mrc p15, 0, r0, c0, c0, 5)
 	ALT_UP_B(1f)

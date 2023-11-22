@@ -14,6 +14,10 @@
 
 #include "../../pci.h"
 
+#ifdef CONFIG_ARCH_SSTAR
+extern u64 Chip_Phys_to_MIU(u64 phys);
+#endif
+
 void dw_pcie_ep_linkup(struct dw_pcie_ep *ep)
 {
 	struct pci_epc *epc = ep->epc;
@@ -60,6 +64,11 @@ static void __dw_pcie_ep_reset_bar(struct dw_pcie *pci, u8 func_no,
 	unsigned int func_offset = 0;
 	struct dw_pcie_ep *ep = &pci->ep;
 
+#ifdef CONFIG_ARCH_SSTAR
+	if (pci->ep.dis_set_bar_quirk)
+		return;
+#endif
+
 	func_offset = dw_pcie_ep_func_select(ep, func_no);
 
 	reg = func_offset + PCI_BASE_ADDRESS_0 + (4 * bar);
@@ -82,6 +91,7 @@ void dw_pcie_ep_reset_bar(struct dw_pcie *pci, enum pci_barno bar)
 	for (func_no = 0; func_no < funcs; func_no++)
 		__dw_pcie_ep_reset_bar(pci, func_no, bar, 0);
 }
+EXPORT_SYMBOL_GPL(dw_pcie_ep_reset_bar);
 
 static u8 __dw_pcie_ep_find_next_cap(struct dw_pcie_ep *ep, u8 func_no,
 		u8 cap_ptr, u8 cap)
@@ -166,8 +176,13 @@ static int dw_pcie_ep_inbound_atu(struct dw_pcie_ep *ep, u8 func_no,
 		return -EINVAL;
 	}
 
+#ifdef CONFIG_ARCH_SSTAR
+	ret = dw_pcie_prog_inbound_atu(pci, func_no, free_win, bar, Chip_Phys_to_MIU(cpu_addr),
+				       as_type);
+#else
 	ret = dw_pcie_prog_inbound_atu(pci, func_no, free_win, bar, cpu_addr,
 				       as_type);
+#endif
 	if (ret < 0) {
 		dev_err(pci->dev, "Failed to program IB window\n");
 		return ret;
@@ -245,6 +260,11 @@ static int dw_pcie_ep_set_bar(struct pci_epc *epc, u8 func_no,
 
 	dw_pcie_dbi_ro_wr_en(pci);
 
+#ifdef CONFIG_ARCH_SSTAR
+	if (pci->ep.dis_set_bar_quirk)
+		goto dis_set_bar;
+#endif
+
 	dw_pcie_writel_dbi2(pci, reg, lower_32_bits(size - 1));
 	dw_pcie_writel_dbi(pci, reg, flags);
 
@@ -252,6 +272,10 @@ static int dw_pcie_ep_set_bar(struct pci_epc *epc, u8 func_no,
 		dw_pcie_writel_dbi2(pci, reg + 4, upper_32_bits(size - 1));
 		dw_pcie_writel_dbi(pci, reg + 4, 0);
 	}
+
+#ifdef CONFIG_ARCH_SSTAR
+dis_set_bar:
+#endif
 
 	ep->epf_bar[bar] = epf_bar;
 	dw_pcie_dbi_ro_wr_dis(pci);
@@ -485,6 +509,7 @@ int dw_pcie_ep_raise_legacy_irq(struct dw_pcie_ep *ep, u8 func_no)
 
 	return -EINVAL;
 }
+EXPORT_SYMBOL_GPL(dw_pcie_ep_raise_legacy_irq);
 
 int dw_pcie_ep_raise_msi_irq(struct dw_pcie_ep *ep, u8 func_no,
 			     u8 interrupt_num)
@@ -536,6 +561,7 @@ int dw_pcie_ep_raise_msi_irq(struct dw_pcie_ep *ep, u8 func_no,
 
 	return 0;
 }
+EXPORT_SYMBOL_GPL(dw_pcie_ep_raise_msi_irq);
 
 int dw_pcie_ep_raise_msix_irq_doorbell(struct dw_pcie_ep *ep, u8 func_no,
 				       u16 interrupt_num)
@@ -604,6 +630,7 @@ int dw_pcie_ep_raise_msix_irq(struct dw_pcie_ep *ep, u8 func_no,
 
 	return 0;
 }
+EXPORT_SYMBOL_GPL(dw_pcie_ep_raise_msix_irq);
 
 void dw_pcie_ep_exit(struct dw_pcie_ep *ep)
 {
@@ -739,6 +766,16 @@ int dw_pcie_ep_init(struct dw_pcie_ep *ep)
 		return PTR_ERR(epc);
 	}
 
+#ifdef CONFIG_ARCH_SSTAR
+	ret = of_property_read_u32(np, "portid", &epc->portid);
+	if (ret < 0) {
+		dev_err(dev, "Unable to read *portid* property\n");
+		return ret;
+	}
+
+	ep->dis_set_bar_quirk =
+		of_property_read_bool(np, "ep,dis_set_bar_quirk");
+#endif
 	ep->epc = epc;
 	epc_set_drvdata(epc, ep);
 

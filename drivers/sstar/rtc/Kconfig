@@ -1,0 +1,20 @@
+config RTCPWC_INNER
+    select RTC_CLASS
+    tristate "SStar RTCWC driver"
+    default n
+
+config RTCPWC_SW_RST_OFF
+    bool "SStar RTCPWC driver no SW-reset on Set-Base-Time"
+    depends on RTCPWC_INNER
+    default y
+
+config RTCPWC_INNER_EHHE
+    bool "SStar RTCPWC driver Error Handle on Hw Exception"
+    depends on RTCPWC_INNER
+    default y
+
+config RTC_WITH_PWC
+    bool "SStar RTC with power controller"
+    depends on RTCPWC_INNER
+    default n
+

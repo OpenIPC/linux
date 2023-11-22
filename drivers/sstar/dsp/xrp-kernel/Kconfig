@@ -1,0 +1,49 @@
+#
+# Xtensa Remote Processing kernel driver
+#
+
+config XRP
+	tristate "XRP driver"
+	help
+	  This is the core of Cadence Xtensa Remote Processing driver.
+	  It should be enabled to support applications communicating with
+	  Xtensa DSPs through the XRP API.
+
+	  If unsure, say N.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called xrp.
+
+config XRP_DEBUG
+	bool "Debug XRP"
+	depends on XRP
+	help
+	  This enables verbose debug output of the XRP driver.
+
+	  If unsure, say N.
+
+config XRP_HW_SIMPLE
+	tristate "XRP for simple hardware"
+	depends on XRP
+	help
+	  This is hardware-specific XRP kernel driver for the simple
+	  hardware. It should be enabled to support XRP on simple hardware
+	  platforms.
+
+	  If unsure, say N.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called xrp_hw_simple.
+
+config XRP_HW_HIKEY960
+	tristate "XRP for HiKey960"
+	depends on XRP
+	help
+	  This is hardware-specific XRP kernel driver for the HiKey960
+	  hardware. It should be enabled to support XRP on HiKey960
+	  platform.
+
+	  If unsure, say N.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called xrp_hw_hikey960.

@@ -121,6 +121,7 @@ struct pci_epc {
 	struct mutex			lock;
 	unsigned long			function_num_map;
 	struct atomic_notifier_head	notifier;
+	int portid;
 };
 
 /**

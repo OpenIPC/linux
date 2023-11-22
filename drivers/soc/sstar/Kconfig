@@ -1,0 +1,48 @@
+# SPDX-License-Identifier: GPL-2.0
+#
+# Sigmastar SoC drivers
+#
+menuconfig SOC_SSTAR
+	bool "Sigmastar SOC drivers"
+
+if SOC_SSTAR
+config CNTVOFF_INITED
+	bool "cntvoff has inited"
+	default n
+config SS_DTB_NAME
+	string "Sstar DTB NAME"
+	default ""
+	depends on SS_BUILTIN_DTB
+
+config SS_BUILTIN_DTB
+	bool "Sstar Builtin DTB"
+	default y
+
+config MS_KERNEL_TYPE
+	string
+	default ""
+
+config SSTAR_CHIP_NAME
+	string
+	default $(SSTAR_CHIP_NAME)
+
+config SSTAR_SHORT_NAME
+	string "Short Name"
+	default ""
+
+config SKIP_SQUASHFS_BAD_BLOCK
+	bool "Skip squashfs bad block"
+	depends on MTD
+	default y
+
+config UIMAGE_LOAD_ADDR
+	hex "The value of load address in uImage header"
+	default 0x20200000
+
+config UIMAGE_ARCH
+	string "The CPU architecture specified in uImage header"
+	default "arm"
+
+source "drivers/soc/sstar/$(SSTAR_CHIP_NAME)/Kconfig"
+
+endif

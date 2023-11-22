@@ -448,7 +448,12 @@ static int xhci_stop_device(struct xhci_hcd *xhci, int slot_id, int suspend)
 	    cmd->status == COMP_COMMAND_RING_STOPPED) {
 		xhci_warn(xhci, "Timeout while waiting for stop endpoint command\n");
 		ret = -ETIME;
+		goto cmd_cleanup;
 	}
+
+	ret = xhci_vendor_sync_dev_ctx(xhci, slot_id);
+	if (ret)
+		xhci_warn(xhci, "Sync device context failed, ret=%d\n", ret);
 
 cmd_cleanup:
 	xhci_free_command(xhci, cmd);
@@ -559,7 +564,9 @@ struct xhci_hub *xhci_get_rhub(struct usb_hcd *hcd)
 		return &xhci->usb3_rhub;
 	return &xhci->usb2_rhub;
 }
-
+#if defined(CONFIG_ARCH_SSTAR)
+EXPORT_SYMBOL(xhci_get_rhub);
+#endif
 /*
  * xhci_set_port_power() must be called with xhci->lock held.
  * It will release and re-aquire the lock while calling ACPI
@@ -693,7 +700,9 @@ void xhci_set_link_state(struct xhci_hcd *xhci, struct xhci_port *port,
 		 port->rhub->hcd->self.busnum, port->hcd_portnum + 1,
 		 portsc, temp);
 }
-
+#if defined(CONFIG_ARCH_SSTAR)
+EXPORT_SYMBOL(xhci_set_link_state);
+#endif
 static void xhci_set_remote_wake_mask(struct xhci_hcd *xhci,
 				      struct xhci_port *port, u16 wake_mask)
 {
@@ -1719,6 +1728,7 @@ retry:
 
 	return 0;
 }
+EXPORT_SYMBOL_GPL(xhci_bus_suspend);
 
 /*
  * Workaround for missing Cold Attach Status (CAS) if device re-plugged in S3.
@@ -1863,6 +1873,7 @@ int xhci_bus_resume(struct usb_hcd *hcd)
 	spin_unlock_irqrestore(&xhci->lock, flags);
 	return 0;
 }
+EXPORT_SYMBOL_GPL(xhci_bus_resume);
 
 unsigned long xhci_get_resuming_ports(struct usb_hcd *hcd)
 {

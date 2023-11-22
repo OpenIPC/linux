@@ -339,3 +339,59 @@ by the bus, and can then start sending messages to the remote service.
 
 The plan is also to add static creation of rpmsg channels via the virtio
 config space, but it's not implemented yet.
+
+Configuring rpmsg using configfs
+================================
+
+Usually a rpmsg_device is created when the virtproc driver (virtio_rpmsg_bus.c)
+receives a name service notification from the remote core. However there could
+also be cases where the user should be given the ability to create rpmsg_device
+(like in the case of vhost_rpmsg_bus.c) where vhost_rpmsg_bus should be
+responsible for sending name service notification. For such cases, configfs
+provides an ability to the user for binding a rpmsg_client_driver with virtproc
+device in order to create rpmsg_device.
+
+Two configfs directories are added for configuring rpmsg
+::
+
+  # ls /sys/kernel/config/rpmsg/
+    channel   virtproc
+
+channel: Whenever a new rpmsg_driver is registered with rpmsg core, a new
+sub-directory will be created for each entry provided in rpmsg_device_id
+table of rpmsg_driver.
+
+For instance when rpmsg_sample_client is installed, it'll create the following
+entry in the mounted configfs directory
+::
+
+  # ls /sys/kernel/config/rpmsg/channel/
+    rpmsg-client-sample
+
+virtproc: A virtproc device can choose to add an entry in this directory.
+Virtproc device adds an entry if it has to allow user to control creation of
+rpmsg device. (e.g vhost_rpmsg_bus.c)
+::
+
+  # ls /sys/kernel/config/rpmsg/virtproc/
+    vhost0
+
+
+The first step in allowing the user to create rpmsg device is to create a
+sub-directory rpmsg-client-sample. For each rpmsg_device, the user would like
+to create, a separate subdirectory has to be created.
+::
+
+  # mkdir /sys/kernel/config/rpmsg/channel/rpmsg-client-sample/c1
+
+The next step is to link the created sub-directory with virtproc device to
+create rpmsg device.
+::
+
+  # ln -s /sys/kernel/config/rpmsg/channel/rpmsg-client-sample/c1 \
+        /sys/kernel/config/rpmsg/virtproc/vhost0
+
+This will create rpmsg_device. However the driver will not register the
+rpmsg device until it receives the VIRTIO_CONFIG_S_DRIVER_OK (in the case
+of vhost_rpmsg_bus.c) as it can access virtio buffers only after
+VIRTIO_CONFIG_S_DRIVER_OK is set.

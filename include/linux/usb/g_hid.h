@@ -27,7 +27,11 @@ struct hidg_func_descriptor {
 	unsigned char		protocol;
 	unsigned short		report_length;
 	unsigned short		report_desc_length;
+#ifdef CONFIG_ARCH_SSTAR
+	unsigned char report_desc[64];
+#else
 	unsigned char		report_desc[];
+#endif
 };
 
 #endif /* __LINUX_USB_G_HID_H */

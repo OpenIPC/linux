@@ -1,0 +1,49 @@
+config ARCH_MERCURY6P
+    bool "SoC mercury6p (ARCH_MULTI_V7)" if ARCH_MULTI_V7
+    select SOC_BUS
+    select ARM_GIC_V3
+    select CNTVOFF_INITED
+    select VFP
+    select VFPv3
+    select WIRELESS_EXT if WIRELESS && NET
+    select WEXT_PRIV    if WIRELESS && NET
+    help
+      Support for MERCURY6P SoC
+
+config SS_MIU_ARBITRATION
+    bool "SigmaStar MIU arbitration"
+    default y
+
+config SELECT_MIU0_BUS_BASE
+    bool "Select MIU0 bus base address"
+    depends on ARCH_SSTAR
+    default y
+
+choice
+    prompt "CPU view of physical memory start address"
+    depends on SELECT_MIU0_BUS_BASE
+    default MIU0_AT_20000000
+
+config MIU0_AT_20000000
+    bool "0x20000000"
+    help
+      The MIU0 base address is 0x20000000
+
+config MIU0_AT_1000000000
+    bool "0x1000000000"
+    select ARM_LPAE
+    select ARCH_DMA_ADDR_T_64BIT
+    help
+      The MIU0 base address is 0x1000000000
+
+endchoice
+
+config MIU0_BUS_BASE
+    hex
+    default 0x1000000000 if MIU0_AT_1000000000
+    default 0x20000000
+
+config MIU0_DMA_PFN_OFFSET
+    bool "Enable to use dma_pfn_offset to make DMA APIs (dev != NULL) to use 0x20000000-based dma_addr_t (for test and debug purposes only)"
+    depends on MIU0_AT_1000000000
+    default n

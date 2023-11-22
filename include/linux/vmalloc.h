@@ -9,6 +9,7 @@
 #include <asm/page.h>		/* pgprot_t */
 #include <linux/rbtree.h>
 #include <linux/overflow.h>
+#include <linux/android_vendor.h>
 
 #include <asm/vmalloc.h>
 
@@ -57,6 +58,7 @@ struct vm_struct {
 	unsigned int		nr_pages;
 	phys_addr_t		phys_addr;
 	const void		*caller;
+	ANDROID_OEM_DATA(1);
 };
 
 struct vmap_area {
@@ -168,6 +170,10 @@ void free_vm_area(struct vm_struct *area);
 extern struct vm_struct *remove_vm_area(const void *addr);
 extern struct vm_struct *find_vm_area(const void *addr);
 
+#ifdef CONFIG_MSTAR_MMAHEAP
+int vmap_page_range(unsigned long start, unsigned long end,
+			   pgprot_t prot, struct page **pages);
+#endif
 #ifdef CONFIG_MMU
 extern int map_kernel_range_noflush(unsigned long start, unsigned long size,
 				    pgprot_t prot, struct page **pages);

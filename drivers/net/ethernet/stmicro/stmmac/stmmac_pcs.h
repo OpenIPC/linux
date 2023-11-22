@@ -12,6 +12,7 @@
 #include <linux/slab.h>
 #include <linux/io.h>
 #include "common.h"
+#include "sstar_gmac.h"
 
 /* PCS registers (AN/TBI/SGMII/RGMII) offsets */
 #define GMAC_AN_CTRL(x)		(x)		/* AN control */

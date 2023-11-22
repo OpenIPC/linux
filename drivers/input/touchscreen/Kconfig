@@ -393,6 +393,8 @@ config TOUCHSCREEN_GOODIX
 	tristate "Goodix I2C touchscreen"
 	depends on I2C
 	depends on GPIOLIB || COMPILE_TEST
+	select FW_LOADER
+	select INPUT_EVDEV
 	help
 	  Say Y here if you have the Goodix touchscreen (such as one
 	  installed in Onda v975w tablets) connected to your

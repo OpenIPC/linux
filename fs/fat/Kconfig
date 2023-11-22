@@ -115,3 +115,12 @@ config FAT_DEFAULT_UTF8
 	  Say Y if you use UTF-8 encoding for file names, N otherwise.
 
 	  See <file:Documentation/filesystems/vfat.rst> for more information.
+
+config FAT_FALLOC_FL_KEEP_SIZE_UPDATE_FILE_SIZE
+	bool "Update file size if user call FALLOC_FL_KEEP_SIZE"
+	depends on FAT_FS
+	default n
+	help
+	  Set this if you want to update file size when user call
+	  FALLOC_FL_KEEP_SIZE, otherwise FAT only allocate clusters and file
+	  size is zero.

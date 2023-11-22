@@ -64,6 +64,10 @@
 #include "libata.h"
 #include "libata-transport.h"
 
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SS_SATA_AHCI_PLATFORM_HOST)
+#include "../sstar/sata_host/mdrv_sata_host_ahci.h"
+#endif
+
 const struct ata_port_operations ata_base_port_ops = {
 	.prereset		= ata_std_prereset,
 	.postreset		= ata_std_postreset,
@@ -159,6 +163,9 @@ MODULE_DESCRIPTION("Library module for ATA devices");
 MODULE_LICENSE("GPL");
 MODULE_VERSION(DRV_VERSION);
 
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SS_SATA_AHCI_PLATFORM_HOST)
+extern void ss_sata_ssc_enable(struct ata_link *link, bool enable, unsigned int spd);
+#endif
 
 static bool ata_sstatus_online(u32 sstatus)
 {
@@ -2945,9 +2952,15 @@ static void sata_print_link_status(struct ata_link *link)
 		tmp = (sstatus >> 4) & 0xf;
 		ata_link_info(link, "SATA link up %s (SStatus %X SControl %X)\n",
 			      sata_spd_string(tmp), sstatus, scontrol);
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SS_SATA_AHCI_PLATFORM_HOST)
+		ss_sata_ssc_enable(link, 1 , tmp-1);
+#endif
 	} else {
 		ata_link_info(link, "SATA link down (SStatus %X SControl %X)\n",
 			      sstatus, scontrol);
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SS_SATA_AHCI_PLATFORM_HOST)
+		ss_sata_ssc_enable(link, 0,0);
+#endif
 	}
 }
 

@@ -27,6 +27,9 @@ struct outer_cache_fns {
 	/* This is an ARM L2C thing */
 	void (*write_sec)(unsigned long, unsigned);
 	void (*configure)(const struct l2x0_regs *);
+#ifdef CONFIG_MS_L2X0_PATCH
+	void (*flush_MIU_pipe)(void);
+#endif
 };
 
 extern struct outer_cache_fns outer_cache;

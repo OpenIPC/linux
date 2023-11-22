@@ -34,6 +34,12 @@
 static int debug;
 module_param(debug, int, 0644);
 
+#ifdef CONFIG_ARCH_SSTAR
+int userptr_mode_use_mi_buf = 0;
+module_param_named(use_mi_buf, userptr_mode_use_mi_buf, int, 0644);
+EXPORT_SYMBOL(userptr_mode_use_mi_buf);
+#endif
+
 #define dprintk(q, level, fmt, arg...)					\
 	do {								\
 		if (debug >= level)					\
@@ -1862,12 +1868,31 @@ EXPORT_SYMBOL_GPL(vb2_wait_for_all_buffers);
 static void __vb2_dqbuf(struct vb2_buffer *vb)
 {
 	struct vb2_queue *q = vb->vb2_queue;
+#ifdef CONFIG_ARCH_SSTAR
+	unsigned int i;
+#endif
 
 	/* nothing to do if the buffer is already dequeued */
 	if (vb->state == VB2_BUF_STATE_DEQUEUED)
 		return;
 
 	vb->state = VB2_BUF_STATE_DEQUEUED;
+
+#ifdef CONFIG_ARCH_SSTAR
+	/* Should umap before user put buf to mi sys */
+	if (userptr_mode_use_mi_buf && q->memory == VB2_MEMORY_USERPTR)
+		for (i = 0; i < vb->num_planes; ++i) {
+			if (vb->planes[i].mem_priv) {
+				call_void_memop(vb, put_userptr,
+						vb->planes[i].mem_priv);
+			}
+			vb->planes[i].mem_priv = NULL;
+			vb->planes[i].bytesused = 0;
+			vb->planes[i].length = 0;
+			vb->planes[i].m.userptr = 0;
+			vb->planes[i].data_offset = 0;
+		}
+#endif
 
 	call_void_bufop(q, init_buffer, vb);
 }
@@ -2451,7 +2476,17 @@ __poll_t vb2_core_poll(struct vb2_queue *q, struct file *file,
 	spin_lock_irqsave(&q->done_lock, flags);
 	if (!list_empty(&q->done_list))
 		vb = list_first_entry(&q->done_list, struct vb2_buffer,
-					done_entry);
+				      done_entry);
+
+#ifdef CONFIG_ARCH_SSTAR
+	if (vb && (vb->state == VB2_BUF_STATE_DONE ||
+		   vb->state == VB2_BUF_STATE_ERROR)) {
+		spin_unlock_irqrestore(&q->done_lock, flags);
+		return (q->is_output) ? POLLOUT | POLLWRNORM :
+					      POLLIN | POLLRDNORM;
+	}
+	spin_unlock_irqrestore(&q->done_lock, flags);
+#else
 	spin_unlock_irqrestore(&q->done_lock, flags);
 
 	if (vb && (vb->state == VB2_BUF_STATE_DONE
@@ -2460,6 +2495,8 @@ __poll_t vb2_core_poll(struct vb2_queue *q, struct file *file,
 				EPOLLOUT | EPOLLWRNORM :
 				EPOLLIN | EPOLLRDNORM;
 	}
+#endif
+
 	return 0;
 }
 EXPORT_SYMBOL_GPL(vb2_core_poll);

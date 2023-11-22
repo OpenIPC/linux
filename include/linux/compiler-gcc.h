@@ -90,6 +90,12 @@
 #define randomized_struct_fields_end	} __randomize_layout;
 #endif
 
+#if GCC_VERSION >= 90100
+#define __copy(symbol)		__attribute__((__copy__(symbol)))
+#else
+#define __copy(symbol)
+#endif
+
 /*
  * GCC 'asm goto' miscompiles certain code sequences:
  *

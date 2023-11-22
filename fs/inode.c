@@ -416,6 +416,13 @@ void __iget(struct inode *inode)
 	atomic_inc(&inode->i_count);
 }
 
+void __iget_wrap(struct inode * inode)
+{
+	__iget(inode);
+}
+EXPORT_SYMBOL(__iget_wrap);
+
+
 /*
  * get additional reference to inode; caller must already hold one.
  */

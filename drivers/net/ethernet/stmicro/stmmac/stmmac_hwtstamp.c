@@ -14,6 +14,7 @@
 #include <linux/delay.h>
 #include "common.h"
 #include "stmmac_ptp.h"
+#include "sstar_gmac.h"
 
 static void config_hw_tstamping(void __iomem *ioaddr, u32 data)
 {

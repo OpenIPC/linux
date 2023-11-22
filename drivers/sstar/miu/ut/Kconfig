@@ -1,0 +1,7 @@
+config MSTAR_MIU
+
+if MSTAR_MIU
+config MSYS_MIU_UT
+    bool "sysfs:MIU ut"
+    default n
+endif

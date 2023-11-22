@@ -775,6 +775,7 @@ static struct module_kobject * __init locate_module_kobject(const char *name)
 	return mk;
 }
 
+#ifndef CONFIG_KERNEL_PARAM_SYSFS_DISABLE
 static void __init kernel_add_sysfs_param(const char *name,
 					  const struct kernel_param *kparam,
 					  unsigned int name_skip)
@@ -833,6 +834,7 @@ static void __init param_sysfs_builtin(void)
 		kernel_add_sysfs_param(modname, kp, name_len);
 	}
 }
+#endif
 
 ssize_t __modver_version_show(struct module_attribute *mattr,
 			      struct module_kobject *mk, char *buf)
@@ -951,10 +953,21 @@ static int __init param_sysfs_init(void)
 	module_sysfs_initialized = 1;
 
 	version_sysfs_builtin();
+#if !defined(CONFIG_DEFERRED_INIICALLS_PARAM_SYSFS) && !defined(CONFIG_KERNEL_PARAM_SYSFS_DISABLE)
 	param_sysfs_builtin();
+#endif
 
 	return 0;
 }
 subsys_initcall(param_sysfs_init);
+
+#if defined(CONFIG_DEFERRED_INIICALLS_PARAM_SYSFS) && !defined(CONFIG_KERNEL_PARAM_SYSFS_DISABLE)
+static int __init do_param_sysfs_builtin(void)
+{
+	param_sysfs_builtin();
+	return 0;
+}
+deferred_module_init(do_param_sysfs_builtin);
+#endif
 
 #endif /* CONFIG_SYSFS */

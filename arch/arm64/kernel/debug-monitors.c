@@ -196,6 +196,36 @@ void unregister_kernel_step_hook(struct step_hook *hook)
 	unregister_debug_hook(&hook->node);
 }
 
+#if defined(CONFIG_ARCH_SSTAR)
+/*
+ * Call registered single step handlers
+ * There is no Syndrome info to check for determining the handler.
+ * So we call all the registered handlers, until the right handler is
+ * found which returns zero.
+ */
+static int call_step_hook(struct pt_regs *regs, unsigned int esr, int mask)
+{
+	struct step_hook *hook;
+	struct list_head *list;
+	int retval = DBG_HOOK_ERROR;
+
+	list = user_mode(regs) ? &user_step_hook : &kernel_step_hook;
+
+	/*
+	 * Since single-step exception disables interrupt, this function is
+	 * entirely not preemptible, and we can use rcu list safely here.
+	 */
+	list_for_each_entry_rcu(hook, list, node)	{
+		if (mask && (!(hook->flags & mask)))
+			continue;
+		retval = hook->fn(regs, esr);
+		if (retval == DBG_HOOK_HANDLED)
+			break;
+	}
+
+	return retval;
+}
+#else
 /*
  * Call registered single step handlers
  * There is no Syndrome info to check for determining the handler.
@@ -222,6 +252,7 @@ static int call_step_hook(struct pt_regs *regs, unsigned int esr)
 
 	return retval;
 }
+#endif
 NOKPROBE_SYMBOL(call_step_hook);
 
 static void send_user_sigtrap(int si_code)
@@ -234,11 +265,53 @@ static void send_user_sigtrap(int si_code)
 	if (interrupts_enabled(regs))
 		local_irq_enable();
 
-	arm64_force_sig_fault(SIGTRAP, si_code,
-			     (void __user *)instruction_pointer(regs),
-			     "User debug trap");
+	arm64_force_sig_fault(SIGTRAP, si_code, instruction_pointer(regs),
+			      "User debug trap");
 }
 
+#if defined(CONFIG_ARCH_SSTAR)
+static int single_step_handler(unsigned long unused, unsigned int esr,
+			       struct pt_regs *regs)
+{
+	bool handler_found = false;
+	int mask;
+
+	/*
+	 * If we are stepping a pending breakpoint, call SS hook with
+	 * DBG_SS_BEFORE_BP before hw_breakpoint handler.
+	 */
+	mask = DBG_SS_BEFORE_BP;
+	if (!handler_found && call_step_hook(regs, esr, mask) == DBG_HOOK_HANDLED)
+		handler_found = true;
+
+	if (!reinstall_suspended_bps(regs))
+		return 0;
+
+	if (!handler_found && call_step_hook(regs, esr, 0) == DBG_HOOK_HANDLED)
+		handler_found = true;
+
+	if (!handler_found && user_mode(regs)) {
+		send_user_sigtrap(TRAP_TRACE);
+
+		/*
+		 * ptrace will disable single step unless explicitly
+		 * asked to re-enable it. For other clients, it makes
+		 * sense to leave it enabled (i.e. rewind the controls
+		 * to the active-not-pending state).
+		 */
+		user_rewind_single_step(current);
+	} else if (!handler_found) {
+		pr_warn("Unexpected kernel single-step exception at EL1\n");
+		/*
+		 * Re-enable stepping since we know that we will be
+		 * returning to regs.
+		 */
+		set_regs_spsr_ss(regs);
+	}
+
+	return 0;
+}
+#else
 static int single_step_handler(unsigned long unused, unsigned int esr,
 			       struct pt_regs *regs)
 {
@@ -275,6 +348,7 @@ static int single_step_handler(unsigned long unused, unsigned int esr,
 
 	return 0;
 }
+#endif
 NOKPROBE_SYMBOL(single_step_handler);
 
 static LIST_HEAD(user_break_hook);
@@ -284,21 +358,25 @@ void register_user_break_hook(struct break_hook *hook)
 {
 	register_debug_hook(&hook->node, &user_break_hook);
 }
+EXPORT_SYMBOL_GPL(register_user_break_hook);
 
 void unregister_user_break_hook(struct break_hook *hook)
 {
 	unregister_debug_hook(&hook->node);
 }
+EXPORT_SYMBOL_GPL(unregister_user_break_hook);
 
 void register_kernel_break_hook(struct break_hook *hook)
 {
 	register_debug_hook(&hook->node, &kernel_break_hook);
 }
+EXPORT_SYMBOL_GPL(register_kernel_break_hook);
 
 void unregister_kernel_break_hook(struct break_hook *hook)
 {
 	unregister_debug_hook(&hook->node);
 }
+EXPORT_SYMBOL_GPL(unregister_kernel_break_hook);
 
 static int call_break_hook(struct pt_regs *regs, unsigned int esr)
 {

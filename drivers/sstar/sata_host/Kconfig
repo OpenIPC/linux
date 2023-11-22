@@ -1,0 +1,52 @@
+config SS_SATA_HOST
+    tristate "SStar SATA HOST"
+    help
+        SStar SATA Host driver function
+
+menu "Support Linux Ahci Platfrom Driver"
+    depends on SS_SATA_HOST
+config SS_SATA_AHCI_PLATFORM_HOST
+    tristate "SSTAR SATA AHCI PLATFORM"
+    default y
+        help
+          Sstar sata driver supports linux ahci platform driver
+endmenu
+
+menu "Select Sata Host Port"
+    depends on SS_SATA_HOST
+config SATA_HOST_0
+    tristate "SStar SATA HOST Port 0"
+    default n
+        help
+          Sstar sata host port number selection
+
+config SATA_HOST_1
+    depends on ARCH_INFINITY7 || ARCH_MERCURY6P
+    tristate "SStar SATA HOST Port 1"
+    default n
+        help
+          Sstar sata host port number selection
+endmenu
+
+menu "Sata Host Bringup Program"
+    depends on SS_SATA_HOST
+config SS_SATA_BRING_UP
+    tristate "Sstar sata host bringup"
+    default n
+        help
+          Sstar sata host bringup
+endmenu
+
+
+menu "Sata Host Apply Hd Link"
+    depends on SS_SATA_HOST
+config SSTAR_APPLY_HD_LINK
+    tristate "Sstar sata apply hd link"
+    default y
+        help
+          Sstar sata apply hd link
+endmenu
+
+
+
+

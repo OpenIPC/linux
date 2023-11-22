@@ -12,6 +12,10 @@
  */
 #include <linux/notifier.h>
 
+#ifdef CONFIG_DEFERRED_CREATE_DTS_SYSNODE
+#define DEFERRED_DTS_NODE_DEV_MAX_NUM 128
+#endif
+
 /**
  * struct subsys_private - structure to hold the private to the driver core portions of the bus_type/class structure.
  *

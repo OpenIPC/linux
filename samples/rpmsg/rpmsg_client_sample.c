@@ -20,6 +20,8 @@ module_param(count, int, 0644);
 
 struct instance_data {
 	int rx_count;
+	struct delayed_work send_msg_work;
+	struct rpmsg_device *rpdev;
 };
 
 static int rpmsg_sample_cb(struct rpmsg_device *rpdev, void *data, int len,
@@ -48,9 +50,25 @@ static int rpmsg_sample_cb(struct rpmsg_device *rpdev, void *data, int len,
 	return 0;
 }
 
+static void rpmsg_sample_send_msg_work(struct work_struct *work)
+{
+	struct instance_data *idata = container_of(work, struct instance_data,
+						   send_msg_work.work);
+	struct rpmsg_device *rpdev = idata->rpdev;
+	int ret;
+
+	if (rpdev->dst != RPMSG_ADDR_ANY) {
+		/* send a message to our remote processor */
+		ret = rpmsg_send(rpdev->ept, MSG, strlen(MSG));
+		if (ret)
+			dev_err(&rpdev->dev, "rpmsg_send failed: %d\n", ret);
+	} else {
+		schedule_delayed_work(&idata->send_msg_work, msecs_to_jiffies(50));
+	}
+}
+
 static int rpmsg_sample_probe(struct rpmsg_device *rpdev)
 {
-	int ret;
 	struct instance_data *idata;
 
 	dev_info(&rpdev->dev, "new channel: 0x%x -> 0x%x!\n",
@@ -62,18 +80,18 @@ static int rpmsg_sample_probe(struct rpmsg_device *rpdev)
 
 	dev_set_drvdata(&rpdev->dev, idata);
 
-	/* send a message to our remote processor */
-	ret = rpmsg_send(rpdev->ept, MSG, strlen(MSG));
-	if (ret) {
-		dev_err(&rpdev->dev, "rpmsg_send failed: %d\n", ret);
-		return ret;
-	}
+	idata->rpdev = rpdev;
+	INIT_DELAYED_WORK(&idata->send_msg_work, rpmsg_sample_send_msg_work);
+	schedule_delayed_work(&idata->send_msg_work, msecs_to_jiffies(500));
 
 	return 0;
 }
 
 static void rpmsg_sample_remove(struct rpmsg_device *rpdev)
 {
+	struct instance_data *idata = dev_get_drvdata(&rpdev->dev);
+
+	cancel_delayed_work_sync(&idata->send_msg_work);
 	dev_info(&rpdev->dev, "rpmsg sample client driver is removed\n");
 }
 

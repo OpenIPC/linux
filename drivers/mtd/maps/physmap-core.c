@@ -573,6 +573,18 @@ static int physmap_flash_probe(struct platform_device *dev)
 			goto err_out;
 		}
 		info->mtds[i]->dev.parent = &dev->dev;
+
+#ifdef CONFIG_MSTAR_DRIVERS
+		if (dev->dev.of_node) {
+			int erasesieze=0;
+			if (!of_property_read_u32(dev->dev.of_node, "erase-size", &erasesieze)) {
+				info->mtds[i]->erasesize = erasesieze;
+				printk( "[Physmap] %s search erase-size 0x%x on DTS\n", info->maps[i].name, erasesieze );
+			} else {
+				printk( "[Physmap] %s not search erase-size on DTS, default is 0x%x\n",info->maps[i].name, info->mtds[i]->erasesize );
+			}
+		}
+#endif
 	}
 
 	if (info->nmaps == 1) {

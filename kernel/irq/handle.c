@@ -18,6 +18,10 @@
 
 #include "internals.h"
 
+#ifdef CONFIG_SSTAR_IRQ_DEBUG_TRACE
+#include "../../drivers/sstar/include/ms_msys.h"
+#endif
+
 #ifdef CONFIG_GENERIC_IRQ_MULTI_HANDLER
 void (*handle_arch_irq)(struct pt_regs *) __ro_after_init;
 #endif
@@ -139,9 +143,9 @@ irqreturn_t __handle_irq_event_percpu(struct irq_desc *desc, unsigned int *flags
 	irqreturn_t retval = IRQ_NONE;
 	unsigned int irq = desc->irq_data.irq;
 	struct irqaction *action;
-
-	record_irq_time(desc);
-
+#ifdef CONFIG_SSTAR_IRQ_DEBUG_TRACE
+	SSTAR_IRQ_INFO irq_info;
+#endif
 	for_each_action_of_desc(desc, action) {
 		irqreturn_t res;
 
@@ -153,7 +157,18 @@ irqreturn_t __handle_irq_event_percpu(struct irq_desc *desc, unsigned int *flags
 			lockdep_hardirq_threaded();
 
 		trace_irq_handler_entry(irq, action);
+#ifdef CONFIG_SSTAR_IRQ_DEBUG_TRACE
+		if (irq > 32) {
+			irq_info.IRQNumber = irq;
+			irq_info.timeStart = sched_clock();
+		}
+#endif
 		res = action->handler(irq, action->dev_id);
+
+#ifdef CONFIG_SSTAR_IRQ_DEBUG_TRACE
+		if (irq > 32)
+			irq_info.timeEnd = sched_clock();
+#endif
 		trace_irq_handler_exit(irq, action, res);
 
 		if (WARN_ONCE(!irqs_disabled(),"irq %u handler %pS enabled interrupts\n",
@@ -184,7 +199,14 @@ irqreturn_t __handle_irq_event_percpu(struct irq_desc *desc, unsigned int *flags
 
 		retval |= res;
 	}
-
+#ifdef CONFIG_SSTAR_IRQ_DEBUG_TRACE
+	if (irq > 32) {
+		if (irq_info.timeEnd - irq_info.timeStart > 1000000) {
+			sstar_irq_records(&irq_info);
+			sstar_irq_record_large_latency_in_top(&irq_info);
+		}
+	}
+#endif
 	return retval;
 }
 

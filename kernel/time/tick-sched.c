@@ -25,12 +25,17 @@
 #include <linux/posix-timers.h>
 #include <linux/context_tracking.h>
 #include <linux/mm.h>
+#include <trace/hooks/sched.h>
 
 #include <asm/irq_regs.h>
 
 #include "tick-internal.h"
 
 #include <trace/events/timer.h>
+
+#ifdef CONFIG_LH_RTOS
+#include <drv_dualos.h>
+#endif
 
 /*
  * Per-CPU nohz control structure
@@ -143,8 +148,10 @@ static void tick_sched_do_timer(struct tick_sched *ts, ktime_t now)
 #endif
 
 	/* Check, if the jiffies need an update */
-	if (tick_do_timer_cpu == cpu)
+	if (tick_do_timer_cpu == cpu) {
 		tick_do_update_jiffies64(now);
+		trace_android_vh_jiffies_update(NULL);
+	}
 
 	if (ts->inidle)
 		ts->got_idle_tick = 1;
@@ -559,6 +566,7 @@ update_ts_time_stats(int cpu, struct tick_sched *ts, ktime_t now, u64 *last_upda
 
 }
 
+#ifndef CONFIG_LH_RTOS
 static void tick_nohz_stop_idle(struct tick_sched *ts, ktime_t now)
 {
 	update_ts_time_stats(smp_processor_id(), ts, now, NULL);
@@ -566,13 +574,48 @@ static void tick_nohz_stop_idle(struct tick_sched *ts, ktime_t now)
 
 	sched_clock_idle_wakeup_event();
 }
+#else
+static void tick_nohz_stop_idle(struct tick_sched *ts, ktime_t now)
+{
+	rtkinfo_t *rtk;
 
+	update_ts_time_stats(smp_processor_id(), ts, now, NULL);
+	ts->idle_active = 0;
+	rtk = get_rtkinfo();
+	if (rtk) {
+		rtk->linux_idle = 0;
+		/* Chip_Flush_MIU_Pipe(); move this to monitor sw */
+	}
+
+	sched_clock_idle_wakeup_event(0);
+}
+#endif
+
+#ifndef CONFIG_LH_RTOS
 static void tick_nohz_start_idle(struct tick_sched *ts)
 {
 	ts->idle_entrytime = ktime_get();
 	ts->idle_active = 1;
 	sched_clock_idle_sleep_event();
 }
+#else
+static ktime_t tick_nohz_start_idle(struct tick_sched *ts)
+{
+	ktime_t now;
+	rtkinfo_t *rtk;
+
+	now = ktime_get();
+	ts->idle_entrytime = now;
+	rtk = get_rtkinfo();
+	if (rtk) {
+		rtk->linux_idle = 1;
+		/* Chip_Flush_MIU_Pipe(); move this to monitor sw */
+	}
+	ts->idle_active = 1;
+	sched_clock_idle_sleep_event();
+	return now;
+}
+#endif
 
 /**
  * get_cpu_idle_time_us - get the total idle time of a CPU
@@ -1110,6 +1153,7 @@ ktime_t tick_nohz_get_sleep_length(ktime_t *delta_next)
 
 	return ktime_sub(next_event, now);
 }
+EXPORT_SYMBOL_GPL(tick_nohz_get_sleep_length);
 
 /**
  * tick_nohz_get_idle_calls_cpu - return the current idle calls counter value
@@ -1123,6 +1167,7 @@ unsigned long tick_nohz_get_idle_calls_cpu(int cpu)
 
 	return ts->idle_calls;
 }
+EXPORT_SYMBOL_GPL(tick_nohz_get_idle_calls_cpu);
 
 /**
  * tick_nohz_get_idle_calls - return the current idle calls counter value

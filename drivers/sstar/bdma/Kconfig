@@ -1,0 +1,14 @@
+config MS_BDMA
+	bool "Mstar BDMA driver"
+	default n
+
+config MS_BDMA_LINE_OFFSET_ON
+	bool "BDMA Line-Offset Enable"
+	depends on MS_BDMA
+	default n
+
+config MS_BDMA_BLIT_WRAPPER
+	bool "msys_dma_blit use bdma"
+	depends on MS_BDMA
+	default n
+

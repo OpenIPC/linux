@@ -31,7 +31,6 @@
 #include <linux/nospec.h>
 #include <linux/kcov.h>
 
-#include "vhost.h"
 
 static ushort max_mem_regions = 64;
 module_param(max_mem_regions, ushort, 0444);
@@ -41,6 +40,8 @@ static int max_iotlb_entries = 2048;
 module_param(max_iotlb_entries, int, 0444);
 MODULE_PARM_DESC(max_iotlb_entries,
 	"Maximum number of iotlb entries. (default: 2048)");
+static DEFINE_IDA(vhost_index_ida);
+static DEFINE_MUTEX(vhost_index_mutex);
 
 enum {
 	VHOST_MEMORY_F_LOG = 0x1,
@@ -103,12 +104,13 @@ static long vhost_get_vring_endian(struct vhost_virtqueue *vq, u32 idx,
 
 static void vhost_init_is_le(struct vhost_virtqueue *vq)
 {
+	struct vhost_dev *vdev = vq->dev;
 	/* Note for legacy virtio: user_be is initialized at reset time
 	 * according to the host endianness. If userspace does not set an
 	 * explicit endianness, the default behavior is native endian, as
 	 * expected by legacy virtio.
 	 */
-	vq->is_le = vhost_has_feature(vq, VIRTIO_F_VERSION_1) || !vq->user_be;
+	vq->is_le = vhost_has_feature(vdev, VIRTIO_F_VERSION_1) || !vq->user_be;
 }
 #else
 static void vhost_disable_cross_endian(struct vhost_virtqueue *vq)
@@ -128,7 +130,8 @@ static long vhost_get_vring_endian(struct vhost_virtqueue *vq, u32 idx,
 
 static void vhost_init_is_le(struct vhost_virtqueue *vq)
 {
-	vq->is_le = vhost_has_feature(vq, VIRTIO_F_VERSION_1)
+	struct vhost_dev *vdev = vq->dev;
+	vq->is_le = vhost_has_feature(vdev, VIRTIO_F_VERSION_1)
 		|| virtio_legacy_is_little_endian();
 }
 #endif /* CONFIG_VHOST_CROSS_ENDIAN_LEGACY */
@@ -326,7 +329,6 @@ static void vhost_vq_reset(struct vhost_dev *dev,
 	vq->log_used = false;
 	vq->log_addr = -1ull;
 	vq->private_data = NULL;
-	vq->acked_features = 0;
 	vq->acked_backend_features = 0;
 	vq->log_base = NULL;
 	vq->error_ctx = NULL;
@@ -441,8 +443,9 @@ EXPORT_SYMBOL_GPL(vhost_exceeds_weight);
 static size_t vhost_get_avail_size(struct vhost_virtqueue *vq,
 				   unsigned int num)
 {
+	struct vhost_dev *vdev = vq->dev;
 	size_t event __maybe_unused =
-	       vhost_has_feature(vq, VIRTIO_RING_F_EVENT_IDX) ? 2 : 0;
+	       vhost_has_feature(vdev, VIRTIO_RING_F_EVENT_IDX) ? 2 : 0;
 
 	return sizeof(*vq->avail) +
 	       sizeof(*vq->avail->ring) * num + event;
@@ -451,8 +454,9 @@ static size_t vhost_get_avail_size(struct vhost_virtqueue *vq,
 static size_t vhost_get_used_size(struct vhost_virtqueue *vq,
 				  unsigned int num)
 {
+	struct vhost_dev *vdev = vq->dev;
 	size_t event __maybe_unused =
-	       vhost_has_feature(vq, VIRTIO_RING_F_EVENT_IDX) ? 2 : 0;
+	       vhost_has_feature(vdev, VIRTIO_RING_F_EVENT_IDX) ? 2 : 0;
 
 	return sizeof(*vq->used) +
 	       sizeof(*vq->used->ring) * num + event;
@@ -482,6 +486,7 @@ void vhost_dev_init(struct vhost_dev *dev,
 	dev->iotlb = NULL;
 	dev->mm = NULL;
 	dev->worker = NULL;
+	dev->features = 0;
 	dev->iov_limit = iov_limit;
 	dev->weight = weight;
 	dev->byte_weight = byte_weight;
@@ -790,14 +795,14 @@ static inline void __user *vhost_vq_meta_fetch(struct vhost_virtqueue *vq,
 static bool memory_access_ok(struct vhost_dev *d, struct vhost_iotlb *umem,
 			     int log_all)
 {
+	bool log;
 	int i;
 
+	log = log_all || vhost_has_feature(d, VHOST_F_LOG_ALL);
 	for (i = 0; i < d->nvqs; ++i) {
 		bool ok;
-		bool log;
 
 		mutex_lock(&d->vqs[i]->mutex);
-		log = log_all || vhost_has_feature(d->vqs[i], VHOST_F_LOG_ALL);
 		/* If ring is inactive, will check when it's enabled. */
 		if (d->vqs[i]->private_data)
 			ok = vq_memory_access_ok(d->vqs[i]->log_base,
@@ -1400,8 +1405,9 @@ static bool vq_log_used_access_ok(struct vhost_virtqueue *vq,
 static bool vq_log_access_ok(struct vhost_virtqueue *vq,
 			     void __user *log_base)
 {
+	struct vhost_dev *vdev = vq->dev;
 	return vq_memory_access_ok(log_base, vq->umem,
-				   vhost_has_feature(vq, VHOST_F_LOG_ALL)) &&
+				   vhost_has_feature(vdev, VHOST_F_LOG_ALL)) &&
 		vq_log_used_access_ok(vq, log_base, vq->log_used, vq->log_addr);
 }
 
@@ -2436,11 +2442,11 @@ static bool vhost_notify(struct vhost_dev *dev, struct vhost_virtqueue *vq)
 	 * interrupts. */
 	smp_mb();
 
-	if (vhost_has_feature(vq, VIRTIO_F_NOTIFY_ON_EMPTY) &&
+	if (vhost_has_feature(dev, VIRTIO_F_NOTIFY_ON_EMPTY) &&
 	    unlikely(vq->avail_idx == vq->last_avail_idx))
 		return true;
 
-	if (!vhost_has_feature(vq, VIRTIO_RING_F_EVENT_IDX)) {
+	if (!vhost_has_feature(dev, VIRTIO_RING_F_EVENT_IDX)) {
 		__virtio16 flags;
 		if (vhost_get_avail_flags(vq, &flags)) {
 			vq_err(vq, "Failed to get flags");
@@ -2519,7 +2525,7 @@ bool vhost_enable_notify(struct vhost_dev *dev, struct vhost_virtqueue *vq)
 	if (!(vq->used_flags & VRING_USED_F_NO_NOTIFY))
 		return false;
 	vq->used_flags &= ~VRING_USED_F_NO_NOTIFY;
-	if (!vhost_has_feature(vq, VIRTIO_RING_F_EVENT_IDX)) {
+	if (!vhost_has_feature(dev, VIRTIO_RING_F_EVENT_IDX)) {
 		r = vhost_update_used_flags(vq);
 		if (r) {
 			vq_err(vq, "Failed to enable notification at %p: %d\n",
@@ -2556,7 +2562,7 @@ void vhost_disable_notify(struct vhost_dev *dev, struct vhost_virtqueue *vq)
 	if (vq->used_flags & VRING_USED_F_NO_NOTIFY)
 		return;
 	vq->used_flags |= VRING_USED_F_NO_NOTIFY;
-	if (!vhost_has_feature(vq, VIRTIO_RING_F_EVENT_IDX)) {
+	if (!vhost_has_feature(dev, VIRTIO_RING_F_EVENT_IDX)) {
 		r = vhost_update_used_flags(vq);
 		if (r)
 			vq_err(vq, "Failed to disable notification at %p: %d\n",
@@ -2624,16 +2630,706 @@ void vhost_set_backend_features(struct vhost_dev *dev, u64 features)
 }
 EXPORT_SYMBOL_GPL(vhost_set_backend_features);
 
+/**
+ * vhost_virtqueue_disable_cb_mmio() - Write to used ring in virtio accessed
+ *   using MMIO to stop notification
+ * @vq: vhost_virtqueue for which callbacks have to be disabled
+ *
+ * Write to used ring in virtio accessed using MMIO to stop sending notification
+ * to the vhost virtqueue.
+ */
+static void vhost_virtqueue_disable_cb_mmio(struct vhost_virtqueue *vq)
+{
+	struct vringh *vringh;
+
+	vringh = &vq->vringh;
+	vringh_notify_disable_mmio(vringh);
+}
+
+/**
+ * vhost_virtqueue_disable_cb() - Write to used ring in virtio to stop
+ *   notification
+ * @vq: vhost_virtqueue for which callbacks have to be disabled
+ *
+ * Wrapper to write to used ring in virtio to stop sending notification
+ * to the vhost virtqueue.
+ */
+void vhost_virtqueue_disable_cb(struct vhost_virtqueue *vq)
+{
+	enum vhost_type type;
+
+	type = vq->type;
+
+	/* TODO: Add support for other VHOST TYPES */
+	if (type == VHOST_TYPE_MMIO)
+		return vhost_virtqueue_disable_cb_mmio(vq);
+}
+EXPORT_SYMBOL_GPL(vhost_virtqueue_disable_cb);
+
+/**
+ * vhost_virtqueue_enable_cb_mmio() - Write to used ring in virtio accessed
+ *   using MMIO to enable notification
+ * @vq: vhost_virtqueue for which callbacks have to be enabled
+ *
+ * Write to used ring in virtio accessed using MMIO to enable notification
+ * to the vhost virtqueue.
+ */
+static bool vhost_virtqueue_enable_cb_mmio(struct vhost_virtqueue *vq)
+{
+	struct vringh *vringh;
+
+	vringh = &vq->vringh;
+	return vringh_notify_enable_mmio(vringh);
+}
+
+/**
+ * vhost_virtqueue_enable_cb() - Write to used ring in virtio to enable
+ *   notification
+ * @vq: vhost_virtqueue for which callbacks have to be enabled
+ *
+ * Wrapper to write to used ring in virtio to enable notification to the
+ * vhost virtqueue.
+ */
+bool vhost_virtqueue_enable_cb(struct vhost_virtqueue *vq)
+{
+	enum vhost_type type;
+
+	type = vq->type;
+
+	/* TODO: Add support for other VHOST TYPES */
+	if (type == VHOST_TYPE_MMIO)
+		return vhost_virtqueue_enable_cb_mmio(vq);
+
+	return false;
+}
+EXPORT_SYMBOL_GPL(vhost_virtqueue_enable_cb);
+
+/**
+ * vhost_virtqueue_notify() - Send notification to the remote virtqueue
+ * @vq: vhost_virtqueue that sends the notification
+ *
+ * Invokes ->notify() callback to send notification to the remote virtqueue.
+ */
+void vhost_virtqueue_notify(struct vhost_virtqueue *vq)
+{
+	if (!vq->notify)
+		return;
+
+	vq->notify(vq);
+}
+EXPORT_SYMBOL_GPL(vhost_virtqueue_notify);
+
+/**
+ * vhost_virtqueue_kick_mmio() - Check if the remote virtqueue has enabled
+ *   notification (by reading available ring in virtio accessed using MMIO)
+ *   before sending notification
+ * @vq: vhost_virtqueue that sends the notification
+ *
+ * Check if the remote virtqueue has enabled notification (by reading available
+ * ring in virtio accessed using MMIO) and then invoke vhost_virtqueue_notify()
+ * to send notification to the remote virtqueue.
+ */
+static void vhost_virtqueue_kick_mmio(struct vhost_virtqueue *vq)
+{
+	if (vringh_need_notify_mmio(&vq->vringh))
+		vhost_virtqueue_notify(vq);
+}
+
+/**
+ * vhost_virtqueue_kick() - Check if the remote virtqueue has enabled
+ *   notification before sending notification
+ * @vq: vhost_virtqueue that sends the notification
+ *
+ * Wrapper to send notification to the remote virtqueue using
+ * vhost_virtqueue_kick_mmio() that checks if the remote virtqueue has
+ * enabled notification before sending the notification.
+ */
+void vhost_virtqueue_kick(struct vhost_virtqueue *vq)
+{
+	enum vhost_type type;
+
+	type = vq->type;
+
+	/* TODO: Add support for other VHOST TYPES */
+	if (type == VHOST_TYPE_MMIO)
+		return vhost_virtqueue_kick_mmio(vq);
+}
+EXPORT_SYMBOL_GPL(vhost_virtqueue_kick);
+
+/**
+ * vhost_virtqueue_callback() - Invoke vhost virtqueue callback provided by
+ *   vhost client driver
+ * @vq: vhost_virtqueue for which the callback is invoked
+ *
+ * Invoked by the driver that creates vhost device when the remote virtio
+ * driver sends notification to this virtqueue.
+ */
+void vhost_virtqueue_callback(struct vhost_virtqueue *vq)
+{
+	if (!vq->callback)
+		return;
+
+	vq->callback(vq);
+}
+EXPORT_SYMBOL_GPL(vhost_virtqueue_callback);
+
+/**
+ * vhost_virtqueue_get_outbuf_mmio() - Get the output buffer address by reading
+ *   virtqueue descriptor accessed using MMIO
+ * @vq: vhost_virtqueue used to access the descriptor
+ * @head: head index for passing to vhost_virtqueue_put_buf()
+ * @len: Length of the buffer
+ *
+ * Get the output buffer address by reading virtqueue descriptor accessed using
+ * MMIO.
+ */
+static u64 vhost_virtqueue_get_outbuf_mmio(struct vhost_virtqueue *vq,
+					   u16 *head, int *len)
+{
+	struct vringh_mmiov *wiov;
+	struct mmiovec *mmiovec;
+	struct vringh *vringh;
+	int desc;
+
+	vringh = &vq->vringh;
+	wiov = &vq->wiov;
+
+	desc = vringh_getdesc_mmio(vringh, NULL, wiov, head, GFP_KERNEL);
+	if (!desc)
+		return 0;
+	mmiovec = &wiov->iov[0];
+
+	*len = mmiovec->iov_len;
+	return mmiovec->iov_base;
+}
+
+/**
+ * vhost_virtqueue_get_outbuf() - Get the output buffer address by reading
+ *   virtqueue descriptor
+ * @vq: vhost_virtqueue used to access the descriptor
+ * @head: head index for passing to vhost_virtqueue_put_buf()
+ * @len: Length of the buffer
+ *
+ * Wrapper to get the output buffer address by reading virtqueue descriptor.
+ */
+u64 vhost_virtqueue_get_outbuf(struct vhost_virtqueue *vq, u16 *head, int *len)
+{
+	enum vhost_type type;
+
+	type = vq->type;
+
+	/* TODO: Add support for other VHOST TYPES */
+	if (type == VHOST_TYPE_MMIO)
+		return vhost_virtqueue_get_outbuf_mmio(vq, head, len);
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(vhost_virtqueue_get_outbuf);
+
+/**
+ * vhost_virtqueue_get_inbuf_mmio() - Get the input buffer address by reading
+ *   virtqueue descriptor accessed using MMIO
+ * @vq: vhost_virtqueue used to access the descriptor
+ * @head: Head index for passing to vhost_virtqueue_put_buf()
+ * @len: Length of the buffer
+ *
+ * Get the input buffer address by reading virtqueue descriptor accessed using
+ * MMIO.
+ */
+static u64 vhost_virtqueue_get_inbuf_mmio(struct vhost_virtqueue *vq,
+					  u16 *head, int *len)
+{
+	struct vringh_mmiov *riov;
+	struct mmiovec *mmiovec;
+	struct vringh *vringh;
+	int desc;
+
+	vringh = &vq->vringh;
+	riov = &vq->riov;
+
+	desc = vringh_getdesc_mmio(vringh, riov, NULL, head, GFP_KERNEL);
+	if (!desc)
+		return 0;
+
+	mmiovec = &riov->iov[0];
+
+	*len = mmiovec->iov_len;
+	return mmiovec->iov_base;
+}
+
+/**
+ * vhost_virtqueue_get_inbuf() - Get the input buffer address by reading
+ *   virtqueue descriptor
+ * @vq: vhost_virtqueue used to access the descriptor
+ * @head: head index for passing to vhost_virtqueue_put_buf()
+ * @len: Length of the buffer
+ *
+ * Wrapper to get the input buffer address by reading virtqueue descriptor.
+ */
+u64 vhost_virtqueue_get_inbuf(struct vhost_virtqueue *vq, u16 *head, int *len)
+{
+	enum vhost_type type;
+
+	type = vq->type;
+
+	/* TODO: Add support for other VHOST TYPES */
+	if (type == VHOST_TYPE_MMIO)
+		return vhost_virtqueue_get_inbuf_mmio(vq, head, len);
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(vhost_virtqueue_get_inbuf);
+
+/**
+ * vhost_virtqueue_put_buf_mmio() - Publish to the remote virtio (update
+ * used ring in virtio using MMIO) to indicate the buffer has been processed
+ * @vq: vhost_virtqueue used to update the used ring
+ * @head: Head index receive from vhost_virtqueue_get_*()
+ * @len: Length of the buffer
+ *
+ * Publish to the remote virtio (update used ring in virtio using MMIO) to
+ * indicate the buffer has been processed
+ */
+static void vhost_virtqueue_put_buf_mmio(struct vhost_virtqueue *vq,
+					 u16 head, int len)
+{
+	struct vringh *vringh;
+
+	vringh = &vq->vringh;
+
+	vringh_complete_mmio(vringh, head, len);
+}
+
+/**
+ * vhost_virtqueue_put_buf() - Publish to the remote virtio to indicate the
+ *   buffer has been processed
+ * @vq: vhost_virtqueue used to update the used ring
+ * @head: Head index receive from vhost_virtqueue_get_*()
+ * @len: Length of the buffer
+ *
+ * Wrapper to publish to the remote virtio to indicate the buffer has been
+ * processed.
+ */
+void vhost_virtqueue_put_buf(struct vhost_virtqueue *vq, u16 head, int len)
+{
+	enum vhost_type type;
+
+	type = vq->type;
+
+	/* TODO: Add support for other VHOST TYPES */
+	if (type == VHOST_TYPE_MMIO)
+		return vhost_virtqueue_put_buf_mmio(vq, head, len);
+}
+EXPORT_SYMBOL_GPL(vhost_virtqueue_put_buf);
+
+/**
+ * vhost_create_vqs() - Invoke vhost_config_ops to create virtqueue
+ * @vdev: Vhost device that provides create_vqs() callback to create virtqueue
+ * @nvqs: Number of vhost virtqueues to be created
+ * @num_bufs: The number of buffers that should be supported by the vhost
+ *   virtqueue (number of descriptors in the vhost virtqueue)
+ * @vqs: Pointers to all the created vhost virtqueues
+ * @callback: Callback function associated with the virtqueue
+ * @names: Names associated with each virtqueue
+ *
+ * Wrapper that invokes vhost_config_ops to create virtqueue.
+ */
+int vhost_create_vqs(struct vhost_dev *vdev, unsigned int nvqs,
+		     unsigned int num_bufs, struct vhost_virtqueue *vqs[],
+		     vhost_vq_callback_t *callbacks[],
+		     const char * const names[])
+{
+	int ret;
+
+	if (IS_ERR_OR_NULL(vdev))
+		return -EINVAL;
+
+	if (!vdev->ops && !vdev->ops->create_vqs)
+		return -EINVAL;
+
+	mutex_lock(&vdev->mutex);
+	ret = vdev->ops->create_vqs(vdev, nvqs, num_bufs, vqs, callbacks,
+				    names);
+	mutex_unlock(&vdev->mutex);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(vhost_create_vqs);
+
+/* vhost_del_vqs - Invoke vhost_config_ops to delete the created virtqueues
+ * @vdev: Vhost device that provides del_vqs() callback to delete virtqueue
+ *
+ * Wrapper that invokes vhost_config_ops to delete all the virtqueues
+ * associated with the vhost device.
+ */
+void vhost_del_vqs(struct vhost_dev *vdev)
+{
+	if (IS_ERR_OR_NULL(vdev))
+		return;
+
+	if (!vdev->ops && !vdev->ops->del_vqs)
+		return;
+
+	mutex_lock(&vdev->mutex);
+	vdev->ops->del_vqs(vdev);
+	mutex_unlock(&vdev->mutex);
+}
+EXPORT_SYMBOL_GPL(vhost_del_vqs);
+
+/* vhost_write - Invoke vhost_config_ops to write data to buffer provided
+ *   by remote virtio driver
+ * @vdev: Vhost device that provides write() callback to write data
+ * @dst: Buffer address in the remote device provided by the remote virtio
+ *   driver
+ * @src: Buffer address in the local device provided by the vhost client driver
+ * @len: Length of the data to be copied from @src to @dst
+ *
+ * Wrapper that invokes vhost_config_ops to write data to buffer provided by
+ * remote virtio driver from buffer provided by vhost client driver.
+ */
+int vhost_write(struct vhost_dev *vdev, u64 vhost_dst, void *src, int len)
+{
+	if (IS_ERR_OR_NULL(vdev))
+		return -EINVAL;
+
+	if (!vdev->ops && !vdev->ops->write)
+		return -EINVAL;
+
+	return vdev->ops->write(vdev, vhost_dst, src, len);
+}
+EXPORT_SYMBOL_GPL(vhost_write);
+
+/* vhost_read - Invoke vhost_config_ops to read data from buffers provided by
+ *   remote virtio driver
+ * @vdev: Vhost device that provides read() callback to read data
+ * @dst: Buffer address in the local device provided by the vhost client driver
+ * @src: Buffer address in the remote device provided by the remote virtio
+ *   driver
+ * @len: Length of the data to be copied from @src to @dst
+ *
+ * Wrapper that invokes vhost_config_ops to read data from buffers provided by
+ * remote virtio driver to the address provided by vhost client driver.
+ */
+int vhost_read(struct vhost_dev *vdev, void *dst, u64 vhost_src, int len)
+{
+	if (IS_ERR_OR_NULL(vdev))
+		return -EINVAL;
+
+	if (!vdev->ops && !vdev->ops->read)
+		return -EINVAL;
+
+	return vdev->ops->read(vdev, dst, vhost_src, len);
+}
+EXPORT_SYMBOL_GPL(vhost_read);
+
+/* vhost_set_status - Invoke vhost_config_ops to set vhost device status
+ * @vdev: Vhost device that provides set_status() callback to set device status
+ * @status: Vhost device status configured by vhost client driver
+ *
+ * Wrapper that invokes vhost_config_ops to set vhost device status.
+ */
+int vhost_set_status(struct vhost_dev *vdev, u8 status)
+{
+	int ret;
+
+	if (IS_ERR_OR_NULL(vdev))
+		return -EINVAL;
+
+	if (!vdev->ops && !vdev->ops->set_status)
+		return -EINVAL;
+
+	mutex_lock(&vdev->mutex);
+	ret = vdev->ops->set_status(vdev, status);
+	mutex_unlock(&vdev->mutex);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(vhost_set_status);
+
+/* vhost_get_status - Invoke vhost_config_ops to get vhost device status
+ * @vdev: Vhost device that provides get_status() callback to get device status
+ *
+ * Wrapper that invokes vhost_config_ops to get vhost device status.
+ */
+u8 vhost_get_status(struct vhost_dev *vdev)
+{
+	u8 status;
+
+	if (IS_ERR_OR_NULL(vdev))
+		return -EINVAL;
+
+	if (!vdev->ops && !vdev->ops->get_status)
+		return -EINVAL;
+
+	mutex_lock(&vdev->mutex);
+	status = vdev->ops->get_status(vdev);
+	mutex_unlock(&vdev->mutex);
+
+	return status;
+}
+EXPORT_SYMBOL_GPL(vhost_get_status);
+
+/* vhost_set_features - Invoke vhost_config_ops to set vhost device features
+ * @vdev: Vhost device that provides set_features() callback to set device
+ *   features
+ *
+ * Wrapper that invokes vhost_config_ops to set device features.
+ */
+int vhost_set_features(struct vhost_dev *vdev, u64 device_features)
+{
+	int ret;
+
+	if (IS_ERR_OR_NULL(vdev))
+		return -EINVAL;
+
+	if (!vdev->ops && !vdev->ops->set_features)
+		return -EINVAL;
+
+	mutex_lock(&vdev->mutex);
+	ret = vdev->ops->set_features(vdev, device_features);
+	mutex_unlock(&vdev->mutex);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(vhost_set_features);
+
+/* vhost_register_notifier - Register notifier to receive notification from
+ *   vhost device
+ * @vdev: Vhost device from which notification has to be received.
+ * @nb: Notifier block holding the callback function
+ *
+ * Invoked by vhost client to receive notification from vhost device.
+ */
+int vhost_register_notifier(struct vhost_dev *vdev, struct notifier_block *nb)
+{
+	return blocking_notifier_chain_register(&vdev->notifier, nb);
+}
+EXPORT_SYMBOL_GPL(vhost_register_notifier);
+
+static inline int vhost_id_match(const struct vhost_dev *vdev,
+				 const struct vhost_device_id *id)
+{
+	if (id->device != vdev->id.device && id->device != VIRTIO_DEV_ANY_ID)
+		return 0;
+
+	return id->vendor == VIRTIO_DEV_ANY_ID || id->vendor == vdev->id.vendor;
+}
+
+static int vhost_dev_match(struct device *dev, struct device_driver *drv)
+{
+	struct vhost_driver *driver = to_vhost_driver(drv);
+	struct vhost_dev *vdev = to_vhost_dev(dev);
+	const struct vhost_device_id *ids;
+	int i;
+
+	ids = driver->id_table;
+	for (i = 0; ids[i].device; i++)
+		if (vhost_id_match(vdev, &ids[i]))
+			return 1;
+
+	return 0;
+}
+
+static int vhost_dev_probe(struct device *dev)
+{
+	struct vhost_driver *driver = to_vhost_driver(dev->driver);
+	struct vhost_dev *vdev = to_vhost_dev(dev);
+
+	if (!driver->probe)
+		return -ENODEV;
+
+	vdev->driver = driver;
+
+	return driver->probe(vdev);
+}
+
+static int vhost_dev_remove(struct device *dev)
+{
+	struct vhost_driver *driver = to_vhost_driver(dev->driver);
+	struct vhost_dev *vdev = to_vhost_dev(dev);
+	int ret = 0;
+
+	if (driver->remove)
+		ret = driver->remove(vdev);
+	vdev->driver = NULL;
+
+	return ret;
+}
+
+static struct bus_type vhost_bus_type = {
+	.name  = "vhost",
+	.match = vhost_dev_match,
+	.probe = vhost_dev_probe,
+	.remove = vhost_dev_remove,
+};
+
+/**
+ * vhost_remove_cfs() - Remove configfs directory for vhost driver
+ * @driver: Vhost driver for which configfs directory has to be removed
+ *
+ * Remove configfs directory for vhost driver.
+ */
+static void vhost_remove_cfs(struct vhost_driver *driver)
+{
+	struct config_group *driver_group, *group;
+	struct config_item *item, *tmp;
+
+	driver_group = driver->group;
+
+	list_for_each_entry_safe(item, tmp, &driver_group->cg_children,
+				 ci_entry) {
+		group = to_config_group(item);
+		vhost_cfs_remove_driver_item(group);
+	}
+
+	vhost_cfs_remove_driver_group(driver_group);
+}
+
+/**
+ * vhost_add_cfs() - Add configfs directory for vhost driver
+ * @driver: Vhost driver for which configfs directory has to be added
+ *
+ * Add configfs directory for vhost driver.
+ */
+static int vhost_add_cfs(struct vhost_driver *driver)
+{
+	struct config_group *driver_group, *group;
+	const struct vhost_device_id *ids;
+	int ret, i;
+
+	driver_group = vhost_cfs_add_driver_group(driver->driver.name);
+	if (IS_ERR(driver_group))
+		return PTR_ERR(driver_group);
+
+	driver->group = driver_group;
+
+	ids = driver->id_table;
+	for (i = 0; ids[i].device; i++) {
+		group = vhost_cfs_add_driver_item(driver_group, ids[i].vendor,
+						  ids[i].device);
+		if (IS_ERR(group)) {
+			ret = PTR_ERR(driver_group);
+			goto err;
+		}
+	}
+
+	return 0;
+
+err:
+	vhost_remove_cfs(driver);
+
+	return ret;
+}
+
+/**
+ * vhost_register_driver() - Register a vhost driver
+ * @driver: Vhost driver that has to be registered
+ *
+ * Register a vhost driver.
+ */
+int vhost_register_driver(struct vhost_driver *driver)
+{
+	int ret;
+
+	driver->driver.bus = &vhost_bus_type;
+
+	ret = driver_register(&driver->driver);
+	if (ret)
+		return ret;
+
+	ret = vhost_add_cfs(driver);
+	if (ret)
+		return ret;
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(vhost_register_driver);
+
+/**
+ * vhost_unregister_driver() - Unregister a vhost driver
+ * @driver: Vhost driver that has to be un-registered
+ *
+ * Unregister a vhost driver.
+ */
+void vhost_unregister_driver(struct vhost_driver *driver)
+{
+	vhost_remove_cfs(driver);
+	driver_unregister(&driver->driver);
+}
+EXPORT_SYMBOL_GPL(vhost_unregister_driver);
+
+/**
+ * vhost_register_device() - Register vhost device
+ * @vdev: Vhost device that has to be registered
+ *
+ * Allocate a ID and register vhost device.
+ */
+int vhost_register_device(struct vhost_dev *vdev)
+{
+	struct device *dev = &vdev->dev;
+	int ret;
+
+	mutex_lock(&vhost_index_mutex);
+	ret = ida_simple_get(&vhost_index_ida, 0, 0, GFP_KERNEL);
+	mutex_unlock(&vhost_index_mutex);
+	if (ret < 0)
+		return ret;
+
+	vdev->index = ret;
+	dev->bus = &vhost_bus_type;
+	device_initialize(dev);
+
+	dev_set_name(dev, "vhost%u", ret);
+	BLOCKING_INIT_NOTIFIER_HEAD(&vdev->notifier);
+
+	ret = device_add(dev);
+	if (ret) {
+		put_device(dev);
+		goto err;
+	}
+
+	return 0;
+
+err:
+	mutex_lock(&vhost_index_mutex);
+	ida_simple_remove(&vhost_index_ida, vdev->index);
+	mutex_unlock(&vhost_index_mutex);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(vhost_register_device);
+
+/**
+ * vhost_unregister_device() - Un-register vhost device
+ * @vdev: Vhost device that has to be un-registered
+ *
+ * Un-register vhost device and free the allocated ID.
+ */
+void vhost_unregister_device(struct vhost_dev *vdev)
+{
+	device_unregister(&vdev->dev);
+	mutex_lock(&vhost_index_mutex);
+	ida_simple_remove(&vhost_index_ida, vdev->index);
+	mutex_unlock(&vhost_index_mutex);
+}
+EXPORT_SYMBOL_GPL(vhost_unregister_device);
 static int __init vhost_init(void)
 {
+	int ret;
+	ret = bus_register(&vhost_bus_type);
+	if (ret) {
+		pr_err("failed to register vhost bus --> %d\n", ret);
+		return ret;
+	}
 	return 0;
 }
 
 static void __exit vhost_exit(void)
 {
+	bus_unregister(&vhost_bus_type);
 }
 
-module_init(vhost_init);
+core_initcall(vhost_init);
 module_exit(vhost_exit);
 
 MODULE_VERSION("0.0.1");

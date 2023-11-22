@@ -18,6 +18,7 @@
 
 #include "stmmac.h"
 #include "stmmac_platform.h"
+#include "../drivers/sstar/include/ms_platform.h"
 
 #ifdef CONFIG_OF
 

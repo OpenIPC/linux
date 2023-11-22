@@ -1,0 +1,8 @@
+config SYSDESC
+    tristate "Sstar SYSDESC driver"
+    default n
+
+config SYSDESC_NAME
+	string "SYSDESC source file"
+	depends on SYSDESC
+

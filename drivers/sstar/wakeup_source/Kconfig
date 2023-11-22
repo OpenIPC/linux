@@ -1,0 +1,3 @@
+config SS_WAKEUP_SOURCE
+    tristate "SStar wakeup source"
+    default n

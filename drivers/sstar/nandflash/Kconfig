@@ -1,0 +1,6 @@
+config SS_NAND_ONEBIN
+    select MTD_NAND
+    tristate "NAND_ONEBIN Flash driver"
+    default n
+
+

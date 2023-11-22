@@ -10,6 +10,7 @@
 #include <linux/iopoll.h>
 #include "common.h"
 #include "dwmac_dma.h"
+#include "sstar_gmac.h"
 
 #define GMAC_HI_REG_AE		0x80000000
 

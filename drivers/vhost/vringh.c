@@ -5,6 +5,7 @@
  * Since these may be in userspace, we use (inline) accessors.
  */
 #include <linux/compiler.h>
+#include <linux/io.h>
 #include <linux/module.h>
 #include <linux/vringh.h>
 #include <linux/virtio_ring.h>
@@ -188,6 +189,29 @@ static int move_to_indirect(const struct vringh *vrh,
 	return 0;
 }
 
+static int resize_mmiovec(struct vringh_mmiov *iov, gfp_t gfp)
+{
+	unsigned int flag, new_num = (iov->max_num & ~VRINGH_IOV_ALLOCATED) * 2;
+	struct mmiovec *new;
+	if (new_num < 8)
+		new_num = 8;
+	flag = (iov->max_num & VRINGH_IOV_ALLOCATED);
+	if (flag) {
+		new = krealloc(iov->iov, new_num * sizeof(struct iovec), gfp);
+	} else {
+		new = kmalloc_array(new_num, sizeof(struct iovec), gfp);
+		if (new) {
+			memcpy(new, iov->iov,
+			       iov->max_num * sizeof(struct iovec));
+			flag = VRINGH_IOV_ALLOCATED;
+		}
+	}
+	if (!new)
+		return -ENOMEM;
+	iov->iov = new;
+	iov->max_num = (new_num | flag);
+	return 0;
+}
 static int resize_iovec(struct vringh_kiov *iov, gfp_t gfp)
 {
 	struct kvec *new;
@@ -259,6 +283,142 @@ static int slow_copy(struct vringh *vrh, void *dst, const void *src,
 		len -= part;
 	} while (len);
 	return 0;
+}
+
+static inline int
+__vringh_mmiov(struct vringh *vrh, u16 i, struct vringh_mmiov *riov,
+	       struct vringh_mmiov *wiov,
+	       bool (*rcheck)(struct vringh *vrh, u64 addr, size_t *len,
+			      struct vringh_range *range,
+			      bool (*getrange)(struct vringh *, u64,
+					       struct vringh_range *)),
+	       bool (*getrange)(struct vringh *, u64, struct vringh_range *),
+	       gfp_t gfp,
+	       int (*copy)(const struct vringh *vrh,
+			   void *dst, const void *src, size_t len))
+{
+	int err, count = 0, up_next, desc_max;
+	struct vring_desc desc, *descs;
+	struct vringh_range range = { -1ULL, 0 }, slowrange;
+	bool slow = false;
+
+	/* We start traversing vring's descriptor table. */
+	descs = vrh->vring.desc;
+	desc_max = vrh->vring.num;
+	up_next = -1;
+
+	if (riov) {
+		riov->i = 0;
+		riov->used = 0;
+	} else if (wiov) {
+		wiov->i = 0;
+		wiov->used = 0;
+	} else {
+		/* You must want something! */
+		WARN_ON(1);
+	}
+
+	for (;;) {
+		u64 addr;
+		struct vringh_mmiov *iov;
+		size_t len;
+
+		if (unlikely(slow))
+			err = slow_copy(vrh, &desc, &descs[i], rcheck, getrange,
+					&slowrange, copy);
+		else
+			err = copy(vrh, &desc, &descs[i], sizeof(desc));
+		if (unlikely(err))
+			goto fail;
+
+		if (unlikely(desc.flags &
+			     cpu_to_vringh16(vrh, VRING_DESC_F_INDIRECT))) {
+			/* VRING_DESC_F_INDIRECT is not supported */
+			err = -EINVAL;
+			goto fail;
+		}
+
+		if (count++ == vrh->vring.num) {
+			vringh_bad("Descriptor loop in %p", descs);
+			err = -ELOOP;
+			goto fail;
+		}
+
+		if (desc.flags & cpu_to_vringh16(vrh, VRING_DESC_F_WRITE)) {
+			iov = wiov;
+		} else {
+			iov = riov;
+			if (unlikely(wiov && wiov->i)) {
+				vringh_bad("Readable desc %p after writable",
+					   &descs[i]);
+				err = -EINVAL;
+				goto fail;
+			}
+		}
+
+		if (!iov) {
+			vringh_bad("Unexpected %s desc",
+				   !wiov ? "writable" : "readable");
+			err = -EPROTO;
+			goto fail;
+		}
+
+again:
+		/* Make sure it's OK, and get offset. */
+		len = vringh32_to_cpu(vrh, desc.len);
+		if (!rcheck(vrh, vringh64_to_cpu(vrh, desc.addr), &len, &range,
+			    getrange)) {
+			err = -EINVAL;
+			goto fail;
+		}
+		addr = vringh64_to_cpu(vrh, desc.addr) + range.offset;
+
+		if (unlikely(iov->used == (iov->max_num & ~VRINGH_IOV_ALLOCATED))) {
+			err = resize_mmiovec(iov, gfp);
+			if (err)
+				goto fail;
+		}
+
+		iov->iov[iov->used].iov_base = addr;
+		iov->iov[iov->used].iov_len = len;
+		iov->used++;
+
+		if (unlikely(len != vringh32_to_cpu(vrh, desc.len))) {
+			desc.len =
+				cpu_to_vringh32(vrh,
+						vringh32_to_cpu(vrh, desc.len)
+						- len);
+			desc.addr =
+				cpu_to_vringh64(vrh,
+						vringh64_to_cpu(vrh, desc.addr)
+						+ len);
+			goto again;
+		}
+
+		if (desc.flags & cpu_to_vringh16(vrh, VRING_DESC_F_NEXT)) {
+			i = vringh16_to_cpu(vrh, desc.next);
+		} else {
+			/* Just in case we need to finish traversing above. */
+			if (unlikely(up_next > 0)) {
+				i = return_from_indirect(vrh, &up_next,
+							 &descs, &desc_max);
+				slow = false;
+			} else {
+				break;
+			}
+		}
+
+		if (i >= desc_max) {
+			vringh_bad("Chained index %u > %u", i, desc_max);
+			err = -EINVAL;
+			goto fail;
+		}
+	}
+
+	return 0;
+
+fail:
+	return err;
 }
 
 static inline int
@@ -833,6 +993,218 @@ int vringh_need_notify_user(struct vringh *vrh)
 	return __vringh_need_notify(vrh, getu16_user);
 }
 EXPORT_SYMBOL(vringh_need_notify_user);
+
+/* MMIO access helpers */
+static inline int getu16_mmio(const struct vringh *vrh,
+			      u16 *val, const __virtio16 *p)
+{
+	*val = vringh16_to_cpu(vrh, readw(p));
+	return 0;
+}
+
+static inline int putu16_mmio(const struct vringh *vrh, __virtio16 *p, u16 val)
+{
+	writew(cpu_to_vringh16(vrh, val), p);
+	return 0;
+}
+
+static inline int copydesc_mmio(const struct vringh *vrh,
+				void *dst, const void *src, size_t len)
+{
+	memcpy_fromio(dst, src, len);
+	return 0;
+}
+
+static inline int putused_mmio(const struct vringh *vrh,
+			       struct vring_used_elem *dst,
+			       const struct vring_used_elem *src,
+			       unsigned int num)
+{
+	memcpy_toio(dst, src, num * sizeof(*dst));
+	return 0;
+}
+
+/**
+ * vringh_init_mmio - initialize a vringh for a MMIO vring.
+ * @vrh: the vringh to initialize.
+ * @features: the feature bits for this ring.
+ * @num: the number of elements.
+ * @weak_barriers: true if we only need memory barriers, not I/O.
+ * @desc: the userpace descriptor pointer.
+ * @avail: the userpace avail pointer.
+ * @used: the userpace used pointer.
+ *
+ * Returns an error if num is invalid.
+ */
+int vringh_init_mmio(struct vringh *vrh, u64 features,
+		     unsigned int num, bool weak_barriers,
+		     struct vring_desc *desc,
+		     struct vring_avail *avail,
+		     struct vring_used *used)
+{
+	/* Sane power of 2 please! */
+	if (!num || num > 0xffff || (num & (num - 1))) {
+		vringh_bad("Bad ring size %u", num);
+		return -EINVAL;
+	}
+
+	vrh->little_endian = (features & (1ULL << VIRTIO_F_VERSION_1));
+	vrh->event_indices = (features & (1 << VIRTIO_RING_F_EVENT_IDX));
+	vrh->weak_barriers = weak_barriers;
+	vrh->completed = 0;
+	vrh->last_avail_idx = 0;
+	vrh->last_used_idx = 0;
+	vrh->vring.num = num;
+	vrh->vring.desc = desc;
+	vrh->vring.avail = avail;
+	vrh->vring.used = used;
+	return 0;
+}
+EXPORT_SYMBOL(vringh_init_mmio);
+
+#if defined(CONFIG_ARCH_SSTAR)
+/**
+ * vringh_init_mmio - initialize a vringh for a MMIO vring.
+ * @vrh: the vringh to initialize.
+ * @features: the feature bits for this ring.
+ * @num: the number of elements.
+ * @weak_barriers: true if we only need memory barriers, not I/O.
+ * @desc: the userpace descriptor pointer.
+ * @avail: the userpace avail pointer.
+ * @used: the userpace used pointer.
+ * @avail_idx: the initial value of last_avail_idx
+ * @used_idx: the initial value of last_used_idx
+ *
+ * Returns an error if num is invalid.
+ */
+int vringh_init_with_initial_idx_mmio(struct vringh *vrh, u64 features,
+				      unsigned int num, bool weak_barriers,
+				      struct vring_desc *desc,
+				      struct vring_avail *avail,
+				      struct vring_used *used, u16 avail_idx,
+				      u16 used_idx)
+{
+	/* Sane power of 2 please! */
+	if (!num || num > 0xffff || (num & (num - 1))) {
+		vringh_bad("Bad ring size %u", num);
+		return -EINVAL;
+	}
+
+	vrh->little_endian = (features & (1ULL << VIRTIO_F_VERSION_1));
+	vrh->event_indices = (features & (1 << VIRTIO_RING_F_EVENT_IDX));
+	vrh->weak_barriers = weak_barriers;
+	vrh->completed = 0;
+	vrh->last_avail_idx = avail_idx;
+	vrh->last_used_idx = used_idx;
+	vrh->vring.num = num;
+	vrh->vring.desc = desc;
+	vrh->vring.avail = avail;
+	vrh->vring.used = used;
+	return 0;
+}
+EXPORT_SYMBOL(vringh_init_with_initial_idx_mmio);
+#endif
+
+/**
+ * vringh_getdesc_mmio - get next available descriptor from MMIO ring.
+ * @vrh: the MMIO vring.
+ * @riov: where to put the readable descriptors (or NULL)
+ * @wiov: where to put the writable descriptors (or NULL)
+ * @head: head index we received, for passing to vringh_complete_mmio().
+ * @gfp: flags for allocating larger riov/wiov.
+ *
+ * Returns 0 if there was no descriptor, 1 if there was, or -errno.
+ *
+ * Note that on error return, you can tell the difference between an
+ * invalid ring and a single invalid descriptor: in the former case,
+ * *head will be vrh->vring.num.  You may be able to ignore an invalid
+ * descriptor, but there's not much you can do with an invalid ring.
+ *
+ * Note that you may need to clean up riov and wiov, even on error!
+ */
+int vringh_getdesc_mmio(struct vringh *vrh,
+			struct vringh_mmiov *riov,
+			struct vringh_mmiov *wiov,
+			u16 *head,
+			gfp_t gfp)
+{
+	int err;
+
+	err = __vringh_get_head(vrh, getu16_mmio, &vrh->last_avail_idx);
+	if (err < 0)
+		return err;
+
+	/* Empty... */
+	if (err == vrh->vring.num)
+		return 0;
+
+	*head = err;
+	err = __vringh_mmiov(vrh, *head, riov, wiov, no_range_check, NULL,
+			     gfp, copydesc_mmio);
+	if (err)
+		return err;
+
+	return 1;
+}
+EXPORT_SYMBOL(vringh_getdesc_mmio);
+
+/**
+ * vringh_complete_mmio - we've finished with descriptor, publish it.
+ * @vrh: the vring.
+ * @head: the head as filled in by vringh_getdesc_mmio.
+ * @len: the length of data we have written.
+ *
+ * You should check vringh_need_notify_mmio() after one or more calls
+ * to this function.
+ */
+int vringh_complete_mmio(struct vringh *vrh, u16 head, u32 len)
+{
+	struct vring_used_elem used;
+
+	used.id = cpu_to_vringh32(vrh, head);
+	used.len = cpu_to_vringh32(vrh, len);
+
+	return __vringh_complete(vrh, &used, 1, putu16_mmio, putused_mmio);
+}
+EXPORT_SYMBOL(vringh_complete_mmio);
+
+/**
+ * vringh_notify_enable_mmio - we want to know if something changes.
+ * @vrh: the vring.
+ *
+ * This always enables notifications, but returns false if there are
+ * now more buffers available in the vring.
+ */
+bool vringh_notify_enable_mmio(struct vringh *vrh)
+{
+	return __vringh_notify_enable(vrh, getu16_mmio, putu16_mmio);
+}
+EXPORT_SYMBOL(vringh_notify_enable_mmio);
+
+/**
+ * vringh_notify_disable_mmio - don't tell us if something changes.
+ * @vrh: the vring.
+ *
+ * This is our normal running state: we disable and then only enable when
+ * we're going to sleep.
+ */
+void vringh_notify_disable_mmio(struct vringh *vrh)
+{
+	__vringh_notify_disable(vrh, putu16_mmio);
+}
+EXPORT_SYMBOL(vringh_notify_disable_mmio);
+
+/**
+ * vringh_need_notify_mmio - must we tell the other side about used buffers?
+ * @vrh: the vring we've called vringh_complete_mmio() on.
+ *
+ * Returns -errno or 0 if we don't need to tell the other side, 1 if we do.
+ */
+int vringh_need_notify_mmio(struct vringh *vrh)
+{
+	return __vringh_need_notify(vrh, getu16_mmio);
+}
+EXPORT_SYMBOL(vringh_need_notify_mmio);
 
 /* Kernelspace access helpers. */
 static inline int getu16_kern(const struct vringh *vrh,

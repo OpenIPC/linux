@@ -13,6 +13,7 @@
 #include <linux/hrtimer.h>
 #include <linux/kref.h>
 #include <linux/workqueue.h>
+#include <linux/irqpriority.h>
 
 #include <linux/atomic.h>
 #include <asm/ptrace.h>
@@ -74,6 +75,7 @@
 #define IRQF_NO_THREAD		0x00010000
 #define IRQF_EARLY_RESUME	0x00020000
 #define IRQF_COND_SUSPEND	0x00040000
+#define IRQF_HIGH_PRIORITY  0x00080000
 
 #define IRQF_TIMER		(__IRQF_TIMER | IRQF_NO_SUSPEND | IRQF_NO_THREAD)
 
@@ -408,6 +410,8 @@ irq_calc_affinity_vectors(unsigned int minvec, unsigned int maxvec,
 
 #endif /* CONFIG_SMP */
 
+extern int irq_set_priority(unsigned int irq, irqpriority_t prio);
+
 /*
  * Special lockdep variants of irq disabling/enabling.
  * These should be used for locking constructs that
@@ -542,6 +546,12 @@ enum
 };
 
 #define SOFTIRQ_STOP_IDLE_MASK (~(1 << RCU_SOFTIRQ))
+/* Softirq's where the handling might be long: */
+#define LONG_SOFTIRQ_MASK ((1 << NET_TX_SOFTIRQ)       | \
+			   (1 << NET_RX_SOFTIRQ)       | \
+			   (1 << BLOCK_SOFTIRQ)        | \
+			   (1 << IRQ_POLL_SOFTIRQ) | \
+			   (1 << TASKLET_SOFTIRQ))
 
 /* map softirq index to softirq name. update 'softirq_to_name' in
  * kernel/softirq.c when adding a new softirq.
@@ -577,6 +587,7 @@ extern void raise_softirq_irqoff(unsigned int nr);
 extern void raise_softirq(unsigned int nr);
 
 DECLARE_PER_CPU(struct task_struct *, ksoftirqd);
+DECLARE_PER_CPU(__u32, active_softirqs);
 
 static inline struct task_struct *this_cpu_ksoftirqd(void)
 {

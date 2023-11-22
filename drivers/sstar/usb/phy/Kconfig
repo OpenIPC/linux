@@ -1,0 +1,25 @@
+config SS_USB3_PHY
+tristate "Sigmastar USB3 PHY Driver"
+
+select GENERIC_PHY
+select USB_PHY
+	help
+	  Enable this to support Sigmastar USB3.0 PHY driver for Sigmastar
+	  SoC. This driver will do the PHY initialization and shutdown.
+	  The PHY driver will be used by Sigmastar USB3.0 driver.
+
+	  To compile this driver as a module, choose M here.
+
+config SS_USB2_PHY
+tristate "Sigmastar USB2 UTMI Transceiver Driver"
+
+select GENERIC_PHY
+select USB_PHY
+select REGMAP
+select MFD_SYSCON
+	help
+	  Enable this to support Sigmastar USB2.0 UTMI Transceiver driver
+	  for Sigmastar SoC. This driver will do the UTMI initialization and
+	  shutdown.The UTMI driver will be used by Sigmastar USB2.0 driver.
+
+	  To compile this driver as a module, choose M here.

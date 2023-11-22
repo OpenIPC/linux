@@ -25,6 +25,8 @@
 
 #include <linux/types.h>
 #include <linux/ioctl.h>
+#include <linux/mutex.h>
+
 
 /* User space versions of kernel symbols for SPI clocking modes,
  * matching <linux/spi/spi.h>
@@ -58,6 +60,42 @@
 /* IOCTL commands */
 
 #define SPI_IOC_MAGIC			'k'
+
+struct spidev_cfg {
+        u32         max_speed_hz;
+        u8          bits_per_word;
+        u16         mode;
+};
+
+
+struct spidev_data {
+	dev_t			devt;
+	spinlock_t		spi_lock;
+	struct spi_device	*spi;
+	struct list_head	device_entry;
+
+	/* TX/RX buffers are NULL unless this device is open (users > 0) */
+	struct mutex		buf_lock;
+	unsigned		users;
+	u8			*tx_buffer;
+	u8			*rx_buffer;
+	u32			speed_hz;
+};
+
+struct mspi_ioc_transfer {
+	u8		*tx_buf;
+	u8		*rx_buf;
+
+	u32		len;
+	u32		speed_hz;
+
+	u16		delay_usecs;
+	u8		bits_per_word;
+	u8		cs_change;
+	u8		tx_nbits;
+	u8		rx_nbits;
+	u16		pad;
+};
 
 /**
  * struct spi_ioc_transfer - describes a single SPI transfer
@@ -146,6 +184,11 @@ struct spi_ioc_transfer {
 #define SPI_IOC_RD_MODE32		_IOR(SPI_IOC_MAGIC, 5, __u32)
 #define SPI_IOC_WR_MODE32		_IOW(SPI_IOC_MAGIC, 5, __u32)
 
-
+struct spidev_data * mspidev_open(int mspi_nr);
+int mspidev_release(struct spidev_data *mspidev);
+int mspidev_set(struct spidev_data *mspidev,struct spidev_cfg *mspidev_cfg);
+ssize_t mspidev_write(struct spidev_data	*mspidev, const char  *buf, size_t count);
+ssize_t mspidev_read(struct spidev_data	*mspidev, char *buf, size_t count);
+int mspidev_transfer(struct spidev_data *mspidev,struct mspi_ioc_transfer *m_xfers, unsigned n_xfers);
 
 #endif /* SPIDEV_H */

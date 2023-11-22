@@ -14,9 +14,10 @@
 #include <linux/workqueue.h>
 #include <linux/file.h>
 #include <linux/slab.h>
+#include <linux/vhost.h>
+#include <uapi/linux/vhost.h>
 
 #include "test.h"
-#include "vhost.h"
 
 /* Max number of bytes transferred before requeueing the job.
  * Using this limit prevents one virtqueue from starving others. */
@@ -247,19 +248,15 @@ done:
 
 static int vhost_test_set_features(struct vhost_test *n, u64 features)
 {
-	struct vhost_virtqueue *vq;
+	struct vhost_dev *vdev = &n->dev;
 
-	mutex_lock(&n->dev.mutex);
+	mutex_lock(&vdev->mutex);
 	if ((features & (1 << VHOST_F_LOG_ALL)) &&
-	    !vhost_log_access_ok(&n->dev)) {
-		mutex_unlock(&n->dev.mutex);
+	    !vhost_log_access_ok(vdev)) {
+		mutex_unlock(&vdev->mutex);
 		return -EFAULT;
 	}
-	vq = &n->vqs[VHOST_TEST_VQ];
-	mutex_lock(&vq->mutex);
-	vq->acked_features = features;
-	mutex_unlock(&vq->mutex);
-	mutex_unlock(&n->dev.mutex);
+	mutex_unlock(&vdev->mutex);
 	return 0;
 }
 

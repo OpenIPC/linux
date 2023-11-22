@@ -468,7 +468,9 @@ void *initial_boot_params __ro_after_init;
 
 #ifdef CONFIG_OF_EARLY_FLATTREE
 
+#ifndef CONFIG_FB_DTS_SKIP_CRC
 static u32 of_fdt_crc32;
+#endif
 
 /**
  * __reserved_mem_reserve_reg() - reserve all memory described in 'reg' property
@@ -1033,46 +1035,89 @@ int __init early_init_dt_scan_memory(unsigned long node, const char *uname,
 				base, base + size);
 	}
 
+#ifdef CONFIG_FB_DTS_SCAN_MEMORY_ONCE
+    return 1;
+#endif
+
 	return 0;
 }
+
+/*
+ * Convert configs to something easy to use in C code
+ */
+#if defined(CONFIG_CMDLINE_FORCE)
+static const int overwrite_incoming_cmdline = 1;
+static const int read_dt_cmdline;
+static const int concat_cmdline;
+#elif defined(CONFIG_CMDLINE_EXTEND)
+static const int overwrite_incoming_cmdline;
+static const int read_dt_cmdline = 1;
+static const int concat_cmdline = 1;
+#else /* CMDLINE_FROM_BOOTLOADER */
+static const int overwrite_incoming_cmdline;
+static const int read_dt_cmdline = 1;
+static const int concat_cmdline;
+#endif
+
+#ifdef CONFIG_CMDLINE
+static const char *config_cmdline = CONFIG_CMDLINE;
+#else
+static const char *config_cmdline = "";
+#endif
+
+extern __initdata int gb_ATAG_CMDLINE_found;
+extern __initdata int gb_ATAG_INITRD2_found;
 
 int __init early_init_dt_scan_chosen(unsigned long node, const char *uname,
 				     int depth, void *data)
 {
-	int l;
-	const char *p;
+	int l = 0;
+	const char *p = NULL;
 	const void *rng_seed;
+	char *cmdline = data;
 
 	pr_debug("search \"chosen\", depth: %d, uname: %s\n", depth, uname);
 
-	if (depth != 1 || !data ||
+	if (depth != 1 || !cmdline ||
 	    (strcmp(uname, "chosen") != 0 && strcmp(uname, "chosen@0") != 0))
 		return 0;
-
-	early_init_dt_check_for_initrd(node);
-
-	/* Retrieve command line */
-	p = of_get_flat_dt_prop(node, "bootargs", &l);
-	if (p != NULL && l > 0)
-		strlcpy(data, p, min(l, COMMAND_LINE_SIZE));
-
-	/*
-	 * CONFIG_CMDLINE is meant to be a default in case nothing else
-	 * managed to set the command line, unless CONFIG_CMDLINE_FORCE
-	 * is set in which case we override whatever was found earlier.
-	 */
-#ifdef CONFIG_CMDLINE
-#if defined(CONFIG_CMDLINE_EXTEND)
-	strlcat(data, " ", COMMAND_LINE_SIZE);
-	strlcat(data, CONFIG_CMDLINE, COMMAND_LINE_SIZE);
-#elif defined(CONFIG_CMDLINE_FORCE)
-	strlcpy(data, CONFIG_CMDLINE, COMMAND_LINE_SIZE);
+#ifdef CONFIG_FB_DTS_SKIP_ATAGS_TO_FDT
+	if (!gb_ATAG_INITRD2_found) {
+		early_init_dt_check_for_initrd(node);
+	}
 #else
-	/* No arguments from boot loader, use kernel's  cmdl*/
-	if (!((char *)data)[0])
-		strlcpy(data, CONFIG_CMDLINE, COMMAND_LINE_SIZE);
+	early_init_dt_check_for_initrd(node);
 #endif
-#endif /* CONFIG_CMDLINE */
+
+#ifdef CONFIG_FB_DTS_SKIP_ATAGS_TO_FDT
+	if (gb_ATAG_CMDLINE_found) {
+		pr_debug("Command line is: %s\n", (char*)data);
+		/* break now */
+		return 1;
+	}
+#endif
+	/* Put CONFIG_CMDLINE in if forced or if data had nothing in it to start */
+	if (overwrite_incoming_cmdline || !cmdline[0])
+		strlcpy(cmdline, config_cmdline, COMMAND_LINE_SIZE);
+
+	/* Retrieve command line unless forcing */
+	if (read_dt_cmdline)
+		p = of_get_flat_dt_prop(node, "bootargs", &l);
+
+	if (p != NULL && l > 0) {
+		if (concat_cmdline) {
+			int cmdline_len;
+			int copy_len;
+			strlcat(cmdline, " ", COMMAND_LINE_SIZE);
+			cmdline_len = strlen(cmdline);
+			copy_len = COMMAND_LINE_SIZE - cmdline_len - 1;
+			copy_len = min((int)l, copy_len);
+			strncpy(cmdline + cmdline_len, p, copy_len);
+			cmdline[cmdline_len + copy_len] = '\0';
+		} else {
+			strlcpy(cmdline, p, min(l, COMMAND_LINE_SIZE));
+		}
+	}
 
 	pr_debug("Command line is: %s\n", (char *)data);
 
@@ -1082,10 +1127,11 @@ int __init early_init_dt_scan_chosen(unsigned long node, const char *uname,
 
 		/* try to clear seed so it won't be found. */
 		fdt_nop_property(initial_boot_params, node, "rng-seed");
-
+#ifndef CONFIG_FB_DTS_SKIP_CRC
 		/* update CRC check value */
 		of_fdt_crc32 = crc32_be(~0, initial_boot_params,
 				fdt_totalsize(initial_boot_params));
+#endif
 	}
 
 	/* break now */
@@ -1184,8 +1230,10 @@ bool __init early_init_dt_verify(void *params)
 
 	/* Setup flat device-tree pointer */
 	initial_boot_params = params;
+#ifndef CONFIG_FB_DTS_SKIP_CRC
 	of_fdt_crc32 = crc32_be(~0, initial_boot_params,
 				fdt_totalsize(initial_boot_params));
+#endif
 	return true;
 }
 
@@ -1218,6 +1266,146 @@ bool __init early_init_dt_scan(void *params)
 	return true;
 }
 
+#ifdef CONFIG_SS_BUILTIN_UNFDT
+
+extern void *builtin_unfdt_start;
+extern void *builtin_dtb_start;
+extern void *unfdt_runtime_base;
+extern void *fdt_runtime_base;
+void *undft_old_addr=0;
+void *dfb_old_addr=0;
+
+void show_unfdt(struct device_node *dad)
+{
+	struct device_node *np;
+	struct property *pp;
+
+	printk("+++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+
+	//revise root all of trees
+	for (np = dad; np; np = __of_find_all_nodes(np)) {
+		printk("\nnp: %p  \n", np);
+		if (np->name)        printk("name      :%p %s\n", np->name, np->name);
+		if (np->phandle)     printk("phandle   :%x\n", np->phandle);
+		if (np->full_name)   printk("full_name :%p %s\n", np->full_name,np->full_name);
+		if (np->deadprops)   printk("deadprops :%p\n", np->deadprops);
+		if (np->parent)      printk("parent    :%p\n", np->parent);
+		if (np->child)       printk("child     :%p\n", np->child);
+		if (np->sibling)     printk("sibling   :%p\n", np->sibling);
+		if (np->data)        printk("data      :%p\n", np->data);
+		if (np->_flags)      printk("_flags    :0x%lx\n", np->_flags);
+		if (np->properties)  printk("properties:%p\n", np->properties);
+
+		if (np->properties) {
+			for_each_property_of_node(np, pp) {
+#if 0
+				//printk(">> pp:%p name:%p value:%p len:(%2d) next:%p (%s) [%s]\n", pp, pp->name, pp->value,pp->length, pp->next, pp->name, (char*) pp->value);
+				printk(">> pp:%p name:%p value:%p len:(%2d) next:%p (%s) flag(%ld) id(%d)\n", pp, pp->name, pp->value,pp->length, pp->next, pp->name, pp->_flags, pp->unique_id);
+#else
+				if (!strcmp(pp->name ,"compatible"))
+					printk(">> pp:%p len:(%2d) (%s)\t[%s]\n", pp, pp->length, pp->name,(char*) pp->value);
+				else if (!pp->length)
+					printk(">> pp:%p len:(%2d) (%s)\n", pp, pp->length, pp->name);
+				else if ( pp->length==4 )
+					printk(">> pp:%p len:(%2d) (%s)\t[%08x]\n", pp, pp->length, pp->name, __be32_to_cpu( *(int*)pp->value));
+				else if ( pp->length==8 )
+					printk(">> pp:%p len:(%2d) (%s)\t[%08x %08x]\n", pp, pp->length, pp->name, __be32_to_cpu(*(int*)pp->value),__be32_to_cpu( *(int*)(pp->value+4)));
+				else if ( !(pp->length%4) )
+					printk(">> pp:%p len:(%2d) (%s)\t[%08x %08x %08x]\n", pp, pp->length, pp->name, __be32_to_cpu(*(int*)pp->value),__be32_to_cpu( *(int*)(pp->value+4)), __be32_to_cpu(*(int*)(pp->value+8)));
+				else
+					printk(">> pp:%p len:(%2d) (%s)\t[%s]\n", pp, pp->length, pp->name,(char*) pp->value);
+				if (pp->attr.attr.name)  printk("      >>pp->attr.attr.name:%p\n",pp->attr.attr.name);
+				if (pp->attr.write)      printk("      >>pp->attr.write:%p\n", pp->attr.write);
+				if (pp->attr.private)    printk("      >>pp->attr.private:%p\n", pp->attr.private);
+				if (pp->attr.read)       printk("      >>pp->attr.read:%p\n", pp->attr.read);
+				if (pp->attr.mmap)       printk("      >>pp->attr.mmap:%p\n", pp->attr.mmap);
+#endif
+			}
+		}
+	}
+	printk("+++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+}
+
+//#define DEBUG_SHOW_UNFDT_NP_B
+//#define DEBUG_SHOW_UNFDT_NP
+//#define DEBUG_SHOW_UNFDT_PP
+void revise_unfdt(struct device_node **mynodes)
+{
+	struct device_node *np;
+	struct property *pp;
+	//int i=0;
+	int undft_offset = builtin_unfdt_start-undft_old_addr;
+	int dfb_offset = builtin_dtb_start-dfb_old_addr;
+
+	//revise root all of trees
+	for (np = (struct device_node *) builtin_unfdt_start; np; np = __of_find_all_nodes(np)) {
+#ifdef DEBUG_SHOW_UNFDT_NP_B
+		printk("\n before np: %p  \n", np);
+		if (np->name)        printk("name      :%p\n", np->name);
+		if (np->phandle)     printk("phandle   :%x\n", np->phandle);
+		if (np->full_name)   printk("full_name :%p\n", np->full_name);
+		if (np->deadprops)   printk("deadprops :%p\n", np->deadprops);
+		if (np->parent)      printk("parent    :%p\n", np->parent);
+		if (np->child)       printk("child     :%p\n", np->child);
+		if (np->sibling)     printk("sibling   :%p\n", np->sibling);
+		if (np->data)        printk("data      :%p\n", np->data);
+		if (np->properties)  printk("properties:%p\n", np->properties);
+#endif
+
+		//if(i++>10) break;
+		if (np->name) np->name += undft_offset;
+
+		//phandle phandle;
+		if (np->full_name) np->full_name += undft_offset;
+		if (np->properties) np->properties = (struct property *)((int)np->properties + undft_offset);
+		if (np->deadprops) np->deadprops = (struct property *)((int)np->deadprops + undft_offset);
+		if (np->parent) np->parent = (struct device_node *)((int)np->parent + undft_offset);
+		if (np->child) np->child = (struct device_node *)((int)np->child + undft_offset);
+		if (np->sibling) np->sibling = (struct device_node *)((int)np->sibling + undft_offset);
+		//np->_flags = 0;
+		//np->kobj.state_initialized=0;
+		of_node_init(np);//struct	kobject kobj; //struct fwnode_handle fwnode;
+
+#ifdef DEBUG_SHOW_UNFDT_NP
+		printk("\nnp: %p  \n", np);
+		if (np->name)        printk("name      :%p %s\n", np->name, np->name);
+		if (np->phandle)     printk("phandle   :%x\n", np->phandle);
+		if (np->full_name)   printk("full_name :%p %s\n", np->full_name,np->full_name);
+		if (np->deadprops)   printk("deadprops :%p\n", np->deadprops);
+		if (np->parent)      printk("parent    :%p\n", np->parent);
+		if (np->child)       printk("child     :%p\n", np->child);
+		if (np->sibling)     printk("sibling   :%p\n", np->sibling);
+		if (np->data)        printk("data      :%p\n", np->data);
+		if (np->properties)  printk("properties:%p\n", np->properties);
+#endif
+		if (np->properties) {
+			for_each_property_of_node(np, pp) {
+				if (pp->next) pp->next = (struct property *)((int)pp->next + undft_offset);
+				if (pp->value && pp->next) pp->value = (void	*)((int)pp->value + dfb_offset);
+				if (pp->name && pp->next) pp->name += dfb_offset;
+				if (!pp->next) {
+					pp->name = "name";
+					pp->value = (void	*)np->name;
+				}
+#ifdef DEBUG_SHOW_UNFDT_PP
+				//printk("    >> properties:%p name:%p value:%p next:%p (%s)\n", pp, pp->name, pp->value, pp->next, pp->name);
+				printk("  >> properties:%p name:%p value:%p next:%p (%s) [%s]\n", pp, pp->name, pp->value, pp->next, pp->name,(char*) pp->value);
+				if (pp->attr.attr.name)  printk("      >>pp->attr.attr.name:%p\n",pp->attr.attr.name);
+				if (pp->attr.write)      printk("      >>pp->attr.write:%p\n", pp->attr.write);
+				if (pp->attr.private)    printk("      >>pp->attr.private:%p\n", pp->attr.private);
+				if (pp->attr.read)       printk("      >>pp->attr.read:%p\n", pp->attr.read);
+				if (pp->attr.mmap)       printk("      >>pp->attr.mmap:%p\n", pp->attr.mmap);
+#endif
+
+			}
+		}
+	}
+
+	if (mynodes)
+		*mynodes = (struct device_node *) builtin_unfdt_start;
+}
+#endif
+
 /**
  * unflatten_device_tree - create tree of device_nodes from flat blob
  *
@@ -1228,8 +1416,19 @@ bool __init early_init_dt_scan(void *params)
  */
 void __init unflatten_device_tree(void)
 {
+#ifndef CONFIG_SS_BUILTIN_UNFDT
 	__unflatten_device_tree(initial_boot_params, NULL, &of_root,
-				early_init_dt_alloc_memory_arch, false);
+			early_init_dt_alloc_memory_arch, false);
+#else
+	undft_old_addr = (void *) *(u32 *)unfdt_runtime_base;
+	dfb_old_addr = (void *) *(u32 *)fdt_runtime_base;
+	revise_unfdt(&of_root);
+	pr_debug("+++++   of_root            :%p\n", of_root);
+	pr_debug("+++++   builtin_unfdt_start:%p\n", builtin_unfdt_start);
+	pr_debug("+++++   builtin_dtb_start  :%p\n", builtin_dtb_start);
+	pr_debug("+++++   undft_old_addr     :%p\n", undft_old_addr);
+	pr_debug("+++++   dfb_old_addr       :%p\n", dfb_old_addr);
+#endif
 
 	/* Get pointer to "/chosen" and "/aliases" nodes for use everywhere */
 	of_alias_scan(early_init_dt_alloc_memory_arch);
@@ -1285,12 +1484,13 @@ static int __init of_fdt_raw_init(void)
 
 	if (!initial_boot_params)
 		return 0;
-
+#ifndef CONFIG_FB_DTS_SKIP_CRC
 	if (of_fdt_crc32 != crc32_be(~0, initial_boot_params,
 				     fdt_totalsize(initial_boot_params))) {
 		pr_warn("not creating '/sys/firmware/fdt': CRC check failed\n");
 		return 0;
 	}
+#endif
 	of_fdt_raw_attr.size = fdt_totalsize(initial_boot_params);
 	return sysfs_create_bin_file(firmware_kobj, &of_fdt_raw_attr);
 }

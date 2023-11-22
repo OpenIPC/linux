@@ -1,0 +1,9 @@
+config SS_FSP_QSPI
+    tristate "FSP_QSPI"
+    default n
+
+config FSP_QSPI_DUAL_BANK
+    bool "FSP QSPI DUAL BANK"
+    depends on SS_FSP_QSPI
+    default n
+

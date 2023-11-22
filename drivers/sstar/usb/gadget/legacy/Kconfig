@@ -1,0 +1,78 @@
+if ARCH_SSTAR
+
+config USB_GADGET_SSTAR_LEGACY
+	bool
+	default y if ARCH_SSTAR
+
+config USB_G_SSTAR_GADGET
+	tristate "USB SigmaStar Gadget"
+	select USB_LIBCOMPOSITE
+	help
+		SigmaStar Gadget Configuration
+
+config USB_SSTAR_UVC
+	bool "Include configuration with UVC (Video)"
+	depends on USB_G_SSTAR_GADGET && VIDEO_V4L2
+	select VIDEOBUF2_VMALLOC
+	select VIDEOBUF2_DMA_SG
+	select USB_F_SSTAR_UVC
+	help
+		external uvc function for sstar_gadget
+
+config MULTI_STREAM_FUNC_NUM
+	int "Multi Stream Under One Function"
+	depends on USB_SSTAR_UVC
+	default 1
+	help
+	  Support Multi Stream Under One Function
+
+config UVC_STREAM_ERR_SUPPORT
+	bool "Set UVC_STREAM_ERR bit in header to indicate an error frame"
+	depends on USB_SSTAR_UVC
+	default n
+	help
+	  If udc controller reports NOSNR (Out of streams resources) error, it means
+	  there are data lost during frame data transmission.
+	  Indicate host that the sending frame might be corrupted and should be drop by
+	  set UVC_STREAM_ERR bit in payload header.
+
+config UVC_VER150_SUPPORT
+	bool "UVC 1.5 Support"
+	depends on USB_SSTAR_UVC
+	default n
+	help
+	  Support uvc 1.5 for sstar_gadget uvc
+
+config WINDOWS_HELLO_SUPPORT
+	bool "Windows Hello Support"
+	depends on USB_SSTAR_UVC
+	default n
+	help
+	  Support windows hello for sstar_gadget uvc
+
+config USB_SSTAR_UAC1
+	bool "Include configuration with UAC (Audio)"
+	depends on USB_G_SSTAR_GADGET && SND
+	select SND_PCM
+	select USB_F_SSTAR_UAC1
+	select USB_U_SSTAR_AUDIO
+	help
+	  external uac1 function for sstar_gadget
+
+config USB_SSTAR_RNDIS
+	bool "Include configuration with RNDIS"
+	depends on USB_G_SSTAR_GADGET && NET
+	select USB_U_ETHER
+	select USB_F_RNDIS
+	select CRC32
+	help
+	  external rndis function for sstar_gadget
+
+config USB_SSTAR_DFU
+	bool "Include configuration with (DFU)"
+	depends on USB_G_SSTAR_GADGET
+	select USB_F_SSTAR_DFU
+	help
+		external dfu function for sstar_gadget
+
+endif

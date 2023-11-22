@@ -22,6 +22,7 @@
 #include <linux/debugfs.h>
 #include <linux/wait.h>
 #include <linux/workqueue.h>
+#include <linux/android_kabi.h>
 
 #include <linux/usb/ch9.h>
 #include <linux/usb/gadget.h>
@@ -30,6 +31,8 @@
 #include <linux/ulpi/interface.h>
 
 #include <linux/phy/phy.h>
+
+#include <linux/power_supply.h>
 
 #define DWC3_MSG_MAX	500
 
@@ -55,7 +58,7 @@
 #define DWC3_DEVICE_EVENT_LINK_STATUS_CHANGE	3
 #define DWC3_DEVICE_EVENT_WAKEUP		4
 #define DWC3_DEVICE_EVENT_HIBER_REQ		5
-#define DWC3_DEVICE_EVENT_EOPF			6
+#define DWC3_DEVICE_EVENT_SUSPEND		6
 #define DWC3_DEVICE_EVENT_SOF			7
 #define DWC3_DEVICE_EVENT_ERRATIC_ERROR		9
 #define DWC3_DEVICE_EVENT_CMD_CMPL		10
@@ -73,8 +76,106 @@
 #define DWC3_GSNPS_ID(p)	(((p) & DWC3_GSNPSID_MASK) >> 16)
 
 /* DWC3 registers memory space boundries */
+#ifdef CONFIG_ARCH_SSTAR
+#define DWC3_XHCI_REGS_START 0xC00
+#define DWC3_XHCI_REGS_END 0x7ff
+	  
+#define DWC3_GLOBALS_REGS_START		0x0 	//0xc100
+#define DWC3_GLOBALS_REGS_END		0x4ff	//0xc6ff
+#define DWC3_DEVICE_REGS_START		0x500	//0xc700
+#define DWC3_DEVICE_REGS_END		0x9ff	//0xcbff
+#define DWC3_OTG_REGS_START		0xe00		//0xcc00
+#define DWC3_OTG_REGS_END		0xeff		//0xccff
+
+/* Global Registers */
+#define DWC3_GSBUSCFG0		0x0 			//0xc100
+#define DWC3_GSBUSCFG1		0x04			//0xc104
+#define DWC3_GTXTHRCFG		0x08			//0xc108
+#define DWC3_GRXTHRCFG		0x0c			//0xc10c
+#define DWC3_GCTL		0x10				//0xc110
+#define DWC3_GEVTEN		0x14				//0xc114
+#define DWC3_GSTS		0x18				//0xc118
+#define DWC3_GUCTL1		0x1c				//0xc11c
+#define DWC3_GSNPSID		0x20			//0xc120
+#define DWC3_GGPIO		0x24				//0xc124
+#define DWC3_GUID		0x28				//0xc128
+#define DWC3_GUCTL		0x2c				//0xc12c
+#define DWC3_GBUSERRADDR0	0x30			//0xc130
+#define DWC3_GBUSERRADDR1	0x34			//0xc134
+#define DWC3_GPRTBIMAP0		0x38			//0xc138
+#define DWC3_GPRTBIMAP1		0x3c			//0xc13c
+#define DWC3_GHWPARAMS0		0x40			//0xc140
+#define DWC3_GHWPARAMS1		0x44			//0xc144
+#define DWC3_GHWPARAMS2		0x48			//0xc148
+#define DWC3_GHWPARAMS3		0x4c			//0xc14c
+#define DWC3_GHWPARAMS4		0x50			//0xc150
+#define DWC3_GHWPARAMS5		0x54			//0xc154
+#define DWC3_GHWPARAMS6		0x58			//0xc158
+#define DWC3_GHWPARAMS7		0x5c			//0xc15c
+#define DWC3_GDBGFIFOSPACE	0x60			//0xc160
+#define DWC3_GDBGLTSSM		0x64			//0xc164
+#define DWC3_GDBGBMU		0x6c			//0xc16c
+#define DWC3_GDBGLSPMUX		0x70			//0xc170
+#define DWC3_GDBGLSP		0x74			//0xc174
+#define DWC3_GDBGEPINFO0	0x78			//0xc178
+#define DWC3_GDBGEPINFO1	0x7c			//0xc17c
+#define DWC3_GPRTBIMAP_HS0	0x80			//0xc180
+#define DWC3_GPRTBIMAP_HS1	0x84			//0xc184
+#define DWC3_GPRTBIMAP_FS0	0x88			//0xc188
+#define DWC3_GPRTBIMAP_FS1	0x8c			//0xc18c
+#define DWC3_GUCTL2		0x9c				//0xc19c
+
+#define DWC3_VER_NUMBER		0xa0			//0xc1a0
+#define DWC3_VER_TYPE		0xa4			//0xc1a4
+
+#define DWC3_GUSB2PHYCFG(n)	(0x100 + ((n) * 0x04))				//(0xc200 + ((n) * 0x04))
+#define DWC3_GUSB2I2CCTL(n)	(0x140 + ((n) * 0x04))				//(0xc240 + ((n) * 0x04))
+
+#define DWC3_GUSB2PHYACC(n)	(0x180 + ((n) * 0x04))				//(0xc280 + ((n) * 0x04))
+
+#define DWC3_GUSB3PIPECTL(n)	(0x1c0 + ((n) * 0x04))			//(0xc2c0 + ((n) * 0x04))
+
+#define DWC3_GTXFIFOSIZ(n)	(0x200 + ((n) * 0x04))				//(0xc300 + ((n) * 0x04))
+#define DWC3_GRXFIFOSIZ(n)	(0x280 + ((n) * 0x04))				//(0xc380 + ((n) * 0x04))
+
+#define DWC3_GEVNTADRLO(n)	(0x300 + ((n) * 0x10))			   //(0xc400 + ((n) * 0x10))
+#define DWC3_GEVNTADRHI(n)	(0x304 + ((n) * 0x10))				//(0xc404 + ((n) * 0x10))
+#define DWC3_GEVNTSIZ(n)	(0x308 + ((n) * 0x10))				//(0xc408 + ((n) * 0x10))
+#define DWC3_GEVNTCOUNT(n)	(0x30c + ((n) * 0x10))				//(0xc40c + ((n) * 0x10))
+
+#define DWC3_GHWPARAMS8		0x400			//0xc600
+#define DWC3_GUCTL3		0x40c				//0xc60c
+#define DWC3_GFLADJ		0x430				//0xc630
+#define DWC3_GHWPARAMS9		0x480			//0xc680
+
+/* Device Registers */
+#define DWC3_DCFG		0x500				//0xc700
+#define DWC3_DCTL		0x504				//0xc704
+#define DWC3_DEVTEN		0x508				//0xc708
+#define DWC3_DSTS		0x50c				//0xc70c
+#define DWC3_DGCMDPAR		0x510			//0xc710
+#define DWC3_DGCMD		0x514				//0xc714
+#define DWC3_DALEPENA		0x520			//0xc720
+
+#define DWC3_DEP_BASE(n)	(0x600 + ((n) * 0x10))					//(0xc800 + ((n) * 0x10))
+#define DWC3_DEPCMDPAR2		0x00
+#define DWC3_DEPCMDPAR1		0x04
+#define DWC3_DEPCMDPAR0		0x08
+#define DWC3_DEPCMD		0x0c
+
+#define DWC3_DEV_IMOD(n)	(0x800 + ((n) * 0x4))					//(0xca00 + ((n) * 0x4))
+
+/* OTG Registers */
+#define DWC3_OCFG		0xe00
+#define DWC3_OCTL		0xe04
+#define DWC3_OEVT		0xe08
+#define DWC3_OEVTEN		0xe0C
+#define DWC3_OSTS		0xe10
+
+#else
 #define DWC3_XHCI_REGS_START		0x0
 #define DWC3_XHCI_REGS_END		0x7fff
+
 #define DWC3_GLOBALS_REGS_START		0xc100
 #define DWC3_GLOBALS_REGS_END		0xc6ff
 #define DWC3_DEVICE_REGS_START		0xc700
@@ -141,6 +242,7 @@
 #define DWC3_GHWPARAMS8		0xc600
 #define DWC3_GUCTL3		0xc60c
 #define DWC3_GFLADJ		0xc630
+#define DWC3_GHWPARAMS9		0xc680
 
 /* Device Registers */
 #define DWC3_DCFG		0xc700
@@ -166,6 +268,7 @@
 #define DWC3_OEVTEN		0xcc0C
 #define DWC3_OSTS		0xcc10
 
+#endif
 /* Bit fields */
 
 /* Global SoC Bus Configuration INCRx Register 0 */
@@ -376,6 +479,9 @@
 #define DWC3_GHWPARAMS7_RAM1_DEPTH(n)	((n) & 0xffff)
 #define DWC3_GHWPARAMS7_RAM2_DEPTH(n)	(((n) >> 16) & 0xffff)
 
+/* Global HWPARAMS9 Register */
+#define DWC3_GHWPARAMS9_DEV_TXF_FLUSH_BYPASS	BIT(0)
+
 /* Global Frame Length Adjustment Register */
 #define DWC3_GFLADJ_30MHZ_SDBND_SEL		BIT(7)
 #define DWC3_GFLADJ_30MHZ_MASK			0x3f
@@ -387,6 +493,8 @@
 #define DWC3_GUCTL3_SPLITDISABLE		BIT(14)
 
 /* Device Configuration Register */
+#define DWC3_DCFG_NUMLANES(n)	(((n) & 0x3) << 30) /* DWC_usb32 only */
+
 #define DWC3_DCFG_DEVADDR(addr)	((addr) << 3)
 #define DWC3_DCFG_DEVADDR_MASK	DWC3_DCFG_DEVADDR(0x7f)
 
@@ -401,6 +509,7 @@
 #define DWC3_DCFG_NUMP(n)	(((n) >> DWC3_DCFG_NUMP_SHIFT) & 0x1f)
 #define DWC3_DCFG_NUMP_MASK	(0x1f << DWC3_DCFG_NUMP_SHIFT)
 #define DWC3_DCFG_LPM_CAP	BIT(22)
+#define DWC3_DCFG_IGNSTRMPP	BIT(23)
 
 /* Device Control Register */
 #define DWC3_DCTL_RUN_STOP	BIT(31)
@@ -452,13 +561,15 @@
 #define DWC3_DEVTEN_CMDCMPLTEN		BIT(10)
 #define DWC3_DEVTEN_ERRTICERREN		BIT(9)
 #define DWC3_DEVTEN_SOFEN		BIT(7)
-#define DWC3_DEVTEN_EOPFEN		BIT(6)
+#define DWC3_DEVTEN_U3L2L1SUSPEN	BIT(6)
 #define DWC3_DEVTEN_HIBERNATIONREQEVTEN	BIT(5)
 #define DWC3_DEVTEN_WKUPEVTEN		BIT(4)
 #define DWC3_DEVTEN_ULSTCNGEN		BIT(3)
 #define DWC3_DEVTEN_CONNECTDONEEN	BIT(2)
 #define DWC3_DEVTEN_USBRSTEN		BIT(1)
 #define DWC3_DEVTEN_DISCONNEVTEN	BIT(0)
+
+#define DWC3_DSTS_CONNLANES(n)		(((n) >> 30) & 0x3) /* DWC_usb32 only */
 
 /* Device Status Register */
 #define DWC3_DSTS_DCNRD			BIT(29)
@@ -650,6 +761,8 @@ struct dwc3_event_buffer {
 	dma_addr_t		dma;
 
 	struct dwc3		*dwc;
+
+	ANDROID_KABI_RESERVE(1);
 };
 
 #define DWC3_EP_FLAG_STALLED	BIT(0)
@@ -713,6 +826,10 @@ struct dwc3_ep {
 #define DWC3_EP_FORCE_RESTART_STREAM	BIT(9)
 #define DWC3_EP_FIRST_STREAM_PRIMED	BIT(10)
 #define DWC3_EP_PENDING_CLEAR_STALL	BIT(11)
+#ifdef CONFIG_ARCH_SSTAR
+#define DWC3_EP_MISSED_ISOC    BIT(12)
+#endif
+
 
 	/* This last one is specific to EP0 */
 #define DWC3_EP0_DIR_IN		BIT(31)
@@ -743,6 +860,9 @@ struct dwc3_ep {
 	/* For isochronous START TRANSFER workaround only */
 	u8			combo_num;
 	int			start_cmd_status;
+
+	ANDROID_KABI_RESERVE(1);
+	ANDROID_KABI_RESERVE(2);
 };
 
 enum dwc3_phy {
@@ -841,6 +961,7 @@ struct dwc3_trb {
  * @hwparams6: GHWPARAMS6
  * @hwparams7: GHWPARAMS7
  * @hwparams8: GHWPARAMS8
+ * @hwparams9: GHWPARAMS9
  */
 struct dwc3_hwparams {
 	u32	hwparams0;
@@ -852,12 +973,14 @@ struct dwc3_hwparams {
 	u32	hwparams6;
 	u32	hwparams7;
 	u32	hwparams8;
+	u32	hwparams9;
+
+	ANDROID_KABI_RESERVE(1);
+	ANDROID_KABI_RESERVE(2);
 };
 
 /* HWPARAMS0 */
 #define DWC3_MODE(n)		((n) & 0x7)
-
-#define DWC3_MDWIDTH(n)		(((n) & 0xff00) >> 8)
 
 /* HWPARAMS1 */
 #define DWC3_NUM_INT(n)		(((n) & (0x3f << 15)) >> 15)
@@ -905,11 +1028,13 @@ struct dwc3_request {
 	unsigned int		remaining;
 
 	unsigned int		status;
-#define DWC3_REQUEST_STATUS_QUEUED	0
-#define DWC3_REQUEST_STATUS_STARTED	1
-#define DWC3_REQUEST_STATUS_CANCELLED	2
-#define DWC3_REQUEST_STATUS_COMPLETED	3
-#define DWC3_REQUEST_STATUS_UNKNOWN	-1
+#define DWC3_REQUEST_STATUS_QUEUED		0
+#define DWC3_REQUEST_STATUS_STARTED		1
+#define DWC3_REQUEST_STATUS_DISCONNECTED	2
+#define DWC3_REQUEST_STATUS_DEQUEUED		3
+#define DWC3_REQUEST_STATUS_STALLED		4
+#define DWC3_REQUEST_STATUS_COMPLETED		5
+#define DWC3_REQUEST_STATUS_UNKNOWN		-1
 
 	u8			epnum;
 	struct dwc3_trb		*trb;
@@ -920,6 +1045,9 @@ struct dwc3_request {
 	unsigned int		needs_extra_trb:1;
 	unsigned int		direction:1;
 	unsigned int		mapped:1;
+
+	ANDROID_KABI_RESERVE(1);
+	ANDROID_KABI_RESERVE(2);
 };
 
 /*
@@ -966,6 +1094,10 @@ struct dwc3_scratchpad_array {
  * @nr_scratch: number of scratch buffers
  * @u1u2: only used on revisions <1.83a for workaround
  * @maximum_speed: maximum speed requested (mainly for testing purposes)
+ * @max_ssp_rate: SuperSpeed Plus maximum signaling rate and lane count
+ * @gadget_max_speed: maximum gadget speed requested
+ * @gadget_ssp_rate: Gadget driver's maximum supported SuperSpeed Plus signaling
+ *			rate and lane count.
  * @ip: controller's ID
  * @revision: controller's version of an IP
  * @version_type: VERSIONTYPE register contents, a sub release of a revision
@@ -980,6 +1112,7 @@ struct dwc3_scratchpad_array {
  * @role_sw: usb_role_switch handle
  * @role_switch_default_mode: default operation mode of controller while
  *			usb role is USB_ROLE_NONE.
+ * @usb_psy: pointer to power supply interface.
  * @usb2_phy: pointer to USB2 PHY
  * @usb3_phy: pointer to USB3 PHY
  * @usb2_generic_phy: pointer to USB2 PHY
@@ -1008,6 +1141,7 @@ struct dwc3_scratchpad_array {
  * @rx_max_burst_prd: max periodic ESS receive burst size
  * @tx_thr_num_pkt_prd: periodic ESS transmit packet count
  * @tx_max_burst_prd: max periodic ESS transmit burst size
+ * @tx_fifo_resize_max_num: max number of fifos allocated during txfifo resize
  * @hsphy_interface: "utmi" or "ulpi"
  * @connected: true when we're connected to a host, false otherwise
  * @delayed_status: true when gadget driver asks for delayed status
@@ -1022,6 +1156,7 @@ struct dwc3_scratchpad_array {
  *	1	- utmi_l1_suspend_n
  * @is_fpga: true when we are using the FPGA board
  * @pending_events: true when we have pending IRQs to be handled
+ * @do_fifo_resize: true when txfifo resizing is enabled for dwc3 endpoints
  * @pullups_connected: true when Run/Stop bit is set
  * @setup_packet_pending: true when there's a Setup Packet in FIFO. Workaround
  * @three_stage_setup: set if we perform a three phase setup
@@ -1064,6 +1199,11 @@ struct dwc3_scratchpad_array {
  * @dis_split_quirk: set to disable split boundary.
  * @imod_interval: set the interrupt moderation interval in 250ns
  *			increments or 0 to disable.
+ * @max_cfg_eps: current max number of IN eps used across all USB configs.
+ * @last_fifo_depth: last fifo depth used to determine next fifo ram start
+ *		     address.
+ * @num_ep_resized: carries the current number endpoints which have had its tx
+ *		    fifo resized.
  */
 struct dwc3 {
 	struct work_struct	drd_work;
@@ -1113,7 +1253,6 @@ struct dwc3 {
 
 	void __iomem		*regs;
 	size_t			regs_size;
-
 	enum usb_dr_mode	dr_mode;
 	u32			current_dr_role;
 	u32			desired_dr_role;
@@ -1122,6 +1261,8 @@ struct dwc3 {
 	enum usb_phy_interface	hsphy_mode;
 	struct usb_role_switch	*role_sw;
 	enum usb_dr_mode	role_switch_default_mode;
+
+	struct power_supply	*usb_psy;
 
 	u32			fladj;
 	u32			irq_gadget;
@@ -1132,6 +1273,9 @@ struct dwc3 {
 	u32			nr_scratch;
 	u32			u1u2;
 	u32			maximum_speed;
+	u32			gadget_max_speed;
+	enum usb_ssp_rate	max_ssp_rate;
+	enum usb_ssp_rate	gadget_ssp_rate;
 
 	u32			ip;
 
@@ -1214,6 +1358,7 @@ struct dwc3 {
 	u8			rx_max_burst_prd;
 	u8			tx_thr_num_pkt_prd;
 	u8			tx_max_burst_prd;
+	u8			tx_fifo_resize_max_num;
 
 	const char		*hsphy_interface;
 
@@ -1227,6 +1372,7 @@ struct dwc3 {
 	unsigned		is_utmi_l1_suspend:1;
 	unsigned		is_fpga:1;
 	unsigned		pending_events:1;
+	unsigned		do_fifo_resize:1;
 	unsigned		pullups_connected:1;
 	unsigned		setup_packet_pending:1;
 	unsigned		three_stage_setup:1;
@@ -1260,8 +1406,18 @@ struct dwc3 {
 	unsigned		dis_metastability_quirk:1;
 
 	unsigned		dis_split_quirk:1;
+	unsigned		async_callbacks:1;
 
 	u16			imod_interval;
+
+	int			max_cfg_eps;
+	int			last_fifo_depth;
+	int			num_ep_resized;
+
+	ANDROID_KABI_RESERVE(1);
+	ANDROID_KABI_RESERVE(2);
+	ANDROID_KABI_RESERVE(3);
+	ANDROID_KABI_RESERVE(4);
 };
 
 #define INCRX_BURST_MODE 0
@@ -1354,7 +1510,7 @@ struct dwc3_event_depevt {
  *	3	- ULStChng
  *	4	- WkUpEvt
  *	5	- Reserved
- *	6	- EOPF
+ *	6	- Suspend (EOPF on revisions 2.10a and prior)
  *	7	- SOF
  *	8	- Reserved
  *	9	- ErrticErr
@@ -1426,6 +1582,9 @@ struct dwc3_gadget_ep_cmd_params {
 #define DWC3_HAS_OTG			BIT(3)
 
 /* prototypes */
+#ifdef CONFIG_ARCH_SSTAR
+u32 dwc3_to_sigma_rebase(u32 offset, u32 value);
+#endif
 void dwc3_set_prtcap(struct dwc3 *dwc, u32 mode);
 void dwc3_set_mode(struct dwc3 *dwc, u32 mode);
 u32 dwc3_core_fifo_space(struct dwc3_ep *dep, u8 type);
@@ -1450,6 +1609,23 @@ u32 dwc3_core_fifo_space(struct dwc3_ep *dep, u8 type);
 	 dwc->version_type >= _ip##_VERSIONTYPE_##_from &&		\
 	 (!(_ip##_VERSIONTYPE_##_to) ||					\
 	  dwc->version_type <= _ip##_VERSIONTYPE_##_to))
+
+/**
+ * dwc3_mdwidth - get MDWIDTH value in bits
+ * @dwc: pointer to our context structure
+ *
+ * Return MDWIDTH configuration value in bits.
+ */
+static inline u32 dwc3_mdwidth(struct dwc3 *dwc)
+{
+	u32 mdwidth;
+
+	mdwidth = DWC3_GHWPARAMS0_MDWIDTH(dwc->hwparams.hwparams0);
+	if (DWC3_IP_IS(DWC32))
+		mdwidth += DWC3_GHWPARAMS6_MDWIDTH(dwc->hwparams.hwparams6);
+
+	return mdwidth;
+}
 
 bool dwc3_has_imod(struct dwc3 *dwc);
 
@@ -1476,6 +1652,8 @@ int dwc3_send_gadget_ep_cmd(struct dwc3_ep *dep, unsigned int cmd,
 		struct dwc3_gadget_ep_cmd_params *params);
 int dwc3_send_gadget_generic_command(struct dwc3 *dwc, unsigned int cmd,
 		u32 param);
+void dwc3_stop_active_transfer(struct dwc3_ep *dep, bool force, bool interrupt);
+void dwc3_gadget_clear_tx_fifos(struct dwc3 *dwc);
 #else
 static inline int dwc3_gadget_init(struct dwc3 *dwc)
 { return 0; }
@@ -1495,6 +1673,11 @@ static inline int dwc3_send_gadget_ep_cmd(struct dwc3_ep *dep, unsigned int cmd,
 static inline int dwc3_send_gadget_generic_command(struct dwc3 *dwc,
 		int cmd, u32 param)
 { return 0; }
+static inline void dwc3_stop_active_transfer(struct dwc3_ep *dep, bool force,
+					     bool interrupt)
+{ }
+static inline void dwc3_gadget_clear_tx_fifos(struct dwc3 *dwc)
+{ }
 #endif
 
 #if IS_ENABLED(CONFIG_USB_DWC3_DUAL_ROLE)

@@ -173,6 +173,11 @@ static void l2c_resume(void)
 static void __l2c210_cache_sync(void __iomem *base)
 {
 	writel_relaxed(0, base + sync_reg_offset);
+#ifdef CONFIG_MS_L2X0_PATCH
+	if (outer_cache.flush_MIU_pipe) {
+		outer_cache.flush_MIU_pipe();
+	}
+#endif
 }
 
 static void __l2c210_op_pa_range(void __iomem *reg, unsigned long start,
@@ -744,6 +749,11 @@ static void l2c310_disable(void)
 
 static void l2c310_resume(void)
 {
+#if defined(CONFIG_MS_L2X0_PATCH)
+	if (outer_cache.flush_MIU_pipe) {
+		outer_cache.flush_MIU_pipe();
+	}
+#endif
 	l2c_resume();
 
 	/* Re-enable full-line-of-zeros for Cortex-A9 */

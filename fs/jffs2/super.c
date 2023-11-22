@@ -256,7 +256,11 @@ static const struct super_operations jffs2_super_operations =
  */
 static int jffs2_fill_super(struct super_block *sb, struct fs_context *fc)
 {
-	struct jffs2_sb_info *c = sb->s_fs_info;
+#ifdef CONFIG_SS_NOR_ONEBIN
+    u32 u32_erasesize = 0;
+#endif
+    struct jffs2_sb_info *c = sb->s_fs_info;
+    int ret;
 
 	jffs2_dbg(1, "jffs2_get_sb_mtd():"
 		  " New superblock for device %d (\"%s\")\n",
@@ -285,7 +289,23 @@ static int jffs2_fill_super(struct super_block *sb, struct fs_context *fc)
 #ifdef CONFIG_JFFS2_FS_POSIX_ACL
 	sb->s_flags |= SB_POSIXACL;
 #endif
-	return jffs2_do_fill_super(sb, fc);
+
+#ifdef CONFIG_SS_NOR_ONEBIN
+    /*patch for 4k erase size,change the erase size of jffs2 to 64k*/
+    u32_erasesize = c->mtd->erasesize;
+    c->mtd->erasesize = 0x10000;//64k(BLOCK_ERASE_SIZE)
+#endif
+
+    ret = jffs2_do_fill_super(sb, fc);
+
+#ifdef CONFIG_SS_NOR_ONEBIN
+    if(ret)
+    {
+        c->mtd->erasesize = u32_erasesize;
+    }
+#endif
+
+	return ret;
 }
 
 static int jffs2_get_tree(struct fs_context *fc)

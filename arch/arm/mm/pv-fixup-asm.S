@@ -37,6 +37,7 @@ ENTRY(lpae_pgtables_remap_asm)
 	cmp	r7, r6
 	bls	1b
 
+#ifndef CONFIG_SS_BUILTIN_DTB
 	/* Update level 2 entries for the boot data */
 	add	r7, r2, #0x1000
 	movw	r3, #FDT_FIXED_BASE >> (SECTION_SHIFT - L2_ORDER)
@@ -49,6 +50,7 @@ ENTRY(lpae_pgtables_remap_asm)
 	adds	r4, r4, r0
 	adc	r5, r5, r1
 	strd	r4, r5, [r7]
+#endif
 
 	/* Update level 1 entries */
 	mov	r6, #4

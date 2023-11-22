@@ -27,6 +27,13 @@
 #include <asm/irq_regs.h>
 #include <linux/kvm_para.h>
 
+#include <trace/hooks/softlockup.h>
+
+#ifdef CONFIG_SSTAR_IRQ_DEBUG_TRACE
+unsigned long lastTouch = 0;
+#include "../drivers/sstar/include/ms_msys.h"
+#endif
+
 static DEFINE_MUTEX(watchdog_mutex);
 
 #if defined(CONFIG_HARDLOCKUP_DETECTOR) || defined(CONFIG_HAVE_NMI_WATCHDOG)
@@ -296,6 +303,17 @@ static int is_softlockup(unsigned long touch_ts)
 		/* Warn about unreasonable delays. */
 		if (time_after(now, touch_ts + get_softlockup_thresh()))
 			return now - touch_ts;
+
+#ifdef CONFIG_SSTAR_IRQ_DEBUG_TRACE
+		if ((now - touch_ts) > lastTouch) {
+			lastTouch = now - touch_ts;
+
+			if (lastTouch >= (watchdog_thresh/2)) {
+				printk("!!!!!! lastTouch(s): %ld now:%lld\r\n", lastTouch, local_clock());
+				sstar_irq_dump_count();
+			}
+		}
+#endif
 	}
 	return 0;
 }
@@ -335,6 +353,10 @@ static int softlockup_fn(void *data)
 
 	return 0;
 }
+
+#ifdef CONFIG_SSTAR_IRQ_DEBUG_TRACE
+#include "../../drivers/sstar/include/ms_msys.h"
+#endif
 
 /* watchdog kicker functions */
 static enum hrtimer_restart watchdog_timer_fn(struct hrtimer *hrtimer)
@@ -402,8 +424,15 @@ static enum hrtimer_restart watchdog_timer_fn(struct hrtimer *hrtimer)
 				return HRTIMER_RESTART;
 		}
 
-		/* Start period for the next softlockup warning. */
+        /* Start period for the next softlockup warning. */
 		update_touch_ts();
+
+#ifdef CONFIG_SSTAR_IRQ_DEBUG_TRACE
+		printk("debug:\n");
+		sstar_irq_dump_count();
+		sstar_sirq_dump_info();
+		sstar_irq_dump_info();
+#endif
 
 		pr_emerg("BUG: soft lockup - CPU#%d stuck for %us! [%s:%d]\n",
 			smp_processor_id(), duration,
@@ -420,6 +449,7 @@ static enum hrtimer_restart watchdog_timer_fn(struct hrtimer *hrtimer)
 			clear_bit_unlock(0, &soft_lockup_nmi_warn);
 		}
 
+		trace_android_vh_watchdog_timer_softlockup(duration, regs, !!softlockup_panic);
 		add_taint(TAINT_SOFTLOCKUP, LOCKDEP_STILL_OK);
 		if (softlockup_panic)
 			panic("softlockup: hung tasks");

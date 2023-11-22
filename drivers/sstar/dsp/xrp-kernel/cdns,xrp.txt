@@ -1,0 +1,46 @@
+Bindings for the Cadence Xtensa Remote Processing driver.
+
+Required properties:
+- compatible: shall be "cdns,xrp".
+- reg: register locations of the DSP MMIO block, DSP communication area and
+  DSP shared memory area.
+
+Optional properties:
+- queue-priority: cells indicating priorities of DSP hardware queues. If
+  missing then single default queue is configured.
+- firmware-name: string identifying firmware name. If missing the driver
+  doesn't load the firmware.
+
+- #address-cells: number of cells DSP physical address takes in the ranges.
+- #size-cells: number of cells each size takes in the ranges.
+- ranges: standard ranges property. Provides mapping of DSP physical addresses
+  to host physical addresses. Arbitrary number of groups with the following
+  structure:
+  - cells with DSP physical address of the region;
+  - cells with the corresponding host physical address of the
+    region;
+  - cells with the size of the region.
+
+XRP node may have an optional subnode when there's non-identity mapping set
+up in the ranges property. Both subnode and ranges property are required in
+order for the address translation to work.
+
+Example:
+
+	xrp@0 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "cdns,xrp";
+		reg = <0xfd001000 0x00000200   /* DSP MMIO */
+		       0xf0000000 0x00001000   /* DSP communication area */
+		       0xf0001000 0x00fff000>; /* DSP shared memory */
+		firmware-name = "xrp0.elf";
+		ranges = <0x00000000 0x00000000 0x10000000
+			  0x3ffc0000 0xc0000000 0x00020000
+			  0x3ffe0000 0xc0020000 0x00020000
+			  0x50000000 0x50000000 0x01000000
+			  0x60000000 0x60000000 0x20000000
+			  0xf0000000 0xf0000000 0x0d000000>;
+		dsp@0 {
+		};
+	};

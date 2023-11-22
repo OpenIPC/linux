@@ -1,0 +1,232 @@
+/*
+ * gpio.h- Sigmastar
+ *
+ * Copyright (c) [2019~2020] SigmaStar Technology.
+ *
+ *
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License version 2 for more details.
+ *
+ */
+#ifndef ___GPIO_H
+#define ___GPIO_H
+
+#define PAD_IRIN         0
+#define PAD_UART_RX      1
+#define PAD_UART_TX      2
+#define PAD_UART_RX1     3
+#define PAD_UART_TX1     4
+#define PAD_UART_RX2     5
+#define PAD_UART_TX2     6
+#define PAD_UART_RX3     7
+#define PAD_UART_TX3     8
+#define PAD_SPI_CZ       9
+#define PAD_SPI_DI       10
+#define PAD_SPI_WPZ      11
+#define PAD_SPI_DO       12
+#define PAD_SPI_CK       13
+#define PAD_SPI_HLD      14
+#define PAD_SD0_GPIO1    15
+#define PAD_SD0_GPIO0    16
+#define PAD_SD0_CDZ      17
+#define PAD_SD0_D1       18
+#define PAD_SD0_D0       19
+#define PAD_SD0_CLK      20
+#define PAD_SD0_CMD      21
+#define PAD_SD0_D3       22
+#define PAD_SD0_D2       23
+#define PAD_FUART_RX     24
+#define PAD_FUART_TX     25
+#define PAD_FUART_CTS    26
+#define PAD_FUART_RTS    27
+#define PAD_I2C1_SCL     28
+#define PAD_I2C1_SDA     29
+#define PAD_I2C2_SCL     30
+#define PAD_I2C2_SDA     31
+#define PAD_I2C3_SCL     32
+#define PAD_I2C3_SDA     33
+#define PAD_SPI0_DO      34
+#define PAD_SPI0_DI      35
+#define PAD_SPI0_CK      36
+#define PAD_SPI0_CZ      37
+#define PAD_SPI0_CZ1     38
+#define PAD_SPI1_DO      39
+#define PAD_SPI1_DI      40
+#define PAD_SPI1_CK      41
+#define PAD_SPI1_CZ      42
+#define PAD_PWM0         43
+#define PAD_PWM1         44
+#define PAD_PWM2         45
+#define PAD_PWM3         46
+#define PAD_GPIO0        47
+#define PAD_GPIO1        48
+#define PAD_GPIO2        49
+#define PAD_GPIO3        50
+#define PAD_GPIO4        51
+#define PAD_GPIO5        52
+#define PAD_GPIO6        53
+#define PAD_GPIO7        54
+#define PAD_BT1120_D0    55
+#define PAD_BT1120_D1    56
+#define PAD_BT1120_D2    57
+#define PAD_BT1120_D3    58
+#define PAD_BT1120_D4    59
+#define PAD_BT1120_D5    60
+#define PAD_BT1120_D6    61
+#define PAD_BT1120_D7    62
+#define PAD_BT1120_CLK   63
+#define PAD_BT1120_D8    64
+#define PAD_BT1120_D9    65
+#define PAD_BT1120_D10   66
+#define PAD_BT1120_D11   67
+#define PAD_BT1120_D12   68
+#define PAD_BT1120_D13   69
+#define PAD_BT1120_D14   70
+#define PAD_BT1120_D15   71
+#define PAD_BT1120_GPIO0 72
+#define PAD_BT1120_GPIO1 73
+#define PAD_BT1120_GPIO2 74
+#define PAD_SR_GPIO0     75
+#define PAD_SR_GPIO1     76
+#define PAD_SR_GPIO2     77
+#define PAD_SR_GPIO3     78
+#define PAD_SR_GPIO4     79
+#define PAD_SR_GPIO5     80
+#define PAD_SR_GPIO6     81
+#define PAD_SR_GPIO7     82
+#define PAD_SR_GPIO8     83
+#define PAD_SR_GPIO9     84
+#define PAD_SR_I2CM_SCL  85
+#define PAD_SR_I2CM_SDA  86
+#define PAD_SR_RST0      87
+#define PAD_SR_MCLK0     88
+#define PAD_SR_RST1      89
+#define PAD_SR_MCLK1     90
+#define PAD_SR_RST2      91
+#define PAD_SR_MCLK2     92
+#define PAD_SR_RST3      93
+#define PAD_SR_MCLK3     94
+#define PAD_SR_RST4      95
+#define PAD_SR_MCLK4     96
+#define PAD_SR_RST5      97
+#define PAD_SR_MCLK5     98
+#define PAD_SR_RST6      99
+#define PAD_SR_MCLK6     100
+#define PAD_SR_RST7      101
+#define PAD_SR_MCLK7     102
+#define PAD_SR_GPIO10    103
+#define PAD_SR_GPIO11    104
+#define PAD_I2S0_RX_BCK  105
+#define PAD_I2S0_RX_WCK  106
+#define PAD_I2S0_RX_DI   107
+#define PAD_I2S1_RX_BCK  108
+#define PAD_I2S1_RX_WCK  109
+#define PAD_I2S1_RX_DI   110
+#define PAD_I2S2_RX_BCK  111
+#define PAD_I2S2_RX_WCK  112
+#define PAD_I2S2_RX_DI   113
+#define PAD_I2S3_RX_BCK  114
+#define PAD_I2S3_RX_WCK  115
+#define PAD_I2S3_RX_DI   116
+#define PAD_I2S0_TX_BCK  117
+#define PAD_I2S0_TX_WCK  118
+#define PAD_I2S0_TX_DO   119
+#define PAD_I2S1_TX_BCK  120
+#define PAD_I2S1_TX_WCK  121
+#define PAD_I2S1_TX_DO   122
+#define PAD_I2S_MCLK0    123
+#define PAD_I2S_MCLK1    124
+#define PAD_HDMITX_HPD   125
+#define PAD_HDMITX_SDA   126
+#define PAD_HDMITX_SCL   127
+#define PAD_VSYNC_OUT    128
+#define PAD_HSYNC_OUT    129
+#define PAD_GPIO8        130
+#define PAD_GPIO9        131
+#define PAD_GPIO10       132
+#define PAD_GPIO11       133
+#define PAD_GPIO12       134
+#define PAD_GPIO13       135
+#define PAD_GPIO14       136
+#define PAD_GPIO15       137
+#define PAD_GPIO16       138
+#define PAD_GPIO17       139
+#define PAD_SD1_GPIO0    140
+#define PAD_SD1_GPIO1    141
+#define PAD_SD1_CDZ      142
+#define PAD_SD1_D1       143
+#define PAD_SD1_D0       144
+#define PAD_SD1_CLK      145
+#define PAD_SD1_CMD      146
+#define PAD_SD1_D3       147
+#define PAD_SD1_D2       148
+#define PAD_EMMC_D0      149
+#define PAD_EMMC_D1      150
+#define PAD_EMMC_D2      151
+#define PAD_EMMC_D3      152
+#define PAD_EMMC_D4      153
+#define PAD_EMMC_D5      154
+#define PAD_EMMC_D6      155
+#define PAD_EMMC_D7      156
+#define PAD_EMMC_CLK     157
+#define PAD_EMMC_CMD     158
+#define PAD_EMMC_RST     159
+#define PAD_RGMII0_TXCLK 160
+#define PAD_RGMII0_TXD0  161
+#define PAD_RGMII0_TXD1  162
+#define PAD_RGMII0_TXD2  163
+#define PAD_RGMII0_TXD3  164
+#define PAD_RGMII0_TXCTL 165
+#define PAD_RGMII0_RXCLK 166
+#define PAD_RGMII0_RXD0  167
+#define PAD_RGMII0_RXD1  168
+#define PAD_RGMII0_RXD2  169
+#define PAD_RGMII0_RXD3  170
+#define PAD_RGMII0_RXCTL 171
+#define PAD_RGMII0_IO0   172
+#define PAD_RGMII0_IO1   173
+#define PAD_RGMII0_MDC   174
+#define PAD_RGMII0_MDIO  175
+#define PAD_RGMII1_TXCLK 176
+#define PAD_RGMII1_TXD0  177
+#define PAD_RGMII1_TXD1  178
+#define PAD_RGMII1_TXD2  179
+#define PAD_RGMII1_TXD3  180
+#define PAD_RGMII1_TXCTL 181
+#define PAD_RGMII1_RXCLK 182
+#define PAD_RGMII1_RXD0  183
+#define PAD_RGMII1_RXD1  184
+#define PAD_RGMII1_RXD2  185
+#define PAD_RGMII1_RXD3  186
+#define PAD_RGMII1_RXCTL 187
+#define PAD_RGMII1_IO0   188
+#define PAD_RGMII1_IO1   189
+#define PAD_RGMII1_MDC   190
+#define PAD_RGMII1_MDIO  191
+#define PAD_SAR_GPIO0    192
+#define PAD_SAR_GPIO1    193
+#define PAD_SAR_GPIO2    194
+#define PAD_SAR_GPIO3    195
+
+#define GPIO_NR     196
+#define PAD_UNKNOWN 0xFFFF
+
+#define Group0  0
+#define Group1  1
+#define Group2  2
+#define Group3  3
+#define Group4  4
+#define Group5  5
+#define Group6  6
+#define Group7  7
+#define Group8  8
+#define Group9  9
+#define Group10 10
+
+#endif // #ifndef ___GPIO_H

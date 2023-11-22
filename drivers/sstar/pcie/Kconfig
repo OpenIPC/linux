@@ -1,0 +1,73 @@
+menu "Sigmastar PCIe Support"
+
+config SSTAR_PCIEIF
+	bool
+
+config SSTAR_PCIE
+	bool
+
+config SSTAR_PCIE_HOST
+	bool "Sigmastar PCIe Controller - Host mode"
+	select PCI
+	select PCI_MSI
+	select PCI_MSI_IRQ_DOMAIN
+	select PCIE_DW_HOST
+	select SSTAR_PCIE
+	select SSTAR_PCIEIF
+	help
+	  Sigmastar PCIe controller can work either as EP or RC.
+	  Please select PCIE_SS_PLAT_HOST to enable RC features.
+	  This uses the DesignWare core.
+
+config SSTAR_PCIE_EP
+	bool "Sigmastar PCIe Controller - Endpoint mode"
+	select PCI
+	select PCI_MSI
+	select PCI_MSI_IRQ_DOMAIN
+	select PCI_ENDPOINT
+	select PCIE_DW_EP
+	select SSTAR_PCIE
+	select SSTAR_PCIEIF
+	help
+	  Sigmastar PCIe controller can work either as EP or RC.
+	  Please select PCIE_SS_PLAT_EP to enable EP features.
+	  This uses the DesignWare core.
+
+config SSTAR_EDMA
+	tristate "Sigmastar eDMA Controller driver"
+	depends on SSTAR_PCIE
+	select SSTAR_PCIEIF
+	help
+	  Support the Sigmastar eDMA controller.
+
+menu "Sigmastar PCIe Verify"
+config SSTAR_FPGA_LPBK
+	bool "Sigmastar FPGA loopback mode"
+	depends on SSTAR_PCIE_HOST && SSTAR_PCIE_EP
+	help
+	  Support loopback mode for FPGA verification.
+
+config SSTAR_PCI_ENDPOINT_TEST
+	depends on SSTAR_PCIE_HOST
+	depends on !PCI_ENDPOINT_TEST
+	select CRC32
+	tristate "Sigmastar Test Endpoint driver"
+	help
+	  Enable the RC side test driver for PCI Endpoint.
+
+config SSTAR_PCI_EPF_TEST
+	tristate "Sigmastar Endpoint Function Test driver"
+	depends on SSTAR_PCIE_EP
+	depends on !PCI_EPF_TEST
+	select CRC32
+	help
+	   Enable the test Endpoint Function driver for PCI Endpoint.
+
+config SSTAR_PCIE_BENCH
+	tristate "Sigmastar PCIE Bench SelfLoopback"
+	depends on SSTAR_PCIE
+	help
+	   Build KO for PCIE Behch verification
+endmenu
+
+endmenu

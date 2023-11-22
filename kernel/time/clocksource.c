@@ -1304,7 +1304,12 @@ static int __init init_clocksource_sysfs(void)
 	return error;
 }
 
+#ifdef CONFIG_DEFERRED_INIICALLS_MORE_SYSFS
+deferred_module_init(init_clocksource_sysfs);
+#else
 device_initcall(init_clocksource_sysfs);
+#endif
+
 #endif /* CONFIG_SYSFS */
 
 /**

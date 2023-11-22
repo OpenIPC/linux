@@ -42,9 +42,14 @@
 #include "stmmac.h"
 #include <linux/reset.h>
 #include <linux/of_mdio.h>
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_STORM_PROTECT)
+#include "dwmac4.h"
+#else
 #include "dwmac1000.h"
+#endif
 #include "dwxgmac2.h"
 #include "hwif.h"
+#include "sstar_gmac.h"
 
 #define	STMMAC_ALIGN(x)		ALIGN(ALIGN(x, SMP_CACHE_BYTES), 16)
 #define	TSO_MAX_BUFF_SIZE	(SZ_16K - 1)
@@ -113,6 +118,32 @@ static void stmmac_exit_fs(struct net_device *dev);
 
 #define STMMAC_COAL_TIMER(x) (jiffies + usecs_to_jiffies(x))
 
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RXIC)
+static int rx_int_tbl[] =
+{
+        0, // 0 :   1
+     2048, // 1 :   2
+     4096, // 2 :   4
+     6144, // 3 :   8
+     8192, // 4 :  16
+    16384, // 5 :  32
+    24576, // 6 :  64
+    32768, // 7 : 128
+};
+
+static int rxic_tmr_pd_tbl[] =
+{
+    1000000, // 0 : 1000 ms
+     500000, // 1 :  500 ms
+     250000, // 2 :  250 ms
+     128000, // 3 :  133 ms
+      64000, // 4 :  125 ms
+      16000, // 5 :   16 ms
+       4000, // 6 :    4 ms
+       2000, // 7 :    2 ms
+};
+#endif
+
 /**
  * stmmac_verify_args - verify the driver parameters.
  * Description: it checks the driver parameters and set a default in case of
@@ -148,6 +179,13 @@ static void stmmac_disable_all_queues(struct stmmac_priv *priv)
 	for (queue = 0; queue < maxq; queue++) {
 		struct stmmac_channel *ch = &priv->channel[queue];
 
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RXIC)
+		if (queue < rx_queues_cnt){
+			struct stmmac_rx_queue *rx_q = &priv->rx_queue[queue];
+
+			RX_TIMER_DEL_SYNC(&rx_q->rxic_tmr);
+		}
+#endif
 		if (queue < rx_queues_cnt)
 			napi_disable(&ch->rx_napi);
 		if (queue < tx_queues_cnt)
@@ -173,6 +211,12 @@ static void stmmac_enable_all_queues(struct stmmac_priv *priv)
 			napi_enable(&ch->rx_napi);
 		if (queue < tx_queues_cnt)
 			napi_enable(&ch->tx_napi);
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RXIC)
+		if (queue < rx_queues_cnt){
+			struct stmmac_rx_queue *rx_q = &priv->rx_queue[queue];
+			rx_q->jiffies_last = jiffies;
+		}
+#endif
 	}
 }
 
@@ -294,6 +338,23 @@ static inline u32 stmmac_rx_dirty(struct stmmac_priv *priv, u32 queue)
 	return dirty;
 }
 
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_EEE_REDUCTION)
+static int stmmac_txq_finish(struct stmmac_priv *priv)
+{
+	u32 tx_cnt = priv->plat->tx_queues_to_use;
+	u32 queue;
+
+	/* check if all TX queues have the work finished */
+	for (queue = 0; queue < tx_cnt; queue++) {
+		struct stmmac_tx_queue *tx_q = &priv->tx_queue[queue];
+
+		if (tx_q->dirty_tx != tx_q->cur_tx)
+			return 0; /* still unfinished work */
+	}
+	return 1;
+}
+#endif
+
 /**
  * stmmac_enable_eee_mode - check and enter in LPI mode
  * @priv: driver private structure
@@ -302,6 +363,14 @@ static inline u32 stmmac_rx_dirty(struct stmmac_priv *priv, u32 queue)
  */
 static void stmmac_enable_eee_mode(struct stmmac_priv *priv)
 {
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_EEE_REDUCTION)
+	if (priv->eee_force_disable)
+		return;
+	if (priv->tx_path_in_lpi_mode)
+		return;
+	if (0 == stmmac_txq_finish(priv))
+		return;
+#else
 	u32 tx_cnt = priv->plat->tx_queues_to_use;
 	u32 queue;
 
@@ -312,6 +381,7 @@ static void stmmac_enable_eee_mode(struct stmmac_priv *priv)
 		if (tx_q->dirty_tx != tx_q->cur_tx)
 			return; /* still unfinished work */
 	}
+#endif
 
 	/* Check and enter in LPI mode */
 	if (!priv->tx_path_in_lpi_mode)
@@ -327,8 +397,14 @@ static void stmmac_enable_eee_mode(struct stmmac_priv *priv)
  */
 void stmmac_disable_eee_mode(struct stmmac_priv *priv)
 {
+#if !defined(CONFIG_ARCH_SSTAR) || !defined(CONFIG_SSTAR_SNPS_GMAC_EEE_REDUCTION)
+	if (priv->tx_path_in_lpi_mode)
+		return;
+#endif
 	stmmac_reset_eee_mode(priv, priv->hw);
+#if !defined(CONFIG_ARCH_SSTAR) || !defined(CONFIG_SSTAR_SNPS_GMAC_EEE_REDUCTION)
 	del_timer_sync(&priv->eee_ctrl_timer);
+#endif
 	priv->tx_path_in_lpi_mode = false;
 }
 
@@ -376,13 +452,21 @@ bool stmmac_eee_init(struct stmmac_priv *priv)
 	if (!priv->eee_active) {
 		if (priv->eee_enabled) {
 			netdev_dbg(priv->dev, "disable EEE\n");
+#if !defined(CONFIG_ARCH_SSTAR) || !defined(CONFIG_SSTAR_SNPS_GMAC_EEE_REDUCTION)
 			del_timer_sync(&priv->eee_ctrl_timer);
+#endif
 			stmmac_set_eee_timer(priv, priv->hw, 0, eee_tw_timer);
 		}
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_EEE_REDUCTION)
+		priv->eee_force_disable = 1;
+#endif
 		mutex_unlock(&priv->lock);
 		return false;
 	}
 
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_EEE_REDUCTION)
+	priv->eee_force_disable = 0;
+#endif
 	if (priv->eee_active && !priv->eee_enabled) {
 		timer_setup(&priv->eee_ctrl_timer, stmmac_eee_ctrl_timer, 0);
 		stmmac_set_eee_timer(priv, priv->hw, STMMAC_DEFAULT_LIT_LS,
@@ -777,8 +861,13 @@ static void stmmac_mac_flow_ctrl(struct stmmac_priv *priv, u32 duplex)
 {
 	u32 tx_cnt = priv->plat->tx_queues_to_use;
 
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_SW_TX_FLOW_CTL)
+	stmmac_flow_ctrl(priv, priv->hw, duplex, priv->flow_ctrl,
+			0, tx_cnt);
+#else
 	stmmac_flow_ctrl(priv, priv->hw, duplex, priv->flow_ctrl,
 			priv->pause, tx_cnt);
+#endif
 }
 
 static void stmmac_validate(struct phylink_config *config,
@@ -994,8 +1083,13 @@ static void stmmac_mac_link_up(struct phylink_config *config,
 		ctrl |= priv->hw->link.duplex;
 
 	/* Flow Control operation */
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_SW_TX_FLOW_CTL)
+	priv->flow_ctrl = FLOW_AUTO;
+	stmmac_mac_flow_ctrl(priv, duplex);
+#else
 	if (tx_pause && rx_pause)
 		stmmac_mac_flow_ctrl(priv, duplex);
+#endif
 
 	writel(ctrl, priv->ioaddr + MAC_CTRL_REG);
 
@@ -1006,6 +1100,11 @@ static void stmmac_mac_link_up(struct phylink_config *config,
 		priv->tx_lpi_enabled = priv->eee_enabled;
 		stmmac_set_eee_pls(priv, priv->hw, true);
 	}
+
+#if defined(CONFIG_ARCH_SSTAR) && (DYN_PHASE_CALB)
+	if(NEED_CALB)
+		mhal_gmac_dyncalibrat(priv);
+#endif
 }
 
 static const struct phylink_mac_ops stmmac_phylink_mac_ops = {
@@ -1208,12 +1307,22 @@ static void stmmac_clear_rx_descriptors(struct stmmac_priv *priv, u32 queue)
 	for (i = 0; i < priv->dma_rx_size; i++)
 		if (priv->extend_desc)
 			stmmac_init_rx_desc(priv, &rx_q->dma_erx[i].basic,
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RXIC)
+					// ((i & rx_q->rxic_msk) != rx_q->rxic_msk), priv->mode,
+					!RXIC_IOC_EN(i, rx_q->rxic_msk), priv->mode,
+#else
 					priv->use_riwt, priv->mode,
+#endif
 					(i == priv->dma_rx_size - 1),
 					priv->dma_buf_sz);
 		else
 			stmmac_init_rx_desc(priv, &rx_q->dma_rx[i],
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RXIC)
+					// ((i & rx_q->rxic_msk) != rx_q->rxic_msk), priv->mode,
+					!RXIC_IOC_EN(i, rx_q->rxic_msk), priv->mode,
+#else
 					priv->use_riwt, priv->mode,
+#endif
 					(i == priv->dma_rx_size - 1),
 					priv->dma_buf_sz);
 }
@@ -1281,6 +1390,27 @@ static int stmmac_init_rx_buffers(struct stmmac_priv *priv, struct dma_desc *p,
 				  int i, gfp_t flags, u32 queue)
 {
 	struct stmmac_rx_queue *rx_q = &priv->rx_queue[queue];
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RX_ZERO_COPY)
+	struct sk_buff *skb;
+
+	skb = __netdev_alloc_skb_ip_align(priv->dev, priv->dma_buf_sz, flags);
+	if (!skb) {
+		netdev_err(priv->dev,
+				"%s: Rx init fails; skb is NULL\n", __func__);
+		return -ENOMEM;
+	}
+	rx_q->rx_skbuff[i] = skb;
+	rx_q->rx_skbuff_dma[i] = dma_map_single(priv->device, skb->data,
+						priv->dma_buf_sz,
+						DMA_FROM_DEVICE);
+	if (dma_mapping_error(priv->device, rx_q->rx_skbuff_dma[i])) {
+		netdev_err(priv->dev, "%s: DMA mapping error\n", __func__);
+		dev_kfree_skb_any(skb);
+		return -EINVAL;
+	}
+
+	stmmac_set_desc_addr(priv, p, rx_q->rx_skbuff_dma[i]);
+#else
 	struct stmmac_rx_buffer *buf = &rx_q->buf_pool[i];
 
 	buf->page = page_pool_dev_alloc_pages(rx_q->page_pool);
@@ -1301,6 +1431,8 @@ static int stmmac_init_rx_buffers(struct stmmac_priv *priv, struct dma_desc *p,
 
 	buf->addr = page_pool_get_dma_addr(buf->page);
 	stmmac_set_desc_addr(priv, p, buf->addr);
+#endif
+
 	if (priv->dma_buf_sz == BUF_SIZE_16KiB)
 		stmmac_init_desc3(priv, p);
 
@@ -1316,6 +1448,14 @@ static int stmmac_init_rx_buffers(struct stmmac_priv *priv, struct dma_desc *p,
 static void stmmac_free_rx_buffer(struct stmmac_priv *priv, u32 queue, int i)
 {
 	struct stmmac_rx_queue *rx_q = &priv->rx_queue[queue];
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RX_ZERO_COPY)
+	if (rx_q->rx_skbuff[i]) {
+		dma_unmap_single(priv->device, rx_q->rx_skbuff_dma[i],
+				priv->dma_buf_sz, DMA_FROM_DEVICE);
+		dev_kfree_skb_any(rx_q->rx_skbuff[i]);
+	}
+	rx_q->rx_skbuff[i] = NULL;
+#else
 	struct stmmac_rx_buffer *buf = &rx_q->buf_pool[i];
 
 	if (buf->page)
@@ -1325,6 +1465,7 @@ static void stmmac_free_rx_buffer(struct stmmac_priv *priv, u32 queue, int i)
 	if (buf->sec_page)
 		page_pool_put_full_page(rx_q->page_pool, buf->sec_page, false);
 	buf->sec_page = NULL;
+#endif
 }
 
 /**
@@ -1403,7 +1544,13 @@ static int init_dma_rx_desc_rings(struct net_device *dev, gfp_t flags)
 
 		rx_q->cur_rx = 0;
 		rx_q->dirty_rx = (unsigned int)(i - priv->dma_rx_size);
-
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RXIC)
+		rx_q->rxic_msk_bit = 0;
+		rx_q->rxic_msk = RXIC_MSK_GET(rx_q->rxic_msk_bit);
+		rx_q->jiffies_last = jiffies;
+		rx_q->rxic_pkt_cnt = 0;
+		rx_q->rxic_tmr_pd_us = rxic_tmr_pd_tbl[rx_q->rxic_msk_bit];
+#endif
 		/* Setup the chained descriptor addresses */
 		if (priv->mode == STMMAC_CHAIN_MODE) {
 			if (priv->extend_desc)
@@ -1586,10 +1733,14 @@ static void free_dma_rx_desc_resources(struct stmmac_priv *priv)
 			dma_free_coherent(priv->device, priv->dma_rx_size *
 					  sizeof(struct dma_extended_desc),
 					  rx_q->dma_erx, rx_q->dma_rx_phy);
-
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RX_ZERO_COPY)
+		kfree(rx_q->rx_skbuff_dma);
+		kfree(rx_q->rx_skbuff);
+#else
 		kfree(rx_q->buf_pool);
 		if (rx_q->page_pool)
 			page_pool_destroy(rx_q->page_pool);
+#endif
 	}
 }
 
@@ -1648,12 +1799,26 @@ static int alloc_dma_rx_desc_resources(struct stmmac_priv *priv)
 	/* RX queues buffers and DMA */
 	for (queue = 0; queue < rx_count; queue++) {
 		struct stmmac_rx_queue *rx_q = &priv->rx_queue[queue];
+#if defined(CONFIG_ARCH_SSTAR) && !defined(CONFIG_SSTAR_SNPS_GMAC_RX_ZERO_COPY)
 		struct page_pool_params pp_params = { 0 };
 		unsigned int num_pages;
+#endif
 
 		rx_q->queue_index = queue;
 		rx_q->priv_data = priv;
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RX_ZERO_COPY)
+		rx_q->rx_skbuff_dma = kmalloc_array(priv->dma_rx_size,
+							sizeof(dma_addr_t),
+							GFP_KERNEL);
+		if (!rx_q->rx_skbuff_dma)
+			goto err_dma;
 
+		rx_q->rx_skbuff = kmalloc_array(priv->dma_rx_size,
+						sizeof(struct sk_buff *),
+						GFP_KERNEL);
+		if (!rx_q->rx_skbuff)
+			goto err_dma;
+#else
 		pp_params.flags = PP_FLAG_DMA_MAP;
 		pp_params.pool_size = priv->dma_rx_size;
 		num_pages = DIV_ROUND_UP(priv->dma_buf_sz, PAGE_SIZE);
@@ -1674,7 +1839,7 @@ static int alloc_dma_rx_desc_resources(struct stmmac_priv *priv)
 					 GFP_KERNEL);
 		if (!rx_q->buf_pool)
 			goto err_dma;
-
+#endif
 		if (priv->extend_desc) {
 			rx_q->dma_erx = dma_alloc_coherent(priv->device,
 							   priv->dma_rx_size *
@@ -2022,6 +2187,7 @@ static int stmmac_tx_clean(struct stmmac_priv *priv, int budget, u32 queue)
 			} else {
 				priv->dev->stats.tx_packets++;
 				priv->xstats.tx_pkt_n++;
+				priv->xstats.txq_stats[queue].tx_pkt_n++;
 			}
 			stmmac_get_tx_hwtstamp(priv, p, skb);
 		}
@@ -2072,10 +2238,12 @@ static int stmmac_tx_clean(struct stmmac_priv *priv, int budget, u32 queue)
 		netif_tx_wake_queue(netdev_get_tx_queue(priv->dev, queue));
 	}
 
+#if !defined(CONFIG_ARCH_SSTAR) || !defined(CONFIG_SSTAR_SNPS_GMAC_EEE_REDUCTION)
 	if ((priv->eee_enabled) && (!priv->tx_path_in_lpi_mode)) {
 		stmmac_enable_eee_mode(priv);
 		mod_timer(&priv->eee_ctrl_timer, STMMAC_LPI_T(priv->tx_lpi_timer));
 	}
+#endif
 
 	/* We still have pending packets, let's call for a new scheduling */
 	if (tx_q->dirty_tx != tx_q->cur_tx)
@@ -2167,12 +2335,20 @@ static int stmmac_napi_check(struct stmmac_priv *priv, u32 chan)
 						 &priv->xstats, chan);
 	struct stmmac_channel *ch = &priv->channel[chan];
 	unsigned long flags;
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RXIC)
+	struct stmmac_rx_queue* rx_q = &priv->rx_queue[chan];
+#endif
 
 	if ((status & handle_rx) && (chan < priv->plat->rx_queues_to_use)) {
 		if (napi_schedule_prep(&ch->rx_napi)) {
 			spin_lock_irqsave(&ch->lock, flags);
 			stmmac_disable_dma_irq(priv, priv->ioaddr, chan, 1, 0);
 			spin_unlock_irqrestore(&ch->lock, flags);
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RXIC)
+			if (RX_TIMER_ACTIVE(&rx_q->rxic_tmr))
+				RX_TIMER_DEL(&rx_q->rxic_tmr);
+			priv->xstats.napi_poll_rx_irq++;
+#endif
 			__napi_schedule(&ch->rx_napi);
 		}
 	}
@@ -2336,12 +2512,17 @@ static int stmmac_init_dma_engine(struct stmmac_priv *priv)
 
 		stmmac_init_rx_chan(priv, priv->ioaddr, priv->plat->dma_cfg,
 				    rx_q->dma_rx_phy, chan);
-
-		rx_q->rx_tail_addr = rx_q->dma_rx_phy +
-				     (priv->dma_rx_size *
-				      sizeof(struct dma_desc));
-		stmmac_set_rx_tail_ptr(priv, priv->ioaddr,
-				       rx_q->rx_tail_addr, chan);
+#if GMAC_USING_MIU_MAPPING_API
+		rx_q->rx_tail_addr =
+			PA2BUS(rx_q->dma_rx_phy) +
+			(priv->dma_rx_size * sizeof(struct dma_desc));
+#else
+		rx_q->rx_tail_addr =
+			rx_q->dma_rx_phy +
+			(priv->dma_rx_size * sizeof(struct dma_desc));
+#endif
+		stmmac_set_rx_tail_ptr(priv, priv->ioaddr, rx_q->rx_tail_addr,
+				       chan);
 	}
 
 	/* DMA TX Channel Configuration */
@@ -2350,10 +2531,13 @@ static int stmmac_init_dma_engine(struct stmmac_priv *priv)
 
 		stmmac_init_tx_chan(priv, priv->ioaddr, priv->plat->dma_cfg,
 				    tx_q->dma_tx_phy, chan);
-
+#if GMAC_USING_MIU_MAPPING_API
+		tx_q->tx_tail_addr = PA2BUS(tx_q->dma_tx_phy);
+#else
 		tx_q->tx_tail_addr = tx_q->dma_tx_phy;
-		stmmac_set_tx_tail_ptr(priv, priv->ioaddr,
-				       tx_q->tx_tail_addr, chan);
+#endif
+		stmmac_set_tx_tail_ptr(priv, priv->ioaddr, tx_q->tx_tail_addr,
+				       chan);
 	}
 
 	return ret;
@@ -2390,6 +2574,151 @@ static void stmmac_tx_timer(struct timer_list *t)
 	}
 }
 
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RXIC)
+/*
+static void stmmac_rxic_timer(struct timer_list *t)
+{
+	struct stmmac_rx_queue *rx_q = from_timer(rx_q, t, rxic_tmr);
+	struct stmmac_priv *priv = rx_q->priv_data;
+	struct stmmac_channel *ch;
+
+	ch = &priv->channel[rx_q->queue_index];
+
+	rx_q->rxic_tmr_cnt++;
+
+	if (likely(napi_schedule_prep(&ch->rx_napi))) {
+		unsigned long flags;
+
+		spin_lock_irqsave(&ch->lock, flags);
+		stmmac_disable_dma_irq(priv, priv->ioaddr, ch->index, 1, 0);
+		spin_unlock_irqrestore(&ch->lock, flags);
+		priv->xstats.napi_poll_rx_tmr++;
+		__napi_schedule(&ch->rx_napi);
+	}
+	mod_timer(&rx_q->rxic_tmr, jiffies + rx_q->rxic_tmr_pd);
+}
+*/
+static enum hrtimer_restart stmmac_rxic_timer(struct hrtimer *t)
+{
+	struct stmmac_rx_queue *rx_q = from_timer(rx_q, t, rxic_tmr);
+	struct stmmac_priv *priv = rx_q->priv_data;
+	struct stmmac_channel *ch;
+
+	ch = &priv->channel[rx_q->queue_index];
+
+	/// rx_q->rxic_tmr_cnt++;
+
+	if (likely(napi_schedule_prep(&ch->rx_napi))) {
+		unsigned long flags;
+
+		spin_lock_irqsave(&ch->lock, flags);
+		stmmac_disable_dma_irq(priv, priv->ioaddr, ch->index, 1, 0);
+		spin_unlock_irqrestore(&ch->lock, flags);
+		priv->xstats.napi_poll_rx_tmr++;
+		__napi_schedule(&ch->rx_napi);
+	}
+	// RX_TIMER_MOD(&rx_q->rxic_tmr, RXIC_TMR_PD_DFT);
+	// return HRTIMER_RESTART;
+	return HRTIMER_NORESTART;
+}
+#endif
+
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_STORM_PROTECT)
+
+static void stmmac_mcast_da_inverse(struct stmmac_priv *priv)
+{
+	u32 value = readl(priv->ioaddr + GMAC_PACKET_FILTER);
+	value |= GMAC_PACKET_FILTER_DAIF;
+	writel(value, priv->ioaddr + GMAC_PACKET_FILTER);
+}
+
+static void stmmac_storm_timer(struct timer_list *t)
+{
+	struct stmmac_priv *priv = from_timer(priv, t, storm_prct_tmr);
+	struct stmmac_counters *mmc = &priv->mmc;
+	struct sstar_dwmac *dwmac = priv->plat->bsp_priv;
+	unsigned int broadcastframe_g, multicastframe_g, thresh_per_sec;
+	static u8 mcast_prct_en = 0;
+	static u32 mcast_increase_timer = 1;
+	u32 value;
+
+	if(dwmac->bcast_prct_enable)
+	{
+		broadcastframe_g = readl(priv->mmcaddr + 0x8c);//MMC_RX_BROADCASTFRAME_G
+		mmc->mmc_rx_broadcastframe_g += broadcastframe_g;
+
+		if(broadcastframe_g > dwmac->bcast_thresh)
+		{
+			//printk("gmac_%d, bcast_thresh: %d, bcast: %ld \r\n", dwmac->id, dwmac->bcast_thresh, broadcastframe_g);
+			/* drop broadcast packet */
+			value = readl(priv->ioaddr + GMAC_PACKET_FILTER);
+			value |= GMAC_PACKET_FILTER_DBF;
+			writel(value, priv->ioaddr + GMAC_PACKET_FILTER);
+
+			/* keep mmc broadcast count while packet drop */
+			value = readl(priv->mmcaddr + 0x00);//MMC_CNTRL
+			value |= BIT(8);
+			writel(value, priv->mmcaddr + 0x00);
+			dwmac->bcast_prct_on = 1;
+		}
+		else
+		{
+			//printk("gmac_%d, bcast: %ld \r\n", dwmac->id, broadcastframe_g);
+			value = readl(priv->ioaddr + GMAC_PACKET_FILTER);
+			value &= ~GMAC_PACKET_FILTER_DBF;
+			writel(value, priv->ioaddr + GMAC_PACKET_FILTER);
+
+			value = readl(priv->mmcaddr + 0x00);//MMC_CNTRL
+			value &= ~BIT(8);
+			writel(value, priv->mmcaddr + 0x00);
+			dwmac->bcast_prct_on = 0;
+		}
+	}
+
+	if(dwmac->mcast_prct_enable)
+	{
+		multicastframe_g = readl(priv->mmcaddr + 0x90);//MMC_RX_MULTICASTFRAME_G
+		mmc->mmc_rx_multicastframe_g += multicastframe_g;
+
+		thresh_per_sec = dwmac->mcast_thresh/mcast_increase_timer;
+		if(multicastframe_g > thresh_per_sec)
+		{
+			//printk("gmac_%d, mcast_thresh: %d, mcast: %d, en: %d\r\n",dwmac->id ,dwmac->mcast_thresh,multicastframe_g,mcast_prct_en);
+			value = readl(priv->ioaddr + GMAC_PACKET_FILTER);
+			value &= ~(GMAC_PACKET_FILTER_HMC | GMAC_PACKET_FILTER_DAIF);
+			writel(value, priv->ioaddr + GMAC_PACKET_FILTER);
+			mcast_prct_en = 1;
+			dwmac->mcast_prct_on = 1;
+		}
+		else
+		{
+			if(mcast_prct_en == 1){
+				/* To detect whether storm exist or not, enable DAIF bit to receive packet to count peak packet numbers.
+				   Since we enable DAIF bit, cpu usage will increase dramatically due to massive multicast packet.
+				   Increase the timer retrigger time to disable DAIF bit to avoid high cpu usage */
+
+				//printk("gmac_%d, mcast: %d, en:%d \r\n",dwmac->id ,multicastframe_g,mcast_prct_en);
+				stmmac_mcast_da_inverse(priv);
+				mcast_prct_en = 0;
+				mcast_increase_timer = 10;
+				mod_timer(&priv->storm_prct_tmr, (jiffies + usecs_to_jiffies((dwmac->storm_ms_timer/mcast_increase_timer)*1000)));
+				return;
+			}
+
+			//printk("gmac_%d, mcast: %d, en:%d \r\n",dwmac->id ,multicastframe_g,mcast_prct_en);
+			value = readl(priv->ioaddr + GMAC_PACKET_FILTER);
+			value |= GMAC_PACKET_FILTER_HMC;
+			value &= ~GMAC_PACKET_FILTER_DAIF;
+			writel(value, priv->ioaddr + GMAC_PACKET_FILTER);
+			mcast_increase_timer = 1;
+			dwmac->mcast_prct_on = 0;
+		}
+	}
+
+	mod_timer(&priv->storm_prct_tmr, (jiffies + usecs_to_jiffies((dwmac->storm_ms_timer)*1000)));
+}
+#endif
+
 /**
  * stmmac_init_coalesce - init mitigation options.
  * @priv: driver private structure
@@ -2412,6 +2741,22 @@ static void stmmac_init_coalesce(struct stmmac_priv *priv)
 
 		timer_setup(&tx_q->txtimer, stmmac_tx_timer, 0);
 	}
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RXIC)
+	for (chan = 0; chan < priv->plat->rx_queues_to_use; chan++) {
+		struct stmmac_rx_queue *rx_q = &priv->rx_queue[chan];
+
+                RX_TIMER_INIT(&rx_q->rxic_tmr, stmmac_rxic_timer);
+		rx_q->rxic_tmr_pd_us = rxic_tmr_pd_tbl[rx_q->rxic_msk_bit];
+	}
+#endif
+
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_STORM_PROTECT)
+	{
+		timer_setup(&priv->storm_prct_tmr, stmmac_storm_timer, 0);
+		mod_timer(&priv->storm_prct_tmr, (jiffies + usecs_to_jiffies(10000*1000)));
+	}
+#endif
+
 }
 
 static void stmmac_set_rings_length(struct stmmac_priv *priv)
@@ -2715,6 +3060,9 @@ static int stmmac_hw_setup(struct net_device *dev, bool init_ptp)
 	if (!priv->tx_lpi_timer)
 		priv->tx_lpi_timer = eee_timer * 1000;
 
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RXIC)
+	priv->use_riwt = 0;
+#endif
 	if (priv->use_riwt) {
 		if (!priv->rx_riwt)
 			priv->rx_riwt = DEF_DMA_RIWT;
@@ -2804,6 +3152,11 @@ static int stmmac_open(struct net_device *dev)
 		}
 	}
 
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RXIC)
+	priv->rxic_msk_bit_max_cur = priv->rxic_msk_bit_max = sizeof(rx_int_tbl)/sizeof(rx_int_tbl[0]) - 1;
+	priv->rxic_msk_bit_max_cur = 6;
+#endif
+
 	/* Extra statistics */
 	memset(&priv->xstats, 0, sizeof(struct stmmac_extra_stats));
 	priv->xstats.threshold = tc;
@@ -2820,10 +3173,23 @@ static int stmmac_open(struct net_device *dev)
 
 	priv->rx_copybreak = STMMAC_RX_COPYBREAK;
 
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_CODING_OPTIMIZE)
+	if (!priv->dma_tx_size)
+	{
+		priv->dma_tx_size = DMA_DEFAULT_TX_SIZE;
+		priv->dma_tx_size_msk = DMA_DEFAULT_TX_SIZE - 1;
+	}
+	if (!priv->dma_rx_size)
+	{
+		priv->dma_rx_size = DMA_DEFAULT_RX_SIZE;
+		priv->dma_rx_size_msk = DMA_DEFAULT_RX_SIZE - 1;
+	}
+#else
 	if (!priv->dma_tx_size)
 		priv->dma_tx_size = DMA_DEFAULT_TX_SIZE;
 	if (!priv->dma_rx_size)
 		priv->dma_rx_size = DMA_DEFAULT_RX_SIZE;
+#endif
 
 	/* Earlier check for TBS */
 	for (chan = 0; chan < priv->plat->tx_queues_to_use; chan++) {
@@ -2870,6 +3236,10 @@ static int stmmac_open(struct net_device *dev)
 		goto irq_error;
 	}
 
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_SET_AFFINITY)
+	irq_set_affinity_hint(dev->irq, cpu_online_mask);
+#endif
+
 	/* Request the Wake IRQ in case of another line is used for WoL */
 	if (priv->wol_irq != dev->irq) {
 		ret = request_irq(priv->wol_irq, stmmac_interrupt,
@@ -2903,12 +3273,19 @@ lpiirq_error:
 	if (priv->wol_irq != dev->irq)
 		free_irq(priv->wol_irq, dev);
 wolirq_error:
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_SET_AFFINITY)
+	irq_set_affinity_hint(dev->irq, NULL);
+#endif
 	free_irq(dev->irq, dev);
 irq_error:
 	phylink_stop(priv->phylink);
 
 	for (chan = 0; chan < priv->plat->tx_queues_to_use; chan++)
 		del_timer_sync(&priv->tx_queue[chan].txtimer);
+
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_STORM_PROTECT)
+	del_timer_sync(&priv->storm_prct_tmr);
+#endif
 
 	stmmac_hw_teardown(dev);
 init_error:
@@ -2940,6 +3317,31 @@ static int stmmac_release(struct net_device *dev)
 	for (chan = 0; chan < priv->plat->tx_queues_to_use; chan++)
 		del_timer_sync(&priv->tx_queue[chan].txtimer);
 
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_STORM_PROTECT)
+	del_timer_sync(&priv->storm_prct_tmr);
+#endif
+
+#if defined(CONFIG_ARCH_SSTAR)
+	/* Stop TX/RX DMA and clear the descriptors */
+	stmmac_stop_all_dma(priv);
+
+	sstar_gmac_disable_and_clean_int(priv);
+
+	/* Free the IRQ lines */
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_SET_AFFINITY)
+	irq_set_affinity_hint(dev->irq, NULL);
+#endif
+	free_irq(dev->irq, dev);
+	if (priv->wol_irq != dev->irq)
+		free_irq(priv->wol_irq, dev);
+	if (priv->lpi_irq > 0)
+		free_irq(priv->lpi_irq, dev);
+
+	if (priv->eee_enabled) {
+		priv->tx_path_in_lpi_mode = false;
+		del_timer_sync(&priv->eee_ctrl_timer);
+	}
+#else
 	/* Free the IRQ lines */
 	free_irq(dev->irq, dev);
 	if (priv->wol_irq != dev->irq)
@@ -2954,7 +3356,7 @@ static int stmmac_release(struct net_device *dev)
 
 	/* Stop TX/RX DMA and clear the descriptors */
 	stmmac_stop_all_dma(priv);
-
+#endif
 	/* Release and free the Rx/Tx resources */
 	free_dma_desc_resources(priv);
 
@@ -3212,6 +3614,9 @@ static netdev_tx_t stmmac_tso_xmit(struct sk_buff *skb, struct net_device *dev)
 	tx_packets = (tx_q->cur_tx + 1) - first_tx;
 	tx_q->tx_count_frames += tx_packets;
 
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RXIC)
+	set_ic = true;
+#else
 	if ((skb_shinfo(skb)->tx_flags & SKBTX_HW_TSTAMP) && priv->hwts_tx_en)
 		set_ic = true;
 	else if (!priv->tx_coal_frames)
@@ -3222,6 +3627,7 @@ static netdev_tx_t stmmac_tso_xmit(struct sk_buff *skb, struct net_device *dev)
 		set_ic = true;
 	else
 		set_ic = false;
+#endif
 
 	if (set_ic) {
 		if (tx_q->tbs & STMMAC_TBS_AVAIL)
@@ -3301,8 +3707,12 @@ static netdev_tx_t stmmac_tso_xmit(struct sk_buff *skb, struct net_device *dev)
 		desc_size = sizeof(struct dma_edesc);
 	else
 		desc_size = sizeof(struct dma_desc);
-
+#if GMAC_USING_MIU_MAPPING_API
+	tx_q->tx_tail_addr =
+		PA2BUS(tx_q->dma_tx_phy) + (tx_q->cur_tx * desc_size);
+#else
 	tx_q->tx_tail_addr = tx_q->dma_tx_phy + (tx_q->cur_tx * desc_size);
+#endif
 	stmmac_set_tx_tail_ptr(priv, priv->ioaddr, tx_q->tx_tail_addr, queue);
 	stmmac_tx_timer_arm(priv, queue);
 
@@ -3554,7 +3964,12 @@ static netdev_tx_t stmmac_xmit(struct sk_buff *skb, struct net_device *dev)
 	else
 		desc_size = sizeof(struct dma_desc);
 
+#if GMAC_USING_MIU_MAPPING_API
+	tx_q->tx_tail_addr =
+		PA2BUS(tx_q->dma_tx_phy) + (tx_q->cur_tx * desc_size);
+#else
 	tx_q->tx_tail_addr = tx_q->dma_tx_phy + (tx_q->cur_tx * desc_size);
+#endif
 	stmmac_set_tx_tail_ptr(priv, priv->ioaddr, tx_q->tx_tail_addr, queue);
 	stmmac_tx_timer_arm(priv, queue);
 
@@ -3566,6 +3981,41 @@ dma_map_err:
 	priv->dev->stats.tx_dropped++;
 	return NETDEV_TX_OK;
 }
+
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RXIC)
+#define SSTAR_SNPS_GMAC_RXIC_HW_SW_RACE		2
+static inline void stmmac_rx_refill_ic(struct stmmac_priv *priv, u32 queue)
+{
+	struct stmmac_rx_queue *rx_q = &priv->rx_queue[queue];
+	struct dma_desc *p;
+	int i;
+#if SSTAR_SNPS_GMAC_RXIC_HW_SW_RACE
+	int HWOwnCnt = 0;
+	int entry = rx_q->cur_rx;
+
+	for (i = 0; i < priv->dma_rx_size; i++) {
+		p = (priv->extend_desc)? (struct dma_desc *)(rx_q->dma_erx + entry) : rx_q->dma_rx + entry;
+
+		if (p->des3 & BIT(31))
+		{
+			HWOwnCnt++;
+			if (SSTAR_SNPS_GMAC_RXIC_HW_SW_RACE < HWOwnCnt)
+				stmmac_set_rx_owner(priv, p, 0);
+		}
+		entry = STMMAC_GET_ENTRY(entry, priv->dma_rx_size);
+	}
+#else
+	for (i = 0; i < priv->dma_rx_size; i++) {
+		p = (priv->extend_desc)? (struct dma_desc *)(rx_q->dma_erx + i) : rx_q->dma_rx + i;
+
+		if (p->des3 & BIT(31))
+		{
+			stmmac_set_rx_owner(priv, p, 0);
+		}
+	}
+#endif
+}
+#endif
 
 static void stmmac_rx_vlan(struct net_device *dev, struct sk_buff *skb)
 {
@@ -3598,13 +4048,18 @@ static void stmmac_rx_vlan(struct net_device *dev, struct sk_buff *skb)
 static inline void stmmac_rx_refill(struct stmmac_priv *priv, u32 queue)
 {
 	struct stmmac_rx_queue *rx_q = &priv->rx_queue[queue];
-	int len, dirty = stmmac_rx_dirty(priv, queue);
+	int dirty = stmmac_rx_dirty(priv, queue);
 	unsigned int entry = rx_q->dirty_rx;
-
-	len = DIV_ROUND_UP(priv->dma_buf_sz, PAGE_SIZE) * PAGE_SIZE;
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RX_ZERO_COPY)
+	int bfsize = priv->dma_buf_sz;
+#else
+	int len = DIV_ROUND_UP(priv->dma_buf_sz, PAGE_SIZE) * PAGE_SIZE;
+#endif
 
 	while (dirty-- > 0) {
+#if defined(CONFIG_ARCH_SSTAR) && !defined(CONFIG_SSTAR_SNPS_GMAC_RX_ZERO_COPY)
 		struct stmmac_rx_buffer *buf = &rx_q->buf_pool[entry];
+#endif
 		struct dma_desc *p;
 		bool use_rx_wd;
 
@@ -3612,6 +4067,45 @@ static inline void stmmac_rx_refill(struct stmmac_priv *priv, u32 queue)
 			p = (struct dma_desc *)(rx_q->dma_erx + entry);
 		else
 			p = rx_q->dma_rx + entry;
+
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RX_ZERO_COPY)
+		if (likely(!rx_q->rx_skbuff[entry])) {
+			struct sk_buff *skb;
+
+			skb = netdev_alloc_skb_ip_align(priv->dev, bfsize);
+			if (unlikely(!skb)) {
+				/* so for a while no zero-copy! */
+				// rx_q->rx_zeroc_thresh = STMMAC_RX_THRESH;
+				if (unlikely(net_ratelimit())) {
+					dev_err(priv->device,
+						"fail to alloc skb entry %d\n",
+						entry);
+				}
+				break;
+			}
+
+			rx_q->rx_skbuff[entry] = skb;
+			rx_q->rx_skbuff_dma[entry] =
+			dma_map_single(priv->device, skb->data, bfsize,
+					DMA_FROM_DEVICE);
+			if (dma_mapping_error(priv->device,
+						rx_q->rx_skbuff_dma[entry])) {
+				netdev_err(priv->dev, "Rx DMA map failed\n");
+				dev_kfree_skb(skb);
+				break;
+			}
+
+			stmmac_set_desc_addr(priv, p, rx_q->rx_skbuff_dma[entry]);
+			stmmac_refill_desc3(priv, rx_q, p);
+/*
+			if (rx_q->rx_zeroc_thresh > 0)
+				rx_q->rx_zeroc_thresh--;
+*/
+
+			netif_dbg(priv, rx_status, priv->dev,
+					"refill entry #%d\n", entry);
+		}
+#else
 
 		if (!buf->page) {
 			buf->page = page_pool_dev_alloc_pages(rx_q->page_pool);
@@ -3644,28 +4138,38 @@ static inline void stmmac_rx_refill(struct stmmac_priv *priv, u32 queue)
 		else
 			stmmac_set_desc_sec_addr(priv, p, buf->sec_addr, false);
 		stmmac_refill_desc3(priv, rx_q, p);
-
+#endif
 		rx_q->rx_count_frames++;
 		rx_q->rx_count_frames += priv->rx_coal_frames;
 		if (rx_q->rx_count_frames > priv->rx_coal_frames)
 			rx_q->rx_count_frames = 0;
 
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RXIC)
+		// use_rx_wd = ((entry & rx_q->rxic_msk) == rx_q->rxic_msk) ? false : true;
+		use_rx_wd = !RXIC_IOC_EN(entry, rx_q->rxic_msk);
+#else
 		use_rx_wd = !priv->rx_coal_frames;
 		use_rx_wd |= rx_q->rx_count_frames > 0;
 		if (!priv->use_riwt)
 			use_rx_wd = false;
-
+#endif
 		dma_wmb();
 		stmmac_set_rx_owner(priv, p, use_rx_wd);
 
 		entry = STMMAC_GET_ENTRY(entry, priv->dma_rx_size);
 	}
 	rx_q->dirty_rx = entry;
-	rx_q->rx_tail_addr = rx_q->dma_rx_phy +
-			    (rx_q->dirty_rx * sizeof(struct dma_desc));
+#if GMAC_USING_MIU_MAPPING_API
+	rx_q->rx_tail_addr = PA2BUS(rx_q->dma_rx_phy) +
+			     (rx_q->dirty_rx * sizeof(struct dma_desc));
+#else
+	rx_q->rx_tail_addr =
+		rx_q->dma_rx_phy + (rx_q->dirty_rx * sizeof(struct dma_desc));
+#endif
 	stmmac_set_rx_tail_ptr(priv, priv->ioaddr, rx_q->rx_tail_addr, queue);
 }
 
+#if defined(CONFIG_ARCH_SSTAR) && !defined(CONFIG_SSTAR_SNPS_GMAC_RX_ZERO_COPY)
 static unsigned int stmmac_rx_buf1_len(struct stmmac_priv *priv,
 				       struct dma_desc *p,
 				       int status, unsigned int len)
@@ -3714,6 +4218,7 @@ static unsigned int stmmac_rx_buf2_len(struct stmmac_priv *priv,
 	/* Last descriptor */
 	return plen - len;
 }
+#endif
 
 /**
  * stmmac_rx - manage the receive process
@@ -3723,6 +4228,212 @@ static unsigned int stmmac_rx_buf2_len(struct stmmac_priv *priv,
  * Description :  this the function called by the napi poll method.
  * It gets all the frames inside the ring.
  */
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RX_ZERO_COPY)
+static int stmmac_rx(struct stmmac_priv *priv, int limit, u32 queue)
+{
+	struct stmmac_rx_queue *rx_q = &priv->rx_queue[queue];
+	struct stmmac_channel *ch = &priv->channel[queue];
+	unsigned int next_entry = rx_q->cur_rx;
+	int coe = priv->hw->rx_csum;
+	unsigned int count = 0;
+	bool xmac;
+	unsigned int desc_size;
+
+	xmac = priv->plat->has_gmac4 || priv->plat->has_xgmac;
+
+	if (netif_msg_rx_status(priv)) {
+		void *rx_head;
+
+		netdev_dbg(priv->dev, "%s: descriptor ring:\n", __func__);
+		if (priv->extend_desc) {
+			rx_head = (void *)rx_q->dma_erx;
+			desc_size = sizeof(struct dma_extended_desc);
+		} else {
+			rx_head = (void *)rx_q->dma_rx;
+			desc_size = sizeof(struct dma_desc);
+		}
+
+		stmmac_display_ring(priv, rx_head, priv->dma_rx_size, true,
+				    rx_q->dma_rx_phy, desc_size);
+	}
+	while (count < limit) {
+		int entry, status;
+		struct dma_desc *p;
+		struct dma_desc *np;
+
+		entry = next_entry;
+
+		if (priv->extend_desc)
+			p = (struct dma_desc *)(rx_q->dma_erx + entry);
+		else
+			p = rx_q->dma_rx + entry;
+
+		/* read the status of the incoming frame */
+		status = stmmac_rx_status(priv, &priv->dev->stats,
+				&priv->xstats, p);
+		/* check if managed by the DMA otherwise go ahead */
+		if (unlikely(status & dma_own))
+			break;
+
+		count++;
+
+		rx_q->cur_rx = STMMAC_GET_ENTRY(rx_q->cur_rx, priv->dma_rx_size);
+		next_entry = rx_q->cur_rx;
+
+		if (priv->extend_desc)
+			np = (struct dma_desc *)(rx_q->dma_erx + next_entry);
+		else
+			np = rx_q->dma_rx + next_entry;
+
+		prefetch(np);
+
+		if (priv->extend_desc)
+			stmmac_rx_extended_status(priv, &priv->dev->stats,
+					&priv->xstats, rx_q->dma_erx + entry);
+		if (unlikely(status == discard_frame)) {
+			priv->dev->stats.rx_errors++;
+			if (priv->hwts_rx_en && !priv->extend_desc) {
+				/* DESC2 & DESC3 will be overwritten by device
+				 * with timestamp value, hence reinitialize
+				 * them in stmmac_rx_refill() function so that
+				 * device can reuse it.
+				 */
+				dev_kfree_skb_any(rx_q->rx_skbuff[entry]);
+				rx_q->rx_skbuff[entry] = NULL;
+				dma_unmap_single(priv->device,
+						rx_q->rx_skbuff_dma[entry],
+						priv->dma_buf_sz,
+						DMA_FROM_DEVICE);
+			}
+		} else {
+			struct sk_buff *skb;
+			int frame_len;
+			// unsigned int des;
+
+			// stmmac_get_desc_addr(priv, p, &des);
+			frame_len = stmmac_get_rx_frame_len(priv, p, coe);
+
+			/*  If frame length is greater than skb buffer size
+			 *  (preallocated during init) then the packet is
+			 *  ignored
+			 */
+			if (frame_len > priv->dma_buf_sz) {
+				if (net_ratelimit())
+					netdev_err(priv->dev,
+						"len %d larger than size (%d)\n",
+						frame_len, priv->dma_buf_sz);
+				priv->dev->stats.rx_length_errors++;
+				continue;
+			}
+
+			/* ACS is set; GMAC core strips PAD/FCS for IEEE 802.3
+			 * Type frames (LLC/LLC-SNAP)
+			 *
+			 * llc_snap is never checked in GMAC >= 4, so this ACS
+			 * feature is always disabled and packets need to be
+			 * stripped manually.
+			 */
+			if (unlikely(priv->synopsys_id >= DWMAC_CORE_4_00) ||
+				unlikely(status != llc_snap))
+				frame_len -= ETH_FCS_LEN;
+
+			if (netif_msg_rx_status(priv)) {
+				// netdev_dbg(priv->dev, "\tdesc: %p [entry %d] buff=0x%x\n",
+						// p, entry, des);
+				netdev_dbg(priv->dev, "frame size %d, COE: %d\n",
+						frame_len, status);
+			}
+
+			/* The zero-copy is always used for all the sizes
+			 * in case of GMAC4 because it needs
+			 * to refill the used descriptors, always.
+			 */
+// TODO : figure this out if remove these is OK or not
+#if 0
+			if (unlikely(!xmac &&
+					((frame_len < priv->rx_copybreak) ||
+					stmmac_rx_threshold_count(rx_q)))) {
+#else
+			if (unlikely(!xmac &&
+				((frame_len < priv->rx_copybreak)))) {
+#endif
+				skb = netdev_alloc_skb_ip_align(priv->dev,
+								frame_len);
+				if (unlikely(!skb)) {
+					if (net_ratelimit())
+						dev_warn(priv->device,
+							"packet dropped\n");
+					priv->dev->stats.rx_dropped++;
+					continue;
+				}
+
+				dma_sync_single_for_cpu(priv->device,
+							rx_q->rx_skbuff_dma[entry], frame_len,
+							DMA_FROM_DEVICE);
+				skb_copy_to_linear_data(skb,
+							rx_q->
+							rx_skbuff[entry]->data,
+							frame_len);
+
+				skb_put(skb, frame_len);
+				dma_sync_single_for_device(priv->device,
+								rx_q->rx_skbuff_dma[entry], frame_len,
+								DMA_FROM_DEVICE);
+			} else {
+				skb = rx_q->rx_skbuff[entry];
+				if (unlikely(!skb)) {
+					if (net_ratelimit())
+						netdev_err(priv->dev,
+								"%s: Inconsistent Rx chain\n",
+								priv->dev->name);
+					priv->dev->stats.rx_dropped++;
+					continue;
+				}
+				prefetch(skb->data - NET_IP_ALIGN);
+				rx_q->rx_skbuff[entry] = NULL;
+				rx_q->rx_zeroc_thresh++;
+
+				skb_put(skb, frame_len);
+				dma_unmap_single(priv->device,
+							rx_q->rx_skbuff_dma[entry],
+							priv->dma_buf_sz,
+							DMA_FROM_DEVICE);
+			}
+
+			if (netif_msg_pktdata(priv)) {
+				netdev_dbg(priv->dev, "frame received (%dbytes)",
+						frame_len);
+				print_pkt(skb->data, frame_len);
+			}
+
+			stmmac_get_rx_hwtstamp(priv, p, np, skb);
+
+			stmmac_rx_vlan(priv->dev, skb);
+
+			skb->protocol = eth_type_trans(skb, priv->dev);
+
+			if (unlikely(!coe))
+				skb_checksum_none_assert(skb);
+			else
+				skb->ip_summed = CHECKSUM_UNNECESSARY;
+
+			napi_gro_receive(&ch->rx_napi, skb);
+
+			priv->dev->stats.rx_packets++;
+			priv->dev->stats.rx_bytes += frame_len;
+		}
+	}
+
+	stmmac_rx_refill(priv, queue);
+
+	priv->xstats.rx_pkt_n += count;
+#if defined(CONFIG_ARCH_SSTAR)
+	priv->xstats.rxq_stats[queue].rx_pkt_n += count;
+#endif
+	return count;
+}
+
+#else
 static int stmmac_rx(struct stmmac_priv *priv, int limit, u32 queue)
 {
 	struct stmmac_rx_queue *rx_q = &priv->rx_queue[queue];
@@ -3928,10 +4639,105 @@ drain_data:
 	stmmac_rx_refill(priv, queue);
 
 	priv->xstats.rx_pkt_n += count;
+	priv->xstats.rxq_stats[queue].rx_pkt_n += count;
 
 	return count;
 }
+#endif
 
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RXIC)
+static int rx_int_msk_bit(int npkt, int max_bit)
+{
+	// int max_bit = sizeof(rx_int_tbl)/sizeof(rx_int_tbl[0]) - 1;
+	int i;
+
+	for (i = max_bit; i >= 0; i--)
+	{
+		if (npkt > rx_int_tbl[i])
+			return i;
+	}
+	return 0;
+}
+
+#define NAPI_RX_CONSUME_ALL	1
+
+static int stmmac_napi_poll_rx(struct napi_struct *napi, int budget)
+{
+	struct stmmac_channel *ch =
+		container_of(napi, struct stmmac_channel, rx_napi);
+	struct stmmac_priv *priv = ch->priv_data;
+	u32 chan = ch->index;
+	int work_done;
+	int work_done_all = 0;
+
+	priv->xstats.napi_poll++;
+	priv->xstats.napi_poll_rx++;
+
+#if NAPI_RX_CONSUME_ALL
+	do
+	{
+		work_done = stmmac_rx(priv, budget, chan);
+		work_done_all += work_done;
+	} while (work_done >= budget);
+#else
+	work_done_all = work_done = stmmac_rx(priv, budget, chan);
+#endif
+	{
+		struct stmmac_rx_queue *rx_q = &priv->rx_queue[chan];
+		int duration = jiffies_to_msecs(jiffies - rx_q->jiffies_last);
+
+		rx_q->rxic_pkt_cnt += work_done_all;
+
+		// if (1000 < duration)
+		// if (500 < duration)
+		if (200 < duration)
+		{
+			int rpkt = (rx_q->rxic_pkt_cnt * 1000)/duration;
+			int old_msk_bit = rx_q->rxic_msk_bit;
+
+	#if 0
+			rx_q->rxic_msk_bit = rpkt/RXIC_MSK_BITS_DIV;
+			if (rx_q->rxic_msk_bit > RXIC_MSK_BITS_MAX)
+			{
+				rx_q->rxic_msk_bit = RXIC_MSK_BITS_MAX;
+			}
+	#else
+			rx_q->rxic_msk_bit = rx_int_msk_bit(rpkt, priv->rxic_msk_bit_max_cur);
+	#endif
+			rx_q->rxic_tmr_pd_us = rxic_tmr_pd_tbl[rx_q->rxic_msk_bit];
+/*
+			if (rx_q->rxic_msk_bit > old_msk_bit)
+				rx_q->rxic_msk_bit = old_msk_bit + 1;
+			else if (rx_q->rxic_msk_bit < old_msk_bit)
+				rx_q->rxic_msk_bit = old_msk_bit - 1;
+*/
+
+			rx_q->rxic_msk = RXIC_MSK_GET(rx_q->rxic_msk_bit);
+			if ((!rx_q->rxic_msk_bit) && (old_msk_bit))
+			{
+				stmmac_rx_refill_ic(priv, chan);
+			}
+			// printk("(rxic_pkt_cnt, duration, rpkt, bit, msk) = (%10d, %6d, %10d, %4d, %4x)\n", rx_q->rxic_pkt_cnt, duration, rpkt, rx_q->rxic_msk_bit, rx_q->rxic_msk);
+			rx_q->rxic_pkt_cnt = 0;
+			rx_q->jiffies_last = jiffies;
+		}
+	}
+
+	if (work_done < budget && napi_complete_done(napi, work_done)) {
+		struct stmmac_rx_queue *rx_q = &priv->rx_queue[chan];
+		unsigned long flags;
+		spin_lock_irqsave(&ch->lock, flags);
+		RX_TIMER_MOD(&rx_q->rxic_tmr, rx_q->rxic_tmr_pd_us);
+		stmmac_enable_dma_irq(priv, priv->ioaddr, chan, 1, 0);
+		spin_unlock_irqrestore(&ch->lock, flags);
+	}
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_SW_TX_FLOW_CTL)
+	stmmac_flow_ctrl_tx(priv, priv->hw, chan, 0);
+#endif
+	return work_done;
+}
+
+#else
 static int stmmac_napi_poll_rx(struct napi_struct *napi, int budget)
 {
 	struct stmmac_channel *ch =
@@ -3950,9 +4756,12 @@ static int stmmac_napi_poll_rx(struct napi_struct *napi, int budget)
 		stmmac_enable_dma_irq(priv, priv->ioaddr, chan, 1, 0);
 		spin_unlock_irqrestore(&ch->lock, flags);
 	}
-
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_SW_TX_FLOW_CTL)
+	stmmac_flow_ctrl_tx(priv, priv->hw, chan, 0);
+#endif
 	return work_done;
 }
+#endif // #if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RXIC)
 
 static int stmmac_napi_poll_tx(struct napi_struct *napi, int budget)
 {
@@ -4125,6 +4934,11 @@ static irqreturn_t stmmac_interrupt(int irq, void *dev_id)
 	u32 queue;
 	bool xmac;
 
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_CODING_OPTIMIZE)
+	if (!sstar_gmac_int_owner(((struct sstar_dwmac*)priv->plat->bsp_priv)->id))
+		return IRQ_NONE;
+#endif
+
 	xmac = priv->plat->has_gmac4 || priv->plat->has_xgmac;
 	queues_count = (rx_cnt > tx_cnt) ? rx_cnt : tx_cnt;
 
@@ -4153,6 +4967,10 @@ static irqreturn_t stmmac_interrupt(int irq, void *dev_id)
 		for (queue = 0; queue < queues_count; queue++) {
 			status = stmmac_host_mtl_irq_status(priv, priv->hw,
 							    queue);
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_SW_TX_FLOW_CTL)
+			if (CORE_IRQ_MTL_RX_OVERFLOW & status)
+				stmmac_flow_ctrl_tx(priv, priv->hw, queue, priv->pause);
+#endif
 		}
 
 		/* PCS link status */
@@ -4664,8 +5482,14 @@ static void stmmac_reset_subtask(struct stmmac_priv *priv)
 	while (test_and_set_bit(STMMAC_RESETING, &priv->state))
 		usleep_range(1000, 2000);
 
+#if defined(CONFIG_ARCH_SSTAR)
+	dev_close(priv->dev);
+	set_bit(STMMAC_DOWN, &priv->state);
+#else
 	set_bit(STMMAC_DOWN, &priv->state);
 	dev_close(priv->dev);
+#endif
+
 	dev_open(priv->dev, NULL);
 	clear_bit(STMMAC_DOWN, &priv->state);
 	clear_bit(STMMAC_RESETING, &priv->state);
@@ -4736,6 +5560,9 @@ static int stmmac_hw_init(struct stmmac_priv *priv)
 			priv->plat->rx_coe = STMMAC_RX_COE_TYPE2;
 		else if (priv->dma_cap.rx_coe_type1)
 			priv->plat->rx_coe = STMMAC_RX_COE_TYPE1;
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RX_ZERO_COPY)
+		priv->dma_cap.sphen = 0;
+#endif
 
 	} else {
 		dev_info(priv->device, "No HW DMA feature register supported\n");
@@ -4773,13 +5600,16 @@ static int stmmac_hw_init(struct stmmac_priv *priv)
 	 * has to be disable and this can be done by passing the
 	 * riwt_off field from the platform.
 	 */
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RXIC)
+	priv->use_riwt = 0;
+#else
 	if (((priv->synopsys_id >= DWMAC_CORE_3_50) ||
 	    (priv->plat->has_xgmac)) && (!priv->plat->riwt_off)) {
 		priv->use_riwt = 1;
 		dev_info(priv->device,
 			 "Enable RX Mitigation via HW Watchdog Timer\n");
 	}
-
+#endif
 	return 0;
 }
 
@@ -4787,7 +5617,11 @@ static void stmmac_napi_add(struct net_device *dev)
 {
 	struct stmmac_priv *priv = netdev_priv(dev);
 	u32 queue, maxq;
-
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RXIC)
+	// printk("[%s][%d] ====================================\n", __FUNCTION__, __LINE__);
+	// printk("[%s][%d] (weight_rx, weight_tx) = (%4d, %4d)\n", __FUNCTION__, __LINE__, SSTAR_NAPI_WEIGHT_RX, SSTAR_NAPI_WEIGHT_TX);
+	// printk("[%s][%d] ====================================\n", __FUNCTION__, __LINE__);
+#endif
 	maxq = max(priv->plat->rx_queues_to_use, priv->plat->tx_queues_to_use);
 
 	for (queue = 0; queue < maxq; queue++) {
@@ -4799,12 +5633,20 @@ static void stmmac_napi_add(struct net_device *dev)
 
 		if (queue < priv->plat->rx_queues_to_use) {
 			netif_napi_add(dev, &ch->rx_napi, stmmac_napi_poll_rx,
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RXIC)
+				       SSTAR_NAPI_WEIGHT_RX);
+#else
 				       NAPI_POLL_WEIGHT);
+#endif
 		}
 		if (queue < priv->plat->tx_queues_to_use) {
 			netif_tx_napi_add(dev, &ch->tx_napi,
 					  stmmac_napi_poll_tx,
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RXIC)
+					  SSTAR_NAPI_WEIGHT_TX);
+#else
 					  NAPI_POLL_WEIGHT);
+#endif
 		}
 	}
 }
@@ -5190,6 +6032,10 @@ int stmmac_suspend(struct device *dev)
 
 	for (chan = 0; chan < priv->plat->tx_queues_to_use; chan++)
 		del_timer_sync(&priv->tx_queue[chan].txtimer);
+
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_STORM_PROTECT)
+	del_timer_sync(&priv->storm_prct_tmr);
+#endif
 
 	if (priv->eee_enabled) {
 		priv->tx_path_in_lpi_mode = false;

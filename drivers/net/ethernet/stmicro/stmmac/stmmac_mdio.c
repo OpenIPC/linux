@@ -21,6 +21,10 @@
 
 #include "dwxgmac2.h"
 #include "stmmac.h"
+#ifdef CONFIG_ARCH_SSTAR
+#include "registers.h"
+#include "sstar_gmac.h"
+#endif
 
 #define MII_BUSY 0x00000001
 #define MII_WRITE 0x00000002
@@ -175,6 +179,50 @@ static int stmmac_xgmac2_mdio_write(struct mii_bus *bus, int phyaddr,
 	return readl_poll_timeout(priv->ioaddr + mii_data, tmp,
 				  !(tmp & MII_XGMAC_BUSY), 100, 10000);
 }
+
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_NETPHY)
+static int sstar_albany_read(struct mii_bus *bus, int phyaddr, int phyreg)
+{
+	u32 uRegBase = IO_ADDRESS(BASE_REG_ALBANY);
+	u32 tempvalue, val;
+
+	if (0 != phyaddr)
+		return 0xffff;
+
+	if (MII_PHYSID1 == phyreg)
+	{
+		val = 0x1111;
+		return val;
+	}
+	if (MII_PHYSID2 == phyreg)
+	{
+		val = 0x2222;
+		return val;
+	}
+
+	tempvalue = *(volatile unsigned int*)(uRegBase + 0x04);
+	tempvalue |= 0x0004;
+	*(volatile unsigned int*)(uRegBase + 0x04) = tempvalue;
+	udelay(1);
+	val = *(volatile unsigned int*)(uRegBase + (phyreg << 2));
+	//printk("[%s][%d] reg = 0x%04x val = 0x%04x\n", __FUNCTION__, __LINE__, phyreg, val);
+	return val;
+}
+
+static int sstar_albany_write(struct mii_bus *bus, int phyaddr, int phyreg,
+			     u16 phydata)
+{
+	u32 uRegBase = IO_ADDRESS(BASE_REG_ALBANY);
+
+	if (0 != phyaddr)
+		return -1;
+
+	*(volatile unsigned int*)(uRegBase + (phyreg << 2)) = phydata;
+	udelay(1);
+	//printk("[%s][%d] reg = 0x%04x val = 0x%04x\n", __FUNCTION__, __LINE__, phyreg, phydata);
+	return 0;
+}
+#endif
 
 /**
  * stmmac_mdio_read
@@ -376,6 +424,12 @@ int stmmac_mdio_register(struct net_device *ndev)
 		if (priv->plat->phy_addr > MII_XGMAC_MAX_C22ADDR)
 			dev_err(dev, "Unsupported phy_addr (max=%d)\n",
 					MII_XGMAC_MAX_C22ADDR);
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_NETPHY)
+	} else if (priv->plat->interface == PHY_INTERFACE_MODE_MII) {
+		new_bus->read = &sstar_albany_read;
+		new_bus->write = &sstar_albany_write;
+		max_addr = PHY_MAX_ADDR;
+#endif
 	} else {
 		new_bus->read = &stmmac_mdio_read;
 		new_bus->write = &stmmac_mdio_write;

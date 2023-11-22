@@ -74,10 +74,26 @@ struct task_struct;
 #define DBG_HOOK_HANDLED	0
 #define DBG_HOOK_ERROR		1
 
+#if defined(CONFIG_ARCH_SSTAR)
+/*
+ * Use arch default SS handler and this flag,
+ * it is easy to implement software conditional
+ * watchpoint and breakpoint.
+ *
+ */
+#define DBG_SS_BEFORE_BP	1
+
+struct step_hook {
+	struct list_head node;
+	int (*fn)(struct pt_regs *regs, unsigned int esr);
+	int flags;
+};
+#else
 struct step_hook {
 	struct list_head node;
 	int (*fn)(struct pt_regs *regs, unsigned int esr);
 };
+#endif
 
 void register_user_step_hook(struct step_hook *hook);
 void unregister_user_step_hook(struct step_hook *hook);

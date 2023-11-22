@@ -654,6 +654,7 @@ static int mtdchar_ioctl(struct file *file, u_int cmd, u_long arg)
 	case MEMISLOCKED:
 	case MEMGETOOBSEL:
 	case MEMGETBADBLOCK:
+	case MEMGETBBTBLKINFO:
 	case OTPSELECT:
 	case OTPGETREGIONCOUNT:
 	case OTPGETREGIONINFO:
@@ -891,6 +892,32 @@ static int mtdchar_ioctl(struct file *file, u_int cmd, u_long arg)
 		if (copy_from_user(&offs, argp, sizeof(loff_t)))
 			return -EFAULT;
 		return mtd_block_markbad(mtd, offs);
+		break;
+	}
+
+	case MEMGETBBTBLKINFO:
+	{
+		struct sstar_bbt_info_user st_bbt_info_user;
+		int ret;
+		loff_t offs;
+
+		#define    FACTORY_BAD_BLOCK        0x00
+		#define    GOOD_BLOCK               0x0f
+
+		if (copy_from_user(&st_bbt_info_user, argp, sizeof(struct sstar_bbt_info_user)))
+			return -EFAULT;
+
+		offs = st_bbt_info_user.u32_offset;
+		ret = mtd_block_isbad(mtd, offs);
+		if (ret <= 0)
+			ret = GOOD_BLOCK;
+		else if (ret > 0)
+			ret = FACTORY_BAD_BLOCK;
+
+		st_bbt_info_user.u8_type = ret;
+
+		if (copy_to_user(argp, &st_bbt_info_user, sizeof(struct sstar_bbt_info_user)))
+			return -EFAULT;
 		break;
 	}
 

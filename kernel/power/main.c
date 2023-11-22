@@ -883,6 +883,16 @@ power_attr(pm_freeze_timeout);
 
 #endif	/* CONFIG_FREEZER*/
 
+#ifdef CONFIG_MS_XPM
+extern ssize_t xpm_show(struct kobject *kobj,struct kobj_attribute *attr, char *buf);
+extern ssize_t xpm_store(struct kobject *kobj, struct kobj_attribute *attr,const char *buf, size_t n);
+extern ssize_t xpm_suspend_wait_ms_show(struct kobject *kobj,struct kobj_attribute *attr, char *buf);
+extern ssize_t xpm_suspend_wait_ms_store(struct kobject *kobj, struct kobj_attribute *attr,const char *buf, size_t n);
+
+power_attr(xpm);
+power_attr(xpm_suspend_wait_ms);
+#endif
+
 static struct attribute * g[] = {
 	&state_attr.attr,
 #ifdef CONFIG_PM_TRACE
@@ -912,6 +922,10 @@ static struct attribute * g[] = {
 #endif
 #ifdef CONFIG_FREEZER
 	&pm_freeze_timeout_attr.attr,
+#endif
+#ifdef CONFIG_MS_XPM
+	&xpm_attr.attr,
+	&xpm_suspend_wait_ms_attr.attr,
 #endif
 	NULL,
 };

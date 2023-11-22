@@ -29,8 +29,12 @@
 #include <linux/of.h>
 #include <asm/unaligned.h>
 
-#define GOODIX_GPIO_INT_NAME		"irq"
-#define GOODIX_GPIO_RST_NAME		"reset"
+#ifdef CONFIG_ARCH_SSTAR
+#include <linux/gpio.h>
+#endif /* CONFIG_ARCH_SSTAR */
+
+#define GOODIX_GPIO_INT_NAME "irq"
+#define GOODIX_GPIO_RST_NAME "reset"
 
 #define GOODIX_MAX_HEIGHT		4096
 #define GOODIX_MAX_WIDTH		4096
@@ -819,10 +823,12 @@ static int goodix_add_acpi_gpio_mappings(struct goodix_ts_data *ts)
 	return devm_acpi_dev_add_driver_gpios(dev, gpio_mapping);
 }
 #else
+#ifndef CONFIG_ARCH_SSTAR
 static int goodix_add_acpi_gpio_mappings(struct goodix_ts_data *ts)
 {
 	return -EINVAL;
 }
+#endif /* CONFIG_ARCH_SSTAR */
 #endif /* CONFIG_X86 && CONFIG_ACPI */
 
 /**
@@ -835,12 +841,18 @@ static int goodix_get_gpio_config(struct goodix_ts_data *ts)
 	int error;
 	struct device *dev;
 	struct gpio_desc *gpiod;
+#ifndef CONFIG_ARCH_SSTAR
 	bool added_acpi_mappings = false;
+#else
+	u32 gpio_rst;
+	u32 gpio_int;
+#endif /* CONFIG_ARCH_SSTAR */
 
 	if (!ts->client)
 		return -EINVAL;
 	dev = &ts->client->dev;
 
+#ifndef CONFIG_ARCH_SSTAR
 	ts->avdd28 = devm_regulator_get(dev, "AVDD28");
 	if (IS_ERR(ts->avdd28)) {
 		error = PTR_ERR(ts->avdd28);
@@ -888,6 +900,39 @@ retry_get_irq_gpio:
 	}
 
 	ts->gpiod_rst = gpiod;
+#else
+	if (of_property_read_u32(dev->of_node, GOODIX_GPIO_RST_NAME, &gpio_rst))
+		return -EINVAL;
+	gpiod = gpio_to_desc(gpio_rst);
+	if (IS_ERR(gpiod)) {
+		error = PTR_ERR(gpiod);
+		if (error != -EPROBE_DEFER)
+			dev_dbg(dev, "Failed to get %s GPIO: %d\n",
+				GOODIX_GPIO_RST_NAME, error);
+		return error;
+	}
+	ts->gpiod_rst = gpiod;
+
+	if (of_property_read_u32(dev->of_node, GOODIX_GPIO_INT_NAME, &gpio_int))
+		return -EINVAL;
+	gpiod = gpio_to_desc(gpio_int);
+	if (IS_ERR(gpiod)) {
+		error = PTR_ERR(gpiod);
+		if (error != -EPROBE_DEFER)
+			dev_dbg(dev, "Failed to get %s GPIO: %d\n",
+				GOODIX_GPIO_INT_NAME, error);
+		return error;
+	}
+	ts->gpiod_int = gpiod;
+
+	error = devm_gpio_request(dev, gpio_rst, GOODIX_GPIO_RST_NAME);
+	if (error)
+		dev_err(dev, "request reset gpio failed, error : %d\n", error);
+
+	error = devm_gpio_request(dev, gpio_int, GOODIX_GPIO_INT_NAME);
+	if (error)
+		dev_err(dev, "request int gpio failed, error : %d\n", error);
+#endif /* CONFIG_ARCH_SSTAR */
 
 	switch (ts->irq_pin_access_method) {
 	case IRQ_PIN_ACCESS_ACPI_GPIO:
@@ -1141,6 +1186,7 @@ err_release_cfg:
 	complete_all(&ts->firmware_loading_complete);
 }
 
+#ifndef CONFIG_ARCH_SSTAR
 static void goodix_disable_regulators(void *arg)
 {
 	struct goodix_ts_data *ts = arg;
@@ -1148,6 +1194,7 @@ static void goodix_disable_regulators(void *arg)
 	regulator_disable(ts->vddio);
 	regulator_disable(ts->avdd28);
 }
+#endif /* CONFIG_ARCH_SSTAR */
 
 static int goodix_ts_probe(struct i2c_client *client,
 			   const struct i2c_device_id *id)
@@ -1175,6 +1222,7 @@ static int goodix_ts_probe(struct i2c_client *client,
 	if (error)
 		return error;
 
+#ifndef CONFIG_ARCH_SSTAR
 	/* power up the controller */
 	error = regulator_enable(ts->avdd28);
 	if (error) {
@@ -1197,6 +1245,7 @@ static int goodix_ts_probe(struct i2c_client *client,
 					 goodix_disable_regulators, ts);
 	if (error)
 		return error;
+#endif /* CONFIG_ARCH_SSTAR */
 
 reset:
 	if (ts->reset_controller_at_probe) {

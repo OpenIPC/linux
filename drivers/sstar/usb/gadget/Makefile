@@ -1,0 +1,3 @@
+obj-$(CONFIG_USB_GADGET_SSTAR_DEVICE) += udc/usb20/
+obj-$(CONFIG_USB_GADGET_SSTAR_FUNCTION) += function/
+obj-$(CONFIG_USB_GADGET_SSTAR_LEGACY) += legacy/

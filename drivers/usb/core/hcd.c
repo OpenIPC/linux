@@ -41,7 +41,6 @@
 #include "usb.h"
 #include "phy.h"
 
-
 /*-------------------------------------------------------------------------*/
 
 /*
@@ -489,7 +488,7 @@ static int rh_call_control (struct usb_hcd *hcd, struct urb *urb)
 	const u8	*bufp;
 
 	might_sleep();
-
+    dev_dbg (hcd->self.controller, "rh_call_control\n");
 	spin_lock_irq(&hcd_root_hub_lock);
 	status = usb_hcd_link_urb_to_ep(hcd, urb);
 	spin_unlock_irq(&hcd_root_hub_lock);

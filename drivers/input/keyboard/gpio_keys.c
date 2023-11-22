@@ -29,6 +29,10 @@
 #include <linux/spinlock.h>
 #include <dt-bindings/input/gpio-keys.h>
 
+#ifdef CONFIG_ARCH_SSTAR
+int key_status;
+#endif
+
 struct gpio_button_data {
 	const struct gpio_keys_button *button;
 	struct input_dev *input;
@@ -366,7 +370,25 @@ static void gpio_keys_gpio_report_event(struct gpio_button_data *bdata)
 			"failed to get gpio state: %d\n", state);
 		return;
 	}
+#ifdef CONFIG_ARCH_SSTAR
+	if(key_status==state)
+	{
+		pr_debug("false trigger");
+		return;
+	}
+	key_status = state;
 
+	if(key_status)
+	{
+		irq_set_irq_type(bdata->irq,IRQF_TRIGGER_RISING);
+	}
+	else
+	{
+		irq_set_irq_type(bdata->irq,IRQF_TRIGGER_FALLING);
+	}
+
+	pr_debug("gpio_keys_gpio_report_event: code = %d state=%d\r\n", button->code, state);
+#endif
 	if (type == EV_ABS) {
 		if (state)
 			input_event(input, type, button->code, button->value);
@@ -562,8 +584,21 @@ static int gpio_keys_setup_key(struct platform_device *pdev,
 		INIT_DELAYED_WORK(&bdata->work, gpio_keys_gpio_work_func);
 
 		isr = gpio_keys_gpio_isr;
-		irqflags = IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING;
+#ifdef CONFIG_ARCH_SSTAR
+		key_status = gpiod_get_value_cansleep(bdata->gpiod);
+		if (key_status < 0) {
+			dev_err(input->dev.parent,
+				"failed to get gpio state: %d\n", key_status);
+			return key_status;
+		}
 
+		if(key_status)
+			irqflags = IRQF_TRIGGER_RISING;
+		else
+			irqflags = IRQF_TRIGGER_FALLING;
+#else
+		irqflags = IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING;
+#endif
 		switch (button->wakeup_event_action) {
 		case EV_ACT_ASSERTED:
 			bdata->wakeup_trigger_type = active_low ?

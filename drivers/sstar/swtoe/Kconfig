@@ -1,0 +1,16 @@
+config SS_SWTOE
+select NET
+select NET_ETHERNET
+select MII
+select PACKET
+select USE_POLICY_FWD
+select INET
+select NETDEVICES
+select MS_EMAC_TOE
+
+tristate "SWTOE"
+default n
+
+help
+Enable compilation option for driver SSTAR SW TOE
+

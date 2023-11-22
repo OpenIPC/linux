@@ -490,6 +490,7 @@ config USB_DUMMY_HCD
 	  dynamically linked module called "dummy_hcd" and force all
 	  gadget drivers to also be dynamically linked.
 
+source "drivers/sstar/usb/gadget/udc/usb20/Kconfig"
 # NOTE:  Please keep dummy_hcd LAST so that "real hardware" appears
 # first and will be selected by default.
 

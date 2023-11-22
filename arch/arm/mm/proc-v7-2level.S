@@ -136,7 +136,9 @@ ENDPROC(cpu_v7_set_pte_ext)
 	 */
 .equ	PRRR,	0xff0a81a8
 .equ	NMRR,	0x40e040e0
-
+#ifdef CONFIG_ARCH_INFINITY6C
+.equ	NMRR1,	0x40604060
+#endif
 	/*
 	 * Macro for setting up the TTBRx and TTBCR registers.
 	 * - \ttb0 and \ttb1 updated with the corresponding flags.

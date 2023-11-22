@@ -1,5 +1,10 @@
 # SPDX-License-Identifier: GPL-2.0
 
+#EXTRA_CFLAGS		+=  -Idrivers/sstar/include
+EXTRA_CFLAGS		+=  -I$(srctree)/drivers/sstar/include
+EXTRA_CFLAGS		+=  -I$(srctree)/drivers/sstar/include/$(CONFIG_SSTAR_CHIP_NAME)
+EXTRA_CFLAGS		+=  -I$(srctree)/drivers/sstar/sata_host/$(CONFIG_SSTAR_CHIP_NAME)
+
 obj-$(CONFIG_ATA)		+= libata.o
 
 # non-SFF interface

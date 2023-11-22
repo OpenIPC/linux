@@ -1,0 +1,54 @@
+Bindings for the Cadence Xtensa Remote Processing Simple HW-specific driver.
+
+This binding is an extension of the cdns,xrp,v1 binding. All properties of
+that binding are in effect.
+
+Required properties:
+- compatible: shall be "cdns,xrp-hw-simple,v1".
+- reg: register locations of the DSP shared memory (first entry, same as in
+       cdns,xrp,v1) and DSP MMIO block (second entry).
+
+Optional properties:
+- device-irq: 3 32-bit cells:
+  - first: offset of the 32-bit device IRQ MMIO register from the DSP MMIO
+    block start as seen by the device;
+  - second: register bit index that controls IRQ;
+  - third: DSP IRQ number (normal core IRQ number, not external IRQ number)
+    controlled by this register/bit.
+- device-irq-host-offset: offset of the 32-bit device IRQ MMIO register from
+  the DSP MMIO block start as seen by the host. If omitted device-irq cell 0
+  is used;
+- device-irq-mode: 0 for none (polling), 1 for level, 2 for edge, 3 for
+  software-assisted (by LUA script in the XTSC) edge.
+
+- host-irq: 2 32-bit cells:
+  - first: offset of the 32-bit device IRQ MMIO register from the DSP MMIO
+    block start;
+  - second: register bit index that controls IRQ.
+- host-irq-mode: 0 for none (polling), 1 for level, 2 for edge.
+- interrupts: host IRQ number controlled by this register/bit.
+
+Example:
+
+	xrp@0 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "cdns,xrp-hw-simple,v1";
+		reg = <0xf0000000 0x01000000   /* DSP shared memory */
+		       0xfd001000 0x00000200>; /* DSP MMIO */
+		device-irq = <0 1 5>; /* offset, bit#, IRQ# */
+		device-irq-host-offset = <0>;
+		device-irq-mode = <1>;
+		host-irq = <0xfffff000 0>; /* offset, bit# */
+		host-irq-mode = <2>;
+		interrupts = <15 0>;
+		firmware-name = "xrp0.elf";
+		ranges = <0x00000000 0x00000000 0x10000000
+			  0x3ffc0000 0xc0000000 0x00020000
+			  0x3ffe0000 0xc0020000 0x00020000
+			  0x50000000 0x50000000 0x01000000
+			  0x60000000 0x60000000 0x20000000
+			  0xf0000000 0xf0000000 0x0d000000>;
+		dsp@0 {
+		};
+	};

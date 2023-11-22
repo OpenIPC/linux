@@ -919,8 +919,14 @@ static int test_ahash_jiffies_digest(struct ahash_request *req, int blen,
 			return ret;
 	}
 
+#ifdef CONFIG_ARCH_SSTAR
+	printk("%6u opers/sec, %3lu.%03lu MBytes/sec\n",
+	       bcount / secs, ((long)bcount * blen) / secs/1024/1024,
+	       ((((long)bcount * blen) / secs)%1048576)*1000/1048576);
+#else
 	printk("%6u opers/sec, %9lu bytes/sec\n",
 	       bcount / secs, ((long)bcount * blen) / secs);
+#endif
 
 	return 0;
 }
@@ -951,8 +957,14 @@ static int test_ahash_jiffies(struct ahash_request *req, int blen,
 			return ret;
 	}
 
+#ifdef CONFIG_ARCH_SSTAR
+	pr_cont("%6u opers/sec, %3lu.%03lu MBytes/sec\n",
+		bcount / secs, ((long)bcount * blen) / secs/1024/1024,
+		((((long)bcount * blen) / secs)%1048576)*1000/1048576);
+#else
 	pr_cont("%6u opers/sec, %9lu bytes/sec\n",
 		bcount / secs, ((long)bcount * blen) / secs);
+#endif
 
 	return 0;
 }
@@ -1435,8 +1447,21 @@ static int test_acipher_jiffies(struct skcipher_request *req, int enc,
 			return ret;
 	}
 
+#ifdef CONFIG_ARCH_SSTAR
+	{
+		u64 throughput_int,throughput_decimal, rem;
+		throughput_int = bcount * blen;
+		rem = do_div(throughput_int, secs*1024*1024 );
+		throughput_decimal = rem * 1000;
+		rem = do_div(throughput_decimal, secs*1024*1024 );
+		pr_cont("%8d operations in %d seconds (%3lld.%03lld Mps)\n",
+			bcount, secs, throughput_int, throughput_decimal);
+	}
+#else
 	pr_cont("%d operations in %d seconds (%llu bytes)\n",
 		bcount, secs, (u64)bcount * blen);
+#endif
+
 	return 0;
 }
 
@@ -1542,7 +1567,7 @@ static void test_skcipher_speed(const char *algo, int enc, unsigned int secs,
 				goto out_free_req;
 			}
 
-			pr_info("test %u (%d bit key, %d byte blocks): ", i,
+			pr_info("test %2u (%d bit key, %4d byte blocks): ", i,
 				*keysize * 8, *b_size);
 
 			memset(tvmem[0], 0xff, PAGE_SIZE);

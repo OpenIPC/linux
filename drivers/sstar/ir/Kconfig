@@ -1,0 +1,9 @@
+config MS_IR
+
+tristate "SStar IR driver"
+    default n
+    select INPUT
+    select RC_CORE
+    help
+      enable support for IR driver
+

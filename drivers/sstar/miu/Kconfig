@@ -1,0 +1,69 @@
+menuconfig MSTAR_MIU
+
+tristate "MSTAR MIU"
+
+help
+    MStar miu driver
+default n
+
+if MSTAR_MIU
+choice
+    prompt "Bandwidth measurement"
+    default MIU_BW_TO_KMSG
+config MIU_BW_TO_KMSG
+    bool "show bandwidth report to kernel message"
+config MIU_BW_TO_SYSFS
+    bool "show bandwidth report to sysfs buffer"
+config MIU_BW_TO_KMSG_OR_SYSFS
+    bool "run-time config bandwidth report to kmsg or sysfs"
+endchoice
+
+config MSYS_MIU_PROTECT
+	bool "sysfs:MSYS MIU protect"
+	default n
+
+config MIU_PROTECT_SYSFS
+	bool "sysfs:MIU protect"
+	default n
+
+config MIU_SUPPORT_SYNOPSYS
+	bool "Support Synopsys miu-control"
+	default n
+
+config MIU_RWCLIENT
+	bool "Support read/write client ID"
+	default n
+
+config MIU_ARBITRATION
+	bool "Support arbitration adjustment"
+	default n
+
+config MIU_FLOWCTRL
+	bool "Support arb flow control"
+	depends on MIU_ARBITRATION && MIU_RWCLIENT
+	default n
+
+config MSYS_MIU_UT
+    bool "sysfs:MIU ut"
+    default n
+
+config TEST_ALL_LINUX_MMU_MAP
+	bool "Test: sstar_mmu map linux to over 4Gb"
+	default n
+
+config TEST_ALL_LINUX_MMU_MAP_ADDRESS
+	hex "linux sstar_mmu map address(VPA)"
+	depends on TEST_ALL_LINUX_MMU_MAP
+	default 0xF00000000
+
+config TEST_ALL_LINUX_MMU_PAGE_SIZE
+	int "linux sstar_mmu map page size (unit KB)"
+	depends on TEST_ALL_LINUX_MMU_MAP
+	default 1024
+
+config TEST_ALL_LINUX_MMU_ENTRY_COUNT
+	int "linux sstar_mmu map entry count"
+	depends on TEST_ALL_LINUX_MMU_MAP
+	default 4096
+
+endif #MSTAR_MIU

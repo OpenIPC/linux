@@ -90,15 +90,18 @@
  * .data. We don't want to pull in .data..other sections, which Linux
  * has defined. Same for text and bss.
  *
+ * With LTO_CLANG, the linker also splits sections by default, so we need
+ * these macros to combine the sections during the final link.
+ *
  * RODATA_MAIN is not used because existing code already defines .rodata.x
  * sections to be brought in with rodata.
  */
-#ifdef CONFIG_LD_DEAD_CODE_DATA_ELIMINATION
+#if defined(CONFIG_LD_DEAD_CODE_DATA_ELIMINATION) || defined(CONFIG_LTO_CLANG)
 #define TEXT_MAIN .text .text.[0-9a-zA-Z_]*
-#define DATA_MAIN .data .data.[0-9a-zA-Z_]* .data..LPBX*
+#define DATA_MAIN .data .data.[0-9a-zA-Z_]* .data..L* .data..compoundliteral*
 #define SDATA_MAIN .sdata .sdata.[0-9a-zA-Z_]*
-#define RODATA_MAIN .rodata .rodata.[0-9a-zA-Z_]*
-#define BSS_MAIN .bss .bss.[0-9a-zA-Z_]*
+#define RODATA_MAIN .rodata .rodata.[0-9a-zA-Z_]* .rodata..L*
+#define BSS_MAIN .bss .bss.[0-9a-zA-Z_]* .bss..compoundliteral*
 #define SBSS_MAIN .sbss .sbss.[0-9a-zA-Z_]*
 #else
 #define TEXT_MAIN .text
@@ -314,6 +317,16 @@
 	__##name##_thermal_table_end = .;
 #else
 #define THERMAL_TABLE(name)
+#endif
+
+#ifdef CONFIG_DTPM
+#define DTPM_TABLE()							\
+	. = ALIGN(8);							\
+	__dtpm_table = .;						\
+	KEEP(*(__dtpm_table))						\
+	__dtpm_table_end = .;
+#else
+#define DTPM_TABLE()
 #endif
 
 #define KERNEL_DTB()							\
@@ -573,6 +586,22 @@
 	. = ALIGN((align));						\
 	__end_rodata = .;
 
+
+/*
+ * .text..L.cfi.jumptable.* contain Control-Flow Integrity (CFI)
+ * jump table entries.
+ */
+#ifdef CONFIG_CFI_CLANG
+#define TEXT_CFI_JT							\
+		. = ALIGN(PMD_SIZE);					\
+		__cfi_jt_start = .;					\
+		*(.text..L.cfi.jumptable .text..L.cfi.jumptable.*)	\
+		. = ALIGN(PMD_SIZE);					\
+		__cfi_jt_end = .;
+#else
+#define TEXT_CFI_JT
+#endif
+
 /*
  * Non-instrumentable text section
  */
@@ -600,6 +629,7 @@
 		*(.text..refcount)					\
 		*(.ref.text)						\
 		*(.text.asan.* .text.tsan.*)				\
+		TEXT_CFI_JT						\
 	MEM_KEEP(init.text*)						\
 	MEM_KEEP(exit.text*)						\
 
@@ -737,6 +767,7 @@
 	ACPI_PROBE_TABLE(irqchip)					\
 	ACPI_PROBE_TABLE(timer)						\
 	THERMAL_TABLE(governor)						\
+	DTPM_TABLE()							\
 	EARLYCON_TABLE()						\
 	LSM_TABLE()							\
 	EARLY_LSM_TABLE()						\
@@ -795,11 +826,21 @@
 	}
 
 /*
+ * Keep .eh_frame with CFI.
+ */
+#ifdef CONFIG_CFI_CLANG
+#define EH_FRAME .eh_frame : { *(.eh_frame) }
+#else
+#define EH_FRAME
+#endif
+
+/*
  * DWARF debug sections.
  * Symbols in the DWARF debugging sections are relative to
  * the beginning of the section so we begin them at 0.
  */
 #define DWARF_DEBUG							\
+		EH_FRAME						\
 		/* DWARF 1 */						\
 		.debug          0 : { *(.debug) }			\
 		.line           0 : { *(.line) }			\
@@ -924,6 +965,29 @@
 		KEEP(*(.initcall##level##.init))			\
 		KEEP(*(.initcall##level##s.init))			\
 
+#ifdef CONFIG_DEFERRED_INIICALLS
+#define DEFERRED_INITCALLS						\
+		__deferred_initcall_start = .;		\
+		*(.deferred_initcall.init)				\
+		__deferred_initcall_end = .;
+
+#define INIT_CALLS							\
+		__initcall_start = .;			\
+		KEEP(*(.initcallearly.init))				\
+		INIT_CALLS_LEVEL(0)					\
+		INIT_CALLS_LEVEL(1)					\
+		INIT_CALLS_LEVEL(2)					\
+		INIT_CALLS_LEVEL(3)					\
+		INIT_CALLS_LEVEL(4)					\
+		INIT_CALLS_LEVEL(5)					\
+		INIT_CALLS_LEVEL(rootfs)				\
+		INIT_CALLS_LEVEL(6)					\
+		INIT_CALLS_LEVEL(7)					\
+		__initcall_end = .; \
+		DEFERRED_INITCALLS
+
+#else
+
 #define INIT_CALLS							\
 		__initcall_start = .;					\
 		KEEP(*(.initcallearly.init))				\
@@ -938,6 +1002,7 @@
 		INIT_CALLS_LEVEL(7)					\
 		__initcall_end = .;
 
+#endif
 #define CON_INITCALL							\
 		__con_initcall_start = .;				\
 		KEEP(*(.con_initcall.init))				\

@@ -190,12 +190,16 @@ void dump_backtrace(struct pt_regs *regs, struct task_struct *tsk,
 
 	put_task_stack(tsk);
 }
+EXPORT_SYMBOL_GPL(dump_backtrace);
 
 void show_stack(struct task_struct *tsk, unsigned long *sp, const char *loglvl)
 {
 	dump_backtrace(NULL, tsk, loglvl);
 	barrier();
 }
+#ifdef CONFIG_ARCH_SSTAR
+EXPORT_SYMBOL(show_stack);
+#endif
 
 #ifdef CONFIG_STACKTRACE
 

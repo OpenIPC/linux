@@ -24,6 +24,9 @@
 #include <asm/mach/arch.h>
 #include <asm/mach-types.h>
 
+#ifdef CONFIG_SS_BUILTIN_DTB
+extern void *builtin_dtb_start;
+#endif
 
 #ifdef CONFIG_SMP
 extern struct of_cpu_method __cpu_method_of_table[];
@@ -201,6 +204,49 @@ static const void * __init arch_get_next_mach(const char *const **match)
 	return m;
 }
 
+#ifdef CONFIG_FB_DTS_SKIP_ATAGS_TO_FDT
+__initdata int gb_ATAG_CMDLINE_found = 0;
+__initdata int gb_ATAG_INITRD2_found = 0;
+
+int early_atags_to_data(void *atag_list)
+{
+	struct tag *atag = atag_list;
+	/* In the case of 64 bits memory size, need to reserve 2 cells for
+	 * address and size for each bank */
+
+	/* make sure we've got an aligned pointer */
+	if ((u32)atag_list & 0x3)
+		return 1;
+
+
+	/* validate the ATAG */
+	if (atag->hdr.tag != ATAG_CORE ||
+			(atag->hdr.size != tag_size(tag_core) &&
+			 atag->hdr.size != 2))
+		return 1;
+
+
+	for_each_tag(atag, atag_list) {
+		if (atag->hdr.tag == ATAG_CMDLINE) {
+			strcpy(boot_command_line, atag->u.cmdline.cmdline);
+			gb_ATAG_CMDLINE_found = 1;
+		} else if (atag->hdr.tag == ATAG_INITRD2) {
+			/* 1 if it is not an error if initrd_start < memory_start */
+			extern int initrd_below_start_ok;
+			/* free_initrd_mem always gets called with the next two as arguments.. */
+			extern unsigned long initrd_start, initrd_end;
+
+			initrd_start = (unsigned long)__va(atag->u.initrd.start);
+			initrd_end = (unsigned long)__va(atag->u.initrd.start+atag->u.initrd.size);
+			initrd_below_start_ok = 1;
+			gb_ATAG_INITRD2_found = 1;
+		}
+	}
+
+	return 0;
+}
+#endif
+
 /**
  * setup_machine_fdt - Machine setup when an dtb was passed to the kernel
  * @dt_virt: virtual address of dt blob
@@ -221,8 +267,27 @@ const struct machine_desc * __init setup_machine_fdt(void *dt_virt)
 	mdesc_best = &__mach_desc_GENERIC_DT;
 #endif
 
-	if (!dt_virt || !early_init_dt_verify(dt_virt))
+	if (!dt_virt || !early_init_dt_verify(dt_virt)) {
+#ifdef CONFIG_SS_BUILTIN_DTB
+		if (early_init_dt_verify(builtin_dtb_start)) {
+#ifdef CONFIG_FB_DTS_SKIP_ATAGS_TO_FDT
+			if ((!dt_virt) || (!early_atags_to_data(dt_virt))) {
+				early_print("early_atags_to_data() success\n");
+			}
+
+#else
+			extern int early_atags_to_fdt(void *atag_list, void *fdt, int total_space);
+			extern u32 builtin_dtb_size;
+			if ((!dt_virt) || (!early_atags_to_fdt(dt_virt,builtin_dtb_start,builtin_dtb_size))) {
+				early_print("early_atags_to_fdt() success\n");
+			}
+#endif
+		} else
+#endif
+		{
 		return NULL;
+		}
+	}
 
 	mdesc = of_flat_dt_match_machine(mdesc_best, arch_get_next_mach);
 

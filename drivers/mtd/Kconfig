@@ -203,6 +203,13 @@ config MTD_PARTITIONED_MASTER
 	  the parent of the partition device be the master device, rather than
 	  what lies behind the master.
 
+if MSTAR_DRIVERS
+config SKIP_SQUASHFS_BAD_BLOCK
+	bool "SUPPORT SKIP SQUASHFS PARTITION BAD BLOCK"
+	default y
+	depends on SS_NAND_ONEBIN
+endif
+
 source "drivers/mtd/chips/Kconfig"
 
 source "drivers/mtd/maps/Kconfig"

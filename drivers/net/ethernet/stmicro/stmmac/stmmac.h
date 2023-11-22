@@ -23,6 +23,31 @@
 #include <linux/reset.h>
 #include <net/page_pool.h>
 
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RXIC)
+
+#define SSTAR_SNPS_GMAC_RX_INT_HRTIMER 1
+#if SSTAR_SNPS_GMAC_RX_INT_HRTIMER
+	#define RX_TIMER_S					struct hrtimer
+	#define RX_TIMER_INIT(tmr, fn)		{ hrtimer_init((tmr), CLOCK_MONOTONIC, HRTIMER_MODE_REL); (tmr)->function = fn; }
+	// #define RX_TIMER_MOD(tmr, us)		hrtimer_forward_now((tmr), ns_to_ktime((us)*1000))
+	#define RX_TIMER_MOD(tmr, us)		hrtimer_start((tmr), ns_to_ktime((us)*1000), HRTIMER_MODE_REL)
+	#define RX_TIMER_ACTIVE(tmr)		hrtimer_active((tmr))
+	#define RX_TIMER_DEL(tmr)			hrtimer_cancel((tmr))
+	#define RX_TIMER_DEL_SYNC(tmr)		hrtimer_cancel((tmr))
+#else
+	#define RX_TIMER_S					struct timer_list
+	#define RX_TIMER_INIT(tmr, fn) 		timer_setup((tmr), (fn), 0)
+	#define RX_TIMER_MOD(tmr, us)		mod_timer((tmr), usecs_to_jiffies(us))
+	#define RX_TIMER_ACTIVE(tmr)		timer_pending((tmr))
+	#define RX_TIMER_DEL(tmr)			del_timer((tmr))
+	#define RX_TIMER_DEL_SYNC(tmr)		del_timer_sync((tmr))
+#endif
+
+#define SSTAR_NAPI_WEIGHT_RX			128
+#define SSTAR_NAPI_WEIGHT_TX			NAPI_POLL_WEIGHT
+
+#endif
+
 struct stmmac_resources {
 	void __iomem *addr;
 	const char *mac;
@@ -61,18 +86,25 @@ struct stmmac_tx_queue {
 	u32 mss;
 };
 
+#if defined(CONFIG_ARCH_SSTAR) && !defined(CONFIG_SSTAR_SNPS_GMAC_RX_ZERO_COPY)
 struct stmmac_rx_buffer {
 	struct page *page;
 	struct page *sec_page;
 	dma_addr_t addr;
 	dma_addr_t sec_addr;
 };
+#endif
 
 struct stmmac_rx_queue {
 	u32 rx_count_frames;
 	u32 queue_index;
 	struct page_pool *page_pool;
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RX_ZERO_COPY)
+	struct sk_buff **rx_skbuff;
+	dma_addr_t *rx_skbuff_dma;
+#else
 	struct stmmac_rx_buffer *buf_pool;
+#endif
 	struct stmmac_priv *priv_data;
 	struct dma_extended_desc *dma_erx;
 	struct dma_desc *dma_rx ____cacheline_aligned_in_smp;
@@ -87,6 +119,19 @@ struct stmmac_rx_queue {
 		unsigned int len;
 		unsigned int error;
 	} state;
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RXIC)
+	#define RXIC_MSK_BITS_MAX		(7)
+	#define RXIC_MSK_GET(x)			((1 << (x)) - 1)
+	#define RXIC_IOC_EN(i, msk)		(!((i) & (msk)))
+
+	int rxic_msk_bit;
+	unsigned int rxic_msk;
+	RX_TIMER_S rxic_tmr;
+	unsigned long rxic_tmr_pd_us;
+
+	unsigned long jiffies_last;
+	unsigned int rxic_pkt_cnt;
+#endif
 };
 
 struct stmmac_channel {
@@ -172,10 +217,16 @@ struct stmmac_priv {
 	/* RX Queue */
 	struct stmmac_rx_queue rx_queue[MTL_MAX_RX_QUEUES];
 	unsigned int dma_rx_size;
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_CODING_OPTIMIZE)
+	unsigned int dma_rx_size_msk;
+#endif
 
 	/* TX Queue */
 	struct stmmac_tx_queue tx_queue[MTL_MAX_TX_QUEUES];
 	unsigned int dma_tx_size;
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_CODING_OPTIMIZE)
+	unsigned int dma_tx_size_msk;
+#endif
 
 	/* Generic channel for NAPI */
 	struct stmmac_channel channel[STMMAC_CH_MAX];
@@ -207,6 +258,9 @@ struct stmmac_priv {
 	int tx_lpi_timer;
 	int tx_lpi_enabled;
 	int eee_tw_timer;
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_EEE_REDUCTION)
+	int eee_force_disable;
+#endif
 	unsigned int mode;
 	unsigned int chain_mode;
 	int extend_desc;
@@ -244,6 +298,16 @@ struct stmmac_priv {
 
 	/* Receive Side Scaling */
 	struct stmmac_rss rss;
+
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RXIC)
+	int rxic_msk_bit_max;
+	int rxic_msk_bit_max_cur;
+#endif
+
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_STORM_PROTECT)
+	struct timer_list storm_prct_tmr;
+#endif
+
 };
 
 enum stmmac_state {

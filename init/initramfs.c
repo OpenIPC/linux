@@ -622,7 +622,7 @@ static int __init populate_rootfs(void)
 #ifdef CONFIG_BLK_DEV_RAM
 		populate_initrd_image(err);
 #else
-		printk(KERN_EMERG "Initramfs unpacking failed: %s\n", err);
+		printk(KERN_ERR "Initramfs unpacking failed: %s\n", err);
 #endif
 	}
 

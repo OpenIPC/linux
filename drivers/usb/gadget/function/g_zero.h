@@ -66,8 +66,15 @@ void lb_modexit(void);
 int lb_modinit(void);
 
 /* common utilities */
+#ifdef CONFIG_ARCH_SSTAR
+void disable_endpoints(struct usb_composite_dev *cdev,
+		struct usb_ep *in, struct usb_ep *out,
+		struct usb_ep *iso_in, struct usb_ep *iso_out,
+		struct usb_ep *int_in, struct usb_ep *int_out);
+#else
 void disable_endpoints(struct usb_composite_dev *cdev,
 		struct usb_ep *in, struct usb_ep *out,
 		struct usb_ep *iso_in, struct usb_ep *iso_out);
+#endif
 
 #endif /* __G_ZERO_H */

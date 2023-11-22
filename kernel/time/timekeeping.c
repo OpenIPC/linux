@@ -304,11 +304,22 @@ static inline u64 timekeeping_get_delta(const struct tk_read_base *tkr)
  *
  * Unless you're the timekeeping code, you should not be using this!
  */
+#ifdef CONFIG_LH_RTOS
+#include <drv_dualos.h>
+#endif
 static void tk_setup_internals(struct timekeeper *tk, struct clocksource *clock)
 {
 	u64 interval;
 	u64 tmp, ntpinterval;
 	struct clocksource *old_clock;
+
+#ifdef CONFIG_LH_RTOS
+	rtkinfo_t *rtk = get_rtkinfo();
+	if (rtk) {
+		rtk->linux_idle = 0;
+		rtk->linux_idle_in_rtos_time = 0;
+	}
+#endif
 
 	++tk->cs_was_changed_seq;
 	old_clock = tk->tkr_mono.clock;

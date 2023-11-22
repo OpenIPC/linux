@@ -19,6 +19,7 @@
  * @priv: a pointer for the virtqueue implementation to use.
  * @index: the zero-based ordinal number for this queue.
  * @num_free: number of elements we expect to be able to fit.
+ * @mutex: mutex to protect concurrent access to the same queue
  *
  * A note on @num_free: with indirect buffers, each buffer needs one
  * element in the queue, otherwise a buffer will need one element per
@@ -31,6 +32,8 @@ struct virtqueue {
 	struct virtio_device *vdev;
 	unsigned int index;
 	unsigned int num_free;
+	/* mutex to protect concurrent access to the queue while configuring */
+	struct mutex lock;
 	void *priv;
 };
 
@@ -110,7 +113,6 @@ struct virtio_device {
 	bool config_enabled;
 	bool config_change_pending;
 	spinlock_t config_lock;
-	spinlock_t vqs_list_lock; /* Protects VQs list access */
 	struct device dev;
 	struct virtio_device_id id;
 	const struct virtio_config_ops *config;
@@ -118,6 +120,9 @@ struct virtio_device {
 	struct list_head vqs;
 	u64 features;
 	void *priv;
+	void *mem_virt;
+	u64 mem_phys;
+	u64 mem_offset;
 };
 
 static inline struct virtio_device *dev_to_virtio(struct device *_dev)

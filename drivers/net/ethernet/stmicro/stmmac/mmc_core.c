@@ -12,6 +12,7 @@
 #include <linux/io.h>
 #include "hwif.h"
 #include "mmc.h"
+#include "sstar_gmac.h"
 
 /* MAC Management Counters register offset */
 

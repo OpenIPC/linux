@@ -21,7 +21,9 @@
 #include <linux/of_platform.h>
 #include <linux/pm_runtime.h>
 #include <linux/reset.h>
-
+#include <linux/io.h>
+#include "core.h"
+#include "io.h"
 struct dwc3_of_simple {
 	struct device		*dev;
 	struct clk_bulk_data	*clks;
@@ -29,15 +31,16 @@ struct dwc3_of_simple {
 	struct reset_control	*resets;
 	bool			need_reset;
 };
-
 static int dwc3_of_simple_probe(struct platform_device *pdev)
 {
 	struct dwc3_of_simple	*simple;
 	struct device		*dev = &pdev->dev;
-	struct device_node	*np = dev->of_node;
-
+	struct device_node	*np = dev->of_node, *child;
+    struct platform_device	*child_pdev;
+    struct dwc3		*dwc;
+    
 	int			ret;
-
+    
 	simple = devm_kzalloc(dev, sizeof(*simple), GFP_KERNEL);
 	if (!simple)
 		return -ENOMEM;
@@ -51,7 +54,6 @@ static int dwc3_of_simple_probe(struct platform_device *pdev)
 	 */
 	if (of_device_is_compatible(np, "rockchip,rk3399-dwc3"))
 		simple->need_reset = true;
-
 	simple->resets = of_reset_control_array_get(np, false, true,
 						    true);
 	if (IS_ERR(simple->resets)) {
@@ -77,6 +79,27 @@ static int dwc3_of_simple_probe(struct platform_device *pdev)
 	if (ret)
 		goto err_clk_put;
 
+    child = of_get_child_by_name(np, "dwc3");
+    if (!child) {
+        dev_err(dev, "failed to find dwc3 core node\n");
+        ret = -ENODEV;
+        goto err_clk_put;
+    }
+    
+    child_pdev = of_find_device_by_node(child);
+	if (!child_pdev) {
+		dev_err(dev, "failed to find dwc3 core device\n");
+		ret = -ENODEV;
+        goto err_clk_put;
+	}
+
+	dwc = platform_get_drvdata(child_pdev);
+	if (!dwc) {
+		dev_dbg(dev, "failed to get drvdata dwc3\n");
+		ret = -EPROBE_DEFER;
+		goto err_clk_put;
+	}
+    
 	pm_runtime_set_active(dev);
 	pm_runtime_enable(dev);
 	pm_runtime_get_sync(dev);

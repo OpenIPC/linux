@@ -1,0 +1,9 @@
+config ENABLE_CA7
+	tristate "SStar copro CA7 driver"
+	help
+	  SStar copro CA7 driver
+
+if ENABLE_CA7
+source "drivers/sstar/copro/infinity7/ca7/Kconfig"
+endif
+

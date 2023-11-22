@@ -774,5 +774,11 @@ static int __init clockevents_init_sysfs(void)
 		err = tick_init_sysfs();
 	return err;
 }
+
+#ifdef CONFIG_DEFERRED_INIICALLS_PPERF_SYSFS
+deferred_module_init(clockevents_init_sysfs);
+#else
 device_initcall(clockevents_init_sysfs);
+#endif
+
 #endif /* SYSFS */

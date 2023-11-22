@@ -18,6 +18,13 @@
 #include <asm/io.h>
 #include <asm/smp_plat.h>
 
+#ifdef CONFIG_ARCH_SSTAR
+#include "ms_platform.h"
+
+#define SECOND_MAGIC_NUMBER_ADDR    0x1F204058
+#define SECOND_MAGIC_NUMBER         0xBABE
+#endif
+
 extern void secondary_holding_pen(void);
 volatile unsigned long __section(".mmuoff.data.read")
 secondary_holding_pen_release = INVALID_HWID;
@@ -88,7 +95,7 @@ static int smp_spin_table_cpu_prepare(unsigned int cpu)
 	 * boot-loader's endianness before jumping. This is mandated by
 	 * the boot protocol.
 	 */
-	writeq_relaxed(__pa_symbol(secondary_holding_pen), release_addr);
+	writeq_relaxed(__pa_function(secondary_holding_pen), release_addr);
 	__flush_dcache_area((__force void *)release_addr,
 			    sizeof(*release_addr));
 
@@ -108,6 +115,15 @@ static int smp_spin_table_cpu_boot(unsigned int cpu)
 	 * Update the pen release flag.
 	 */
 	write_pen_release(cpu_logical_map(cpu));
+
+#ifdef CONFIG_ARCH_SSTAR
+	/*
+	 * Use magic number mechanism to ensure safety.
+	 */
+	do {
+		OUTREG16(SECOND_MAGIC_NUMBER_ADDR, SECOND_MAGIC_NUMBER);
+	} while (INREG16(SECOND_MAGIC_NUMBER_ADDR) != SECOND_MAGIC_NUMBER);
+#endif
 
 	/*
 	 * Send an event, causing the secondaries to read pen_release.

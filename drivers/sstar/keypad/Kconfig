@@ -1,0 +1,5 @@
+config SS_KEYPAD
+    tristate "Sstar Keypad driver"
+    default n
+    help
+        Sstar KEYPAD driver function

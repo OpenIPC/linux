@@ -1,0 +1,60 @@
+config LWFS_FS
+	tristate "Lightweight file system support"
+	depends on MTD
+	help
+	  This is a very small read-only file system that prioritizes read
+	  performance
+
+	  To compile this file system support as a module, choose M here: the
+	  module will be called lwfs.  Note that the file system of your
+	  root partition (the one containing the directory /) cannot be a
+	  module.
+
+	  If you don't know whether you need it, then you don't need it:
+	  answer N.
+
+#
+# Select the backing stores to be supported
+#
+choice
+	prompt "LwFS backing stores"
+	depends on LWFS_FS
+	default LWFS_BACKED_BY_MTD
+	help
+	  Select the backing stores to be supported.
+
+config LWFS_BACKED_BY_BLOCK
+	bool "Block device-backed Lightweight file system support"
+	depends on BLOCK
+	help
+	  This permits LWFS to use block devices buffered through the page
+	  cache as the medium from which to retrieve data.  It does not allow
+	  direct mapping of the medium.
+
+	  If unsure, answer Y.
+
+config LWFS_BACKED_BY_MTD
+	bool "MTD-backed Lightweight file system support"
+	depends on MTD=y || (LWFS_FS=m && MTD)
+	help
+	  This permits LWFS to use MTD based devices directly, without the
+	  intercession of the block layer (which may have been disabled).  It
+	  also allows direct mapping of MTD devices through lwfs files under
+	  NOMMU conditions if the underlying device is directly addressable by
+	  the CPU.
+
+	  If unsure, answer Y.
+
+config LWFS_BACKED_BY_BOTH
+	bool "Both the above"
+	depends on BLOCK && (MTD=y || (LWFS_FS=m && MTD))
+endchoice
+
+
+config LWFS_ON_BLOCK
+	bool
+	default y if LWFS_BACKED_BY_BLOCK || LWFS_BACKED_BY_BOTH
+
+config LWFS_ON_MTD
+	bool
+	default y if LWFS_BACKED_BY_MTD || LWFS_BACKED_BY_BOTH

@@ -1,0 +1,18 @@
+config MS_PWM
+    tristate "SSTAR_PWM"
+    select PWM
+    help
+       Say Y here to enable the driver for the PWM.
+
+       If unsure, say Y.
+
+       To compile this driver as a module, choose M here: the
+       module will be called mdrv_ts.
+
+config PWM_NEW
+    bool "Support NEW PWM configuration"
+    depends on MS_PWM
+    default y
+    help
+      Support NEW PWM configuration
+

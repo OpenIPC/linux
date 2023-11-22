@@ -1,0 +1,45 @@
+config MS_FLASH_ISP
+
+  select MTD
+  #select MTD_CHAR
+  #select MTD_BLKDEVS
+  #select NFTL
+  #select NFTL_RW
+  #select MTD_OOPS
+  
+  #select MTD_COMPLEX_MAPPINGS
+  #select MTD_BLOCK2MTD
+  #select MTD_CMDLINE_PARTS
+  #select SCSI_LOWLEVEL
+  #select AUTOFS_FS
+  
+  #select FAT_FS
+  #select MSDOS_FS
+  #select VFAT_FS
+  
+  #select MTD_DEBUG
+  #select MTD_DEBUG_VERBOSE
+  #select MTD_CONCAT
+  #select MTD_PARTITIONS
+  #select MTD_NAND
+  #select JFFS2_FS
+  #select JFFS2_FS_DEBUG
+  #select JFFS2_FS_WRITEBUFFER
+
+tristate "Serial Flash driver"
+default n
+help
+    Enable compilation option for Serial Flash.
+    FSP support Quadread/Daulread/write with BDMA.
+
+if (MS_FLASH_ISP)
+
+config FLASH_ISP_AS_STORAGE
+    bool "As Storage Media Only"
+    default n
+    help
+    Use serial flash as a storage medium rather than as boot media
+
+    If you don't know what to do here, say N.
+
+endif

@@ -11,6 +11,7 @@
 #include <linux/blktrace_api.h>
 #include <linux/raid/detect.h>
 #include "check.h"
+#include "emmc.h"
 
 static int (*check_part[])(struct parsed_partitions *) = {
 	/*
@@ -81,6 +82,9 @@ static int (*check_part[])(struct parsed_partitions *) = {
 #endif
 #ifdef CONFIG_SYSV68_PARTITION
 	sysv68_partition,
+#endif
+#if defined (CONFIG_EMMC_PARTITION)
+	emmc_partition,
 #endif
 	NULL
 };

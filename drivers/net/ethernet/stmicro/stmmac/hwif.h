@@ -328,6 +328,9 @@ struct stmmac_ops {
 	/* Flow control setting */
 	void (*flow_ctrl)(struct mac_device_info *hw, unsigned int duplex,
 			  unsigned int fc, unsigned int pause_time, u32 tx_cnt);
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_SW_TX_FLOW_CTL)
+	void (*flow_ctrl_tx)(struct mac_device_info *hw, u32 chan, u32 pause_time);
+#endif
 	/* Set power management mode (e.g. magic frame) */
 	void (*pmt)(struct mac_device_info *hw, unsigned long mode);
 	/* Set/Get Unicast MAC addresses */
@@ -430,6 +433,10 @@ struct stmmac_ops {
 	stmmac_do_void_callback(__priv, mac, set_filter, __args)
 #define stmmac_flow_ctrl(__priv, __args...) \
 	stmmac_do_void_callback(__priv, mac, flow_ctrl, __args)
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_SW_TX_FLOW_CTL)
+#define stmmac_flow_ctrl_tx(__priv, __args...) \
+	stmmac_do_void_callback(__priv, mac, flow_ctrl_tx, __args)
+#endif
 #define stmmac_pmt(__priv, __args...) \
 	stmmac_do_void_callback(__priv, mac, pmt, __args)
 #define stmmac_set_umac_addr(__priv, __args...) \

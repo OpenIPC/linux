@@ -51,6 +51,14 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/ipi.h>
 
+EXPORT_TRACEPOINT_SYMBOL_GPL(ipi_raise);
+EXPORT_TRACEPOINT_SYMBOL_GPL(ipi_entry);
+EXPORT_TRACEPOINT_SYMBOL_GPL(ipi_exit);
+
+#ifdef CONFIG_LH_RTOS
+#include <drv_dualos.h>
+#endif
+
 /*
  * as from 2.5, kernels no longer have an init_tasks structure
  * so we need some other way of telling a new secondary core
@@ -77,6 +85,10 @@ enum ipi_msg_type {
 	 * not be usable by the kernel. Please keep the above limited
 	 * to at most 8 entries.
 	 */
+#ifdef CONFIG_LH_RTOS
+	IPI_RTOS_2_LINUX_NBLK_CALL_REQ = IPI_NR_RTOS_2_LINUX_NBLK_CALL_REQ,
+	IPI_REROUTE_SMC = IPI_NR_REROUTE_SMC,
+#endif
 	MAX_IPI
 };
 
@@ -676,6 +688,34 @@ static void do_handle_IPI(int ipinr)
 		printk_nmi_exit();
 		break;
 
+#ifdef CONFIG_LH_RTOS
+	case IPI_NR_RTOS_2_LINUX_CALL_REQ:
+	{
+		extern void handle_interos_call_req(void);
+		irq_enter();
+		handle_interos_call_req();
+		irq_exit();
+		break;
+	}
+#if ENABLE_NBLK_CALL
+	case IPI_RTOS_2_LINUX_NBLK_CALL_REQ:
+	{
+		irq_enter();
+		handle_interos_nblk_call_req();
+		irq_exit();
+		break;
+	}
+#endif
+
+	case IPI_REROUTE_SMC:
+	{
+		irq_enter();
+		handle_reroute_smc();
+		irq_exit();
+		break;
+	}
+#endif
+
 	default:
 		pr_crit("CPU%u: Unknown IPI message 0x%x\n",
 		        cpu, ipinr);
@@ -737,6 +777,10 @@ void __init set_smp_ipi_range(int ipi_base, int n)
 
 		ipi_desc[i] = irq_to_desc(ipi_base + i);
 		irq_set_status_flags(ipi_base + i, IRQ_HIDDEN);
+
+		/* The recheduling IPI is special... */
+		if (i == IPI_RESCHEDULE)
+			__irq_modify_status(ipi_base + i, 0, IRQ_RAW, ~0);
 	}
 
 	ipi_irq_base = ipi_base;

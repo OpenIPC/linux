@@ -9,6 +9,7 @@
 #include "dwmac5.h"
 #include "stmmac.h"
 #include "stmmac_ptp.h"
+#include "sstar_gmac.h"
 
 struct dwmac5_error_desc {
 	bool valid;

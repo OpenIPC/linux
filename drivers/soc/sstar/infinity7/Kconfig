@@ -1,0 +1,54 @@
+config ARCH_INFINITY7
+	bool "SoC infinity7 (ARCH_MULTI_V8)"
+	select SOC_BUS
+	select ARM_GIC_V3
+	select CNTVOFF_INITED
+	select VFP
+	select VFPv3
+	select WIRELESS_EXT if WIRELESS && NET
+	select WEXT_PRIV    if WIRELESS && NET
+	help
+	  Support for infinity7 SoC cortext-a55
+
+config ARCH_INFINITY7_CA7
+	bool "SoC infinity7 ca7 (ARCH_MULTI_V7)"
+	help
+	  Support for infinity7 SoC cortext-a7
+
+config SS_MIU_ARBITRATION
+	bool "SigmaStar MIU arbitration"
+	default y
+
+config NO_SMP
+	bool "Not support SMP, just runing one core"
+	default n
+
+config SELECT_MIU0_BUS_BASE
+	bool "Select MIU0 bus base address"
+	default y
+
+choice
+	prompt "CPU view of physical memory start address"
+	depends on SELECT_MIU0_BUS_BASE
+	default MIU0_AT_20000000
+
+config MIU0_AT_20000000
+	bool "0x2000_0000"
+	help
+	  The MIU0 base address is 0x20000000
+
+config MIU0_AT_1000000000
+	bool "0x10_0000_0000"
+	help
+	  The MIU0 base address is 0x1000000000
+
+endchoice
+
+config MIU0_BUS_BASE
+	hex
+	default 0x1000000000 if MIU0_AT_1000000000
+	default 0x20000000
+
+config ENABLE_METHOD_PSCI
+	bool "Core 2/3 enable method with PSCI"
+	default y

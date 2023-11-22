@@ -34,6 +34,8 @@
 #include <asm/mach/map.h>
 #include <asm/system_info.h>
 #include <xen/swiotlb-xen.h>
+#include <asm-generic/memory_model.h>
+#include <asm/dma-direct.h>
 
 #include "dma.h"
 #include "mm.h"

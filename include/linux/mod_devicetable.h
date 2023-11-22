@@ -432,6 +432,11 @@ struct virtio_device_id {
 };
 #define VIRTIO_DEV_ANY_ID	0xffffffff
 
+/* VHOST */
+struct vhost_device_id {
+	__u32 device;
+	__u32 vendor;
+};
 /*
  * For Hyper-V devices we use the device guid as the id.
  */

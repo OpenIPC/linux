@@ -14,9 +14,9 @@
 #include <fcntl.h>
 #include <stdbool.h>
 #include <linux/virtio_types.h>
-#include <linux/vhost.h>
 #include <linux/virtio.h>
 #include <linux/virtio_ring.h>
+#include <uapi/linux/vhost.h>
 #include "../../drivers/vhost/test.h"
 
 #define RANDOM_BATCH -1

@@ -6,6 +6,11 @@
 # tell define_trace.h where to find the xhci trace header
 CFLAGS_xhci-trace.o := -I$(src)
 
+EXTRA_CFLAGS	+= -I$(srctree)/drivers/sstar/usb/host
+EXTRA_CFLAGS	+= -I$(srctree)/drivers/sstar/include
+EXTRA_CFLAGS	+= -I$(srctree)/drivers/sstar/include/$(CONFIG_SSTAR_CHIP_NAME)
+EXTRA_CFLAGS	+= -I$(srctree)/drivers/sstar/usb/phy/include
+
 fhci-y := fhci-hcd.o fhci-hub.o fhci-q.o
 fhci-y += fhci-mem.o fhci-tds.o fhci-sched.o
 
@@ -19,9 +24,7 @@ ifneq ($(CONFIG_USB_XHCI_DBGCAP), )
 	xhci-hcd-y += xhci-dbgcap.o xhci-dbgtty.o
 endif
 
-ifneq ($(CONFIG_USB_XHCI_MTK), )
-	xhci-hcd-y += xhci-mtk-sch.o
-endif
+xhci-mtk-hcd-y := xhci-mtk.o xhci-mtk-sch.o
 
 xhci-plat-hcd-y := xhci-plat.o
 ifneq ($(CONFIG_USB_XHCI_MVEBU), )
@@ -75,7 +78,7 @@ obj-$(CONFIG_USB_XHCI_PCI)	+= xhci-pci.o
 obj-$(CONFIG_USB_XHCI_PCI_RENESAS)	+= xhci-pci-renesas.o
 obj-$(CONFIG_USB_XHCI_PLATFORM) += xhci-plat-hcd.o
 obj-$(CONFIG_USB_XHCI_HISTB)	+= xhci-histb.o
-obj-$(CONFIG_USB_XHCI_MTK)	+= xhci-mtk.o
+obj-$(CONFIG_USB_XHCI_MTK)	+= xhci-mtk-hcd.o
 obj-$(CONFIG_USB_XHCI_TEGRA)	+= xhci-tegra.o
 obj-$(CONFIG_USB_SL811_HCD)	+= sl811-hcd.o
 obj-$(CONFIG_USB_SL811_CS)	+= sl811_cs.o

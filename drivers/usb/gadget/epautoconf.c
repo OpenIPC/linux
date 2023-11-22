@@ -154,6 +154,18 @@ struct usb_ep *usb_ep_autoconfig(
 	struct usb_ep	*ep;
 	u8		type;
 
+#ifdef CONFIG_ARCH_SSTAR
+	/* Fix sencondary config bulk function cause EP match fail */
+	if (usb_endpoint_xfer_bulk(desc)) {
+		if (desc->wMaxPacketSize & USB_EP_MAXP_MULT_MASK) {
+			desc->wMaxPacketSize &= ~USB_EP_MAXP_MULT_MASK;
+			printk(KERN_DEBUG "force set wMaxPacketSize to %d\n",
+			       desc->wMaxPacketSize);
+		} else
+			desc->wMaxPacketSize = 0;
+	}
+#endif
+
 	ep = usb_ep_autoconfig_ss(gadget, desc, NULL);
 	if (!ep)
 		return NULL;

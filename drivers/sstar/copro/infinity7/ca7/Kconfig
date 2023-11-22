@@ -1,0 +1,17 @@
+config CA7_RTOS_PATH
+	string "CA7 RTOS path"
+	default "/data/infinity7_ca7.bin"
+	help
+	  CA7 RTOS path
+
+config CA7_MEM_PHY_ADDR
+	hex "CA7 memory physical address"
+	default 0x7E000000
+	help
+	  CA7 memory physical address
+
+config CA7_MEM_PHY_SIZE
+	hex "CA7 memory physical size"
+	default 0x02000000
+	help
+	  CA7 memory physical size

@@ -1,0 +1,7 @@
+config SSTAR_DSP
+	tristate "Dsp Driver"
+	default m
+config SSTAR_DSP_UT
+	bool "Dsp Ut"
+	default y
+

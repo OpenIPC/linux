@@ -1,0 +1,64 @@
+config MS_MSYS
+    bool "msys api"
+    default y
+
+config MS_ZEN
+    bool
+    depends on MS_MSYS
+    default y
+
+config MS_MSYS_LOG
+    bool "Log Redirection"
+    depends on MS_MSYS
+    default n
+
+config MSYS_PERF_TEST
+    bool "sysfs:perf test"
+    depends on MS_MSYS
+    default n
+
+config MSYS_BENCH_MEMORY_FUNC
+    bool "ioctl:bench memory function"
+    depends on MS_MSYS
+    default n
+
+config MSYS_MIU_PROTECT
+    bool "sysfs:MIU protest"
+    depends on MS_MSYS
+    default n
+
+config MSYS_DMEM_SYSFS_ALL
+    bool "add more dmem sysfs node"
+    depends on MS_MSYS
+    default n
+
+config MSYS_DMA_SYSFS
+    bool "add dma sysfs node"
+    depends on MS_MSYS
+    default n
+
+config MSYS_DDR_SELFREFRESH_REBOOT
+    bool "test for reboot with DDR selfrefresh"
+    depends on MS_MSYS
+    default n
+
+config MSYS_PADMUX
+    bool "support padmux modify and verify"
+    depends on MS_MSYS
+    default n
+
+config MSYS_GPIO
+    bool "support GPIO pull and driving modify"
+    depends on MS_MSYS
+    default n
+
+config SS_PROFILING_TIME
+        bool "Record timestamp in sram"
+        default y
+
+config SSTAR_IRQ_DEBUG_TRACE
+        bool "IRQ debug trace"
+        help
+          To measure and record the irq time cost
+        default n
+

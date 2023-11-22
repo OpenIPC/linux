@@ -1,0 +1,13 @@
+config SS_NOR_ONEBIN
+    tristate "NOR_ONEBIN Flash driver"
+    select MTD
+
+config SS_NAND_ONEBIN
+    select MTD_NAND
+    tristate "NAND_ONEBIN Flash driver"
+    default n
+
+config SS_SOCECC
+    tristate "SUPPORT SOC ECC"
+    depends on SS_NAND_ONEBIN
+    default n

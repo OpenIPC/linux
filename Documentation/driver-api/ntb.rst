@@ -227,6 +227,15 @@ test client is interacted with through the debugfs filesystem:
 	specified peer. That peer's interrupt's occurrence file
 	should be incremented.
 
+NTB Vhost Client (ntb\_vhost) and NTB Virtio Client (ntb\_virtio)
+------------------------------------------------------------------
+When two hosts are connected via NTB, one of the hosts should use NTB Vhost
+Client and the other host should use NTB Virtio Client. The NTB Vhost client
+interfaces with the Linux Vhost Framework and lets it to be used with any
+vhost client driver. The NTB Virtio client interfaces with the Linux Virtio
+Framework and lets it to be used with any virtio client driver. The Vhost
+client driver and Virtio client driver creates a logic cink to exchange data
+with each other.
 NTB Hardware Drivers
 ====================
 

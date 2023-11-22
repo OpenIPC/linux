@@ -1,0 +1,84 @@
+/*
+* infinity6c-ssc027b-s01a-padmux.dtsi- Sigmastar
+*
+* Copyright (c) [2019~2020] SigmaStar Technology.
+*
+*
+* This software is licensed under the terms of the GNU General Public
+* License version 2, as published by the Free Software Foundation, and
+* may be copied, distributed, and modified under those terms.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License version 2 for more details.
+*
+*/
+
+#include "../../../../drivers/sstar/include/infinity6c/padmux.h"
+#include "../../../../drivers/sstar/include/mdrv_puse.h"
+
+/ {
+    soc {
+         padmux {
+            compatible = "sstar-padmux";
+            schematic =
+                <GPIO_NR                 PINMUX_FOR_UNKNOWN_MODE         MDRV_PUSE_NA>,
+                <PAD_PWM0                PINMUX_FOR_I2C0_MODE_2          MDRV_PUSE_I2C0_SCL>,
+                <PAD_PWM1                PINMUX_FOR_I2C0_MODE_2          MDRV_PUSE_I2C0_SDA>,
+                <PAD_I2C1_SCL            PINMUX_FOR_I2C1_MODE_1          MDRV_PUSE_I2C1_SCL>,
+                <PAD_I2C1_SDA            PINMUX_FOR_I2C1_MODE_1          MDRV_PUSE_I2C1_SDA>
+                #if 0
+                ,
+                //eth0 rmii
+                <PAD_GPIO0               PINMUX_FOR_ETH_MODE_2          MDRV_PUSE_ETH0_MDIO>,
+                <PAD_GPIO1               PINMUX_FOR_ETH_MODE_2          MDRV_PUSE_ETH0_MDC>,
+                <PAD_GPIO2               PINMUX_FOR_ETH_MODE_2          MDRV_PUSE_ETH0_RXD0>,
+                <PAD_GPIO3               PINMUX_FOR_ETH_MODE_2          MDRV_PUSE_ETH0_RXD1>,
+                <PAD_GPIO4               PINMUX_FOR_ETH_MODE_2          MDRV_PUSE_ETH0_TX_CLK>,
+                <PAD_GPIO5               PINMUX_FOR_ETH_MODE_2          MDRV_PUSE_ETH0_COL>,
+                <PAD_GPIO6               PINMUX_FOR_ETH_MODE_2          MDRV_PUSE_ETH0_TXD0>,
+                <PAD_GPIO14              PINMUX_FOR_ETH_MODE_2          MDRV_PUSE_ETH0_TX_EN>,
+                <PAD_GPIO7               PINMUX_FOR_ETH_MODE_2          MDRV_PUSE_ETH0_TXD1>
+                #endif
+                #if 1
+                ,
+                //SDMMC0
+                <PAD_SD1_IO1             PINMUX_FOR_SDIO_MODE_1          MDRV_PUSE_SDIO0_D1>,
+                <PAD_SD1_IO0             PINMUX_FOR_SDIO_MODE_1          MDRV_PUSE_SDIO0_D0>,
+                <PAD_SD1_IO5             PINMUX_FOR_SDIO_MODE_1          MDRV_PUSE_SDIO0_CLK>,
+                <PAD_SD1_IO4             PINMUX_FOR_SDIO_MODE_1          MDRV_PUSE_SDIO0_CMD>,
+                <PAD_SD1_IO3             PINMUX_FOR_SDIO_MODE_1          MDRV_PUSE_SDIO0_D3>,
+                <PAD_SD1_IO2             PINMUX_FOR_SDIO_MODE_1          MDRV_PUSE_SDIO0_D2>,
+                <PAD_PM_GPIO9            PINMUX_FOR_GPIO_MODE            MDRV_PUSE_SDIO0_PWR>,
+                <PAD_SD1_IO6             PINMUX_FOR_SDIO_CDZ_MODE_1      MDRV_PUSE_SDIO0_CDZ>
+                #endif
+                #if 0
+                /* be careful, while using spinand with soc ecc, fcie engine will conflict between SD0 & spinand.
+                 * in that case, please disable the following padmux for SD0
+                 */
+                ,
+                //SDMMC1
+                <PAD_SD_D1               PINMUX_FOR_SD0_MODE_1           MDRV_PUSE_SDIO1_D1>,
+                <PAD_SD_D0               PINMUX_FOR_SD0_MODE_1           MDRV_PUSE_SDIO1_D0>,
+                <PAD_SD_CLK              PINMUX_FOR_SD0_MODE_1           MDRV_PUSE_SDIO1_CLK>,
+                <PAD_SD_CMD              PINMUX_FOR_SD0_MODE_1           MDRV_PUSE_SDIO1_CMD>,
+                <PAD_SD_D3               PINMUX_FOR_SD0_MODE_1           MDRV_PUSE_SDIO1_D3>,
+                <PAD_SD_D2               PINMUX_FOR_SD0_MODE_1           MDRV_PUSE_SDIO1_D2>,
+                <PAD_FUART_RTS           PINMUX_FOR_GPIO_MODE            MDRV_PUSE_SDIO1_PWR>,
+                <PAD_PM_SD_CDZ           PINMUX_FOR_SD0_CDZ_MODE_1       MDRV_PUSE_SDIO1_CDZ>
+                #endif
+                #if 1
+                /* conflicts with rmii padmux */
+                ,
+                <PAD_GPIO0               PINMUX_FOR_I2S_RX_MODE_1        MDRV_PUSE_I2S0_RX_WCK>,
+                <PAD_GPIO1               PINMUX_FOR_I2S_RX_MODE_1        MDRV_PUSE_I2S0_RX_BCK>,
+                <PAD_GPIO2               PINMUX_FOR_I2S_RX_MODE_1        MDRV_PUSE_I2S0_RX_SDI>,
+                <PAD_GPIO3               PINMUX_FOR_I2S_RX_MODE_1        MDRV_PUSE_I2S0_TX_SDO>
+                #endif
+                ;
+            status = "ok"; // ok or disable
+        };
+    };
+
+};

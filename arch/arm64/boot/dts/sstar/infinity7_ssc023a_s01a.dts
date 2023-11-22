@@ -1,0 +1,133 @@
+/*
+* infinity7_ssc023a_s01a.dts- Sigmastar
+*
+* Copyright (c) [2019~2020] SigmaStar Technology.
+*
+*
+* This software is licensed under the terms of the GNU General Public
+* License version 2, as published by the Free Software Foundation, and
+* may be copied, distributed, and modified under those terms.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License version 2 for more details.
+*
+*/
+
+
+/dts-v1/;
+/memreserve/ 0x1000040000 0x00040000;
+#include "infinity7.dtsi"
+#include "infinity7_ssc023a_s01a-padmux.dtsi"
+
+/ {
+    model = "INFINITY7 SSC023A";
+    compatible = "sstar,infinity7";
+    #address-cells = <2>;
+    #size-cells = <2>;
+
+    /*
+     * There are two methods to transmit DDR parameters to kernel:
+     * 1) "LX_MEM=start_addr,len" parameters in bootargs, which has higher priority, will cover memory node parameters in dts;
+     * 2) memory mode paramters in dts file, which has lower priority, only as spare parameter.
+     */
+    memory {
+        device_type = "memory";
+        #address-cells = <2>;
+        #size-cells = <2>;
+        reg = <0x00000010 0x00000000 0x00000001 0x00000000>;
+    };
+
+    /*
+     * If bootargs has been defined in uboot, then this chosen node will be ignored.
+     */
+#ifdef CONFIG_SS_NOR_ONEBIN
+    chosen {
+        bootargs = "root=/dev/mtdblock3 rootfstype=squashfs ro init=/linuxrc LX_MEM=0x1000000000,0x100000000 mma_heap=mma_heap_name0,miu=0,sz=0x6000000,max_start_off=0x1080000000,max_end_off=0x1086000000 mtdparts=nor0:0x4F000(BOOT),0x1000(ENV),0x780000(KERNEL),0x380000(system),0x4B0000(data)";
+    };
+#elif CONFIG_SS_NAND_ONEBIN
+    chosen {
+        bootargs = "ubi.mtd=UBI,0x800 root=/dev/mtdblock3 rootfstype=squashfs ro init=/linuxrc LX_MEM=0x1000000000,0x100000000 mma_heap=mma_heap_name0,miu=0,sz=0x6000000,max_start_off=0x1080000000,max_end_off=0x1086000000 mtdparts=nand0:1536k@1280k(BOOT0),384k(ENV),3m(KERNEL),4m(system),120704k(UBI)";
+    };
+#endif
+
+    cpus {
+          cpu@0 {
+                operating-points = <
+                    /* kHz     uV */
+                    1200000  1000000
+                    1100000  1000000
+                    1000000  900000
+                    900000   900000
+                    800000   850000
+                    600000   850000
+                >;
+          };
+    };
+    soc {
+#if CONFIG_SS_VOLTAGE_IDAC_CTRL
+        core_power {
+            compatible = "sstar,voltage-idac-ctrl";
+            init_voltage = <900>;
+            vid_gpio = <PAD_GPIO7>;
+            base_voltage = <900>;
+            tt_voltage = <1000>;
+            lv_voltage = <900>;
+            status = "ok";
+        };
+        cpu_power {
+            compatible = "sstar,voltage-idac-ctrl";
+            init_voltage = <900>;
+            vid_gpio = <PAD_GPIO4>;
+            base_voltage = <900>;
+            tt_voltage = <1000>;
+            lv_voltage = <900>;
+            status = "ok";
+        };
+        dla_power {
+            compatible = "sstar,voltage-idac-ctrl";
+            init_voltage = <950>;
+            vid_gpio = <PAD_GPIO5>;
+            base_voltage = <900>;
+            tt_voltage = <1000>;
+            lv_voltage = <900>;
+            status = "ok";
+        };
+        dsp_power {
+            compatible = "sstar,voltage-idac-ctrl";
+            init_voltage = <900>;
+            vid_gpio = <PAD_GPIO6>;
+            base_voltage = <900>;
+            tt_voltage = <1000>;
+            lv_voltage = <900>;
+            status = "ok";
+        };
+#endif
+    };
+    /*!!IMPORTANT!! The reserved memory must be 1MB aligned*/
+    reserved-memory {
+        #address-cells = <2>;
+        #size-cells = <2>;
+        ranges;
+
+        /*
+         * The same case as memory parameters, cma parameter has two transmit methods:
+         * 1) "cma=len@start_addr-end_addr"(end_addr is optional) parameter in bootargs, which has higher priority, will cover the cma0 node parameters in dts;
+         * 2) cma0 node in dts, which has lower priority, only as spare parameter.
+         */
+        cma0 {
+            compatible = "shared-dma-pool";
+            reusable;
+            reg = <0x00000010 0x40000000 0x0 0x01000000>;
+            alignment = <0x0 0x1000>;
+            linux,cma-default;
+        };
+        xrp_reserved: xrp {
+            compatible = "shared-dma-pool";
+            size = <0x0 0x04000000>;
+            reusable;
+        };
+    };
+
+};

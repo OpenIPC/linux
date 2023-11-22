@@ -1,0 +1,43 @@
+===============================================================================
+=                        cam_fs_wrapper change log                            =
+===============================================================================
+v0.0.8 - 2020-08-18
+  Added
+    - Support firmwarefs (fwfs)
+    - Add MD5 helper functions in cam_fs_md5um:
+      CamFsMD5Init, CamFsMD5Update, CamFsMD5Final, CamFsMD5Transform,
+      CamFsMD5Encode, CamFsMD5Decode
+
+v0.0.7 - 2020-05-07
+  Added
+    - Support CamFsMount and CamFsUnmount
+  Enhanced
+    - Move the implementation of LwFS out of CamFsWrapper.
+
+v0.0.6 - 2020-02-18
+  Changed
+    - uboot env type access (path start with "/env/") no longer supported.
+
+v0.0.5 - 2019-10-31
+  Added
+    - Support linux user space.
+
+v0.0.4 - 2019-09-02
+  Added
+    - Support CamFsSeek API.
+
+v0.0.3 - 2019-05-03
+  Fixed
+    - CamFsRead for RTK read NAND flash by block number.
+
+v0.0.2 - 2019-04-26
+  Fixed
+    - Handle file position in CamFsRead / CamFsWrite.
+
+v0.0.1 - 2019-04-26
+  First version support linux kernel space and RTK.
+  Added
+    - CamFsOpen
+    - CamFsClose
+    - CamFsRead
+    - CamFsWrite

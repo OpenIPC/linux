@@ -99,6 +99,23 @@ struct vringh_kiov {
 	unsigned i, used, max_num;
 };
 
+struct mmiovec {
+	u64 iov_base;
+	size_t iov_len;
+};
+
+/**
+ * struct vringh_mmiov - mmiovec mangler.
+ *
+ * Mangles mmiovec in place, and restores it.
+ * Remaining data is iov + i, of used - i elements.
+ */
+struct vringh_mmiov {
+	struct mmiovec *iov;
+	size_t consumed; /* Within iov[i] */
+	unsigned int i, used, max_num;
+};
+
 /* Flag on max_num to indicate we're kmalloced. */
 #define VRINGH_IOV_ALLOCATED 0x8000000
 
@@ -212,6 +229,60 @@ bool vringh_notify_enable_kern(struct vringh *vrh);
 void vringh_notify_disable_kern(struct vringh *vrh);
 
 int vringh_need_notify_kern(struct vringh *vrh);
+
+/* Helpers for kernelspace vrings. */
+int vringh_init_mmio(struct vringh *vrh, u64 features,
+		     unsigned int num, bool weak_barriers,
+		     struct vring_desc *desc,
+		     struct vring_avail *avail,
+		     struct vring_used *used);
+
+#if defined(CONFIG_ARCH_SSTAR)
+int vringh_init_with_initial_idx_mmio(struct vringh *vrh, u64 features,
+				      unsigned int num, bool weak_barriers,
+				      struct vring_desc *desc,
+				      struct vring_avail *avail,
+				      struct vring_used *used, u16 avail_idx,
+				      u16 used_idx);
+#endif
+
+static inline void vringh_mmiov_init(struct vringh_mmiov *mmiov,
+				     struct mmiovec *mmiovec, unsigned int num)
+{
+	mmiov->used = 0;
+	mmiov->i = 0;
+	mmiov->consumed = 0;
+	mmiov->max_num = num;
+	mmiov->iov = mmiovec;
+}
+
+static inline void vringh_mmiov_reset(struct vringh_mmiov *mmiov)
+{
+	mmiov->iov[mmiov->i].iov_len += mmiov->consumed;
+	mmiov->iov[mmiov->i].iov_base -= mmiov->consumed;
+	mmiov->consumed = 0;
+	mmiov->i = 0;
+}
+
+static inline void vringh_mmiov_cleanup(struct vringh_mmiov *mmiov)
+{
+	if (mmiov->max_num & VRINGH_IOV_ALLOCATED)
+		kfree(mmiov->iov);
+	mmiov->max_num = mmiov->used = mmiov->i = mmiov->consumed = 0;
+	mmiov->iov = NULL;
+}
+
+int vringh_getdesc_mmio(struct vringh *vrh,
+			struct vringh_mmiov *riov,
+			struct vringh_mmiov *wiov,
+			u16 *head,
+			gfp_t gfp);
+
+int vringh_complete_mmio(struct vringh *vrh, u16 head, u32 len);
+
+bool vringh_notify_enable_mmio(struct vringh *vrh);
+void vringh_notify_disable_mmio(struct vringh *vrh);
+int vringh_need_notify_mmio(struct vringh *vrh);
 
 /* Notify the guest about buffers added to the used ring */
 static inline void vringh_notify(struct vringh *vrh)

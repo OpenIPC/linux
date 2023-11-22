@@ -16,6 +16,7 @@
 
 #include <linux/cpu.h>
 #include <linux/cpufreq.h>
+#include <linux/cpufreq_times.h>
 #include <linux/cpu_cooling.h>
 #include <linux/delay.h>
 #include <linux/device.h>
@@ -29,6 +30,11 @@
 #include <linux/syscore_ops.h>
 #include <linux/tick.h>
 #include <trace/events/power.h>
+#include <trace/hooks/cpufreq.h>
+
+#ifdef CONFIG_LH_RTOS
+#include <drv_dualos.h>
+#endif
 
 static LIST_HEAD(cpufreq_policy_list);
 
@@ -111,7 +117,7 @@ bool have_governor_per_policy(void)
 }
 EXPORT_SYMBOL_GPL(have_governor_per_policy);
 
-static struct kobject *cpufreq_global_kobject;
+struct kobject *cpufreq_global_kobject;
 
 struct kobject *get_governor_parent_kobj(struct cpufreq_policy *policy)
 {
@@ -147,6 +153,7 @@ static inline u64 get_cpu_idle_time_jiffy(unsigned int cpu, u64 *wall)
 	return div_u64(idle_time, NSEC_PER_USEC);
 }
 
+#ifndef CONFIG_LH_RTOS
 u64 get_cpu_idle_time(unsigned int cpu, u64 *wall, int io_busy)
 {
 	u64 idle_time = get_cpu_idle_time_us(cpu, io_busy ? wall : NULL);
@@ -158,6 +165,26 @@ u64 get_cpu_idle_time(unsigned int cpu, u64 *wall, int io_busy)
 
 	return idle_time;
 }
+#else
+u64 get_cpu_idle_time(unsigned int cpu, u64 *wall, int io_busy)
+{
+	u64 idle_time = get_cpu_idle_time_us(cpu, io_busy ? wall : NULL);
+	u64 idle_in_rtos_time;
+	rtkinfo_t *rtk;
+
+	rtk = get_rtkinfo();
+	if (rtk) {
+		idle_in_rtos_time = rtk->linux_idle_in_rtos_time;
+	}
+
+	if (idle_time == -1ULL)
+		return get_cpu_idle_time_jiffy(cpu, wall) - RTK_TIME_TO_US(idle_in_rtos_time);
+	else if (!io_busy)
+		idle_time += get_cpu_iowait_time_us(cpu, wall);
+
+	return idle_time - RTK_TIME_TO_US(idle_in_rtos_time);
+}
+#endif
 EXPORT_SYMBOL_GPL(get_cpu_idle_time);
 
 /*
@@ -387,7 +414,9 @@ static void cpufreq_notify_transition(struct cpufreq_policy *policy,
 					 CPUFREQ_POSTCHANGE, freqs);
 
 		cpufreq_stats_record_transition(policy, freqs->new);
+		cpufreq_times_record_transition(policy, freqs->new);
 		policy->cur = freqs->new;
+		trace_android_rvh_cpufreq_transition(policy);
 	}
 }
 
@@ -688,8 +717,16 @@ static ssize_t show_##file_name				\
 	return sprintf(buf, "%u\n", policy->object);	\
 }
 
+static ssize_t show_cpuinfo_max_freq(struct cpufreq_policy *policy, char *buf)
+{
+	unsigned int max_freq = policy->cpuinfo.max_freq;
+
+	trace_android_vh_show_max_freq(policy, &max_freq);
+	trace_android_rvh_show_max_freq(policy, &max_freq);
+	return sprintf(buf, "%u\n", max_freq);
+}
+
 show_one(cpuinfo_min_freq, cpuinfo.min_freq);
-show_one(cpuinfo_max_freq, cpuinfo.max_freq);
 show_one(cpuinfo_transition_latency, cpuinfo.transition_latency);
 show_one(scaling_min_freq, min);
 show_one(scaling_max_freq, max);
@@ -1484,6 +1521,7 @@ static int cpufreq_online(unsigned int cpu)
 			goto out_destroy_policy;
 
 		cpufreq_stats_create_table(policy);
+		cpufreq_times_create_policy(policy);
 
 		write_lock_irqsave(&cpufreq_driver_lock, flags);
 		list_add(&policy->policy_list, &cpufreq_policy_list);
@@ -2093,6 +2131,7 @@ unsigned int cpufreq_driver_fast_switch(struct cpufreq_policy *policy,
 	arch_set_freq_scale(policy->related_cpus, freq,
 			    policy->cpuinfo.max_freq);
 	cpufreq_stats_record_transition(policy, freq);
+	trace_android_rvh_cpufreq_transition(policy);
 
 	if (trace_cpu_frequency_enabled()) {
 		for_each_cpu(cpu, policy->cpus)
@@ -2518,7 +2557,6 @@ static int cpufreq_set_policy(struct cpufreq_policy *policy,
 		ret = cpufreq_start_governor(policy);
 		if (!ret) {
 			pr_debug("governor change\n");
-			sched_cpufreq_governor_change(policy, old_gov);
 			return 0;
 		}
 		cpufreq_exit_governor(policy);
@@ -2536,6 +2574,7 @@ static int cpufreq_set_policy(struct cpufreq_policy *policy,
 
 	return ret;
 }
+EXPORT_TRACEPOINT_SYMBOL_GPL(cpu_frequency_limits);
 
 /**
  * cpufreq_update_policy - Re-evaluate an existing cpufreq policy.

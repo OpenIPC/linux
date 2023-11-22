@@ -1,0 +1,3 @@
+if (ARCH_INFINITY7)
+source "drivers/sstar/copro/infinity7/Kconfig"
+endif

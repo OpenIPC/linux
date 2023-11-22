@@ -256,6 +256,14 @@ print_tickdevice(struct seq_file *m, struct tick_device *td, int cpu)
 	print_name_offset(m, dev->event_handler);
 	SEQ_printf(m, "\n");
 	SEQ_printf(m, " retries:        %lu\n", dev->retries);
+
+#ifdef CONFIG_GENERIC_CLOCKEVENTS_BROADCAST
+	if (cpu >= 0) {
+		const struct clock_event_device *wd = tick_get_wakeup_device(cpu);
+
+		SEQ_printf(m, "Wakeup Device: %s\n", wd ? wd->name : "<NULL>");
+	}
+#endif
 	SEQ_printf(m, "\n");
 }
 
@@ -276,9 +284,10 @@ static void timer_list_show_tickdevices_header(struct seq_file *m)
 
 static inline void timer_list_header(struct seq_file *m, u64 now)
 {
-	SEQ_printf(m, "Timer List Version: v0.8\n");
+	SEQ_printf(m, "Timer List Version: v0.9\n");
 	SEQ_printf(m, "HRTIMER_MAX_CLOCK_BASES: %d\n", HRTIMER_MAX_CLOCK_BASES);
 	SEQ_printf(m, "now at %Ld nsecs\n", (unsigned long long)now);
+	SEQ_printf(m, "CONFIG_HZ: %d\n", CONFIG_HZ);
 	SEQ_printf(m, "\n");
 }
 

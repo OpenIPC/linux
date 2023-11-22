@@ -37,4 +37,22 @@ config NTB_TRANSPORT
 
 	 If unsure, say N.
 
+config NTB_VIRTIO
+	tristate "NTB VIRTIO"
+	help
+	 The NTB virtio driver sits between the NTB HW driver and the virtio
+	 client driver and lets the virtio client driver to exchange data with
+	 the remote vhost driver over the NTB hardware.
+
+	 If unsure, say N.
+
+config NTB_VHOST
+	tristate "NTB VHOST"
+	help
+	 The NTB vhost driver sits between the NTB HW driver and the vhost
+	 client driver and lets the vhost client driver to exchange data with
+	 the remote virtio driver over the NTB hardware.
+
+	 If unsure, say N.
+
 endif # NTB

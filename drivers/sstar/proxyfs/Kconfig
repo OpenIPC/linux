@@ -1,0 +1,5 @@
+config SS_PROXYFS
+    tristate "SStar Proxyfs Server"
+    depends on SS_DUALOS
+    default n
+

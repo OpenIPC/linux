@@ -61,12 +61,19 @@
 #define PCIE_LINK_WIDTH_SPEED_CONTROL	0x80C
 #define PORT_LOGIC_N_FTS_MASK		GENMASK(7, 0)
 #define PORT_LOGIC_SPEED_CHANGE		BIT(17)
+#ifdef CONFIG_ARCH_SSTAR
+#define PORT_LOGIC_AUTO_LANE_FLIP	BIT(16)
+#endif
 #define PORT_LOGIC_LINK_WIDTH_MASK	GENMASK(12, 8)
 #define PORT_LOGIC_LINK_WIDTH(n)	FIELD_PREP(PORT_LOGIC_LINK_WIDTH_MASK, n)
 #define PORT_LOGIC_LINK_WIDTH_1_LANES	PORT_LOGIC_LINK_WIDTH(0x1)
 #define PORT_LOGIC_LINK_WIDTH_2_LANES	PORT_LOGIC_LINK_WIDTH(0x2)
 #define PORT_LOGIC_LINK_WIDTH_4_LANES	PORT_LOGIC_LINK_WIDTH(0x4)
 #define PORT_LOGIC_LINK_WIDTH_8_LANES	PORT_LOGIC_LINK_WIDTH(0x8)
+#ifdef CONFIG_ARCH_SSTAR
+#define PORT_LOGIC_FAST_TRAIN_SEQ(s)	((s) & 0xFF)
+#define PORT_LOGIC_TRGT_MAP_CTRL	0x81C
+#endif
 
 #define PCIE_MSI_ADDR_LO		0x820
 #define PCIE_MSI_ADDR_HI		0x824
@@ -173,6 +180,10 @@ enum dw_pcie_device_mode {
 };
 
 struct dw_pcie_host_ops {
+#ifdef CONFIG_ARCH_SSTAR
+	int (*rd_own_conf)(struct pcie_port *pp, int where, int size, u32 *val);
+	int (*wr_own_conf)(struct pcie_port *pp, int where, int size, u32 val);
+#endif
 	int (*host_init)(struct pcie_port *pp);
 	void (*set_num_vectors)(struct pcie_port *pp);
 	int (*msi_host_init)(struct pcie_port *pp);
@@ -244,6 +255,10 @@ struct dw_pcie_ep {
 	void __iomem		*msi_mem;
 	phys_addr_t		msi_mem_phys;
 	struct pci_epf_bar	*epf_bar[PCI_STD_NUM_BARS];
+#ifdef CONFIG_ARCH_SSTAR
+	int			irq;
+	unsigned dis_set_bar_quirk : 1;
+#endif
 };
 
 struct dw_pcie_ops {
@@ -265,6 +280,10 @@ struct dw_pcie {
 	void __iomem		*dbi_base2;
 	/* Used when iatu_unroll_enabled is true */
 	void __iomem		*atu_base;
+#ifdef CONFIG_ARCH_SSTAR
+	u32			mac_base;
+	u32			phy_base;
+#endif
 	u32			num_viewport;
 	u8			iatu_unroll_enabled;
 	struct pcie_port	pp;
@@ -340,6 +359,13 @@ static inline void dw_pcie_writel_dbi2(struct dw_pcie *pci, u32 reg, u32 val)
 {
 	dw_pcie_write_dbi2(pci, reg, 0x4, val);
 }
+
+#ifdef CONFIG_ARCH_SSTAR
+static inline u32 dw_pcie_readl_dbi2(struct dw_pcie *pci, u32 reg)
+{
+	return dw_pcie_read_dbi(pci, reg, 0x4);
+}
+#endif
 
 static inline void dw_pcie_dbi_ro_wr_en(struct dw_pcie *pci)
 {

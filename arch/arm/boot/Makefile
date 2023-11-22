@@ -13,6 +13,32 @@
 
 OBJCOPYFLAGS	:=-O binary -R .comment -S
 
+ifneq ($(CONFIG_ARM_PATCH_PHYS_VIRT),)
+LOADADDR = 0x20008000
+else
+LOADADDR = $(shell /bin/bash -c 'printf "0x%08x" $$[$(CONFIG_PHYS_OFFSET) + 0x8000]')
+endif
+
+MKIMAGE_BIN = $(srctree)/scripts/mkimage
+MZ_BIN = $(srctree)/scripts/mz
+KERNEL_RELEASE_FILE = include/config/kernel.release
+ROOTFS = $(obj)/ramdisk_linaro4.8_minit.img.xz
+
+_BUILTIN_DTB_NAME=$(strip $(shell echo ${CONFIG_SS_DTB_NAME}))
+ifneq ($(_BUILTIN_DTB_NAME),)
+ifneq ($(wildcard $(srctree)/arch/arm/boot/dts/$(_BUILTIN_DTB_NAME).dts),)
+SS_DTB_NAME=arch/arm/boot/dts/$(_BUILTIN_DTB_NAME).dtb
+endif
+endif
+
+CHIP_NAME := $(subst ",,$(CONFIG_SSTAR_CHIP_NAME))
+
+ifeq ($(findstring fpga, $(SS_DTB_NAME)), fpga)
+SS_FPGA_DTB_NAME = $(SS_DTB_NAME)
+else
+SS_FPGA_DTB_NAME = arch/arm/boot/dts/$(CHIP_NAME)-fpga.dtb
+endif
+
 ifneq ($(MACHINE),)
 include $(MACHINE)/Makefile.boot
 endif
@@ -65,7 +91,6 @@ $(obj)/compressed/vmlinux: $(obj)/Image FORCE
 
 $(obj)/zImage:	$(obj)/compressed/vmlinux FORCE
 	$(call if_changed,objcopy)
-
 endif
 
 ifneq ($(LOADADDR),)
@@ -86,9 +111,86 @@ if [ $(words $(UIMAGE_LOADADDR)) -ne 1 ]; then \
 	false; \
 fi
 
+clean-files += uImage.xz uImage.mz Image.xz Image.mz Image-fpga
+ifeq ($(CONFIG_ARCH_SSTAR),)
 $(obj)/uImage:	$(obj)/zImage FORCE
 	@$(check_for_multiple_loadaddr)
 	$(call if_changed,uimage)
+else
+$(obj)/uImage:	$(obj)/Image $(SS_DTB_NAME) $(SS_FPGA_DTB_NAME) FORCE
+ifeq ($(CONFIG_SS_BUILTIN_DTB), y)
+		#update builtin DTB
+		@test "${SS_DTB_NAME}" = "" || \
+		if [ -e ${SS_DTB_NAME} ]; then \
+			echo "  IMAGE   $(obj)/Image"; \
+			echo "  BNDTB ${SS_DTB_NAME}"; \
+			python $(srctree)/scripts/ms_builtin_dtb_update.py $(obj)/Image ${SS_DTB_NAME}; \
+			echo; \
+		fi;
+		#update Image-fpga DTB
+		@if [ -e ${SS_FPGA_DTB_NAME} ]; then \
+			echo "  IMAGE   $(obj)/Image-fpga"; \
+			cp -f $(obj)/Image $(obj)/Image-fpga; \
+			echo "  BNDTB   ${SS_FPGA_DTB_NAME}"; \
+			python $(srctree)/scripts/ms_builtin_dtb_update.py $(obj)/Image-fpga ${SS_FPGA_DTB_NAME}; \
+			echo; \
+		fi;
+endif
+
+ifeq ($(CONFIG_SS_BUILTIN_UNFDT), y)
+		#update builtin UNFDT
+		@test "${SS_DTB_NAME}" = "" || \
+		if [ -e ${SS_DTB_NAME} ]; then \
+			echo "  BNDTB ${SS_DTB_NAME}"; \
+			scripts/dtc/dtb2unfdt/dtb2unfdt ${SS_DTB_NAME}  $(obj)/unfdt.bin; \
+			python $(srctree)/scripts/ms_builtin_unfdt_update.py $(obj)/Image $(obj)/unfdt.bin; \
+			echo; \
+		fi;
+endif
+
+ifneq ($(wildcard $(srctree)/scripts/ss_padmux_check.py),)
+		@$(srctree)/scripts/dtc/dtx_diff ${SS_DTB_NAME} > $(CONFIG_SS_DTB_NAME).dts
+ifneq ($(wildcard drivers/sstar/gpio/$(CHIP_NAME)/mhal_pinmux.o),)
+		@$(CROSS_COMPILE)objdump -D -S -j .rodata drivers/sstar/gpio/$(CHIP_NAME)/mhal_pinmux.o > pinmux_table
+		@python $(srctree)/scripts/ss_padmux_check.py $(CONFIG_SS_DTB_NAME).dts pinmux_table
+		@rm pinmux_table
+endif
+		@rm $(CONFIG_SS_DTB_NAME).dts
+endif
+
+ifneq ($(wildcard $(srctree)/scripts/ss_puse_check.py),)
+		@python scripts/ss_puse_check.py drivers/sstar/include/mdrv_puse.h
+endif
+
+	#update the image size into Image
+	@python $(srctree)/scripts/ms_bin_option_update_int.py  $(obj)/Image '#IMG_SZ#' $$(stat -c %s $(obj)/Image)
+	#build uImage
+	@IMGNAME=$(shell /usr/bin/strings -a -T binary $(obj)/Image | grep 'MVX' | grep 'LX'  | sed 's/\\*MVX/MVX/g' | cut -c 1-32 ); \
+	if [ -e ${MKIMAGE_BIN} ]; then \
+		${MKIMAGE_BIN} -A arm -O linux -T kernel -C none -a ${LOADADDR} -e ${LOADADDR} -n $${IMGNAME} -d $(obj)/Image $(obj)/uImage; \
+		echo '$(IMGNAME)'; \
+		echo 'Compress Kernel Image'; \
+		xz -z -k -f $(obj)/Image; \
+		${MKIMAGE_BIN} -A arm -O linux -C lzma -a ${LOADADDR} -e ${LOADADDR} -n $${IMGNAME} -d $(obj)/Image.xz $(obj)/uImage.xz; \
+		${MZ_BIN} c  $(obj)/Image  $(obj)/Image.mz ; \
+		echo; \
+		${MKIMAGE_BIN} -A arm -O linux -C mz -a ${LOADADDR} -e ${LOADADDR} -n $${IMGNAME} -d $(obj)/Image.mz $(obj)/uImage.mz; \
+		echo; \
+	else \
+		echo ">> Can't find $${MKIMAGE_BIN}. <<"; \
+	fi; \
+	if [ -e $(ROOTFS) ]; then \
+		${MKIMAGE_BIN} -A arm -O linux -T multi -C none -a ${LOADADDR} -e ${LOADADDR} -n $${IMGNAME} -d $(obj)/Image:$(ROOTFS) $(obj)/kernel.img; \
+		echo; \
+		if [ -e ${MZ_BIN} ]; then \
+			${MZ_BIN} c  $(obj)/Image  $(obj)/Image.mz ; \
+			echo; \
+			${MKIMAGE_BIN} -A arm -O linux -T multi -C mz -a ${LOADADDR} -e ${LOADADDR} -n $${IMGNAME} -d $(obj)/Image.mz:$(ROOTFS) $(obj)/kernel.mz.img; \
+			echo; \
+		fi; \
+	fi;
+	@echo
+endif
 
 $(obj)/bootp/bootp: $(obj)/zImage initrd FORCE
 	$(Q)$(MAKE) $(build)=$(obj)/bootp $@

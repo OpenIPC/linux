@@ -24,6 +24,17 @@
 #include "proc-v7-2level.S"
 #endif
 
+#define Mode_MON		0x16
+#define Mode_SVC		0x13
+#define FBIT			0x40
+#define IBIT			0x80
+
+#ifdef CONFIG_ARCH_INFINITY6C
+.global param_wbwa
+param_wbwa:
+    .word 0
+#endif
+
 ENTRY(cpu_v7_proc_init)
 	ret	lr
 ENDPROC(cpu_v7_proc_init)
@@ -172,7 +183,20 @@ ENTRY(cpu_v7_do_resume)
 #endif
 	mcr	p15, 0, r11, c2, c0, 2	@ TTB control register
 	ldr	r4, =PRRR		@ PRRR
-	ldr	r5, =NMRR		@ NMRR
+#ifdef CONFIG_ARCH_INFINITY6C
+#ifdef CONFIG_SS_PM_AOV
+	ldr r0, =SSCHIPVER_PA
+#else
+	ldr r0, =SSCHIPVER
+#endif
+	ldr r1, [r0]
+	ldr r3, =0x00
+	cmp  r1, r3
+	ldreq   r5, =NMRR1
+	ldrne	r5, =NMRR
+#else
+	ldr   	r5, =NMRR		@ NMRR
+#endif
 	mcr	p15, 0, r4, c10, c2, 0	@ write PRRR
 	mcr	p15, 0, r5, c10, c2, 1	@ write NMRR
 #endif	/* CONFIG_MMU */
@@ -280,6 +304,11 @@ __v7_cr8mp_setup:
 	mov	r10, #(1 << 0)			@ Cache/TLB ops broadcasting
 	b	1f
 __v7_ca7mp_setup:
+#ifdef CONFIG_ARCH_SSTAR
+	mrc	p15, 0, r12, c1, c0, 1
+	orr	r12, r12, #(1 << 6)    @ Enable SMP
+	mcr	p15, 0, r12, c1, c0, 1
+#endif
 __v7_ca12mp_setup:
 __v7_ca15mp_setup:
 __v7_b15mp_setup:
@@ -470,6 +499,71 @@ __v7_pj4b_setup:
 
 #endif /* CONFIG_CPU_PJ4B */
 
+__v7_ca53_setup:
+	mov r0, #Mode_MON|FBIT|IBIT
+	msr cpsr_c, r0
+
+	//set MSRE
+	mrc p15, 6, r0, c12, c12, 5
+	mov r0, #0xf
+	mcr p15, 6, r0, c12, c12, 5
+	isb
+
+	mrc p15, 0, r0, c1, c1, 0       /* Get Secure Config */
+	orr r0, r0, #1
+	mcr p15, 0, r0, c1, c1, 0       /* Set Non Secure bit */
+	isb
+
+	mov  r0, #0
+	mcrr p15, 4, r0, r0, c14  /* CNTVOFF = 0 */
+	isb
+
+	//set HSRE
+	mrc p15, 4, r0, c12, c9, 5
+	mov r0, #0x9
+	mcr p15, 4, r0, c12, c9, 5
+
+	mov r0, #Mode_SVC|FBIT|IBIT
+	msr cpsr_c, r0
+	b __v7_setup
+
+#ifdef CONFIG_ARCH_SSTAR
+__v7_ca35_setup:
+#ifndef CONFIG_SS_DUALOS
+	mov r0, #Mode_MON|FBIT|IBIT
+	msr cpsr_c, r0
+
+#ifdef CONFIG_ARCH_INFINITY6C
+	ldr r0, =0x1f003c04
+	ldr r1, [r0]
+	ldr r3, =0x00
+	teq  r1, r3
+	beq disableWS
+	bne default
+
+disableWS:
+	//Disabled Write-streamingmode
+	mrrc p15, 0, r0, r1, c15
+	orr r0, r0, #0x1 << 25
+	orr r0, r0, #0x1 << 26
+	orr r0, r0, #0x1 << 28
+	mcrr p15, 0, r0, r1, c15
+default:
+#endif
+	mrc p15, 0, r0, c1, c1, 0       /* Get Secure Config */
+	orr r0, r0, #1
+	mcr p15, 0, r0, c1, c1, 0       /* Set Non Secure bit */
+	isb
+
+	mov  r0, #0
+	mcrr p15, 4, r0, r0, c14  /* CNTVOFF = 0 */
+	isb
+
+	mov r0, #Mode_SVC|FBIT|IBIT
+	msr cpsr_c, r0
+#endif
+#endif
+
 __v7_setup:
 	adr	r0, __v7_setup_stack_ptr
 	ldr	r12, [r0]
@@ -519,10 +613,23 @@ __errata_finish:
 	mcr	p15, 0, r10, c8, c7, 0		@ invalidate I + D TLBs
 	v7_ttb_setup r10, r4, r5, r8, r3	@ TTBCR, TTBRx setup
 	ldr	r3, =PRRR			@ PRRR
-	ldr	r6, =NMRR			@ NMRR
 	mcr	p15, 0, r3, c10, c2, 0		@ write PRRR
-	mcr	p15, 0, r6, c10, c2, 1		@ write NMRR
+	ldr r6, =NMRR			@ NMRR
+
+#ifdef CONFIG_ARCH_INFINITY6C
+	ldr r0, =SSCHIPVER_PA
+	ldr r1, [r0]
+	ldr r3, =0x00
+	cmp  r1, r3
+	ldreq   r6, =NMRR1
+	ldrne	r6, =NMRR
+#else
+	ldr   	r6, =NMRR		@ NMRR
 #endif
+
+	mcr	p15, 0, r6, c10, c2, 1  @ write NMRR
+#endif
+
 	dsb					@ Complete invalidations
 #ifndef CONFIG_ARM_THUMBEE
 	mrc	p15, 0, r0, c0, c1, 0		@ read ID_PFR0 for ThumbEE
@@ -814,6 +921,24 @@ __krait_proc_info:
 	 */
 	__v7_proc __krait_proc_info, __v7_setup, hwcaps = HWCAP_IDIV | HWCAP_VFPv4
 	.size	__krait_proc_info, . - __krait_proc_info
+
+	/*
+	 * ARM Ltd. Cortex A53 processor.
+	 */
+	.type	__v7_ca53_proc_info, #object
+__v7_ca53_proc_info:
+	.long	0x410fd034		@ Required ID value
+	.long	0xffffffff		@ Mask for ID
+	__v7_proc __v7_ca53_proc_info, __v7_ca53_setup
+	.size	__v7_ca53_proc_info, . - __v7_ca53_proc_info
+
+#ifdef CONFIG_ARCH_SSTAR
+__v7_ca35_proc_info:
+	.long	0x411fd040		@ Required ID value
+	.long	0xffffffff		@ Mask for ID
+	__v7_proc __v7_ca35_proc_info, __v7_ca35_setup
+	.size	__v7_ca35_proc_info, . - __v7_ca35_proc_info
+#endif
 
 	/*
 	 * Match any ARMv7 processor core.

@@ -256,7 +256,9 @@ static int __init global_timer_of_register(struct device_node *np)
 {
 	struct clk *gt_clk;
 	int err = 0;
-
+#if defined(CONFIG_MP_GLOBAL_TIMER_CLK)
+	int msClock = 0;
+#endif
 	/*
 	 * In A9 r2p0 the comparators for each processor with the global timer
 	 * fire when the timer value is greater than or equal to. In previous
@@ -292,6 +294,20 @@ static int __init global_timer_of_register(struct device_node *np)
 	}
 
 	gt_clk_rate = clk_get_rate(gt_clk);
+#if defined(CONFIG_MP_GLOBAL_TIMER_CLK)
+	//over write gt_clk_rate
+	msClock =(*(volatile unsigned short *)(0xfd221584) <<16) | (*(volatile unsigned short *)(0xfd221580) <<0);
+
+	if (0x451EB7 == msClock) //800Mhz
+		gt_clk_rate = 400000000;
+	else if (0x2e147a == msClock) //1.2Ghz
+		gt_clk_rate = 600000000;
+	else if (0x277F44 == msClock) //1.4Ghz
+		gt_clk_rate = 700000000;
+	else //default 1Ghz
+		gt_clk_rate = 500000000;
+	printk("gt_clk_rate: %d\n", (int)gt_clk_rate);
+#endif
 	gt_evt = alloc_percpu(struct clock_event_device);
 	if (!gt_evt) {
 		pr_warn("global-timer: can't allocate memory\n");

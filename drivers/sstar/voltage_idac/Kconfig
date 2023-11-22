@@ -1,0 +1,5 @@
+config SS_VOLTAGE_IDAC_CTRL
+    bool "SStar Voltage IDAC Control"
+    depends on MS_GPIO && !SS_VOLTAGE_CTRL
+    default y
+

@@ -50,7 +50,8 @@ __ret_fast_syscall:
  UNWIND(.cantunwind	)
 	disable_irq_notrace			@ disable interrupts
 	ldr	r2, [tsk, #TI_ADDR_LIMIT]
-	cmp	r2, #TASK_SIZE
+	ldr	r1, =TASK_SIZE
+	cmp	r2, r1
 	blne	addr_limit_check_failed
 	ldr	r1, [tsk, #TI_FLAGS]		@ re-check for syscall tracing
 	tst	r1, #_TIF_SYSCALL_WORK | _TIF_WORK_MASK
@@ -87,7 +88,8 @@ __ret_fast_syscall:
 #endif
 	disable_irq_notrace			@ disable interrupts
 	ldr	r2, [tsk, #TI_ADDR_LIMIT]
-	cmp	r2, #TASK_SIZE
+	ldr     r1, =TASK_SIZE
+	cmp     r2, r1
 	blne	addr_limit_check_failed
 	ldr	r1, [tsk, #TI_FLAGS]		@ re-check for syscall tracing
 	tst	r1, #_TIF_SYSCALL_WORK | _TIF_WORK_MASK
@@ -128,7 +130,8 @@ ret_slow_syscall:
 	disable_irq_notrace			@ disable interrupts
 ENTRY(ret_to_user_from_irq)
 	ldr	r2, [tsk, #TI_ADDR_LIMIT]
-	cmp	r2, #TASK_SIZE
+	ldr     r1, =TASK_SIZE
+	cmp	r2, r1
 	blne	addr_limit_check_failed
 	ldr	r1, [tsk, #TI_FLAGS]
 	tst	r1, #_TIF_WORK_MASK
@@ -254,7 +257,9 @@ local_restart:
 	tst	r10, #_TIF_SYSCALL_WORK		@ are we tracing syscalls?
 	bne	__sys_trace
 
-	invoke_syscall tbl, scno, r10, __ret_fast_syscall
+	cmp	scno, #NR_syscalls		@ check upper syscall limit
+	badr	lr, __ret_fast_syscall		@ return address
+	ldrcc	pc, [tbl, scno, lsl #2]		@ call sys_* routine
 
 	add	r1, sp, #S_OFF
 2:	cmp	scno, #(__ARM_NR_BASE - __NR_SYSCALL_BASE)
@@ -276,7 +281,7 @@ local_restart:
 	sub	lr, saved_pc, #4
 	str	lr, [sp, #S_PC]
 	get_thread_info tsk
-	b	ret_fast_syscall
+	b	__ret_fast_syscall
 #endif
 ENDPROC(vector_swi)
 
@@ -288,11 +293,18 @@ __sys_trace:
 	mov	r1, scno
 	add	r0, sp, #S_OFF
 	bl	syscall_trace_enter
-	mov	scno, r0
-	invoke_syscall tbl, scno, r10, __sys_trace_return, reload=1
+
+	badr	lr, __sys_trace_return		@ return address
+	mov	scno, r0			@ syscall number (possibly new)
+	add	r1, sp, #S_R0 + S_OFF		@ pointer to regs
+	cmp	scno, #NR_syscalls		@ check upper syscall limit
+	ldmiacc	r1, {r0 - r6}			@ have to reload r0 - r6
+	stmiacc	sp, {r4, r5}			@ and update the stack args
+	ldrcc	pc, [tbl, scno, lsl #2]		@ call sys_* routine
 	cmp	scno, #-1			@ skip the syscall?
 	bne	2b
 	add	sp, sp, #S_OFF			@ restore stack
+	b	ret_slow_syscall
 
 __sys_trace_return_nosave:
 	enable_irq_notrace

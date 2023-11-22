@@ -285,11 +285,44 @@ static struct file_system_type proc_fs_type = {
 	.fs_flags		= FS_USERNS_MOUNT | FS_DISALLOW_NOTIFY_PERM,
 };
 
+#ifdef CONFIG_DEFERRED_INIICALLS
+extern void do_deferred_initcalls(void);
+static ssize_t deferred_initcalls_read_proc(struct file *file, char __user *buf,
+                       size_t nbytes, loff_t *ppos)
+{
+    static int deferred_initcalls_done = 0;
+    int len, ret;
+    char tmp[3] = "1\n";
+
+    if (*ppos >= 3)
+        return 0;
+
+    if ((! deferred_initcalls_done) && ! (*ppos)) {
+        tmp[0] = '0';
+        do_deferred_initcalls();
+        deferred_initcalls_done = 1;
+    }
+
+    len = min(nbytes, (size_t)3);
+    ret = copy_to_user(buf, tmp, len);
+    if (ret)
+        return -EFAULT;
+    *ppos += len;
+    return len;
+}
+
+static const struct proc_ops deferred_initcalls_fops = {
+    .proc_read           = deferred_initcalls_read_proc,
+};
+#endif
 void __init proc_root_init(void)
 {
 	proc_init_kmemcache();
 	set_proc_pid_nlink();
 	proc_self_init();
+#ifdef CONFIG_DEFERRED_INIICALLS
+    proc_create("deferred_initcalls", 0, NULL, &deferred_initcalls_fops);
+#endif
 	proc_thread_self_init();
 	proc_symlink("mounts", NULL, "self/mounts");
 

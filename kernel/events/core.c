@@ -4393,6 +4393,7 @@ out:
 
 	return ret;
 }
+EXPORT_SYMBOL_GPL(perf_event_read_local);
 
 static int perf_event_read(struct perf_event *event, bool group)
 {
@@ -13071,7 +13072,11 @@ unlock:
 
 	return ret;
 }
+#ifdef CONFIG_DEFERRED_INIICALLS_PPERF_SYSFS
+deferred_module_init(perf_event_sysfs_init);
+#else
 device_initcall(perf_event_sysfs_init);
+#endif
 
 #ifdef CONFIG_CGROUP_PERF
 static struct cgroup_subsys_state *

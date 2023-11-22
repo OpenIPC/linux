@@ -1,0 +1,13 @@
+${CROSS_COMPILE}gcc -static aes.c -o aes -I.. 
+${CROSS_COMPILE}strip aes
+${CROSS_COMPILE}gcc -static sha.c -o sha -I.. 
+${CROSS_COMPILE}strip sha
+${CROSS_COMPILE}gcc -static sha-copy.c -o sha-copy -I.. 
+${CROSS_COMPILE}strip sha-copy
+${CROSS_COMPILE}gcc -static aes-sstar-unique.c -o aes-sstar-unique -I.. 
+${CROSS_COMPILE}strip aes-sstar-unique
+${CROSS_COMPILE}gcc -static test_cbc_iv.c -o test_cbc_iv -I..
+${CROSS_COMPILE}strip test_cbc_iv
+${CROSS_COMPILE}gcc -static test_aes_cbc_split.c -o test_aes_cbc_split -I..
+${CROSS_COMPILE}strip test_aes_cbc_split
+

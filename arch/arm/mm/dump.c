@@ -193,6 +193,14 @@ static const struct prot_bits section_bits[] = {
 		.set	= "SHD",
 		.clear	= "   ",
 	},
+#ifdef CONFIG_ARCH_INFINITY6C
+	{
+		.mask	= PMD_SECT_WB,
+		.val	= PMD_SECT_WB,
+		.set	= "WB",
+		.clear	= "   ",
+	},
+#endif
 };
 
 struct pg_level {
@@ -211,28 +219,69 @@ static struct pg_level pg_level[] = {
 	}, { /* pmd */
 		.bits	= section_bits,
 		.num	= ARRAY_SIZE(section_bits),
-	}, { /* pte */
+	}, { /* pte */ //Level 5
 		.bits	= pte_bits,
 		.num	= ARRAY_SIZE(pte_bits),
 	},
 };
 
+#ifdef CONFIG_ARCH_INFINITY6C
+const char * getRegionType(u8 ORn)
+{
+	if(ORn==0)
+		return "SO/UNCACHED";
+	else if(ORn==1)
+		return "MEM/CACHED/WBWA";
+	else if(ORn==2)
+		return "MEM/CACHED/WTRA";
+	else if(ORn==3)
+		return "MEM/CACHED/WBRA";
+	else
+		return "NONE";
+}
+extern u64 msys_get_nmrr(void);
+extern u64 msys_get_cpuactlr(void);
+
+#endif
+
 static void dump_prot(struct pg_state *st, const struct prot_bits *bits, size_t num)
 {
 	unsigned i;
+	unsigned or;
+#ifdef CONFIG_ARCH_INFINITY6C
+	u64 nmrr=msys_get_nmrr();
+#endif
 
 	for (i = 0; i < num; i++, bits++) {
-		const char *s;
+	const char *s;
 
-		if ((st->current_prot & bits->mask) == bits->val)
-			s = bits->set;
-		else
-			s = bits->clear;
+	if ((st->current_prot & bits->mask) == bits->val)
+	{
 
-		if (s)
-			pt_dump_seq_printf(st->seq, " %s", s);
+#ifdef CONFIG_ARCH_INFINITY6C
+		if(bits->val==PMD_SECT_WB)
+		{
+			if(((st->current_prot) >> 2) & 0x03)
+			{
+				or= (nmrr >> ((st->current_prot) >> 1 & 0x7)) ;
+				s = getRegionType(or);
+			}
+			else
+				s = bits->set;
+		}
+	else
+#endif
+		s = bits->set;
+	}
+	else{
+		s = bits->clear;
+	}
+
+	if (s)
+		pt_dump_seq_printf(st->seq, " %s", s);
 	}
 }
+
 
 static void note_prot_wx(struct pg_state *st, unsigned long addr)
 {
@@ -411,6 +460,14 @@ void ptdump_walk_pgd(struct seq_file *m, struct ptdump_info *info)
 		.marker = info->markers,
 		.check_wx = false,
 	};
+
+#ifdef CONFIG_ARCH_INFINITY6C
+
+	u64 cpuactlr=msys_get_cpuactlr();
+	u64 nmrr=msys_get_nmrr();
+
+	pt_dump_seq_printf(st.seq, "NMRR %llx  CPUACTLR %llx\r\n", nmrr, cpuactlr);
+#endif
 
 	walk_pgd(&st, info->mm, info->base_addr);
 	note_page(&st, 0, 0, 0, NULL);

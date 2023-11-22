@@ -19,6 +19,9 @@
 #include "../../pci.h"
 #include "pcie-designware.h"
 
+#ifdef CONFIG_ARCH_SSTAR
+extern u64 Chip_Phys_to_MIU(u64 phys);
+#endif
 static struct pci_ops dw_pcie_ops;
 static struct pci_ops dw_child_pcie_ops;
 
@@ -84,6 +87,7 @@ irqreturn_t dw_handle_msi_irq(struct pcie_port *pp)
 
 	return ret;
 }
+EXPORT_SYMBOL_GPL(dw_handle_msi_irq);
 
 /* Chained MSI interrupt service routine */
 static void dw_chained_msi_isr(struct irq_desc *desc)
@@ -105,7 +109,11 @@ static void dw_pci_setup_msi_msg(struct irq_data *d, struct msi_msg *msg)
 	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
 	u64 msi_target;
 
+#ifdef CONFIG_ARCH_SSTAR
+	msi_target = Chip_Phys_to_MIU((u64)(pp->msi_data));
+#else
 	msi_target = (u64)pp->msi_data;
+#endif
 
 	msg->address_lo = lower_32_bits(msi_target);
 	msg->address_hi = upper_32_bits(msi_target);
@@ -278,7 +286,11 @@ void dw_pcie_free_msi(struct pcie_port *pp)
 void dw_pcie_msi_init(struct pcie_port *pp)
 {
 	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
+#ifdef CONFIG_ARCH_SSTAR
+	u64 msi_target = (u64)(Chip_Phys_to_MIU(pp->msi_data));
+#else
 	u64 msi_target = (u64)pp->msi_data;
+#endif
 
 	if (!IS_ENABLED(CONFIG_PCI_MSI))
 		return;
@@ -523,10 +535,48 @@ void __iomem *dw_pcie_own_conf_map_bus(struct pci_bus *bus, unsigned int devfn, 
 }
 EXPORT_SYMBOL_GPL(dw_pcie_own_conf_map_bus);
 
+#ifdef CONFIG_ARCH_SSTAR
+static int dw_pcie_rd_own_conf(struct pci_bus *bus, unsigned int devfn,
+				 int where, int size, u32 *val)
+{
+	struct pcie_port *pp = bus->sysdata;
+
+	if (pp->ops->rd_own_conf) {
+		if (PCI_SLOT(devfn) > 0) {
+			*val = ~0;
+			return PCIBIOS_DEVICE_NOT_FOUND;
+		}
+		return pp->ops->rd_own_conf(pp, where, size, val);
+	}
+
+	return pci_generic_config_read(bus, devfn, where, size, val);
+}
+
+static int dw_pcie_wr_own_conf(struct pci_bus *bus, unsigned int devfn,
+				 int where, int size, u32 val)
+{
+	struct pcie_port *pp = bus->sysdata;
+
+	if (pp->ops->wr_own_conf) {
+		if (PCI_SLOT(devfn) > 0) {
+			return PCIBIOS_DEVICE_NOT_FOUND;
+		}
+		return pp->ops->wr_own_conf(pp, where, size, val);
+	}
+
+	return pci_generic_config_write(bus, devfn, where, size, val);
+}
+#endif
+
 static struct pci_ops dw_pcie_ops = {
 	.map_bus = dw_pcie_own_conf_map_bus,
+#ifdef CONFIG_ARCH_SSTAR
+	.read = dw_pcie_rd_own_conf,
+	.write = dw_pcie_wr_own_conf,
+#else
 	.read = pci_generic_config_read,
 	.write = pci_generic_config_write,
+#endif
 };
 
 void dw_pcie_setup_rc(struct pcie_port *pp)

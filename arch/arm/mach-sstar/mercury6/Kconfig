@@ -1,0 +1,27 @@
+config ARCH_MERCURY6
+    bool "SoC mercury6 (ARCH_MULTI_V7)" if ARCH_MULTI_V7
+    select SOC_BUS
+    select ARM_GIC_V3
+    select CNTVOFF_INITED
+    select VFP
+    select VFPv3
+    select WIRELESS_EXT if WIRELESS && NET
+    select WEXT_PRIV    if WIRELESS && NET
+    help
+      Support for MERCURY6 SoC
+
+config ARCH_MERCURY6_CA7
+    bool "SoC mercury6 (ARCH_MULTI_V7)" if ARCH_MULTI_V7
+    select SOC_BUS
+    select ARM_GIC
+    select CNTVOFF_INITED
+    select VFP
+    select VFPv3
+    select WIRELESS_EXT if WIRELESS && NET
+    select WEXT_PRIV    if WIRELESS && NET
+    help
+      Support for MERCURY6 SoC
+
+config SS_MIU_ARBITRATION
+    bool "SigmaStar MIU arbitration"
+    default y

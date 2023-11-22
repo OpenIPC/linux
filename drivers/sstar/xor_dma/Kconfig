@@ -1,0 +1,14 @@
+config XOR_DMA
+    tristate "sstar xor_dma driver"
+    select DMADEVICES
+    select DMA_ENGINE
+    select DMA_VIRTUAL_CHANNELS
+    select DMA_ENGINE_RAID
+    select ASYNC_TX_DMA
+    select ASYNC_TX_ENABLE_CHANNEL_SWITCH
+    select ASYNC_CORE
+    select ASYNC_XOR
+    select ASYNC_MEMCPY
+    help
+      Enable support for the SSTAR SoC DMA controller.
+      Say Y here if you enabled BDMA, otherwise say N.

@@ -18,6 +18,7 @@
 #include <linux/slab.h>
 #include <linux/sched/clock.h>
 #include <linux/sched/signal.h>
+#include <linux/vhost.h>
 #include <linux/vmalloc.h>
 
 #include <linux/net.h>
@@ -33,7 +34,7 @@
 #include <net/sock.h>
 #include <net/xdp.h>
 
-#include "vhost.h"
+#include <uapi/linux/vhost.h>
 
 static int experimental_zcopytx = 0;
 module_param(experimental_zcopytx, int, 0444);
@@ -1137,9 +1138,9 @@ static void handle_rx(struct vhost_net *net)
 	vhost_hlen = nvq->vhost_hlen;
 	sock_hlen = nvq->sock_hlen;
 
-	vq_log = unlikely(vhost_has_feature(vq, VHOST_F_LOG_ALL)) ?
+	vq_log = unlikely(vhost_has_feature(&net->dev, VHOST_F_LOG_ALL)) ?
 		vq->log : NULL;
-	mergeable = vhost_has_feature(vq, VIRTIO_NET_F_MRG_RXBUF);
+	mergeable = vhost_has_feature(&net->dev, VIRTIO_NET_F_MRG_RXBUF);
 
 	do {
 		sock_len = vhost_net_rx_peek_head_len(net, sock->sk,
@@ -1618,6 +1619,7 @@ done:
 static int vhost_net_set_features(struct vhost_net *n, u64 features)
 {
 	size_t vhost_hlen, sock_hlen, hdr_len;
+	struct vhost_dev *vdev = &n->dev;
 	int i;
 
 	hdr_len = (features & ((1ULL << VIRTIO_NET_F_MRG_RXBUF) |
@@ -1643,9 +1645,9 @@ static int vhost_net_set_features(struct vhost_net *n, u64 features)
 			goto out_unlock;
 	}
 
+	vdev->features = features;
 	for (i = 0; i < VHOST_NET_VQ_MAX; ++i) {
 		mutex_lock(&n->vqs[i].vq.mutex);
-		n->vqs[i].vq.acked_features = features;
 		n->vqs[i].vhost_hlen = vhost_hlen;
 		n->vqs[i].sock_hlen = sock_hlen;
 		mutex_unlock(&n->vqs[i].vq.mutex);

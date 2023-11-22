@@ -39,7 +39,6 @@ static void usb_api_blocking_completion(struct urb *urb)
 	complete(&ctx->done);
 }
 
-
 /*
  * Starts urb and waits for completion or timeout. Note that this call
  * is NOT interruptible. Many device driver i/o requests should be
@@ -60,6 +59,7 @@ static int usb_start_wait_urb(struct urb *urb, int timeout, int *actual_length)
 		goto out;
 
 	expire = timeout ? msecs_to_jiffies(timeout) : MAX_SCHEDULE_TIMEOUT;
+    
 	if (!wait_for_completion_timeout(&ctx.done, expire)) {
 		usb_kill_urb(urb);
 		retval = (ctx.status == -ENOENT ? -ETIMEDOUT : ctx.status);
@@ -706,8 +706,27 @@ void usb_sg_wait(struct usb_sg_request *io)
 	 * So could the submit loop above ... but it's easier to
 	 * solve neither problem than to solve both!
 	 */
+#if defined(CONFIG_SUSPEND) && defined(CONFIG_SSTAR_USB_STR_PATCH)
+	while(1)
+	{
+		long timeleft = wait_for_completion_interruptible_timeout(
+				&io->complete, 0.1*HZ);
+		if (timeleft == 0) {
+			if (is_suspending()) {
+				if (printk_ratelimit()) {
+					dev_err(&io->dev->dev,
+						"%s, cancel io on suspend, %d/%d\n",
+						__func__, io->count, io->entries);
+				}
+				usb_sg_cancel(io);
+			}
+		}
+		else
+			break;
+	}
+#else
 	wait_for_completion(&io->complete);
-
+#endif /* CONFIG_SUSPEND && CONFIG_SSTAR_USB_STR_PATCH */
 	sg_clean(io);
 }
 EXPORT_SYMBOL_GPL(usb_sg_wait);

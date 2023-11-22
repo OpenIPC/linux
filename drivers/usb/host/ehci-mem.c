@@ -39,6 +39,7 @@ static struct ehci_qtd *ehci_qtd_alloc (struct ehci_hcd *ehci, gfp_t flags)
 	dma_addr_t		dma;
 
 	qtd = dma_pool_alloc (ehci->qtd_pool, flags, &dma);
+
 	if (qtd != NULL) {
 		ehci_qtd_init(ehci, qtd, dma);
 	}
@@ -60,6 +61,7 @@ static void qh_destroy(struct ehci_hcd *ehci, struct ehci_qh *qh)
 	}
 	if (qh->dummy)
 		ehci_qtd_free (ehci, qh->dummy);
+
 	dma_pool_free(ehci->qh_pool, qh->hw, qh->qh_dma);
 	kfree(qh);
 }
@@ -125,7 +127,7 @@ static void ehci_mem_cleanup (struct ehci_hcd *ehci)
 	ehci->sitd_pool = NULL;
 
 	if (ehci->periodic)
-		dma_free_coherent(ehci_to_hcd(ehci)->self.sysdev,
+		dma_free_coherent (ehci_to_hcd(ehci)->self.controller,
 			ehci->periodic_size * sizeof (u32),
 			ehci->periodic, ehci->periodic_dma);
 	ehci->periodic = NULL;
@@ -144,7 +146,11 @@ static int ehci_mem_init (struct ehci_hcd *ehci, gfp_t flags)
 	ehci->qtd_pool = dma_pool_create ("ehci_qtd",
 			ehci_to_hcd(ehci)->self.sysdev,
 			sizeof (struct ehci_qtd),
+#if defined(CONFIG_ARCH_SSTAR) && defined(_USB_128_ALIGMENT)
+			128	/* byte alignment (for hw parts) */,
+#else
 			32 /* byte alignment (for hw parts) */,
+#endif
 			4096 /* can't cross 4K */);
 	if (!ehci->qtd_pool) {
 		goto fail;
@@ -154,7 +160,11 @@ static int ehci_mem_init (struct ehci_hcd *ehci, gfp_t flags)
 	ehci->qh_pool = dma_pool_create ("ehci_qh",
 			ehci_to_hcd(ehci)->self.sysdev,
 			sizeof(struct ehci_qh_hw),
+#if defined(CONFIG_ARCH_SSTAR) && defined(_USB_128_ALIGMENT)
+			128	/* byte alignment (for hw parts) */,
+#else
 			32 /* byte alignment (for hw parts) */,
+#endif
 			4096 /* can't cross 4K */);
 	if (!ehci->qh_pool) {
 		goto fail;
@@ -168,7 +178,11 @@ static int ehci_mem_init (struct ehci_hcd *ehci, gfp_t flags)
 	ehci->itd_pool = dma_pool_create ("ehci_itd",
 			ehci_to_hcd(ehci)->self.sysdev,
 			sizeof (struct ehci_itd),
+#if defined(CONFIG_ARCH_SSTAR) && defined(_USB_128_ALIGMENT)
+			128	/* byte alignment (for hw parts) */,
+#else
 			32 /* byte alignment (for hw parts) */,
+#endif
 			4096 /* can't cross 4K */);
 	if (!ehci->itd_pool) {
 		goto fail;
@@ -178,7 +192,11 @@ static int ehci_mem_init (struct ehci_hcd *ehci, gfp_t flags)
 	ehci->sitd_pool = dma_pool_create ("ehci_sitd",
 			ehci_to_hcd(ehci)->self.sysdev,
 			sizeof (struct ehci_sitd),
+#if defined(CONFIG_ARCH_SSTAR) && defined(_USB_128_ALIGMENT)
+			128	/* byte alignment (for hw parts) */,
+#else
 			32 /* byte alignment (for hw parts) */,
+#endif
 			4096 /* can't cross 4K */);
 	if (!ehci->sitd_pool) {
 		goto fail;

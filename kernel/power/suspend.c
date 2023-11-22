@@ -30,6 +30,7 @@
 #include <trace/events/power.h>
 #include <linux/compiler.h>
 #include <linux/moduleparam.h>
+#include <linux/wakeup_reason.h>
 
 #include "power.h"
 
@@ -39,6 +40,28 @@ const char * const pm_labels[] = {
 	[PM_SUSPEND_MEM] = "mem",
 };
 const char *pm_states[PM_SUSPEND_MAX];
+
+#ifdef CONFIG_SS_PROFILING_TIME
+extern void recode_timestamp_init(void);
+extern void recode_timestamp(int mark, const char* name);
+#endif
+
+#ifdef CONFIG_MP_USB_STR_PATCH
+typedef enum {
+	E_STR_NONE,
+	E_STR_IN_SUSPEND,
+	E_STR_IN_RESUME
+} EN_STR_STATUS;
+
+static EN_STR_STATUS enStrStatus=E_STR_NONE;
+
+bool is_suspending(void)
+{
+	return (enStrStatus == E_STR_IN_SUSPEND);
+}
+EXPORT_SYMBOL_GPL(is_suspending);
+#endif
+
 static const char * const mem_sleep_labels[] = {
 	[PM_SUSPEND_TO_IDLE] = "s2idle",
 	[PM_SUSPEND_STANDBY] = "shallow",
@@ -139,6 +162,7 @@ static void s2idle_loop(void)
 		}
 
 		pm_wakeup_clear(false);
+		clear_wakeup_reasons();
 
 		s2idle_enter();
 	}
@@ -359,6 +383,7 @@ static int suspend_prepare(suspend_state_t state)
 	if (!error)
 		return 0;
 
+	log_suspend_abort_reason("One or more tasks refusing to freeze");
 	suspend_stats.failed_freeze++;
 	dpm_save_failed_step(SUSPEND_FREEZE);
 	pm_notifier_call_chain(PM_POST_SUSPEND);
@@ -378,6 +403,38 @@ void __weak arch_suspend_enable_irqs(void)
 {
 	local_irq_enable();
 }
+#ifdef CONFIG_SS_PM_POWER_SAVING_SCHEME
+
+extern unsigned int pm_wakeup_irq;
+extern struct irq_domain *ss_gpi_irq_domain;
+extern struct irq_domain *ss_irq_domain;
+extern unsigned int irq_find_mapping(struct irq_domain *domain, irq_hw_number_t hwirq);
+
+
+typedef struct {
+    char magic[8];
+    unsigned int resume_entry;
+    unsigned int count;
+    unsigned int status;
+    unsigned int password;
+    unsigned int vadFrameAvg;
+    unsigned int vadFrameResult;
+    unsigned int vadCpuFreq;
+    char vadLibVersion[32];
+} suspend_keep_info;
+
+extern suspend_keep_info *pStr_info;
+
+int calc_checksum1(void *buf, int size)
+{
+    int i;
+    int sum = 0;
+
+    for (i = 0; size > i; i += 4)
+        sum += *(volatile int*)(buf + i);
+    return sum;
+}
+#endif
 
 /**
  * suspend_enter - Make the system enter the given sleep state.
@@ -386,17 +443,24 @@ void __weak arch_suspend_enable_irqs(void)
  *
  * This function should be called after devices have been suspended.
  */
+
 static int suspend_enter(suspend_state_t state, bool *wakeup)
 {
-	int error;
-
+	int error, last_dev;
+#ifdef CONFIG_SS_PM_POWER_SAVING_SCHEME
+	unsigned int SIG1, SIG2;
+#endif
 	error = platform_suspend_prepare(state);
 	if (error)
 		goto Platform_finish;
 
 	error = dpm_suspend_late(PMSG_SUSPEND);
 	if (error) {
+		last_dev = suspend_stats.last_failed_dev + REC_FAILED_NUM - 1;
+		last_dev %= REC_FAILED_NUM;
 		pr_err("late suspend of devices failed\n");
+		log_suspend_abort_reason("late suspend of %s device failed",
+					 suspend_stats.failed_devs[last_dev]);
 		goto Platform_finish;
 	}
 	error = platform_suspend_prepare_late(state);
@@ -405,7 +469,11 @@ static int suspend_enter(suspend_state_t state, bool *wakeup)
 
 	error = dpm_suspend_noirq(PMSG_SUSPEND);
 	if (error) {
+		last_dev = suspend_stats.last_failed_dev + REC_FAILED_NUM - 1;
+		last_dev %= REC_FAILED_NUM;
 		pr_err("noirq suspend of devices failed\n");
+		log_suspend_abort_reason("noirq suspend of %s device failed",
+					 suspend_stats.failed_devs[last_dev]);
 		goto Platform_early_resume;
 	}
 	error = platform_suspend_prepare_noirq(state);
@@ -421,8 +489,10 @@ static int suspend_enter(suspend_state_t state, bool *wakeup)
 	}
 
 	error = suspend_disable_secondary_cpus();
-	if (error || suspend_test(TEST_CPUS))
+	if (error || suspend_test(TEST_CPUS)) {
+		log_suspend_abort_reason("Disabling non-boot cpus failed");
 		goto Enable_cpus;
+	}
 
 	arch_suspend_disable_irqs();
 	BUG_ON(!irqs_disabled());
@@ -441,29 +511,84 @@ static int suspend_enter(suspend_state_t state, bool *wakeup)
 		} else if (*wakeup) {
 			error = -EBUSY;
 		}
+#ifdef CONFIG_MP_USB_STR_PATCH
+		enStrStatus=E_STR_IN_RESUME;
+#endif
+#ifdef CONFIG_SS_PM_POWER_SAVING_SCHEME
+        pStr_info = (suspend_keep_info *)(0xC0000000);
+
+        SIG1= *((unsigned int *)&pStr_info->magic[0]);
+        SIG2= *((unsigned int *)&pStr_info->magic[4]);
+
+        if (!(SIG1 == 0x5F474953) && (SIG2 == 0x00525453)){
+            pr_err("SSTAR-PM: Check Pattern fail ! while 1 !!!\n");
+        }
+        if(pStr_info->vadFrameResult==calc_checksum1(_text, __init_begin-1-_text))
+        {
+            pr_info("SSTAR-PM checksum PASS \r\n");
+        }
+        else{
+            pr_err("SSTAR-PM: checksum fail !!!\r\n");
+        }
+    #endif
+#ifdef CONFIG_SS_PROFILING_TIME
+		recode_timestamp_init();
+		recode_timestamp(__LINE__, "resume+");
+#endif /* CONFIG_SS_PROFILING_TIME */
 		syscore_resume();
 	}
 
 	system_state = SYSTEM_RUNNING;
-
+#ifdef CONFIG_SS_PROFILING_TIME
+	recode_timestamp(__LINE__, "en_irqs+");
+#endif /* CONFIG_SS_PROFILING_TIME */
 	arch_suspend_enable_irqs();
 	BUG_ON(irqs_disabled());
 
  Enable_cpus:
+#ifdef CONFIG_SS_PROFILING_TIME
+	recode_timestamp(__LINE__, "en_cpus+");
+#endif /* CONFIG_SS_PROFILING_TIME */
 	suspend_enable_secondary_cpus();
 
  Platform_wake:
+#ifdef CONFIG_SS_PROFILING_TIME
+	recode_timestamp(__LINE__, "plat_noirq+");
+#endif /* CONFIG_SS_PROFILING_TIME */
 	platform_resume_noirq(state);
+#ifdef CONFIG_SS_PROFILING_TIME
+	recode_timestamp(__LINE__, "dpm_noirq+");
+	pr_info("PM: dpm_noirq\n");
+#endif /* CONFIG_SS_PROFILING_TIME */
 	dpm_resume_noirq(PMSG_RESUME);
 
+//#ifdef CONFIG_SS_PM_WAKEUP_PATCH
+/*Record wakeup irq only gpio mode*/
+    pm_wakeup_irq = irq_find_mapping(ss_gpi_irq_domain, *(unsigned short volatile *) 0xFD20080C); //hwirq
+
+    if(!pm_wakeup_irq)
+        pm_wakeup_irq = irq_find_mapping(ss_irq_domain, *(unsigned short volatile *) 0xFD20080C); //hwirq
+
+    pr_info("pm_wakeup_irq %d vir %d\r\n", *(unsigned short volatile *) 0xFD20080C, pm_wakeup_irq);
+//#endif
+
  Platform_early_resume:
+#ifdef CONFIG_SS_PROFILING_TIME
+	recode_timestamp(__LINE__, "plat_early+");
+#endif /* CONFIG_SS_PROFILING_TIME */
 	platform_resume_early(state);
 
  Devices_early_resume:
+#ifdef CONFIG_SS_PROFILING_TIME
+	recode_timestamp(__LINE__, "dev_early+");
+#endif /* CONFIG_SS_PROFILING_TIME */
 	dpm_resume_early(PMSG_RESUME);
 
  Platform_finish:
 	platform_resume_finish(state);
+#ifdef CONFIG_SS_PROFILING_TIME
+	recode_timestamp(__LINE__, "plat_finish-");
+#endif /* CONFIG_SS_PROFILING_TIME */
 	return error;
 }
 
@@ -493,6 +618,8 @@ int suspend_devices_and_enter(suspend_state_t state)
 	error = dpm_suspend_start(PMSG_SUSPEND);
 	if (error) {
 		pr_err("Some devices failed to suspend, or early wake event detected\n");
+		log_suspend_abort_reason(
+				"Some devices failed to suspend, or early wake event detected");
 		goto Recover_platform;
 	}
 	suspend_test_finish("suspend devices");
@@ -504,14 +631,27 @@ int suspend_devices_and_enter(suspend_state_t state)
 	} while (!error && !wakeup && platform_suspend_again(state));
 
  Resume_devices:
+#ifdef CONFIG_SS_PROFILING_TIME
+	recode_timestamp(__LINE__, "resume_end+");
+	pr_info("PM: dpm_resume_end\n");
+#endif /* CONFIG_SS_PROFILING_TIME */
 	suspend_test_start();
 	dpm_resume_end(PMSG_RESUME);
 	suspend_test_finish("resume devices");
+#ifdef CONFIG_SS_PROFILING_TIME
+	recode_timestamp(__LINE__, "resume_end-");
+#endif /* CONFIG_SS_PROFILING_TIME */
 	trace_suspend_resume(TPS("resume_console"), state, true);
 	resume_console();
 	trace_suspend_resume(TPS("resume_console"), state, false);
+#ifdef CONFIG_SS_PROFILING_TIME
+	recode_timestamp(__LINE__, "console-");
+#endif /* CONFIG_SS_PROFILING_TIME */
 
  Close:
+#ifdef CONFIG_SS_PROFILING_TIME
+	recode_timestamp(__LINE__, "plat_end+");
+#endif /* CONFIG_SS_PROFILING_TIME */
 	platform_resume_end(state);
 	pm_suspend_target_state = PM_SUSPEND_ON;
 	return error;
@@ -559,6 +699,9 @@ static int enter_state(suspend_state_t state)
 	}
 	if (!mutex_trylock(&system_transition_mutex))
 		return -EBUSY;
+#ifdef CONFIG_MP_USB_STR_PATCH
+        enStrStatus=E_STR_IN_SUSPEND;
+#endif
 
 	if (state == PM_SUSPEND_TO_IDLE)
 		s2idle_begin();
@@ -589,6 +732,9 @@ static int enter_state(suspend_state_t state)
 	pm_pr_dbg("Finishing wakeup.\n");
 	suspend_finish();
  Unlock:
+#ifdef CONFIG_MP_USB_STR_PATCH
+	enStrStatus=E_STR_NONE;
+#endif
 	mutex_unlock(&system_transition_mutex);
 	return error;
 }

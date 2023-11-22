@@ -45,6 +45,7 @@ static void dwc3_ep0_prepare_one_trb(struct dwc3_ep *dep,
 
 	trb->bpl = lower_32_bits(buf_dma);
 	trb->bph = upper_32_bits(buf_dma);
+
 	trb->size = len;
 	trb->ctrl = type;
 
@@ -72,6 +73,7 @@ static int dwc3_ep0_start_trans(struct dwc3_ep *dep)
 	dwc = dep->dwc;
 
 	memset(&params, 0, sizeof(params));
+
 	params.param0 = upper_32_bits(dwc->ep0_trb_addr);
 	params.param1 = lower_32_bits(dwc->ep0_trb_addr);
 
@@ -386,10 +388,12 @@ static int dwc3_ep0_handle_u1(struct dwc3 *dwc, enum usb_device_state state,
 		return -EINVAL;
 
 	reg = dwc3_readl(dwc->regs, DWC3_DCTL);
+#ifndef CONFIG_ARCH_SSTAR
 	if (set)
 		reg |= DWC3_DCTL_INITU1ENA;
 	else
 		reg &= ~DWC3_DCTL_INITU1ENA;
+#endif
 	dwc3_writel(dwc->regs, DWC3_DCTL, reg);
 
 	return 0;
@@ -410,10 +414,12 @@ static int dwc3_ep0_handle_u2(struct dwc3 *dwc, enum usb_device_state state,
 		return -EINVAL;
 
 	reg = dwc3_readl(dwc->regs, DWC3_DCTL);
+#ifndef CONFIG_ARCH_SSTAR
 	if (set)
 		reg |= DWC3_DCTL_INITU2ENA;
 	else
 		reg &= ~DWC3_DCTL_INITU2ENA;
+#endif
 	dwc3_writel(dwc->regs, DWC3_DCTL, reg);
 
 	return 0;
@@ -570,7 +576,7 @@ static int dwc3_ep0_set_address(struct dwc3 *dwc, struct usb_ctrlrequest *ctrl)
 	enum usb_device_state state = dwc->gadget->state;
 	u32 addr;
 	u32 reg;
-
+  
 	addr = le16_to_cpu(ctrl->wValue);
 	if (addr > 127) {
 		dev_err(dwc->dev, "invalid device address %d\n", addr);
@@ -597,11 +603,13 @@ static int dwc3_ep0_set_address(struct dwc3 *dwc, struct usb_ctrlrequest *ctrl)
 
 static int dwc3_ep0_delegate_req(struct dwc3 *dwc, struct usb_ctrlrequest *ctrl)
 {
-	int ret;
+	int ret = -EINVAL;
 
-	spin_unlock(&dwc->lock);
-	ret = dwc->gadget_driver->setup(dwc->gadget, ctrl);
-	spin_lock(&dwc->lock);
+	if (dwc->async_callbacks) {
+		spin_unlock(&dwc->lock);
+		ret = dwc->gadget_driver->setup(dwc->gadget, ctrl);
+		spin_lock(&dwc->lock);
+	}
 	return ret;
 }
 
@@ -619,6 +627,8 @@ static int dwc3_ep0_set_config(struct dwc3 *dwc, struct usb_ctrlrequest *ctrl)
 		return -EINVAL;
 
 	case USB_STATE_ADDRESS:
+		dwc3_gadget_clear_tx_fifos(dwc);
+
 		ret = dwc3_ep0_delegate_req(dwc, ctrl);
 		/* if the cfg matches and the cfg is non zero */
 		if (cfg && (!ret || (ret == USB_GADGET_DELAYED_STATUS))) {
@@ -638,10 +648,12 @@ static int dwc3_ep0_set_config(struct dwc3 *dwc, struct usb_ctrlrequest *ctrl)
 			 * nothing is pending from application.
 			 */
 			reg = dwc3_readl(dwc->regs, DWC3_DCTL);
+#ifndef CONFIG_ARCH_SSTAR
 			if (!dwc->dis_u1_entry_quirk)
 				reg |= DWC3_DCTL_ACCEPTU1ENA;
 			if (!dwc->dis_u2_entry_quirk)
 				reg |= DWC3_DCTL_ACCEPTU2ENA;
+#endif
 			dwc3_writel(dwc->regs, DWC3_DCTL, reg);
 		}
 		break;
@@ -801,6 +813,7 @@ static void dwc3_ep0_inspect_setup(struct dwc3 *dwc,
 	trace_dwc3_ctrl_req(ctrl);
 
 	len = le16_to_cpu(ctrl->wLength);
+
 	if (!len) {
 		dwc->three_stage_setup = false;
 		dwc->ep0_expect_in = false;

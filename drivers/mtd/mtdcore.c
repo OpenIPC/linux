@@ -1307,6 +1307,12 @@ static int mtd_read_oob_std(struct mtd_info *mtd, loff_t from,
 	struct mtd_info *master = mtd_get_master(mtd);
 	int ret;
 
+#ifdef CONFIG_SKIP_SQUASHFS_BAD_BLOCK
+	extern loff_t ajust_offset(struct mtd_info *mtd, loff_t from);
+
+	from = ajust_offset(mtd, from);
+#endif
+
 	from = mtd_get_master_ofs(mtd, from);
 	if (master->_read_oob)
 		ret = master->_read_oob(master, from, ops);

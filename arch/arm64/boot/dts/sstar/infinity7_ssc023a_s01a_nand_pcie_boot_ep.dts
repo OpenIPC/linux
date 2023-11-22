@@ -1,0 +1,79 @@
+/*
+* infinity7_ssc023a_s01a_nand_pcie_boot_ep.dts- Sigmastar
+*
+* Copyright (c) [2019~2020] SigmaStar Technology.
+*
+*
+* This software is licensed under the terms of the GNU General Public
+* License version 2, as published by the Free Software Foundation, and
+* may be copied, distributed, and modified under those terms.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License version 2 for more details.
+*
+*/
+
+
+/dts-v1/;
+/memreserve/ 0x1000040000 0x00040000;
+/memreserve/ 0x1000200000 0x00200000;
+#include "infinity7.dtsi"
+#include "infinity7_ssc023a_s01a-padmux.dtsi"
+
+/ {
+    model = "INFINITY7 SSC023A NAND";
+    compatible = "sstar,infinity7";
+    #address-cells = <2>;
+    #size-cells = <2>;
+
+    memory {
+        device_type = "memory";
+        #address-cells = <2>;
+        #size-cells = <2>;
+        reg = <0x00000010 0x00000000 0x00000001 0x00000000>;
+    };
+
+    cpus {
+          cpu@0 {
+                operating-points = <
+                    /* kHz     uV */
+                    1200000  1000000
+                    1100000  1000000
+                    1000000  900000
+                    900000   900000
+                    800000   850000
+                    600000   850000
+                    400000   850000
+                >;
+          };
+    };
+
+    /*!!IMPORTANT!! The reserved memory must be 1MB aligned*/
+    reserved-memory {
+        #address-cells = <2>;
+        #size-cells = <2>;
+        ranges;
+
+        cma0 {
+            compatible = "shared-dma-pool";
+            reusable;
+            reg = <0x00000010 0x40000000 0x0 0x01000000>;
+            alignment = <0x0 0x1000>;
+            linux,cma-default;
+        };
+        xrp_reserved: xrp {
+            compatible = "shared-dma-pool";
+            size = <0x0 0x04000000>;
+            reusable;
+        };
+    };
+
+    soc {
+        pcie1: pcie@1F351000 {
+            compatible = "snps,dw-pcie-ep"; /* ep mode */
+            ep,dis_set_bar_quirk;
+        };
+    };
+};

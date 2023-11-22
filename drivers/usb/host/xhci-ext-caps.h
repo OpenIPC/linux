@@ -109,6 +109,11 @@ static inline int xhci_find_next_ext_cap(void __iomem *base, u32 start, int id)
 		offset = XHCI_HCC_EXT_CAPS(val) << 2;
 		if (!offset)
 			return 0;
+#if defined(CONFIG_ARCH_SSTAR)
+		if (0x600 < offset) {
+			offset -= 0x200;
+		}
+#endif
 	}
 	do {
 		val = readl(base + offset);

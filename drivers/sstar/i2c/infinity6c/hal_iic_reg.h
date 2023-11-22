@@ -1,0 +1,155 @@
+/*
+ * hal_iic_reg.h- Sigmastar
+ *
+ * Copyright (c) [2019~2020] SigmaStar Technology.
+ *
+ *
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License version 2 for more details.
+ *
+ */
+
+#ifndef _HAL_IIC_REG_H_
+#define _HAL_IIC_REG_H_
+
+#include <mdrv_types.h>
+
+#define I2C_REGMASK_BASE     (0x0001)
+#define HAL_I2C_BIT_SHIFT_0  (0)
+#define HAL_I2C_BIT_SHIFT_1  (1)
+#define HAL_I2C_BIT_SHIFT_2  (2)
+#define HAL_I2C_BIT_SHIFT_3  (3)
+#define HAL_I2C_BIT_SHIFT_4  (4)
+#define HAL_I2C_BIT_SHIFT_5  (5)
+#define HAL_I2C_BIT_SHIFT_6  (6)
+#define HAL_I2C_BIT_SHIFT_7  (7)
+#define HAL_I2C_BIT_SHIFT_8  (8)
+#define HAL_I2C_BIT_SHIFT_9  (9)
+#define HAL_I2C_BIT_SHIFT_10 (10)
+#define HAL_I2C_BIT_SHIFT_11 (11)
+#define HAL_I2C_BIT_SHIFT_12 (12)
+#define HAL_I2C_BIT_SHIFT_13 (13)
+#define HAL_I2C_BIT_SHIFT_14 (14)
+#define HAL_I2C_BIT_SHIFT_15 (15)
+
+#define HAL_I2C_REG_CONFIG          (0x0000)
+#define HAL_I2C_MASK_CFG_RST        BIT0
+#define HAL_I2C_MASK_CFG_DMA        BIT1
+#define HAL_I2C_MASK_CFG_ENINT      BIT2
+#define HAL_I2C_MASK_CFG_CLKSTRECH  BIT3
+#define HAL_I2C_MASK_CFG_TIMOUT_INT BIT4
+#define HAL_I2C_MASK_CFG_ENFILTER   BIT5
+#define HAL_I2C_MASK_CFG_OEN        BIT6
+#define HAL_I2C_MASK_CFG_ENERRDET   BIT7
+
+#define HAL_I2C_REG_STAR_STOP  (0x0001)
+#define HAL_I2C_MASK_CMD_START BIT0
+#define HAL_I2C_MASK_CMD_STOP  BIT8
+
+#define HAL_I2C_REG_INT_FLAG  (0x0004)
+#define HAL_I2C_MASK_INT_FLAG BIT0
+
+#define HAL_I2C_REG_WRITE_DATA        (0x0002)
+#define HAL_I2C_MASK_WRITE_DATA       (0x00FF)
+#define HAL_I2C_MASK_WRITE_ACK_FRMSLV BIT8
+
+#define HAL_I2C_REG_READ_DATA          (0x0003)
+#define HAL_I2C_MASK_READ_DATA         (0x00FF)
+#define HAL_I2C_MASK_READ_DATA_TRIGGER BIT8
+#define HAL_I2C_MASK_READ_ACK_TOSLV    BIT9
+
+#define HAL_I2C_REG_INT_STATUS      (0x0005)
+#define HAL_I2C_MASK_INTSTU_STATE   (BIT0 | BIT1 | BIT2 | BIT3 | BIT4)
+#define HAL_I2C_MASK_INTSTU_START   BIT8
+#define HAL_I2C_MASK_INTSTU_STOP    BIT9
+#define HAL_I2C_MASK_INTSTU_RXDONE  BIT10
+#define HAL_I2C_MASK_INTSTU_TXDONE  BIT11
+#define HAL_I2C_MASK_INTSTU_TIMEOUT BIT14
+
+#define HAL_I2C_REG_CNT_FOR_STOP      (0x0008)
+#define HAL_I2C_REG_CNT_HIGH_PERIOD   (0x0009)
+#define HAL_I2C_REG_CNT_LOW_PERIOD    (0x000A)
+#define HAL_I2C_REG_CNT_BTWN_FALEDGE  (0x000B)
+#define HAL_I2C_REG_CNT_FOR_START     (0x000C)
+#define HAL_I2C_REG_CNT_DATA_LATCHTIM (0x000D)
+#define HAL_I2C_REG_CNT_TIMEOUT       (0x000E)
+
+#define HAL_I2C_REG_CNT_TSUTHD_OPEN (0x0010)
+#define HAL_I2C_MASK_TSUTDH_OPEN    (BIT5 | BIT4)
+
+#define HAL_I2C_REG_CNT_TSU_SET  (0x11)
+#define HAL_I2C_MASK_CNT_TSU_SET (0xFFFF)
+#define HAL_I2C_REG_CNT_THD_SET  (0x12)
+#define HAL_I2C_MASK_CNT_TDH_SET (0xFFFF)
+
+#define HAL_I2C_REG_DMA_CONFIG      (0x0020)
+#define HAL_I2C_MASK_DMACFG_INTFLAG BIT2
+#define HAL_I2C_MASK_DMACFG_SOFTRST BIT1
+#define HAL_I2C_MASK_DMACFG_MIURST  BIT3
+#define HAL_I2C_MASK_DMACFG_MIUPRI  BIT4
+
+#define HAL_I2C_REG_MIUADDR_LOW  (0x0021)
+#define HAL_I2C_REG_MIUADDR_HIGH (0x0022)
+#define HAL_I2C_REG_MIUADDR_MSB  (0x0023)
+#define HAL_I2C_MASK_MIUADDR_MSB (0x000F)
+
+#define HAL_I2C_REG_MIUCHANL_SEL  (0x0023)
+#define HAL_I2C_REG_STOP_FMT_DIS  (0x0023)
+#define HAL_I2C_REG_RDWR_FMT      (0x0023)
+#define HAL_I2C_MASK_MIUCHANL_SEL BIT7
+#define HAL_I2C_MASK_STOP_FMT_DIS BIT5
+#define HAL_I2C_MASK_RDWR_FMT     BIT6
+
+#define HAL_I2C_REG_DMA_TRANSFER_DONE (0x0024)
+#define HAL_I2C_MASK_DMA_TRSFER_DONE  BIT0
+
+#define HAL_I2C_REG_DMA_CMD_DATA_25H (0x0025)
+
+#define HAL_I2C_REG_DMA_CMD_LEN_29H (0x0029)
+#define HAL_I2C_MASK_DMA_CMDLEN     (0x000F)
+
+#define HAL_I2C_REG_TRANS_DATA_LEN_LOW  (0x002A)
+#define HAL_I2C_REG_TRANS_DATA_LEN_HIGH (0x002B)
+#define HAL_I2C_REG_DMA_TC_2CH          (0x002C)
+#define HAL_I2C_REG_DMA_TC_2DH          (0x002D)
+
+#define HAL_I2C_REG_DMA_10BITMODE     (0x002E)
+#define HAL_I2C_REG_DMA_SLAVEADDR     (0x002E)
+#define HAL_I2C_MASK_DMASLVADDR       (0x3FF)
+#define HAL_I2C_MASK_DMASLVADDR_10BIT (0x3FF)
+#define HAL_I2C_MASK_DMASLVADDR_NORM  (0x7f)
+#define HAL_I2C_MASK_DMABITMODE       BIT10
+
+#define HAL_I2C_REG_DMA_TRIGGER (0x002F)
+#define HAL_I2C_MASK_DMATRIG    (BIT0)
+
+#define HAL_I2C_REG_DMA_RESERVED (0x0030)
+#define HAL_I2C_MASK_DMA_RESET   (0x0001)
+#define HAL_I2C_MASK_LASTDONE    (0x00FF)
+
+#define HAL_I2C_REG_WN_GROUP_LEN  (0x0032)
+#define HAL_I2C_MASK_WN_GROUP_LEN (0x000F)
+
+#define HAL_I2C_REG_WN_MODE     (0x0033)
+#define HAL_I2C_MASK_WN_MODE_EN (BIT0)
+#define HAL_I2C_MASK_WN_RS_P    (BIT1)
+
+#define HAL_I2C_REG_WN_WAIT_CNT  (0x0034)
+#define HAL_I2C_MASK_WN_WAIT_CNT (0xFFFF)
+
+#define HAL_I2C_CONFIG_RST           HAL_I2C_MASK_CFG_RST
+#define HAL_I2C_CONFIG_DMA_EN        HAL_I2C_MASK_CFG_DMA
+#define HAL_I2C_CONFIG_INT_EN        HAL_I2C_MASK_CFG_ENINT
+#define HAL_I2C_CONFIG_CLKSTRE_EN    HAL_I2C_MASK_CFG_CLKSTRECH
+#define HAL_I2C_CONFIG_TIMOUT_INT_EN HAL_I2C_MASK_CFG_TIMOUT_INT
+#define HAL_I2C_CONFIG_FILTER_EN     HAL_I2C_MASK_CFG_ENFILTER
+#define HAL_I2C_CONFIG_OEN_PUSH_EN   HAL_I2C_MASK_CFG_OEN
+#define HAL_I2C_CONFIG_ERRDET_EN     HAL_I2C_MASK_CFG_ENERRDET
+
+#endif

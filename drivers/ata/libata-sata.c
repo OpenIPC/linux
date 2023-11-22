@@ -16,6 +16,17 @@
 #include "libata.h"
 #include "libata-transport.h"
 
+#ifdef CONFIG_SS_SATA_AHCI_PLATFORM_HOST
+#include "ahci.h"
+#include <linux/gpio.h>
+#include "../sstar/sata_host/mdrv_sata_host_ahci.h"
+#include "ms_msys.h"
+#include <ms_platform.h>
+#include <registers.h>
+#include <mhal_sata_host.h>
+
+#endif
+
 /* debounce timing parameters in msecs { interval, duration, timeout } */
 const unsigned long sata_deb_timing_normal[]		= {   5,  100, 2000 };
 EXPORT_SYMBOL_GPL(sata_deb_timing_normal);
@@ -23,6 +34,11 @@ const unsigned long sata_deb_timing_hotplug[]		= {  25,  500, 2000 };
 EXPORT_SYMBOL_GPL(sata_deb_timing_hotplug);
 const unsigned long sata_deb_timing_long[]		= { 100, 2000, 5000 };
 EXPORT_SYMBOL_GPL(sata_deb_timing_long);
+
+
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SS_SATA_AHCI_PLATFORM_HOST)
+extern void ss_sata_ssc_enable(struct ata_link *link, bool enable, unsigned int spd);
+#endif
 
 /**
  *	sata_scr_valid - test whether SCRs are accessible
@@ -494,6 +510,36 @@ int sata_set_spd(struct ata_link *link)
 
 	if (!__sata_set_spd_needed(link, &scontrol))
 		return 0;
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SS_SATA_AHCI_PLATFORM_HOST)
+	else
+	{
+		struct ata_host  *host = link->ap->host;
+		struct ahci_host_priv *hpriv = host->private_data;
+		struct sstar_ahci_priv *priv  = hpriv->plat_data;
+
+		u32 spd = 0;
+		unsigned long mmio = (unsigned long)priv->mmio;
+		unsigned long GHC_PHY_ANA  = BASE_REG_SATA0_PHYA_PA;    //  0x143C00
+
+		if ((unsigned long)mmio == IO_ADDRESS(BASE_REG_SATA1_SNPS_PA))
+		{
+			pr_err("%s i am sata2\n", __func__);
+
+			GHC_PHY_ANA  = BASE_REG_SATA1_PHYA_PA;       //  0x144300
+		}
+
+		spd = (scontrol >> 4) & 0xf;
+		// gen3 no need
+		if(spd == 2) // gen2
+		{
+			OUTREG16((GHC_PHY_ANA + REG_ID_56), 0x0078);
+		}
+		else if(spd == 1) // gen1
+		{
+			OUTREG16((GHC_PHY_ANA + REG_ID_56), 0x03C0);
+		}
+	}
+#endif
 
 	if ((rc = sata_scr_write(link, SCR_CONTROL, scontrol)))
 		return rc;
@@ -526,6 +572,107 @@ EXPORT_SYMBOL_GPL(sata_set_spd);
  *	RETURNS:
  *	0 on success, -errno otherwise.
  */
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_APPLY_HD_LINK)
+// must no need to move this function to drivers/sstar , many other functions call this "sata_link_hardreset()"
+int sata_link_hardreset(struct ata_link *link, const unsigned long *timing,
+            unsigned long deadline,
+            bool *online, int (*check_ready)(struct ata_link *))
+{
+	u32 scontrol;
+	int rc;
+
+	DPRINTK("ENTER\n");
+
+	if (online)
+		*online = false;
+
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SS_SATA_AHCI_PLATFORM_HOST)
+	ss_sata_ssc_enable(link, 0,0);
+#endif
+
+	if (sata_set_spd_needed(link)) {
+		/* SATA spec says nothing about how to reconfigure
+		 * spd.  To be on the safe side, turn off phy during
+		 * reconfiguration.  This works for at least ICH7 AHCI
+		 * and Sil3124.
+		 */
+		if ((rc = sata_scr_read(link, SCR_CONTROL, &scontrol)))
+			goto out;
+
+		scontrol = (scontrol & 0x0f0) | 0x304;
+
+		if ((rc = sata_scr_write(link, SCR_CONTROL, scontrol)))
+			goto out;
+
+		sata_set_spd(link);
+	}
+
+	/* issue phy wake/reset */
+	if ((rc = sata_scr_read(link, SCR_CONTROL, &scontrol)))
+		goto out;
+
+	scontrol = (scontrol & 0x0f0) | 0x301;
+
+	if ((rc = sata_scr_write_flush(link, SCR_CONTROL, scontrol)))
+		goto out;
+
+	/* Couldn't find anything in SATA I/II specs, but AHCI-1.1
+	 * 10.4.2 says at least 1 ms.
+	 */
+	ata_msleep(link->ap, 1);
+
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SS_SATA_AHCI_PLATFORM_HOST)
+	if(ata_is_host_link(link))
+	{
+		ahci_port_apply_hd_link(link);
+	}
+#endif
+
+	/* bring link back */
+	rc = sata_link_resume(link, timing, deadline);
+	if (rc)
+		goto out;
+	/* if link is offline nothing more to do */
+	if (ata_phys_link_offline(link))
+		goto out;
+
+	/* Link is online.  From this point, -ENODEV too is an error. */
+	if (online)
+		*online = true;
+
+	if (sata_pmp_supported(link->ap) && ata_is_host_link(link)) {
+		/* If PMP is supported, we have to do follow-up SRST.
+		 * Some PMPs don't send D2H Reg FIS after hardreset if
+		 * the first port is empty.  Wait only for
+		 * ATA_TMOUT_PMP_SRST_WAIT.
+		 */
+		if (check_ready) {
+			unsigned long pmp_deadline;
+
+			pmp_deadline = ata_deadline(jiffies,
+						    ATA_TMOUT_PMP_SRST_WAIT);
+			if (time_after(pmp_deadline, deadline))
+				pmp_deadline = deadline;
+			ata_wait_ready(link, pmp_deadline, check_ready);
+		}
+		rc = -EAGAIN;
+		goto out;
+	}
+
+	rc = 0;
+	if (check_ready)
+		rc = ata_wait_ready(link, deadline, check_ready);
+ out:
+	if (rc && rc != -EAGAIN) {
+		/* online is set iff link is online && reset succeeded */
+		if (online)
+			*online = false;
+		ata_link_err(link, "COMRESET failed (errno=%d)\n", rc);
+	}
+	DPRINTK("EXIT, rc=%d\n", rc);
+	return rc;
+}
+#else
 int sata_link_hardreset(struct ata_link *link, const unsigned long *timing,
 			unsigned long deadline,
 			bool *online, int (*check_ready)(struct ata_link *))
@@ -613,6 +760,7 @@ int sata_link_hardreset(struct ata_link *link, const unsigned long *timing,
 	DPRINTK("EXIT, rc=%d\n", rc);
 	return rc;
 }
+#endif
 EXPORT_SYMBOL_GPL(sata_link_hardreset);
 
 /**

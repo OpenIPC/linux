@@ -188,6 +188,60 @@ void __init of_core_init(void)
 		proc_symlink("device-tree", NULL, "/sys/firmware/devicetree/base");
 }
 
+#if defined(CONFIG_DEFERRED_CREATE_DTS_SYSNODE) && !defined(CONFIG_DTS_SYSFS_DISABLE)
+#include <linux/of_platform.h>
+
+struct device **deferred_dts_node_dev = NULL;
+int deferred_dts_node_dev_cnt = 0;
+int deferred_of_core_init_done = 0;
+
+DEFINE_MUTEX(deferred_dts_node_mutex);
+
+static int __init deferred_of_core_init(void)
+{
+	struct device_node *np = NULL;
+	struct device *dev;
+	int error;
+	int i;
+
+	of_core_init();
+
+	mutex_lock(&deferred_dts_node_mutex);
+	// Create symlinks for device_add_class_symlinks()
+	for (i = 0; i < deferred_dts_node_dev_cnt; i++) {
+		dev = deferred_dts_node_dev[i];
+		if (dev)
+			np = dev_of_node(dev);
+		else
+			np = NULL;
+
+		if (np) {
+			error = sysfs_create_link(&dev->kobj, &np->kobj, "of_node");
+			if (error) {
+				dev_warn(dev, "Error %d creating of_node link\n",error);
+				/* An error here doesn't warrant bringing down the device */
+			} else {
+				printk(KERN_DEBUG "%2d:create symlinks  %s\n", i, np->full_name);
+			}
+		}
+	}
+	kfree(deferred_dts_node_dev);
+	deferred_dts_node_dev = NULL;
+	deferred_dts_node_dev_cnt = 0;
+	/*
+	 * Since we have freed deferred_dts_node_dev at this moment and deferred_of_core_init()
+	 * can only be executed once, here we set deferred_of_core_init_done to 1 to notify the
+	 * code in device_add_class_symlinks() that it should choose non-deferred way, otherwise
+	 * it will cause a use-after-free issue.
+	 */
+	deferred_of_core_init_done = 1;
+	mutex_unlock(&deferred_dts_node_mutex);
+
+	return 0;
+}
+deferred_module_init(deferred_of_core_init);
+#endif
+
 static struct property *__of_find_property(const struct device_node *np,
 					   const char *name, int *lenp)
 {
@@ -1817,6 +1871,7 @@ int of_add_property(struct device_node *np, struct property *prop)
 
 	return rc;
 }
+EXPORT_SYMBOL_GPL(of_add_property);
 
 int __of_remove_property(struct device_node *np, struct property *prop)
 {

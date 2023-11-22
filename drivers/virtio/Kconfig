@@ -73,6 +73,14 @@ config VIRTIO_PMEM
 
 	  If unsure, say Y.
 
+config VIRTIO_PCI_EPF
+	bool "Support for virtio device on configurable PCIe Endpoint"
+	depends on VIRTIO_PCI
+	help
+          Select this configuration option to enable the VIRTIO driver
+          for configurable PCIe Endpoint running Linux in backend.
+          If in doubt, say "N" to disable VIRTIO PCI EPF driver.
+
 config VIRTIO_BALLOON
 	tristate "Virtio balloon driver"
 	depends on VIRTIO
@@ -133,7 +141,7 @@ config VIRTIO_MMIO_CMDLINE_DEVICES
 	 If unsure, say 'N'.
 
 config VIRTIO_DMA_SHARED_BUFFER
-	tristate
+	tristate "Virtio DMA shared buffer support"
 	depends on DMA_SHARED_BUFFER
 	help
 	 This option adds a flavor of dma buffers that are backed by

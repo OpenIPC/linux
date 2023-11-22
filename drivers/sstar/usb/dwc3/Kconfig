@@ -1,0 +1,8 @@
+config SSTAR_USB_DWC3_OF_SIMPLE
+        tristate "Simple Glue Layer Of SStar For DWC3"
+        depends on OF && COMMON_CLK && USB_DWC3
+        select MFD_SYSCON
+        help
+          Support USB3 functionality in simple SoC integrations.
+          Currently supports SStar DWC USB3 IP.
+          Say 'Y' or 'M' if you have one such device.

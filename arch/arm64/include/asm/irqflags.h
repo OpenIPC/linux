@@ -10,6 +10,11 @@
 #include <asm/ptrace.h>
 #include <asm/sysreg.h>
 
+#ifdef CONFIG_SSTAR_IRQ_DEBUG_TRACE
+extern void sstar_irq_disable_debug(void);
+extern void sstar_irq_enable_debug(void);
+#endif
+
 /*
  * Aarch64 has flags for masking: Debug, Asynchronous (serror), Interrupts and
  * FIQ exceptions, in the 'daif' register. We mask and unmask them in 'dai'
@@ -28,6 +33,10 @@
  */
 static inline void arch_local_irq_enable(void)
 {
+#ifdef CONFIG_SSTAR_IRQ_DEBUG_TRACE
+	sstar_irq_enable_debug();
+#endif
+
 	if (system_has_prio_mask_debugging()) {
 		u32 pmr = read_sysreg_s(SYS_ICC_PMR_EL1);
 
@@ -43,6 +52,10 @@ static inline void arch_local_irq_enable(void)
 		: "memory");
 
 	pmr_sync();
+
+#ifdef CONFIG_SSTAR_IRQ_DEBUG_TRACE
+	sstar_irq_disable_debug();
+#endif
 }
 
 static inline void arch_local_irq_disable(void)
@@ -61,6 +74,12 @@ static inline void arch_local_irq_disable(void)
 		: "r" ((unsigned long) GIC_PRIO_IRQOFF)
 		: "memory");
 }
+
+#define local_fiq_enable()	asm("msr	daifclr, #1" : : : "memory")
+#define local_fiq_disable()	asm("msr	daifset, #1" : : : "memory")
+
+#define local_async_enable()	asm("msr	daifclr, #4" : : : "memory")
+#define local_async_disable()	asm("msr	daifset, #4" : : : "memory")
 
 /*
  * Save the current interrupt enable state.
@@ -113,6 +132,10 @@ static inline unsigned long arch_local_irq_save(void)
 	if (!arch_irqs_disabled_flags(flags))
 		arch_local_irq_disable();
 
+#ifdef CONFIG_SSTAR_IRQ_DEBUG_TRACE
+	sstar_irq_disable_debug();
+#endif
+
 	return flags;
 }
 
@@ -121,6 +144,10 @@ static inline unsigned long arch_local_irq_save(void)
  */
 static inline void arch_local_irq_restore(unsigned long flags)
 {
+#ifdef CONFIG_SSTAR_IRQ_DEBUG_TRACE
+	sstar_irq_enable_debug();
+#endif
+
 	asm volatile(ALTERNATIVE(
 		"msr	daif, %0",
 		__msr_s(SYS_ICC_PMR_EL1, "%0"),
@@ -132,4 +159,23 @@ static inline void arch_local_irq_restore(unsigned long flags)
 	pmr_sync();
 }
 
+/*
+ * save and restore debug state
+ */
+#define local_dbg_save(flags)						\
+	do {								\
+		typecheck(unsigned long, flags);			\
+		asm volatile(						\
+		"mrs    %0, daif		// local_dbg_save\n"	\
+		"msr    daifset, #8"					\
+		: "=r" (flags) : : "memory");				\
+	} while (0)
+
+#define local_dbg_restore(flags)					\
+	do {								\
+		typecheck(unsigned long, flags);			\
+		asm volatile(						\
+		"msr    daif, %0		// local_dbg_restore\n"	\
+		: : "r" (flags) : "memory");				\
+	} while (0)
 #endif /* __ASM_IRQFLAGS_H */

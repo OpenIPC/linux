@@ -86,7 +86,16 @@ static const struct stmmac_stats stmmac_gstrings_stats[] = {
 	STMMAC_STAT(normal_irq_n),
 	STMMAC_STAT(rx_normal_irq_n),
 	STMMAC_STAT(napi_poll),
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RXIC)
+	STMMAC_STAT(napi_poll_rx),
+	STMMAC_STAT(napi_poll_rx_irq),
+	STMMAC_STAT(napi_poll_rx_tmr),
+#endif
 	STMMAC_STAT(tx_normal_irq_n),
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_GMAC_RXIC)
+	STMMAC_STAT(tx_normal_ti_irq_n),
+	STMMAC_STAT(tx_normal_tbu_irq_n),
+#endif
 	STMMAC_STAT(tx_clean),
 	STMMAC_STAT(tx_set_ic_bit),
 	STMMAC_STAT(irq_receive_pmt_irq_n),
@@ -254,6 +263,18 @@ static const struct stmmac_stats stmmac_mmc[] = {
 	STMMAC_MMC_STAT(mmc_rx_fpe_fragment_cntr),
 };
 #define STMMAC_MMC_STATS_LEN ARRAY_SIZE(stmmac_mmc)
+
+static const char stmmac_qstats_tx_string[][ETH_GSTRING_LEN] = {
+	"tx_pkt_n",
+	"tx_irq_n",
+#define STMMAC_TXQ_STATS ARRAY_SIZE(stmmac_qstats_tx_string)
+};
+
+static const char stmmac_qstats_rx_string[][ETH_GSTRING_LEN] = {
+	"rx_pkt_n",
+	"rx_irq_n",
+#define STMMAC_RXQ_STATS ARRAY_SIZE(stmmac_qstats_rx_string)
+};
 
 static void stmmac_ethtool_getdrvinfo(struct net_device *dev,
 				      struct ethtool_drvinfo *info)
@@ -500,6 +521,31 @@ stmmac_set_pauseparam(struct net_device *netdev,
 	}
 }
 
+static void stmmac_get_per_qstats(struct stmmac_priv *priv, u64 *data)
+{
+	u32 tx_cnt = priv->plat->tx_queues_to_use;
+	u32 rx_cnt = priv->plat->rx_queues_to_use;
+	int q, stat;
+	char *p;
+
+	for (q = 0; q < tx_cnt; q++) {
+		p = (char *)priv +
+		    offsetof(struct stmmac_priv, xstats.txq_stats[q].tx_pkt_n);
+		for (stat = 0; stat < STMMAC_TXQ_STATS; stat++) {
+			*data++ = (*(u64 *)p);
+			p += sizeof(u64 *);
+		}
+	}
+	for (q = 0; q < rx_cnt; q++) {
+		p = (char *)priv +
+		    offsetof(struct stmmac_priv, xstats.rxq_stats[q].rx_pkt_n);
+		for (stat = 0; stat < STMMAC_RXQ_STATS; stat++) {
+			*data++ = (*(u64 *)p);
+			p += sizeof(u64 *);
+		}
+	}
+}
+
 static void stmmac_get_ethtool_stats(struct net_device *dev,
 				 struct ethtool_stats *dummy, u64 *data)
 {
@@ -550,16 +596,20 @@ static void stmmac_get_ethtool_stats(struct net_device *dev,
 		data[j++] = (stmmac_gstrings_stats[i].sizeof_stat ==
 			     sizeof(u64)) ? (*(u64 *)p) : (*(u32 *)p);
 	}
+	stmmac_get_per_qstats(priv, &data[j]);
 }
 
 static int stmmac_get_sset_count(struct net_device *netdev, int sset)
 {
 	struct stmmac_priv *priv = netdev_priv(netdev);
+	u32 tx_cnt = priv->plat->tx_queues_to_use;
+	u32 rx_cnt = priv->plat->rx_queues_to_use;
 	int i, len, safety_len = 0;
 
 	switch (sset) {
 	case ETH_SS_STATS:
-		len = STMMAC_STATS_LEN;
+		len = STMMAC_STATS_LEN + STMMAC_TXQ_STATS * tx_cnt +
+		      STMMAC_RXQ_STATS * rx_cnt;
 
 		if (priv->dma_cap.rmon)
 			len += STMMAC_MMC_STATS_LEN;
@@ -579,6 +629,28 @@ static int stmmac_get_sset_count(struct net_device *netdev, int sset)
 		return stmmac_selftest_get_count(priv);
 	default:
 		return -EOPNOTSUPP;
+	}
+}
+
+static void stmmac_get_qstats_string(struct stmmac_priv *priv, u8 *data)
+{
+	u32 tx_cnt = priv->plat->tx_queues_to_use;
+	u32 rx_cnt = priv->plat->rx_queues_to_use;
+	int q, stat;
+
+	for (q = 0; q < tx_cnt; q++) {
+		for (stat = 0; stat < STMMAC_TXQ_STATS; stat++) {
+			snprintf(data, ETH_GSTRING_LEN, "q%d_%s", q,
+				 stmmac_qstats_tx_string[stat]);
+			data += ETH_GSTRING_LEN;
+		}
+	}
+	for (q = 0; q < rx_cnt; q++) {
+		for (stat = 0; stat < STMMAC_RXQ_STATS; stat++) {
+			snprintf(data, ETH_GSTRING_LEN, "q%d_%s", q,
+				 stmmac_qstats_rx_string[stat]);
+			data += ETH_GSTRING_LEN;
+		}
 	}
 }
 
@@ -612,6 +684,7 @@ static void stmmac_get_strings(struct net_device *dev, u32 stringset, u8 *data)
 				ETH_GSTRING_LEN);
 			p += ETH_GSTRING_LEN;
 		}
+		stmmac_get_qstats_string(priv, p);
 		break;
 	case ETH_SS_TEST:
 		stmmac_selftest_get_strings(priv, p);

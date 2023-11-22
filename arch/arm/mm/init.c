@@ -210,6 +210,15 @@ void check_cpu_icache_size(int cpuid)
 }
 #endif
 
+#ifdef CONFIG_MSTAR_MMAHEAP
+extern void __init deal_with_reserve_mma_heap(void);
+#endif
+
+#ifdef CONFIG_MP_DEBUG_TOOL_MEMORY_USAGE_TRACE
+extern phys_addr_t arm_lowmem_limit;
+void reserve_page_trace_mem(phys_addr_t beg,phys_addr_t end);
+#endif
+
 void __init arm_memblock_init(const struct machine_desc *mdesc)
 {
 	/* Register the kernel text, kernel data and initrd with memblock. */
@@ -225,6 +234,15 @@ void __init arm_memblock_init(const struct machine_desc *mdesc)
 
 	early_init_fdt_scan_reserved_mem();
 
+// first reserve for mstar,
+// not place call this deal_with_reserve_mma_heap function in the end of arm_memblock_init.
+#ifdef CONFIG_MSTAR_MMAHEAP
+	deal_with_reserve_mma_heap();
+#endif
+
+#ifdef CONFIG_MP_DEBUG_TOOL_MEMORY_USAGE_TRACE
+	reserve_page_trace_mem(PHYS_OFFSET, arm_lowmem_limit);
+#endif
 	/* reserve memory for DMA contiguous allocations */
 	dma_contiguous_reserve(arm_dma_limit);
 

@@ -280,6 +280,7 @@ int irq_do_set_affinity(struct irq_data *data, const struct cpumask *mask,
 
 	return ret;
 }
+EXPORT_SYMBOL_GPL(irq_do_set_affinity);
 
 #ifdef CONFIG_GENERIC_PENDING_IRQ
 static inline int irq_set_affinity_pending(struct irq_data *data,
@@ -570,6 +571,21 @@ int irq_set_vcpu_affinity(unsigned int irq, void *vcpu_info)
 	return ret;
 }
 EXPORT_SYMBOL_GPL(irq_set_vcpu_affinity);
+
+int irq_set_priority(unsigned int irq, irqpriority_t prio)
+{
+	unsigned long flags;
+	struct irq_desc *desc = irq_get_desc_lock(irq, &flags, IRQ_GET_DESC_CHECK_GLOBAL);
+	struct irq_data *data = irq_desc_get_irq_data(desc);
+	struct irq_chip *chip = irq_data_get_irq_chip(data);
+	int ret;
+
+	raw_spin_lock_irqsave(&desc->lock, flags);
+	ret = chip->irq_set_priority(data, prio);
+	raw_spin_unlock_irqrestore(&desc->lock, flags);
+
+	return ret;
+}
 
 void __disable_irq(struct irq_desc *desc)
 {
@@ -1476,7 +1492,7 @@ __setup_irq(unsigned int irq, struct irq_desc *desc, struct irqaction *new)
 		 * the same type (level, edge, polarity). So both flag
 		 * fields must have IRQF_SHARED set and the bits which
 		 * set the trigger type must match. Also all must
-		 * agree on ONESHOT.
+		 * agree on ONESHOT and IRQF_HIGH_PRIORITY.
 		 * Interrupt lines used for NMIs cannot be shared.
 		 */
 		unsigned int oldtype;
@@ -1501,7 +1517,8 @@ __setup_irq(unsigned int irq, struct irq_desc *desc, struct irqaction *new)
 
 		if (!((old->flags & new->flags) & IRQF_SHARED) ||
 		    (oldtype != (new->flags & IRQF_TRIGGER_MASK)) ||
-		    ((old->flags ^ new->flags) & IRQF_ONESHOT))
+		    ((old->flags ^ new->flags) & IRQF_ONESHOT) ||
+		    ((old->flags ^ new->flags) & IRQF_HIGH_PRIORITY))
 			goto mismatch;
 
 		/* All handlers must agree on per-cpuness */
@@ -1621,6 +1638,11 @@ __setup_irq(unsigned int irq, struct irq_desc *desc, struct irqaction *new)
 		if (new->flags & IRQF_ONESHOT)
 			desc->istate |= IRQS_ONESHOT;
 
+		if (new->flags & IRQF_HIGH_PRIORITY) {
+			ret = __irq_set_priority(desc, IRQP_HIGH);
+			if (ret)
+				goto out_unlock;
+		}
 		/* Exclude IRQ from balancing if requested */
 		if (new->flags & IRQF_NOBALANCING) {
 			irq_settings_set_no_balancing(desc);

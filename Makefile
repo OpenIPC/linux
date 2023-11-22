@@ -91,6 +91,30 @@ else
   Q = @
 endif
 
+# SigmaStar coding style sanitize
+#
+# SSTAR_CODING_STYLE_SANITIZE is for all modules.
+# It is main switch to enable or disable lang-format/clang-tidy.
+# 0: disable coding style sanitizing.
+# 1: enable clang-format. (default)
+# 2: enable clang-tidy.
+#
+# SSTAR_CODING_STYLE_SANITIZE_MODULE is for module.
+# It can be defined in each module's makefile to enable or
+# disable clang-format/clang-tidy.
+# 1: enable clang-format.
+# 2: enable clang-tidy.
+#
+# NOTE: If the value of SSTAR_CODING_STYLE_SANITIZE is more than
+# the value of SSTAR_CODING_STYLE_SANITIZE_MODULE,
+# it can overwrite SSTAR_CODING_STYLE_SANITIZE_MODULE which defined in each module.
+ifeq ("$(origin SSTAR_CODING_STYLE_SANITIZE)", "command line")
+  SSTAR_CODING_STYLE_SANITIZE = $(SSTAR_CODING_STYLE_SANITIZE)
+endif
+ifndef SSTAR_CODING_STYLE_SANITIZE
+  SSTAR_CODING_STYLE_SANITIZE = 1
+endif
+
 # If the user is running make -s (silent mode), suppress echoing of
 # commands
 
@@ -98,7 +122,7 @@ ifneq ($(findstring s,$(filter-out --%,$(MAKEFLAGS))),)
   quiet=silent_
 endif
 
-export quiet Q KBUILD_VERBOSE
+export quiet Q KBUILD_VERBOSE SSTAR_CODING_STYLE_SANITIZE
 
 # Kbuild will save output files in the current working directory.
 # This does not need to match to the root of the kernel source tree.
@@ -225,6 +249,20 @@ export KBUILD_CHECKSRC KBUILD_EXTMOD
 
 extmod-prefix = $(if $(KBUILD_EXTMOD),$(KBUILD_EXTMOD)/)
 
+# ANDROID: set up mixed-build support. mixed-build allows device kernel modules
+# to be compiled against a GKI kernel. This approach still uses the headers and
+# Kbuild from device kernel, so care must be taken to ensure that those headers match.
+ifdef KBUILD_MIXED_TREE
+# Need vmlinux.symvers for modpost and System.map for depmod, check whether they exist in KBUILD_MIXED_TREE
+required_mixed_files=vmlinux.symvers System.map
+$(if $(filter-out $(words $(required_mixed_files)), \
+		$(words $(wildcard $(add-prefix $(KBUILD_MIXED_TREE)/,$(required_mixed_files))))),,\
+	$(error KBUILD_MIXED_TREE=$(KBUILD_MIXED_TREE) doesn't contain $(required_mixed_files)))
+endif
+
+mixed-build-prefix = $(if $(KBUILD_MIXED_TREE),$(KBUILD_MIXED_TREE)/)
+export KBUILD_MIXED_TREE
+
 ifeq ($(abs_srctree),$(abs_objtree))
         # building in the source tree
         srctree := .
@@ -247,6 +285,9 @@ objtree		:= .
 VPATH		:= $(srctree)
 
 export building_out_of_srctree srctree objtree VPATH
+
+SSTAR_CHIP_NAME ?= infinity6c
+export SSTAR_CHIP_NAME
 
 # To make sure we do not include .config for any of the *config targets
 # catch them early, and hand them over to scripts/kconfig/Makefile
@@ -461,7 +502,7 @@ KGZIP		= gzip
 KBZIP2		= bzip2
 KLZOP		= lzop
 LZMA		= lzma
-LZ4		= lz4c
+LZ4		= lz4
 XZ		= xz
 ZSTD		= zstd
 
@@ -654,11 +695,13 @@ drivers-y	+= net/ virt/
 libs-y		:= lib/
 endif # KBUILD_EXTMOD
 
+ifndef KBUILD_MIXED_TREE
 # The all: target is the default when no target is given on the
 # command line.
 # This allow a user to issue only 'make' to build a kernel including modules
 # Defaults to vmlinux, but the arch makefile usually adds further targets
-all: vmlinux
+all: sysdesc vmlinux
+endif
 
 CFLAGS_GCOV	:= -fprofile-arcs -ftest-coverage \
 	$(call cc-option,-fno-tree-loop-im) \
@@ -855,17 +898,22 @@ KBUILD_CFLAGS += $(DEBUG_CFLAGS)
 export DEBUG_CFLAGS
 
 ifdef CONFIG_FUNCTION_TRACER
-ifdef CONFIG_FTRACE_MCOUNT_RECORD
-  # gcc 5 supports generating the mcount tables directly
-  ifeq ($(call cc-option-yn,-mrecord-mcount),y)
-    CC_FLAGS_FTRACE	+= -mrecord-mcount
-    export CC_USING_RECORD_MCOUNT := 1
-  endif
+ifdef CONFIG_FTRACE_MCOUNT_USE_CC
+  CC_FLAGS_FTRACE	+= -mrecord-mcount
   ifdef CONFIG_HAVE_NOP_MCOUNT
     ifeq ($(call cc-option-yn, -mnop-mcount),y)
       CC_FLAGS_FTRACE	+= -mnop-mcount
       CC_FLAGS_USING	+= -DCC_USING_NOP_MCOUNT
     endif
+  endif
+endif
+ifdef CONFIG_FTRACE_MCOUNT_USE_OBJTOOL
+  CC_FLAGS_USING	+= -DCC_USING_NOP_MCOUNT
+endif
+ifdef CONFIG_FTRACE_MCOUNT_USE_RECORDMCOUNT
+  ifdef CONFIG_HAVE_C_RECORDMCOUNT
+    BUILD_C_RECORDMCOUNT := y
+    export BUILD_C_RECORDMCOUNT
   endif
 endif
 ifdef CONFIG_HAVE_FENTRY
@@ -877,12 +925,6 @@ endif
 export CC_FLAGS_FTRACE
 KBUILD_CFLAGS	+= $(CC_FLAGS_FTRACE) $(CC_FLAGS_USING)
 KBUILD_AFLAGS	+= $(CC_FLAGS_USING)
-ifdef CONFIG_DYNAMIC_FTRACE
-	ifdef CONFIG_HAVE_C_RECORDMCOUNT
-		BUILD_C_RECORDMCOUNT := y
-		export BUILD_C_RECORDMCOUNT
-	endif
-endif
 endif
 
 # We trigger additional mismatches with less inlining
@@ -899,6 +941,51 @@ ifdef CONFIG_SHADOW_CALL_STACK
 CC_FLAGS_SCS	:= -fsanitize=shadow-call-stack
 KBUILD_CFLAGS	+= $(CC_FLAGS_SCS)
 export CC_FLAGS_SCS
+endif
+
+ifdef CONFIG_LTO_CLANG
+ifdef CONFIG_LTO_CLANG_THIN
+CC_FLAGS_LTO	:= -flto=thin -fsplit-lto-unit
+KBUILD_LDFLAGS	+= --thinlto-cache-dir=$(extmod-prefix).thinlto-cache
+else
+CC_FLAGS_LTO	:= -flto
+endif
+
+ifeq ($(SRCARCH),x86)
+# TODO(b/182572011): Revert workaround for compiler / linker bug.
+CC_FLAGS_LTO	+= -fvisibility=hidden
+else
+CC_FLAGS_LTO	+= -fvisibility=default
+endif
+
+# Limit inlining across translation units to reduce binary size
+KBUILD_LDFLAGS += -mllvm -import-instr-limit=5
+endif
+
+ifdef CONFIG_LTO
+KBUILD_CFLAGS	+= $(CC_FLAGS_LTO)
+export CC_FLAGS_LTO
+endif
+
+ifdef CONFIG_CFI_CLANG
+CC_FLAGS_CFI	:= -fsanitize=cfi \
+		   -fsanitize-cfi-cross-dso \
+		   -fno-sanitize-cfi-canonical-jump-tables \
+		   -fno-sanitize-blacklist
+
+ifdef CONFIG_CFI_PERMISSIVE
+CC_FLAGS_CFI	+= -fsanitize-recover=cfi \
+		   -fno-sanitize-trap=cfi
+else
+ifndef CONFIG_UBSAN_TRAP
+CC_FLAGS_CFI	+= -ftrap-function=__ubsan_handle_cfi_check_fail_abort
+endif
+endif
+
+# If LTO flags are filtered out, we must also filter out CFI.
+CC_FLAGS_LTO	+= $(CC_FLAGS_CFI)
+KBUILD_CFLAGS	+= $(CC_FLAGS_CFI)
+export CC_FLAGS_CFI
 endif
 
 ifdef CONFIG_DEBUG_FORCE_FUNCTION_ALIGN_32B
@@ -940,8 +1027,10 @@ KBUILD_CFLAGS  += -fno-stack-check
 # conserve stack if available
 KBUILD_CFLAGS   += $(call cc-option,-fconserve-stack)
 
+KBUILD_CFLAGS   += $(call cc-option,-Wno-typedef-redefinition)
+
 # Prohibit date/time macros, which would make the build non-deterministic
-KBUILD_CFLAGS   += -Werror=date-time
+#KBUILD_CFLAGS   += $(call cc-option,-Werror=date-time)
 
 # enforce correct pointer usage
 KBUILD_CFLAGS   += $(call cc-option,-Werror=incompatible-pointer-types)
@@ -954,6 +1043,7 @@ KBUILD_CPPFLAGS += $(call cc-option,-fmacro-prefix-map=$(srctree)/=)
 
 # include additional Makefiles when needed
 include-y			:= scripts/Makefile.extrawarn
+
 include-$(CONFIG_KASAN)		+= scripts/Makefile.kasan
 include-$(CONFIG_KCSAN)		+= scripts/Makefile.kcsan
 include-$(CONFIG_UBSAN)		+= scripts/Makefile.ubsan
@@ -1072,8 +1162,9 @@ export mod_sign_cmd
 
 HOST_LIBELF_LIBS = $(shell pkg-config libelf --libs 2>/dev/null || echo -lelf)
 
-has_libelf = $(call try-run,\
-               echo "int main() {}" | $(HOSTCC) -xc -o /dev/null $(HOST_LIBELF_LIBS) -,1,0)
+has_libelf := $(call try-run,\
+                echo "int main() {}" | \
+                $(HOSTCC) $(KBUILD_HOSTCFLAGS) -xc -o /dev/null $(KBUILD_HOSTLDFLAGS) $(HOST_LIBELF_LIBS) -,1,0)
 
 ifdef CONFIG_STACK_VALIDATION
   ifeq ($(has_libelf),1)
@@ -1109,6 +1200,41 @@ PHONY += prepare0
 
 export MODORDER := $(extmod-prefix)modules.order
 export MODULES_NSDEPS := $(extmod-prefix)modules.nsdeps
+
+# ---------------------------------------------------------------------------
+# Kernel headers
+
+PHONY += headers
+
+#Default location for installed headers
+ifeq ($(KBUILD_EXTMOD),)
+PHONY += archheaders archscripts
+hdr-inst := -f $(srctree)/scripts/Makefile.headersinst obj
+headers: $(version_h) scripts_unifdef uapi-asm-generic archheaders archscripts
+else
+hdr-prefix = $(KBUILD_EXTMOD)/
+hdr-inst := -f $(srctree)/scripts/Makefile.headersinst dst=$(KBUILD_EXTMOD)/usr/include objtree=$(objtree)/$(KBUILD_EXTMOD) obj
+endif
+
+export INSTALL_HDR_PATH = $(objtree)/$(hdr-prefix)usr
+
+quiet_cmd_headers_install = INSTALL $(INSTALL_HDR_PATH)/include
+      cmd_headers_install = \
+	mkdir -p $(INSTALL_HDR_PATH); \
+	rsync -mrl --include='*/' --include='*\.h' --exclude='*' \
+	$(hdr-prefix)usr/include $(INSTALL_HDR_PATH);
+
+PHONY += headers_install
+headers_install: headers
+	$(call cmd,headers_install)
+
+headers:
+ifeq ($(KBUILD_EXTMOD),)
+	$(if $(wildcard $(srctree)/arch/$(SRCARCH)/include/uapi/asm/Kbuild),, \
+	  $(error Headers not exportable for the $(SRCARCH) architecture))
+endif
+	$(Q)$(MAKE) $(hdr-inst)=$(hdr-prefix)include/uapi
+	$(Q)$(MAKE) $(hdr-inst)=$(hdr-prefix)arch/$(SRCARCH)/include/uapi
 
 ifeq ($(KBUILD_EXTMOD),)
 core-y		+= kernel/ certs/ mm/ fs/ ipc/ security/ crypto/ block/
@@ -1175,8 +1301,10 @@ cmd_link-vmlinux =                                                 \
 	$(CONFIG_SHELL) $< "$(LD)" "$(KBUILD_LDFLAGS)" "$(LDFLAGS_vmlinux)";    \
 	$(if $(ARCH_POSTLINK), $(MAKE) -f $(ARCH_POSTLINK) $@, true)
 
+ifndef KBUILD_MIXED_TREE
 vmlinux: scripts/link-vmlinux.sh autoksyms_recursive $(vmlinux-deps) FORCE
 	+$(call if_changed,link-vmlinux)
+endif
 
 targets := vmlinux
 
@@ -1185,12 +1313,84 @@ targets := vmlinux
 $(sort $(vmlinux-deps) $(subdir-modorder)): descend ;
 
 filechk_kernel.release = \
-	echo "$(KERNELVERSION)$$($(CONFIG_SHELL) $(srctree)/scripts/setlocalversion $(srctree))"
+	echo "$(KERNELVERSION)$$($(CONFIG_SHELL) $(srctree)/scripts/setlocalversion \
+		$(srctree) $(BRANCH) $(KMI_GENERATION))"
+
+MS_KERNEL_TYPE :=
+ifneq ($(CONFIG_MS_KERNEL_TYPE),"")
+MS_KERNEL_TYPE=--lib_type $(CONFIG_MS_KERNEL_TYPE)
+endif
+
+# Retrieve platform ID abbreviation with the following rules: UPPER_CASE(Part I+II+III)
+# Part I  : the leading charactor
+# Part II : the 1st digit
+# Part III: the the reset after 1st digit
+# for examples: foobar2m -> F2M
+SSTAR_PLATFORM_ID := $(shell echo $(SSTAR_CHIP_NAME) | sed -e 's/^\([a-zA-Z]\)[a-zA-Z]*\([0-9]*\)\(.*\)/\1\2\3/g' | tr a-z A-Z)
+
+COMMITNUMBER := g$(shell git log --format=%h -n 1 2> /dev/null)
+BRANCH_ID := $(shell git rev-parse --abbrev-ref HEAD 2> /dev/null | sed -e 's/\//_/g')
+
+GCCVERISON := $(shell $(CC) -dumpversion)
+
+#COMMITNUMBER := g$(shell git log --format=%h -n 1 2> /dev/null)
+GITVERNUM := $(shell git log --format=%H -n 1 2> /dev/null)
+#BRANCH_ID := $(shell git rev-parse --abbrev-ref HEAD 2> /dev/null | sed -e 's/\//_/g')
+BUILDCODEDATE = $(shell date +"%Y_%m_%d_%H_%M_%S")
+BUILDCODEUSER = $(shell whoami)
+
+
+ifeq ($(COMMITNUMBER),g)
+file := gitInformation.txt
+gitLog := $(shell /usr/bin/strings ${file})
+gitTemp := $(subst \#, ,$(gitLog))
+COMMITNUMBER := g$(word 1, $(gitTemp))
+BRANCH_ID := g$(word 2, $(gitTemp))
+endif
 
 # Store (new) KERNELRELEASE string in include/config/kernel.release
 include/config/kernel.release: FORCE
 	$(call filechk,kernel.release)
+ifneq ($(CONFIG_ARCH_SSTAR),)
+	@echo '  GCC version: $(GCCVERISON)'
+ifeq ($(SSTAR_PLATFORM_ID),)
+	@echo "ERROR!! MS_PLATOFRM_ID is empty!!"; /bin/false
+else
+	@echo '  MVXV'
+	@echo '  changelist ${COMMITNUMBER}'
+	@echo '  BRANCHID   ${BRANCH_ID} '
+	@echo '  SSTAR_PLATFORM_ID: $(SSTAR_PLATFORM_ID)'
+	@python $(abs_srctree)/scripts/ms_gen_mvxv_h.py $(abs_srctree)/drivers/sstar/include/ms_version.h --comp_id KL_LX510 \
+	--changelist $(COMMITNUMBER) --chip_id $(SSTAR_PLATFORM_ID) --branch $(BRANCH_ID) $(MS_KERNEL_TYPE)
+endif
+endif
 
+ifneq ($(CONFIG_SSTAR_CEVAXM6),)
+	@python $(abs_srctree)/scripts/ms_gen_ceva_version_h.py $(abs_srctree)/drivers/sstar/include/ms_version.h --comp_id KL_LX510 \
+		--changelist $(COMMITNUMBER) --chip_id $(SSTAR_PLATFORM_ID) --branch $(BRANCH_ID) $(MS_KERNEL_TYPE)\
+		--gitver $(GITVERNUM) --builddate $(BUILDCODEDATE) --buildusr $(BUILDCODEUSER)
+endif
+
+ifneq ($(CONFIG_CAM_DRIVERS),)
+	@mkdir -p drivers/sstar/camdriver/include
+	@python $(abs_srctree)/scripts/ms_gen_mvxv_h.py drivers/sstar/camdriver/include/mdrv_ms_version.h \
+	--changelist g$(shell cd drivers/sstar/camdriver;git log --format=%h -n 1 2> /dev/null) \
+	--branch $(shell cd drivers/sstar/camdriver;git rev-parse --abbrev-ref HEAD 2> /dev/null | sed -e 's/\//_/g') \
+	$(MS_KERNEL_TYPE) --chip_id $(SSTAR_PLATFORM_ID) --comp_id CAMDRV_LX510
+endif
+
+# run the sysdesc python script ...
+DIR_SYSDESC_PY = ./drivers/sstar/sysdesc
+DIR_SYSDESC_SYS = ./drivers/sstar/sysdesc/$(SSTAR_CHIP_NAME)
+DIR_INCLUDE = ./drivers/sstar/include/$(SSTAR_CHIP_NAME)
+
+PHONY += sysdesc
+sysdesc:
+ifdef CONFIG_SYSDESC
+	@python $(DIR_SYSDESC_PY)/PySysDesc.py $(DIR_SYSDESC_SYS)/$(CONFIG_SYSDESC_NAME)
+	@cp $(DIR_SYSDESC_SYS)/device_id.h $(DIR_INCLUDE)
+	@cp $(DIR_SYSDESC_SYS)/property_id.h $(DIR_INCLUDE)
+endif
 # Additional helpers built in scripts/
 # Carefully list dependencies so we do not try to build scripts twice
 # in parallel
@@ -1231,6 +1431,10 @@ uapi-asm-generic:
 PHONY += prepare-objtool prepare-resolve_btfids
 prepare-objtool: $(objtool_target)
 ifeq ($(SKIP_STACK_VALIDATION),1)
+ifdef CONFIG_FTRACE_MCOUNT_USE_OBJTOOL
+	@echo "error: Cannot generate __mcount_loc for CONFIG_DYNAMIC_FTRACE=y, please install libelf-dev, libelf-devel or elfutils-libelf-devel" >&2
+	@false
+endif
 ifdef CONFIG_UNWINDER_ORC
 	@echo "error: Cannot generate ORC metadata for CONFIG_UNWINDER_ORC=y, please install libelf-dev, libelf-devel or elfutils-libelf-devel" >&2
 	@false
@@ -1251,12 +1455,13 @@ endif
 # needs to be updated, so this check is forced on all builds
 
 uts_len := 64
+	UTS_RELEASE=$(KERNELRELEASE)
 define filechk_utsrelease.h
-	if [ `echo -n "$(KERNELRELEASE)" | wc -c ` -gt $(uts_len) ]; then \
-	  echo '"$(KERNELRELEASE)" exceeds $(uts_len) characters' >&2;    \
-	  exit 1;                                                         \
-	fi;                                                               \
-	echo \#define UTS_RELEASE \"$(KERNELRELEASE)\"
+	if [ `echo -n "$(UTS_RELEASE)" | wc -c ` -gt $(uts_len) ]; then \
+		echo '"$(UTS_RELEASE)" exceeds $(uts_len) characters' >&2;    \
+		exit 1;                                                       \
+	fi;                                                             \
+	echo \#define UTS_RELEASE \"$(UTS_RELEASE)\"
 endef
 
 define filechk_version.h
@@ -1284,33 +1489,6 @@ PHONY += headerdep
 headerdep:
 	$(Q)find $(srctree)/include/ -name '*.h' | xargs --max-args 1 \
 	$(srctree)/scripts/headerdep.pl -I$(srctree)/include
-
-# ---------------------------------------------------------------------------
-# Kernel headers
-
-#Default location for installed headers
-export INSTALL_HDR_PATH = $(objtree)/usr
-
-quiet_cmd_headers_install = INSTALL $(INSTALL_HDR_PATH)/include
-      cmd_headers_install = \
-	mkdir -p $(INSTALL_HDR_PATH); \
-	rsync -mrl --include='*/' --include='*\.h' --exclude='*' \
-	usr/include $(INSTALL_HDR_PATH)
-
-PHONY += headers_install
-headers_install: headers
-	$(call cmd,headers_install)
-
-PHONY += archheaders archscripts
-
-hdr-inst := -f $(srctree)/scripts/Makefile.headersinst obj
-
-PHONY += headers
-headers: $(version_h) scripts_unifdef uapi-asm-generic archheaders archscripts
-	$(if $(wildcard $(srctree)/arch/$(SRCARCH)/include/uapi/asm/Kbuild),, \
-	  $(error Headers not exportable for the $(SRCARCH) architecture))
-	$(Q)$(MAKE) $(hdr-inst)=include/uapi
-	$(Q)$(MAKE) $(hdr-inst)=arch/$(SRCARCH)/include/uapi
 
 # Deprecated. It is no-op now.
 PHONY += headers_check
@@ -1353,6 +1531,13 @@ ifneq ($(dtstree),)
 
 %.dtb: include/config/kernel.release scripts_dtc
 	$(Q)$(MAKE) $(build)=$(dtstree) $(dtstree)/$@
+ifeq ($(CONFIG_SS_BUILTIN_DTB), y)
+	@if [ -e $(abs_objtree)/arch/arm/boot/Image ]; then \
+		echo "  BNDTB $@"; \
+		python $(abs_srctree)/scripts/ms_builtin_dtb_update.py $(abs_objtree)/arch/arm/boot/Image $(abs_objtree)/arch/arm/boot/dts/$@; \
+		echo; \
+	fi;
+endif
 
 PHONY += dtbs dtbs_install dtbs_check
 dtbs: include/config/kernel.release scripts_dtc
@@ -1376,6 +1561,9 @@ endif
 
 PHONY += scripts_dtc
 scripts_dtc: scripts_basic
+	@if [ ! -d $(dtstree) ]; then \
+		mkdir -p $(dtstree); \
+	fi;
 	$(Q)$(MAKE) $(build)=scripts/dtc
 
 ifneq ($(filter dt_binding_check, $(MAKECMDGOALS)),)
@@ -1409,9 +1597,14 @@ endif
 # using awk while concatenating to the final file.
 
 PHONY += modules
-modules: $(if $(KBUILD_BUILTIN),vmlinux) modules_check modules_prepare
+# if KBUILD_BUILTIN && !KBUILD_MIXED_TREE, depend on vmlinux
+modules: $(if $(KBUILD_BUILTIN), $(if $(KBUILD_MIXED_TREE),,vmlinux))
+modules: modules_check modules_prepare
 	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.modpost
 
+	@if [ -e "$(srctree)/ms_pack_modules.sh" ]; then \
+		$(srctree)/ms_pack_modules.sh ${MODULE_PACK_OPTIONS}; \
+	fi
 PHONY += modules_check
 modules_check: modules.order
 	$(Q)$(CONFIG_SHELL) $(srctree)/scripts/modules-check.sh $<
@@ -1443,8 +1636,8 @@ _modinst_:
 		ln -s $(CURDIR) $(MODLIB)/build ; \
 	fi
 	@sed 's:^:kernel/:' modules.order > $(MODLIB)/modules.order
-	@cp -f modules.builtin $(MODLIB)/
-	@cp -f $(objtree)/modules.builtin.modinfo $(MODLIB)/
+	@cp -f $(mixed-build-prefix)modules.builtin $(MODLIB)/
+	@cp -f $(or $(mixed-build-prefix),$(objtree)/)modules.builtin.modinfo $(MODLIB)/
 	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.modinst
 
 # This depmod is only for convenience to give the initial
@@ -1486,7 +1679,7 @@ endif # CONFIG_MODULES
 # Directories & files removed with 'make clean'
 CLEAN_FILES += include/ksym vmlinux.symvers modules-only.symvers \
 	       modules.builtin modules.builtin.modinfo modules.nsdeps \
-	       compile_commands.json
+	       compile_commands.json .thinlto-cache
 
 # Directories & files removed with 'make mrproper'
 MRPROPER_FILES += include/config include/generated          \
@@ -1717,7 +1910,7 @@ else # KBUILD_EXTMOD
 #                      Assumes install directory is already created
 
 # We are always building only modules.
-KBUILD_BUILTIN :=
+# KBUILD_BUILTIN :=
 KBUILD_MODULES := 1
 
 build-dirs := $(KBUILD_EXTMOD)
@@ -1746,7 +1939,7 @@ PHONY += compile_commands.json
 
 clean-dirs := $(KBUILD_EXTMOD)
 clean: rm-files := $(KBUILD_EXTMOD)/Module.symvers $(KBUILD_EXTMOD)/modules.nsdeps \
-	$(KBUILD_EXTMOD)/compile_commands.json
+	$(KBUILD_EXTMOD)/compile_commands.json $(KBUILD_EXTMOD)/.thinlto-cache
 
 PHONY += help
 help:
@@ -1755,6 +1948,8 @@ help:
 	@echo  ''
 	@echo  '  modules         - default target, build the module(s)'
 	@echo  '  modules_install - install the module'
+	@echo  '  headers_install - Install sanitised kernel headers to INSTALL_HDR_PATH'
+	@echo  '                    (default: $(abspath $(INSTALL_HDR_PATH)))'
 	@echo  '  clean           - remove generated files in module directory only'
 	@echo  ''
 
@@ -1821,7 +2016,7 @@ descend: $(build-dirs)
 $(build-dirs): prepare
 	$(Q)$(MAKE) $(build)=$@ \
 	single-build=$(if $(filter-out $@/, $(filter $@/%, $(KBUILD_SINGLE_TARGETS))),1) \
-	need-builtin=1 need-modorder=1
+	$(if $(KBUILD_MIXED_TREE),,need-builtin=1) need-modorder=1
 
 clean-dirs := $(addprefix _clean_, $(clean-dirs))
 PHONY += $(clean-dirs) clean
@@ -1843,7 +2038,8 @@ clean: $(clean-dirs)
 		-o -name '.tmp_*.o.*' \
 		-o -name '*.c.[012]*.*' \
 		-o -name '*.ll' \
-		-o -name '*.gcno' \) -type f -print | xargs rm -f
+		-o -name '*.gcno' \
+		-o -name '*.*.symversions' \) -type f -print | xargs rm -f
 
 # Generate tags for editors
 # ---------------------------------------------------------------------------
@@ -1925,7 +2121,8 @@ checkstack:
 	$(PERL) $(srctree)/scripts/checkstack.pl $(CHECKSTACK_ARCH)
 
 kernelrelease:
-	@echo "$(KERNELVERSION)$$($(CONFIG_SHELL) $(srctree)/scripts/setlocalversion $(srctree))"
+	@echo "$(KERNELVERSION)$$($(CONFIG_SHELL) $(srctree)/scripts/setlocalversion \
+		$(srctree) $(BRANCH) $(KMI_GENERATION))"
 
 kernelversion:
 	@echo $(KERNELVERSION)
@@ -1953,7 +2150,7 @@ quiet_cmd_rmfiles = $(if $(wildcard $(rm-files)),CLEAN   $(wildcard $(rm-files))
 # Run depmod only if we have System.map and depmod is executable
 quiet_cmd_depmod = DEPMOD  $(KERNELRELEASE)
       cmd_depmod = $(CONFIG_SHELL) $(srctree)/scripts/depmod.sh $(DEPMOD) \
-                   $(KERNELRELEASE)
+                   $(KERNELRELEASE) $(mixed-build-prefix)
 
 # read saved command lines for existing targets
 existing-targets := $(wildcard $(sort $(targets)))

@@ -222,10 +222,18 @@ if_changed = $(if $(newer-prereqs)$(cmd-check),                              \
 # Execute the command and also postprocess generated .d dependencies file.
 if_changed_dep = $(if $(newer-prereqs)$(cmd-check),$(cmd_and_fixdep),@:)
 
+ifeq ($(SSTAR_CODING_STYLE_SANITIZE),0)
 cmd_and_fixdep =                                                             \
 	$(cmd);                                                              \
 	scripts/basic/fixdep $(depfile) $@ '$(make-cmd)' > $(dot-target).cmd;\
 	rm -f $(depfile)
+else
+cmd_and_fixdep =                                                             \
+	$(cmd);                                                              \
+	scripts/basic/fixdep $(depfile) $@ '$(make-cmd)' > $(dot-target).cmd;\
+	rm -f $(depfile);                                                    \
+	$(srctree)/scripts/sstar_coding_style_sanitize.py -l $(SSTAR_CODING_STYLE_SANITIZE) -f $(dot-target).cmd;
+endif
 
 # Usage: $(call if_changed_rule,foo)
 # Will check if $(cmd_foo) or any of the prerequisites changed,

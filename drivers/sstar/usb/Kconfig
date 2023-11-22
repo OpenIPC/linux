@@ -1,0 +1,11 @@
+config MS_USB_OLD_PLATFORM
+    tristate "USB support for platform"
+    depends on CONFIG_USB_SUPPORT
+menuconfig SSTAR_USB_SUPPORT
+    bool "SStar USB support"
+    depends on USB_SUPPORT
+if (SSTAR_USB_SUPPORT)
+source "drivers/sstar/usb/dwc3/Kconfig"
+source "drivers/sstar/usb/phy/Kconfig"
+source "drivers/sstar/usb/host/Kconfig"
+endif

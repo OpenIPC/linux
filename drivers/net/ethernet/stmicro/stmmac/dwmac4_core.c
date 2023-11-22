@@ -19,6 +19,7 @@
 #include "stmmac_pcs.h"
 #include "dwmac4.h"
 #include "dwmac5.h"
+#include "sstar_gmac.h"
 
 static void dwmac4_core_init(struct mac_device_info *hw,
 			     struct net_device *dev)
@@ -741,6 +742,24 @@ static void dwmac4_flow_ctrl(struct mac_device_info *hw, unsigned int duplex,
 	}
 }
 
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_SW_TX_FLOW_CTL)
+static void dwmac4_flow_ctrl_tx(struct mac_device_info *hw, u32 chan, u32 pause_time)
+{
+	void __iomem *ioaddr = hw->pcsr;
+	unsigned int flow = 0;
+
+	flow = readl(ioaddr + GMAC_QX_TX_FLOW_CTRL(chan));
+	if (flow & GMAC_TX_FLOW_CTRL_FCB_BPA)
+		return;
+	if (pause_time && (flow & 0xFFFF0000))
+		return;
+	if (!pause_time && !(flow & 0xFFFF0000))
+		return;
+	flow = ((flow & 0x0000FFFF) | (pause_time << GMAC_TX_FLOW_CTRL_PT_SHIFT)) | GMAC_TX_FLOW_CTRL_FCB_BPA;
+	writel(flow, ioaddr + GMAC_QX_TX_FLOW_CTRL(chan));
+}
+#endif
+
 static void dwmac4_ctrl_ane(void __iomem *ioaddr, bool ane, bool srgmi_ral,
 			    bool loopback)
 {
@@ -1160,6 +1179,9 @@ const struct stmmac_ops dwmac4_ops = {
 	.host_irq_status = dwmac4_irq_status,
 	.host_mtl_irq_status = dwmac4_irq_mtl_status,
 	.flow_ctrl = dwmac4_flow_ctrl,
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_SW_TX_FLOW_CTL)
+	.flow_ctrl_tx = dwmac4_flow_ctrl_tx,
+#endif
 	.pmt = dwmac4_pmt,
 	.set_umac_addr = dwmac4_set_umac_addr,
 	.get_umac_addr = dwmac4_get_umac_addr,
@@ -1201,6 +1223,9 @@ const struct stmmac_ops dwmac410_ops = {
 	.host_irq_status = dwmac4_irq_status,
 	.host_mtl_irq_status = dwmac4_irq_mtl_status,
 	.flow_ctrl = dwmac4_flow_ctrl,
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_SW_TX_FLOW_CTL)
+	.flow_ctrl_tx = dwmac4_flow_ctrl_tx,
+#endif
 	.pmt = dwmac4_pmt,
 	.set_umac_addr = dwmac4_set_umac_addr,
 	.get_umac_addr = dwmac4_get_umac_addr,
@@ -1245,6 +1270,9 @@ const struct stmmac_ops dwmac510_ops = {
 	.host_irq_status = dwmac4_irq_status,
 	.host_mtl_irq_status = dwmac4_irq_mtl_status,
 	.flow_ctrl = dwmac4_flow_ctrl,
+#if defined(CONFIG_ARCH_SSTAR) && defined(CONFIG_SSTAR_SNPS_SW_TX_FLOW_CTL)
+	.flow_ctrl_tx = dwmac4_flow_ctrl_tx,
+#endif
 	.pmt = dwmac4_pmt,
 	.set_umac_addr = dwmac4_set_umac_addr,
 	.get_umac_addr = dwmac4_get_umac_addr,

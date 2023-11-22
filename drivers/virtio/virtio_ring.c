@@ -480,7 +480,17 @@ static inline int virtqueue_add_split(struct virtqueue *_vq,
 
 	for (n = 0; n < out_sgs; n++) {
 		for (sg = sgs[n]; sg; sg = sg_next(sg)) {
+#if defined(CONFIG_ARCH_SSTAR)
+			dma_addr_t addr;
+
+			if (_vq->vdev->config->map_virt)
+				addr = _vq->vdev->config->map_virt(_vq->vdev,
+								   data);
+			else
+				addr = vring_map_one_sg(vq, sg, DMA_TO_DEVICE);
+#else
 			dma_addr_t addr = vring_map_one_sg(vq, sg, DMA_TO_DEVICE);
+#endif
 			if (vring_mapping_error(vq, addr))
 				goto unmap_release;
 
@@ -493,7 +503,18 @@ static inline int virtqueue_add_split(struct virtqueue *_vq,
 	}
 	for (; n < (out_sgs + in_sgs); n++) {
 		for (sg = sgs[n]; sg; sg = sg_next(sg)) {
+#if defined(CONFIG_ARCH_SSTAR)
+			dma_addr_t addr;
+
+			if (_vq->vdev->config->map_virt)
+				addr = _vq->vdev->config->map_virt(_vq->vdev,
+								   data);
+			else
+				addr = vring_map_one_sg(vq, sg,
+							DMA_FROM_DEVICE);
+#else
 			dma_addr_t addr = vring_map_one_sg(vq, sg, DMA_FROM_DEVICE);
+#endif
 			if (vring_mapping_error(vq, addr))
 				goto unmap_release;
 
@@ -868,9 +889,21 @@ static struct virtqueue *vring_create_virtqueue_split(
 
 	/* TODO: allocate each queue chunk individually */
 	for (; num && vring_size(num, vring_align) > PAGE_SIZE; num /= 2) {
+		if (!vdev->mem_virt) {
 		queue = vring_alloc_queue(vdev, vring_size(num, vring_align),
 					  &dma_addr,
 					  GFP_KERNEL|__GFP_NOWARN|__GFP_ZERO);
+		} else {
+			if (vdev->mem_offset == 0x0) {
+				queue = vdev->mem_virt;
+				dma_addr = vdev->mem_phys;
+				vdev->mem_offset += 0x4000;
+			} else {
+				queue = vdev->mem_virt + 0x4000;
+				dma_addr = vdev->mem_phys + 0x4000;
+				vdev->mem_offset += 0x4000;
+			}
+		}
 		if (queue)
 			break;
 		if (!may_reduce_num)
@@ -1668,9 +1701,7 @@ static struct virtqueue *vring_create_virtqueue_packed(
 			cpu_to_le16(vq->packed.event_flags_shadow);
 	}
 
-	spin_lock(&vdev->vqs_list_lock);
 	list_add_tail(&vq->vq.list, &vdev->vqs);
-	spin_unlock(&vdev->vqs_list_lock);
 	return &vq->vq;
 
 err_desc_extra:
@@ -2128,9 +2159,7 @@ struct virtqueue *__vring_new_virtqueue(unsigned int index,
 	memset(vq->split.desc_state, 0, vring.num *
 			sizeof(struct vring_desc_state_split));
 
-	spin_lock(&vdev->vqs_list_lock);
 	list_add_tail(&vq->vq.list, &vdev->vqs);
-	spin_unlock(&vdev->vqs_list_lock);
 	return &vq->vq;
 }
 EXPORT_SYMBOL_GPL(__vring_new_virtqueue);
@@ -2214,9 +2243,7 @@ void vring_del_virtqueue(struct virtqueue *_vq)
 	}
 	if (!vq->packed_ring)
 		kfree(vq->split.desc_state);
-	spin_lock(&vq->vq.vdev->vqs_list_lock);
 	list_del(&_vq->list);
-	spin_unlock(&vq->vq.vdev->vqs_list_lock);
 	kfree(vq);
 }
 EXPORT_SYMBOL_GPL(vring_del_virtqueue);
@@ -2280,12 +2307,10 @@ void virtio_break_device(struct virtio_device *dev)
 {
 	struct virtqueue *_vq;
 
-	spin_lock(&dev->vqs_list_lock);
 	list_for_each_entry(_vq, &dev->vqs, list) {
 		struct vring_virtqueue *vq = to_vvq(_vq);
 		vq->broken = true;
 	}
-	spin_unlock(&dev->vqs_list_lock);
 }
 EXPORT_SYMBOL_GPL(virtio_break_device);
 

@@ -184,7 +184,6 @@ void usb_unanchor_urb(struct urb *urb)
 	spin_unlock_irqrestore(&anchor->lock, flags);
 }
 EXPORT_SYMBOL_GPL(usb_unanchor_urb);
-
 /*-------------------------------------------------------------------*/
 
 static const int pipetypes[4] = {
