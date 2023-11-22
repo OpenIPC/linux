@@ -20,13 +20,13 @@ if __name__ == '__main__':
 
     name=sys.argv[2]
     if sys.argv[3].upper().startswith( '0X' ):
-        value=long(sys.argv[3],16)
+        value=int(sys.argv[3],16)
     else:
-        value=long(sys.argv[3])
+        value=int(sys.argv[3])
 
     fmap=mmap.mmap(os.open(sys.argv[1],os.O_RDWR),0)
 
-    offset=fmap.find(name)
+    offset=fmap.find(name.encode())
 #    print ('%s:%d\n' % (name,offset))
     if offset < 0:
         print ('error finding ms_bin_option:%s in %s\n' % (name,sys.argv[1]))

@@ -1360,7 +1360,7 @@ else
 	@echo '  changelist ${COMMITNUMBER}'
 	@echo '  BRANCHID   ${BRANCH_ID} '
 	@echo '  SSTAR_PLATFORM_ID: $(SSTAR_PLATFORM_ID)'
-	@python $(abs_srctree)/scripts/ms_gen_mvxv_h.py $(abs_srctree)/drivers/sstar/include/ms_version.h --comp_id KL_LX510 \
+	@python3 $(abs_srctree)/scripts/ms_gen_mvxv_h.py $(abs_srctree)/drivers/sstar/include/ms_version.h --comp_id KL_LX510 \
 	--changelist $(COMMITNUMBER) --chip_id $(SSTAR_PLATFORM_ID) --branch $(BRANCH_ID) $(MS_KERNEL_TYPE)
 endif
 endif

@@ -124,7 +124,7 @@ ifeq ($(CONFIG_SS_BUILTIN_DTB), y)
 		if [ -e ${SS_DTB_NAME} ]; then \
 			echo "  IMAGE   $(obj)/Image"; \
 			echo "  BNDTB ${SS_DTB_NAME}"; \
-			python $(srctree)/scripts/ms_builtin_dtb_update.py $(obj)/Image ${SS_DTB_NAME}; \
+			python3 $(srctree)/scripts/ms_builtin_dtb_update.py $(obj)/Image ${SS_DTB_NAME}; \
 			echo; \
 		fi;
 		#update Image-fpga DTB
@@ -132,7 +132,7 @@ ifeq ($(CONFIG_SS_BUILTIN_DTB), y)
 			echo "  IMAGE   $(obj)/Image-fpga"; \
 			cp -f $(obj)/Image $(obj)/Image-fpga; \
 			echo "  BNDTB   ${SS_FPGA_DTB_NAME}"; \
-			python $(srctree)/scripts/ms_builtin_dtb_update.py $(obj)/Image-fpga ${SS_FPGA_DTB_NAME}; \
+			python3 $(srctree)/scripts/ms_builtin_dtb_update.py $(obj)/Image-fpga ${SS_FPGA_DTB_NAME}; \
 			echo; \
 		fi;
 endif
@@ -152,18 +152,18 @@ ifneq ($(wildcard $(srctree)/scripts/ss_padmux_check.py),)
 		@$(srctree)/scripts/dtc/dtx_diff ${SS_DTB_NAME} > $(CONFIG_SS_DTB_NAME).dts
 ifneq ($(wildcard drivers/sstar/gpio/$(CHIP_NAME)/mhal_pinmux.o),)
 		@$(CROSS_COMPILE)objdump -D -S -j .rodata drivers/sstar/gpio/$(CHIP_NAME)/mhal_pinmux.o > pinmux_table
-		@python $(srctree)/scripts/ss_padmux_check.py $(CONFIG_SS_DTB_NAME).dts pinmux_table
+		@python3 $(srctree)/scripts/ss_padmux_check.py $(CONFIG_SS_DTB_NAME).dts pinmux_table
 		@rm pinmux_table
 endif
 		@rm $(CONFIG_SS_DTB_NAME).dts
 endif
 
 ifneq ($(wildcard $(srctree)/scripts/ss_puse_check.py),)
-		@python scripts/ss_puse_check.py drivers/sstar/include/mdrv_puse.h
+		@python3 scripts/ss_puse_check.py drivers/sstar/include/mdrv_puse.h
 endif
 
 	#update the image size into Image
-	@python $(srctree)/scripts/ms_bin_option_update_int.py  $(obj)/Image '#IMG_SZ#' $$(stat -c %s $(obj)/Image)
+	@python3 $(srctree)/scripts/ms_bin_option_update_int.py  $(obj)/Image '#IMG_SZ#' $$(stat -c %s $(obj)/Image)
 	#build uImage
 	@IMGNAME=$(shell /usr/bin/strings -a -T binary $(obj)/Image | grep 'MVX' | grep 'LX'  | sed 's/\\*MVX/MVX/g' | cut -c 1-32 ); \
 	if [ -e ${MKIMAGE_BIN} ]; then \
