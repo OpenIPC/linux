@@ -487,7 +487,7 @@ static int serflash_probe(struct platform_device *pdev)
     mutex_init(&flash->lock);
 
     flash->mtd.priv         = flash;
-    flash->mtd.name         = "nor0";
+    flash->mtd.name         = "NOR_FLASH";
     flash->mtd.type         = MTD_NORFLASH;
     flash->mtd.writesize    = 1;
     flash->mtd.writebufsize = flash->mtd.writesize;
