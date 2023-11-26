@@ -164,32 +164,10 @@ endif
 
 	#update the image size into Image
 	@python3 $(srctree)/scripts/ms_bin_option_update_int.py  $(obj)/Image '#IMG_SZ#' $$(stat -c %s $(obj)/Image)
+
 	#build uImage
-	@IMGNAME=$(shell /usr/bin/strings -a -T binary $(obj)/Image | grep 'MVX' | grep 'LX'  | sed 's/\\*MVX/MVX/g' | cut -c 1-32 ); \
-	if [ -e ${MKIMAGE_BIN} ]; then \
-		${MKIMAGE_BIN} -A arm -O linux -T kernel -C none -a ${LOADADDR} -e ${LOADADDR} -n $${IMGNAME} -d $(obj)/Image $(obj)/uImage; \
-		echo '$(IMGNAME)'; \
-		echo 'Compress Kernel Image'; \
-		xz -z -k -f $(obj)/Image; \
-		${MKIMAGE_BIN} -A arm -O linux -C lzma -a ${LOADADDR} -e ${LOADADDR} -n $${IMGNAME} -d $(obj)/Image.xz $(obj)/uImage.xz; \
-		${MZ_BIN} c  $(obj)/Image  $(obj)/Image.mz ; \
-		echo; \
-		${MKIMAGE_BIN} -A arm -O linux -C mz -a ${LOADADDR} -e ${LOADADDR} -n $${IMGNAME} -d $(obj)/Image.mz $(obj)/uImage.mz; \
-		echo; \
-	else \
-		echo ">> Can't find $${MKIMAGE_BIN}. <<"; \
-	fi; \
-	if [ -e $(ROOTFS) ]; then \
-		${MKIMAGE_BIN} -A arm -O linux -T multi -C none -a ${LOADADDR} -e ${LOADADDR} -n $${IMGNAME} -d $(obj)/Image:$(ROOTFS) $(obj)/kernel.img; \
-		echo; \
-		if [ -e ${MZ_BIN} ]; then \
-			${MZ_BIN} c  $(obj)/Image  $(obj)/Image.mz ; \
-			echo; \
-			${MKIMAGE_BIN} -A arm -O linux -T multi -C mz -a ${LOADADDR} -e ${LOADADDR} -n $${IMGNAME} -d $(obj)/Image.mz:$(ROOTFS) $(obj)/kernel.mz.img; \
-			echo; \
-		fi; \
-	fi;
-	@echo
+	@xz -z -k -f $(obj)/Image
+	@${MKIMAGE_BIN} -A arm -O linux -C lzma -a ${LOADADDR} -e ${LOADADDR} -n ${UIMAGE_NAME} -d $(obj)/Image.xz $(obj)/uImage
 endif
 
 $(obj)/bootp/bootp: $(obj)/zImage initrd FORCE
