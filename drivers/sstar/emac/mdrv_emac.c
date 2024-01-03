@@ -366,6 +366,7 @@ static struct timespec rx_time_last = { 0 };
 static int rx_duration_max = 0;
 
 static int _phyReset = 0;
+extern int disable_emac;
 
 //-------------------------------------------------------------------------------------------------
 //  Data structure
@@ -5105,6 +5106,9 @@ static struct platform_driver Mstar_emac_driver = {
 static int __init mstar_emac_drv_init_module(void)
 {
     int retval=0;
+
+    if (disable_emac)
+        return -ENODEV;
 
     retval = platform_driver_register(&Mstar_emac_driver);
     if (retval)

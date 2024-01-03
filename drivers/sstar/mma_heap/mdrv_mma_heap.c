@@ -48,6 +48,7 @@
 int mstar_driver_boot_mma_buffer_num = 0;
 struct MMA_BootArgs_Config mma_config[MAX_MMA_AREAS];
 bool b_mma_memblock_remove = false;
+int disable_emac = 0;
 
 EXPORT_SYMBOL(mma_config);
 EXPORT_SYMBOL(mstar_driver_boot_mma_buffer_num);
@@ -348,6 +349,10 @@ void deal_with_reserve_mma_heap(void)
     }
 }
 
+static int __init setup_noemac(char *cmdline)
+{
+    disable_emac = 1;
+    return 0;
+}
 
-
-
+early_param("noemac", setup_noemac);
