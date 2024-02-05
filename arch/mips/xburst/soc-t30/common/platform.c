@@ -202,6 +202,7 @@ static struct jzdma_platform_data jzdma_pdata = {
 		JZDMA_REQ_I2C2,
 		JZDMA_REQ_I2C2,
 		JZDMA_REQ_DES,
+		JZDMA_REQ_DMIC,
 		},
 };
 
