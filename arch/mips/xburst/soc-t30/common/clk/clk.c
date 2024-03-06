@@ -337,8 +337,7 @@ static int enable_write(struct file *file, const char __user *buffer,size_t coun
 		}
 		else if(count && (buffer[0] == '0'))
 			clk_disable(tmp);
-		else
-			printk("\"echo 1 > enable\" or \"echo 0 > enable \" ");
+
 		clk_put(tmp);
 	}
 	return count;

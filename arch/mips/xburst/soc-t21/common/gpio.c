@@ -398,13 +398,12 @@ static int jz_gpio_request(struct gpio_chip *chip, unsigned offset)
 		printk(KERN_WARNING "gpio has conflict\n");
 		return -EINVAL;
 	}
+
 	if(jz->dev_map[0] & (1 << offset)) {
-		printk("gpio:jz->reg = 0x%x\n", (unsigned int)jz->reg);
-		printk("gpio pin: 0x%x\n", 1 << offset);
-		printk("jz->dev_map[0]: 0x%x\n", (unsigned int)jz->dev_map[0]);
-		dump_stack();
-		printk("%s:gpio functions has redefinition", __FILE__);
+		printk("jz->reg = 0x%x, jz->dev_map[0] = 0x%x, gpio_pin = 0x%x\n",
+			(unsigned int)jz->reg, (unsigned int)jz->dev_map[0], 1 << offset);
 	}
+
 	jz->dev_map[0] |= 1 << offset;
 
 	/* Disable pull up/down as default */
