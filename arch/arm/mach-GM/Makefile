@@ -20,6 +20,14 @@ obj-$(CONFIG_PLATFORM_GM8139)		+= cpufreq.o
 obj-$(CONFIG_PLATFORM_GM8136)		+= cpufreq.o
 endif
 
+ifeq ($(CONFIG_GM_SAR_ADC),y)
+obj-y += sar-adc-drv/sar_adc_drv.o sar-adc-drv/sar_adc_dev.o
+
+obj-$(CONFIG_PLATFORM_GM8287) += sar-adc-drv/gm8287.o    
+obj-$(CONFIG_PLATFORM_GM8139) += sar-adc-drv/gm8139.o  
+obj-$(CONFIG_PLATFORM_GM8136) += sar-adc-drv/gm8136.o
+endif
+
 #
 #Default platform directory set to GM8181
 #TODO: Make this an error, should never happen unless the Kconfig or Makefile is wrong
