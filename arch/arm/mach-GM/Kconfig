@@ -49,6 +49,9 @@ config FTAPBB020
     select DMA_ENGINE
     default n
 
+config GM_SAR_ADC
+    tristate "Supports SAR ADC"
+    default n
 
 #
 # Platform dependent options
