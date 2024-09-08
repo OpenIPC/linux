@@ -264,7 +264,7 @@
             camclk = <CAMCLK_bach>;
 #endif
             digmic-padmux = <6>; //1~6
-            i2s-trx-shared-padmux = <1>; //for 4-wired mode panmux
+            i2s-trx-shared-padmux = <5>; //for 4-wired mode panmux
             i2s-tx-padmux = <0>; //6-wired mode
             i2s-rx-padmux = <0>; //6-wired mode
             i2smck-padmux = <1>; //

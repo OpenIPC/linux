@@ -76,6 +76,11 @@
                 <PAD_FUART_RTS           PINMUX_FOR_GPIO_MODE            MDRV_PUSE_FUART_RTS>,
                 //<PAD_TTL0            PINMUX_FOR_TTL_MODE_1      MDRV_PUSE_TTL_DOUT00 >,
                 //<PAD_TTL0         PINMUX_FOR_SDIO_MODE_1      MDRV_PUSE_SDIO0_PWR >,
+                <PAD_PM_GPIO0            PINMUX_FOR_I2S_RXTX_MODE_5      MDRV_PUSE_I2S_BCK>,
+                <PAD_PM_GPIO1            PINMUX_FOR_I2S_RXTX_MODE_5      MDRV_PUSE_I2S_WCK>,
+                <PAD_PM_GPIO2            PINMUX_FOR_I2S_RXTX_MODE_5      MDRV_PUSE_I2S_SDI>,
+                <PAD_PM_GPIO3            PINMUX_FOR_I2S_RXTX_MODE_5      MDRV_PUSE_I2S_SDO>,
+
                 <GPIO_NR                 PINMUX_FOR_UNKNOWN_MODE         MDRV_PUSE_NA>;
             status = "ok"; // ok or disable
             //status = "disable";
