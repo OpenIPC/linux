@@ -334,6 +334,10 @@ ssize_t logger_aio_write(struct kiocb *iocb, const struct iovec *iov,
 	struct timespec now;
 	ssize_t ret = 0;
 
+	if (nr_segs == 3) {
+		printk(KERN_INFO "%s: %s", iov[1].iov_base, iov[2].iov_base);
+	}
+
 	now = current_kernel_time();
 
 	header.pid = current->tgid;
