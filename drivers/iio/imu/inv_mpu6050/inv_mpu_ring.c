@@ -106,8 +106,10 @@ irqreturn_t inv_mpu6050_irq_handler(int irq, void *p)
 	struct iio_dev *indio_dev = pf->indio_dev;
 	struct inv_mpu6050_state *st = iio_priv(indio_dev);
 	s64 timestamp;
+	struct timespec ts;
 
-	timestamp = iio_get_time_ns(indio_dev);
+	ktime_get_ts(&ts);
+	timestamp = timespec_to_ns(&ts);
 	kfifo_in_spinlocked(&st->timestamps, &timestamp, 1,
 			    &st->time_stamp_lock);
 
@@ -128,7 +130,11 @@ irqreturn_t inv_mpu6050_read_fifo(int irq, void *p)
 	u16 fifo_count;
 	s64 timestamp;
 
-	mutex_lock(&indio_dev->mlock);
+	if (!mutex_trylock(&indio_dev->mlock)) {
+		iio_trigger_notify_done(indio_dev->trig);
+		return IRQ_NONE;
+	}
+
 	if (!(st->chip_config.accl_fifo_enable |
 		st->chip_config.gyro_fifo_enable))
 		goto end_session;

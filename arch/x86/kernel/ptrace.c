@@ -23,7 +23,6 @@
 #include <linux/rcupdate.h>
 #include <linux/export.h>
 #include <linux/context_tracking.h>
-#include <linux/nospec.h>
 
 #include <asm/uaccess.h>
 #include <asm/pgtable.h>
@@ -653,8 +652,7 @@ static unsigned long ptrace_get_debugreg(struct task_struct *tsk, int n)
 	unsigned long val = 0;
 
 	if (n < HBP_NUM) {
-		int index = array_index_nospec(n, HBP_NUM);
-		struct perf_event *bp = thread->ptrace_bps[index];
+		struct perf_event *bp = thread->ptrace_bps[n];
 
 		if (bp)
 			val = bp->hw.info.address;

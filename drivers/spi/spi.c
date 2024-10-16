@@ -3072,6 +3072,12 @@ int spi_write_then_read(struct spi_device *spi,
 	x[0].tx_buf = local_buf;
 	x[1].rx_buf = local_buf + n_tx;
 
+	/* Read id frequency reduction */
+	if (*(u8 *)txbuf == SPINOR_OP_READ_ID && n_tx == 1) {
+		x[0].speed_hz = 30000000;
+		x[1].speed_hz = 30000000;
+	}
+
 	/* do the i/o */
 	status = spi_sync(spi, &message);
 	if (status == 0)
@@ -3081,6 +3087,13 @@ int spi_write_then_read(struct spi_device *spi,
 		mutex_unlock(&lock);
 	else
 		kfree(local_buf);
+
+	/* vecover frequency */
+	if (*(u8 *)txbuf == SPINOR_OP_READ_ID && n_tx == 1) {
+		if (spi_setup(spi) < 0)
+			dev_err(&spi->master->dev, "can't setup %s, status %d\n",
+					dev_name(&spi->dev), status);
+	}
 
 	return status;
 }

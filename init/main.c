@@ -121,6 +121,7 @@ void (*__initdata late_time_init)(void);
 char __initdata boot_command_line[COMMAND_LINE_SIZE];
 /* Untouched saved command line (eg. for /proc) */
 char *saved_command_line;
+EXPORT_SYMBOL(saved_command_line);
 /* Command line for parameter parsing */
 static char *static_command_line;
 /* Command line for per-initcall parameter parsing */
@@ -553,6 +554,14 @@ asmlinkage __visible void __init start_kernel(void)
 		 "Interrupts were enabled *very* early, fixing it\n"))
 		local_irq_disable();
 	idr_init_cache();
+
+	/*
+	 * Allow workqueue creation and work item queueing/cancelling
+	 * early.  Work item execution depends on kthreads and starts after
+	 * workqueue_init().
+	 */
+	workqueue_init_early();
+
 	rcu_init();
 
 	/* trace_printk() and trace points may be used after this */
@@ -638,9 +647,8 @@ asmlinkage __visible void __init start_kernel(void)
 	security_init();
 	dbg_late_init();
 	vfs_caches_init();
+	pagecache_init();
 	signals_init();
-	/* rootfs populating might need page-writeback */
-	page_writeback_init();
 	proc_root_init();
 	nsfs_init();
 	cpuset_init();
@@ -805,6 +813,7 @@ extern initcall_t __initcall4_start[];
 extern initcall_t __initcall5_start[];
 extern initcall_t __initcall6_start[];
 extern initcall_t __initcall7_start[];
+extern initcall_t __initcall8_start[];
 extern initcall_t __initcall_end[];
 
 static initcall_t *initcall_levels[] __initdata = {
@@ -816,6 +825,7 @@ static initcall_t *initcall_levels[] __initdata = {
 	__initcall5_start,
 	__initcall6_start,
 	__initcall7_start,
+	__initcall8_start,
 	__initcall_end,
 };
 
@@ -827,10 +837,80 @@ static char *initcall_level_names[] __initdata = {
 	"arch",
 	"subsys",
 	"fs",
+	"device_paralell",
 	"device",
 	"late",
 };
+#define CONFIG_INTTCALL_PARALLEL
 
+#ifdef CONFIG_INTTCALL_PARALLEL
+struct completion initcall_paralell_comp;
+static atomic_t thread_end_count = ATOMIC_INIT(0);
+#define PARALELL_INITCALL_LEVEL 6
+static int __ref initcall_paralell_thread(void *param)
+{
+	initcall_t fn;
+	/*cpumask_var_t shuffle_tmp_mask;
+	cpumask_setall(shuffle_tmp_mask);
+	set_cpus_allowed_ptr(current, shuffle_tmp_mask);*/
+
+	fn = (initcall_t)param;
+
+	/*sprintf(fn_name, "%pF", fn);
+	if (0 == strncmp("populate_rootfs",fn_name, strlen("populate_rootfs"))) {
+		if (sched_setaffinity(current->pid, cpumask_of(1)) != 0) {
+			printk(KERN_EMERG"sched_setaffinity is failed\n");
+		}
+	}
+	pr_info("Initcall_thread: %pF pid : %d, cpus_allowed: %d, thread_info:%d, %d\n", \
+		fn, current->pid, current->cpus_allowed, current_thread_info()->cpu,smp_processor_id());*/
+
+	do_one_initcall(fn);
+
+	if (atomic_dec_and_test(&thread_end_count)) {
+		pr_info("%pF complete comp.\n", fn);
+		complete(&(initcall_paralell_comp));
+	}
+
+	return 0;
+}
+
+static void __init wait_for_parallel_initcall(void)
+{
+	wait_for_completion(&(initcall_paralell_comp));
+}
+
+static int __init do_initcall_level(int level, bool parallel_level)
+{
+	initcall_t *fn;
+	char *thread_name;
+	static int initcall_count;
+	int initcall_paralell_devices = 0;
+
+	strcpy(initcall_command_line, saved_command_line);
+	parse_args(initcall_level_names[level],
+		   initcall_command_line, __start___param,
+		   __stop___param - __start___param,
+		   level, level,
+		   NULL, &repair_env_string);
+
+	if (true == parallel_level) {
+		for (fn = initcall_levels[level]; fn < initcall_levels[level+1]; fn++) {
+			++initcall_paralell_devices;
+			if (initcall_paralell_devices == 1)
+				init_completion(&(initcall_paralell_comp));
+			thread_name = kasprintf(GFP_KERNEL, "%pf%d", fn, initcall_count++);
+			atomic_add(1, &thread_end_count);
+			kthread_run(initcall_paralell_thread, *fn, thread_name);
+		}
+	} else {
+		for (fn = initcall_levels[level]; fn < initcall_levels[level+1]; fn++) {
+			do_one_initcall(*fn);
+		}
+	}
+	return initcall_paralell_devices;
+}
+#else
 static void __init do_initcall_level(int level)
 {
 	initcall_t *fn;
@@ -842,16 +922,31 @@ static void __init do_initcall_level(int level)
 		   level, level,
 		   NULL, &repair_env_string);
 
-	for (fn = initcall_levels[level]; fn < initcall_levels[level+1]; fn++)
-		do_one_initcall(*fn);
+	for (fn = initcall_levels[level]; fn < initcall_levels[level+1]; fn++) {
+			do_one_initcall(*fn);
+	}
 }
+#endif
 
 static void __init do_initcalls(void)
 {
-	int level;
-
+	int level, initcall_paralell_devices = 0;
+#ifdef CONFIG_INTTCALL_PARALLEL
+	for (level = 0; level < ARRAY_SIZE(initcall_levels) - 1; level++) {
+		if (level == PARALELL_INITCALL_LEVEL) {
+			initcall_paralell_devices = do_initcall_level(level, true);
+		} else if (level == PARALELL_INITCALL_LEVEL + 1) {
+			do_initcall_level(level, false);
+			if (initcall_paralell_devices > 0)
+				wait_for_parallel_initcall();
+		} else {
+			do_initcall_level(level, false);
+		}
+	}
+#else
 	for (level = 0; level < ARRAY_SIZE(initcall_levels) - 1; level++)
 		do_initcall_level(level);
+#endif
 }
 
 /*
@@ -1006,6 +1101,8 @@ static noinline void __init kernel_init_freeable(void)
 	cad_pid = task_pid(current);
 
 	smp_prepare_cpus(setup_max_cpus);
+
+	workqueue_init();
 
 	do_pre_smp_initcalls();
 	lockup_detector_init();

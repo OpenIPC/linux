@@ -25,7 +25,7 @@
 #include <linux/slab.h>
 #include <linux/ctype.h>
 
-#ifdef CONFIG_SYSFS
+#ifdef CONFIG_PARAM_SYSFS
 /* Protects all built-in parameters, modules use their own param_lock */
 static DEFINE_MUTEX(param_lock);
 
@@ -44,7 +44,7 @@ static inline void check_kparam_locked(struct module *mod)
 static inline void check_kparam_locked(struct module *mod)
 {
 }
-#endif /* !CONFIG_SYSFS */
+#endif /* !CONFIG_PARAM_SYSFS */
 
 /* This just allows us to keep track of which parameters are kmalloced. */
 struct kmalloced_param {
@@ -586,7 +586,7 @@ struct module_param_attrs
 	struct param_attribute attrs[0];
 };
 
-#ifdef CONFIG_SYSFS
+#ifdef CONFIG_PARAM_SYSFS
 #define to_param_attr(n) container_of(n, struct param_attribute, mattr)
 
 static ssize_t param_attr_show(struct module_attribute *mattr,
@@ -635,7 +635,7 @@ static ssize_t param_attr_store(struct module_attribute *mattr,
 #define __modinit __init
 #endif
 
-#ifdef CONFIG_SYSFS
+#ifdef CONFIG_PARAM_SYSFS
 void kernel_param_lock(struct module *mod)
 {
 	mutex_lock(KPARAM_MUTEX(mod));
@@ -1012,4 +1012,4 @@ static int __init param_sysfs_init(void)
 }
 subsys_initcall(param_sysfs_init);
 
-#endif /* CONFIG_SYSFS */
+#endif /* CONFIG_PARAM_SYSFS */

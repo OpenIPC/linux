@@ -34,7 +34,6 @@
 #include <linux/dmi.h>
 #include <linux/smp.h>
 #include <linux/mm.h>
-#include <linux/irq.h>
 
 #include <asm/trace/irq_vectors.h>
 #include <asm/irq_remapping.h>
@@ -56,7 +55,6 @@
 #include <asm/mce.h>
 #include <asm/tsc.h>
 #include <asm/hypervisor.h>
-#include <asm/irq_regs.h>
 
 unsigned int num_processors;
 
@@ -183,7 +181,7 @@ int first_system_vector = FIRST_SYSTEM_VECTOR;
 /*
  * Debug level, exported for io_apic.c
  */
-int apic_verbosity;
+unsigned int apic_verbosity;
 
 int pic_mode;
 
@@ -629,7 +627,7 @@ static __initdata unsigned long lapic_cal_pm1, lapic_cal_pm2;
 static __initdata unsigned long lapic_cal_j1, lapic_cal_j2;
 
 /*
- * Temporary interrupt handler and polled calibration function.
+ * Temporary interrupt handler.
  */
 static void __init lapic_cal_handler(struct clock_event_device *dev)
 {
@@ -713,8 +711,7 @@ calibrate_by_pmtimer(long deltapm, long *delta, long *deltatsc)
 static int __init calibrate_APIC_clock(void)
 {
 	struct clock_event_device *levt = this_cpu_ptr(&lapic_events);
-	u64 tsc_perj = 0, tsc_start = 0;
-	unsigned long jif_start;
+	void (*real_handler)(struct clock_event_device *dev);
 	unsigned long deltaj;
 	long delta, deltatsc;
 	int pm_referenced = 0;
@@ -743,12 +740,11 @@ static int __init calibrate_APIC_clock(void)
 	apic_printk(APIC_VERBOSE, "Using local APIC timer interrupts.\n"
 		    "calibrating APIC timer ...\n");
 
-	/*
-	 * There are platforms w/o global clockevent devices. Instead of
-	 * making the calibration conditional on that, use a polling based
-	 * approach everywhere.
-	 */
 	local_irq_disable();
+
+	/* Replace the global interrupt handler */
+	real_handler = global_clock_event->event_handler;
+	global_clock_event->event_handler = lapic_cal_handler;
 
 	/*
 	 * Setup the APIC counter to maximum. There is no way the lapic
@@ -756,51 +752,16 @@ static int __init calibrate_APIC_clock(void)
 	 */
 	__setup_APIC_LVTT(0xffffffff, 0, 0);
 
-	/*
-	 * Methods to terminate the calibration loop:
-	 *  1) Global clockevent if available (jiffies)
-	 *  2) TSC if available and frequency is known
-	 */
-	jif_start = READ_ONCE(jiffies);
-
-	if (tsc_khz) {
-		tsc_start = rdtsc();
-		tsc_perj = div_u64((u64)tsc_khz * 1000, HZ);
-	}
-
-	/*
-	 * Enable interrupts so the tick can fire, if a global
-	 * clockevent device is available
-	 */
+	/* Let the interrupts run */
 	local_irq_enable();
 
-	while (lapic_cal_loops <= LAPIC_CAL_LOOPS) {
-		/* Wait for a tick to elapse */
-		while (1) {
-			if (tsc_khz) {
-				u64 tsc_now = rdtsc();
-				if ((tsc_now - tsc_start) >= tsc_perj) {
-					tsc_start += tsc_perj;
-					break;
-				}
-			} else {
-				unsigned long jif_now = READ_ONCE(jiffies);
-
-				if (time_after(jif_now, jif_start)) {
-					jif_start = jif_now;
-					break;
-				}
-			}
-			cpu_relax();
-		}
-
-		/* Invoke the calibration routine */
-		local_irq_disable();
-		lapic_cal_handler(NULL);
-		local_irq_enable();
-	}
+	while (lapic_cal_loops <= LAPIC_CAL_LOOPS)
+		cpu_relax();
 
 	local_irq_disable();
+
+	/* Restore the real event handler */
+	global_clock_event->event_handler = real_handler;
 
 	/* Build delta t1-t2 as apic timer counts down */
 	delta = lapic_cal_t1 - lapic_cal_t2;
@@ -851,11 +812,10 @@ static int __init calibrate_APIC_clock(void)
 	levt->features &= ~CLOCK_EVT_FEAT_DUMMY;
 
 	/*
-	 * PM timer calibration failed or not turned on so lets try APIC
-	 * timer based calibration, if a global clockevent device is
-	 * available.
+	 * PM timer calibration failed or not turned on
+	 * so lets try APIC timer based calibration
 	 */
-	if (!pm_referenced && global_clock_event) {
+	if (!pm_referenced) {
 		apic_printk(APIC_VERBOSE, "... verify APIC timer\n");
 
 		/*
@@ -1067,10 +1027,6 @@ void clear_local_APIC(void)
 	apic_write(APIC_LVT0, v | APIC_LVT_MASKED);
 	v = apic_read(APIC_LVT1);
 	apic_write(APIC_LVT1, v | APIC_LVT_MASKED);
-	if (!x2apic_enabled()) {
-		v = apic_read(APIC_LDR) & ~APIC_LDR_MASK;
-		apic_write(APIC_LDR, v);
-	}
 	if (maxlvt >= 4) {
 		v = apic_read(APIC_LVTPC);
 		apic_write(APIC_LVTPC, v | APIC_LVT_MASKED);
@@ -2085,7 +2041,6 @@ static int cpuid_to_apicid[] = {
 	[0 ... NR_CPUS - 1] = -1,
 };
 
-#ifdef CONFIG_SMP
 /**
  * apic_id_is_primary_thread - Check whether APIC ID belongs to a primary thread
  * @id:	APIC ID to check
@@ -2100,7 +2055,6 @@ bool apic_id_is_primary_thread(unsigned int apicid)
 	mask = (1U << (fls(smp_num_siblings) - 1)) - 1;
 	return !(apicid & mask);
 }
-#endif
 
 /*
  * Should use this API to allocate logical CPU IDs to keep nr_logical_cpuids

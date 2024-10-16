@@ -1,0 +1,70 @@
+#
+# SoC audio configuration
+#
+menuconfig SND_SOC
+	tristate "ALSA for SoC Sunxi Audio Support"
+	select SND_PCM
+	select REGMAP_I2C if I2C
+	---help---
+
+	  If you want ASoC support, you should say Y here and also to the
+	  specific driver for your SoC platform below.
+
+	  ASoC provides power efficient ALSA support for embedded battery powered
+	  SoC based systems like PDA, Phones and Personal Media Players.
+
+	  This ASoC audio support can also be built as a module.  If so, the module
+	  will be called snd-soc-core.
+
+if SND_SOC
+config SND_SOC_GENERIC_DMAENGINE_PCM
+	tristate "ALSA for SoC Audio DMA support"
+	select SND_DMAENGINE_PCM
+
+config SND_SOC_COMPRESS
+	bool
+	select SND_COMPRESS_OFFLOAD
+
+config SND_SOC_TOPOLOGY
+	bool
+
+# Supported codecs
+source "sound/sunxi-rpaf/soc/codecs/Kconfig"
+
+# All the supported SoCs
+source "sound/sunxi-rpaf/soc/sunxi/Kconfig"
+endif # SND_SOC
+
+menuconfig SND_SOC_SUNXI_RPAF
+	tristate "ALSA for SoC Sunxi HiFi Support"
+	select SND_PCM
+	select SND_JACK
+	select REGMAP_I2C if I2C
+	---help---
+
+	  If you want ASoC support, you should say Y here and also to the
+	  specific driver for your SoC platform below.
+	  
+	  ASoC provides power efficient ALSA support for embedded battery powered
+	  SoC based systems like PDA, Phones and Personal Media Players.
+
+	  This ASoC audio support can also be built as a module.  If so, the module
+	  will be called snd-soc-core.
+
+if SND_SOC_SUNXI_RPAF
+
+config SND_SOC_GENERIC_DMAENGINE_PCM
+	tristate
+	select SND_DMAENGINE_PCM
+
+config SND_SOC_COMPRESS
+	bool
+	select SND_COMPRESS_OFFLOAD
+
+config SND_SOC_TOPOLOGY
+	bool
+
+# All the supported SoCs
+source "sound/sunxi-rpaf/soc/sunxi/hifi-dsp/Kconfig"
+endif	# SND_SOC_SUNXI_RPAF
+

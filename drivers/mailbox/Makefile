@@ -1,6 +1,8 @@
 # Generic MAILBOX API
 
 obj-$(CONFIG_MAILBOX)		+= mailbox.o
+obj-$(CONFIG_SUNXI_MBOX)	+= sunxi-msgbox.o
+obj-$(CONFIG_SUNXI_RV32_STANBY)	+= sunxi_rv32_standby.o
 
 obj-$(CONFIG_MAILBOX_TEST)	+= mailbox-test.o
 

@@ -1,0 +1,16 @@
+menu "GPU support for sunxi"
+
+config SUNXI_GPU_TYPE
+	string "The GPU type"
+	default "None"
+	help
+	  The GPU type used on the platform.
+
+config GPU_PM_OPP
+	bool "GPU PM OPP"
+	default n
+	select PM_OPP
+	help
+	  Read VF table of GPU
+
+endmenu

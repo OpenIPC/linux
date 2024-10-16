@@ -412,7 +412,7 @@ static struct rpmsg_device *rpmsg_create_channel(struct virtproc_info *vrp,
 	if (ret)
 		return NULL;
 
-	return rpdev;
+	return &vch->rpdev;
 }
 
 /* super simple buffer "allocator" that is just enough for now */
@@ -1027,7 +1027,7 @@ static int __init rpmsg_init(void)
 
 	return ret;
 }
-subsys_initcall(rpmsg_init);
+postcore_initcall(rpmsg_init);
 
 static void __exit rpmsg_fini(void)
 {

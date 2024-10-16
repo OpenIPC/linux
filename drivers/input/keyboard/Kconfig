@@ -200,6 +200,14 @@ config KEYBOARD_EP93XX
 	  To compile this driver as a module, choose M here: the
 	  module will be called ep93xx_keypad.
 
+config GPIOKEYS_AS_POWERKEY
+	bool "gpio-keys used as power-key"
+	default n
+	depends on KEYBOARD_GPIO
+	help
+	  Say Y here to enable the function that can add long-press
+	  funciton in gpio-keys and use it as power-key.
+
 config KEYBOARD_GPIO
 	tristate "GPIO Buttons"
 	depends on GPIOLIB || COMPILE_TEST
@@ -734,4 +742,19 @@ config KEYBOARD_BCM
 	  To compile this driver as a module, choose M here: the
 	  module will be called bcm-keypad.
 
+config KEYBOARD_SUNXI
+	tristate "softwinnner KEY BOARD support"
+	help
+	  Say Y here to enable the keyboard, support 7 keys.
+	  based on verify board.
+
+config GPIO_IR_RX_SUNXI
+	tristate "sunxi GPIO IR RX support"
+	help
+	  Say Y here to enable the IR RX, support NEC code or send time to user.
+
+config GPIO_IR_TX_SUNXI
+	tristate "sunxi GPIO IR TX support"
+	help
+	  Say Y here to enable the IR TX, support NEC protocol.
 endif

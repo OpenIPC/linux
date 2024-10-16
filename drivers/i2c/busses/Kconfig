@@ -714,6 +714,32 @@ config I2C_OMAP
 	  Like OMAP1510/1610/1710/5912 and OMAP242x.
 	  For details see http://www.ti.com/omap.
 
+config I2C_SUNXI
+	tristate "SUNXI I2C controller"
+	depends on ARCH_SUNXI
+	default y if MACH_SUNXI
+	help
+	  If you say yes to this option, support will be included for the
+	  I2C interface from Allwinner Technology SUNXI platform.
+
+	  This driver can also be built as a module. If so, the module
+	  will be called i2c-sunxi.
+
+config SUNXI_I2C_DELAYINIT
+	bool "SUNXI I2C hardware init delay"
+	depends on I2C_SUNXI
+	default n
+	help
+	  If you say yes to this option, twi hardware resource init will be delayed.
+
+if I2C_SLAVE
+
+config I2C_SLAVE_SUNXI
+	depends on I2C_SUNXI
+	tristate "I2C sunxi slave driver"
+
+endif
+
 config I2C_PASEMI
 	tristate "PA Semi SMBus interface"
 	depends on PPC_PASEMI && PCI

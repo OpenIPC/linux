@@ -127,7 +127,7 @@ static DECLARE_BITMAP(allocated_irqs, IRQ_BITMAP_BITS);
 
 static void irq_kobj_release(struct kobject *kobj);
 
-#ifdef CONFIG_SYSFS
+#ifdef CONFIG_IRQ_SYSFS
 static struct kobject *irq_kobj_base;
 
 #define IRQ_ATTR_RO(_name) \
@@ -302,7 +302,7 @@ static int __init irq_sysfs_init(void)
 }
 postcore_initcall(irq_sysfs_init);
 
-#else /* !CONFIG_SYSFS */
+#else /* !CONFIG_IRQ_SYSFS */
 
 static struct kobj_type irq_kobj_type = {
 	.release	= irq_kobj_release,
@@ -311,7 +311,7 @@ static struct kobj_type irq_kobj_type = {
 static void irq_sysfs_add(int irq, struct irq_desc *desc) {}
 static void irq_sysfs_del(struct irq_desc *desc) {}
 
-#endif /* CONFIG_SYSFS */
+#endif /* CONFIG_IRQ_SYSFS */
 
 static RADIX_TREE(irq_desc_tree, GFP_KERNEL);
 

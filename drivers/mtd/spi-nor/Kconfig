@@ -76,4 +76,9 @@ config SPI_NXP_SPIFI
 	  Flash. Enable this option if you have a device with a SPIFI
 	  controller and want to access the Flash as a mtd device.
 
+config SPI_FLASH_SR
+	bool "SPI FLASH security register function"
+	help
+	    when set, enable security register write, read, earse functions.
+
 endif # MTD_SPI_NOR

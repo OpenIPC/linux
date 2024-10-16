@@ -23,6 +23,7 @@
 #include <linux/of.h>
 #include <linux/of_address.h>
 #include <linux/of_irq.h>
+#include <linux/slab.h>
 
 #define TIMER_IRQ_EN_REG	0x00
 #define TIMER_IRQ_EN(val)		BIT(val)
@@ -40,6 +41,8 @@
 #define TIMER_SYNC_TICKS	3
 
 static void __iomem *timer_base;
+static int timer_size;
+static void *store_mem;
 static u32 ticks_per_jiffy;
 
 /*
@@ -83,6 +86,17 @@ static void sun4i_clkevt_time_start(u8 timer, bool periodic)
 
 static int sun4i_clkevt_shutdown(struct clock_event_device *evt)
 {
+	/*we should store the registers for soc timer first*/
+	memcpy(store_mem, (void *)timer_base, timer_size);
+
+	sun4i_clkevt_time_stop(0);
+	return 0;
+}
+
+static int sun4i_tick_resume(struct clock_event_device *evt)
+{
+	/*we should restore the registers for soc time fist*/
+	memcpy((void *)timer_base, (void *)store_mem, timer_size);
 	sun4i_clkevt_time_stop(0);
 	return 0;
 }
@@ -115,11 +129,13 @@ static int sun4i_clkevt_next_event(unsigned long evt,
 static struct clock_event_device sun4i_clockevent = {
 	.name = "sun4i_tick",
 	.rating = 350,
-	.features = CLOCK_EVT_FEAT_PERIODIC | CLOCK_EVT_FEAT_ONESHOT,
+	.features = CLOCK_EVT_FEAT_PERIODIC |
+				CLOCK_EVT_FEAT_ONESHOT |
+				CLOCK_EVT_FEAT_DYNIRQ,
 	.set_state_shutdown = sun4i_clkevt_shutdown,
 	.set_state_periodic = sun4i_clkevt_set_periodic,
 	.set_state_oneshot = sun4i_clkevt_set_oneshot,
-	.tick_resume = sun4i_clkevt_shutdown,
+	.tick_resume = sun4i_tick_resume,
 	.set_next_event = sun4i_clkevt_next_event,
 };
 
@@ -153,6 +169,7 @@ static u64 notrace sun4i_timer_sched_read(void)
 static int __init sun4i_timer_init(struct device_node *node)
 {
 	unsigned long rate = 0;
+	struct resource res;
 	struct clk *clk;
 	int ret, irq;
 	u32 val;
@@ -162,6 +179,15 @@ static int __init sun4i_timer_init(struct device_node *node)
 		pr_crit("Can't map registers");
 		return -ENXIO;
 	}
+
+	if (of_address_to_resource(node, 0, &res))
+		return -EINVAL;
+
+	timer_size = resource_size(&res);
+
+	store_mem = (void *)kmalloc(timer_size, GFP_KERNEL);
+	if (store_mem == NULL)
+		return -ENOMEM;
 
 	irq = irq_of_parse_and_map(node, 0);
 	if (irq <= 0) {

@@ -1,3 +1,11 @@
 obj-$(CONFIG_RPMSG)		+= rpmsg_core.o
+obj-$(CONFIG_RPMSG_CHAR)	+= rpmsg_char.o
 obj-$(CONFIG_RPMSG_QCOM_SMD)	+= qcom_smd.o
 obj-$(CONFIG_RPMSG_VIRTIO)	+= virtio_rpmsg_bus.o
+obj-$(CONFIG_SUNXI_MSGBOX)      += sunxi_msgbox.o
+obj-$(CONFIG_SUNXI_RPMSG_E907)  += rpmsg_client_e907.o
+obj-$(CONFIG_SUNXI_RPMSG_SPEEDTEST)		+= rpmsg_client_speed.o
+obj-$(CONFIG_SUNXI_RPMSG_HEARBEAT)		+= rpmsg_client_heart.o
+obj-$(CONFIG_RPMSG_CTRL)		+= rpmsg_master.o
+obj-$(CONFIG_RPMSG_CTRL)		+= rpmsg_client.o
+obj-$(CONFIG_RPMSG_NOTIFY)		+= rpmsg_notify.o

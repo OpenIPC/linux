@@ -141,14 +141,24 @@ void __stack_chk_fail(void)
 
 extern int do_decompress(u8 *input, int len, u8 *output, void (*error)(char *x));
 
+static inline uint64_t arch_counter_get_cntvct(void)
+{
+	uint64_t cval;
 
+	isb();
+	asm volatile("mrrc p15, 1, %Q0, %R0, c14" : "=r" (cval));
+	return cval;
+}
+
+char str[16];
 void
 decompress_kernel(unsigned long output_start, unsigned long free_mem_ptr_p,
 		unsigned long free_mem_ptr_end_p,
 		int arch_id)
 {
 	int ret;
-
+	uint64_t decompress_start_ms;
+	uint32_t decompress_done_ms;
 	__stack_chk_guard_setup();
 
 	output_data		= (unsigned char *)output_start;
@@ -158,9 +168,23 @@ decompress_kernel(unsigned long output_start, unsigned long free_mem_ptr_p,
 
 	arch_decomp_setup();
 
-	putstr("Uncompressing Linux...");
+	decompress_start_ms = arch_counter_get_cntvct();
 	ret = do_decompress(input_data, input_data_end - input_data,
 			    output_data, error);
+	decompress_done_ms = (uint32_t)(arch_counter_get_cntvct() - decompress_start_ms)/24;
+	str[0] = decompress_done_ms/1000000%10 + '0';
+	str[1] = decompress_done_ms/100000%10 + '0';
+	str[2] = decompress_done_ms/10000%10 + '0';
+	str[3] = decompress_done_ms/1000%10 + '0';
+	str[4] = '.';
+	str[5] = decompress_done_ms/100%10 + '0';
+	str[6] = decompress_done_ms/10%10 + '0';
+	str[7] = decompress_done_ms%10 + '0';
+	str[8] = 'm';
+	str[9] = 's';
+	str[10] = 0;
+	putstr("Uncompressing Linux...");
+	putstr(str);
 	if (ret)
 		error("decompressor returned an error");
 	else

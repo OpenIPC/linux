@@ -1,6 +1,11 @@
 menu "IRQ subsystem"
 # Options selectable by the architecture code
 
+config IRQ_SYSFS
+        bool "support irq sysfs"
+	default y
+        select SYSFS
+
 # Make sparse irq Kconfig switch below available
 config MAY_HAVE_SPARSE_IRQ
        bool

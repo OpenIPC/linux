@@ -1,0 +1,31 @@
+config SUNXI_NAND
+	tristate  "The sunxi nand driver"
+	default n
+	help
+	  The nand used on the platform.
+
+	  If unsure, say m.
+source "modules/nand/common1/Kconfig"
+
+config SUNXI_NAND_IOCTL_SECBLK
+	depends on (SUNXI_NAND)
+	bool  "Support ioctl for nand secure storage item"
+	default y
+	help
+	  Ioctl for secure storage item
+
+config SUNXI_NAND_IOCTL_SECKV
+	depends on (SUNXI_NAND)
+	bool  "Support ioctl for nand secure storage kv"
+	default n
+	help
+	  Ioctl for secure storage kv
+
+config SUNXI_NAND_IOCTL_SECKV_PROTECT
+	depends on (SUNXI_NAND_IOCTL_SECKV)
+	bool "Protect nand secure storage kv"
+	default y
+	help
+	  If y, write kv to secure storage will default
+	  with protect flag, then you can't overwrite it
+	  unless erase first.

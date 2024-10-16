@@ -5,6 +5,7 @@
 menuconfig PHYLIB
 	tristate "PHY Device support and infrastructure"
 	depends on NETDEVICES
+	select NET_ETHTOOL
 	help
 	  Ethernet controllers are usually attached to PHY
 	  devices.  This option provides infrastructure for
@@ -148,6 +149,17 @@ config MDIO_XGENE
 	  APM X-Gene SoC's.
 
 comment "MII PHY device drivers"
+
+config SUNXI_EPHY_AC200
+	tristate "Drivers for Allwinnertech EPHY AC200"
+	depends on MFD_ACX00
+
+config SUNXI_EPHY_AC300
+	tristate "Drivers for Allwinnertech EPHY AC300"
+
+config SUNXI_EPHY
+	tristate "Drivers for Allwinnertech EPHY"
+	depends on MFD_ACX00
 
 config AMD_PHY
 	tristate "AMD PHYs"
@@ -293,6 +305,11 @@ config REALTEK_PHY
 	tristate "Realtek PHYs"
 	---help---
 	  Supports the Realtek 821x PHY.
+
+config RTL8363NB_VB
+	tristate "RealTek RTL-8363NB_VB Ethernet Adapter support"
+	---help---
+	  This is a driver for the Fast Ethernet PCI network cards
 
 config SMSC_PHY
 	tristate "SMSC PHYs"

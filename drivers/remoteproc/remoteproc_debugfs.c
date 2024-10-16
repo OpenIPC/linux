@@ -128,6 +128,46 @@ static const struct file_operations rproc_state_ops = {
 	.llseek	= generic_file_llseek,
 };
 
+static ssize_t rproc_firmware_read(struct file *filp, char __user *userbuf,
+				size_t count, loff_t *ppos)
+{
+	struct rproc *rproc = filp->private_data;
+	char buf[64];
+	int i;
+
+	i = scnprintf(buf, 64, "%.62s\n", rproc->firmware);
+
+	return simple_read_from_buffer(userbuf, count, ppos, buf, i);
+}
+
+static ssize_t rproc_firmware_write(struct file *filp, const char __user *userbuf,
+				 size_t count, loff_t *ppos)
+{
+	struct rproc *rproc = filp->private_data;
+	static char buf[64];
+	int ret;
+
+	if (count > sizeof(buf) || count <= 0)
+		return -EINVAL;
+
+	ret = copy_from_user(buf, userbuf, count);
+	if (ret)
+		return -EFAULT;
+
+	buf[count - 1] = '\0';
+
+	rproc->firmware = buf;
+
+	return count;
+}
+
+static const struct file_operations rproc_firmware_ops = {
+	.read = rproc_firmware_read,
+	.write = rproc_firmware_write,
+	.open = simple_open,
+	.llseek	= generic_file_llseek,
+};
+
 /* expose the name of the remote processor via debugfs */
 static ssize_t rproc_name_read(struct file *filp, char __user *userbuf,
 			       size_t count, loff_t *ppos)
@@ -269,6 +309,8 @@ void rproc_create_debug_dir(struct rproc *rproc)
 			    rproc, &rproc_state_ops);
 	debugfs_create_file("recovery", 0400, rproc->dbg_dir,
 			    rproc, &rproc_recovery_ops);
+	debugfs_create_file("firmware", 0600, rproc->dbg_dir,
+			    rproc, &rproc_firmware_ops);
 }
 
 void __init rproc_init_debugfs(void)

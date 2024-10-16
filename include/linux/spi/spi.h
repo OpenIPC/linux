@@ -22,6 +22,8 @@
 #include <linux/completion.h>
 #include <linux/scatterlist.h>
 
+#define SPINOR_OP_READ_ID		0x9f	/* Read JEDEC ID */
+
 struct dma_chan;
 struct spi_master;
 struct spi_transfer;
@@ -96,6 +98,38 @@ void spi_statistics_add_transfer_stats(struct spi_statistics *stats,
 #define SPI_STATISTICS_INCREMENT_FIELD(stats, field)	\
 	SPI_STATISTICS_ADD_TO_FIELD(stats, field, 1)
 
+enum dbi_out_seq {
+	DBI_OUT_RGB = 0,
+	DBI_OUT_RBG = 1,
+	DBI_OUT_GRB = 2,
+	DBI_OUT_GBR = 3,
+	DBI_OUT_BRG = 4,
+	DBI_OUT_BGR = 5,
+};
+
+enum dbi_src_seq {
+	DBI_SRC_RGB = 0,
+	DBI_SRC_RBG = 1,
+	DBI_SRC_GRB = 2,
+	DBI_SRC_GBR = 3,
+	DBI_SRC_BRG = 4,
+	DBI_SRC_BGR = 5,
+	/* following definition only for rgb565
+	 * to change the RGB order in two byte(16 bit).
+	 * format:R(5bit)--G_1(3bit)--G_0(3bit)--B(5bit)
+	 * G_0 mean the low 3 bit of G component
+	 * G_1 mean the high 3 bit of G component
+	 *  */
+	DBI_SRC_GRBG_0 = 6,
+	DBI_SRC_GRBG_1 = 7,
+	DBI_SRC_GBRG_0 = 8,
+	DBI_SRC_GBRG_1 = 9,
+};
+enum dbi_te_en {
+	DBI_TE_DISABLE = 0,
+	DBI_TE_RISING_EDGE = 1,
+	DBI_TE_FALLING_EDGE = 2,
+};
 /**
  * struct spi_device - Master side proxy for an SPI slave device
  * @dev: Driver model representation of the device.
@@ -160,6 +194,49 @@ struct spi_device {
 #define	SPI_TX_QUAD	0x200			/* transmit with 4 wires */
 #define	SPI_RX_DUAL	0x400			/* receive with 2 wires */
 #define	SPI_RX_QUAD	0x800			/* receive with 4 wires */
+	enum dbi_src_seq	dbi_src_sequence;
+	enum dbi_out_seq	dbi_out_sequence;
+	char dbi_rgb_bit_order;
+	char dbi_rgb32_alpha_pos;
+	char dbi_rgb16_pixel_endian;
+	char			dbi_format; /*DBI OUT format*/
+#define DBI_RGB111		(0x0)
+#define DBI_RGB444		(0x1)
+#define DBI_RGB565		(0x2)
+#define DBI_RGB666		(0x3)
+#define DBI_RGB888		(0x4)
+	char			dbi_interface;
+#define L3I1		(0x0)
+#define L3I2		(0x1)
+#define L4I1		(0x2)
+#define L4I2		(0x3)
+#define D2LI		(0x4)
+	u16			dbi_mode;
+#define SPI_DBI_READ		(0x10)
+#define SPI_DBI_LSB_FIRST	(0x20)
+#define SPI_DBI_TRANSMIT_VIDEO	(0x40)
+#define SPI_DBI_DCX_DATA	(0x80)
+	char			dbi_clk_out_mode;
+#define SPI_DBI_CLK_AUTO_GATING	 (0x0) /*default*/
+#define SPI_DBI_CLK_ALWAYS_ON	(0x1)
+
+#define DBI_READ(spi)		(spi->dbi_mode |= (SPI_DBI_READ))
+#define DBI_WRITE(spi)		(spi->dbi_mode &= ~(SPI_DBI_READ))
+#define DBI_LSB_FIRST(spi)	(spi->dbi_mode |= SPI_DBI_LSB_FIRST)
+#define DBI_MSB_FIRST(spi)	(spi->dbi_mode &= ~SPI_DBI_LSB_FIRST)
+#define	DBI_TR_VIDEO(spi)	(spi->dbi_mode |= SPI_DBI_TRANSMIT_VIDEO)
+#define	DBI_TR_COMMAND(spi)	(spi->dbi_mode &= ~(SPI_DBI_TRANSMIT_VIDEO))
+#define DBI_DCX_DATA(spi)	(spi->dbi_mode |= SPI_DBI_DCX_DATA)
+#define DBI_DCX_COMMAND(spi)	(spi->dbi_mode &= ~(SPI_DBI_DCX_DATA))
+
+
+	u16			dbi_video_v;
+	u16			dbi_video_h;
+	enum dbi_te_en          dbi_te_en;
+	/* timer trigger*/
+	unsigned char		dbi_fps;
+	void			(*dbi_vsync_handle)(unsigned long data);
+	char			dbi_read_bytes;
 	int			irq;
 	void			*controller_state;
 	void			*controller_data;

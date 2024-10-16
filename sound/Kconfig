@@ -66,7 +66,7 @@ menuconfig SND
 
 	  For more information, see <http://www.alsa-project.org/>
 
-if SND
+if SND && !SND_SUNXI_RPAF
 
 source "sound/core/Kconfig"
 
@@ -109,6 +109,24 @@ source "sound/parisc/Kconfig"
 source "sound/soc/Kconfig"
 
 endif # SND
+
+if ARCH_SUN50IW11
+menuconfig SND_SUNXI_RPAF
+	tristate "ALSA for Sunxi HiFi"
+	select SND
+	depends on RPMSG
+	help
+	  Say 'Y' or 'M' to enable ALSA (Advanced Linux Sound Architecture)
+	  for sunxi HiFi dsp Audio Framework, the new base sound system.
+
+if SND_SUNXI_RPAF
+
+source "sound/sunxi-rpaf/core/Kconfig"
+source "sound/sunxi-rpaf/soc/Kconfig"
+source "sound/sunxi-rpaf/component/Kconfig"
+
+endif # SND_SUNXI_RPAF
+endif # ARCH_SUN50IW11
 
 menuconfig SOUND_PRIME
 	tristate "Open Sound System (DEPRECATED)"

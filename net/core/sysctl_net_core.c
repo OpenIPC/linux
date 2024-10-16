@@ -222,6 +222,7 @@ static int set_default_qdisc(struct ctl_table *table, int write,
 }
 #endif
 
+#ifdef CONFIG_NET_ETHTOOL
 static int proc_do_rss_key(struct ctl_table *table, int write,
 			   void __user *buffer, size_t *lenp, loff_t *ppos)
 {
@@ -233,6 +234,7 @@ static int proc_do_rss_key(struct ctl_table *table, int write,
 	fake_table.maxlen = sizeof(buf);
 	return proc_dostring(&fake_table, write, buffer, lenp, ppos);
 }
+#endif
 
 #ifdef CONFIG_BPF_JIT
 static int proc_dointvec_minmax_bpf_enable(struct ctl_table *table, int write,
@@ -277,6 +279,7 @@ proc_dolongvec_minmax_bpf_restricted(struct ctl_table *table, int write,
 	return proc_doulongvec_minmax(table, write, buffer, lenp, ppos);
 }
 #endif
+
 
 static struct ctl_table net_core_table[] = {
 #ifdef CONFIG_NET
@@ -326,6 +329,7 @@ static struct ctl_table net_core_table[] = {
 		.mode		= 0644,
 		.proc_handler	= proc_dointvec
 	},
+#ifdef CONFIG_NET_ETHTOOL
 	{
 		.procname	= "netdev_rss_key",
 		.data		= &netdev_rss_key,
@@ -333,6 +337,7 @@ static struct ctl_table net_core_table[] = {
 		.mode		= 0444,
 		.proc_handler	= proc_do_rss_key,
 	},
+#endif
 #ifdef CONFIG_BPF_JIT
 	{
 		.procname	= "bpf_jit_enable",

@@ -419,9 +419,7 @@ static void __blk_mq_unregister_dev(struct device *dev, struct request_queue *q)
 
 void blk_mq_unregister_dev(struct device *dev, struct request_queue *q)
 {
-	blk_mq_disable_hotplug();
 	__blk_mq_unregister_dev(dev, q);
-	blk_mq_enable_hotplug();
 }
 
 void blk_mq_hctx_kobj_init(struct blk_mq_hw_ctx *hctx)
@@ -447,8 +445,6 @@ int blk_mq_register_dev(struct device *dev, struct request_queue *q)
 	struct blk_mq_hw_ctx *hctx;
 	int ret, i;
 
-	blk_mq_disable_hotplug();
-
 	ret = kobject_add(&q->mq_kobj, kobject_get(&dev->kobj), "%s", "mq");
 	if (ret < 0)
 		goto out;
@@ -466,7 +462,6 @@ int blk_mq_register_dev(struct device *dev, struct request_queue *q)
 	else
 		q->mq_sysfs_init_done = true;
 out:
-	blk_mq_enable_hotplug();
 
 	return ret;
 }

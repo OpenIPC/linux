@@ -483,6 +483,22 @@ rndis_setup(struct usb_function *f, const struct usb_ctrlrequest *ctrl)
 	 * an RPC scheme, with much getting/setting of attributes by OID.
 	 */
 	case ((USB_DIR_OUT | USB_TYPE_CLASS | USB_RECIP_INTERFACE) << 8)
+			| USB_CDC_SET_ETHERNET_PACKET_FILTER:
+		/* see 6.2.4: SetEthernetPacketFilter
+		 * wLength = 0, no data, wIndex = interface,
+		 * wValue = packet filter bitmap
+		 */
+		if (w_length != 0 || w_index != rndis->ctrl_id)
+			goto invalid;
+		DBG(cdev, "packet filter %02x\n", w_value);
+		/* REVISIT locking of cdc_filter.  This assumes the UDC
+		 * driver won't have a concurrent packet TX irq running on
+		 * another CPU; or that if it does, this write is atomic...
+		 */
+		rndis->port.cdc_filter = w_value;
+		value = 0;
+		break;
+	case ((USB_DIR_OUT | USB_TYPE_CLASS | USB_RECIP_INTERFACE) << 8)
 			| USB_CDC_SEND_ENCAPSULATED_COMMAND:
 		if (w_value || w_index != rndis->ctrl_id)
 			goto invalid;

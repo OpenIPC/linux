@@ -196,7 +196,8 @@
  * may print a "call without frame pointer save/setup" warning.
  */
 register unsigned long current_stack_pointer asm(_ASM_SP);
-#define ASM_CALL_CONSTRAINT "+r" (current_stack_pointer)
+register unsigned int __asm_call_sp asm("esp");
+#define ASM_CALL_CONSTRAINT "+r" (__asm_call_sp)
 #endif
 #endif
 

@@ -1433,7 +1433,7 @@ resolve_symbol_wait(struct module *mod,
  * /sys/module/foo/sections stuff
  * J. Corbet <corbet@lwn.net>
  */
-#ifdef CONFIG_SYSFS
+#ifdef CONFIG_PARAM_SYSFS
 
 #ifdef CONFIG_KALLSYMS
 static inline bool sect_empty(const Elf_Shdr *sect)
@@ -1818,7 +1818,7 @@ static void init_param_lock(struct module *mod)
 {
 	mutex_init(&mod->param_lock);
 }
-#else /* !CONFIG_SYSFS */
+#else /* !CONFIG_PARAM_SYSFS */
 
 static int mod_sysfs_setup(struct module *mod,
 			   const struct load_info *info,
@@ -1843,7 +1843,7 @@ static void del_usage_links(struct module *mod)
 static void init_param_lock(struct module *mod)
 {
 }
-#endif /* CONFIG_SYSFS */
+#endif /* CONFIG_PARAM_SYSFS */
 
 static void mod_sysfs_teardown(struct module *mod)
 {
@@ -2099,6 +2099,8 @@ void __weak module_arch_freeing_init(struct module *mod)
 {
 }
 
+static void cfi_cleanup(struct module *mod);
+
 /* Free a module, remove from lists, etc. */
 static void free_module(struct module *mod)
 {
@@ -2140,6 +2142,10 @@ static void free_module(struct module *mod)
 
 	/* This may be empty, but that's OK */
 	disable_ro_nx(&mod->init_layout);
+
+	/* Clean up CFI for the module. */
+	cfi_cleanup(mod);
+
 	module_arch_freeing_init(mod);
 	module_memfree(mod->init_layout.base);
 	kfree(mod->args);
@@ -3321,6 +3327,8 @@ int __weak module_finalize(const Elf_Ehdr *hdr,
 	return 0;
 }
 
+static void cfi_init(struct module *mod);
+
 static int post_relocation(struct module *mod, const struct load_info *info)
 {
 	/* Sort exception table now relocations are done. */
@@ -3332,6 +3340,9 @@ static int post_relocation(struct module *mod, const struct load_info *info)
 
 	/* Setup kallsyms-specific fields. */
 	add_kallsyms(mod, info);
+
+	/* Setup CFI for the module. */
+	cfi_init(mod);
 
 	/* Arch-specific module finalizing. */
 	return module_finalize(info->hdr, info->sechdrs, mod);
@@ -4069,6 +4080,22 @@ int module_kallsyms_on_each_symbol(int (*fn)(void *, const char *,
 }
 #endif /* CONFIG_KALLSYMS */
 
+static void cfi_init(struct module *mod)
+{
+#ifdef CONFIG_CFI_CLANG
+	mod->cfi_check =
+		(cfi_check_fn)mod_find_symname(mod, CFI_CHECK_FN_NAME);
+	cfi_module_add(mod, module_addr_min, module_addr_max);
+#endif
+}
+
+static void cfi_cleanup(struct module *mod)
+{
+#ifdef CONFIG_CFI_CLANG
+	cfi_module_remove(mod, module_addr_min, module_addr_max);
+#endif
+}
+
 static char *module_flags(struct module *mod, char *buf)
 {
 	int bx = 0;
@@ -4092,7 +4119,7 @@ static char *module_flags(struct module *mod, char *buf)
 	return buf;
 }
 
-#ifdef CONFIG_PROC_FS
+#ifdef CONFIG_MODULE_PROC_FS
 /* Called by the /proc file system to return a list of modules. */
 static void *m_start(struct seq_file *m, loff_t *pos)
 {

@@ -4091,6 +4091,7 @@ out:
 #define OPT_HDR(type, skb, off) \
 	(type *)(skb_network_header(skb) + (off))
 
+#if IS_ENABLED(CONFIG_IPV6)
 static int skb_checksum_setup_ipv6(struct sk_buff *skb, bool recalculate)
 {
 	int err;
@@ -4190,6 +4191,7 @@ static int skb_checksum_setup_ipv6(struct sk_buff *skb, bool recalculate)
 out:
 	return err;
 }
+#endif
 
 /**
  * skb_checksum_setup - set up partial checksum offset
@@ -4205,9 +4207,11 @@ int skb_checksum_setup(struct sk_buff *skb, bool recalculate)
 		err = skb_checksum_setup_ipv4(skb, recalculate);
 		break;
 
+#if IS_ENABLED(CONFIG_IPV6)
 	case htons(ETH_P_IPV6):
 		err = skb_checksum_setup_ipv6(skb, recalculate);
 		break;
+#endif
 
 	default:
 		err = -EPROTO;

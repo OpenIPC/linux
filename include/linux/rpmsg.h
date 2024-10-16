@@ -37,9 +37,11 @@
 
 #include <linux/types.h>
 #include <linux/device.h>
+#include <linux/err.h>
 #include <linux/mod_devicetable.h>
 #include <linux/kref.h>
 #include <linux/mutex.h>
+#include <linux/poll.h>
 
 #define RPMSG_ADDR_ANY		0xFFFFFFFF
 
@@ -64,6 +66,7 @@ struct rpmsg_channel_info {
  * rpmsg_device - device that belong to the rpmsg bus
  * @dev: the device struct
  * @id: device id (used to match between rpmsg drivers and devices)
+ * @driver_override: driver name to force a match
  * @src: local address
  * @dst: destination address
  * @ept: the rpmsg endpoint of this channel
@@ -72,6 +75,7 @@ struct rpmsg_channel_info {
 struct rpmsg_device {
 	struct device dev;
 	struct rpmsg_device_id id;
+	char *driver_override;
 	u32 src;
 	u32 dst;
 	struct rpmsg_endpoint *ept;
@@ -132,6 +136,14 @@ struct rpmsg_driver {
 	int (*callback)(struct rpmsg_device *, void *, int, void *, u32);
 };
 
+#ifdef CONFIG_RPMSG_NOTIFY
+typedef int (*notify_callback)(void *dev, void *data, int len);
+int rpmsg_notify_add(const char *ser_name, const char *name, notify_callback cb, void *dev);
+int rpmsg_notify_del(const char *ser_name, const char *name);
+#endif
+
+#if IS_ENABLED(CONFIG_RPMSG)
+
 int register_rpmsg_device(struct rpmsg_device *dev);
 void unregister_rpmsg_device(struct rpmsg_device *dev);
 int __register_rpmsg_driver(struct rpmsg_driver *drv, struct module *owner);
@@ -140,6 +152,128 @@ void rpmsg_destroy_ept(struct rpmsg_endpoint *);
 struct rpmsg_endpoint *rpmsg_create_ept(struct rpmsg_device *,
 					rpmsg_rx_cb_t cb, void *priv,
 					struct rpmsg_channel_info chinfo);
+
+int rpmsg_send(struct rpmsg_endpoint *ept, void *data, int len);
+int rpmsg_sendto(struct rpmsg_endpoint *ept, void *data, int len, u32 dst);
+int rpmsg_send_offchannel(struct rpmsg_endpoint *ept, u32 src, u32 dst,
+			  void *data, int len);
+
+int rpmsg_trysend(struct rpmsg_endpoint *ept, void *data, int len);
+int rpmsg_trysendto(struct rpmsg_endpoint *ept, void *data, int len, u32 dst);
+int rpmsg_trysend_offchannel(struct rpmsg_endpoint *ept, u32 src, u32 dst,
+			     void *data, int len);
+
+unsigned int rpmsg_poll(struct rpmsg_endpoint *ept, struct file *filp,
+			poll_table *wait);
+
+#else
+
+static inline int register_rpmsg_device(struct rpmsg_device *dev)
+{
+	return -ENXIO;
+}
+
+static inline void unregister_rpmsg_device(struct rpmsg_device *dev)
+{
+	/* This shouldn't be possible */
+	WARN_ON(1);
+}
+
+static inline int __register_rpmsg_driver(struct rpmsg_driver *drv,
+					  struct module *owner)
+{
+	/* This shouldn't be possible */
+	WARN_ON(1);
+
+	return -ENXIO;
+}
+
+static inline void unregister_rpmsg_driver(struct rpmsg_driver *drv)
+{
+	/* This shouldn't be possible */
+	WARN_ON(1);
+}
+
+static inline void rpmsg_destroy_ept(struct rpmsg_endpoint *ept)
+{
+	/* This shouldn't be possible */
+	WARN_ON(1);
+}
+
+static inline struct rpmsg_endpoint *rpmsg_create_ept(struct rpmsg_device *rpdev,
+						      rpmsg_rx_cb_t cb,
+						      void *priv,
+						      struct rpmsg_channel_info chinfo)
+{
+	/* This shouldn't be possible */
+	WARN_ON(1);
+
+	return ERR_PTR(-ENXIO);
+}
+
+static inline int rpmsg_send(struct rpmsg_endpoint *ept, void *data, int len)
+{
+	/* This shouldn't be possible */
+	WARN_ON(1);
+
+	return -ENXIO;
+}
+
+static inline int rpmsg_sendto(struct rpmsg_endpoint *ept, void *data, int len,
+			       u32 dst)
+{
+	/* This shouldn't be possible */
+	WARN_ON(1);
+
+	return -ENXIO;
+
+}
+
+static inline int rpmsg_send_offchannel(struct rpmsg_endpoint *ept, u32 src,
+					u32 dst, void *data, int len)
+{
+	/* This shouldn't be possible */
+	WARN_ON(1);
+
+	return -ENXIO;
+}
+
+static inline int rpmsg_trysend(struct rpmsg_endpoint *ept, void *data, int len)
+{
+	/* This shouldn't be possible */
+	WARN_ON(1);
+
+	return -ENXIO;
+}
+
+static inline int rpmsg_trysendto(struct rpmsg_endpoint *ept, void *data,
+				  int len, u32 dst)
+{
+	/* This shouldn't be possible */
+	WARN_ON(1);
+
+	return -ENXIO;
+}
+
+static inline int rpmsg_trysend_offchannel(struct rpmsg_endpoint *ept, u32 src,
+					   u32 dst, void *data, int len)
+{
+	/* This shouldn't be possible */
+	WARN_ON(1);
+
+	return -ENXIO;
+}
+
+static inline unsigned int rpmsg_poll(struct rpmsg_endpoint *ept,
+				      struct file *filp, poll_table *wait)
+{
+	/* This shouldn't be possible */
+	WARN_ON(1);
+
+	return 0;
+}
+
+#endif /* IS_ENABLED(CONFIG_RPMSG) */
 
 /* use a macro to avoid include chaining to get THIS_MODULE */
 #define register_rpmsg_driver(drv) \
@@ -157,14 +291,18 @@ struct rpmsg_endpoint *rpmsg_create_ept(struct rpmsg_device *,
 	module_driver(__rpmsg_driver, register_rpmsg_driver, \
 			unregister_rpmsg_driver)
 
-int rpmsg_send(struct rpmsg_endpoint *ept, void *data, int len);
-int rpmsg_sendto(struct rpmsg_endpoint *ept, void *data, int len, u32 dst);
-int rpmsg_send_offchannel(struct rpmsg_endpoint *ept, u32 src, u32 dst,
-			  void *data, int len);
-
-int rpmsg_trysend(struct rpmsg_endpoint *ept, void *data, int len);
-int rpmsg_trysendto(struct rpmsg_endpoint *ept, void *data, int len, u32 dst);
-int rpmsg_trysend_offchannel(struct rpmsg_endpoint *ept, u32 src, u32 dst,
-			     void *data, int len);
+#ifdef CONFIG_SUNXI_RPROC_FASTBOOT
+#define fast_rpmsg_driver(__rpmsg_driver) \
+static int __init __rpmsg_driver##_init(void) \
+{ \
+	return register_rpmsg_driver(&(__rpmsg_driver)); \
+} \
+postcore_initcall(__rpmsg_driver##_init); \
+static void __exit __rpmsg_driver##_exit(void) \
+{ \
+	unregister_rpmsg_driver(&(__rpmsg_driver)); \
+} \
+module_exit(__rpmsg_driver##_exit);
+#endif
 
 #endif /* _LINUX_RPMSG_H */

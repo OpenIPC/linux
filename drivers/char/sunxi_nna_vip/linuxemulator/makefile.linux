@@ -1,0 +1,175 @@
+# License-Identifier: GPL-2.0
+#
+# Linux build file for linux emulator.
+#
+
+################################################################################
+# Include common definitions.
+
+include $(AQROOT)/makefile.linux.def
+
+################################################################################
+# Define target module name.
+
+ifeq ($(STATIC_LINK_BUILD), 1)
+  STATIC            := 1
+  TARGET_MODULE     := $(KERNEL_OBJ)/libVIPCmodel.a
+else
+  DYNAMIC           := 1
+  TARGET_MODULE     := $(KERNEL_OBJ)/libVIPCmodel.so
+  TARGET_SONAME     := libVIPCmodel.so
+endif
+
+################################################################################
+# Installation directory
+
+INSTALL_DIR         := $(SDK_DIR)/drivers
+
+################################################################################
+# Supply additional include directories.
+
+INCLUDE := -I$(VIPLITE_ROOT)/hal/inc \
+           -I$(VIPLITE_ROOT)/sdk/inc \
+           -I$(VIPLITE_ROOT)/hal/kernel \
+           -I$(VIPLITE_ROOT)/hal/kernel/linuxemulator \
+           -I$(AQARCH)/cmodel/inc
+CFLAGS := $(INCLUDE)
+
+CFLAGS += -DvpmdHARDWARE_TIMEOUT=86400000
+
+CFLAGS += -DvpmdNODE_MEMORY_IN_HEAP=0
+
+CFLAGS += -DvpmdAUTO_CORRECT_CONFLICTS=1
+
+
+################################################################################
+# Add extra flags for object files.
+
+GCC_DEFINES = -DAQ2_DMA -DXAQ2 -DXAQ2_DV -DSHADER30 -DSPARSE -DEMULATOR -DLINUXEMULATOR
+CFLAGS += $(GCC_DEFINES)
+CFLAGS += -fPIC -Werror
+CFLAGS += -ansi
+CFLAGS += -D_GNU_SOURCE
+CXXFLAGS := $(CFLAGS) -fpermissive
+
+ifneq ($(DEBUG), 1)
+ifeq ($(DYNAMIC),1)
+	ifneq ($(ENABLE_ASAN), 1)
+		LFLAGS += -s
+	endif
+endif
+endif
+
+################################################################################
+# Define flags for the linker.
+
+LFLAGS += -Wall -Wl,-z,defs -shared -Wl,-soname,$(TARGET_SONAME)
+
+# Define flags for the asan.
+ifeq ($(ENABLE_ASAN), 1)
+	LFLAGS += -fsanitize=address -fno-omit-frame-pointer
+endif
+
+# Define flags for the gcov.
+ifeq ($(ENABLE_GCOV), 1)
+	CFLAGS += -fprofile-arcs -ftest-coverage
+endif
+
+ifeq ($(DEBUG), 1)
+  CFLAGS += -DvpmdENABLE_DEBUG_LOG=4
+endif
+
+################################################################################
+# Supply dependent libraries.
+
+# Supply necessary libraries.
+# LIBS += -lm -lpthread -ldl -lrt
+ifeq ($(LIBCMODEL_PREBUILD), 1)
+	LIBS += $(AQROOT)/libarchcmodel.a
+else
+	LIBS += $(AQARCH)/cmodel/$(OBJ_DIR)/libarchcmodel.a
+endif
+
+LIBS += -lm -lpthread -lstdc++
+# link asan for memory leak check
+ifeq ($(ENABLE_ASAN), 1)
+	LIBS += -lasan
+endif
+
+# link asan for memory leak check
+ifeq ($(ENABLE_GCOV), 1)
+	LIBS += -lgcov
+endif
+
+################################################################################
+# Describe object files.
+
+
+OBJECTS := $(KERNEL_OBJ)/gc_vip_kernel.o \
+					 $(KERNEL_OBJ)/gc_vip_hardware.o \
+           $(KERNEL_OBJ)/gc_vip_kernel_command.o \
+					 $(KERNEL_OBJ)/gc_vip_kernel_debug.o \
+					 $(KERNEL_OBJ)/gc_vip_kernel_heap.o \
+					 $(KERNEL_OBJ)/gc_vip_kernel_mmu.o \
+ 					 $(KERNEL_OBJ)/gc_vip_video_memory.o \
+					 $(KERNEL_OBJ)/gc_vip_kernel_util.o \
+					 $(KERNEL_OBJ)/gc_vip_kernel_pm.o \
+					 $(OBJ_DIR)/gc_vip_kernel_os.o \
+					 $(OBJ_DIR)/gc_vip_kernel_allocator.o \
+				   $(OBJ_DIR)/gc_vip_kernel_cmodel.o
+
+################################################################################
+# Define targets.
+
+.PHONY: all clean install extra_install
+
+all: $(TARGET_MODULE)
+
+clean:
+	@rm -rf $(OBJ_DIR)
+	@rm -rf $(KERNEL_OBJ)
+	@rm -rf linux/$(OBJ_DIR)
+	@rm -f $(INSTALL_DIR)/libVIPCmodel.*
+	@rm -rdf $(INSTALL_DIR)
+
+install: extra_install
+	@mkdir -p $(INSTALL_DIR)
+	@-cp $(TARGET_MODULE) $(INSTALL_DIR)
+
+extra_install: all
+	@mkdir -p $(SDK_DIR)/drivers
+
+################################################################################
+# Module rules.
+
+ifeq ($(STATIC),1)
+$(TARGET_MODULE): $(OBJECTS)
+	$(AR) -r -c $@ $(OBJECTS)
+	$(RANLIB) $@
+endif
+
+ifeq ($(DYNAMIC),1)
+
+
+$(TARGET_MODULE): $(OBJECTS)
+	$(CC) $(LFLAGS) -o $@ $(OBJECTS) $(LIBS)
+endif
+
+################################################################################
+# Object rules.
+
+$(OBJ_DIR)/%.o: %.c
+	@mkdir -p $(OBJ_DIR)
+	$(CC) -c $(CFLAGS) -MMD -o $@ $<
+
+$(OBJ_DIR)/%.o: %.cpp
+	@mkdir -p $(OBJ_DIR)
+	$(CXX) -c $(CXXFLAGS) -MMD -o $@ $<
+
+$(KERNEL_OBJ)/%.o: $(VIPLITE_ROOT)/hal/kernel/%.c
+	@mkdir -p $(KERNEL_OBJ)
+	$(CC) -c $(CFLAGS) -MMD -o $@ $<
+
+# object dependencies.
+-include $(OBJECTS:.o=.d)
+

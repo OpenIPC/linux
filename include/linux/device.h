@@ -1359,6 +1359,24 @@ static void __exit __driver##_exit(void) \
 } \
 module_exit(__driver##_exit);
 
+
+/* module_driver_paralell() - The distinction between this
+ * and module_driver() is the module's init_func will be setup
+ * in a way of paralell.
+ */
+#define module_driver_paralell(__driver, __register, __unregister, ...) \
+static int __init __driver##_init(void) \
+{ \
+	return __register(&(__driver), ##__VA_ARGS__); \
+} \
+device_paralell_initcall(__driver##_init); \
+static void __exit __driver##_exit(void) \
+{ \
+	__unregister(&(__driver), ##__VA_ARGS__); \
+} \
+module_exit(__driver##_exit);
+
+
 /**
  * builtin_driver() - Helper macro for drivers that don't do anything
  * special in init and have no exit. This eliminates some boilerplate.

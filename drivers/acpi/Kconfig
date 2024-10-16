@@ -7,6 +7,7 @@ menuconfig ACPI
 	depends on !IA64_HP_SIM
 	depends on IA64 || X86 || ARM64
 	depends on PCI
+	depends on EARLYCPIO
 	select PNP
 	default y if (IA64 || X86)
 	help

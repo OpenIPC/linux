@@ -259,7 +259,7 @@ static int mtdblock_readsect(struct mtd_blktrans_dev *dev,
 			      unsigned long block, char *buf)
 {
 	struct mtdblk_dev *mtdblk = container_of(dev, struct mtdblk_dev, mbd);
-	return do_cached_read(mtdblk, block<<9, 512, buf);
+	return do_cached_read(mtdblk, block * CONFIG_SUNXI_MTD_BLK_SIZE, CONFIG_SUNXI_MTD_BLK_SIZE, buf);
 }
 
 static int mtdblock_writesect(struct mtd_blktrans_dev *dev,
@@ -275,7 +275,7 @@ static int mtdblock_writesect(struct mtd_blktrans_dev *dev,
 		 * return -EAGAIN sometimes, but why bother?
 		 */
 	}
-	return do_cached_write(mtdblk, block<<9, 512, buf);
+	return do_cached_write(mtdblk, block * CONFIG_SUNXI_MTD_BLK_SIZE, CONFIG_SUNXI_MTD_BLK_SIZE, buf);
 }
 
 static int mtdblock_open(struct mtd_blktrans_dev *mbd)
@@ -347,7 +347,7 @@ static void mtdblock_add_mtd(struct mtd_blktrans_ops *tr, struct mtd_info *mtd)
 	dev->mbd.mtd = mtd;
 	dev->mbd.devnum = mtd->index;
 
-	dev->mbd.size = mtd->size >> 9;
+	dev->mbd.size = mtd->size >> (ffs(tr->blksize) - 1);
 	dev->mbd.tr = tr;
 
 	if (!(mtd->flags & MTD_WRITEABLE))
@@ -366,7 +366,7 @@ static struct mtd_blktrans_ops mtdblock_tr = {
 	.name		= "mtdblock",
 	.major		= MTD_BLOCK_MAJOR,
 	.part_bits	= 0,
-	.blksize 	= 512,
+	.blksize 	= CONFIG_SUNXI_MTD_BLK_SIZE,
 	.open		= mtdblock_open,
 	.flush		= mtdblock_flush,
 	.release	= mtdblock_release,

@@ -1,0 +1,25 @@
+#
+#  Touchscreen driver configuration
+#
+config INPUT_TOUCHSCREEN_GT911
+    tristate  "gt911 touchscreen driver"      
+    depends on INPUT && I2C
+    select INPUT_SENSORINIT
+    default n
+    help
+        gt911 touchscreen driver    
+
+choice 
+	prompt "Select GT911 Firmware"
+    depends on INPUT_TOUCHSCREEN_GT911
+    default GTP_FW_NONE
+
+    config GTP_FW_NONE
+        bool "None"
+
+    config GTP_FW_720JC
+        bool "GT911 Firmware for 720JC"
+
+    config GTP_FW_720LX
+        bool "GT911 Firmware for 720LX"
+endchoice

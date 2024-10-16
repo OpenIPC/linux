@@ -86,7 +86,6 @@ struct edt_reg_addr {
 struct edt_ft5x06_ts_data {
 	struct i2c_client *client;
 	struct input_dev *input;
-	struct touchscreen_properties prop;
 	u16 num_x;
 	u16 num_y;
 
@@ -247,8 +246,8 @@ static irqreturn_t edt_ft5x06_ts_isr(int irq, void *dev_id)
 		if (!down)
 			continue;
 
-		touchscreen_report_pos(tsdata->input, &tsdata->prop, x, y,
-				       true);
+		input_report_abs(tsdata->input, ABS_MT_POSITION_X, x);
+		input_report_abs(tsdata->input, ABS_MT_POSITION_Y, y);
 	}
 
 	input_mt_report_pointer_emulation(tsdata->input, true);
@@ -823,22 +822,16 @@ static void edt_ft5x06_ts_get_defaults(struct device *dev,
 	int error;
 
 	error = device_property_read_u32(dev, "threshold", &val);
-	if (!error) {
-		edt_ft5x06_register_write(tsdata, reg_addr->reg_threshold, val);
-		tsdata->threshold = val;
-	}
+	if (!error)
+		reg_addr->reg_threshold = val;
 
 	error = device_property_read_u32(dev, "gain", &val);
-	if (!error) {
-		edt_ft5x06_register_write(tsdata, reg_addr->reg_gain, val);
-		tsdata->gain = val;
-	}
+	if (!error)
+		reg_addr->reg_gain = val;
 
 	error = device_property_read_u32(dev, "offset", &val);
-	if (!error) {
-		edt_ft5x06_register_write(tsdata, reg_addr->reg_offset, val);
-		tsdata->offset = val;
-	}
+	if (!error)
+		reg_addr->reg_offset = val;
 }
 
 static void
@@ -973,7 +966,7 @@ static int edt_ft5x06_ts_probe(struct i2c_client *client,
 	input_set_abs_params(input, ABS_MT_POSITION_Y,
 			     0, tsdata->num_y * 64 - 1, 0, 0);
 
-	touchscreen_parse_properties(input, true, &tsdata->prop);
+	touchscreen_parse_properties(input, true);
 
 	error = input_mt_init_slots(input, tsdata->max_support_points,
 				INPUT_MT_DIRECT);
@@ -1063,15 +1056,9 @@ static const struct edt_i2c_chip_data edt_ft5506_data = {
 	.max_support_points = 10,
 };
 
-static const struct edt_i2c_chip_data edt_ft6236_data = {
-	.max_support_points = 2,
-};
-
 static const struct i2c_device_id edt_ft5x06_ts_id[] = {
 	{ .name = "edt-ft5x06", .driver_data = (long)&edt_ft5x06_data },
 	{ .name = "edt-ft5506", .driver_data = (long)&edt_ft5506_data },
-	/* Note no edt- prefix for compatibility with the ft6236.c driver */
-	{ .name = "ft6236", .driver_data = (long)&edt_ft6236_data },
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(i2c, edt_ft5x06_ts_id);
@@ -1082,8 +1069,6 @@ static const struct of_device_id edt_ft5x06_of_match[] = {
 	{ .compatible = "edt,edt-ft5306", .data = &edt_ft5x06_data },
 	{ .compatible = "edt,edt-ft5406", .data = &edt_ft5x06_data },
 	{ .compatible = "edt,edt-ft5506", .data = &edt_ft5506_data },
-	/* Note focaltech vendor prefix for compatibility with ft6236.c */
-	{ .compatible = "focaltech,ft6236", .data = &edt_ft6236_data },
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, edt_ft5x06_of_match);

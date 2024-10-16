@@ -3,8 +3,6 @@
 #ifndef _ASM_X86_NOSPEC_BRANCH_H_
 #define _ASM_X86_NOSPEC_BRANCH_H_
 
-#include <linux/static_key.h>
-
 #include <asm/alternative.h>
 #include <asm/alternative-asm.h>
 #include <asm/cpufeatures.h>
@@ -196,7 +194,7 @@
 	"    	lfence;\n"					\
 	"       jmp    902b;\n"					\
 	"       .align 16\n"					\
-	"903:	lea    4(%%esp), %%esp;\n"			\
+	"903:	addl   $4, %%esp;\n"				\
 	"       pushl  %[thunk_target];\n"			\
 	"       ret;\n"						\
 	"       .align 16\n"					\
@@ -216,23 +214,7 @@ enum spectre_v2_mitigation {
 	SPECTRE_V2_RETPOLINE_MINIMAL_AMD,
 	SPECTRE_V2_RETPOLINE_GENERIC,
 	SPECTRE_V2_RETPOLINE_AMD,
-	SPECTRE_V2_IBRS_ENHANCED,
-};
-
-/* The indirect branch speculation control variants */
-enum spectre_v2_user_mitigation {
-	SPECTRE_V2_USER_NONE,
-	SPECTRE_V2_USER_STRICT,
-	SPECTRE_V2_USER_PRCTL,
-	SPECTRE_V2_USER_SECCOMP,
-};
-
-/* The Speculative Store Bypass disable variants */
-enum ssb_mitigation {
-	SPEC_STORE_BYPASS_NONE,
-	SPEC_STORE_BYPASS_DISABLE,
-	SPEC_STORE_BYPASS_PRCTL,
-	SPEC_STORE_BYPASS_SECCOMP,
+	SPECTRE_V2_IBRS,
 };
 
 extern char __indirect_thunk_start[];
@@ -259,103 +241,17 @@ static inline void vmexit_fill_RSB(void)
 #endif
 }
 
-static __always_inline
-void alternative_msr_write(unsigned int msr, u64 val, unsigned int feature)
-{
-	asm volatile(ALTERNATIVE("", "wrmsr", %c[feature])
-		: : "c" (msr),
-		    "a" ((u32)val),
-		    "d" ((u32)(val >> 32)),
-		    [feature] "i" (feature)
-		: "memory");
-}
-
 static inline void indirect_branch_prediction_barrier(void)
 {
-	u64 val = PRED_CMD_IBPB;
-
-	alternative_msr_write(MSR_IA32_PRED_CMD, val, X86_FEATURE_USE_IBPB);
-}
-
-/* The Intel SPEC CTRL MSR base value cache */
-extern u64 x86_spec_ctrl_base;
-
-/*
- * With retpoline, we must use IBRS to restrict branch prediction
- * before calling into firmware.
- *
- * (Implemented as CPP macros due to header hell.)
- */
-#define firmware_restrict_branch_speculation_start()			\
-do {									\
-	u64 val = x86_spec_ctrl_base | SPEC_CTRL_IBRS;			\
-									\
-	preempt_disable();						\
-	alternative_msr_write(MSR_IA32_SPEC_CTRL, val,			\
-			      X86_FEATURE_USE_IBRS_FW);			\
-} while (0)
-
-#define firmware_restrict_branch_speculation_end()			\
-do {									\
-	u64 val = x86_spec_ctrl_base;					\
-									\
-	alternative_msr_write(MSR_IA32_SPEC_CTRL, val,			\
-			      X86_FEATURE_USE_IBRS_FW);			\
-	preempt_enable();						\
-} while (0)
-
-DECLARE_STATIC_KEY_FALSE(switch_to_cond_stibp);
-DECLARE_STATIC_KEY_FALSE(switch_mm_cond_ibpb);
-DECLARE_STATIC_KEY_FALSE(switch_mm_always_ibpb);
-
-DECLARE_STATIC_KEY_FALSE(mds_user_clear);
-DECLARE_STATIC_KEY_FALSE(mds_idle_clear);
-
-#include <asm/segment.h>
-
-/**
- * mds_clear_cpu_buffers - Mitigation for MDS vulnerability
- *
- * This uses the otherwise unused and obsolete VERW instruction in
- * combination with microcode which triggers a CPU buffer flush when the
- * instruction is executed.
- */
-static inline void mds_clear_cpu_buffers(void)
-{
-	static const u16 ds = __KERNEL_DS;
-
-	/*
-	 * Has to be the memory-operand variant because only that
-	 * guarantees the CPU buffer flush functionality according to
-	 * documentation. The register-operand variant does not.
-	 * Works with any segment selector, but a valid writable
-	 * data segment is the fastest variant.
-	 *
-	 * "cc" clobber is required because VERW modifies ZF.
-	 */
-	asm volatile("verw %[ds]" : : [ds] "m" (ds) : "cc");
-}
-
-/**
- * mds_user_clear_cpu_buffers - Mitigation for MDS vulnerability
- *
- * Clear CPU buffers if the corresponding static key is enabled
- */
-static inline void mds_user_clear_cpu_buffers(void)
-{
-	if (static_branch_likely(&mds_user_clear))
-		mds_clear_cpu_buffers();
-}
-
-/**
- * mds_idle_clear_cpu_buffers - Mitigation for MDS vulnerability
- *
- * Clear CPU buffers if the corresponding static key is enabled
- */
-static inline void mds_idle_clear_cpu_buffers(void)
-{
-	if (static_branch_likely(&mds_idle_clear))
-		mds_clear_cpu_buffers();
+	asm volatile(ALTERNATIVE("",
+				 "movl %[msr], %%ecx\n\t"
+				 "movl %[val], %%eax\n\t"
+				 "movl $0, %%edx\n\t"
+				 "wrmsr",
+				 X86_FEATURE_IBPB)
+		     : : [msr] "i" (MSR_IA32_PRED_CMD),
+			 [val] "i" (PRED_CMD_IBPB)
+		     : "eax", "ecx", "edx", "memory");
 }
 
 #endif /* __ASSEMBLY__ */

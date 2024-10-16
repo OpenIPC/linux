@@ -63,6 +63,27 @@ x_tmp		.req	x8
 	 * Returns the clock delta, in nanoseconds left-shifted by the clock
 	 * shift.
 	 */
+#ifdef CONFIG_ARCH_SUN50IW1
+	.macro	get_clock_shifted_nsec res, cycle_last, mult
+1111:
+	/* Read the virtual counter. */
+	isb
+	mrs	\res, cntvct_el0
+	isb
+	mrs	x_tmp, cntvct_el0
+	cmp	x_tmp, \res
+	b.lt	1111b
+	sub	\res, x_tmp, \res
+	cmp	\res, #8
+	b.gt	1111b
+	/* Calculate cycle delta and convert to ns. */
+	sub	\res, x_tmp, \cycle_last
+	/* We can only guarantee 56 bits of precision. */
+	movn	x_tmp, #0xff00, lsl #48
+	and	\res, x_tmp, \res
+	mul	\res, \res, \mult
+	.endm
+#else
 	.macro	get_clock_shifted_nsec res, cycle_last, mult
 	/* Read the virtual counter. */
 	isb
@@ -75,6 +96,7 @@ x_tmp		.req	x8
 	mul	\res, \res, \mult
 	.endm
 
+#endif
 	/*
 	 * Returns in res_{sec,nsec} the REALTIME timespec, based on the
 	 * "wall time" (xtime) and the clock_mono delta.
@@ -301,16 +323,13 @@ ENTRY(__kernel_clock_getres)
 	ccmp	w0, #CLOCK_MONOTONIC_RAW, #0x4, ne
 	b.ne	1f
 
-	adr	vdso_data, _vdso_data
-	ldr	w2, [vdso_data, #CLOCK_REALTIME_RES]
 	b	2f
 1:
 	cmp	w0, #CLOCK_REALTIME_COARSE
 	ccmp	w0, #CLOCK_MONOTONIC_COARSE, #0x4, ne
 	b.ne	4f
-	ldr	x2, 5f
 2:
-	cbz	w1, 3f
+	cbz	x1, 3f
 	stp	xzr, x2, [x1]
 
 3:	/* res == NULL. */

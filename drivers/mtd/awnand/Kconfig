@@ -1,0 +1,40 @@
+
+menu "sunxi-nand"
+choice
+	prompt "AWNAND CHOICE"
+	default AW_MTD_SPINAND
+	optional
+
+config AW_MTD_SPINAND
+	tristate "Allwinner MTD SPINAND Device Support"
+	depends on MTD
+	depends on ARCH_SUNXI
+	select AW_SPINAND_PHYSICAL_LAYER
+	select AW_SPINAND_SECURE_STORAGE
+	select MTD_UBI
+	help
+	  Enables support for SPINAND Flash chips on Allwinner SoCs.
+	  It's different with Allwinner's privately nand driver that it use
+	  ubi system rather than Allwinner's NFTL.
+
+config AW_MTD_RAWNAND
+	tristate "Allwinner MTD RAWNAND Device Support"
+	depends on MTD
+	depends on ARCH_SUNXI
+	depends on !SUNXI_NAND
+	select AW_RAWNAND_SECURE_STORAGE
+	select MTD_UBI
+	help
+	  Enables support for RAWNAND Flash chips on Allwinner SoCs.
+	  It's different with Allwinner's privately nand driver that it use
+	  ubi system rather than Allwinner's NFTL.
+endchoice
+
+if AW_MTD_SPINAND
+source "drivers/mtd/awnand/spinand/Kconfig"
+endif
+
+if AW_MTD_RAWNAND
+source "drivers/mtd/awnand/rawnand/Kconfig"
+endif
+endmenu

@@ -28,7 +28,9 @@
 #include <linux/leds.h>
 #include <net/bluetooth/hci.h>
 #include <net/bluetooth/hci_sock.h>
-
+#ifdef CONFIG_XR_BT_LPM
+#include <linux/notifier.h>
+#endif
 /* HCI priority */
 #define HCI_PRIO_MAX	7
 
@@ -1025,6 +1027,11 @@ struct hci_dev *hci_get_route(bdaddr_t *dst, bdaddr_t *src, u8 src_type);
 
 struct hci_dev *hci_alloc_dev(void);
 void hci_free_dev(struct hci_dev *hdev);
+#ifdef CONFIG_XR_BT_LPM
+int hci_register_notifier(struct notifier_block *nb);
+int hci_unregister_notifier(struct notifier_block *nb);
+void hci_notify(struct hci_dev *hdev, int event);
+#endif
 int hci_register_dev(struct hci_dev *hdev);
 void hci_unregister_dev(struct hci_dev *hdev);
 int hci_suspend_dev(struct hci_dev *hdev);

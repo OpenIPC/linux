@@ -55,7 +55,9 @@ struct sco_conn {
 
 static void sco_sock_close(struct sock *sk);
 static void sco_sock_kill(struct sock *sk);
-
+#ifdef CONFIG_HFP_OVER_PCM
+static void sco_conn_defer_accept(struct hci_conn *conn, u16 setting);
+#endif
 /* ----- SCO socket info ----- */
 #define sco_pi(sk) ((struct sco_pinfo *) sk)
 
@@ -631,6 +633,9 @@ static int sco_sock_accept(struct socket *sock, struct socket *newsock,
 {
 	DEFINE_WAIT_FUNC(wait, woken_wake_function);
 	struct sock *sk = sock->sk, *ch;
+#ifdef CONFIG_HFP_OVER_PCM
+	struct sco_pinfo *pi;
+#endif
 	long timeo;
 	int err = 0;
 
@@ -673,7 +678,14 @@ static int sco_sock_accept(struct socket *sock, struct socket *newsock,
 		goto done;
 
 	newsock->state = SS_CONNECTED;
-
+#ifdef CONFIG_HFP_OVER_PCM
+	pi = sco_pi(ch);
+	if (ch->sk_state == BT_CONNECT2 &&
+		test_bit(BT_SK_DEFER_SETUP, &bt_sk(ch)->flags)) {
+		sco_conn_defer_accept(pi->conn->hcon, pi->setting);
+		ch->sk_state = BT_CONFIG;
+	}
+#endif
 	BT_DBG("new socket %p", ch);
 
 done:
@@ -773,6 +785,7 @@ static void sco_conn_defer_accept(struct hci_conn *conn, u16 setting)
 static int sco_sock_recvmsg(struct socket *sock, struct msghdr *msg,
 			    size_t len, int flags)
 {
+#ifndef CONFIG_HFP_OVER_PCM
 	struct sock *sk = sock->sk;
 	struct sco_pinfo *pi = sco_pi(sk);
 
@@ -788,7 +801,7 @@ static int sco_sock_recvmsg(struct socket *sock, struct msghdr *msg,
 	}
 
 	release_sock(sk);
-
+#endif
 	return bt_sock_recvmsg(sock, msg, len, flags);
 }
 
@@ -825,7 +838,11 @@ static int sco_sock_setsockopt(struct socket *sock, int level, int optname,
 
 	case BT_VOICE:
 		if (sk->sk_state != BT_OPEN && sk->sk_state != BT_BOUND &&
+#ifdef CONFIG_HFP_OVER_PCM
+		    sk->sk_state != BT_CONNECT2 && sk->sk_state != BT_LISTEN) {
+#else
 		    sk->sk_state != BT_CONNECT2) {
+#endif
 			err = -EINVAL;
 			break;
 		}
@@ -1062,7 +1079,9 @@ static void sco_conn_ready(struct sco_conn *conn)
 
 		bacpy(&sco_pi(sk)->src, &conn->hcon->src);
 		bacpy(&sco_pi(sk)->dst, &conn->hcon->dst);
-
+#ifdef CONFIG_HFP_OVER_PCM
+		sco_pi(sk)->setting = sco_pi(parent)->setting;
+#endif
 		hci_conn_hold(conn->hcon);
 		__sco_chan_add(conn, sk, parent);
 

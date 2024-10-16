@@ -2,6 +2,7 @@
 #define __ASM_ARM_CPUIDLE_H
 
 #include <asm/proc-fns.h>
+#include <linux/cpuidle.h>
 
 #ifdef CONFIG_CPU_IDLE
 extern int arm_cpuidle_simple_enter(struct cpuidle_device *dev,
@@ -44,8 +45,20 @@ struct of_cpuidle_method {
 	__used __section(__cpuidle_method_of_table)			\
 	= { .method = _method, .ops = _ops }
 
+#ifdef CONFIG_CPU_IDLE
 extern int arm_cpuidle_suspend(int index);
 
 extern int arm_cpuidle_init(int cpu);
+#else
+
+static inline int arm_cpuidle_suspend(int index)
+{
+	return -ENODEV;
+}
+static inline int arm_cpuidle_init(int cpu)
+{
+	return -ENODEV;
+}
+#endif
 
 #endif

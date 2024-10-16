@@ -203,6 +203,14 @@ struct otp_info {
  * without OOB, e.g., NOR flash.
  */
 #define MEMWRITE		_IOWR('M', 24, struct mtd_write_req)
+/* Check if security register is locked */
+#define SRISLOCKED		_IOR('M', 25, u8)
+/* Lock security register */
+#define SRLOCK			_IOR('M', 26, u8)
+/* Read data from security register */
+#define SRREAD			_IOWR('M', 27, struct sr_param_t)
+/* Write data to security register */
+#define SRWRITE			_IOWR('M', 28, struct sr_param_t)
 
 /*
  * Obsolete legacy interface. Keep it in order not to break userspace

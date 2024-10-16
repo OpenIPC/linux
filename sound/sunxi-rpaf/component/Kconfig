@@ -1,0 +1,9 @@
+#
+# Allwinner Built-in DSP Misc Driver.
+#
+config SND_SUNXI_MISC_HIFI_DSP
+	tristate "Allwinner HiFi Component Driver"
+	depends on SND_SUNXI_HIFI
+	help
+		allwinner built-in dsp component driver.
+

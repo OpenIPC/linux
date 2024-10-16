@@ -155,6 +155,25 @@ config MTD_BCM47XX_PARTS
 	  This provides partitions parser for devices based on BCM47xx
 	  boards.
 
+config MTD_SUNXI_PARTS
+	tristate "SUNXI partitioning support"
+	depends on ARCH_SUNXI
+	help
+	  This provides partitions parser for devices based on SUNXI
+	  boards.
+config UBOOT_DISP_ENABLE
+       bool "SUNXI Uboot Disp Enable"
+       depends on MTD_SUNXI_PARTS
+       default n
+       help
+         SUNXI Uboot Disp Enable,Boot1 Too Big Need Change Mbr offset
+
+config SUNXI_MTD_BLK_SIZE
+	int "sunxi mtdblk size"
+	default 512
+	help
+	  This is the option to set the blk size
+
 comment "User Modules And Translation Layers"
 
 #
@@ -162,6 +181,14 @@ comment "User Modules And Translation Layers"
 #
 config MTD_BLKDEVS
 	tristate
+
+config MTD_CHAR
+       tristate "Direct char device access to MTD devices"
+       help
+         This provides a character device for each MTD device present in
+         the system, allowing the user to read and write directly to the
+         memory chips, and also use ioctl() to obtain information about
+         the device, or to erase parts of it.
 
 config MTD_BLOCK
 	tristate "Caching block device access to MTD devices"
@@ -299,6 +326,16 @@ config MTD_OOPS
 	  buffer in a flash partition where it can be read back at some
 	  later point.
 
+config MTD_PSTORE
+	tristate "Log panic/oops to an MTD buffer based on pstore"
+	depends on PSTORE_BLK
+	help
+	  This enables panic and oops messages to be logged to a circular
+	  buffer in a flash partition where it can be read back as files after
+	  mounting pstore filesystem.
+
+	  If unsure, say N.
+
 config MTD_SWAP
 	tristate "Swap on MTD device support"
 	depends on MTD && SWAP
@@ -329,6 +366,8 @@ source "drivers/mtd/maps/Kconfig"
 source "drivers/mtd/devices/Kconfig"
 
 source "drivers/mtd/nand/Kconfig"
+
+source "drivers/mtd/awnand/Kconfig"
 
 source "drivers/mtd/onenand/Kconfig"
 

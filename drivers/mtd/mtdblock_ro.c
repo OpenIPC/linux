@@ -31,7 +31,7 @@ static int mtdblock_readsect(struct mtd_blktrans_dev *dev,
 {
 	size_t retlen;
 
-	if (mtd_read(dev->mtd, (block * 512), 512, &retlen, buf))
+	if (mtd_read(dev->mtd, (block * CONFIG_SUNXI_MTD_BLK_SIZE), CONFIG_SUNXI_MTD_BLK_SIZE, &retlen, buf))
 		return 1;
 	return 0;
 }
@@ -41,7 +41,7 @@ static int mtdblock_writesect(struct mtd_blktrans_dev *dev,
 {
 	size_t retlen;
 
-	if (mtd_write(dev->mtd, (block * 512), 512, &retlen, buf))
+	if (mtd_write(dev->mtd, (block * CONFIG_SUNXI_MTD_BLK_SIZE), CONFIG_SUNXI_MTD_BLK_SIZE, &retlen, buf))
 		return 1;
 	return 0;
 }
@@ -56,7 +56,7 @@ static void mtdblock_add_mtd(struct mtd_blktrans_ops *tr, struct mtd_info *mtd)
 	dev->mtd = mtd;
 	dev->devnum = mtd->index;
 
-	dev->size = mtd->size >> 9;
+	dev->size = mtd->size >> (ffs(tr->blksize) - 1);
 	dev->tr = tr;
 	dev->readonly = 1;
 
@@ -73,7 +73,7 @@ static struct mtd_blktrans_ops mtdblock_tr = {
 	.name		= "mtdblock",
 	.major		= MTD_BLOCK_MAJOR,
 	.part_bits	= 0,
-	.blksize 	= 512,
+	.blksize 	= CONFIG_SUNXI_MTD_BLK_SIZE,
 	.readsect	= mtdblock_readsect,
 	.writesect	= mtdblock_writesect,
 	.add_mtd	= mtdblock_add_mtd,

@@ -379,14 +379,46 @@ config RC_ST
 
 	   If you're not sure, select N here.
 
-config IR_SUNXI
-	tristate "SUNXI IR remote control"
+config IR_RX_SUNXI
+	tristate "SUNXI IR RX remote control"
 	depends on RC_CORE
 	depends on ARCH_SUNXI || COMPILE_TEST
 	---help---
-	   Say Y if you want to use sunXi internal IR Controller
+	   Say Y if you want to use sunxi internal IR RX Controller
 
 	   To compile this driver as a module, choose M here: the module will
 	   be called sunxi-ir.
+
+config IR_TX_SUNXI
+	tristate "SUNXI IR TX remote control"
+	depends on RC_CORE
+	depends on ARCH_SUNXI || COMPILE_TEST
+	---help---
+	   Say Y if you want to use sunxi internal IR TX Controller
+
+	   To compile this driver as a module, choose M here: the module will
+	   be called sunxi-ir.
+
+config SUNXI_KEYMAPPING_SUPPORT
+	tristate "SUNXI IR Legacy feature"
+	depends on IR_SUNXI
+	---help---
+	   Say Y if you want to support legacy kernel mode irkey addr mapping.
+	   Say N if not sure.
+
+config SUNXI_MULTI_IR_SUPPORT
+	bool "sunxi multi support"
+	depends on IR_SUNXI
+	---help---
+	   Say Y if you want to support sunxi android multi-ir.
+
+config IR_SUNXI_GPIO
+	tristate "SUNXI GPIO IR remote control(Tx/Rx)"
+	depends on RC_CORE
+	---help---
+	   Say Y if you want to use sunxi GPIO based IR Receiver.
+
+	   To compile this driver as a module, choose M here: the module will
+	   be called sunxi-gpio-ir.
 
 endif #RC_DEVICES

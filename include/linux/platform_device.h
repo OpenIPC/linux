@@ -228,6 +228,13 @@ static inline void platform_set_drvdata(struct platform_device *pdev,
 	module_driver(__platform_driver, platform_driver_register, \
 			platform_driver_unregister)
 
+/* module_platform_driver_paralell() - The distinction between this
+ * and module_platform_driver() is the module's init_func will be setup
+ * in a way of paralell.
+ */
+#define module_platform_driver_paralell(__platform_driver) \
+	module_driver_paralell(__platform_driver, platform_driver_register, \
+			platform_driver_unregister)
 /* builtin_platform_driver() - Helper macro for builtin drivers that
  * don't do anything special in driver init.  This eliminates some
  * boilerplate.  Each driver may only use this macro once, and

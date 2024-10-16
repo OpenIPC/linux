@@ -56,6 +56,7 @@ struct fat_mount_options {
 #define FAT_HASH_BITS	8
 #define FAT_HASH_SIZE	(1UL << FAT_HASH_BITS)
 
+
 /*
  * MS-DOS file system in-core superblock data
  */
@@ -118,6 +119,10 @@ struct msdos_inode_info {
 	/* NOTE: mmu_private is 64bits, so must hold ->i_mutex to access */
 	loff_t mmu_private;	/* physically allocated size */
 
+#ifdef CONFIG_PRELLOCATE_FLAG
+	int i_prealloc;	/* for prealloc */
+#endif
+
 	int i_start;		/* first cluster or 0 */
 	int i_logstart;		/* logical first cluster */
 	int i_attrs;		/* unused attribute bits */
@@ -145,6 +150,20 @@ static inline struct msdos_inode_info *MSDOS_I(struct inode *inode)
 {
 	return container_of(inode, struct msdos_inode_info, vfs_inode);
 }
+
+#ifdef CONFIG_PRELLOCATE_FLAG
+static inline int check_prealloc(struct inode *inode)
+{
+	return MSDOS_I(inode)->i_prealloc;
+}
+
+static inline void mark_prealloc(struct inode *inode)
+{
+	MSDOS_I(inode)->i_prealloc = 1;
+}
+
+extern int fat_caculate_cluster(struct inode *inode);
+#endif
 
 /*
  * If ->i_mode can't hold S_IWUGO (i.e. ATTR_RO), we use ->i_attrs to
@@ -360,7 +379,11 @@ extern int fat_ent_write(struct inode *inode, struct fat_entry *fatent,
 extern int fat_alloc_clusters(struct inode *inode, int *cluster,
 			      int nr_cluster);
 extern int fat_free_clusters(struct inode *inode, int cluster);
+#ifdef CONFIG_TRUNCATE_NOMEM_RECLAIM_DISCARD
+extern int fat_discard_clusters(struct inode *inode, int cluster);
+#endif
 extern int fat_count_free_clusters(struct super_block *sb);
+extern int fat_trim_fs(struct inode *inode, struct fstrim_range *range);
 
 /* fat/file.c */
 extern long fat_generic_ioctl(struct file *filp, unsigned int cmd,
@@ -414,6 +437,8 @@ extern void fat_time_fat2unix(struct msdos_sb_info *sbi, struct timespec *ts,
 			      __le16 __time, __le16 __date, u8 time_cs);
 extern void fat_time_unix2fat(struct msdos_sb_info *sbi, struct timespec *ts,
 			      __le16 *time, __le16 *date, u8 *time_cs);
+extern void fat_time_fat2str(struct msdos_sb_info *sbi, char *d_createtime,
+		__le16 __time, __le16 __date, u8 time_cs);
 extern int fat_sync_bhs(struct buffer_head **bhs, int nr_bhs);
 
 int fat_cache_init(void);

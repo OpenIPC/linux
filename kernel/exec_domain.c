@@ -20,7 +20,7 @@
 #include <linux/types.h>
 #include <linux/fs_struct.h>
 
-#ifdef CONFIG_PROC_FS
+#ifdef CONFIG_EXECDOMAINS_PROC_FS
 static int execdomains_proc_show(struct seq_file *m, void *v)
 {
 	seq_puts(m, "0-0\tLinux           \t[kernel]\n");

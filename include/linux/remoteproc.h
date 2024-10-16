@@ -320,6 +320,7 @@ struct rproc_mem_entry {
 	int len;
 	u32 da;
 	void *priv;
+	char name[32];
 	struct list_head node;
 };
 
@@ -397,7 +398,6 @@ enum rproc_crash_type {
  * @num_traces: number of trace buffers
  * @carveouts: list of physically contiguous memory allocations
  * @mappings: list of iommu mappings we initiated, needed on shutdown
- * @firmware_loading_complete: marks e/o asynchronous firmware loading
  * @bootaddr: address of first instruction to boot rproc with (optional)
  * @rvdevs: list of remote virtio devices
  * @notifyids: idr for dynamically assigning rproc-wide unique notify ids
@@ -428,7 +428,6 @@ struct rproc {
 	int num_traces;
 	struct list_head carveouts;
 	struct list_head mappings;
-	struct completion firmware_loading_complete;
 	u32 bootaddr;
 	struct list_head rvdevs;
 	struct idr notifyids;
@@ -442,6 +441,7 @@ struct rproc {
 	struct resource_table *cached_table;
 	bool has_iommu;
 	bool auto_boot;
+	int nb_vdev;
 };
 
 /* we currently support only two vrings per rvdev */
@@ -466,6 +466,7 @@ struct rproc_vring {
 	u32 da;
 	u32 align;
 	int notifyid;
+	char name[32];
 	struct rproc_vdev *rvdev;
 	struct virtqueue *vq;
 };
@@ -484,6 +485,7 @@ struct rproc_vdev {
 	struct virtio_device vdev;
 	struct rproc_vring vring[RVDEV_NUM_VRINGS];
 	u32 rsc_offset;
+	int index;
 };
 
 struct rproc *rproc_get_by_phandle(phandle phandle);
@@ -510,5 +512,10 @@ static inline struct rproc *vdev_to_rproc(struct virtio_device *vdev)
 
 	return rvdev->rproc;
 }
+
+struct rproc_mem_entry *
+rproc_add_mem_entry(struct rproc *rproc, const char *name, u32 pa,
+				u32 da, void *va, int len);
+void rproc_clean_mem_entry(struct rproc *rproc);
 
 #endif /* REMOTEPROC_H */

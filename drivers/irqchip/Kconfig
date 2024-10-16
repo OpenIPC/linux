@@ -280,3 +280,14 @@ config EZNPS_GIC
 config STM32_EXTI
 	bool
 	select IRQ_DOMAIN
+
+config SUNXI_WAKEUPGEN
+	tristate "sunxi wakeup irq chip"
+	depends on ARCH_SUNXI
+	default y
+	help
+	   This enables support for sunxi wakeupgen irq domain.
+
+	   If you don't know what to do here, say Y.
+
+

@@ -148,7 +148,14 @@ obj-$(CONFIG_RTC_DRV_STMP)	+= rtc-stmp3xxx.o
 obj-$(CONFIG_RTC_DRV_ST_LPC)	+= rtc-st-lpc.o
 obj-$(CONFIG_RTC_DRV_SUN4V)	+= rtc-sun4v.o
 obj-$(CONFIG_RTC_DRV_SUN6I)	+= rtc-sun6i.o
+ifeq ($(CONFIG_ARCH_SUN50IW5T),y)
+obj-$(CONFIG_RTC_DRV_SUNXI)	+= rtc-sunxi-v2.o
+else ifeq ($(CONFIG_ARCH_SUN8IW18),y)
+obj-$(CONFIG_RTC_DRV_SUNXI)	+= rtc-sunxi-v3.o
+else
 obj-$(CONFIG_RTC_DRV_SUNXI)	+= rtc-sunxi.o
+endif
+obj-$(CONFIG_SUNXI_TIMER_ALARM)	+= sunxi_timer_alarm.o
 obj-$(CONFIG_RTC_DRV_TEGRA)	+= rtc-tegra.o
 obj-$(CONFIG_RTC_DRV_TEST)	+= rtc-test.o
 obj-$(CONFIG_RTC_DRV_TILE)	+= rtc-tile.o

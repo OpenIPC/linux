@@ -1,0 +1,5 @@
+#
+# Do not ignore tp firmware file
+#
+!include/firmware/*.i
+!include/pramboot/*.i

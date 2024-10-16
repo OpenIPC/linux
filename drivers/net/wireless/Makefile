@@ -18,6 +18,15 @@ obj-$(CONFIG_WLAN_VENDOR_ST) += st/
 obj-$(CONFIG_WLAN_VENDOR_TI) += ti/
 obj-$(CONFIG_WLAN_VENDOR_ZYDAS) += zydas/
 
+obj-$(CONFIG_RTL8189ES) 	+= rtl8189es/
+obj-$(CONFIG_RTL8189FS) 	+= rtl8189fs/
+obj-$(CONFIG_RTL8723CS) 	+= rtl8723cs/
+obj-$(CONFIG_RTL8723DS) 	+= rtl8723ds/
+obj-$(CONFIG_RTL8733BS) 	+= rtl8733bs/
+obj-$(CONFIG_RTL8723BS_VQ0) += rtl8723bs_vq0/
+obj-$(CONFIG_RTL8821CS) 	+= rtl8821cs/
+obj-$(CONFIG_RTL8822CS) 	+= rtl8822cs/
+
 # 16-bit wireless PCMCIA client drivers
 obj-$(CONFIG_PCMCIA_RAYCS)	+= ray_cs.o
 obj-$(CONFIG_PCMCIA_WL3501)	+= wl3501_cs.o
@@ -25,3 +34,14 @@ obj-$(CONFIG_PCMCIA_WL3501)	+= wl3501_cs.o
 obj-$(CONFIG_USB_NET_RNDIS_WLAN)	+= rndis_wlan.o
 
 obj-$(CONFIG_MAC80211_HWSIM)	+= mac80211_hwsim.o
+
+obj-$(CONFIG_VIRT_WIFI)        += virt_wifi.o
+
+obj-$(CONFIG_BCMDHD)	+= bcmdhd/
+obj-$(CONFIG_XR819_WLAN)   += xr819/
+obj-$(CONFIG_XR819S_WLAN)   += xr819s/
+obj-$(CONFIG_XR829_WLAN)   += xr829/
+obj-$(CONFIG_XR806_WLAN)   += xr806/
+obj-$(CONFIG_ESP32_WLAN)   += esp32/
+obj-$(CONFIG_SSV6X5X)   += ssv6155_jixian/
+obj-$(CONFIG_SSV6158)   += ssv6158/

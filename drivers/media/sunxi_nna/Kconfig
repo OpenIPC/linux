@@ -1,0 +1,7 @@
+config SUNXI_NNA
+    depends on (ARCH_SUNXI)
+    tristate "sunxi nna driver"
+    default N
+    help
+
+

@@ -232,6 +232,20 @@
 
 static const char fsg_string_interface[] = "Mass Storage";
 
+#if IS_ENABLED(CONFIG_USB_SUNXI_UDC0)
+atomic_t vfs_read_flag;
+EXPORT_SYMBOL_GPL(vfs_read_flag);
+
+atomic_t vfs_write_flag;
+EXPORT_SYMBOL_GPL(vfs_write_flag);
+
+unsigned int vfs_amount;
+EXPORT_SYMBOL_GPL(vfs_amount);
+
+loff_t vfs_file_offset;
+EXPORT_SYMBOL_GPL(vfs_file_offset);
+#endif
+
 #include "storage_common.h"
 #include "f_mass_storage.h"
 
@@ -574,6 +588,14 @@ static void start_transfer(struct fsg_dev *fsg, struct usb_ep *ep,
 	spin_lock_irq(&fsg->common->lock);
 	*pbusy = 1;
 	*state = BUF_STATE_BUSY;
+	/*
+	 * only mass storage device use inner dma to transfer,
+	 * it means that adb donot use inner dma.
+	 * In our test, adb with inner dma will test failed.
+	 */
+#if IS_ENABLED(CONFIG_USB_SUNXI_UDC0)
+	req->dma_flag = 1;
+#endif
 	spin_unlock_irq(&fsg->common->lock);
 
 	rc = usb_ep_queue(ep, req, GFP_KERNEL);

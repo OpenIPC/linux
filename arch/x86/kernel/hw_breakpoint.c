@@ -352,7 +352,6 @@ int arch_validate_hwbkpt_settings(struct perf_event *bp)
 #endif
 	default:
 		WARN_ON_ONCE(1);
-		return -EINVAL;
 	}
 
 	/*

@@ -1,0 +1,8 @@
+
+config SUNXI_NNA_VIP
+	depends on (ARCH_SUNXI)
+	tristate "sunxi nna vip driver"
+	default n
+	help
+	 Choose Y to enable sunxi nna vip driver
+

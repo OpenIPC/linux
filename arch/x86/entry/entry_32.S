@@ -219,7 +219,6 @@ ENTRY(__switch_to_asm)
 	pushl	%ebx
 	pushl	%edi
 	pushl	%esi
-	pushfl
 
 	/* switch stack */
 	movl	%esp, TASK_threadsp(%eax)
@@ -242,7 +241,6 @@ ENTRY(__switch_to_asm)
 #endif
 
 	/* restore callee-saved registers */
-	popfl
 	popl	%esi
 	popl	%edi
 	popl	%ebx

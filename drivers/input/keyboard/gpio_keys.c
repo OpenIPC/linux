@@ -33,6 +33,22 @@
 #include <linux/of_irq.h>
 #include <linux/spinlock.h>
 
+#ifdef CONFIG_ARCH_SUNXI
+#include <linux/sunxi-gpio.h>
+#ifdef CONFIG_GPIOKEYS_AS_POWERKEY
+#include <linux/kthread.h>
+#include <linux/reboot.h>
+#include <linux/jiffies.h>
+struct long_press_key {
+	struct delayed_work long_work;
+	unsigned long start;
+	int press_sta;
+};
+
+static struct long_press_key long_press_key;
+#endif
+#endif
+
 struct gpio_button_data {
 	const struct gpio_keys_button *button;
 	struct input_dev *input;
@@ -142,10 +158,14 @@ static void gpio_keys_disable_button(struct gpio_button_data *bdata)
 		 */
 		disable_irq(bdata->irq);
 
-		if (bdata->gpiod)
+		if (bdata->gpiod) {
 			cancel_delayed_work_sync(&bdata->work);
-		else
+#ifdef CONFIG_GPIOKEYS_AS_POWERKEY
+			cancel_delayed_work_sync(&long_press_key.long_work);
+#endif
+		} else {
 			del_timer_sync(&bdata->release_timer);
+		}
 
 		bdata->disabled = true;
 	}
@@ -355,12 +375,33 @@ static struct attribute_group gpio_keys_attr_group = {
 	.attrs = gpio_keys_attrs,
 };
 
+#ifdef CONFIG_GPIOKEYS_AS_POWERKEY
+static void gpio_keys_long_press_func(struct work_struct *work)
+{
+	struct long_press_key *key = &long_press_key;
+	unsigned long end;
+	unsigned long diff_time;
+
+	end = jiffies;
+	diff_time = jiffies_to_msecs(end - key->start);
+	if ((key->press_sta == 1) && (diff_time >= 5000)) {
+		orderly_poweroff(true);
+		return;
+	} else {
+		return;
+	}
+}
+#endif
+
 static void gpio_keys_gpio_report_event(struct gpio_button_data *bdata)
 {
 	const struct gpio_keys_button *button = bdata->button;
 	struct input_dev *input = bdata->input;
 	unsigned int type = button->type ?: EV_KEY;
 	int state;
+#ifdef CONFIG_GPIOKEYS_AS_POWERKEY
+	struct long_press_key *key = &long_press_key;
+#endif
 
 	state = gpiod_get_value_cansleep(bdata->gpiod);
 	if (state < 0) {
@@ -373,7 +414,29 @@ static void gpio_keys_gpio_report_event(struct gpio_button_data *bdata)
 		if (state)
 			input_event(input, type, button->code, button->value);
 	} else {
+#ifdef CONFIG_GPIOKEYS_AS_POWERKEY
+		if (button->code != KEY_POWER) {
+			input_event(input, type, button->code, state);
+		} else {
+			if (state) {
+				key->start = jiffies;
+				key->press_sta = 1;
+				queue_delayed_work(system_wq, &key->long_work,
+					msecs_to_jiffies(5 * 1000));
+			} else if ((!state) && (key->start != 0)) {
+				key->press_sta = 0;
+				cancel_delayed_work(&key->long_work);
+				input_event(input, EV_KEY, button->code, 1);
+				input_sync(input);
+				udelay(5000);
+				input_event(input, EV_KEY, button->code, 0);
+				input_sync(input);
+			}
+		}
+#else
 		input_event(input, type, button->code, state);
+#endif
+
 	}
 	input_sync(input);
 }
@@ -459,10 +522,14 @@ static void gpio_keys_quiesce_key(void *data)
 {
 	struct gpio_button_data *bdata = data;
 
-	if (bdata->gpiod)
+	if (bdata->gpiod) {
 		cancel_delayed_work_sync(&bdata->work);
-	else
+#ifdef CONFIG_GPIOKEYS_AS_POWERKEY
+		cancel_delayed_work_sync(&long_press_key.long_work);
+#endif
+	} else {
 		del_timer_sync(&bdata->release_timer);
+	}
 }
 
 static int gpio_keys_setup_key(struct platform_device *pdev,
@@ -502,7 +569,7 @@ static int gpio_keys_setup_key(struct platform_device *pdev,
 		bdata->gpiod = gpio_to_desc(button->gpio);
 		if (!bdata->gpiod)
 			return -EINVAL;
-
+#if 0
 		if (button->debounce_interval) {
 			error = gpiod_set_debounce(bdata->gpiod,
 					button->debounce_interval * 1000);
@@ -511,6 +578,9 @@ static int gpio_keys_setup_key(struct platform_device *pdev,
 				bdata->software_debounce =
 						button->debounce_interval;
 		}
+#else
+		bdata->software_debounce = button->debounce_interval;
+#endif
 
 		if (button->irq) {
 			bdata->irq = button->irq;
@@ -526,6 +596,10 @@ static int gpio_keys_setup_key(struct platform_device *pdev,
 			bdata->irq = irq;
 		}
 
+#ifdef CONFIG_GPIOKEYS_AS_POWERKEY
+		INIT_DELAYED_WORK(&long_press_key.long_work,
+				gpio_keys_long_press_func);
+#endif
 		INIT_DELAYED_WORK(&bdata->work, gpio_keys_gpio_work_func);
 
 		isr = gpio_keys_gpio_isr;
@@ -664,11 +738,15 @@ gpio_keys_get_devtree_pdata(struct device *dev)
 
 	i = 0;
 	for_each_available_child_of_node(node, pp) {
+#ifdef CONFIG_ARCH_SUNXI
+		struct gpio_config flags;
+#else
 		enum of_gpio_flags flags;
+#endif
 
 		button = &pdata->buttons[i++];
 
-		button->gpio = of_get_gpio_flags(pp, 0, &flags);
+		button->gpio = of_get_gpio_flags(pp, 0, (enum of_gpio_flags *)&flags);
 		if (button->gpio < 0) {
 			error = button->gpio;
 			if (error != -ENOENT) {
@@ -679,7 +757,11 @@ gpio_keys_get_devtree_pdata(struct device *dev)
 				return ERR_PTR(error);
 			}
 		} else {
+#ifdef CONFIG_ARCH_SUNXI
+			button->active_low = flags.data & OF_GPIO_ACTIVE_LOW;
+#else
 			button->active_low = flags & OF_GPIO_ACTIVE_LOW;
+#endif
 		}
 
 		button->irq = irq_of_parse_and_map(pp, 0);

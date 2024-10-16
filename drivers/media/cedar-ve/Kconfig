@@ -1,0 +1,23 @@
+config VIDEO_ENCODER_DECODER_SUNXI
+	tristate "sunxi video encoder and decoder support"
+    select DMA_SHARED_BUFFER
+    default y
+	---help---
+	  This is the driver for sunxi video decoder, including h264/
+	  mpeg4/mpeg2/vc1/rmvb.
+	  To compile this driver as a module, choose M here: the
+	  module will be called cedar_dev.
+
+config VIDEO_KERNEL_DEC_SUNXI
+	depends on (VIDEO_ENCODER_DECODER_SUNXI)
+	bool "sunxi video dec kernel module"
+	default n
+	---help---
+     Choose Y to enable sunxi video dec kernel module
+
+config VIDEO_KERNEL_ENC_SUNXI
+	depends on (VIDEO_ENCODER_DECODER_SUNXI)
+	bool "sunxi video enc kernel module"
+	default n
+	---help---
+     Choose Y to enable rotate video enc kernel module

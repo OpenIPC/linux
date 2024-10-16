@@ -42,5 +42,11 @@ obj-$(CONFIG_BLK_DEV_RSXX) += rsxx/
 obj-$(CONFIG_BLK_DEV_NULL_BLK)	+= null_blk.o
 obj-$(CONFIG_ZRAM) += zram/
 
+ifneq ($(CONFIG_SUNXI_NAND),)
+obj-$(CONFIG_SUNXI_NAND) += ../../modules/nand/
+else
+obj-m += ../../modules/nand/
+endif
+
 skd-y		:= skd_main.o
 swim_mod-y	:= swim.o swim_asm.o

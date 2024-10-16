@@ -115,7 +115,7 @@ static int subdev_close(struct file *file)
 	if (sd->internal_ops && sd->internal_ops->close)
 		sd->internal_ops->close(sd, subdev_fh);
 #if defined(CONFIG_MEDIA_CONTROLLER)
-	if (sd->v4l2_dev->mdev)
+	if (sd->v4l2_dev && sd->v4l2_dev->mdev)
 		media_entity_put(&sd->entity);
 #endif
 	v4l2_fh_del(vfh);

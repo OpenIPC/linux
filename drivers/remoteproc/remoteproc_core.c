@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Remote Processor Framework
  *
@@ -42,7 +43,7 @@
 #include <linux/virtio_ring.h>
 #include <asm/byteorder.h>
 
-#include "remoteproc_internal.h"
+#include "sunxi_rproc_internal.h"
 
 static DEFINE_MUTEX(rproc_list_mutex);
 static LIST_HEAD(rproc_list);
@@ -112,31 +113,30 @@ static int rproc_enable_iommu(struct rproc *rproc)
 
 	iommu_set_fault_handler(domain, rproc_iommu_fault, rproc);
 
-	ret = iommu_attach_device(domain, dev);
-	if (ret) {
-		dev_err(dev, "can't attach iommu device: %d\n", ret);
-		goto free_domain;
-	}
-
+	/*
+	 * if we define 'iommus=<iommu_aw 5 1>' in the device tree node,
+	 * it will automatically attach device, so we not need to call
+	 * iommu_attach_device.
+	 * */
 	rproc->domain = domain;
+
+	dev_dbg(dev, "alloc iommu domain.\n");
 
 	return 0;
 
-free_domain:
-	iommu_domain_free(domain);
 	return ret;
 }
 
 static void rproc_disable_iommu(struct rproc *rproc)
 {
 	struct iommu_domain *domain = rproc->domain;
-	struct device *dev = rproc->dev.parent;
 
 	if (!domain)
 		return;
 
-	iommu_detach_device(domain, dev);
-	iommu_domain_free(domain);
+	rproc->domain = NULL;
+
+	dev_dbg(rproc->dev.parent, "free iommu domain.\n");
 }
 
 /**
@@ -200,6 +200,32 @@ out:
 }
 EXPORT_SYMBOL(rproc_da_to_va);
 
+static struct rproc_mem_entry *
+rproc_find_carveout_by_name(struct rproc *rproc, char *name, ...)
+{
+	struct rproc_mem_entry *entry, *tmp;
+	va_list args;
+	char _name[32];
+
+	if (!name)
+		return NULL;
+
+	va_start(args, name);
+	vsnprintf(_name, sizeof(_name), name, args);
+	va_end(args);
+
+	list_for_each_entry_safe(entry, tmp, &rproc->carveouts, node) {
+		if (strcmp(entry->name, _name))
+			continue;
+		dev_dbg(&rproc->dev, "carveout-%s va:%p da:0x%08x pa:0x%08x len:0x%x\n",
+						entry->name, entry->va, entry->da, entry->dma,
+						entry->len);
+		return entry;
+	}
+
+	return NULL;
+}
+
 int rproc_alloc_vring(struct rproc_vdev *rvdev, int i)
 {
 	struct rproc *rproc = rvdev->rproc;
@@ -209,18 +235,51 @@ int rproc_alloc_vring(struct rproc_vdev *rvdev, int i)
 	dma_addr_t dma;
 	void *va;
 	int ret, size, notifyid;
+	struct rproc_mem_entry *mem, *mapping;
 
 	/* actual size of vring (in bytes) */
 	size = PAGE_ALIGN(vring_size(rvring->len, rvring->align));
 
-	/*
-	 * Allocate non-cacheable memory for the vring. In the future
-	 * this call will also configure the IOMMU for us
-	 */
-	va = dma_alloc_coherent(dev->parent, size, &dma, GFP_KERNEL);
-	if (!va) {
-		dev_err(dev->parent, "dma_alloc_coherent failed\n");
-		return -EINVAL;
+	rsc = (void *)rproc->table_ptr + rvdev->rsc_offset;
+
+	/* try to find reserved memory for vring */
+	mem = rproc_find_carveout_by_name(rproc, "vdev%dvring%d",
+					rvdev->index, i);
+	if (mem) {
+		va = mem->va;
+		dma = mem->dma;
+		strncpy(rvring->name, mem->name, sizeof(rvring->name));
+	} else {
+		/*
+		 * Allocate non-cacheable memory for the vring. In the future
+		 * this call will also configure the IOMMU for us
+		 */
+		va = dma_alloc_coherent(dev->parent, size, &dma, GFP_KERNEL);
+		if (!va)
+			return -EINVAL;
+		rvring->name[0] = '\0';
+	}
+
+	if (rproc->domain) {
+		mapping = kzalloc(sizeof(*mapping), GFP_KERNEL);
+		if (!mapping) {
+			dma_free_coherent(dev->parent, size, va, dma);
+			return -ENOMEM;
+		}
+
+		dev_dbg(dev, "mapped vdev%dvring%d %pad to %pad\n",
+			rvdev->index, i, &dma, &dma);
+
+		ret = iommu_map(rproc->domain, dma, dma, size, IOMMU_READ | IOMMU_WRITE);
+		if (ret) {
+			dev_err(dev, "iommu_map failed: %d\n", ret);
+			dma_free_coherent(dev->parent, size, va, dma);
+			return -ENOMEM;
+		}
+
+		mapping->da = dma;
+		mapping->len = size;
+		list_add_tail(&mapping->node, &rproc->mappings);
 	}
 
 	/*
@@ -249,7 +308,7 @@ int rproc_alloc_vring(struct rproc_vdev *rvdev, int i)
 	 * set up the iommu. In this case the device address (da) will
 	 * hold the physical address and not the device address.
 	 */
-	rsc = (void *)rproc->table_ptr + rvdev->rsc_offset;
+	rsc->vring[i].pa = dma;
 	rsc->vring[i].da = dma;
 	rsc->vring[i].notifyid = notifyid;
 	return 0;
@@ -273,6 +332,7 @@ rproc_parse_vring(struct rproc_vdev *rvdev, struct fw_rsc_vdev *rsc, int i)
 		return -EINVAL;
 	}
 
+	rvring->da = vring->da;
 	rvring->len = vring->num;
 	rvring->align = vring->align;
 	rvring->rvdev = rvdev;
@@ -287,7 +347,8 @@ void rproc_free_vring(struct rproc_vring *rvring)
 	int idx = rvring->rvdev->vring - rvring;
 	struct fw_rsc_vdev *rsc;
 
-	dma_free_coherent(rproc->dev.parent, size, rvring->va, rvring->dma);
+	if (rvring->name[0] == '\0')
+		dma_free_coherent(rproc->dev.parent, size, rvring->va, rvring->dma);
 	idr_remove(&rproc->notifyids, rvring->notifyid);
 
 	/* reset resource entry info */
@@ -327,7 +388,7 @@ static int rproc_handle_vdev(struct rproc *rproc, struct fw_rsc_vdev *rsc,
 			     int offset, int avail)
 {
 	struct device *dev = &rproc->dev;
-	struct rproc_vdev *rvdev;
+	struct rproc_vdev *rvdev = NULL;
 	int i, ret;
 
 	/* make sure resource isn't truncated */
@@ -346,17 +407,18 @@ static int rproc_handle_vdev(struct rproc *rproc, struct fw_rsc_vdev *rsc,
 	dev_dbg(dev, "vdev rsc: id %d, dfeatures 0x%x, cfg len %d, %d vrings\n",
 		rsc->id, rsc->dfeatures, rsc->config_len, rsc->num_of_vrings);
 
+	rvdev = kzalloc(sizeof(*rvdev), GFP_KERNEL);
+	if (!rvdev)
+		return -ENOMEM;
+
 	/* we currently support only two vrings per rvdev */
 	if (rsc->num_of_vrings > ARRAY_SIZE(rvdev->vring)) {
 		dev_err(dev, "too many vrings: %d\n", rsc->num_of_vrings);
 		return -EINVAL;
 	}
 
-	rvdev = kzalloc(sizeof(*rvdev), GFP_KERNEL);
-	if (!rvdev)
-		return -ENOMEM;
-
 	rvdev->rproc = rproc;
+	rvdev->index = rproc->nb_vdev++;
 
 	/* parse the vrings */
 	for (i = 0; i < rsc->num_of_vrings; i++) {
@@ -555,7 +617,7 @@ static int rproc_handle_carveout(struct rproc *rproc,
 				 struct fw_rsc_carveout *rsc,
 				 int offset, int avail)
 {
-	struct rproc_mem_entry *carveout, *mapping;
+	struct rproc_mem_entry *carveout, *mapping, *tmp;
 	struct device *dev = &rproc->dev;
 	dma_addr_t dma;
 	void *va;
@@ -579,15 +641,21 @@ static int rproc_handle_carveout(struct rproc *rproc,
 	if (!carveout)
 		return -ENOMEM;
 
-	va = dma_alloc_coherent(dev->parent, rsc->len, &dma, GFP_KERNEL);
-	if (!va) {
-		dev_err(dev->parent,
-			"failed to allocate dma memory: len 0x%x\n", rsc->len);
-		ret = -ENOMEM;
-		goto free_carv;
+	tmp = rproc_find_carveout_by_name(rproc, "vdev0buffer");
+	if (tmp) {
+		va = tmp->va;
+		dma = tmp->dma;
+	} else {
+		va = dma_alloc_coherent(dev->parent, rsc->len, &dma, GFP_KERNEL);
+		if (!va) {
+			dev_err(dev->parent,
+				"failed to allocate dma memory: len 0x%x\n", rsc->len);
+			ret = -ENOMEM;
+			goto free_carv;
+		}
 	}
 
-	dev_dbg(dev, "carveout va %p, dma %pad, len 0x%x\n",
+	dev_dbg(dev, "carveout va %p, dma %p, len 0x%x\n",
 		va, &dma, rsc->len);
 
 	/*
@@ -613,6 +681,9 @@ static int rproc_handle_carveout(struct rproc *rproc,
 			ret = -ENOMEM;
 			goto dma_free;
 		}
+
+		if (rsc->da == FW_RSC_ADDR_ANY)
+			rsc->da = dma;
 
 		ret = iommu_map(rproc->domain, rsc->da, dma, rsc->len,
 				rsc->flags);
@@ -655,6 +726,7 @@ static int rproc_handle_carveout(struct rproc *rproc,
 	 */
 	rsc->pa = dma;
 
+	carveout->name[0] = '\0';
 	carveout->va = va;
 	carveout->len = rsc->len;
 	carveout->dma = dma;
@@ -774,8 +846,10 @@ static void rproc_resource_cleanup(struct rproc *rproc)
 
 	/* clean up carveout allocations */
 	list_for_each_entry_safe(entry, tmp, &rproc->carveouts, node) {
+		if (entry->name[0] != '\0')
+			continue;
 		dma_free_coherent(dev->parent, entry->len, entry->va,
-				  entry->dma);
+							entry->dma);
 		list_del(&entry->node);
 		kfree(entry);
 	}
@@ -794,12 +868,13 @@ static int rproc_fw_boot(struct rproc *rproc, const struct firmware *fw)
 	const char *name = rproc->firmware;
 	struct resource_table *table, *loaded_table;
 	int ret, tablesz;
+	int power;
 
 	ret = rproc_fw_sanity_check(rproc, fw);
 	if (ret)
 		return ret;
 
-	dev_info(dev, "Booting fw image %s, size %zd\n", name, fw->size);
+	dev_dbg(dev, "Booting fw image %s, size %zd\n", name, fw->size);
 
 	/*
 	 * if enabling an IOMMU isn't relevant for this rproc, this is
@@ -836,6 +911,9 @@ static int rproc_fw_boot(struct rproc *rproc, const struct firmware *fw)
 	/* reset max_notifyid */
 	rproc->max_notifyid = -1;
 
+	/* reset vdev count */
+	rproc->nb_vdev = 0;
+
 	/* look for virtio devices and register them */
 	ret = rproc_handle_resources(rproc, tablesz, rproc_vdev_handler);
 	if (ret) {
@@ -850,11 +928,19 @@ static int rproc_fw_boot(struct rproc *rproc, const struct firmware *fw)
 		goto clean_up_resources;
 	}
 
-	/* load the ELF segments to memory */
-	ret = rproc_load_segments(rproc, fw);
-	if (ret) {
-		dev_err(dev, "Failed to load program segments: %d\n", ret);
-		goto clean_up_resources;
+	power = atomic_read(&rproc->power);
+	if (power == 1) {
+		/* load the ELF segments to memory */
+		ret = rproc_load_segments(rproc, fw);
+		if (ret) {
+			dev_err(dev, "Failed to load program segments: %d\n", ret);
+			goto clean_up_resources;
+		}
+		dev_dbg(dev, "Booting remote process success\n");
+	} else {
+		/* skip the boot process if rproc is already powered up */
+		atomic_dec(&rproc->power);
+		dev_dbg(dev, "remote process already running\n");
 	}
 
 	/*
@@ -867,15 +953,18 @@ static int rproc_fw_boot(struct rproc *rproc, const struct firmware *fw)
 	 */
 	loaded_table = rproc_find_loaded_rsc_table(rproc, fw);
 	if (loaded_table) {
+		dev_dbg(dev, "Update resource table to addr:0x%p\n", loaded_table);
 		memcpy(loaded_table, rproc->cached_table, tablesz);
 		rproc->table_ptr = loaded_table;
 	}
 
-	/* power up the remote processor */
-	ret = rproc->ops->start(rproc);
-	if (ret) {
-		dev_err(dev, "can't start rproc %s: %d\n", rproc->name, ret);
-		goto clean_up_resources;
+	if (power == 1) {
+		/* power up the remote processor */
+		ret = rproc->ops->start(rproc);
+		if (ret) {
+			dev_err(dev, "can't start rproc %s: %d\n", rproc->name, ret);
+			goto clean_up_resources;
+		}
 	}
 
 	rproc->state = RPROC_RUNNING;
@@ -907,22 +996,33 @@ static void rproc_fw_config_virtio(const struct firmware *fw, void *context)
 {
 	struct rproc *rproc = context;
 
+	/* fw may be %NULL if firmware request fails. */
+	if (!fw)
+		return;
+
 	/* if rproc is marked always-on, request it to boot */
 	if (rproc->auto_boot)
-		rproc_boot_nowait(rproc);
+		rproc_boot(rproc);
 
 	release_firmware(fw);
-	/* allow rproc_del() contexts, if any, to proceed */
-	complete_all(&rproc->firmware_loading_complete);
 }
 
 static int rproc_add_virtio_devices(struct rproc *rproc)
 {
 	int ret;
 
-	/* rproc_del() calls must wait until async loader completes */
-	init_completion(&rproc->firmware_loading_complete);
+	/* try to find firmware from boot_package */
+	ret = sunxi_request_firmware_nowait(rproc->firmware, &rproc->dev,
+					GFP_KERNEL, rproc, rproc_fw_config_virtio);
+	if (ret < 0)
+		dev_err(&rproc->dev, "sunxi_request_firmware_nowait err: %d\n", ret);
 
+	/*
+	 * it may be that this functional was called early.
+	 * At this time,the filesystem may not be ready,so
+	 * we should not call firmware functions.
+	 */
+#ifndef CONFIG_SUNXI_RPROC_FASTBOOT
 	/*
 	 * We must retrieve early virtio configuration info from
 	 * the firmware (e.g. whether to register a virtio device,
@@ -934,11 +1034,9 @@ static int rproc_add_virtio_devices(struct rproc *rproc)
 	ret = request_firmware_nowait(THIS_MODULE, FW_ACTION_HOTPLUG,
 				      rproc->firmware, &rproc->dev, GFP_KERNEL,
 				      rproc, rproc_fw_config_virtio);
-	if (ret < 0) {
+	if (ret < 0)
 		dev_err(&rproc->dev, "request_firmware_nowait err: %d\n", ret);
-		complete_all(&rproc->firmware_loading_complete);
-	}
-
+#endif
 	return ret;
 }
 
@@ -1007,7 +1105,6 @@ static void rproc_crash_handler_work(struct work_struct *work)
 /**
  * __rproc_boot() - boot a remote processor
  * @rproc: handle of a remote processor
- * @wait: wait for rproc registration completion
  *
  * Boot a remote processor (i.e. load its firmware, power it on, ...).
  *
@@ -1016,7 +1113,7 @@ static void rproc_crash_handler_work(struct work_struct *work)
  *
  * Returns 0 on success, and an appropriate error value otherwise.
  */
-static int __rproc_boot(struct rproc *rproc, bool wait)
+static int __rproc_boot(struct rproc *rproc)
 {
 	const struct firmware *firmware_p;
 	struct device *dev;
@@ -1035,24 +1132,21 @@ static int __rproc_boot(struct rproc *rproc, bool wait)
 		return ret;
 	}
 
-	/* skip the boot process if rproc is already powered up */
-	if (atomic_inc_return(&rproc->power) > 1) {
-		ret = 0;
-		goto unlock_mutex;
-	}
+	atomic_inc(&rproc->power);
 
 	dev_info(dev, "powering up %s\n", rproc->name);
 
-	/* load firmware */
-	ret = request_firmware(&firmware_p, rproc->firmware, dev);
+	/* try to find firmware from boot_package */
+	ret = sunxi_request_firmware(&firmware_p, rproc->firmware, dev);
 	if (ret < 0) {
-		dev_err(dev, "request_firmware failed: %d\n", ret);
-		goto downref_rproc;
+		dev_info(dev, "request_firmware failed from boot_package: %d\n", ret);
+		/* try to load firmware from file system */
+		ret = request_firmware(&firmware_p, rproc->firmware, dev);
+		if (ret < 0) {
+			dev_err(dev, "request_firmware failed: %d\n", ret);
+			goto downref_rproc;
+		}
 	}
-
-	/* if rproc virtio is not yet configured, wait */
-	if (wait)
-		wait_for_completion(&rproc->firmware_loading_complete);
 
 	ret = rproc_fw_boot(rproc, firmware_p);
 
@@ -1061,7 +1155,6 @@ static int __rproc_boot(struct rproc *rproc, bool wait)
 downref_rproc:
 	if (ret)
 		atomic_dec(&rproc->power);
-unlock_mutex:
 	mutex_unlock(&rproc->lock);
 	return ret;
 }
@@ -1072,20 +1165,9 @@ unlock_mutex:
  */
 int rproc_boot(struct rproc *rproc)
 {
-	return __rproc_boot(rproc, true);
+	return __rproc_boot(rproc);
 }
 EXPORT_SYMBOL(rproc_boot);
-
-/**
- * rproc_boot_nowait() - boot a remote processor
- * @rproc: handle of a remote processor
- *
- * Same as rproc_boot() but don't wait for rproc registration completion
- */
-int rproc_boot_nowait(struct rproc *rproc)
-{
-	return __rproc_boot(rproc, false);
-}
 
 /**
  * rproc_shutdown() - power off the remote processor
@@ -1118,8 +1200,10 @@ void rproc_shutdown(struct rproc *rproc)
 	}
 
 	/* if the remote proc is still needed, bail out */
-	if (!atomic_dec_and_test(&rproc->power))
-		goto out;
+	if (rproc->state != RPROC_OFFLINE) {
+		if (!atomic_dec_and_test(&rproc->power))
+			goto out;
+	}
 
 	/* power off the remote processor */
 	ret = rproc->ops->stop(rproc);
@@ -1230,11 +1314,6 @@ int rproc_add(struct rproc *rproc)
 	ret = device_add(dev);
 	if (ret < 0)
 		return ret;
-
-	dev_info(dev, "%s is available\n", rproc->name);
-
-	dev_info(dev, "Note: remoteproc is still under development and considered experimental.\n");
-	dev_info(dev, "THE BINARY FORMAT IS NOT YET FINALIZED, and backward compatibility isn't yet guaranteed.\n");
 
 	/* create debugfs entries */
 	rproc_create_debug_dir(rproc);
@@ -1433,9 +1512,6 @@ int rproc_del(struct rproc *rproc)
 	if (!rproc)
 		return -EINVAL;
 
-	/* if rproc is just being registered, wait */
-	wait_for_completion(&rproc->firmware_loading_complete);
-
 	/* if rproc is marked always-on, rproc_add() booted it */
 	/* TODO: make sure this works with rproc->power > 1 */
 	if (rproc->auto_boot)
@@ -1482,13 +1558,52 @@ void rproc_report_crash(struct rproc *rproc, enum rproc_crash_type type)
 }
 EXPORT_SYMBOL(rproc_report_crash);
 
+struct rproc_mem_entry *
+rproc_add_mem_entry(struct rproc *rproc, const char *name, u32 pa,
+				u32 da, void *va, int len)
+{
+	struct rproc_mem_entry *mem;
+
+	mem = kzalloc(sizeof(*mem), GFP_KERNEL);
+	if (!mem)
+		return NULL;
+
+	strcpy(mem->name, name);
+	mem->va = va;
+	mem->da = da;
+	mem->dma = pa;
+	mem->len = len;
+
+	list_add_tail(&mem->node, &rproc->carveouts);
+	dev_dbg(&rproc->dev, "register mem:%s va:0x%08x pa:0x%08x da:0x%08x len:0x%08x\n",
+					name, (uint32_t)va, pa, da, len);
+
+	return mem;
+}
+EXPORT_SYMBOL(rproc_add_mem_entry);
+
+void rproc_clean_mem_entry(struct rproc *rproc)
+{
+	struct rproc_mem_entry *entry, *tmp;
+
+	/* clean up carveout allocations */
+	list_for_each_entry_safe(entry, tmp, &rproc->carveouts, node) {
+		if (entry->name[0] == '\0')
+			continue;
+
+		list_del(&entry->node);
+		kfree(entry);
+	}
+}
+EXPORT_SYMBOL(rproc_clean_mem_entry);
+
 static int __init remoteproc_init(void)
 {
 	rproc_init_debugfs();
 
 	return 0;
 }
-module_init(remoteproc_init);
+postcore_initcall(remoteproc_init);
 
 static void __exit remoteproc_exit(void)
 {

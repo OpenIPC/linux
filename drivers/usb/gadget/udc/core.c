@@ -945,7 +945,11 @@ int usb_gadget_ep_match_desc(struct usb_gadget *gadget,
 		/* Bulk endpoints handle interrupt transfers,
 		 * except the toggle-quirky iso-synch kind
 		 */
+#if IS_ENABLED(CONFIG_USB_SUNXI_UDC0)
+		if (!ep->caps.type_int)
+#else
 		if (!ep->caps.type_int && !ep->caps.type_bulk)
+#endif
 			return 0;
 		/* INT:  limit 64 bytes full speed, 1024 high/super speed */
 		if (!gadget_is_dualspeed(gadget) && max > 64)

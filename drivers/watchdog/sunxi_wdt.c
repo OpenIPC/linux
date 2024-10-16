@@ -35,6 +35,13 @@
 
 #define WDT_MODE_EN             (1 << 0)
 
+/*
+ * Since Aw1855 and after,the new IP needs a magic
+ * value 0x16AA0000 to set the upper 16 bits to ensure
+ * that the registers CFG_REG and MODE_REG writes are valid
+ */
+#define KEY_FIELD_MAGIC         (0x16AA0000)
+
 #define DRV_NAME		"sunxi-wdt"
 #define DRV_VERSION		"1.0"
 
@@ -94,13 +101,13 @@ static int sunxi_wdt_restart(struct watchdog_device *wdt_dev,
 	/* Set system reset function */
 	val = readl(wdt_base + regs->wdt_cfg);
 	val &= ~(regs->wdt_reset_mask);
-	val |= regs->wdt_reset_val;
+	val |= regs->wdt_reset_val | KEY_FIELD_MAGIC;
 	writel(val, wdt_base + regs->wdt_cfg);
 
 	/* Set lowest timeout and enable watchdog */
 	val = readl(wdt_base + regs->wdt_mode);
 	val &= ~(WDT_TIMEOUT_MASK << regs->wdt_timeout_shift);
-	val |= WDT_MODE_EN;
+	val |= WDT_MODE_EN | KEY_FIELD_MAGIC;
 	writel(val, wdt_base + regs->wdt_mode);
 
 	/*
@@ -112,7 +119,7 @@ static int sunxi_wdt_restart(struct watchdog_device *wdt_dev,
 	while (1) {
 		mdelay(5);
 		val = readl(wdt_base + regs->wdt_mode);
-		val |= WDT_MODE_EN;
+		val |= WDT_MODE_EN | KEY_FIELD_MAGIC;
 		writel(val, wdt_base + regs->wdt_mode);
 	}
 	return 0;
@@ -144,7 +151,8 @@ static int sunxi_wdt_set_timeout(struct watchdog_device *wdt_dev,
 
 	reg = readl(wdt_base + regs->wdt_mode);
 	reg &= ~(WDT_TIMEOUT_MASK << regs->wdt_timeout_shift);
-	reg |= wdt_timeout_map[timeout] << regs->wdt_timeout_shift;
+	reg |= (wdt_timeout_map[timeout] << regs->wdt_timeout_shift) |
+		KEY_FIELD_MAGIC;
 	writel(reg, wdt_base + regs->wdt_mode);
 
 	sunxi_wdt_ping(wdt_dev);
@@ -158,7 +166,7 @@ static int sunxi_wdt_stop(struct watchdog_device *wdt_dev)
 	void __iomem *wdt_base = sunxi_wdt->wdt_base;
 	const struct sunxi_wdt_reg *regs = sunxi_wdt->wdt_regs;
 
-	writel(0, wdt_base + regs->wdt_mode);
+	writel((0 | KEY_FIELD_MAGIC), wdt_base + regs->wdt_mode);
 
 	return 0;
 }
@@ -179,16 +187,42 @@ static int sunxi_wdt_start(struct watchdog_device *wdt_dev)
 	/* Set system reset function */
 	reg = readl(wdt_base + regs->wdt_cfg);
 	reg &= ~(regs->wdt_reset_mask);
-	reg |= regs->wdt_reset_val;
+	reg |= regs->wdt_reset_val | KEY_FIELD_MAGIC;
 	writel(reg, wdt_base + regs->wdt_cfg);
 
 	/* Enable watchdog */
 	reg = readl(wdt_base + regs->wdt_mode);
-	reg |= WDT_MODE_EN;
+	reg |= WDT_MODE_EN | KEY_FIELD_MAGIC;
 	writel(reg, wdt_base + regs->wdt_mode);
 
 	return 0;
 }
+
+#ifdef CONFIG_PM
+static int sunxi_wdt_suspend(struct platform_device *pdev, pm_message_t state)
+
+{
+	struct sunxi_wdt_dev *sunxi_wdt = platform_get_drvdata(pdev);
+
+	if (watchdog_active(&sunxi_wdt->wdt_dev))
+		sunxi_wdt_stop(&sunxi_wdt->wdt_dev);
+
+	return 0;
+}
+
+static int sunxi_wdt_resume(struct platform_device *pdev)
+{
+	struct sunxi_wdt_dev *sunxi_wdt = platform_get_drvdata(pdev);
+
+	if (watchdog_active(&sunxi_wdt->wdt_dev)) {
+		sunxi_wdt_set_timeout(&sunxi_wdt->wdt_dev,
+				      sunxi_wdt->wdt_dev.timeout);
+		sunxi_wdt_start(&sunxi_wdt->wdt_dev);
+	}
+
+	return 0;
+}
+#endif /* CONFIG_PM */
 
 static const struct watchdog_info sunxi_wdt_info = {
 	.identity	= DRV_NAME,
@@ -225,8 +259,9 @@ static const struct sunxi_wdt_reg sun6i_wdt_reg = {
 };
 
 static const struct of_device_id sunxi_wdt_dt_ids[] = {
-	{ .compatible = "allwinner,sun4i-a10-wdt", .data = &sun4i_wdt_reg },
-	{ .compatible = "allwinner,sun6i-a31-wdt", .data = &sun6i_wdt_reg },
+	{ .compatible = "allwinner,sun4i-wdt", .data = &sun4i_wdt_reg },
+	{ .compatible = "allwinner,sun50i-wdt", .data = &sun6i_wdt_reg },
+	{ .compatible = "allwinner,sun8i-wdt", .data = &sun6i_wdt_reg },
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, sunxi_wdt_dt_ids);
@@ -268,7 +303,13 @@ static int sunxi_wdt_probe(struct platform_device *pdev)
 
 	watchdog_set_drvdata(&sunxi_wdt->wdt_dev, sunxi_wdt);
 
+#ifdef CONFIG_SUNXI_WDOG_BOOTON
+	sunxi_wdt_set_timeout(&sunxi_wdt->wdt_dev, WDT_MAX_TIMEOUT);
+	sunxi_wdt_start(&sunxi_wdt->wdt_dev);
+	sunxi_wdt_ping(&sunxi_wdt->wdt_dev);
+#else
 	sunxi_wdt_stop(&sunxi_wdt->wdt_dev);
+#endif
 
 	err = watchdog_register_device(&sunxi_wdt->wdt_dev);
 	if (unlikely(err))
@@ -301,6 +342,10 @@ static struct platform_driver sunxi_wdt_driver = {
 	.probe		= sunxi_wdt_probe,
 	.remove		= sunxi_wdt_remove,
 	.shutdown	= sunxi_wdt_shutdown,
+#ifdef CONFIG_PM
+	.suspend        = sunxi_wdt_suspend,
+	.resume         = sunxi_wdt_resume,
+#endif
 	.driver		= {
 		.name		= DRV_NAME,
 		.of_match_table	= sunxi_wdt_dt_ids,

@@ -7,6 +7,7 @@ Required properties:
 - reg: physical base address of the controller and length of memory mapped
   region.
 - interrupts: IRQ line for the RTC.
+- auto_switch:if the property of auto_switch exists,enable auto switch function
 
 Example:
 
@@ -14,4 +15,5 @@ rtc: rtc@01c20d00 {
 	compatible = "allwinner,sun4i-a10-rtc";
 	reg = <0x01c20d00 0x20>;
 	interrupts = <24>;
+	auto_switch;
 };

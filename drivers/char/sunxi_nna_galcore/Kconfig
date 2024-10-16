@@ -1,0 +1,7 @@
+config SUNXI_NNA_GALCORE
+	depends on (ARCH_SUNXI)
+	tristate "sunxi nna galcore driver"
+	default n
+	help
+	 Choose Y to enable sunxi nna galcore driver
+

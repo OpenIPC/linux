@@ -11,6 +11,7 @@ config OPENVSWITCH
 				     (!NF_NAT_IPV4 || NF_NAT_IPV4) && \
 				     (!NF_NAT_IPV6 || NF_NAT_IPV6)))
 	select LIBCRC32C
+	select FLEX_ARRAY
 	select MPLS
 	select NET_MPLS_GSO
 	select DST_CACHE

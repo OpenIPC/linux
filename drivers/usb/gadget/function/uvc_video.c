@@ -241,9 +241,13 @@ uvc_video_alloc_requests(struct uvc_video *video)
 
 	BUG_ON(video->req_size);
 
-	req_size = video->ep->maxpacket
-		 * max_t(unsigned int, video->ep->maxburst, 1)
-		 * (video->ep->mult);
+	if (!video->bulk_streaming_ep)
+		req_size = video->ep->maxpacket
+			* max_t(unsigned int, video->ep->maxburst, 1)
+			* (video->ep->mult);
+	else
+		req_size = video->ep->maxpacket
+			* max_t(unsigned int, video->ep->maxburst, 1);
 
 	for (i = 0; i < UVC_NUM_REQUESTS; ++i) {
 		video->req_buffer[i] = kmalloc(req_size, GFP_KERNEL);
@@ -389,6 +393,9 @@ int uvcg_video_init(struct uvc_video *video)
 	video->width = 320;
 	video->height = 240;
 	video->imagesize = 320 * 240 * 2;
+
+	if (video->bulk_streaming_ep)
+		video->max_payload_size = video->imagesize;
 
 	/* Initialize the video buffers queue. */
 	uvcg_queue_init(&video->queue, V4L2_BUF_TYPE_VIDEO_OUTPUT,

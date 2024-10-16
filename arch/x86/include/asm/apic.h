@@ -12,7 +12,6 @@
 #include <asm/mpspec.h>
 #include <asm/msr.h>
 #include <asm/idle.h>
-#include <asm/hardirq.h>
 
 #define ARCH_APICTIMER_STOPS_ON_C3	1
 
@@ -50,7 +49,7 @@ static inline void generic_apic_probe(void)
 
 #ifdef CONFIG_X86_LOCAL_APIC
 
-extern int apic_verbosity;
+extern unsigned int apic_verbosity;
 extern int local_apic_timer_c2_ok;
 
 extern int disable_apic;
@@ -648,7 +647,6 @@ static inline void entering_irq(void)
 {
 	irq_enter();
 	exit_idle();
-	kvm_set_cpu_l1tf_flush_l1d();
 }
 
 static inline void entering_ack_irq(void)
@@ -661,7 +659,6 @@ static inline void ipi_entering_ack_irq(void)
 {
 	irq_enter();
 	ack_APIC_irq();
-	kvm_set_cpu_l1tf_flush_l1d();
 }
 
 static inline void exiting_irq(void)

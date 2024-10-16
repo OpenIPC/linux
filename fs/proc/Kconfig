@@ -1,6 +1,7 @@
 config PROC_FS
 	bool "/proc file system support" if EXPERT
 	default y
+	select FLEX_ARRAY
 	help
 	  This is a virtual file system providing information about the status
 	  of the system. "Virtual" means that it doesn't take up any space on
@@ -43,6 +44,20 @@ config PROC_VMCORE
         help
         Exports the dump image of crashed kernel in ELF format.
 
+config MODULE_PROC_FS
+	bool "/proc/module support"
+	depends on PROC_FS
+	default y
+	help
+	 Exports the module info
+
+config EXECDOMAINS_PROC_FS
+	bool "/proc/execdomains support"
+	depends on PROC_FS
+	default y
+	help
+	 Exports the execdomians to procfs.
+
 config PROC_SYSCTL
 	bool "Sysctl support (/proc/sys)" if EXPERT
 	depends on PROC_FS
@@ -81,3 +96,10 @@ config PROC_CHILDREN
 
 	  Say Y if you are running any user-space software which takes benefit from
 	  this interface. For example, rkt is such a piece of software.
+
+config PROC_UID
+	bool "Include /proc/uid/ files"
+	default y
+	depends on PROC_FS && RT_MUTEXES
+	help
+	Provides aggregated per-uid information under /proc/uid.

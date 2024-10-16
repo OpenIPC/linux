@@ -20,6 +20,7 @@
 #include <linux/export.h>
 #include <linux/extable.h>	/* only as arch move module.h -> extable.h */
 #include <linux/rbtree_latch.h>
+#include <linux/cfi.h>
 
 #include <linux/percpu.h>
 #include <asm/module.h>
@@ -233,7 +234,7 @@ extern const typeof(name) __mod_##type##__##name##_device_table		\
  * local headers in "srcversion".
  */
 
-#if defined(MODULE) || !defined(CONFIG_SYSFS)
+#if defined(MODULE) || !defined(CONFIG_PARAM_SYSFS)
 #define MODULE_VERSION(_version) MODULE_INFO(version, _version)
 #else
 #define MODULE_VERSION(_version)					\
@@ -349,8 +350,12 @@ struct module {
 	const unsigned long *crcs;
 	unsigned int num_syms;
 
+#ifdef CONFIG_CFI_CLANG
+	cfi_check_fn cfi_check;
+#endif
+
 	/* Kernel parameters. */
-#ifdef CONFIG_SYSFS
+#ifdef CONFIG_PARAM_SYSFS
 	struct mutex param_lock;
 #endif
 	struct kernel_param *kp;
@@ -752,11 +757,11 @@ static inline bool module_requested_async_probing(struct module *module)
 
 #endif /* CONFIG_MODULES */
 
-#ifdef CONFIG_SYSFS
+#ifdef CONFIG_PARAM_SYSFS
 extern struct kset *module_kset;
 extern struct kobj_type module_ktype;
 extern int module_sysfs_initialized;
-#endif /* CONFIG_SYSFS */
+#endif /* CONFIG_PARAM_SYSFS */
 
 #define symbol_request(x) try_then_request_module(symbol_get(x), "symbol:" #x)
 

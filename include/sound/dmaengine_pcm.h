@@ -51,6 +51,16 @@ struct dma_chan *snd_dmaengine_pcm_request_channel(dma_filter_fn filter_fn,
 	void *filter_data);
 struct dma_chan *snd_dmaengine_pcm_get_chan(struct snd_pcm_substream *substream);
 
+#ifdef CONFIG_SND_CORE_SUNXI_PCM_DMA
+int sunxi_snd_dmaengine_pcm_open(void *rtd, dma_filter_fn filter_fn,
+				void *filter_data);
+int sunxi_snd_dmaengine_pcm_trigger(void *rtd, int cmd, dma_addr_t dma_addr,
+				enum dma_transfer_direction direction,
+				int buffer_bytes, int period_bytes);
+int sunxi_snd_dmaengine_pcm_close(void *rtd);
+int sunxi_snd_dmaengine_pcm_close_release_chan(void *rtd);
+#endif
+
 /*
  * The DAI supports packed transfers, eg 2 16-bit samples in a 32-bit word.
  * If this flag is set the dmaengine driver won't put any restriction on

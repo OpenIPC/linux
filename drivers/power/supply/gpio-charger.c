@@ -26,6 +26,9 @@
 #include <linux/of_gpio.h>
 
 #include <linux/power/gpio-charger.h>
+#ifdef CONFIG_ARCH_SUNXI
+#include <linux/sunxi-gpio.h>
+#endif
 
 struct gpio_charger {
 	const struct gpio_charger_platform_data *pdata;
@@ -78,7 +81,11 @@ struct gpio_charger_platform_data *gpio_charger_parse_dt(struct device *dev)
 	struct device_node *np = dev->of_node;
 	struct gpio_charger_platform_data *pdata;
 	const char *chargetype;
+#ifdef CONFIG_ARCH_SUNXI
+	struct gpio_config flags;
+#else
 	enum of_gpio_flags flags;
+#endif
 	int ret;
 
 	if (!np)
@@ -90,14 +97,20 @@ struct gpio_charger_platform_data *gpio_charger_parse_dt(struct device *dev)
 
 	pdata->name = np->name;
 
+#ifdef CONFIG_ARCH_SUNXI
+	pdata->gpio = of_get_gpio_flags(np, 0, (enum of_gpio_flags *)&flags);
+#else
 	pdata->gpio = of_get_gpio_flags(np, 0, &flags);
+#endif
 	if (pdata->gpio < 0) {
 		if (pdata->gpio != -EPROBE_DEFER)
 			dev_err(dev, "could not get charger gpio\n");
 		return ERR_PTR(pdata->gpio);
 	}
 
+#ifndef CONFIG_ARCH_SUNXI
 	pdata->gpio_active_low = !!(flags & OF_GPIO_ACTIVE_LOW);
+#endif
 
 	pdata->type = POWER_SUPPLY_TYPE_UNKNOWN;
 	ret = of_property_read_string(np, "charger-type", &chargetype);
@@ -231,23 +244,23 @@ static int gpio_charger_remove(struct platform_device *pdev)
 #ifdef CONFIG_PM_SLEEP
 static int gpio_charger_suspend(struct device *dev)
 {
-	struct gpio_charger *gpio_charger = dev_get_drvdata(dev);
+	/* struct gpio_charger *gpio_charger = dev_get_drvdata(dev); */
 
-	if (device_may_wakeup(dev))
-		gpio_charger->wakeup_enabled =
-			!enable_irq_wake(gpio_charger->irq);
+	/* if (device_may_wakeup(dev)) */
+	/*         gpio_charger->wakeup_enabled = */
+	/*                 !enable_irq_wake(gpio_charger->irq); */
 
 	return 0;
 }
 
 static int gpio_charger_resume(struct device *dev)
 {
-	struct platform_device *pdev = to_platform_device(dev);
-	struct gpio_charger *gpio_charger = platform_get_drvdata(pdev);
+	/* struct platform_device *pdev = to_platform_device(dev); */
+	/* struct gpio_charger *gpio_charger = platform_get_drvdata(pdev); */
 
-	if (device_may_wakeup(dev) && gpio_charger->wakeup_enabled)
-		disable_irq_wake(gpio_charger->irq);
-	power_supply_changed(gpio_charger->charger);
+	/* if (device_may_wakeup(dev) && gpio_charger->wakeup_enabled) */
+	/*         disable_irq_wake(gpio_charger->irq); */
+	/* power_supply_changed(gpio_charger->charger); */
 
 	return 0;
 }

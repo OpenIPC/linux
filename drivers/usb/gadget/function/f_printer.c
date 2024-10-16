@@ -635,12 +635,15 @@ printer_write(struct file *fd, const char __user *buf, size_t len, loff_t *ptr)
 			return -EAGAIN;
 		}
 
+		spin_unlock(&dev->lock);
 		if (usb_ep_queue(dev->in_ep, req, GFP_ATOMIC)) {
+			spin_lock(&dev->lock);
 			list_add(&req->list, &dev->tx_reqs);
 			spin_unlock_irqrestore(&dev->lock, flags);
 			mutex_unlock(&dev->lock_printer_io);
 			return -EAGAIN;
 		}
+		spin_lock(&dev->lock);
 
 		list_add(&req->list, &dev->tx_reqs_active);
 

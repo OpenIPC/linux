@@ -152,6 +152,8 @@ source "drivers/remoteproc/Kconfig"
 
 source "drivers/rpmsg/Kconfig"
 
+source "drivers/rpbuf/Kconfig"
+
 source "drivers/soc/Kconfig"
 
 source "drivers/devfreq/Kconfig"
@@ -167,6 +169,8 @@ source "drivers/ntb/Kconfig"
 source "drivers/vme/Kconfig"
 
 source "drivers/pwm/Kconfig"
+
+source "drivers/dsp/Kconfig"
 
 source "drivers/irqchip/Kconfig"
 
@@ -201,5 +205,13 @@ source "drivers/hwtracing/stm/Kconfig"
 source "drivers/hwtracing/intel_th/Kconfig"
 
 source "drivers/fpga/Kconfig"
+
+source "drivers/mpp/Kconfig"
+
+source "drivers/tee/Kconfig"
+
+source "drivers/gator/Kconfig"
+
+source "drivers/aipu/Kconfig"
 
 endmenu

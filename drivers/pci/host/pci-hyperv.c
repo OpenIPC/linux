@@ -52,8 +52,6 @@
 #include <linux/pci.h>
 #include <linux/semaphore.h>
 #include <linux/irqdomain.h>
-#include <linux/irq.h>
-
 #include <asm/irqdomain.h>
 #include <asm/apic.h>
 #include <linux/msi.h>

@@ -53,6 +53,9 @@ obj-$(CONFIG_VIDEO_RENESAS_VSP1)	+= vsp1/
 
 obj-y	+= omap/
 
+obj-$(CONFIG_SUNXI_ISE) += sunxi-ise/
+obj-$(CONFIG_SUNXI_EISE) += sunxi-eise/
+
 obj-$(CONFIG_VIDEO_AM437X_VPFE)		+= am437x/
 
 obj-$(CONFIG_VIDEO_XILINX)		+= xilinx/
@@ -66,3 +69,9 @@ ccflags-y += -I$(srctree)/drivers/media/i2c
 obj-$(CONFIG_VIDEO_MEDIATEK_VPU)	+= mtk-vpu/
 
 obj-$(CONFIG_VIDEO_MEDIATEK_VCODEC)	+= mtk-vcodec/
+
+obj-$(CONFIG_SUNXI_EVE)		+= sunxi-eve/
+obj-$(CONFIG_VIDEO_SUNXI_VFE)		+= sunxi-vfe/
+obj-$(CONFIG_VIDEO_SUNXI_VIN)		+= sunxi-vin/
+obj-$(CONFIG_SENSOR_POWER)  		+= sunxi-vin/modules/sensor_power/
+obj-$(CONFIG_VIDEO_SUNXI_TVD) += sunxi-tvd/

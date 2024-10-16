@@ -130,12 +130,14 @@ void __init arm_dt_init_cpu_maps(void)
 		 * temp values were initialized to UINT_MAX
 		 * to avoid matching valid MPIDR[23:0] values.
 		 */
-		for (j = 0; j < cpuidx; j++)
-			if (WARN(tmp_map[j] == hwid,
-				 "Duplicate /cpu reg properties in the DT\n")) {
-				of_node_put(cpu);
-				return;
-			}
+		if (is_smp()) {
+			for (j = 0; j < cpuidx; j++)
+				if (WARN(tmp_map[j] == hwid,
+					 "Duplicate /cpu reg properties in the DT\n")) {
+					of_node_put(cpu);
+					return;
+				}
+		}
 
 		/*
 		 * Build a stashed array of MPIDR values. Numbering scheme

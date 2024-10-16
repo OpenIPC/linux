@@ -150,6 +150,15 @@ extern bool initcall_debug;
 
 #ifndef __ASSEMBLY__
 
+#ifdef CONFIG_LTO_CLANG
+  /* prepend the variable name with __COUNTER__ to ensure correct ordering */
+  #define ___initcall_name2(c, fn, id) 	__initcall_##c##_##fn##id
+  #define ___initcall_name1(c, fn, id)	___initcall_name2(c, fn, id)
+  #define __initcall_name(fn, id) 	___initcall_name1(__COUNTER__, fn, id)
+#else
+  #define __initcall_name(fn, id) 	__initcall_##fn##id
+#endif
+
 /*
  * initcalls are now grouped by functionality into separate
  * subsections. Ordering inside the subsections is determined
@@ -167,7 +176,7 @@ extern bool initcall_debug;
  */
 
 #define __define_initcall(fn, id) \
-	static initcall_t __initcall_##fn##id __used \
+	static initcall_t __initcall_name(fn, id) __used \
 	__attribute__((__section__(".initcall" #id ".init"))) = fn;
 
 /*
@@ -197,10 +206,11 @@ extern bool initcall_debug;
 #define fs_initcall(fn)			__define_initcall(fn, 5)
 #define fs_initcall_sync(fn)		__define_initcall(fn, 5s)
 #define rootfs_initcall(fn)		__define_initcall(fn, rootfs)
-#define device_initcall(fn)		__define_initcall(fn, 6)
-#define device_initcall_sync(fn)	__define_initcall(fn, 6s)
-#define late_initcall(fn)		__define_initcall(fn, 7)
-#define late_initcall_sync(fn)		__define_initcall(fn, 7s)
+#define device_paralell_initcall(fn)	__define_initcall(fn, 6)
+#define device_initcall(fn)		__define_initcall(fn, 7)
+#define device_initcall_sync(fn)	__define_initcall(fn, 7s)
+#define late_initcall(fn)		__define_initcall(fn, 8)
+#define late_initcall_sync(fn)		__define_initcall(fn, 8s)
 
 #define __initcall(fn) device_initcall(fn)
 

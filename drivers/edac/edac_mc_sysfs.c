@@ -50,7 +50,7 @@ unsigned int edac_mc_get_poll_msec(void)
 	return edac_mc_poll_msec;
 }
 
-static int edac_set_poll_msec(const char *val, struct kernel_param *kp)
+static int edac_set_poll_msec(const char *val, const struct kernel_param *kp)
 {
 	unsigned int i;
 	int ret;
@@ -58,14 +58,14 @@ static int edac_set_poll_msec(const char *val, struct kernel_param *kp)
 	if (!val)
 		return -EINVAL;
 
-	ret = kstrtouint(val, 0, &i);
+	ret = kstrtoul(val, 0, &i);
 	if (ret)
 		return ret;
 
 	if (i < 1000)
 		return -EINVAL;
 
-	*((unsigned int *)kp->arg) = i;
+	*((unsigned long *)kp->arg) = i;
 
 	/* notify edac_mc engine to reset the poll period */
 	edac_mc_reset_delay_period(i);

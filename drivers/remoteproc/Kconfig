@@ -41,6 +41,25 @@ config STE_MODEM_RPROC
 	  This can be either built-in or a loadable module.
 	  If unsure say N.
 
+menuconfig SUNXI_RPROC
+	tristate "SUNXI remote processor support"
+	select REMOTEPROC
+	depends on ARCH_SUNXI && SUNXI_MBOX
+	default n
+	help
+	  Say y or m here to support SUNXI remote processor
+	  shared memory driver.
+	  This can be either built-in or a loadable module.
+	  If unsure say N.
+	config SUNXI_RPROC_FASTBOOT
+		bool "SUNXI remote processor fastboot support"
+		depends on SUNXI_RPROC
+		default n
+		help
+		  Say y or m here to support SUNXI remote processor
+		  fastboot driver.
+		  This can be speed up init time.
+
 config WKUP_M3_RPROC
 	tristate "AMx3xx Wakeup M3 remoteproc support"
 	depends on SOC_AM33XX || SOC_AM43XX

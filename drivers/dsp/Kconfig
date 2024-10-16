@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
+menuconfig DSP_DEBUG
+	bool "Enable linux dsp debug drivers"
+
+if DSP_DEBUG
+
+config DSP_LOG_DEBUG
+	tristate "Dsp log save in Linux"
+	depends on DSP_DEBUG
+	default n
+
+endif

@@ -1,0 +1,5 @@
+config XR806_WLAN
+	tristate "XR806 WLAN support"
+	default n
+	---help---
+	  To compile this code as a module, choose M here.

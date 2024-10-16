@@ -2237,6 +2237,14 @@ static void hci_conn_request_evt(struct hci_dev *hdev, struct sk_buff *skb)
 		return;
 	}
 
+	if (ev->link_type == ACL_LINK) {
+		if ((hci_conn_num(hdev, ACL_LINK) != 0) && (hdev->dev_type == HCI_PRIMARY)) {
+			BT_INFO("already exist acl link, reject new! %s, %d", __func__, __LINE__);
+			hci_reject_conn(hdev, &ev->bdaddr);
+			return;
+		}
+	}
+
 	if (hci_bdaddr_list_lookup(&hdev->blacklist, &ev->bdaddr,
 				   BDADDR_BREDR)) {
 		hci_reject_conn(hdev, &ev->bdaddr);

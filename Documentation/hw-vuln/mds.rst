@@ -32,12 +32,11 @@ Related CVEs
 
 The following CVE entries are related to the MDS vulnerability:
 
-   ==============  =====  ===================================================
+   ==============  =====  ==============================================
    CVE-2018-12126  MSBDS  Microarchitectural Store Buffer Data Sampling
    CVE-2018-12130  MFBDS  Microarchitectural Fill Buffer Data Sampling
    CVE-2018-12127  MLPDS  Microarchitectural Load Port Data Sampling
-   CVE-2019-11091  MDSUM  Microarchitectural Data Sampling Uncacheable Memory
-   ==============  =====  ===================================================
+   ==============  =====  ==============================================
 
 Problem
 -------
@@ -257,9 +256,6 @@ time with the option "mds=". The valid arguments for this option are:
 		protected as well if SMT is enabled.
 
 		It does not automatically disable SMT.
-
-  full,nosmt	The same as mds=full, with SMT disabled on vulnerable
-		CPUs.  This is the complete mitigation.
 
   off		Disables MDS mitigations completely.
 

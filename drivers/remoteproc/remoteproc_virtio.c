@@ -57,13 +57,18 @@ static bool rproc_virtio_notify(struct virtqueue *vq)
 irqreturn_t rproc_vq_interrupt(struct rproc *rproc, int notifyid)
 {
 	struct rproc_vring *rvring;
+	struct rproc_vdev *rvdev, *tmp;
 
-	dev_dbg(&rproc->dev, "vq index %d is interrupted\n", notifyid);
+	dev_dbg(&rproc->dev, "vq notifyid %d is interrupted\n", notifyid);
 
-	rvring = idr_find(&rproc->notifyids, notifyid);
-	if (!rvring || !rvring->vq)
-		return IRQ_NONE;
-
+	list_for_each_entry_safe(rvdev, tmp, &rproc->rvdevs, node) {
+		/* Vring is rx */
+		rvring = &rvdev->vring[0];
+		if (rvring->notifyid == notifyid && rvring->vq)
+			goto out;
+	}
+	return IRQ_NONE;
+out:
 	return vring_interrupt(0, rvring->vq);
 }
 EXPORT_SYMBOL(rproc_vq_interrupt);

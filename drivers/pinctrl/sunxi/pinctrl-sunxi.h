@@ -16,6 +16,8 @@
 #include <linux/kernel.h>
 #include <linux/spinlock.h>
 
+#define SUNXI_PINCTRL_NAME "sunxi-pinctrl"
+
 #define PA_BASE	0
 #define PB_BASE	32
 #define PC_BASE	64
@@ -25,20 +27,55 @@
 #define PG_BASE	192
 #define PH_BASE	224
 #define PI_BASE	256
+#define PJ_BASE	288
 #define PL_BASE	352
 #define PM_BASE	384
 #define PN_BASE	416
 
+#if defined(CONFIG_ARCH_SUN8IW12P1) \
+	|| defined(CONFIG_ARCH_SUN8IW15P1) \
+	|| defined(CONFIG_ARCH_SUN8IW16P1) \
+	|| defined(CONFIG_ARCH_SUN8IW19P1) \
+	|| defined(CONFIG_ARCH_SUN8IW21P1) \
+	|| defined(CONFIG_ARCH_SUN8IW18P1) \
+	|| defined(CONFIG_ARCH_SUN50IW6P1) \
+	|| defined(CONFIG_ARCH_SUN50IW3P1) \
+	|| defined(CONFIG_ARCH_SUN50IW9P1) \
+	|| defined(CONFIG_ARCH_SUN50IW10P1) \
+	|| defined(CONFIG_ARCH_SUN50IW11P1)
+#define CONFIG_SUNXI_PIO_POWER_MODE
+#define GPIO_POW_MODE_SEL  0x0340
+#define GPIO_POW_MODE_VAL  0x0348
+#define GPIO_POW_MODE_MASK  0xFFF
+#endif
+
+#if defined(CONFIG_ARCH_SUN8IW16P1) \
+	|| defined(CONFIG_ARCH_SUN8IW19P1) \
+	|| defined(CONFIG_ARCH_SUN8IW21P1) \
+	|| defined(CONFIG_ARCH_SUN50IW9P1) \
+	|| defined(CONFIG_ARCH_SUN50IW10P1) \
+	|| defined(CONFIG_ARCH_SUN50IW11P1)
+#define CONFIG_SUNXI_PIO_POWER_SEL
+#define GPIO_POW_VOL_SEL   0x0350
+#endif
+
 #define SUNXI_PINCTRL_PIN(bank, pin)		\
 	PINCTRL_PIN(P ## bank ## _BASE + (pin), "P" #bank #pin)
 
-#define SUNXI_PIN_NAME_MAX_LEN	5
-
+#if defined(CONFIG_ARCH_SUN8IW21P1)
+#define BANK_MEM_SIZE		0x30
+#else
 #define BANK_MEM_SIZE		0x24
+#endif
+
 #define MUX_REGS_OFFSET		0x0
 #define DATA_REGS_OFFSET	0x10
 #define DLEVEL_REGS_OFFSET	0x14
+#if defined(CONFIG_ARCH_SUN8IW21P1)
+#define PULL_REGS_OFFSET	0x24
+#else
 #define PULL_REGS_OFFSET	0x1c
+#endif
 
 #define PINS_PER_BANK		32
 #define MUX_PINS_PER_REG	8
@@ -47,9 +84,16 @@
 #define DATA_PINS_PER_REG	32
 #define DATA_PINS_BITS		1
 #define DATA_PINS_MASK		0x01
+
+#if defined(CONFIG_ARCH_SUN8IW21P1)
+#define DLEVEL_PINS_PER_REG	8
+#define DLEVEL_PINS_BITS	4
+#else
 #define DLEVEL_PINS_PER_REG	16
 #define DLEVEL_PINS_BITS	2
+#endif
 #define DLEVEL_PINS_MASK	0x03
+
 #define PULL_PINS_PER_REG	16
 #define PULL_PINS_BITS		2
 #define PULL_PINS_MASK		0x03
@@ -68,8 +112,10 @@
 #define IRQ_STATUS_IRQ_PER_REG		32
 #define IRQ_STATUS_IRQ_BITS		1
 #define IRQ_STATUS_IRQ_MASK		((1 << IRQ_STATUS_IRQ_BITS) - 1)
+#define IRQ_DEBOUNCE_REG		0x218
 
 #define IRQ_MEM_SIZE		0x20
+#define IRQ_CFG_SIZE		0x10
 
 #define IRQ_EDGE_RISING		0x00
 #define IRQ_EDGE_FALLING	0x01
@@ -78,7 +124,15 @@
 #define IRQ_EDGE_BOTH		0x04
 
 #define SUN4I_FUNC_INPUT	0
+#define SUN4I_FUNC_OUTPUT	1
 #define SUN4I_FUNC_IRQ		6
+
+#define SYSCFG_PROP_DEFAULT_VAL 0xFFFFFFFF
+
+#define SUNXI_PINCTRL_NO_PULL	0
+#define SUNXI_PINCTRL_PULL_UP	1
+#define SUNXI_PINCTRL_PULL_DOWN	2
+
 
 struct sunxi_desc_function {
 	const char	*name;
@@ -96,9 +150,12 @@ struct sunxi_pinctrl_desc {
 	const struct sunxi_desc_pin	*pins;
 	int				npins;
 	unsigned			pin_base;
+	unsigned int			banks;
+	const unsigned int		*bank_base;
 	unsigned			irq_banks;
-	unsigned			irq_bank_base;
+	const unsigned int		*irq_bank_base;
 	bool				irq_read_needs_mux;
+	bool				disable_strict_mode;
 };
 
 struct sunxi_pinctrl_function {
@@ -125,9 +182,20 @@ struct sunxi_pinctrl {
 	unsigned			ngroups;
 	int				*irq;
 	unsigned			*irq_array;
-	spinlock_t			lock;
+	u32				*wake_mask;
+	u32				*cur_mask;
+	u32				*wake_debounce;
+	u32				*cur_debounce;
+	raw_spinlock_t			lock;
 	struct pinctrl_dev		*pctl_dev;
+	u32				*regs_backup;
 };
+
+#define SUNXI_PIO_BANK_BASE(pin, irq_bank) \
+	((pin-PA_BASE)/PINS_PER_BANK - irq_bank)
+
+#define SUNXI_R_PIO_BANK_BASE(pin, irq_bank) \
+	((pin-PL_BASE)/PINS_PER_BANK - irq_bank)
 
 #define SUNXI_PIN(_pin, ...)					\
 	{							\
@@ -159,6 +227,7 @@ struct sunxi_pinctrl {
 
 /*
  * The sunXi PIO registers are organized as is:
+ * OLD platform:
  * 0x00 - 0x0c	Muxing values.
  *		8 pins per register, each pin having a 4bits value
  * 0x10		Pin values
@@ -170,6 +239,21 @@ struct sunxi_pinctrl {
  *
  * This is for the first bank. Each bank will have the same layout,
  * with an offset being a multiple of 0x24.
+ *
+ * NEW platform:
+ * 0x00 - 0x0c	Muxing values.
+ *		8 pins per register, each pin having a 4bits value
+ * 0x10		Pin values
+ *		32 bits per register, each pin corresponding to one bit
+ * 0x14 - 0x20	Drive level
+ *		8 pins per register, each pin having a 4bits value(high 2bits
+ *		are reserved)
+ * 0x24 - 0x28	Pull-Up values
+ *		16 pins per register, each pin having a 2bits value
+ * 0x3c		NULL
+ *
+ * This is for the first bank. Each bank will have the same layout,
+ * with an offset being a multiple of 0x30.
  *
  * The following functions calculate from the pin number the register
  * and the bit offset that we should access.
@@ -284,7 +368,21 @@ static inline u32 sunxi_irq_status_offset(u16 irq)
 	return irq_num * IRQ_STATUS_IRQ_BITS;
 }
 
+static inline u32 sunxi_irq_debounce_reg_from_bank(u8 bank, unsigned bank_base)
+{
+	return IRQ_DEBOUNCE_REG + (bank_base + bank) * IRQ_MEM_SIZE;
+}
+
+static inline u32 sunxi_irq_debounce_reg(u16 irq, unsigned bank_base)
+{
+	u8 bank = irq / IRQ_PER_BANK;
+
+	return sunxi_irq_debounce_reg_from_bank(bank, bank_base);
+}
+
 int sunxi_pinctrl_init(struct platform_device *pdev,
 		       const struct sunxi_pinctrl_desc *desc);
+
+extern const struct dev_pm_ops sunxi_pinctrl_pm_ops;
 
 #endif /* __PINCTRL_SUNXI_H */

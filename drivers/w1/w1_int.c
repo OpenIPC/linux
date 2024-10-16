@@ -32,7 +32,7 @@
 #include "w1_netlink.h"
 #include "w1_int.h"
 
-static int w1_search_count = -1; /* Default is continual scan */
+static int w1_search_count = 1; /* Default is continual scan */
 module_param_named(search_count, w1_search_count, int, 0);
 
 static int w1_enable_pullup = 1;

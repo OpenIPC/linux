@@ -1,0 +1,16 @@
+menuconfig XR819S_WLAN
+	tristate "XR819S WLAN support"
+	default n
+	select CFG80211
+	select AVERAGE
+	select CRYPTO
+	select CRYPTO_ARC4
+	---help---
+	  To compile this code as a module, choose M here.
+
+if XR819S_WLAN
+
+source "drivers/net/wireless/xr819s/umac/Kconfig"
+source "drivers/net/wireless/xr819s/wlan/Kconfig"
+
+endif # CONFIG_XR819S_WLAN

@@ -86,8 +86,16 @@ struct inet_frag_queue {
 	__u8			flags;
 	u16			max_size;
 	struct netns_frags      *net;
-	struct rcu_head		rcu;
+	struct rcu_head         rcu;
 };
+
+#ifdef CONFIG_BASE_SMALL
+#define INETFRAGS_EVICT_BUCKETS   8
+#define INETFRAGS_EVICT_MAX	  16
+#else
+#define INETFRAGS_EVICT_BUCKETS   128
+#define INETFRAGS_EVICT_MAX	  512
+#endif
 
 struct inet_frags {
 	int			qsize;

@@ -1075,7 +1075,7 @@ void __hci_req_update_scan_rsp_data(struct hci_request *req, u8 instance)
 
 	cp.length = len;
 
-	hci_req_add(req, HCI_OP_LE_SET_SCAN_RSP_DATA, sizeof(cp), &cp);
+	//hci_req_add(req, HCI_OP_LE_SET_SCAN_RSP_DATA, sizeof(cp), &cp);
 }
 
 static u8 create_instance_adv_data(struct hci_dev *hdev, u8 instance, u8 *ptr)
@@ -1169,7 +1169,7 @@ void __hci_req_update_adv_data(struct hci_request *req, u8 instance)
 
 	cp.length = len;
 
-	hci_req_add(req, HCI_OP_LE_SET_ADV_DATA, sizeof(cp), &cp);
+	//hci_req_add(req, HCI_OP_LE_SET_ADV_DATA, sizeof(cp), &cp);
 }
 
 int hci_req_update_adv_data(struct hci_dev *hdev, u8 instance)

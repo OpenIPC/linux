@@ -4,6 +4,62 @@ menu "Rpmsg drivers"
 config RPMSG
 	tristate
 
+config SUNXI_MSGBOX
+	tristate "allwinnertech msgbox"
+	default n
+	select RPMSG
+	help
+	  Say y here to enable support for the allwinnertech providing
+	  communication channels to remote processors in allwinnertech
+	  platforms.
+
+config SUNXI_RPMSG_E907
+	tristate "allwinnertech rpmsg driver for v853-e907"
+	default n
+	select RPMSG
+	help
+	  Say y here to enable support for the v853-e907 rpmsg driver.
+
+config SUNXI_RPMSG_SPEEDTEST
+	tristate "allwinnertech rpmsg speedtest driver"
+	default n
+	select RPMSG
+	help
+	  Say y here to enable support for the rpmsg speedtest simple.
+
+config SUNXI_RPMSG_HEARBEAT
+	tristate "allwinnertech rpmsg hearbeat driver"
+	default n
+	select RPMSG
+	help
+	  Say y here to enable support for the rpmsg hearbeat simple.
+
+config RPMSG_CTRL
+	tristate "sunxi rpmsg ctrl driver"
+	default n
+	select RPMSG
+	help
+	  Say Y here to export rpmsg ctrl device files, usually found in /dev.
+	  They make it possible for user-space programs to create rpmsg
+	  endpoints device, it can be found in /dev/rpmsg%d.
+
+config RPMSG_NOTIFY
+	tristate "sunxi rpmsg notify driver"
+	default n
+	select RPMSG
+	help
+	  Say Y here to enable rpmsg notify  driver.It provides notification
+	  mechanism base on rpmsg.
+
+config RPMSG_CHAR
+	tristate "RPMSG device interface"
+	default n
+	depends on RPMSG
+	help
+	  Say Y here to export rpmsg endpoints as device files, usually found
+	  in /dev. They make it possible for user-space programs to send and
+	  receive rpmsg packets.
+
 config RPMSG_QCOM_SMD
 	tristate "Qualcomm Shared Memory Driver (SMD)"
 	depends on QCOM_SMEM
@@ -15,9 +71,9 @@ config RPMSG_QCOM_SMD
 	  platforms.
 
 config RPMSG_VIRTIO
-	tristate
+	tristate "Virtio RPMSG bus driver"
+	depends on HAS_DMA
 	select RPMSG
 	select VIRTIO
-	select VIRTUALIZATION
 
 endmenu

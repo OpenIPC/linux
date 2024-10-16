@@ -17,3 +17,7 @@ obj-$(CONFIG_QCOM_WCNSS_PIL)		+= qcom_wcnss_pil.o
 qcom_wcnss_pil-y			+= qcom_wcnss.o
 qcom_wcnss_pil-y			+= qcom_wcnss_iris.o
 obj-$(CONFIG_ST_REMOTEPROC)		+= st_remoteproc.o
+obj-$(CONFIG_SUNXI_RPROC)			+= sunxi_remoteproc.o
+sunxi_remoteproc-y					:= sunxi_rproc.o
+sunxi_remoteproc-y					+= sunxi_rproc_boot.o
+sunxi_remoteproc-y					+= sunxi_rproc_firmware.o

@@ -47,6 +47,11 @@ config W1_MASTER_DS1WM
 	  in HP iPAQ devices like h5xxx, h2200, and ASIC3-based like
 	  hx4700.
 
+config W1_MASTER_SUNXI
+	tristate "SUNXI 1-wire busmaster"
+	help
+	  Say Y here to enable the SUNXI 1-wire driver.
+
 config W1_MASTER_GPIO
 	tristate "GPIO 1-wire busmaster"
 	depends on GPIOLIB

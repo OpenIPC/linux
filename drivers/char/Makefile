@@ -59,4 +59,15 @@ js-rtc-y = rtc.o
 
 obj-$(CONFIG_TILE_SROM)		+= tile-srom.o
 obj-$(CONFIG_XILLYBUS)		+= xillybus/
+obj-y                           += sunxi-scr/
 obj-$(CONFIG_POWERNV_OP_PANEL)	+= powernv-op-panel.o
+obj-$(CONFIG_ARCH_SUNXI)	+= sunxi-sysinfo/
+
+obj-$(CONFIG_SUNXI_TIMER_TEST)  += timer_test/
+obj-$(CONFIG_DUMP_REG)          += dump_reg/
+obj-$(CONFIG_SUNXI_TRANSFORM)   += sunxi_tr/
+obj-y                           += sunxi-di/
+obj-$(CONFIG_SUNXI_G2D)         += sunxi_g2d/
+obj-$(CONFIG_SUNXI_DSPO)         += sunxi_dspo/
+obj-${CONFIG_SUNXI_NNA_VIP}     += sunxi_nna_vip/
+obj-${CONFIG_SUNXI_NNA_GALCORE}     += sunxi_nna_galcore/

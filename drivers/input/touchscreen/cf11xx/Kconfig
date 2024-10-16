@@ -1,0 +1,10 @@
+#
+# Touchscreen driver configuration
+#
+config TOUCHSCREEN_CF11XX_SITRONIX_TS
+    tristate "sitronix Ts for TOUCHSCREEN"
+    depends on I2C
+    default n
+    help
+      Say Y here if you have hynitorn touch panel.
+      If unsure, say N.

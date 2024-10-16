@@ -875,6 +875,17 @@ static irqreturn_t ohci_irq (struct usb_hcd *hcd)
 	 */
 	ints = ohci_readl(ohci, &regs->intrstatus);
 
+{
+	if (ints & OHCI_INTR_RHSC) {
+		int portstatus0 = ohci_readl(ohci, &ohci->regs->roothub.portstatus[0]);
+		if ((portstatus0 & RH_PS_CCS) && (portstatus0 & RH_PS_CSC)) {
+			ohci_info(ohci, "ohci_irq: fullspeed or lowspeed device connect\n");
+		} else if (!(portstatus0 & RH_PS_CCS) && (portstatus0 & RH_PS_CSC)) {
+			ohci_info(ohci, "ohci_irq: fullspeed or lowspeed device disconnect\n");
+		}
+	}
+}
+
 	/* Check for an all 1's result which is a typical consequence
 	 * of dead, unclocked, or unplugged (CardBus...) devices
 	 */
@@ -1262,6 +1273,11 @@ MODULE_LICENSE ("GPL");
 #ifdef CONFIG_TILE_USB
 #include "ohci-tilegx.c"
 #define PLATFORM_DRIVER		ohci_hcd_tilegx_driver
+#endif
+
+#if IS_ENABLED(CONFIG_USB_SUNXI_HCI)
+#include "ohci_sunxi.c"
+#define PLATFORM_DRIVER		sunxi_ohci_hcd_driver
 #endif
 
 static int __init ohci_hcd_mod_init(void)

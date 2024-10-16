@@ -1,0 +1,237 @@
+/*
+ * Copyright 2015 Chen-Yu Tsai
+ *
+ * Chen-Yu Tsai <wens@csie.org>
+ *
+ * This file is dual-licensed: you can use it either under the terms
+ * of the GPL or the X11 license, at your option. Note that this dual
+ * licensing only applies to this file, and not this project as a
+ * whole.
+ *
+ *  a) This file is free software; you can redistribute it and/or
+ *     modify it under the terms of the GNU General Public License as
+ *     published by the Free Software Foundation; either version 2 of the
+ *     License, or (at your option) any later version.
+ *
+ *     This file is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU General Public License for more details.
+ *
+ * Or, alternatively,
+ *
+ *  b) Permission is hereby granted, free of charge, to any person
+ *     obtaining a copy of this software and associated documentation
+ *     files (the "Software"), to deal in the Software without
+ *     restriction, including without limitation the rights to use,
+ *     copy, modify, merge, publish, distribute, sublicense, and/or
+ *     sell copies of the Software, and to permit persons to whom the
+ *     Software is furnished to do so, subject to the following
+ *     conditions:
+ *
+ *     The above copyright notice and this permission notice shall be
+ *     included in all copies or substantial portions of the Software.
+ *
+ *     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ *     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ *     OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ *     NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ *     HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ *     WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ *     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ *     OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+/*
+ * AXP221/221s/223 Integrated Power Management Chip
+ * http://www.x-powers.com/product/AXP22X.php
+ * http://dl.linux-sunxi.org/AXP/AXP221%20Datasheet%20V1.2%2020130326%20.pdf
+ */
+
+&axp2202 {
+	interrupt-controller;
+	#interrupt-cells = <1>;
+
+	regulators {
+		/* Default work frequency for buck regulators */
+		compatible = "x-powers,axp2202-regulator";
+
+		reg_dcdc1: dcdc1 {
+			regulator-name = "axp2202-dcdc1";
+			regulator-min-microvolt = <500000>;
+			regulator-max-microvolt = <1540000>;
+			regulator-boot-on;
+			regulator-always-on;
+		};
+
+		reg_dcdc2: dcdc2 {
+			regulator-name = "axp2202-dcdc2";
+			regulator-min-microvolt = <500000>;
+			regulator-max-microvolt = <3400000>;
+			regulator-boot-on;
+			regulator-always-on;
+		};
+
+		reg_dcdc3: dcdc3 {
+			regulator-name = "axp2202-dcdc3";
+			regulator-min-microvolt = <500000>;
+			regulator-max-microvolt = <1840000>;
+			regulator-boot-on;
+			regulator-always-on;
+		};
+
+		reg_cpusldo: cpusldo {
+			regulator-name = "axp2202-cpusldo";
+			regulator-min-microvolt = <500000>;
+			regulator-max-microvolt = <1400000>;
+			regulator-boot-on;
+			regulator-always-on;
+		};
+
+		reg_aldo1: aldo1 {
+			regulator-name = "axp2202-aldo1";
+			regulator-min-microvolt = <500000>;
+			regulator-max-microvolt = <3500000>;
+		};
+
+		reg_aldo2: aldo2 {
+			regulator-name = "axp2202-aldo2";
+			regulator-min-microvolt = <500000>;
+			regulator-max-microvolt = <3500000>;
+		};
+
+		reg_aldo3: aldo3 {
+			regulator-name = "axp2202-aldo3";
+			regulator-min-microvolt = <500000>;
+			regulator-max-microvolt = <3500000>;
+		};
+
+		reg_aldo4: aldo4 {
+			regulator-name = "axp2202-aldo4";
+			regulator-min-microvolt = <500000>;
+			regulator-max-microvolt = <3500000>;
+		};
+
+		reg_bldo1: bldo1 {
+			regulator-name = "axp2202-bldo1";
+			regulator-min-microvolt = <500000>;
+			regulator-max-microvolt = <3500000>;
+		};
+
+		reg_bldo2: bldo2 {
+			regulator-name = "axp2202-bldo2";
+			regulator-min-microvolt = <500000>;
+			regulator-max-microvolt = <3500000>;
+		};
+
+		reg_bldo3: bldo3 {
+			regulator-name = "axp2202-bldo3";
+			regulator-min-microvolt = <500000>;
+			regulator-max-microvolt = <3500000>;
+		};
+
+		reg_bldo4: bldo4 {
+			regulator-name = "axp2202-bldo4";
+			regulator-min-microvolt = <500000>;
+			regulator-max-microvolt = <1400000>;
+		};
+
+		reg_cldo1: cldo1 {
+			regulator-name = "axp2202-cldo1";
+			regulator-min-microvolt = <500000>;
+			regulator-max-microvolt = <1400000>;
+		};
+		reg_cldo2: cldo2 {
+			regulator-name = "axp2202-cldo2";
+			regulator-min-microvolt = <500000>;
+			regulator-max-microvolt = <1400000>;
+		};
+		reg_cldo3: cldo3 {
+			regulator-name = "axp2202-cldo3";
+			regulator-min-microvolt = <500000>;
+			regulator-max-microvolt = <1400000>;
+		};
+		reg_cldo4: cldo4 {
+			regulator-name = "axp2202-cldo4";
+			regulator-min-microvolt = <500000>;
+			regulator-max-microvolt = <1400000>;
+		};
+
+
+		reg_drivevbus: drivevbus {
+			regulator-name = "drivevbus";
+			status = "disabled";
+		};
+	};
+
+	usb_power_supply: usb_power_supply {
+		compatible = "x-powers,axp2202-usb-power-supply";
+	};
+
+	charger0: charger@0{
+			  compatible = "x-powers,axp2202-power-supply";
+			  param = <&axp2202_parameter>;
+			  status = "okay";
+			  pmu_chg_ic_temp = <0>;
+			  pmu_battery_cap = <888>;
+			  pmu_runtime_chgcur = <1000>;
+			  pmu_suspend_chgcur = <1500>;
+			  pmu_shutdown_chgcur = <1500>;
+			  pmu_init_chgvol = <4200>;
+			  pmu_usbpc_cur = <2000>;
+			  pmu_battery_warning_level1 = <15>;
+			  pmu_battery_warning_level2 = <0x0>;
+			  pmu_chgled_type = <0x0>;
+
+			  wakeup_usb_in;
+			  wakeup_usb_out;
+			  wakeup_bat_out;
+			  /* wakeup_bat_in; */
+			  /* wakeup_bat_charging; */
+			  /* wakeup_bat_charge_over; */
+			  /* wakeup_low_warning1; */
+			  /* wakeup_low_warning2; */
+			  /* wakeup_bat_untemp_work; */
+			  /* wakeup_bat_ovtemp_work; */
+			  /* wakeup_bat_untemp_chg; */
+			  /* wakeup_bat_ovtemp_chg; */
+
+
+	};
+
+	powerkey0: powerkey {
+		   compatible = "x-powers,axp2202-pek";
+		   pmu_powkey_off_time = <6000>;
+		   pmu_powkey_off_func = <0>;
+		   pmu_powkey_off_en = <1>;
+		   pmu_powkey_long_time = <1500>;
+		   pmu_powkey_on_time = <512>;
+		   wakeup_rising;
+		   /* wakeup_falling; */
+	};
+};
+
+/{
+	axp2202_parameter:axp2202-parameter {
+		select = "battery-model";
+
+		battery-model {
+			parameter = /bits/ 8 <0x01 0xF5 0x00 0x00 0xFB 0x00 0x00 0xFB
+				0x00 0x1E 0x32 0x01 0x14 0x04 0xD8 0x04
+				0x74 0xFD 0x58 0x0B 0xB3 0x10 0x3F 0xFB
+				0xC8 0x00 0xBE 0x03 0x4E 0x06 0x3F 0x06
+				0x02 0x0A 0xD3 0x0F 0x74 0x0F 0x31 0x09
+				0xE5 0x0E 0xB9 0x0E 0xC0 0x04 0xBE 0x04
+				0xBB 0x09 0xB4 0x0E 0xA0 0x0E 0x92 0x09
+				0x79 0x0E 0x4C 0x0E 0x27 0x03 0xFC 0x03
+				0xD5 0x08 0xBC 0x0D 0x9C 0x0D 0x55 0x06
+				0xB8 0x2E 0x24 0x2E 0x2E 0x24 0x2E 0x24
+				0xC5 0x98 0x7E 0x66 0x4E 0x44 0x38 0x1A
+				0x12 0x0A 0xF6 0x00 0x00 0xF6 0x00 0xF6
+				0x00 0xFB 0x00 0x00 0xFB 0x00 0x00 0xFB
+				0x00 0x00 0xF6 0x00 0x00 0xF6 0x00 0xF6
+				0x00 0xFB 0x00 0x00 0xFB 0x00 0x00 0xFB
+				0x00 0x00 0xF6 0x00 0x00 0xF6 0x00 0xF6>;
+		};
+			  };
+};

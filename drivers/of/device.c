@@ -89,6 +89,9 @@ void of_dma_configure(struct device *dev, struct device_node *np)
 	bool coherent;
 	unsigned long offset;
 	const struct iommu_ops *iommu;
+	struct device_node *iommu_np;
+	static u32 iova_base;
+	static int failed;
 
 	/*
 	 * Set default coherent_dma_mask to 32 bit.  Drivers are expected to
@@ -108,6 +111,40 @@ void of_dma_configure(struct device *dev, struct device_node *np)
 	if (ret < 0) {
 		dma_addr = offset = 0;
 		size = dev->coherent_dma_mask + 1;
+		/*
+		 * we need to check the iommu node iova-base property because
+		 * not all iommu devices have access to zero-based addresses.
+		 * e.g. v853-e907 can not access addresses less than 0x40000000
+		 * via iommu.
+		 *
+		 * skip finding if it has already failed or found the node.
+		 * failed = 1, if failed or success
+		 * failed = 0, at init status
+		 */
+		if (failed)
+			goto out;
+
+		failed = 1;
+		/*
+		 * here we do not use of_find_node_by_name because there may
+		 * be multiple nodes with the same name in dts.
+		 * */
+		iommu_np = of_find_compatible_node(NULL, NULL, "allwinner,sunxi-iommu");
+		if (IS_ERR_OR_NULL(iommu_np)) {
+			dev_warn(dev, "failed  to find iommu node.\n");
+			goto out;
+		}
+
+		ret = of_property_read_u32_array(iommu_np, "iova-base", &iova_base, 1);
+		if (ret < 0)
+			dev_warn(dev, "failed to get iova-base property from %s node,ret=%d.\n",
+							np->full_name, ret);
+		dev_warn(dev, "iova_base: 0x%x\n", iova_base);
+out:
+		if (iova_base) {
+			dma_addr = iova_base;
+			size = dev->coherent_dma_mask + 1 - iova_base;
+		}
 	} else {
 		offset = PFN_DOWN(paddr - dma_addr);
 

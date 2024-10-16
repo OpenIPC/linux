@@ -95,7 +95,7 @@ void dump_backtrace_stm(u32 *stack, u32 instruction)
 		printk("%s\n", str);
 }
 
-#ifndef CONFIG_ARM_UNWIND
+#if !defined(CONFIG_ARM_UNWIND)
 /*
  * Stack pointers should always be within the kernels view of
  * physical memory.  If it is not there, then we can't dump
@@ -103,9 +103,11 @@ void dump_backtrace_stm(u32 *stack, u32 instruction)
  */
 static int verify_stack(unsigned long sp)
 {
+#if !defined(CONFIG_VMAP_STACK)
 	if (sp < PAGE_OFFSET ||
 	    (sp > (unsigned long)high_memory && high_memory != NULL))
 		return -EFAULT;
+#endif
 
 	return 0;
 }

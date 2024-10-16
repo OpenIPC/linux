@@ -1,0 +1,33 @@
+# Helper to resolve issues with configs that have SPI enabled but I2C
+# modular, meaning we can't build the codec driver in with I2C support.
+# We use an ordered list of conditional defaults to pick the appropriate
+# setting - SPI can't be modular so that case doesn't need to be covered.
+menu "CODEC drivers"
+
+config SND_SOC_DMIC
+	tristate
+
+config SND_SOC_AC108
+        tristate "Sunxi AC108 Codec"
+        depends on I2C
+        default n
+        help
+          AC108 now used as external codec, Connect Through I2S.
+          Say Y or M if you want to add support external audio codec.
+
+config SND_SOC_AC107
+        tristate "Sunxi AC107 Codec"
+        depends on I2C
+        default n
+        help
+          AC107 now used as external codec, Connect Through I2S.
+          Say Y or M if you want to add support external audio codec.
+
+config SND_SOC_TAS5805M
+        tristate "Ti TAS5805M Audio Amplifier"
+        depends on I2C
+        default n
+        help
+	  Enable support for Texas Instruments TAS5805M audio amplifier;
+
+endmenu

@@ -1,0 +1,16 @@
+# Generic AIPU Configuration
+config AIPU
+	tristate "AIPU Driver Support"
+	depends on ARCH_SUN50IW11
+	select CMA
+	select DMA_CMA
+    help
+	  This implements a generic interface towards aipu.
+
+if AIPU
+
+menu "Aipu driver support"
+
+endmenu
+
+endif

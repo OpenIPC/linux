@@ -131,10 +131,9 @@ static int h4_recv(struct hci_uart *hu, const void *data, int count)
 	h4->rx_skb = h4_recv_buf(hu->hdev, h4->rx_skb, data, count,
 				 h4_recv_pkts, ARRAY_SIZE(h4_recv_pkts));
 	if (IS_ERR(h4->rx_skb)) {
-		int err = PTR_ERR(h4->rx_skb);
-		BT_ERR("%s: Frame reassembly failed (%d)", hu->hdev->name, err);
+		printk(KERN_INFO "Frame bad\n");
 		h4->rx_skb = NULL;
-		return err;
+		return -EILSEQ;
 	}
 
 	return count;
@@ -159,7 +158,14 @@ static const struct hci_uart_proto h4p = {
 
 int __init h4_init(void)
 {
-	return hci_uart_register_proto(&h4p);
+	int err = hci_uart_register_proto(&h4p);
+
+	if (!err)
+		BT_INFO("HCI H4 protocol initialized");
+	else
+		BT_ERR("HCI H4 protocol registration failed");
+
+	return err;
 }
 
 int __exit h4_deinit(void)
@@ -171,6 +177,10 @@ struct sk_buff *h4_recv_buf(struct hci_dev *hdev, struct sk_buff *skb,
 			    const unsigned char *buffer, int count,
 			    const struct h4_recv_pkt *pkts, int pkts_count)
 {
+	/* Check for error from previous call */
+	if (IS_ERR(skb))
+		skb = NULL;
+
 	while (count) {
 		int i, len;
 
@@ -221,9 +231,16 @@ struct sk_buff *h4_recv_buf(struct hci_dev *hdev, struct sk_buff *skb,
 			u16 dlen;
 
 			switch ((&pkts[i])->lsize) {
-			case 0:
-				/* No variable data length */
-				dlen = 0;
+			case 2:
+				/* Double octet variable length */
+				dlen = get_unaligned_le16(skb->data +
+							  (&pkts[i])->loff);
+				hci_skb_expect(skb) += dlen;
+
+				if (skb_tailroom(skb) < dlen) {
+					kfree_skb(skb);
+					return ERR_PTR(-EMSGSIZE);
+				}
 				break;
 			case 1:
 				/* Single octet variable length */
@@ -235,16 +252,9 @@ struct sk_buff *h4_recv_buf(struct hci_dev *hdev, struct sk_buff *skb,
 					return ERR_PTR(-EMSGSIZE);
 				}
 				break;
-			case 2:
-				/* Double octet variable length */
-				dlen = get_unaligned_le16(skb->data +
-							  (&pkts[i])->loff);
-				hci_skb_expect(skb) += dlen;
-
-				if (skb_tailroom(skb) < dlen) {
-					kfree_skb(skb);
-					return ERR_PTR(-EMSGSIZE);
-				}
+			case 0:
+				/* No variable data length */
+				dlen = 0;
 				break;
 			default:
 				/* Unsupported variable length */

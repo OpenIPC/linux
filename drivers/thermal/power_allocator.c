@@ -18,6 +18,7 @@
 #include <linux/rculist.h>
 #include <linux/slab.h>
 #include <linux/thermal.h>
+#include <linux/cpufreq.h>
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/thermal_power_allocator.h>
@@ -155,15 +156,15 @@ static void estimate_pid_constants(struct thermal_zone_device *tz,
 	if (!temperature_threshold)
 		return;
 
-	if (!tz->tzp->k_po || force)
+	if (!tz->tzp->is_k_po_available || force)
 		tz->tzp->k_po = int_to_frac(sustainable_power) /
 			temperature_threshold;
 
-	if (!tz->tzp->k_pu || force)
+	if (!tz->tzp->is_k_pu_available || force)
 		tz->tzp->k_pu = int_to_frac(2 * sustainable_power) /
 			temperature_threshold;
 
-	if (!tz->tzp->k_i || force)
+	if (!tz->tzp->is_k_i_available || force)
 		tz->tzp->k_i = int_to_frac(10) / 1000;
 	/*
 	 * The default for k_d and integral_cutoff is 0, so we can
@@ -247,6 +248,10 @@ static u32 pid_controller(struct thermal_zone_device *tz,
 
 	/* feed-forward the known sustainable dissipatable power */
 	power_range = sustainable_power + frac_to_int(power_range);
+	trace_thermal_power_allocator_pid(tz, frac_to_int(err),
+					  frac_to_int(params->err_integral),
+					  frac_to_int(p), frac_to_int(i),
+					  frac_to_int(d), power_range);
 
 	power_range = clamp(power_range, (s64)0, (s64)max_allocatable_power);
 
@@ -441,6 +446,7 @@ static int allocate_power(struct thermal_zone_device *tz,
 				      granted_power, total_granted_power,
 				      num_actors, power_range,
 				      max_allocatable_power, tz->temperature,
+				      num_online_cpus(), cpufreq_quick_get(0),
 				      control_temp - tz->temperature);
 
 	kfree(req_power);

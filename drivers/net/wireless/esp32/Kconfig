@@ -1,0 +1,5 @@
+menuconfig ESP32_WLAN
+	tristate "ESP32 WLAN support"
+	default n
+	---help---
+	  To compile this code as a module, choose M here.

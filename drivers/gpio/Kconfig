@@ -12,7 +12,6 @@ config ARCH_HAVE_CUSTOM_GPIO_H
 
 menuconfig GPIOLIB
 	bool "GPIO Support"
-	select ANON_INODES
 	help
 	  This enables GPIO support through the generic GPIO library.
 	  You only need to enable this, if you also want to enable
@@ -127,6 +126,11 @@ config GPIO_AXP209
 	depends on MFD_AXP20X
 	help
 	  Say yes to enable GPIO support for the AXP209 PMIC
+
+config GPIO_SUNXI
+	tristate "SUNXI GPIO Support"
+	help
+	  Say yes if need SUNXI GPIO Support
 
 config GPIO_BCM_KONA
 	bool "Broadcom Kona GPIO"

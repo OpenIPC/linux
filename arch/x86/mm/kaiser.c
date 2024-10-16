@@ -9,7 +9,6 @@
 #include <linux/spinlock.h>
 #include <linux/mm.h>
 #include <linux/uaccess.h>
-#include <linux/cpu.h>
 
 #undef pr_fmt
 #define pr_fmt(fmt)     "Kernel/User page tables isolation: " fmt
@@ -21,7 +20,6 @@
 #include <asm/desc.h>
 #include <asm/cmdline.h>
 #include <asm/vsyscall.h>
-#include <asm/sections.h>
 
 int kaiser_enabled __read_mostly = 1;
 EXPORT_SYMBOL(kaiser_enabled);	/* for inlined TLB flush functions */
@@ -298,8 +296,7 @@ void __init kaiser_check_boottime_disable(void)
 			goto skip;
 	}
 
-	if (cmdline_find_option_bool(boot_command_line, "nopti") ||
-	    cpu_mitigations_off())
+	if (cmdline_find_option_bool(boot_command_line, "nopti"))
 		goto disable;
 
 skip:

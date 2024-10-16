@@ -20,7 +20,7 @@ videodev-$(CONFIG_MEDIA_CONTROLLER) += v4l2-mc.o
 
 obj-$(CONFIG_VIDEO_V4L2) += videodev.o
 obj-$(CONFIG_VIDEO_V4L2) += v4l2-common.o
-obj-$(CONFIG_VIDEO_V4L2) += v4l2-dv-timings.o
+obj-$(CONFIG_VIDEO_DV_TIMINGS) += v4l2-dv-timings.o
 
 obj-$(CONFIG_VIDEO_TUNER) += tuner.o
 

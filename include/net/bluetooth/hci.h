@@ -48,6 +48,9 @@
 #define HCI_DEV_CLOSE			8
 #define HCI_DEV_SETUP			9
 
+#define HCI_DEV_WAKEUP      10
+#define HCI_DEV_SLEEP       11
+
 /* HCI notify events */
 #define HCI_NOTIFY_CONN_ADD		1
 #define HCI_NOTIFY_CONN_DEL		2
@@ -273,7 +276,7 @@ enum {
 #define HCI_AUTO_OFF_TIMEOUT	msecs_to_jiffies(2000)	/* 2 seconds */
 #define HCI_POWER_OFF_TIMEOUT	msecs_to_jiffies(5000)	/* 5 seconds */
 #define HCI_LE_CONN_TIMEOUT	msecs_to_jiffies(20000)	/* 20 seconds */
-#define HCI_LE_AUTOCONN_TIMEOUT	msecs_to_jiffies(2000)	/* 2 seconds */
+#define HCI_LE_AUTOCONN_TIMEOUT	msecs_to_jiffies(8000)	/* 8 seconds */
 
 /* HCI data types */
 #define HCI_COMMAND_PKT		0x01

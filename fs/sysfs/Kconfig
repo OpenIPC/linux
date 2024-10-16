@@ -22,3 +22,17 @@ config SYSFS
 	example, "root=03:01" for /dev/hda1.
 
 	Designers of embedded systems may wish to say N here to conserve space.
+
+config WORKQUEUE_SYSFS
+	bool "workqueue sysfs support"
+	depends on SYSFS
+	default y
+	help
+	 Export workqueue sysfs info.
+
+config PARAM_SYSFS
+	bool "param sysfs support"
+	depends on SYSFS
+	default y
+	help
+	 Export kernel param

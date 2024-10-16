@@ -1,0 +1,23 @@
+#
+#  PWM LED driver configuration
+#
+config  MISC_PWM_LEDS
+	tristate "LEDs by PWM Control driver, 3 PWMs control 3 colors"
+	depends on PWM
+	default n
+	help
+		Generic PWM framework driver for LEDS about breathing,and so on.
+
+config MISC_PWM_GPIO_LEDS
+	tristate "LEDs by PWM Control driver, 2 PWMs control 2 color and gpio control another one"
+	depends on PWM
+	default n
+	help
+		Generic PWM framework driver for LEDS about breathing,and so     on.
+
+config MISC_AXP_LEDS
+	tristate "LEDS show for AXP"
+	depends on PWM
+	default n
+	help
+		Support show led for AXP, such low capacity warning, and so on.

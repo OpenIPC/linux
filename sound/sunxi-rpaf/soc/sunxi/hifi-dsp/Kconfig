@@ -1,0 +1,91 @@
+# CPU DAI module
+config SND_SUN50IW11_SOC_HIFI_CPUDAI
+	tristate
+
+# Digital Audio(I2S/PCM/TDM)
+config SND_SUNXI_SOC_HIFI_DAUDIO
+	tristate
+
+# DMIC Audio Interface
+config SND_SUNXI_SOC_HIFI_DMIC
+	tristate
+
+# SUNXI Codec Embedded
+config SND_SUN50IW11_SOC_HIFI_CODEC
+	tristate
+
+config SND_SUNXI_SOC_HIFI_CODEC
+	tristate
+
+# SUNXI Platform HIFI
+config SND_SUNXI_SOC_HIFI
+	tristate
+
+config SND_SUNXI_HIFI
+	bool
+	default y if RPMSG && SND_SUNXI_RPAF
+
+# Card Machine Select
+config SND_SUN50IW11_HIFI_CODEC
+	tristate "Allwinner Audio Codec HiFi Support"
+	select SND_SUNXI_SOC_HIFI
+	select SND_SOC_GENERIC_DMAENGINE_PCM
+	select SND_SUNXI_SOC_HIFI_CODEC
+	select SND_SUN50IW11_SOC_HIFI_CODEC
+	select SND_SUN50IW11_SOC_HIFI_CPUDAI
+	depends on SND_SUNXI_HIFI && ARCH_SUN50IW11
+	help
+		Select Y or M to add support for the Codec embedded in the Allwinner
+		SUN50IW11 and affiliated SoCs.
+
+# Daudio Machine Select
+config SND_SUNXI_HIFI_DAUDIO
+	tristate "Allwinner Digital HiFi Support"
+	select SND_SUNXI_SOC_HIFI
+	select SND_SOC_GENERIC_DMAENGINE_PCM
+	select SND_SUNXI_SOC_HIFI_DAUDIO
+	depends on SND_SUNXI_HIFI && ARCH_SUN50IW11
+	help
+		Select Y or M to add support for I2S/PCM/TDM Module in the
+		Allwinner SoCs.
+
+# DMIC Machine Select
+config SND_SUNXI_HIFI_DMIC
+	tristate "Allwinner DMIC Support"
+	select SND_SUNXI_SOC_HIFI
+	select SND_SOC_GENERIC_DMAENGINE_PCM
+	select SND_SUNXI_SOC_HIFI_DMIC
+	select SND_SOC_DMIC
+	depends on SND_SUNXI_HIFI && ARCH_SUN50IW11
+	help
+		Select Y or M to add support DMIC Module in Allwinner
+		SoCs.
+
+config SUNXI_AUDIO_HIFI_DEBUG
+	bool "Allwinner Audio HiFi Debug Support"
+	default n
+	depends on SND_SUNXI_SOC_HIFI
+	help
+		Select Y to enable debug information of allwinner audio driver
+		If you not sure, Just not select it.
+
+config SND_SUNXI_HIFI_CODEC_DEBUG
+	bool "Allwinner HiFi Audio Codec Debug"
+    default n
+	depends on SUNXI_AUDIO_HIFI_DEBUG && SND_SUNXI_SOC_HIFI_CODEC
+	help
+		Say Y if you want to debug codec HiFi driver.
+
+config SND_SUNXI_HIFI_DAUDIO_DEBUG
+	bool "Allwinner HiFi DAUDIO Debug"
+	default n
+	depends on SUNXI_AUDIO_HIFI_DEBUG && SND_SUNXI_SOC_HIFI_DAUDIO
+	help
+		Say Y if you want to debug daudio hifi driver.
+
+config SND_SUNXI_HIFI_DMIC_DEBUG
+	bool "Allwinner HiFi DMIC Debug"
+    default n
+	depends on SUNXI_AUDIO_HIFI_DEBUG && SND_SUNXI_SOC_HIFI_DMIC
+	help
+		Say Y if you want to debug dmic driver.

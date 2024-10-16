@@ -163,6 +163,8 @@ extern void dmac_flush_range(const void *, const void *);
 
 #endif
 
+#define __dma_flush_area(a, s) dmac_flush_range((a), (a) + ((s) - 1))
+
 /*
  * Copy user data from/to a page which is mapped into a different
  * processes address space.  Really, we want to allow our "user

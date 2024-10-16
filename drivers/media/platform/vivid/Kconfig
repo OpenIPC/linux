@@ -9,6 +9,7 @@ config VIDEO_VIVID
 	select MEDIA_CEC_EDID
 	select VIDEOBUF2_VMALLOC
 	select VIDEO_V4L2_TPG
+	select VIDEO_DV_TIMINGS
 	default n
 	---help---
 	  Enables a virtual video driver. This driver emulates a webcam,

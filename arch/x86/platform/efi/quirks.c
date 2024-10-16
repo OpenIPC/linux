@@ -13,7 +13,6 @@
 #include <linux/dmi.h>
 #include <asm/efi.h>
 #include <asm/uv/uv.h>
-#include <asm/sections.h>
 
 #define EFI_MIN_RESERVE 5120
 

@@ -160,6 +160,7 @@ asmlinkage void __arm_smccc_hvc(unsigned long a0, unsigned long a1,
 
 #define SMCCC_SMC_INST	"smc	#0"
 #define SMCCC_HVC_INST	"hvc	#0"
+#define SMCCC_REG(n)	asm("x" # n)
 
 #elif defined(CONFIG_ARM)
 #include <asm/opcodes-sec.h>
@@ -167,6 +168,7 @@ asmlinkage void __arm_smccc_hvc(unsigned long a0, unsigned long a1,
 
 #define SMCCC_SMC_INST	__SMC(0)
 #define SMCCC_HVC_INST	__HVC(0)
+#define SMCCC_REG(n)	asm("r" # n)
 
 #endif
 
@@ -200,17 +202,17 @@ asmlinkage void __arm_smccc_hvc(unsigned long a0, unsigned long a1,
 #define __declare_arg_0(a0, res)					\
 	struct arm_smccc_res   *___res = res;				\
 	register unsigned long r0 asm("r0") = (u32)a0;			\
-	register unsigned long r1 asm("r1");				\
-	register unsigned long r2 asm("r2");				\
-	register unsigned long r3 asm("r3")
+	register unsigned long r1 SMCCC_REG(1);				\
+	register unsigned long r2 SMCCC_REG(2);				\
+	register unsigned long r3 SMCCC_REG(3)
 
 #define __declare_arg_1(a0, a1, res)					\
 	typeof(a1) __a1 = a1;						\
 	struct arm_smccc_res   *___res = res;				\
 	register unsigned long r0 asm("r0") = (u32)a0;			\
 	register unsigned long r1 asm("r1") = __a1;			\
-	register unsigned long r2 asm("r2");				\
-	register unsigned long r3 asm("r3")
+	register unsigned long r2 SMCCC_REG(2);				\
+	register unsigned long r3 SMCCC_REG(3)
 
 #define __declare_arg_2(a0, a1, a2, res)				\
 	typeof(a1) __a1 = a1;						\
@@ -219,7 +221,7 @@ asmlinkage void __arm_smccc_hvc(unsigned long a0, unsigned long a1,
 	register unsigned long r0 asm("r0") = (u32)a0;			\
 	register unsigned long r1 asm("r1") = __a1;			\
 	register unsigned long r2 asm("r2") = __a2;			\
-	register unsigned long r3 asm("r3")
+	register unsigned long r3 SMCCC_REG(3)
 
 #define __declare_arg_3(a0, a1, a2, a3, res)				\
 	typeof(a1) __a1 = a1;						\

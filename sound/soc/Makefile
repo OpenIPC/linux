@@ -1,5 +1,10 @@
+ifneq ($(CONFIG_ARCH_SUN8IW19),)
+snd-soc-core-objs := soc-core.o soc-dapm.o soc-cache.o soc-utils.o
+snd-soc-core-objs += soc-pcm.o soc-io.o soc-ops.o
+else
 snd-soc-core-objs := soc-core.o soc-dapm.o soc-jack.o soc-cache.o soc-utils.o
 snd-soc-core-objs += soc-pcm.o soc-io.o soc-devres.o soc-ops.o
+endif
 snd-soc-core-$(CONFIG_SND_SOC_COMPRESS) += soc-compress.o
 
 ifneq ($(CONFIG_SND_SOC_TOPOLOGY),)
@@ -44,6 +49,7 @@ obj-$(CONFIG_SND_SOC)	+= sirf/
 obj-$(CONFIG_SND_SOC)	+= spear/
 obj-$(CONFIG_SND_SOC)	+= sti/
 obj-$(CONFIG_SND_SOC)	+= sunxi/
+obj-$(CONFIG_SND_SOC)	+= sunxi_v2/
 obj-$(CONFIG_SND_SOC)	+= tegra/
 obj-$(CONFIG_SND_SOC)	+= txx9/
 obj-$(CONFIG_SND_SOC)	+= ux500/

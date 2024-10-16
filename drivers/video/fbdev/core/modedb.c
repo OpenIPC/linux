@@ -689,9 +689,11 @@ int fb_find_mode(struct fb_var_screeninfo *var,
 	if (!default_bpp)
 		default_bpp = 8;
 
+#ifdef CONFIG_FB_CMDLINE
 	/* Did the user specify a video mode? */
 	if (!mode_option)
 		mode_option = fb_mode_option;
+#endif
 	if (mode_option) {
 		const char *name = mode_option;
 		unsigned int namelen = strlen(name);

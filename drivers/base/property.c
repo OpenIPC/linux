@@ -979,6 +979,7 @@ enum dev_dma_attr device_get_dma_attr(struct device *dev)
 }
 EXPORT_SYMBOL_GPL(device_get_dma_attr);
 
+#ifdef CONFIG_ETHERNET
 /**
  * device_get_phy_mode - Get phy mode for given device
  * @dev:	Pointer to the given device
@@ -1056,3 +1057,4 @@ void *device_get_mac_address(struct device *dev, char *addr, int alen)
 	return device_get_mac_addr(dev, "address", addr, alen);
 }
 EXPORT_SYMBOL(device_get_mac_address);
+#endif

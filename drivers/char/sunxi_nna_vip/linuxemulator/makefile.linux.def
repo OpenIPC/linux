@@ -1,0 +1,191 @@
+#
+#  Common inlude file for Linux build.
+#
+
+################################################################
+# Arch.
+
+ARCH_TYPE           ?= arm
+CPU_TYPE            ?= arm920
+CPU_ARCH            ?=
+ABI                 ?=
+ENDIANNESS          ?=
+FPU                 ?=
+FLOAT_ABI           ?=
+LINUX_OABI          ?= 0
+
+STATIC_LINK_BUILD   ?= 0
+
+
+################################################################
+# Option dependency.
+
+ifneq ($(LINUX_OABI),1)
+  ABI               ?= aapcs-linux
+endif
+
+################################################################
+# Toolchain.
+
+CROSS_COMPILE     ?= arm-none-linux-gnueabi-
+ifeq ($(FPGA_BUILD),1)
+ifeq ($(ENABLE_ASAN), 1)
+CC                := $(CROSS_COMPILE)gcc-5
+else
+CC                := $(CROSS_COMPILE)gcc
+endif
+else
+CC                := $(CROSS_COMPILE)gcc
+endif
+CXX               := $(CROSS_COMPILE)g++
+AR                := $(CROSS_COMPILE)ar
+AS                := $(CROSS_COMPILE)as
+LD                := $(CROSS_COMPILE)ld
+RANLIB            := $(CROSS_COMPILE)ranlib
+STRIP             := $(CROSS_COMPILE)strip
+
+################################################################
+# Resource.
+
+KERNEL_DIR          ?=
+
+VIVANTE_SDK_DIR     ?= $(VIPLITE_ROOT)/build/sdk
+VIVANTE_SDK_INC     ?= $(VIVANTE_SDK_DIR)/include
+VIVANTE_SDK_LIB     ?= $(VIVANTE_SDK_DIR)/drivers
+
+################################################################
+# Target directory.
+
+ifeq ($(DEBUG),1)
+  OBJ_DIR           ?= bin_d
+else
+  OBJ_DIR           ?= bin_r
+endif
+
+KERNEL_OBJ          ?= $(VIPLITE_ROOT)/hal/kernel/$(OBJ_DIR)
+
+################################################################
+# Release directory.
+
+SDK_DIR             ?= $(VIPLITE_ROOT)/build/sdk
+
+###############################################################
+#only for driver build checking
+-include $(VIPLITE_ROOT)/check.makefile.linux
+
+# Common flags.
+
+ifneq ($(ABI),)
+  ifneq ($(ABI),0)
+    CFLAGS          += -mabi=$(ABI)
+  endif
+endif
+
+ifneq ($(ENDIANNESS),)
+  CFLAGS            += $(ENDIANNESS)
+  LFLAGS            += $(ENDIANNESS)
+  PFLAGS            += $(ENDIANNESS)
+endif
+
+CFLAGS              += -Wall -D_REENTRANT
+#CFLAGS              += -Wno-unused
+
+ifneq ($(CPU_TYPE),)
+  ifneq ($(CPU_TYPE),0)
+    CFLAGS          += -mtune=$(CPU_TYPE)
+    LFLAGS          += -mtune=$(CPU_TYPE)
+    PFLAGS          += -mtune=$(CPU_TYPE)
+  endif
+endif
+
+ifneq ($(CPU_ARCH),)
+  ifneq ($(CPU_ARCH),0)
+    CFLAGS          += -march=$(CPU_ARCH)
+    LFLAGS          += -march=$(CPU_ARCH)
+    PFLAGS          += -march=$(CPU_ARCH)
+  endif
+endif
+
+ifneq ($(FPU),)
+  CFLAGS            += -mfpu=$(FPU)
+  CXXFLAGS          += -mfpu=$(FPU)
+endif
+
+ifneq ($(FLOAT_ABI),)
+  CFLAGS            += -mfloat-abi=$(FLOAT_ABI)
+  CXXFLAGS          += -mfloat-abi=$(FLOAT_ABI)
+  LFLAGS            += -mfloat-abi=$(FLOAT_ABI)
+  PFLAGS            += -mfloat-abi=$(FLOAT_ABI)
+endif
+
+ifeq ($(LINUX_OABI), 1)
+  CFLAGS += -DLINUX_OABI
+endif
+
+ifeq ($(DEBUG), 1)
+  CFLAGS += -g -O0 -DDEBUG -DvpmdENABLE_DEBUG_LOG=4
+else
+  CFLAGS += -O2
+endif
+
+ifeq ($(STATIC_LINK_BUILD), 1)
+  CFLAGS += -DvpmdSTATIC_LINK=1
+endif
+
+ifeq ($(LINUXEMULATOR),1)
+  CFLAGS += -DvpmdFPGA_BUILD=$(LINUXEMULATOR)
+endif
+
+ifeq ($(USE_LINUX_CMA),1)
+  CFLAGS += -DUSE_LINUX_CMA
+endif
+
+ifeq ($(USE_LINUX_RESERVE_MEM),1)
+  CFLAGS += -DUSE_LINUX_RESERVE_MEM
+endif
+
+ifneq ($(USE_SECURE), )
+  CFLAGS += -DvpmdENABLE_SECURE=$(USE_SECURE)
+endif
+
+ifneq ($(USE_AGENT), )
+  CFLAGS += -DvpmdENABLE_USE_AGENT_TRIGGER=$(USE_AGENT)
+endif
+
+ifeq ($(ENABLE_NODE),1)
+  CFLAGS += -DvpmdENABLE_NODE=1
+endif
+
+ifeq ($(DISABLE_MMU), 1)
+  CFLAGS += -DvpmdENABLE_MMU=0
+endif
+
+ifeq ($(DISABLE_SYS_MEM_HEAP),1)
+  CFLAGS += -DvpmdENABLE_SYS_MEMORY_HEAP=0
+endif
+
+ifeq ($(DISABLE_VIDEO_MEM_HEAP),1)
+  CFLAGS += -DvpmdENABLE_VIDEO_MEMORY_HEAP=0
+endif
+
+ifneq ($(POWER_OFF_TIMEOUT), )
+  #CFLAGS += -DvpmdPOWER_OFF_TIMEOUT=$(POWER_OFF_TIMEOUT)
+endif
+
+ifeq ($(DISABLE_CREATE_BUF_FD),1)
+  CFLAGS += -DvpmdENABLE_CREATE_BUF_FD=0
+endif
+
+ifneq ($(HAL_CAPTURE), )
+  CFLAGS += -DvpmdENABLE_CAPTURE=$(HAL_CAPTURE)
+endif
+
+ifneq ($(HARDWARE_RECOVERY), )
+  CFLAGS += -DvpmdENABLE_RECOVERY=$(HARDWARE_RECOVERY)
+endif
+
+ifneq ($(AUTO_CORRECT_CONFLICTS), )
+  CFLAGS += -DvpmdAUTO_CORRECT_CONFLICTS=$(AUTO_CORRECT_CONFLICTS)
+endif
+
+ CFLAGS += -DvpmdNODE_MEMORY_IN_HEAP=0

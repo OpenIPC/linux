@@ -26,17 +26,6 @@ This section describes CPU vulnerabilities and their mitigations.
 
    hw-vuln/index
 
-Architecture-specific documentation
------------------------------------
-
-These books provide programming details about architecture-specific
-implementation.
-
-.. toctree::
-   :maxdepth: 2
-
-   x86/index
-
 Indices and tables
 ==================
 

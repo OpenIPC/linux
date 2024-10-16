@@ -225,21 +225,13 @@ struct kparam_array
 	    VERIFY_OCTAL_PERMISSIONS(perm), level, flags, { arg } }
 
 /* Obsolete - use module_param_cb() */
-#define module_param_call(name, set, get, arg, perm)			\
-	static const struct kernel_param_ops __param_ops_##name =		\
-		{ .flags = 0, (void *)set, (void *)get };		\
+#define module_param_call(name, _set, _get, arg, perm)			\
+	static const struct kernel_param_ops __param_ops_##name =	\
+		{ .flags = 0, .set = _set, .get = _get };		\
 	__module_param_call(MODULE_PARAM_PREFIX,			\
-			    name, &__param_ops_##name, arg,		\
-			    (perm) + sizeof(__check_old_set_param(set))*0, -1, 0)
+			    name, &__param_ops_##name, arg, perm, -1, 0)
 
-/* We don't get oldget: it's often a new-style param_get_uint, etc. */
-static inline int
-__check_old_set_param(int (*oldset)(const char *, struct kernel_param *))
-{
-	return 0;
-}
-
-#ifdef CONFIG_SYSFS
+#ifdef CONFIG_PARAM_SYSFS
 extern void kernel_param_lock(struct module *mod);
 extern void kernel_param_unlock(struct module *mod);
 #else
@@ -328,14 +320,14 @@ extern char *parse_args(const char *name,
 				     const char *doing, void *arg));
 
 /* Called by module remove. */
-#ifdef CONFIG_SYSFS
+#ifdef CONFIG_PARAM_SYSFS
 extern void destroy_params(const struct kernel_param *params, unsigned num);
 #else
 static inline void destroy_params(const struct kernel_param *params,
 				  unsigned num)
 {
 }
-#endif /* !CONFIG_SYSFS */
+#endif /* !CONFIG_PARAM_SYSFS */
 
 /* All the helper functions */
 /* The macros to do compile-time type checking stolen from Jakub
@@ -461,7 +453,7 @@ extern int param_get_string(char *buffer, const struct kernel_param *kp);
 
 struct module;
 
-#if defined(CONFIG_SYSFS) && defined(CONFIG_MODULES)
+#if defined(CONFIG_PARAM_SYSFS) && defined(CONFIG_MODULES)
 extern int module_param_sysfs_setup(struct module *mod,
 				    const struct kernel_param *kparam,
 				    unsigned int num_params);

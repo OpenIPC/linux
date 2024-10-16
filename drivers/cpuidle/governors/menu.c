@@ -18,6 +18,7 @@
 #include <linux/hrtimer.h>
 #include <linux/tick.h>
 #include <linux/sched.h>
+#include <linux/sched/loadavg.h>
 #include <linux/math64.h>
 #include <linux/module.h>
 
@@ -130,10 +131,6 @@ struct menu_device {
 	int		interval_ptr;
 };
 
-
-#define LOAD_INT(x) ((x) >> FSHIFT)
-#define LOAD_FRAC(x) LOAD_INT(((x) & (FIXED_1-1)) * 100)
-
 static inline int get_loadavg(unsigned long load)
 {
 	return LOAD_INT(load) * 10 + LOAD_FRAC(load) / 10;
@@ -178,7 +175,12 @@ static inline int performance_multiplier(unsigned long nr_iowaiters, unsigned lo
 
 	/* for higher loadavg, we are more reluctant */
 
-	mult += 2 * get_loadavg(load);
+	/*
+	 * this doesn't work as intended - it is almost always 0, but can
+	 * sometimes, depending on workload, spike very high into the hundreds
+	 * even when the average cpu load is under 10%.
+	 */
+	/* mult += 2 * get_loadavg(); */
 
 	/* for IO wait tasks (per cpu!) we add 5x each */
 	mult += 10 * nr_iowaiters;
@@ -364,7 +366,23 @@ static int menu_select(struct cpuidle_driver *drv, struct cpuidle_device *dev)
 
 		data->last_state_idx = i;
 	}
-
+	/*
+	 * C2 will impact the disp frame irq-op.
+	 *
+	 * because the system would close the vol of cluster.
+	 * when cpuidle-modules get the hw-irq, it will go as follows:
+	 * open vol of cluster -> boot cpu -> irq handler.
+	 * the time used above is more than the time disp-frame demand
+	 * so that it will forbid to enter C2 when disp enabled.
+	 */
+#ifdef CONFIG_DISP2_SUNXI
+	if (data->last_state_idx == 2) {
+		if (disp_is_enable()) {
+			//printk("#### disp_is_enable, can't not in C2!!\n");
+			data->last_state_idx = 1;
+		}
+	}
+#endif
 	return data->last_state_idx;
 }
 

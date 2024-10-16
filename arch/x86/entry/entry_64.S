@@ -91,7 +91,7 @@ ENDPROC(native_usergs_sysret64)
 .endm
 
 .macro TRACE_IRQS_IRETQ_DEBUG
-	btl	$9, EFLAGS(%rsp)		/* interrupts off? */
+	bt	$9, EFLAGS(%rsp)		/* interrupts off? */
 	jnc	1f
 	TRACE_IRQS_ON_DEBUG
 1:
@@ -313,7 +313,6 @@ ENTRY(__switch_to_asm)
 	pushq	%r13
 	pushq	%r14
 	pushq	%r15
-	pushfq
 
 	/* switch stack */
 	movq	%rsp, TASK_threadsp(%rdi)
@@ -336,7 +335,6 @@ ENTRY(__switch_to_asm)
 #endif
 
 	/* restore callee-saved registers */
-	popfq
 	popq	%r15
 	popq	%r14
 	popq	%r13
@@ -420,7 +418,6 @@ END(irq_entries_start)
 	 * tracking that we're in kernel mode.
 	 */
 	SWAPGS
-	FENCE_SWAPGS_USER_ENTRY
 	SWITCH_KERNEL_CR3
 
 	/*
@@ -434,10 +431,8 @@ END(irq_entries_start)
 	TRACE_IRQS_OFF
 
 	CALL_enter_from_user_mode
-	jmp	2f
+
 1:
-	FENCE_SWAPGS_KERNEL_ENTRY
-2:
 	/*
 	 * Save previous stack pointer, optionally switch to interrupt stack.
 	 * irq_count is used to check if a CPU is already on an interrupt stack
@@ -490,7 +485,7 @@ retint_kernel:
 #ifdef CONFIG_PREEMPT
 	/* Interrupts are off */
 	/* Check if we need preemption */
-	btl	$9, EFLAGS(%rsp)		/* were interrupts off? */
+	bt	$9, EFLAGS(%rsp)		/* were interrupts off? */
 	jnc	1f
 0:	cmpl	$0, PER_CPU_VAR(__preempt_count)
 	jnz	1f
@@ -631,13 +626,8 @@ apicinterrupt3 \num trace(\sym) smp_trace(\sym)
 #endif
 
 /* Make sure APIC interrupt handlers end up in the irqentry section: */
-#if defined(CONFIG_FUNCTION_GRAPH_TRACER) || defined(CONFIG_KASAN)
-# define PUSH_SECTION_IRQENTRY	.pushsection .irqentry.text, "ax"
-# define POP_SECTION_IRQENTRY	.popsection
-#else
-# define PUSH_SECTION_IRQENTRY
-# define POP_SECTION_IRQENTRY
-#endif
+#define PUSH_SECTION_IRQENTRY	.pushsection .irqentry.text, "ax"
+#define POP_SECTION_IRQENTRY	.popsection
 
 .macro apicinterrupt num sym do_sym
 PUSH_SECTION_IRQENTRY
@@ -779,7 +769,7 @@ ENTRY(\sym)
 
 	call	\do_sym
 
-	jmp	error_exit
+	jmp	error_exit			/* %ebx: no swapgs flag */
 	.endif
 END(\sym)
 .endm
@@ -1007,13 +997,6 @@ ENTRY(paranoid_entry)
 	movq	%rax, %cr3
 2:
 #endif
-	/*
-	 * The above doesn't do an unconditional CR3 write, even in the PTI
-	 * case.  So do an lfence to prevent GS speculation, regardless of
-	 * whether PTI is enabled.
-	 */
-	FENCE_SWAPGS_KERNEL_ENTRY
-
 	ret
 END(paranoid_entry)
 
@@ -1055,6 +1038,7 @@ END(paranoid_exit)
 
 /*
  * Save all registers in pt_regs, and switch gs if needed.
+ * Return: EBX=0: came from user mode; EBX=1: otherwise
  */
 ENTRY(error_entry)
 	cld
@@ -1067,6 +1051,7 @@ ENTRY(error_entry)
 	 * the kernel CR3 here.
 	 */
 	SWITCH_KERNEL_CR3
+	xorl	%ebx, %ebx
 	testb	$3, CS+8(%rsp)
 	jz	.Lerror_kernelspace
 
@@ -1075,7 +1060,6 @@ ENTRY(error_entry)
 	 * from user mode due to an IRET fault.
 	 */
 	SWAPGS
-	FENCE_SWAPGS_USER_ENTRY
 
 .Lerror_entry_from_usermode_after_swapgs:
 	/*
@@ -1087,8 +1071,6 @@ ENTRY(error_entry)
 	CALL_enter_from_user_mode
 	ret
 
-.Lerror_entry_done_lfence:
-	FENCE_SWAPGS_KERNEL_ENTRY
 .Lerror_entry_done:
 	TRACE_IRQS_OFF
 	ret
@@ -1100,6 +1082,7 @@ ENTRY(error_entry)
 	 * for these here too.
 	 */
 .Lerror_kernelspace:
+	incl	%ebx
 	leaq	native_irq_return_iret(%rip), %rcx
 	cmpq	%rcx, RIP+8(%rsp)
 	je	.Lerror_bad_iret
@@ -1107,7 +1090,7 @@ ENTRY(error_entry)
 	cmpq	%rax, RIP+8(%rsp)
 	je	.Lbstep_iret
 	cmpq	$.Lgs_change, RIP+8(%rsp)
-	jne	.Lerror_entry_done_lfence
+	jne	.Lerror_entry_done
 
 	/*
 	 * hack: .Lgs_change can fail with user gsbase.  If this happens, fix up
@@ -1115,7 +1098,6 @@ ENTRY(error_entry)
 	 * .Lgs_change's error handler with kernel gsbase.
 	 */
 	SWAPGS
-	FENCE_SWAPGS_USER_ENTRY
 	jmp .Lerror_entry_done
 
 .Lbstep_iret:
@@ -1129,23 +1111,31 @@ ENTRY(error_entry)
 	 * Switch to kernel gsbase:
 	 */
 	SWAPGS
-	FENCE_SWAPGS_USER_ENTRY
 
 	/*
 	 * Pretend that the exception came from user mode: set up pt_regs
-	 * as if we faulted immediately after IRET.
+	 * as if we faulted immediately after IRET and clear EBX so that
+	 * error_exit knows that we will be returning to user mode.
 	 */
 	mov	%rsp, %rdi
 	call	fixup_bad_iret
 	mov	%rax, %rsp
+	decl	%ebx
 	jmp	.Lerror_entry_from_usermode_after_swapgs
 END(error_entry)
 
+
+/*
+ * On entry, EBX is a "return to kernel mode" flag:
+ *   1: already in kernel mode, don't need SWAPGS
+ *   0: user gsbase is loaded, we need SWAPGS and standard preparation for return to usermode
+ */
 ENTRY(error_exit)
+	movl	%ebx, %eax
 	DISABLE_INTERRUPTS(CLBR_NONE)
 	TRACE_IRQS_OFF
-	testb	$3, CS(%rsp)
-	jz	retint_kernel
+	testl	%eax, %eax
+	jnz	retint_kernel
 	jmp	retint_user
 END(error_exit)
 
@@ -1226,7 +1216,6 @@ ENTRY(nmi)
 	 * to switch CR3 here.
 	 */
 	cld
-	FENCE_SWAPGS_USER_ENTRY
 	movq	%rsp, %rdx
 	movq	PER_CPU_VAR(cpu_current_top_of_stack), %rsp
 	pushq	5*8(%rdx)	/* pt_regs->ss */
@@ -1515,7 +1504,6 @@ end_repeat_nmi:
 	movq	%rax, %cr3
 2:
 #endif
-	FENCE_SWAPGS_KERNEL_ENTRY
 
 	/* paranoidentry do_nmi, 0; without TRACE_IRQS_OFF */
 	call	do_nmi

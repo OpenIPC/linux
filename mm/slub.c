@@ -210,7 +210,7 @@ struct track {
 
 enum track_item { TRACK_ALLOC, TRACK_FREE };
 
-#ifdef CONFIG_SYSFS
+#ifdef CONFIG_SLAB_SYSFS
 static int sysfs_slab_add(struct kmem_cache *);
 static int sysfs_slab_alias(struct kmem_cache *, const char *);
 static void memcg_propagate_slab_attrs(struct kmem_cache *s);
@@ -2351,7 +2351,7 @@ static inline unsigned long node_nr_objs(struct kmem_cache_node *n)
 }
 #endif /* CONFIG_SLUB_DEBUG */
 
-#if defined(CONFIG_SLUB_DEBUG) || defined(CONFIG_SYSFS)
+#if defined(CONFIG_SLUB_DEBUG) || defined(CONFIG_SLAB_SYSFS)
 static unsigned long count_partial(struct kmem_cache_node *n,
 					int (*get_count)(struct page *))
 {
@@ -2365,7 +2365,7 @@ static unsigned long count_partial(struct kmem_cache_node *n,
 	spin_unlock_irqrestore(&n->list_lock, flags);
 	return x;
 }
-#endif /* CONFIG_SLUB_DEBUG || CONFIG_SYSFS */
+#endif /* CONFIG_SLUB_DEBUG || CONFIG_SLAB_SYSFS */
 
 static noinline void
 slab_out_of_memory(struct kmem_cache *s, gfp_t gfpflags, int nid)
@@ -3749,11 +3749,15 @@ static void *kmalloc_large_node(size_t size, gfp_t flags, int node)
 {
 	struct page *page;
 	void *ptr = NULL;
+	unsigned int order = get_order(size);
 
 	flags |= __GFP_COMP | __GFP_NOTRACK;
-	page = alloc_pages_node(node, flags, get_order(size));
-	if (page)
+	page = alloc_pages_node(node, flags, order);
+	if (page) {
 		ptr = page_address(page);
+		mod_zone_page_state(page_zone(page), NR_SLAB_UNRECLAIMABLE,
+				    1 << order);
+	}
 
 	kmalloc_large_node_hook(ptr, size, flags);
 	return ptr;
@@ -3870,9 +3874,12 @@ void kfree(const void *x)
 
 	page = virt_to_head_page(x);
 	if (unlikely(!PageSlab(page))) {
+		unsigned int order = compound_order(page);
 		BUG_ON(!PageCompound(page));
 		kfree_hook(x);
-		__free_pages(page, compound_order(page));
+		mod_zone_page_state(page_zone(page), NR_SLAB_UNRECLAIMABLE,
+				    -(1 << order));
+		__free_pages(page, order);
 		return;
 	}
 	slab_free(page->slab_cache, page, object, NULL, 1, _RET_IP_);
@@ -4268,7 +4275,7 @@ void *__kmalloc_node_track_caller(size_t size, gfp_t gfpflags,
 }
 #endif
 
-#ifdef CONFIG_SYSFS
+#ifdef CONFIG_SLAB_SYSFS
 static int count_inuse(struct page *page)
 {
 	return page->inuse;
@@ -4517,6 +4524,7 @@ static int list_locations(struct kmem_cache *s, char *buf,
 	unsigned long *map = kmalloc(BITS_TO_LONGS(oo_objects(s->max)) *
 				     sizeof(unsigned long), GFP_KERNEL);
 	struct kmem_cache_node *n;
+	bool print_buf = false;
 
 	if (!map || !alloc_loc_track(&t, PAGE_SIZE / sizeof(struct location),
 				     GFP_TEMPORARY)) {
@@ -4544,8 +4552,11 @@ static int list_locations(struct kmem_cache *s, char *buf,
 	for (i = 0; i < t.count; i++) {
 		struct location *l = &t.loc[i];
 
-		if (len > PAGE_SIZE - KSYM_SYMBOL_LEN - 100)
-			break;
+		if (len > PAGE_SIZE - KSYM_SYMBOL_LEN - 100) {
+			print_buf = true;
+			pr_err("%s\n", buf);
+			len = 0;
+		}
 		len += sprintf(buf + len, "%7ld ", l->count);
 
 		if (l->addr)
@@ -4583,6 +4594,12 @@ static int list_locations(struct kmem_cache *s, char *buf,
 					 nodemask_pr_args(&l->nodes));
 
 		len += sprintf(buf + len, "\n");
+	}
+	if (print_buf) {
+		pr_info("%s\n", buf);
+		len = sprintf(buf, "sysfs node buffer size is PAGE_SIZE.");
+		len += sprintf(buf + len, "The message is more than 1 page.\n");
+		len += sprintf(buf + len, "Please get the message by kmsg\n");
 	}
 
 	free_loc_track(&t);
@@ -4647,12 +4664,12 @@ static void __init resiliency_test(void)
 	validate_slab_cache(kmalloc_caches[9]);
 }
 #else
-#ifdef CONFIG_SYSFS
+#ifdef CONFIG_SLAB_SYSFS
 static void resiliency_test(void) {};
 #endif
 #endif
 
-#ifdef CONFIG_SYSFS
+#ifdef CONFIG_SLAB_SYSFS
 enum slab_stat_type {
 	SL_ALL,			/* All slabs */
 	SL_PARTIAL,		/* Only partially allocated slabs */
@@ -4666,6 +4683,22 @@ enum slab_stat_type {
 #define SO_CPU		(1 << SL_CPU)
 #define SO_OBJECTS	(1 << SL_OBJECTS)
 #define SO_TOTAL	(1 << SL_TOTAL)
+
+#ifdef CONFIG_MEMCG
+static bool memcg_sysfs_enabled = IS_ENABLED(CONFIG_SLUB_MEMCG_SYSFS_ON);
+
+static int __init setup_slub_memcg_sysfs(char *str)
+{
+	int v;
+
+	if (get_option(&str, &v) > 0)
+		memcg_sysfs_enabled = v;
+
+	return 1;
+}
+
+__setup("slub_memcg_sysfs=", setup_slub_memcg_sysfs);
+#endif
 
 static ssize_t show_slab_objects(struct kmem_cache *s,
 			    char *buf, unsigned long flags)
@@ -5572,7 +5605,13 @@ static int sysfs_slab_add(struct kmem_cache *s)
 {
 	int err;
 	const char *name;
+	struct kset *kset = cache_kset(s);
 	int unmergeable = slab_unmergeable(s);
+
+	if (!kset) {
+		kobject_init(&s->kobj, &slab_ktype);
+		return 0;
+	}
 
 	if (unmergeable) {
 		/*
@@ -5590,7 +5629,7 @@ static int sysfs_slab_add(struct kmem_cache *s)
 		name = create_unique_id(s);
 	}
 
-	s->kobj.kset = cache_kset(s);
+	s->kobj.kset = kset;
 	err = kobject_init_and_add(&s->kobj, &slab_ktype, NULL, "%s", name);
 	if (err)
 		goto out;
@@ -5600,7 +5639,7 @@ static int sysfs_slab_add(struct kmem_cache *s)
 		goto out_del_kobj;
 
 #ifdef CONFIG_MEMCG
-	if (is_root_cache(s)) {
+	if (is_root_cache(s) && memcg_sysfs_enabled) {
 		s->memcg_kset = kset_create_and_add("cgroup", NULL, &s->kobj);
 		if (!s->memcg_kset) {
 			err = -ENOMEM;
@@ -5715,7 +5754,7 @@ static int __init slab_sysfs_init(void)
 }
 
 __initcall(slab_sysfs_init);
-#endif /* CONFIG_SYSFS */
+#endif /* CONFIG_SLAB_SYSFS */
 
 /*
  * The /proc/slabinfo ABI

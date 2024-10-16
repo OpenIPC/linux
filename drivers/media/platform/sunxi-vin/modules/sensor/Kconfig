@@ -1,0 +1,159 @@
+config SENSOR_AR0238
+	tristate "use ar0238 driver"
+	default n
+
+config SENSOR_AR0238_HISPI
+	tristate "use ar0238_hispi driver"
+	default n
+
+config SENSOR_OV5640
+	tristate "use ov5640 driver"
+	default n
+
+config SENSOR_OV2775_MIPI
+	tristate "use ov2775_mipi driver"
+	default n
+
+config SENSOR_OV2710_MIPI
+	tristate "use ov2710_mipi driver"
+	default n
+
+config SENSOR_OV2718_MIPI
+	tristate "use ov2718_mipi driver"
+	default n
+
+config SENSOR_OV7251_MIPI
+	tristate "use ov7251_mipi driver"
+	default n
+
+config SENSOR_OV2735_MIPI
+	tristate "use ov2735_mipi driver"
+	default n
+
+config SENSOR_OV7750_MIPI
+	tristate "use ov7750_mipi driver"
+	default n
+
+config SENSOR_OV5648
+	tristate "use ov5658 driver"
+	default n
+
+config SENSOR_GC2145
+	tristate "use gc2145 driver"
+	default n
+
+config SENSOR_GC0310_MIPI
+	tristate "use gc0310_mipi driver"
+	default n
+
+config SENSOR_GC2355_MIPI
+	tristate "use gc2355_mipi driver"
+	default n
+
+config SENSOR_GC2053_MIPI
+	tristate "use gc2053_mipi driver"
+	default n
+
+config SENSOR_GC4663_MIPI
+	tristate "use gc4663_mipi driver"
+	default n
+
+config SENSOR_GC0403_MIPI
+	tristate "use gc0403_mipi driver"
+	default n
+
+config SENSOR_GC5025_MIPI
+	tristate "use gc5025_mipi driver"
+	default n
+
+config SENSOR_GC5035_MIPI
+	tristate "use gc5035_mipi driver"
+	default n
+
+config SENSOR_GC02M1_MIPI
+	tristate "use gc02m1_mipi driver"
+	default n
+
+config SENSOR_SC2232_MIPI
+	tristate "use sc2232_mipi driver"
+	default n
+
+config SENSOR_SC031GS_MIPI
+	tristate "use sc031gs_mipi driver"
+	default n
+
+config SENSOR_SC530AI_MIPI
+	tristate "use sc530ai_mipi driver"
+	default n
+
+config SENSOR_IMX214
+	tristate "use imx214 driver"
+	default n
+
+config SENSOR_IMX219
+	tristate "use imx219 driver"
+	default n
+
+config SENSOR_IMX274_SLVDS
+	tristate "use imx274_slvds driver"
+	default n
+
+config SENSOR_IMX291_DVP
+	tristate "use imx291_dvp driver"
+	default n
+
+config SENSOR_IMX291_MIPI
+	tristate "use imx291_mipi driver"
+	default n
+
+config SENSOR_IMX307_MIPI
+	tristate "use imx307_mipi driver"
+	default n
+
+config SENSOR_IMX317_MIPI
+	tristate "use imx317_mipi driver"
+	default n
+
+config SENSOR_IMX335_MIPI
+	tristate "use imx335_mipi driver"
+	default n
+
+config SENSOR_IMX326_MIPI
+	tristate "use imx326_mipi driver"
+	default n
+
+config SENSOR_IMX477_MIPI
+	tristate "use imx477_mipi driver"
+	default n
+
+config SENSOR_IMX278_MIPI
+	tristate "use imx278_mipi driver"
+	default n
+
+config SENSOR_IMX258_MIPI
+	tristate "use imx258_mipi driver"
+	default n
+
+config SENSOR_IMX386_MIPI
+	tristate "use imx386_mipi driver"
+	default n
+
+config SENSOR_IMX386_2LANE_MIPI
+	tristate "use imx386_2lane_mipi driver"
+	default n
+
+config SENSOR_S5K3H5XA
+	tristate "use s5k3h5xa driver"
+	default n
+
+config SENSOR_TP9950
+	tristate "use tp9950 driver"
+	default n
+
+config SENSOR_TP9953
+	tristate "use tp9953 driver"
+	default n
+
+config SENSOR_OFILM0092
+	tristate "use ofilm0092 driver"
+	default n
