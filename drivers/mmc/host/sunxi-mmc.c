@@ -544,7 +544,7 @@ static void sunxi_mmc_dump_errinfo(struct sunxi_mmc_host *host)
 	 *  return;
 	 */
 
-	dev_err(mmc_dev(host->mmc),
+	dev_dbg(mmc_dev(host->mmc),
 		"smc %d p%d err, cmd %d,%s%s%s%s%s%s%s%s%s%s !!\n",
 		host->mmc->index, host->phy_index, cmd->opcode,
 		data ? (data->flags & MMC_DATA_WRITE ? " WR" : " RD") : "",
@@ -1240,7 +1240,7 @@ static void sunxi_mmc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 	WARN_ON(ios->bus_mode >= ARRAY_SIZE(bus_mode));
 	WARN_ON(ios->power_mode >= ARRAY_SIZE(pwr_mode));
 	WARN_ON(ios->timing >= ARRAY_SIZE(timing));
-	dev_info(mmc_dev(mmc),
+	dev_dbg(mmc_dev(mmc),
 		 "sdc set ios:clk %dHz bm %s pm %s vdd %d width %d timing %s dt %s\n",
 		 ios->clock, bus_mode[ios->bus_mode],
 		 pwr_mode[ios->power_mode], ios->vdd,

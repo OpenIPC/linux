@@ -153,137 +153,26 @@
 			clock-latency-ns = <244144>; /* 8 32k periods */
 			opp-supported-hw = <0x42B>;
 		};
-		opp@408000000-96 {
-			opp-hz = /bits/ 64 <408000000>;
-			opp-microvolt = <960000>;
-			clock-latency-ns = <244144>; /* 8 32k periods */
-			opp-supported-hw = <0xA54>;
-		};
-		opp@408000000-100 {
-			opp-hz = /bits/ 64 <408000000>;
-			opp-microvolt = <1000000>;
-			clock-latency-ns = <244144>; /* 8 32k periods */
-			opp-supported-hw = <0x80>;
-		};
-		opp@408000000-105 {
-			opp-hz = /bits/ 64 <408000000>;
-			opp-microvolt = <1050000>;
-			clock-latency-ns = <244144>; /* 8 32k periods */
-			opp-supported-hw = <0x100>;
-		};
+
 		opp@600000000-92 {
 			opp-hz = /bits/ 64 <600000000>;
 			opp-microvolt = <920000>;
 			clock-latency-ns = <244144>; /* 8 32k periods */
 			opp-supported-hw = <0x42B>;
 		};
-		opp@600000000-96 {
-			opp-hz = /bits/ 64 <600000000>;
-			opp-microvolt = <960000>;
-			clock-latency-ns = <244144>; /* 8 32k periods */
-			opp-supported-hw = <0xA54>;
-		};
-		opp@600000000-100 {
-			opp-hz = /bits/ 64 <600000000>;
-			opp-microvolt = <1000000>;
-			clock-latency-ns = <244144>; /* 8 32k periods */
-			opp-supported-hw = <0x80>;
-		};
-		opp@600000000-105 {
-			opp-hz = /bits/ 64 <600000000>;
-			opp-microvolt = <1050000>;
-			clock-latency-ns = <244144>; /* 8 32k periods */
-			opp-supported-hw = <0x100>;
-		};
+
 		opp@720000000-92 {
 			opp-hz = /bits/ 64 <720000000>;
 			opp-microvolt = <920000>;
 			clock-latency-ns = <244144>; /* 8 32k periods */
 			opp-supported-hw = <0x42B>;
 		};
-		opp@720000000-96 {
-			opp-hz = /bits/ 64 <720000000>;
-			opp-microvolt = <960000>;
-			clock-latency-ns = <244144>; /* 8 32k periods */
-			opp-supported-hw = <0xA54>;
-		};
-		opp@720000000-100 {
-			opp-hz = /bits/ 64 <720000000>;
-			opp-microvolt = <1000000>;
-			clock-latency-ns = <244144>; /* 8 32k periods */
-			opp-supported-hw = <0x80>;
-		};
-		opp@720000000-105 {
-			opp-hz = /bits/ 64 <720000000>;
-			opp-microvolt = <1050000>;
-			clock-latency-ns = <244144>; /* 8 32k periods */
-			opp-supported-hw = <0x100>;
-		};
-		opp@900000000-92 {
-			opp-hz = /bits/ 64 <900000000>;
+
+		opp@912000000-92 {
+			opp-hz = /bits/ 64 <912000000>;
 			opp-microvolt = <920000>;
 			clock-latency-ns = <244144>; /* 8 32k periods */
 			opp-supported-hw = <0x42B>;
-		};
-		opp@900000000-96 {
-			opp-hz = /bits/ 64 <900000000>;
-			opp-microvolt = <960000>;
-			clock-latency-ns = <244144>; /* 8 32k periods */
-			opp-supported-hw = <0xA54>;
-		};
-		opp@900000000-100 {
-			opp-hz = /bits/ 64 <900000000>;
-			opp-microvolt = <1000000>;
-			clock-latency-ns = <244144>; /* 8 32k periods */
-			opp-supported-hw = <0x80>;
-		};
-		opp@900000000-105 {
-			opp-hz = /bits/ 64 <900000000>;
-			opp-microvolt = <1050000>;
-			clock-latency-ns = <244144>; /* 8 32k periods */
-			opp-supported-hw = <0x100>;
-		};
-		opp@1008000000-96 {
-			opp-hz = /bits/ 64 <1008000000>;
-			opp-microvolt = <960000>;
-			clock-latency-ns = <244144>; /* 8 32k periods */
-			opp-supported-hw = <0xE54>;
-		};
-		opp@1008000000-100 {
-			opp-hz = /bits/ 64 <1008000000>;
-			opp-microvolt = <1000000>;
-			clock-latency-ns = <244144>; /* 8 32k periods */
-			opp-supported-hw = <0x80>;
-		};
-		opp@1008000000-105 {
-			opp-hz = /bits/ 64 <1008000000>;
-			opp-microvolt = <1050000>;
-			clock-latency-ns = <244144>; /* 8 32k periods */
-			opp-supported-hw = <0x100>;
-		};
-		opp@1104000000-100 {
-			opp-hz = /bits/ 64 <1104000000>;
-			opp-microvolt = <1000000>;
-			clock-latency-ns = <244144>; /* 8 32k periods */
-			opp-supported-hw = <0xC80>;
-		};
-		opp@1104000000-105 {
-			opp-hz = /bits/ 64 <1104000000>;
-			opp-microvolt = <1050000>;
-			clock-latency-ns = <244144>; /* 8 32k periods */
-			opp-supported-hw = <0x100>;
-		};
-		opp@1200000000-100 {
-			opp-hz = /bits/ 64 <1200000000>;
-			opp-microvolt = <1000000>;
-			clock-latency-ns = <244144>; /* 8 32k periods */
-			opp-supported-hw = <0x80>;
-		};
-		opp@1200000000-105 {
-			opp-hz = /bits/ 64 <1200000000>;
-			opp-microvolt = <1050000>;
-			clock-latency-ns = <244144>; /* 8 32k periods */
-			opp-supported-hw = <0x100>;
 		};
 	};
 
@@ -291,7 +180,6 @@
 		compatible = "arm,psci-1.0";
 		method = "smc";
 	};
-
 
 	ion {
 		compatible = "allwinner,sunxi-ion";
