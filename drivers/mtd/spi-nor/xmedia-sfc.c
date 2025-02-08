@@ -382,7 +382,7 @@ static int bsp_spi_nor_register(struct device_node *np,
 	modes.rd_modes |= SNOR_MODE_1_1_1
 			| SNOR_MODE_1_1_2
 			| SNOR_MODE_1_2_2;
-#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
+#if 0
 	modes.rd_modes |= SNOR_MODE_1_1_4 | SNOR_MODE_1_4_4;
 	modes.wr_modes |= SNOR_MODE_1_1_4 | SNOR_MODE_1_4_4;
 #endif
