@@ -1,0 +1,55 @@
+config COMMON_CLK_XM72050200
+	tristate "XM72050200 Clock Driver"
+	depends on ARCH_XM72050200 || COMPILE_TEST
+	select RESET_XMEDIA
+	default ARCH_XMEDIA
+	help
+	  Build the clock driver for XM72050200.
+
+config COMMON_CLK_XM72050300
+	tristate "XM72050300 Clock Driver"
+	depends on ARCH_XM72050300 || COMPILE_TEST
+	select RESET_XMEDIA
+	default ARCH_XMEDIA
+	help
+	  Build the clock driver for XM72050300.
+
+config COMMON_CLK_XM72020300
+	tristate "XM72020300 Clock Driver"
+	depends on ARCH_XM72020300 || COMPILE_TEST
+	select RESET_XMEDIA
+	default ARCH_XMEDIA
+	help
+	  Build the clock driver for XM72020300.
+
+config COMMON_CLK_XM76050100
+	tristate "XM76050100 Clock Driver"
+	depends on ARCH_XM76050100 || COMPILE_TEST
+	select RESET_XMEDIA
+	default ARCH_XMEDIA
+	help
+	  Build the clock driver for XM76050100.
+
+config COMMON_CLK_XM72050500
+	tristate "XM72050500 Clock Driver"
+	depends on ARCH_XM72050500 || COMPILE_TEST
+	select RESET_XMEDIA
+	default ARCH_XMEDIA
+	help
+	  Build the clock driver for XM72050500.
+
+config COMMON_CLK_XM720XXX
+	tristate "XM72050500/XM72050510/XM72050530/XM72050230/XM72020330 Clock Driver"
+	depends on ARCH_XM720XXX || COMPILE_TEST
+	select RESET_XMEDIA
+	default ARCH_XMEDIA
+	help
+	  Build the clock driver for XM72050500/XM72050510/XM72050530/XM72050230/XM72020330.
+
+config RESET_XMEDIA
+	bool "Xmedia Reset Controller Driver"
+	depends on ARCH_XMEDIA || COMPILE_TEST
+	select RESET_CONTROLLER
+	help
+	  Build reset controller driver for Xmedia device chipsets.
+
