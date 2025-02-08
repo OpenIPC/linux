@@ -3677,7 +3677,7 @@ int spi_nor_driver_resume(struct spi_nor *nor)
 #endif
 			SNOR_HWCAPS_PP,
 	};
-#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
+#if 0
 	hwcaps.mask |= SNOR_HWCAPS_READ_1_1_4 |
 		SNOR_HWCAPS_READ_1_4_4 |
 		SNOR_HWCAPS_PP_1_1_4 |
