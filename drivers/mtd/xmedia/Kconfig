@@ -1,0 +1,30 @@
+
+menuconfig MTD_XMEDIA_FMC100
+	tristate "Xmedia Flash Memory Controller Ver 100 support"
+	depends on !SPI_XMEDIA_SFC
+	default n
+	select MTD_BLOCK
+	help
+	  Support Xmedia Flash Memory Controller Version 100.
+
+if MTD_XMEDIA_FMC100
+
+config MTD_XMEDIA_FMC100_SPINOR
+	bool "Xmedia Spi-Nor Flash support"
+	default y
+	help
+	  Support Xmedia Spi-Nor Flash Memory.
+
+config MTD_XMEDIA_FMC100_SPINAND
+	bool "Xmedia Spi-Nand Flash support"
+	default n
+	help
+	  Support Xmedia Spi-Nand Flash Memory.
+
+config MTD_XMEDIA_FMC100_NAND
+	bool "Xmedia Nand Flash support"
+	default n
+	help
+	  Support Xmedia Nand Flash Memory.
+
+endif

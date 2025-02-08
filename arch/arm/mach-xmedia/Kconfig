@@ -1,0 +1,98 @@
+config ARCH_XMEDIA
+	bool "Xmedia SoC Support"
+	select ARM_AMBA
+	select ARM_GIC if ARCH_MULTI_V7
+	select ARM_VIC if ARCH_MULTI_V5
+	select ARM_TIMER_SP804
+	select POWER_RESET
+	select POWER_RESET_XMEDIA
+	select POWER_SUPPLY
+
+if ARCH_XMEDIA
+
+menu "Xmedia platform type"
+
+config ARCH_XM72020300
+	bool "Xmedia XM72020300 Cortex-A7 family"
+	depends on ARCH_MULTI_V7
+	select HAVE_ARM_ARCH_TIMER
+	select PINCTRL
+	select POWER_RESET_XMEDIA
+	help
+		Support for Xmedia XM72020300 Soc family.
+
+config ARCH_XM76050100
+	bool "Xmedia XM76050100 Cortex-A7 family"
+	depends on ARCH_MULTI_V7
+	select HAVE_ARM_ARCH_TIMER
+	select PINCTRL
+	select POWER_RESET_XMEDIA
+	help
+		Support for Xmedia XM76050100 Soc family.
+
+config ARCH_XM72050200
+	bool "Xmedia XM72050200 Cortex-A7 family"
+	depends on ARCH_MULTI_V7
+	select HAVE_ARM_ARCH_TIMER
+	select PINCTRL
+	select POWER_RESET_XMEDIA
+	help
+		Support for Xmedia XM72050200 Soc family.
+
+config ARCH_XM72050300
+	bool "Xmedia XM72050300 Cortex-A7 family"
+	depends on ARCH_MULTI_V7
+	select HAVE_ARM_ARCH_TIMER
+	select PINCTRL
+	select POWER_RESET_XMEDIA
+	help
+		Support for Xmedia XM72050300 Soc family.
+
+config ARCH_XM72050500
+	bool "Xmedia XM72050500 Cortex-A7 family"
+	depends on ARCH_MULTI_V7
+	select HAVE_ARM_ARCH_TIMER
+	select PINCTRL
+	select POWER_RESET_XMEDIA
+	help
+		Support for Xmedia XM72050500 Soc family.
+
+config ARCH_XM720XXX
+	bool "Xmedia XM72050500/XM72050510/XM72050530/XM72050230/XM72020330 Cortex-A7 family"
+	depends on ARCH_MULTI_V7
+	select HAVE_ARM_ARCH_TIMER
+	select PINCTRL
+	select POWER_RESET_XMEDIA
+	help
+		Support for Xmedia XM72050500/XM72050510/XM72050530/XM72050230/XM72020330 Soc family.
+
+config XM_FPGA
+	bool "Xmedia FPGA Cortex-A7 family"
+	help
+		Support for Xmedia FPGA board.
+
+config XMEDIA_MC
+	bool "Xmedia mc platform solution"
+	default n
+	help
+	  support for Xmedia mc platform solution
+
+config BSP_ZRELADDR
+	hex 'zreladdr'
+	default "0x40008000" if ARCH_XM72050200 || ARCH_XM72050300 || ARCH_XM72020300 || ARCH_XM76050100 || ARCH_XM72050500 || XM_FPGA || ARCH_XM720XXX
+
+config BSP_PARAMS_PHYS
+	hex 'params_phys'
+	default "0x00000100"
+
+config BSP_INITRD_PHYS
+	hex 'initrd_phys'
+	default "0x00800000"
+
+config TINY_LINUX
+	bool "Tiny Linux"
+	default n
+
+endmenu
+
+endif

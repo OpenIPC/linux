@@ -1,0 +1,10 @@
+menu "Xmedia driver support"
+
+config TIMER_XMEDIA_SP804
+	bool "Support for xmedia SP804 module"
+	depends on GENERIC_SCHED_CLOCK && CLKDEV_LOOKUP && (ARCH_XM72050500 || ARCH_XM720XXX)
+	select CLKSRC_MMIO
+	select CLKSRC_OF if OF
+
+source "drivers/xmedia/cma/Kconfig"
+endmenu

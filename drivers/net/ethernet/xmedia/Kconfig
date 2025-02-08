@@ -1,0 +1,32 @@
+#
+# Xmedia device configuration
+#
+
+config NET_VENDOR_XMEDIA
+	bool "Xmedia devices"
+	default y
+	depends on (OF || ACPI) && HAS_DMA
+	depends on ARM || ARM64 || COMPILE_TEST
+	help
+	  If you have a network (Ethernet) card belonging to this class, say Y.
+
+	  Note that the answer to this question doesn't directly affect the
+	  kernel: saying N will just cause the configurator to skip all
+	  the questions about Xmedia devices. If you say Y, you will be asked
+	  for your specific card in the following questions.
+
+if NET_VENDOR_XMEDIA
+
+config XMEDIA_FEMAC
+	tristate "Xmedia Fast Ethernet MAC device support"
+	depends on HAS_IOMEM
+	select PHYLIB
+	select RESET_CONTROLLER
+	help
+	  This selects the Xmedia Fast Ethernet MAC device(FEMAC).
+	  The FEMAC receives and transmits data over Ethernet
+	  ports at 10/100 Mbps in full-duplex or half-duplex mode.
+	  The FEMAC exchanges data with the CPU, and supports
+	  the energy efficient Ethernet (EEE).
+
+endif # NET_VENDOR_XMEDIA
