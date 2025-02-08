@@ -637,7 +637,9 @@ char *yytext;
 #include "srcpos.h"
 #include "dtc-parser.tab.h"
 
-YYLTYPE yylloc;
+#if (__GNUC__ << 16) + __GNUC_MINOR__ < 0x1000000
+extern YYLTYPE yylloc ;
+#endif
 extern bool treesource_error;
 
 /* CAUTION: this will stop working if we ever use yyless() or yyunput() */

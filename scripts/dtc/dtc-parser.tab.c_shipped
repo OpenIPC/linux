@@ -185,7 +185,7 @@ struct YYLTYPE
 
 
 extern YYSTYPE yylval;
-extern YYLTYPE yylloc;
+extern YYLTYPE yylloc ;
 int yyparse (void);
 
 #endif /* !YY_YY_DTC_PARSER_TAB_H_INCLUDED  */
