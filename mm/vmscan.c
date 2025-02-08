@@ -63,6 +63,12 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/vmscan.h>
 
+#undef CREATE_TRACE_POINTS
+#include <trace/hooks/vmscan.h>
+
+EXPORT_TRACEPOINT_SYMBOL_GPL(mm_vmscan_direct_reclaim_begin);
+EXPORT_TRACEPOINT_SYMBOL_GPL(mm_vmscan_direct_reclaim_end);
+
 struct scan_control {
 	/* How many pages shrink_list() should reclaim */
 	unsigned long nr_to_reclaim;
@@ -173,6 +179,23 @@ struct scan_control {
  * From 0 .. 200.  Higher means more swappy.
  */
 int vm_swappiness = 60;
+
+#define DEF_KSWAPD_THREADS_PER_NODE 1
+static int kswapd_threads = DEF_KSWAPD_THREADS_PER_NODE;
+static int __init kswapd_per_node_setup(char *str)
+{
+	int tmp;
+
+	if (kstrtoint(str, 0, &tmp) < 0)
+		return 0;
+
+	if (tmp > MAX_KSWAPD_THREADS || tmp <= 0)
+		return 0;
+
+	kswapd_threads = tmp;
+	return 1;
+}
+__setup("kswapd_per_node=", kswapd_per_node_setup);
 
 static void set_task_reclaim_state(struct task_struct *task,
 				   struct reclaim_state *rs)
@@ -647,12 +670,17 @@ static unsigned long shrink_slab_memcg(gfp_t gfp_mask, int nid,
  *
  * Returns the number of reclaimed slab objects.
  */
-static unsigned long shrink_slab(gfp_t gfp_mask, int nid,
+unsigned long shrink_slab(gfp_t gfp_mask, int nid,
 				 struct mem_cgroup *memcg,
 				 int priority)
 {
 	unsigned long ret, freed = 0;
 	struct shrinker *shrinker;
+	bool bypass = false;
+
+	trace_android_vh_shrink_slab_bypass(gfp_mask, nid, memcg, priority, &bypass);
+	if (bypass)
+		return 0;
 
 	/*
 	 * The root memcg might be allocated even though memcg is disabled
@@ -694,6 +722,7 @@ out:
 	cond_resched();
 	return freed;
 }
+EXPORT_SYMBOL_GPL(shrink_slab);
 
 void drop_slab_node(int nid)
 {
@@ -991,17 +1020,34 @@ static enum page_references page_check_references(struct page *page,
 {
 	int referenced_ptes, referenced_page;
 	unsigned long vm_flags;
+	bool should_protect = false;
+	bool trylock_fail = false;
+	int ret = 0;
 
+	trace_android_vh_page_should_be_protected(page, &should_protect);
+	if (unlikely(should_protect))
+		return PAGEREF_ACTIVATE;
+
+	trace_android_vh_page_trylock_set(page);
+	trace_android_vh_check_page_look_around_ref(page, &ret);
+	if (ret)
+		return ret;
 	referenced_ptes = page_referenced(page, 1, sc->target_mem_cgroup,
 					  &vm_flags);
 	referenced_page = TestClearPageReferenced(page);
-
+	trace_android_vh_page_trylock_get_result(page, &trylock_fail);
+	if (trylock_fail)
+		return PAGEREF_KEEP;
 	/*
 	 * Mlock lost the isolation race with us.  Let try_to_unmap()
 	 * move the page to the unevictable list.
 	 */
 	if (vm_flags & VM_LOCKED)
 		return PAGEREF_RECLAIM;
+
+	/* rmap lock contention: rotate */
+	if (referenced_ptes == -1)
+		return PAGEREF_KEEP;
 
 	if (referenced_ptes) {
 		/*
@@ -1306,7 +1352,8 @@ static unsigned int shrink_page_list(struct list_head *page_list,
 
 			if (unlikely(PageTransHuge(page)))
 				flags |= TTU_SPLIT_HUGE_PMD;
-
+			if (!ignore_references)
+				trace_android_vh_page_trylock_set(page);
 			if (!try_to_unmap(page, flags)) {
 				stat->nr_unmap_fail += nr_pages;
 				if (!was_swapbacked && PageSwapBacked(page))
@@ -1417,6 +1464,7 @@ static unsigned int shrink_page_list(struct list_head *page_list,
 					 * increment nr_reclaimed here (and
 					 * leave it off the LRU).
 					 */
+					trace_android_vh_page_trylock_clear(page);
 					nr_reclaimed++;
 					continue;
 				}
@@ -1450,6 +1498,7 @@ free_it:
 		 * Is there need to periodically free_page_list? It would
 		 * appear not as the counts should be low
 		 */
+		trace_android_vh_page_trylock_clear(page);
 		if (unlikely(PageTransHuge(page)))
 			destroy_compound_page(page);
 		else
@@ -1698,6 +1747,7 @@ static unsigned long isolate_lru_pages(unsigned long nr_to_scan,
 		case 0:
 			nr_taken += nr_pages;
 			nr_zone_taken[page_zonenum(page)] += nr_pages;
+			trace_android_vh_del_page_from_lrulist(page, false, lru);
 			list_move(&page->lru, dst);
 			break;
 
@@ -1872,6 +1922,7 @@ static unsigned noinline_for_stack move_pages_to_lru(struct lruvec *lruvec,
 		nr_pages = thp_nr_pages(page);
 		update_lru_size(lruvec, lru, page_zonenum(page), nr_pages);
 		list_move(&page->lru, &lruvec->lists[lru]);
+		trace_android_vh_add_page_to_lrulist(page, false, lru);
 
 		if (put_page_testzero(page)) {
 			__ClearPageLRU(page);
@@ -1963,6 +2014,7 @@ shrink_inactive_list(unsigned long nr_to_scan, struct lruvec *lruvec,
 		return 0;
 
 	nr_reclaimed = shrink_page_list(&page_list, pgdat, sc, &stat, false);
+	trace_android_vh_handle_failed_page_trylock(&page_list);
 
 	spin_lock_irq(&pgdat->lru_lock);
 
@@ -1975,7 +2027,6 @@ shrink_inactive_list(unsigned long nr_to_scan, struct lruvec *lruvec,
 		__count_vm_events(item, nr_reclaimed);
 	__count_memcg_events(lruvec_memcg(lruvec), item, nr_reclaimed);
 	__count_vm_events(PGSTEAL_ANON + file, nr_reclaimed);
-
 	spin_unlock_irq(&pgdat->lru_lock);
 
 	mem_cgroup_uncharge_list(&page_list);
@@ -2025,6 +2076,8 @@ static void shrink_active_list(unsigned long nr_to_scan,
 	unsigned nr_rotated = 0;
 	int file = is_file_lru(lru);
 	struct pglist_data *pgdat = lruvec_pgdat(lruvec);
+	bool bypass = false;
+	bool should_protect = false;
 
 	lru_add_drain();
 
@@ -2059,8 +2112,20 @@ static void shrink_active_list(unsigned long nr_to_scan,
 			}
 		}
 
+		trace_android_vh_page_should_be_protected(page, &should_protect);
+		if (unlikely(should_protect)) {
+			nr_rotated += thp_nr_pages(page);
+			list_add(&page->lru, &l_active);
+			continue;
+		}
+
+		trace_android_vh_page_referenced_check_bypass(page, nr_to_scan, lru, &bypass);
+		if (bypass)
+			goto skip_page_referenced;
+		trace_android_vh_page_trylock_set(page);
+		/* Referenced or rmap lock contention: rotate */
 		if (page_referenced(page, 0, sc->target_mem_cgroup,
-				    &vm_flags)) {
+				     &vm_flags) != 0) {
 			/*
 			 * Identify referenced, file-backed active pages and
 			 * give them one more trip around the active list. So
@@ -2071,12 +2136,14 @@ static void shrink_active_list(unsigned long nr_to_scan,
 			 * so we ignore them here.
 			 */
 			if ((vm_flags & VM_EXEC) && page_is_file_lru(page)) {
+				trace_android_vh_page_trylock_clear(page);
 				nr_rotated += thp_nr_pages(page);
 				list_add(&page->lru, &l_active);
 				continue;
 			}
 		}
-
+		trace_android_vh_page_trylock_clear(page);
+skip_page_referenced:
 		ClearPageActive(page);	/* we are de-activating */
 		SetPageWorkingset(page);
 		list_add(&page->lru, &l_inactive);
@@ -2157,6 +2224,7 @@ unsigned long reclaim_pages(struct list_head *page_list)
 
 	return nr_reclaimed;
 }
+EXPORT_SYMBOL_GPL(reclaim_pages);
 
 static unsigned long shrink_list(enum lru_list lru, unsigned long nr_to_scan,
 				 struct lruvec *lruvec, struct scan_control *sc)
@@ -2206,16 +2274,24 @@ static bool inactive_is_low(struct lruvec *lruvec, enum lru_list inactive_lru)
 	unsigned long inactive, active;
 	unsigned long inactive_ratio;
 	unsigned long gb;
+	bool skip = false;
 
 	inactive = lruvec_page_state(lruvec, NR_LRU_BASE + inactive_lru);
 	active = lruvec_page_state(lruvec, NR_LRU_BASE + active_lru);
 
 	gb = (inactive + active) >> (30 - PAGE_SHIFT);
+	trace_android_vh_inactive_is_low(gb, &inactive_ratio, inactive_lru, &skip);
+	if (skip)
+		goto out;
+
 	if (gb)
 		inactive_ratio = int_sqrt(10 * gb);
 	else
 		inactive_ratio = 1;
 
+	trace_android_vh_tune_inactive_ratio(&inactive_ratio, is_file_lru(inactive_lru));
+
+out:
 	return inactive * inactive_ratio < active;
 }
 
@@ -2246,6 +2322,7 @@ static void get_scan_count(struct lruvec *lruvec, struct scan_control *sc,
 	enum scan_balance scan_balance;
 	unsigned long ap, fp;
 	enum lru_list lru;
+	bool balance_anon_file_reclaim = false;
 
 	/* If we have no swap space, do not bother scanning anon pages. */
 	if (!sc->may_swap || mem_cgroup_get_nr_swap_pages(memcg) <= 0) {
@@ -2253,6 +2330,7 @@ static void get_scan_count(struct lruvec *lruvec, struct scan_control *sc,
 		goto out;
 	}
 
+	trace_android_vh_tune_swappiness(&swappiness);
 	/*
 	 * Global reclaim will swap to prevent OOM even with no
 	 * swappiness, but memcg users want to use this knob to
@@ -2283,11 +2361,15 @@ static void get_scan_count(struct lruvec *lruvec, struct scan_control *sc,
 		goto out;
 	}
 
+	trace_android_rvh_set_balance_anon_file_reclaim(&balance_anon_file_reclaim);
+
 	/*
 	 * If there is enough inactive page cache, we do not reclaim
-	 * anything from the anonymous working right now.
+	 * anything from the anonymous working right now. But when balancing
+	 * anon and page cache files for reclaim, allow swapping of anon pages
+	 * even if there are a number of inactive file cache pages.
 	 */
-	if (sc->cache_trim_mode) {
+	if (!balance_anon_file_reclaim && sc->cache_trim_mode) {
 		scan_balance = SCAN_FILE;
 		goto out;
 	}
@@ -2323,6 +2405,7 @@ static void get_scan_count(struct lruvec *lruvec, struct scan_control *sc,
 	fraction[1] = fp;
 	denominator = ap + fp;
 out:
+	trace_android_vh_tune_scan_type((char *)(&scan_balance));
 	for_each_evictable_lru(lru) {
 		int file = is_file_lru(lru);
 		unsigned long lruvec_size;
@@ -2624,6 +2707,7 @@ static void shrink_node_memcgs(pg_data_t *pgdat, struct scan_control *sc)
 		struct lruvec *lruvec = mem_cgroup_lruvec(memcg, pgdat);
 		unsigned long reclaimed;
 		unsigned long scanned;
+		bool skip = false;
 
 		/*
 		 * This loop can become CPU-bound when target memcgs
@@ -2632,6 +2716,10 @@ static void shrink_node_memcgs(pg_data_t *pgdat, struct scan_control *sc)
 		 * memory is explicitly protected. Avoid soft lockups.
 		 */
 		cond_resched();
+
+		trace_android_vh_shrink_node_memcgs(memcg, &skip);
+		if (skip)
+			continue;
 
 		mem_cgroup_calculate_protection(target_memcg, memcg);
 
@@ -2998,6 +3086,7 @@ static void snapshot_refaults(struct mem_cgroup *target_memcg, pg_data_t *pgdat)
 	target_lruvec->refaults[0] = refaults;
 	refaults = lruvec_page_state(target_lruvec, WORKINGSET_ACTIVATE_FILE);
 	target_lruvec->refaults[1] = refaults;
+	trace_android_vh_snapshot_refaults(target_lruvec);
 }
 
 /*
@@ -3359,6 +3448,7 @@ unsigned long try_to_free_mem_cgroup_pages(struct mem_cgroup *memcg,
 
 	return nr_reclaimed;
 }
+EXPORT_SYMBOL_GPL(try_to_free_mem_cgroup_pages);
 #endif
 
 static void age_active_anon(struct pglist_data *pgdat,
@@ -3944,6 +4034,46 @@ kswapd_try_sleep:
 	return 0;
 }
 
+static int kswapd_per_node_run(int nid)
+{
+	pg_data_t *pgdat = NODE_DATA(nid);
+	int hid;
+	int ret = 0;
+
+	for (hid = 0; hid < kswapd_threads; ++hid) {
+		pgdat->mkswapd[hid] = kthread_run(kswapd, pgdat, "kswapd%d:%d",
+								nid, hid);
+		if (IS_ERR(pgdat->mkswapd[hid])) {
+			/* failure at boot is fatal */
+			WARN_ON(system_state < SYSTEM_RUNNING);
+			pr_err("Failed to start kswapd%d on node %d\n",
+				hid, nid);
+			ret = PTR_ERR(pgdat->mkswapd[hid]);
+			pgdat->mkswapd[hid] = NULL;
+			continue;
+		}
+		if (!pgdat->kswapd)
+			pgdat->kswapd = pgdat->mkswapd[hid];
+	}
+
+	return ret;
+}
+
+static void kswapd_per_node_stop(int nid)
+{
+	int hid = 0;
+	struct task_struct *kswapd;
+
+	for (hid = 0; hid < kswapd_threads; hid++) {
+		kswapd = NODE_DATA(nid)->mkswapd[hid];
+		if (kswapd) {
+			kthread_stop(kswapd);
+			NODE_DATA(nid)->mkswapd[hid] = NULL;
+		}
+	}
+	NODE_DATA(nid)->kswapd = NULL;
+}
+
 /*
  * A zone is low on free memory or too fragmented for high-order memory.  If
  * kswapd should reclaim (direct reclaim is deferred), wake it up for the zone's
@@ -4047,6 +4177,9 @@ int kswapd_run(int nid)
 	if (pgdat->kswapd)
 		return 0;
 
+	if (kswapd_threads > 1)
+		return kswapd_per_node_run(nid);
+
 	pgdat->kswapd = kthread_run(kswapd, pgdat, "kswapd%d", nid);
 	if (IS_ERR(pgdat->kswapd)) {
 		/* failure at boot is fatal */
@@ -4065,6 +4198,11 @@ int kswapd_run(int nid)
 void kswapd_stop(int nid)
 {
 	struct task_struct *kswapd = NODE_DATA(nid)->kswapd;
+
+	if (kswapd_threads > 1) {
+		kswapd_per_node_stop(nid);
+		return;
+	}
 
 	if (kswapd) {
 		kthread_stop(kswapd);

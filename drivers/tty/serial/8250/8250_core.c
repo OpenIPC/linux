@@ -310,9 +310,10 @@ static void serial8250_backup_timeout(struct timer_list *t)
 		jiffies + uart_poll_timeout(&up->port) + HZ / 5);
 }
 
-static void univ8250_setup_timer(struct uart_8250_port *up)
+static int univ8250_setup_irq(struct uart_8250_port *up)
 {
 	struct uart_port *port = &up->port;
+	int retval = 0;
 
 	/*
 	 * The above check will only give an accurate result the first time
@@ -333,16 +334,10 @@ static void univ8250_setup_timer(struct uart_8250_port *up)
 	 */
 	if (!port->irq)
 		mod_timer(&up->timer, jiffies + uart_poll_timeout(port));
-}
+	else
+		retval = serial_link_irq_chain(up);
 
-static int univ8250_setup_irq(struct uart_8250_port *up)
-{
-	struct uart_port *port = &up->port;
-
-	if (port->irq)
-		return serial_link_irq_chain(up);
-
-	return 0;
+	return retval;
 }
 
 static void univ8250_release_irq(struct uart_8250_port *up)
@@ -398,7 +393,6 @@ static struct uart_ops univ8250_port_ops;
 static const struct uart_8250_ops univ8250_driver_ops = {
 	.setup_irq	= univ8250_setup_irq,
 	.release_irq	= univ8250_release_irq,
-	.setup_timer	= univ8250_setup_timer,
 };
 
 static struct uart_8250_port serial8250_ports[UART_NR];
@@ -565,6 +559,7 @@ static void __init serial8250_isa_init_ports(void)
 static void __init
 serial8250_register_ports(struct uart_driver *drv, struct device *dev)
 {
+#ifndef CONFIG_ARCH_ROCKCHIP
 	int i;
 
 	for (i = 0; i < nr_uarts; i++) {
@@ -584,6 +579,7 @@ serial8250_register_ports(struct uart_driver *drv, struct device *dev)
 		serial8250_apply_quirks(up);
 		uart_add_one_port(drv, &up->port);
 	}
+#endif
 }
 
 #ifdef CONFIG_SERIAL_8250_CONSOLE
@@ -1030,7 +1026,9 @@ int serial8250_register_8250_port(struct uart_8250_port *up)
 		uart->rs485_start_tx	= up->rs485_start_tx;
 		uart->rs485_stop_tx	= up->rs485_stop_tx;
 		uart->dma		= up->dma;
-
+#ifdef CONFIG_ARCH_ROCKCHIP
+		uart->port.line		= up->port.line;
+#endif
 		/* Take tx_loadsz from fifosize if it wasn't set separately */
 		if (uart->port.fifosize && !uart->tx_loadsz)
 			uart->tx_loadsz = uart->port.fifosize;
@@ -1254,7 +1252,11 @@ static void __exit serial8250_exit(void)
 #endif
 }
 
+#ifdef CONFIG_ROCKCHIP_THUNDER_BOOT
+rootfs_initcall(serial8250_init);
+#else
 module_init(serial8250_init);
+#endif
 module_exit(serial8250_exit);
 
 MODULE_LICENSE("GPL");

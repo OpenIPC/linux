@@ -234,9 +234,8 @@ static void send_user_sigtrap(int si_code)
 	if (interrupts_enabled(regs))
 		local_irq_enable();
 
-	arm64_force_sig_fault(SIGTRAP, si_code,
-			     (void __user *)instruction_pointer(regs),
-			     "User debug trap");
+	arm64_force_sig_fault(SIGTRAP, si_code, instruction_pointer(regs),
+			      "User debug trap");
 }
 
 static int single_step_handler(unsigned long unused, unsigned int esr,
@@ -294,6 +293,7 @@ void register_kernel_break_hook(struct break_hook *hook)
 {
 	register_debug_hook(&hook->node, &kernel_break_hook);
 }
+EXPORT_SYMBOL_GPL(register_kernel_break_hook);
 
 void unregister_kernel_break_hook(struct break_hook *hook)
 {

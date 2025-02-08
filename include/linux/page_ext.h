@@ -19,7 +19,13 @@ struct page_ext_operations {
 enum page_ext_flags {
 	PAGE_EXT_OWNER,
 	PAGE_EXT_OWNER_ALLOCATED,
-#if defined(CONFIG_IDLE_PAGE_TRACKING) && !defined(CONFIG_64BIT)
+#if defined(CONFIG_PAGE_PINNER)
+	/* page refcount was increased by GUP or follow_page(FOLL_GET) */
+	PAGE_EXT_GET,
+	/* page migration failed */
+	PAGE_EXT_PINNER_MIGRATION_FAILED,
+#endif
+#if defined(CONFIG_PAGE_IDLE_FLAG) && !defined(CONFIG_64BIT)
 	PAGE_EXT_YOUNG,
 	PAGE_EXT_IDLE,
 #endif
@@ -44,14 +50,19 @@ static inline void page_ext_init_flatmem(void)
 {
 }
 extern void page_ext_init(void);
+static inline void page_ext_init_flatmem_late(void)
+{
+}
 #else
 extern void page_ext_init_flatmem(void);
+extern void page_ext_init_flatmem_late(void);
 static inline void page_ext_init(void)
 {
 }
 #endif
-
 struct page_ext *lookup_page_ext(const struct page *page);
+extern struct page_ext *page_ext_get(struct page *page);
+extern void page_ext_put(struct page_ext *page_ext);
 
 static inline struct page_ext *page_ext_next(struct page_ext *curr)
 {
@@ -67,16 +78,24 @@ static inline void pgdat_page_ext_init(struct pglist_data *pgdat)
 {
 }
 
-static inline struct page_ext *lookup_page_ext(const struct page *page)
-{
-	return NULL;
-}
-
 static inline void page_ext_init(void)
 {
 }
 
+static inline void page_ext_init_flatmem_late(void)
+{
+}
+
 static inline void page_ext_init_flatmem(void)
+{
+}
+
+static inline struct page_ext *page_ext_get(struct page *page)
+{
+	return NULL;
+}
+
+static inline void page_ext_put(struct page_ext *page_ext)
 {
 }
 #endif /* CONFIG_PAGE_EXTENSION */

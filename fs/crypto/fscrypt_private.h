@@ -22,6 +22,8 @@
 
 #define FSCRYPT_MIN_KEY_SIZE	16
 
+#define FSCRYPT_MAX_HW_WRAPPED_KEY_SIZE	128
+
 #define FSCRYPT_CONTEXT_V1	1
 #define FSCRYPT_CONTEXT_V2	2
 
@@ -220,7 +222,16 @@ struct fscrypt_info {
 	 * will be NULL if the master key was found in a process-subscribed
 	 * keyring rather than in the filesystem-level keyring.
 	 */
+#ifdef __GENKSYMS__
+	/*
+	 * Android ABI CRC preservation due to commit 391cceee6d43 ("fscrypt:
+	 * stop using keyrings subsystem for fscrypt_master_key") changing this
+	 * type.  Size is the same, this is a private field.
+	 */
+	struct key *ci_master_key;
+#else
 	struct fscrypt_master_key *ci_master_key;
+#endif
 
 	/*
 	 * Link in list of inodes that were unlocked with the master key.
@@ -297,7 +308,6 @@ int fscrypt_fname_encrypt(const struct inode *inode, const struct qstr *iname,
 bool fscrypt_fname_encrypted_size(const union fscrypt_policy *policy,
 				  u32 orig_len, u32 max_len,
 				  u32 *encrypted_len_ret);
-extern const struct dentry_operations fscrypt_d_ops;
 
 /* hkdf.c */
 
@@ -331,7 +341,8 @@ void fscrypt_destroy_hkdf(struct fscrypt_hkdf *hkdf);
 
 /* inline_crypt.c */
 #ifdef CONFIG_FS_ENCRYPTION_INLINE_CRYPT
-int fscrypt_select_encryption_impl(struct fscrypt_info *ci);
+int fscrypt_select_encryption_impl(struct fscrypt_info *ci,
+				   bool is_hw_wrapped_key);
 
 static inline bool
 fscrypt_using_inline_encryption(const struct fscrypt_info *ci)
@@ -341,9 +352,17 @@ fscrypt_using_inline_encryption(const struct fscrypt_info *ci)
 
 int fscrypt_prepare_inline_crypt_key(struct fscrypt_prepared_key *prep_key,
 				     const u8 *raw_key,
+				     unsigned int raw_key_size,
+				     bool is_hw_wrapped,
 				     const struct fscrypt_info *ci);
 
 void fscrypt_destroy_inline_crypt_key(struct fscrypt_prepared_key *prep_key);
+
+extern int fscrypt_derive_raw_secret(struct super_block *sb,
+				     const u8 *wrapped_key,
+				     unsigned int wrapped_key_size,
+				     u8 *raw_secret,
+				     unsigned int raw_secret_size);
 
 /*
  * Check whether the crypto transform or blk-crypto key has been allocated in
@@ -368,7 +387,8 @@ fscrypt_is_key_prepared(struct fscrypt_prepared_key *prep_key,
 
 #else /* CONFIG_FS_ENCRYPTION_INLINE_CRYPT */
 
-static inline int fscrypt_select_encryption_impl(struct fscrypt_info *ci)
+static inline int fscrypt_select_encryption_impl(struct fscrypt_info *ci,
+						 bool is_hw_wrapped_key)
 {
 	return 0;
 }
@@ -381,7 +401,8 @@ fscrypt_using_inline_encryption(const struct fscrypt_info *ci)
 
 static inline int
 fscrypt_prepare_inline_crypt_key(struct fscrypt_prepared_key *prep_key,
-				 const u8 *raw_key,
+				 const u8 *raw_key, unsigned int raw_key_size,
+				 bool is_hw_wrapped,
 				 const struct fscrypt_info *ci)
 {
 	WARN_ON(1);
@@ -391,6 +412,17 @@ fscrypt_prepare_inline_crypt_key(struct fscrypt_prepared_key *prep_key,
 static inline void
 fscrypt_destroy_inline_crypt_key(struct fscrypt_prepared_key *prep_key)
 {
+}
+
+static inline int fscrypt_derive_raw_secret(struct super_block *sb,
+					    const u8 *wrapped_key,
+					    unsigned int wrapped_key_size,
+					    u8 *raw_secret,
+					    unsigned int raw_secret_size)
+{
+	fscrypt_warn(NULL,
+		     "kernel built without support for hardware-wrapped keys");
+	return -EOPNOTSUPP;
 }
 
 static inline bool
@@ -417,8 +449,15 @@ struct fscrypt_master_key_secret {
 	/* Size of the raw key in bytes.  Set even if ->raw isn't set. */
 	u32			size;
 
-	/* For v1 policy keys: the raw key.  Wiped for v2 policy keys. */
-	u8			raw[FSCRYPT_MAX_KEY_SIZE];
+	/* True if the key in ->raw is a hardware-wrapped key. */
+	bool			is_hw_wrapped;
+
+	/*
+	 * For v1 policy keys: the raw key.  Wiped for v2 policy keys, unless
+	 * ->is_hw_wrapped is true, in which case this contains the wrapped key
+	 * rather than the key with which 'hkdf' was keyed.
+	 */
+	u8			raw[FSCRYPT_MAX_HW_WRAPPED_KEY_SIZE];
 
 } __randomize_layout;
 
@@ -591,7 +630,8 @@ struct fscrypt_mode {
 extern struct fscrypt_mode fscrypt_modes[];
 
 int fscrypt_prepare_key(struct fscrypt_prepared_key *prep_key,
-			const u8 *raw_key, const struct fscrypt_info *ci);
+			const u8 *raw_key, unsigned int raw_key_size,
+			bool is_hw_wrapped, const struct fscrypt_info *ci);
 
 void fscrypt_destroy_prepared_key(struct fscrypt_prepared_key *prep_key);
 
@@ -602,6 +642,34 @@ int fscrypt_derive_dirhash_key(struct fscrypt_info *ci,
 
 void fscrypt_hash_inode_number(struct fscrypt_info *ci,
 			       const struct fscrypt_master_key *mk);
+
+int fscrypt_get_encryption_info(struct inode *inode, bool allow_unsupported);
+
+/**
+ * fscrypt_require_key() - require an inode's encryption key
+ * @inode: the inode we need the key for
+ *
+ * If the inode is encrypted, set up its encryption key if not already done.
+ * Then require that the key be present and return -ENOKEY otherwise.
+ *
+ * No locks are needed, and the key will live as long as the struct inode --- so
+ * it won't go away from under you.
+ *
+ * Return: 0 on success, -ENOKEY if the key is missing, or another -errno code
+ * if a problem occurred while setting up the encryption key.
+ */
+static inline int fscrypt_require_key(struct inode *inode)
+{
+	if (IS_ENCRYPTED(inode)) {
+		int err = fscrypt_get_encryption_info(inode, false);
+
+		if (err)
+			return err;
+		if (!fscrypt_has_encryption_key(inode))
+			return -ENOKEY;
+	}
+	return 0;
+}
 
 /* keysetup_v1.c */
 

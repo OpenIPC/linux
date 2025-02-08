@@ -495,6 +495,14 @@ config GPIO_REG
 	  A 32-bit single register GPIO fixed in/out implementation.  This
 	  can be used to represent any register as a set of GPIO signals.
 
+config GPIO_ROCKCHIP
+	tristate "Rockchip GPIO support"
+	depends on ARCH_ROCKCHIP || COMPILE_TEST
+	select GPIOLIB_IRQCHIP
+	default ARCH_ROCKCHIP
+	help
+	  Say yes here to support GPIO on Rockchip SoCs.
+
 config GPIO_SAMA5D2_PIOBU
 	tristate "SAMA5D2 PIOBU GPIO support"
 	depends on MFD_SYSCON
@@ -915,6 +923,21 @@ config GPIO_ADNP
 	  example: if a controller provides 48 pins, 6 registers will be
 	  enough to represent all pins, but the driver will assume a
 	  register layout for 64 pins (8 registers).
+
+config GPIO_AW9110
+	tristate "AW9110 I2C GPIO expanders"
+	select GPIOLIB_IRQCHIP
+	select IRQ_DOMAIN
+	help
+	  Say yes here to provide access to I2C
+	  GPIO expanders used for additional digital outputs or inputs.
+	  Your board setup code will need to declare the expanders in
+	  use, and assign numbers to the GPIOs they expose.  Those GPIOs
+	  can then be used from drivers and other kernel code, just like
+	  other GPIOs, but only accessible from task contexts.
+
+	  This driver provides an in-kernel interface to those GPIOs using
+	  platform-neutral GPIO calls.
 
 config GPIO_GW_PLD
 	tristate "Gateworks PLD GPIO Expander"

@@ -97,6 +97,26 @@ struct pglist_data __refdata contig_page_data;
 EXPORT_SYMBOL(contig_page_data);
 #endif
 
+#if defined(CONFIG_ROCKCHIP_THUNDER_BOOT) && defined(CONFIG_SMP)
+static unsigned long defer_start __initdata;
+static unsigned long defer_end __initdata;
+
+#define DEFAULT_DEFER_FREE_BLOCK_SIZE SZ_256M
+static unsigned long defer_free_block_size __initdata =
+	DEFAULT_DEFER_FREE_BLOCK_SIZE;
+
+static int __init early_defer_free_block_size(char *p)
+{
+	defer_free_block_size = memparse(p, &p);
+
+	pr_debug("defer_free_block_size = 0x%lx\n", defer_free_block_size);
+
+	return 0;
+}
+
+early_param("defer_free_block_size", early_defer_free_block_size);
+#endif
+
 unsigned long max_low_pfn;
 unsigned long min_low_pfn;
 unsigned long max_pfn;
@@ -152,6 +172,7 @@ static __refdata struct memblock_type *memblock_memory = &memblock.memory;
 	} while (0)
 
 static int memblock_debug __initdata_memblock;
+static bool memblock_nomap_remove __initdata_memblock;
 static bool system_has_some_mirror __initdata_memblock = false;
 static int memblock_can_resize __initdata_memblock;
 static int memblock_memory_in_slab __initdata_memblock = 0;
@@ -814,6 +835,9 @@ int __init_memblock memblock_free(phys_addr_t base, phys_addr_t size)
 	kmemleak_free_part_phys(base, size);
 	return memblock_remove_range(&memblock.reserved, base, size);
 }
+#ifdef CONFIG_ARCH_KEEP_MEMBLOCK
+EXPORT_SYMBOL_GPL(memblock_free);
+#endif
 
 int __init_memblock memblock_reserve(phys_addr_t base, phys_addr_t size)
 {
@@ -1391,6 +1415,9 @@ phys_addr_t __init memblock_phys_alloc_range(phys_addr_t size,
 					     phys_addr_t start,
 					     phys_addr_t end)
 {
+	memblock_dbg("%s: %llu bytes align=0x%llx from=%pa max_addr=%pa %pS\n",
+		     __func__, (u64)size, (u64)align, &start, &end,
+		     (void *)_RET_IP_);
 	return memblock_alloc_range_nid(size, align, start, end, NUMA_NO_NODE,
 					false);
 }
@@ -1628,6 +1655,7 @@ phys_addr_t __init_memblock memblock_end_of_DRAM(void)
 
 	return (memblock.memory.regions[idx].base + memblock.memory.regions[idx].size);
 }
+EXPORT_SYMBOL_GPL(memblock_end_of_DRAM);
 
 static phys_addr_t __init_memblock __find_max_addr(phys_addr_t limit)
 {
@@ -1897,6 +1925,17 @@ static int __init early_memblock(char *p)
 }
 early_param("memblock", early_memblock);
 
+static int __init early_memblock_nomap(char *str)
+{
+	return kstrtobool(str, &memblock_nomap_remove);
+}
+early_param("android12_only.will_be_removed_soon.memblock_nomap_remove", early_memblock_nomap);
+
+bool __init memblock_is_nomap_remove(void)
+{
+	return memblock_nomap_remove;
+}
+
 static void __init __free_pages_memory(unsigned long start, unsigned long end)
 {
 	int order;
@@ -1913,6 +1952,28 @@ static void __init __free_pages_memory(unsigned long start, unsigned long end)
 	}
 }
 
+#if defined(CONFIG_ROCKCHIP_THUNDER_BOOT) && defined(CONFIG_SMP)
+int __init defer_free_memblock(void *unused)
+{
+	if (defer_start == 0)
+		return 0;
+
+	pr_debug("start = %ld, end = %ld\n", defer_start, defer_end);
+
+	__free_pages_memory(defer_start, defer_end);
+
+	totalram_pages_add(defer_end - defer_start);
+
+	pr_info("%s: size %luM free %luM [%luM - %luM] total %luM\n", __func__,
+		defer_free_block_size >> 20,
+		(defer_end - defer_start) >> (20 - PAGE_SHIFT),
+		defer_end >> (20 - PAGE_SHIFT),
+		defer_start >> (20 - PAGE_SHIFT),
+		totalram_pages() >> (20 - PAGE_SHIFT));
+	return 0;
+}
+#endif
+
 static unsigned long __init __free_memory_core(phys_addr_t start,
 				 phys_addr_t end)
 {
@@ -1922,6 +1983,15 @@ static unsigned long __init __free_memory_core(phys_addr_t start,
 
 	if (start_pfn >= end_pfn)
 		return 0;
+
+#if defined(CONFIG_ROCKCHIP_THUNDER_BOOT) && defined(CONFIG_SMP)
+	if ((end - start) > defer_free_block_size) {
+		defer_start = start_pfn;
+		defer_end = end_pfn;
+
+		return 0;
+	}
+#endif
 
 	__free_pages_memory(start_pfn, end_pfn);
 

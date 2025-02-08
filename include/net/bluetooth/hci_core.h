@@ -28,6 +28,7 @@
 #include <linux/idr.h>
 #include <linux/leds.h>
 #include <linux/rculist.h>
+#include <linux/android_kabi.h>
 
 #include <net/bluetooth/hci.h>
 #include <net/bluetooth/hci_sock.h>
@@ -229,9 +230,9 @@ struct adv_info {
 	__u16	remaining_time;
 	__u16	duration;
 	__u16	adv_data_len;
-	__u8	adv_data[HCI_MAX_EXT_AD_LENGTH];
+	__u8	adv_data[HCI_MAX_AD_LENGTH];
 	__u16	scan_rsp_len;
-	__u8	scan_rsp_data[HCI_MAX_EXT_AD_LENGTH];
+	__u8	scan_rsp_data[HCI_MAX_AD_LENGTH];
 	__s8	tx_power;
 	bdaddr_t	random_addr;
 	bool 		rpa_expired;
@@ -308,7 +309,7 @@ struct hci_dev {
 	__u8		max_page;
 	__u8		features[HCI_MAX_PAGES][8];
 	__u8		le_features[8];
-	__u8		le_accept_list_size;
+	__u8		le_white_list_size;
 	__u8		le_resolv_list_size;
 	__u8		le_num_of_adv_sets;
 	__u8		le_states[8];
@@ -364,8 +365,6 @@ struct hci_dev {
 	__u8		ssp_debug_mode;
 	__u8		hw_error_code;
 	__u32		clock;
-	__u16		advmon_allowlist_duration;
-	__u16		advmon_no_filter_duration;
 
 	__u16		devid_source;
 	__u16		devid_vendor;
@@ -499,14 +498,14 @@ struct hci_dev {
 	struct hci_conn_hash	conn_hash;
 
 	struct list_head	mgmt_pending;
-	struct list_head	reject_list;
-	struct list_head	accept_list;
+	struct list_head	blacklist;
+	struct list_head	whitelist;
 	struct list_head	uuids;
 	struct list_head	link_keys;
 	struct list_head	long_term_keys;
 	struct list_head	identity_resolving_keys;
 	struct list_head	remote_oob_data;
-	struct list_head	le_accept_list;
+	struct list_head	le_white_list;
 	struct list_head	le_resolv_list;
 	struct list_head	le_conn_params;
 	struct list_head	pend_le_conns;
@@ -528,9 +527,9 @@ struct hci_dev {
 	DECLARE_BITMAP(dev_flags, __HCI_NUM_FLAGS);
 
 	__s8			adv_tx_power;
-	__u8			adv_data[HCI_MAX_EXT_AD_LENGTH];
+	__u8			adv_data[HCI_MAX_AD_LENGTH];
 	__u8			adv_data_len;
-	__u8			scan_rsp_data[HCI_MAX_EXT_AD_LENGTH];
+	__u8			scan_rsp_data[HCI_MAX_AD_LENGTH];
 	__u8			scan_rsp_data_len;
 
 	struct list_head	adv_instances;
@@ -546,14 +545,6 @@ struct hci_dev {
 	__u32			rpa_timeout;
 	struct delayed_work	rpa_expired;
 	bdaddr_t		rpa;
-
-	enum {
-		INTERLEAVE_SCAN_NONE,
-		INTERLEAVE_SCAN_NO_FILTER,
-		INTERLEAVE_SCAN_ALLOWLIST
-	} interleave_scan_state;
-
-	struct delayed_work	interleave_scan;
 
 #if IS_ENABLED(CONFIG_BT_LEDS)
 	struct led_trigger	*power_led;
@@ -577,6 +568,11 @@ struct hci_dev {
 	int (*set_bdaddr)(struct hci_dev *hdev, const bdaddr_t *bdaddr);
 	void (*cmd_timeout)(struct hci_dev *hdev);
 	bool (*prevent_wake)(struct hci_dev *hdev);
+
+	ANDROID_KABI_RESERVE(1);
+	ANDROID_KABI_RESERVE(2);
+	ANDROID_KABI_RESERVE(3);
+	ANDROID_KABI_RESERVE(4);
 };
 
 #define HCI_PHY_HANDLE(handle)	(handle & 0xff)
@@ -673,6 +669,11 @@ struct hci_conn {
 	void (*connect_cfm_cb)	(struct hci_conn *conn, u8 status);
 	void (*security_cfm_cb)	(struct hci_conn *conn, u8 status);
 	void (*disconn_cfm_cb)	(struct hci_conn *conn, u8 reason);
+
+	ANDROID_KABI_RESERVE(1);
+	ANDROID_KABI_RESERVE(2);
+	ANDROID_KABI_RESERVE(3);
+	ANDROID_KABI_RESERVE(4);
 };
 
 struct hci_chan {
@@ -683,6 +684,8 @@ struct hci_chan {
 	unsigned int	sent;
 	__u8		state;
 	bool		amp;
+
+	ANDROID_KABI_RESERVE(1);
 };
 
 struct hci_conn_params {
@@ -709,6 +712,8 @@ struct hci_conn_params {
 	struct hci_conn *conn;
 	bool explicit_connect;
 	u32 current_flags;
+
+	ANDROID_KABI_RESERVE(1);
 };
 
 extern struct list_head hci_dev_list;
@@ -1429,6 +1434,8 @@ struct hci_cb {
 								__u8 encrypt);
 	void (*key_change_cfm)	(struct hci_conn *conn, __u8 status);
 	void (*role_switch_cfm)	(struct hci_conn *conn, __u8 status, __u8 role);
+
+	ANDROID_KABI_RESERVE(1);
 };
 
 static inline void hci_connect_cfm(struct hci_conn *conn, __u8 status)
@@ -1689,6 +1696,8 @@ struct hci_mgmt_chan {
 	size_t handler_count;
 	const struct hci_mgmt_handler *handlers;
 	void (*hdev_init) (struct sock *sk, struct hci_dev *hdev);
+
+	ANDROID_KABI_RESERVE(1);
 };
 
 int hci_mgmt_chan_register(struct hci_mgmt_chan *c);

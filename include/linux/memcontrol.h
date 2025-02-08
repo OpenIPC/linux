@@ -332,6 +332,7 @@ struct mem_cgroup {
 	struct deferred_split deferred_split_queue;
 #endif
 
+	ANDROID_OEM_DATA(1);
 	struct mem_cgroup_per_node *nodeinfo[0];
 	/* WARNING: nodeinfo must be the last member here */
 };
@@ -343,6 +344,9 @@ struct mem_cgroup {
 #define MEMCG_CHARGE_BATCH 32U
 
 extern struct mem_cgroup *root_mem_cgroup;
+
+struct lruvec *page_to_lruvec(struct page *page, pg_data_t *pgdat);
+void do_traversal_all_lruvec(void);
 
 static __always_inline bool memcg_stat_item_in_bytes(int idx)
 {
@@ -442,10 +446,31 @@ static inline bool mem_cgroup_below_min(struct mem_cgroup *memcg)
 		page_counter_read(&memcg->memory);
 }
 
-int mem_cgroup_charge(struct page *page, struct mm_struct *mm, gfp_t gfp_mask);
+int __mem_cgroup_charge(struct page *page, struct mm_struct *mm,
+			gfp_t gfp_mask);
+static inline int mem_cgroup_charge(struct page *page, struct mm_struct *mm,
+				    gfp_t gfp_mask)
+{
+	if (mem_cgroup_disabled())
+		return 0;
+	return __mem_cgroup_charge(page, mm, gfp_mask);
+}
 
-void mem_cgroup_uncharge(struct page *page);
-void mem_cgroup_uncharge_list(struct list_head *page_list);
+void __mem_cgroup_uncharge(struct page *page);
+static inline void mem_cgroup_uncharge(struct page *page)
+{
+	if (mem_cgroup_disabled())
+		return;
+	__mem_cgroup_uncharge(page);
+}
+
+void __mem_cgroup_uncharge_list(struct list_head *page_list);
+static inline void mem_cgroup_uncharge_list(struct list_head *page_list)
+{
+	if (mem_cgroup_disabled())
+		return;
+	__mem_cgroup_uncharge_list(page_list);
+}
 
 void mem_cgroup_migrate(struct page *oldpage, struct page *newpage);
 
@@ -946,6 +971,15 @@ void split_page_memcg(struct page *head, unsigned int nr);
 #define MEM_CGROUP_ID_MAX	0
 
 struct mem_cgroup;
+
+static inline struct lruvec *page_to_lruvec(struct page *page, pg_data_t *pgdat)
+{
+	return NULL;
+}
+
+static inline void do_traversal_all_lruvec(void)
+{
+}
 
 static inline bool mem_cgroup_is_root(struct mem_cgroup *memcg)
 {

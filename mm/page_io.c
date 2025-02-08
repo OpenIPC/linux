@@ -25,6 +25,7 @@
 #include <linux/psi.h>
 #include <linux/uio.h>
 #include <linux/sched/task.h>
+#include <trace/hooks/mm.h>
 
 static struct bio *get_swap_bio(gfp_t gfp_flags,
 				struct page *page, bio_end_io_t end_io)
@@ -60,9 +61,9 @@ void end_swap_bio_write(struct bio *bio)
 		 * Also clear PG_reclaim to avoid rotate_reclaimable_page()
 		 */
 		set_page_dirty(page);
-		pr_alert("Write-error on swap-device (%u:%u:%llu)\n",
-			 MAJOR(bio_dev(bio)), MINOR(bio_dev(bio)),
-			 (unsigned long long)bio->bi_iter.bi_sector);
+		pr_alert_ratelimited("Write-error on swap-device (%u:%u:%llu)\n",
+				     MAJOR(bio_dev(bio)), MINOR(bio_dev(bio)),
+				     (unsigned long long)bio->bi_iter.bi_sector);
 		ClearPageReclaim(page);
 	}
 	end_page_writeback(page);
@@ -77,9 +78,9 @@ static void end_swap_bio_read(struct bio *bio)
 	if (bio->bi_status) {
 		SetPageError(page);
 		ClearPageUptodate(page);
-		pr_alert("Read-error on swap-device (%u:%u:%llu)\n",
-			 MAJOR(bio_dev(bio)), MINOR(bio_dev(bio)),
-			 (unsigned long long)bio->bi_iter.bi_sector);
+		pr_alert_ratelimited("Read-error on swap-device (%u:%u:%llu)\n",
+				     MAJOR(bio_dev(bio)), MINOR(bio_dev(bio)),
+				     (unsigned long long)bio->bi_iter.bi_sector);
 		goto out;
 	}
 
@@ -256,6 +257,7 @@ int __swap_writepage(struct page *page, struct writeback_control *wbc,
 	struct bio *bio;
 	int ret;
 	struct swap_info_struct *sis = page_swap_info(page);
+	bool skip = false;
 
 	VM_BUG_ON_PAGE(!PageSwapCache(page), page);
 	if (data_race(sis->flags & SWP_FS_OPS)) {
@@ -277,6 +279,7 @@ int __swap_writepage(struct page *page, struct writeback_control *wbc,
 		unlock_page(page);
 		ret = mapping->a_ops->direct_IO(&kiocb, &from);
 		if (ret == PAGE_SIZE) {
+			trace_android_vh_count_pswpout(sis);
 			count_vm_event(PSWPOUT);
 			ret = 0;
 		} else {
@@ -301,7 +304,9 @@ int __swap_writepage(struct page *page, struct writeback_control *wbc,
 
 	ret = bdev_write_page(sis->bdev, swap_page_sector(page), page, wbc);
 	if (!ret) {
-		count_swpout_vm_event(page);
+		trace_android_vh_count_swpout_vm_event(sis, page, &skip);
+		if (!skip)
+			count_swpout_vm_event(page);
 		return 0;
 	}
 
@@ -313,7 +318,9 @@ int __swap_writepage(struct page *page, struct writeback_control *wbc,
 	}
 	bio->bi_opf = REQ_OP_WRITE | REQ_SWAP | wbc_to_write_flags(wbc);
 	bio_associate_blkg_from_page(bio, page);
-	count_swpout_vm_event(page);
+	trace_android_vh_count_swpout_vm_event(sis, page, &skip);
+	if (!skip)
+		count_swpout_vm_event(page);
 	set_page_writeback(page);
 	unlock_page(page);
 	submit_bio(bio);
@@ -352,14 +359,17 @@ int swap_readpage(struct page *page, bool synchronous)
 		struct address_space *mapping = swap_file->f_mapping;
 
 		ret = mapping->a_ops->readpage(swap_file, page);
-		if (!ret)
+		if (!ret) {
+			trace_android_vh_count_pswpin(sis);
 			count_vm_event(PSWPIN);
+		}
 		goto out;
 	}
 
 	if (sis->flags & SWP_SYNCHRONOUS_IO) {
 		ret = bdev_read_page(sis->bdev, swap_page_sector(page), page);
 		if (!ret) {
+			trace_android_vh_count_pswpin(sis);
 			count_vm_event(PSWPIN);
 			goto out;
 		}
@@ -383,6 +393,7 @@ int swap_readpage(struct page *page, bool synchronous)
 		get_task_struct(current);
 		bio->bi_private = current;
 	}
+	trace_android_vh_count_pswpin(sis);
 	count_vm_event(PSWPIN);
 	bio_get(bio);
 	qc = submit_bio(bio);

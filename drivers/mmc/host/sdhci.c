@@ -33,6 +33,8 @@
 #include <linux/mmc/sdio.h>
 #include <linux/mmc/slot-gpio.h>
 
+#include <trace/hooks/mmc_core.h>
+
 #include "sdhci.h"
 
 #define DRIVER_NAME "sdhci"
@@ -339,7 +341,6 @@ static void sdhci_init(struct sdhci_host *host, int soft)
 	if (soft) {
 		/* force clock reconfiguration */
 		host->clock = 0;
-		host->reinit_uhs = true;
 		mmc->ops->set_ios(mmc, &mmc->ios);
 	}
 }
@@ -773,19 +774,7 @@ static void sdhci_adma_table_pre(struct sdhci_host *host,
 			len -= offset;
 		}
 
-		/*
-		 * The block layer forces a minimum segment size of PAGE_SIZE,
-		 * so 'len' can be too big here if PAGE_SIZE >= 64KiB. Write
-		 * multiple descriptors, noting that the ADMA table is sized
-		 * for 4KiB chunks anyway, so it will be big enough.
-		 */
-		while (len > host->max_adma) {
-			int n = 32 * 1024; /* 32KiB*/
-
-			__sdhci_adma_write_desc(host, &desc, addr, n, ADMA2_TRAN_VALID);
-			addr += n;
-			len -= n;
-		}
+		BUG_ON(len > 65536);
 
 		/* tran, valid */
 		if (len)
@@ -2259,45 +2248,10 @@ void sdhci_set_uhs_signaling(struct sdhci_host *host, unsigned timing)
 }
 EXPORT_SYMBOL_GPL(sdhci_set_uhs_signaling);
 
-static bool sdhci_timing_has_preset(unsigned char timing)
-{
-	switch (timing) {
-	case MMC_TIMING_UHS_SDR12:
-	case MMC_TIMING_UHS_SDR25:
-	case MMC_TIMING_UHS_SDR50:
-	case MMC_TIMING_UHS_SDR104:
-	case MMC_TIMING_UHS_DDR50:
-	case MMC_TIMING_MMC_DDR52:
-		return true;
-	};
-	return false;
-}
-
-static bool sdhci_preset_needed(struct sdhci_host *host, unsigned char timing)
-{
-	return !(host->quirks2 & SDHCI_QUIRK2_PRESET_VALUE_BROKEN) &&
-	       sdhci_timing_has_preset(timing);
-}
-
-static bool sdhci_presetable_values_change(struct sdhci_host *host, struct mmc_ios *ios)
-{
-	/*
-	 * Preset Values are: Driver Strength, Clock Generator and SDCLK/RCLK
-	 * Frequency. Check if preset values need to be enabled, or the Driver
-	 * Strength needs updating. Note, clock changes are handled separately.
-	 */
-	return !host->preset_enabled &&
-	       (sdhci_preset_needed(host, ios->timing) || host->drv_type != ios->drv_type);
-}
-
 void sdhci_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 {
 	struct sdhci_host *host = mmc_priv(mmc);
-	bool reinit_uhs = host->reinit_uhs;
-	bool turning_on_clk = false;
 	u8 ctrl;
-
-	host->reinit_uhs = false;
 
 	if (ios->power_mode == MMC_POWER_UNDEFINED)
 		return;
@@ -2324,8 +2278,6 @@ void sdhci_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		sdhci_enable_preset_value(host, false);
 
 	if (!ios->clock || ios->clock != host->clock) {
-		turning_on_clk = ios->clock && !host->clock;
-
 		host->ops->set_clock(host, ios->clock);
 		host->clock = ios->clock;
 
@@ -2351,17 +2303,6 @@ void sdhci_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		host->ops->platform_send_init_74_clocks(host, ios->power_mode);
 
 	host->ops->set_bus_width(host, ios->bus_width);
-
-	/*
-	 * Special case to avoid multiple clock changes during voltage
-	 * switching.
-	 */
-	if (!reinit_uhs &&
-	    turning_on_clk &&
-	    host->timing == ios->timing &&
-	    host->version >= SDHCI_SPEC_300 &&
-	    !sdhci_presetable_values_change(host, ios))
-		return;
 
 	ctrl = sdhci_readb(host, SDHCI_HOST_CONTROL);
 
@@ -2406,7 +2347,6 @@ void sdhci_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 			}
 
 			sdhci_writew(host, ctrl_2, SDHCI_HOST_CONTROL2);
-			host->drv_type = ios->drv_type;
 		} else {
 			/*
 			 * According to SDHC Spec v3.00, if the Preset Value
@@ -2434,14 +2374,19 @@ void sdhci_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		host->ops->set_uhs_signaling(host, ios->timing);
 		host->timing = ios->timing;
 
-		if (sdhci_preset_needed(host, ios->timing)) {
+		if (!(host->quirks2 & SDHCI_QUIRK2_PRESET_VALUE_BROKEN) &&
+				((ios->timing == MMC_TIMING_UHS_SDR12) ||
+				 (ios->timing == MMC_TIMING_UHS_SDR25) ||
+				 (ios->timing == MMC_TIMING_UHS_SDR50) ||
+				 (ios->timing == MMC_TIMING_UHS_SDR104) ||
+				 (ios->timing == MMC_TIMING_UHS_DDR50) ||
+				 (ios->timing == MMC_TIMING_MMC_DDR52))) {
 			u16 preset;
 
 			sdhci_enable_preset_value(host, true);
 			preset = sdhci_get_preset_value(host);
 			ios->drv_type = FIELD_GET(SDHCI_PRESET_DRV_MASK,
 						  preset);
-			host->drv_type = ios->drv_type;
 		}
 
 		/* Re-enable SD Clock */
@@ -2463,6 +2408,7 @@ static int sdhci_get_cd(struct mmc_host *mmc)
 {
 	struct sdhci_host *host = mmc_priv(mmc);
 	int gpio_cd = mmc_gpio_get_cd(mmc);
+	bool allow = true;
 
 	if (host->flags & SDHCI_DEVICE_DEAD)
 		return 0;
@@ -2470,6 +2416,10 @@ static int sdhci_get_cd(struct mmc_host *mmc)
 	/* If nonremovable, assume that the card is always present. */
 	if (!mmc_card_is_removable(host->mmc))
 		return 1;
+
+	trace_android_vh_sdhci_get_cd(host, &allow);
+	if (!allow)
+		return 0;
 
 	/*
 	 * Try slot gpio detect, if defined it take precedence
@@ -3752,7 +3702,6 @@ int sdhci_resume_host(struct sdhci_host *host)
 		sdhci_init(host, 0);
 		host->pwr = 0;
 		host->clock = 0;
-		host->reinit_uhs = true;
 		mmc->ops->set_ios(mmc, &mmc->ios);
 	} else {
 		sdhci_init(host, (host->mmc->pm_flags & MMC_PM_KEEP_POWER));
@@ -3815,7 +3764,6 @@ int sdhci_runtime_resume_host(struct sdhci_host *host, int soft_reset)
 		/* Force clock and power re-program */
 		host->pwr = 0;
 		host->clock = 0;
-		host->reinit_uhs = true;
 		mmc->ops->start_signal_voltage_switch(mmc, &mmc->ios);
 		mmc->ops->set_ios(mmc, &mmc->ios);
 
@@ -4007,7 +3955,6 @@ struct sdhci_host *sdhci_alloc_host(struct device *dev,
 	 * descriptor for each segment, plus 1 for a nop end descriptor.
 	 */
 	host->adma_table_cnt = SDHCI_MAX_SEGS * 2 + 1;
-	host->max_adma = 65536;
 
 	return host;
 }
@@ -4671,12 +4618,10 @@ int sdhci_setup_host(struct sdhci_host *host)
 	 * be larger than 64 KiB though.
 	 */
 	if (host->flags & SDHCI_USE_ADMA) {
-		if (host->quirks & SDHCI_QUIRK_BROKEN_ADMA_ZEROLEN_DESC) {
-			host->max_adma = 65532; /* 32-bit alignment */
+		if (host->quirks & SDHCI_QUIRK_BROKEN_ADMA_ZEROLEN_DESC)
 			mmc->max_seg_size = 65535;
-		} else {
+		else
 			mmc->max_seg_size = 65536;
-		}
 	} else {
 		mmc->max_seg_size = mmc->max_req_size;
 	}

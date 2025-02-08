@@ -68,6 +68,8 @@
 #include <net/tcp_states.h>
 #include <linux/net_tstamp.h>
 #include <net/l3mdev.h>
+#include <linux/android_kabi.h>
+#include <linux/android_vendor.h>
 
 /*
  * This structure really needs to be cleaned up.
@@ -476,7 +478,11 @@ struct sock {
 	u32			sk_ack_backlog;
 	u32			sk_max_ack_backlog;
 	kuid_t			sk_uid;
+#if IS_ENABLED(CONFIG_DEBUG_SPINLOCK) || IS_ENABLED(CONFIG_DEBUG_LOCK_ALLOC)
 	spinlock_t		sk_peer_lock;
+#else
+	/* sk_peer_lock is in the ANDROID_KABI_RESERVE(1) field below */
+#endif
 	struct pid		*sk_peer_pid;
 	const struct cred	*sk_peer_cred;
 
@@ -519,6 +525,21 @@ struct sock {
 	struct bpf_local_storage __rcu	*sk_bpf_storage;
 #endif
 	struct rcu_head		sk_rcu;
+
+#if IS_ENABLED(CONFIG_DEBUG_SPINLOCK) || IS_ENABLED(CONFIG_DEBUG_LOCK_ALLOC)
+	ANDROID_KABI_RESERVE(1);
+#else
+	ANDROID_KABI_USE(1, spinlock_t sk_peer_lock);
+#endif
+	ANDROID_KABI_RESERVE(2);
+	ANDROID_KABI_RESERVE(3);
+	ANDROID_KABI_RESERVE(4);
+	ANDROID_KABI_RESERVE(5);
+	ANDROID_KABI_RESERVE(6);
+	ANDROID_KABI_RESERVE(7);
+	ANDROID_KABI_RESERVE(8);
+
+	ANDROID_OEM_DATA(1);
 };
 
 enum sk_pacing {
@@ -1239,7 +1260,7 @@ struct proto {
 	unsigned int		useroffset;	/* Usercopy region offset */
 	unsigned int		usersize;	/* Usercopy region size */
 
-	unsigned int __percpu	*orphan_count;
+	struct percpu_counter	*orphan_count;
 
 	struct request_sock_ops	*rsk_prot;
 	struct timewait_sock_ops *twsk_prot;
@@ -2687,7 +2708,10 @@ void sk_get_meminfo(const struct sock *sk, u32 *meminfo);
  */
 #define _SK_MEM_PACKETS		256
 #define _SK_MEM_OVERHEAD	SKB_TRUESIZE(256)
-#define SK_WMEM_MAX		(_SK_MEM_OVERHEAD * _SK_MEM_PACKETS)
+/* Note: for send buffers, UDP works better if we can build two skbs at
+ * default, this value also could be set by setopt in the APPS.
+ */
+#define SK_WMEM_MAX		(2 * _SK_MEM_OVERHEAD * _SK_MEM_PACKETS)
 #define SK_RMEM_MAX		(_SK_MEM_OVERHEAD * _SK_MEM_PACKETS)
 
 extern __u32 sysctl_wmem_max;

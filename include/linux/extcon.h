@@ -37,6 +37,7 @@
 /* USB external connector */
 #define EXTCON_USB		1
 #define EXTCON_USB_HOST		2
+#define EXTCON_USB_VBUS_EN	3
 
 /*
  * Charging external connector
@@ -76,6 +77,8 @@
 #define EXTCON_DISP_VGA		43	/* Video Graphics Array */
 #define EXTCON_DISP_DP		44	/* Display Port */
 #define EXTCON_DISP_HMD		45	/* Head-Mounted Display */
+#define EXTCON_DISP_CVBS	46	/* Composite Video Broadcast Signal */
+#define EXTCON_DISP_EDP		47	/* Embedded Display Port */
 
 /* Miscellaneous external connector */
 #define EXTCON_DOCK		60

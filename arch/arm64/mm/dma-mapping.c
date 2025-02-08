@@ -10,6 +10,8 @@
 #include <linux/dma-iommu.h>
 #include <xen/xen.h>
 #include <xen/swiotlb-xen.h>
+#include <trace/hooks/iommu.h>
+#include <trace/hooks/dma_noalias.h>
 
 #include <asm/cacheflush.h>
 
@@ -49,11 +51,22 @@ void arch_setup_dma_ops(struct device *dev, u64 dma_base, u64 size,
 		   ARCH_DMA_MINALIGN, cls);
 
 	dev->dma_coherent = coherent;
-	if (iommu)
+	if (iommu) {
 		iommu_setup_dma_ops(dev, dma_base, size);
+		trace_android_vh_iommu_setup_dma_ops(dev, dma_base, size);
+		trace_android_rvh_iommu_setup_dma_ops(dev, dma_base, size);
+	}
+
+	/* Allow vendor modules to opt-in for the 2454944 erratum workaround */
+	trace_android_rvh_setup_dma_ops(dev);
 
 #ifdef CONFIG_XEN
 	if (xen_initial_domain())
 		dev->dma_ops = &xen_swiotlb_dma_ops;
 #endif
 }
+
+#ifdef CONFIG_NO_GKI
+EXPORT_SYMBOL(__dma_map_area);
+EXPORT_SYMBOL(__dma_unmap_area);
+#endif

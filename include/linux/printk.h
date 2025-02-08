@@ -6,7 +6,6 @@
 #include <linux/init.h>
 #include <linux/kern_levels.h>
 #include <linux/linkage.h>
-#include <linux/cache.h>
 #include <linux/ratelimit_types.h>
 
 extern const char linux_banner[];
@@ -206,6 +205,7 @@ void __init setup_log_buf(int early);
 __printf(1, 2) void dump_stack_set_arch_desc(const char *fmt, ...);
 void dump_stack_print_info(const char *log_lvl);
 void show_regs_print_info(const char *log_lvl);
+extern asmlinkage void dump_stack_lvl(const char *log_lvl) __cold;
 extern asmlinkage void dump_stack(void) __cold;
 extern void printk_safe_flush(void);
 extern void printk_safe_flush_on_panic(void);
@@ -266,6 +266,10 @@ static inline void dump_stack_print_info(const char *log_lvl)
 }
 
 static inline void show_regs_print_info(const char *log_lvl)
+{
+}
+
+static inline void dump_stack_lvl(const char *log_lvl)
 {
 }
 

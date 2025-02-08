@@ -935,11 +935,6 @@ static int of_gpiochip_add_pin_range(struct gpio_chip *chip)
 	if (!np)
 		return 0;
 
-	if (!of_property_read_bool(np, "gpio-ranges") &&
-	    chip->of_gpio_ranges_fallback) {
-		return chip->of_gpio_ranges_fallback(chip, np);
-	}
-
 	group_names = of_find_property(np, group_names_propname, NULL);
 
 	for (;; index++) {
@@ -1045,4 +1040,15 @@ int of_gpiochip_add(struct gpio_chip *chip)
 void of_gpiochip_remove(struct gpio_chip *chip)
 {
 	of_node_put(chip->of_node);
+}
+
+void of_gpio_dev_init(struct gpio_chip *gc, struct gpio_device *gdev)
+{
+	/* If the gpiochip has an assigned OF node this takes precedence */
+	if (gc->of_node)
+		gdev->dev.of_node = gc->of_node;
+	else
+		gc->of_node = gdev->dev.of_node;
+	if (gdev->dev.of_node)
+		gdev->dev.fwnode = of_fwnode_handle(gdev->dev.of_node);
 }

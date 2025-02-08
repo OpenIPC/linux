@@ -10,7 +10,7 @@
  */
 bool __do_once_start(bool *done, unsigned long *flags);
 void __do_once_done(bool *done, struct static_key_true *once_key,
-		    unsigned long *flags, struct module *mod);
+		    unsigned long *flags);
 
 /* Variant for process contexts only. */
 bool __do_once_slow_start(bool *done);
@@ -54,7 +54,7 @@ void __do_once_slow_done(bool *done, struct static_key_true *once_key,
 			if (unlikely(___ret)) {				     \
 				func(__VA_ARGS__);			     \
 				__do_once_done(&___done, &___once_key,	     \
-					       &___flags, THIS_MODULE);	     \
+					       &___flags);		     \
 			}						     \
 		}							     \
 		___ret;							     \

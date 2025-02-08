@@ -48,9 +48,7 @@
 
 extern struct inet_hashinfo tcp_hashinfo;
 
-DECLARE_PER_CPU(unsigned int, tcp_orphan_count);
-int tcp_orphan_count_sum(void);
-
+extern struct percpu_counter tcp_orphan_count;
 void tcp_time_wait(struct sock *sk, int state, int timeo);
 
 #define MAX_TCP_HEADER	L1_CACHE_ALIGN(128 + MAX_HEADER)
@@ -291,6 +289,19 @@ static inline bool tcp_out_of_memory(struct sock *sk)
 }
 
 void sk_forced_mem_schedule(struct sock *sk, int size);
+
+static inline bool tcp_too_many_orphans(struct sock *sk, int shift)
+{
+	struct percpu_counter *ocp = sk->sk_prot->orphan_count;
+	int orphans = percpu_counter_read_positive(ocp);
+
+	if (orphans << shift > sysctl_tcp_max_orphans) {
+		orphans = percpu_counter_sum_positive(ocp);
+		if (orphans << shift > sysctl_tcp_max_orphans)
+			return true;
+	}
+	return false;
+}
 
 bool tcp_check_oom(struct sock *sk, int shift);
 
@@ -1043,7 +1054,6 @@ struct rate_sample {
 	int  losses;		/* number of packets marked lost upon ACK */
 	u32  acked_sacked;	/* number of packets newly (S)ACKed upon ACK */
 	u32  prior_in_flight;	/* in flight before this ACK */
-	u32  last_end_seq;	/* end_seq of most recently ACKed packet */
 	bool is_app_limited;	/* is sample from packet with bubble in pipe? */
 	bool is_retrans;	/* is sample from retransmission? */
 	bool is_ack_delayed;	/* is this (likely) a delayed ACK? */
@@ -1153,11 +1163,6 @@ void tcp_rate_skb_delivered(struct sock *sk, struct sk_buff *skb,
 void tcp_rate_gen(struct sock *sk, u32 delivered, u32 lost,
 		  bool is_sack_reneg, struct rate_sample *rs);
 void tcp_rate_check_app_limited(struct sock *sk);
-
-static inline bool tcp_skb_sent_after(u64 t1, u64 t2, u32 seq1, u32 seq2)
-{
-	return t1 > t2 || (t1 == t2 && after(seq1, seq2));
-}
 
 /* These functions determine how the current flow behaves in respect of SACK
  * handling. SACK is negotiated with the peer, and therefore it can vary

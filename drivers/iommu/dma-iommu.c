@@ -23,6 +23,7 @@
 #include <linux/scatterlist.h>
 #include <linux/vmalloc.h>
 #include <linux/crash_dump.h>
+#include <trace/hooks/iommu.h>
 
 struct iommu_dma_msi_page {
 	struct list_head	list;
@@ -49,6 +50,11 @@ struct iommu_dma_cookie {
 	struct iommu_domain		*fq_domain;
 };
 
+struct iommu_dma_cookie_ext {
+	struct iommu_dma_cookie		cookie;
+	struct mutex			mutex;
+};
+
 static inline size_t cookie_msi_granule(struct iommu_dma_cookie *cookie)
 {
 	if (cookie->type == IOMMU_DMA_IOVA_COOKIE)
@@ -58,14 +64,15 @@ static inline size_t cookie_msi_granule(struct iommu_dma_cookie *cookie)
 
 static struct iommu_dma_cookie *cookie_alloc(enum iommu_dma_cookie_type type)
 {
-	struct iommu_dma_cookie *cookie;
+	struct iommu_dma_cookie_ext *cookie;
 
 	cookie = kzalloc(sizeof(*cookie), GFP_KERNEL);
 	if (cookie) {
-		INIT_LIST_HEAD(&cookie->msi_page_list);
-		cookie->type = type;
+		INIT_LIST_HEAD(&cookie->cookie.msi_page_list);
+		cookie->cookie.type = type;
+		mutex_init(&cookie->mutex);
 	}
-	return cookie;
+	return &cookie->cookie;
 }
 
 /**
@@ -304,9 +311,11 @@ static int iommu_dma_init_domain(struct iommu_domain *domain, dma_addr_t base,
 		u64 size, struct device *dev)
 {
 	struct iommu_dma_cookie *cookie = domain->iova_cookie;
+	struct iommu_dma_cookie_ext *cookie_ext;
 	unsigned long order, base_pfn;
 	struct iova_domain *iovad;
 	int attr;
+	int ret;
 
 	if (!cookie || cookie->type != IOMMU_DMA_IOVA_COOKIE)
 		return -EINVAL;
@@ -330,14 +339,18 @@ static int iommu_dma_init_domain(struct iommu_domain *domain, dma_addr_t base,
 	}
 
 	/* start_pfn is always nonzero for an already-initialised domain */
+	cookie_ext = container_of(cookie, struct iommu_dma_cookie_ext, cookie);
+	mutex_lock(&cookie_ext->mutex);
 	if (iovad->start_pfn) {
 		if (1UL << order != iovad->granule ||
 		    base_pfn != iovad->start_pfn) {
 			pr_warn("Incompatible range for DMA domain\n");
-			return -EFAULT;
+			ret = -EFAULT;
+			goto done_unlock;
 		}
 
-		return 0;
+		ret = 0;
+		goto done_unlock;
 	}
 
 	init_iova_domain(iovad, 1UL << order, base_pfn);
@@ -351,10 +364,16 @@ static int iommu_dma_init_domain(struct iommu_domain *domain, dma_addr_t base,
 			cookie->fq_domain = domain;
 	}
 
-	if (!dev)
-		return 0;
+	if (!dev) {
+		ret = 0;
+		goto done_unlock;
+	}
 
-	return iova_reserve_iommu_regions(dev, domain);
+	ret = iova_reserve_iommu_regions(dev, domain);
+
+done_unlock:
+	mutex_unlock(&cookie_ext->mutex);
+	return ret;
 }
 
 static int iommu_dma_deferred_attach(struct device *dev,
@@ -372,6 +391,52 @@ static int iommu_dma_deferred_attach(struct device *dev,
 	return 0;
 }
 
+/*
+ * Should be called prior to using dma-apis
+ */
+int iommu_dma_reserve_iova(struct device *dev, dma_addr_t base,
+			   u64 size)
+{
+	struct iommu_domain *domain;
+	struct iommu_dma_cookie *cookie;
+	struct iova_domain *iovad;
+	unsigned long pfn_lo, pfn_hi;
+
+	domain = iommu_get_domain_for_dev(dev);
+	if (!domain || !domain->iova_cookie)
+		return -EINVAL;
+
+	cookie = domain->iova_cookie;
+	iovad = &cookie->iovad;
+
+	/* iova will be freed automatically by put_iova_domain() */
+	pfn_lo = iova_pfn(iovad, base);
+	pfn_hi = iova_pfn(iovad, base + size - 1);
+	if (!reserve_iova(iovad, pfn_lo, pfn_hi))
+		return -EINVAL;
+
+	return 0;
+}
+EXPORT_SYMBOL(iommu_dma_reserve_iova);
+
+/*
+ * Should be called prior to using dma-apis.
+ */
+int iommu_dma_enable_best_fit_algo(struct device *dev)
+{
+	struct iommu_domain *domain;
+	struct iova_domain *iovad;
+
+	domain = iommu_get_domain_for_dev(dev);
+	if (!domain || !domain->iova_cookie)
+		return -EINVAL;
+
+	iovad = &((struct iommu_dma_cookie *)domain->iova_cookie)->iovad;
+	iovad->best_fit = true;
+	return 0;
+}
+EXPORT_SYMBOL(iommu_dma_enable_best_fit_algo);
+
 /**
  * dma_info_to_prot - Translate DMA API directions and attributes to IOMMU API
  *                    page flags.
@@ -388,6 +453,10 @@ static int dma_info_to_prot(enum dma_data_direction dir, bool coherent,
 
 	if (attrs & DMA_ATTR_PRIVILEGED)
 		prot |= IOMMU_PRIV;
+	if (attrs & DMA_ATTR_SYS_CACHE_ONLY)
+		prot |= IOMMU_SYS_CACHE;
+	if (attrs & DMA_ATTR_SYS_CACHE_ONLY_NWA)
+		prot |= IOMMU_SYS_CACHE_NWA;
 
 	switch (dir) {
 	case DMA_BIDIRECTIONAL:
@@ -438,6 +507,9 @@ static dma_addr_t iommu_dma_alloc_iova(struct iommu_domain *domain,
 		iova = alloc_iova_fast(iovad, iova_len, dma_limit >> shift,
 				       true);
 
+	trace_android_vh_iommu_alloc_iova(dev, (dma_addr_t)iova << shift, size);
+	trace_android_vh_iommu_iovad_alloc_iova(dev, iovad, (dma_addr_t)iova << shift, size);
+
 	return (dma_addr_t)iova << shift;
 }
 
@@ -455,6 +527,9 @@ static void iommu_dma_free_iova(struct iommu_dma_cookie *cookie,
 	else
 		free_iova_fast(iovad, iova_pfn(iovad, iova),
 				size >> iova_shift(iovad));
+
+	trace_android_vh_iommu_free_iova(iova, size);
+	trace_android_vh_iommu_iovad_free_iova(iovad, iova, size);
 }
 
 static void __iommu_dma_unmap(struct device *dev, dma_addr_t dma_addr,

@@ -23,6 +23,7 @@
 #include <linux/fs.h>
 #include <linux/mm.h>
 #include <linux/sockptr.h>
+#include <linux/android_kabi.h>
 
 #include <uapi/linux/net.h>
 
@@ -41,8 +42,6 @@ struct net;
 #define SOCK_NOSPACE		2
 #define SOCK_PASSCRED		3
 #define SOCK_PASSSEC		4
-
-#define PROTO_CMSG_DATA_ONLY	0x0001
 
 #ifndef ARCH_HAS_SOCKET_TYPES
 /**
@@ -138,7 +137,8 @@ typedef int (*sk_read_actor_t)(read_descriptor_t *, struct sk_buff *,
 
 struct proto_ops {
 	int		family;
-	unsigned int	flags;
+	unsigned int	flags;	// ANDROID - removed in 5.10.162, but remains to
+				// preserve ABI.  It is not used anywhere.
 	struct module	*owner;
 	int		(*release)   (struct socket *sock);
 	int		(*bind)	     (struct socket *sock,
@@ -203,6 +203,11 @@ struct proto_ops {
 	int		(*sendmsg_locked)(struct sock *sk, struct msghdr *msg,
 					  size_t size);
 	int		(*set_rcvlowat)(struct sock *sk, int val);
+
+	ANDROID_KABI_RESERVE(1);
+	ANDROID_KABI_RESERVE(2);
+	ANDROID_KABI_RESERVE(3);
+	ANDROID_KABI_RESERVE(4);
 };
 
 #define DECLARE_SOCKADDR(type, dst, src)	\
