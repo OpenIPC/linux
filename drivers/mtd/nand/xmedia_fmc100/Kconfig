@@ -1,0 +1,17 @@
+#
+# xmedia flash memory controller SPI nand device driver version 100
+# drivers/mtd/nand/xmedia_fmc100/Kconfig
+# add by xmedia 2017.8.7
+#
+
+config MTD_SPI_NAND_XMEDIA_FMC100
+	bool "Xmedia Flash Memory Controller v100 SPI Nand devices support"
+	depends on MFD_XMEDIA_FMC && MTD_SPI_NAND_XMEDIA
+	select MISC_FILESYSTEMS
+	select MTD_BLOCK
+	select YAFFS_FS
+	select YAFFS_YAFFS2
+	help
+	  Xmedia Flash Memory Controller version 100 is called xmedia_fmc100 for
+	  short. The controller driver support registers and DMA transfers
+	  while reading or writing the SPI nand flash.

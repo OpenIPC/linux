@@ -1,0 +1,42 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
+menu "NAND"
+
+config MTD_NAND_CORE
+	tristate
+
+source "drivers/mtd/nand/onenand/Kconfig"
+source "drivers/mtd/nand/raw/Kconfig"
+source "drivers/mtd/nand/spi/Kconfig"
+source "drivers/mtd/nand/xmedia_fmc100/Kconfig"
+
+menu "ECC engine support"
+
+config MTD_NAND_ECC
+       bool
+       depends on MTD_NAND_CORE
+
+config XMEDIA_NAND_ECC_STATUS_REPORT
+	tristate "Report the ecc status to MTD for Xmedia Nand Driver"
+	depends on MTD_NAND_CORE && ARCH_XMEDIA
+	default n
+	help
+	  Flash Memory Controller reports the ecc status include ECC error
+	  and ECC corrected to MTD to monitor the aging of devices.
+endmenu
+
+config MTD_SPI_NAND_XMEDIA
+    tristate "Support for SPI NAND controller on Xmedia SoCs"
+    depends on MTD_NAND_CORE
+    help
+      Enables support for the SPI NAND device drivers.
+
+
+config XMEDIA_NAND_FS_MAY_NO_YAFFS2
+    bool "Remove the restraintion of 16bit ecc type on yaffs2 to Xmedia"
+	depends on MFD_XMEDIA_FMC
+    default n
+    help
+      The ecc type: 16bit is limited by the Xmedia flash memory controller,
+      as the yaffs2 tag of xmedia rootfs limits the min size of CTRL len is 28.
+endmenu
