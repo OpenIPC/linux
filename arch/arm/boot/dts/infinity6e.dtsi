@@ -576,7 +576,7 @@
             camclk = <CAMCLK_fuart>;
 #endif
             sctp_enable = <1>;//rts cts enable is 1
-            dma = <1>;
+            dma = <0>;
             pad = <PAD_FUART_RX>;
             //pad = <PAD_PM_GPIO2>;//fuart mode6
             //pad = <PAD_FUART_RX>;

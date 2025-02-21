@@ -1849,6 +1849,25 @@ static void ms_uart_shutdown(struct uart_port *p)
     }
 }
 
+static int rx_bulk_read_flag = 0;
+
+static ssize_t rx_bulk_read_show(struct device *dev, struct device_attribute *attr, char *buf) {
+    return sprintf(buf, "%d\n", rx_bulk_read_flag);
+}
+
+static ssize_t rx_bulk_read_store(struct device *dev, struct device_attribute *attr,
+            const char *buf, size_t count) {
+    int value;
+    if (kstrtoint(buf, 10, &value))
+        return -EINVAL;
+
+    rx_bulk_read_flag = value;
+    pr_info("UART rx_bulk_read_flag set to: %d\n", rx_bulk_read_flag);
+    return count;
+}
+
+static DEVICE_ATTR_RW(rx_bulk_read);
+
 static void ms_uart_set_termios(struct uart_port *p, struct ktermios *pTermios_st, struct ktermios *pOld_st)
 {
     /* Define Local Variables */
@@ -1937,7 +1956,27 @@ static void ms_uart_set_termios(struct uart_port *p, struct ktermios *pTermios_s
         }
     }
 
-    OUTREG8(REG_IIR_FCR(p), UART_FCR_FIFO_ENABLE | UART_FCR_TRIGGER_TX_L1 | UART_FCR_TRIGGER_RX_L0);
+    if (rx_bulk_read_flag || pTermios_st->c_iflag & 0x10000) {
+        unsigned char mode = 0;
+        switch (rx_bulk_read_flag) {
+            case 1:
+            	mode = UART_FCR_TRIGGER_RX_L1;
+            	break;
+            case 2:
+            	mode = UART_FCR_TRIGGER_RX_L2;
+            	break;
+            default:
+            	mode = UART_FCR_TRIGGER_RX_L3;
+            	break;
+        }
+
+        OUTREG8(REG_IIR_FCR(p), UART_FCR_FIFO_ENABLE | UART_FCR_TRIGGER_TX_L1 | mode);
+        pr_info("ms_uart_set_termios: UART_FCR_TRIGGER_RX_L%d: 0x%02X, c_iflag: 0x%x\n",
+            mode / UART_FCR_TRIGGER_RX_L1, mode, pTermios_st->c_iflag);
+    } else {
+        OUTREG8(REG_IIR_FCR(p), UART_FCR_FIFO_ENABLE | UART_FCR_TRIGGER_TX_L1 | UART_FCR_TRIGGER_RX_L0);
+    }
+
     INREG8(REG_DLL_THR_RBR(p));
 
     if(p->dev != NULL){
@@ -2063,6 +2102,8 @@ static s32 ms_uart_remove(struct platform_device *pdev)
 
     uart_remove_one_port(&ms_uart_driver,&mp->port);
 
+    device_remove_file(&pdev->dev, &dev_attr_rx_bulk_read);
+
     if(mp->use_dma)
     {
         dma_free_coherent(&pdev->dev, PAGE_ALIGN(UR2DMA_RX_BUF_LENGTH), &mp->urdma->rx_urdma_base, GFP_KERNEL);
@@ -2158,6 +2199,11 @@ static s32 ms_uart_probe(struct platform_device *pdev)
     mp->port.irq = res->start;
 
     of_property_read_u32(pdev->dev.of_node, "dma", &mp->use_dma);
+
+    // Create sysfs file under the device's sysfs directory -> TipoMan9 2024Dec
+    ret = device_create_file(&pdev->dev, &dev_attr_rx_bulk_read);
+    if (ret)
+        pr_err("Failed to create uart sysfs entry\n");
 
     if (mp->use_dma)
     {
