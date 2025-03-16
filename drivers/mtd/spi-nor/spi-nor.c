@@ -1153,6 +1153,8 @@ static const struct flash_info spi_nor_ids[] = {
 	{ "en25q64",    INFO(0x1c3017, 0, 64 * 1024,  128, SECT_4K),
 		PARAMS(eon) },
 	{ "en25q128",   INFO(0x1c3018, 0, 64 * 1024,  256, 0), PARAMS(eon) },
+	{ "en25qh64",   INFO(0x1c7017, 0, 64 * 1024,  128, SECT_4K),
+		PARAMS(eon) },
 	{ "en25qh128",  INFO(0x1c7018, 0, 64 * 1024,  256, 0) },
 	{ "en25qh256",  INFO(0x1c7019, 0, 64 * 1024,  512, 0) },
 	{ "en25s64",	INFO(0x1c3817, 0, 64 * 1024,  128, SECT_4K) },
