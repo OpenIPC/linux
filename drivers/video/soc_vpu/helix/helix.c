@@ -67,9 +67,17 @@ static long vpu_open(struct device *dev)
 	if (cpm_inl(CPM_OPCR) & OPCR_IDLE)
 		return -EBUSY;
 
-    clk_enable(vpu->clk);
+#ifndef CONFIG_FPGA_TEST
+	clk_enable(vpu->clk);
 	clk_enable(vpu->ahb1_gate);
 	clk_enable(vpu->clk_gate);
+#else
+	void *ivdc_iomap = ioremap(0x10000000, 0x1000);
+	int value;
+	value = readl(ivdc_iomap+0x28);
+	writel((value & 0xfffffff6), ivdc_iomap+0x28);
+	iounmap(ivdc_iomap);
+#endif
 	//cpm_pwc_enable(vpu->cpm_pwc);
 
 	__asm__ __volatile__ (
@@ -106,9 +114,11 @@ static long vpu_release(struct device *dev)
 
 	cpm_clear_bit(CPM_HELIX_SR(vpu->vpu.idx),CPM_SRBC);
 
+#ifndef CONFIG_FPGA_TEST
     clk_disable(vpu->clk);
 	clk_disable(vpu->clk_gate);
 	clk_disable(vpu->ahb1_gate);
+#endif
 	//cpm_pwc_disable(vpu->cpm_pwc);
 	/* Clear completion use_count here to avoid a unhandled irq after vpu off */
 	vpu->done.done = 0;
@@ -175,13 +185,16 @@ static long vpu_start(struct device *dev, const struct channel_node * const cnod
     vpu_writel(vpu, REG_SCH_GLBC, SCH_GLBC_HIAXI | SCH_INTE_RESERR | SCH_INTE_ACFGERR
             | SCH_INTE_BSERR | SCH_INTE_ENDF);
 
-#ifdef CONFIG_SOC_T21
+	if (cnode->frame_type == FRAME_TYPE_IVDC) {
+		void *ivdc_iomap = ioremap(IVDC_BASE_ADDR, 0x1000);
+		writel(1, ivdc_iomap+0x78);
+		writel(1, ivdc_iomap+0x70);
+		iounmap(ivdc_iomap);
+	}
+
 	vpu_writel(vpu, REG_VDMA_TASKRG_T21, VDMA_ACFG_DHA(cnode->dma_addr)
 			| VDMA_ACFG_RUN);
-#else
-	vpu_writel(vpu, REG_VDMA_TASKRG, VDMA_ACFG_DHA(cnode->dma_addr)
-			| VDMA_ACFG_RUN);
-#endif
+
 	dev_dbg(vpu->vpu.dev, "[%d:%d] start vpu\n", current->tgid, current->pid);
 
 	return 0;
@@ -222,9 +235,9 @@ hard_vpu_wait_restart:
 		goto hard_vpu_wait_restart;
 	} else {
 		dev_warn(dev, "[%d:%d] wait_for_completion timeout\n", current->tgid, current->pid);
-		dev_warn(dev, "vpu_stat = %x\n", vpu_readl(vpu,REG_SCH_STAT));
-		dev_warn(dev, "vdma_task = %x\n", vpu_readl(vpu,REG_VDMA_TASKST));
-		dev_warn(dev, "ret = %ld\n", ret);
+		//dev_warn(dev, "vpu_stat = %x\n", vpu_readl(vpu,REG_SCH_STAT));
+		//dev_warn(dev, "vdma_task = %x\n", vpu_readl(vpu,REG_VDMA_TASKST));
+		//dev_warn(dev, "ret = %ld\n", ret);
 #ifdef DUMP_HELIX_REG
 		dev_info(vpu->vpu.dev, "------%s(%d)helix_show_internal_state start------\n", __func__, __LINE__);
 		helix_show_internal_state(vpu);
@@ -344,16 +357,18 @@ static int vpu_probe(struct platform_device *pdev)
 		goto err_get_vpu_iomem;
 	}
 
-	vpu->ahb1_gate = clk_get(&pdev->dev, "ahb1");
+#ifndef CONFIG_FPGA_TEST
+/*	vpu->ahb1_gate = clk_get(&pdev->dev, "ahb1");
 	if (IS_ERR(vpu->ahb1_gate)) {
 		dev_err(&pdev->dev, "ahb1_gate get failed\n");
 		ret = PTR_ERR(vpu->ahb1_gate);
 		goto err_get_ahb1_clk_gate;
 	}
+*/
 
-	vpu->clk_gate = clk_get(&pdev->dev, vpu->name);
+	vpu->clk_gate = clk_get(&pdev->dev, "avpu");
 	if (IS_ERR(vpu->clk_gate)) {
-		dev_err(&pdev->dev, "clk_gate get failed\n");
+		dev_err(&pdev->dev, "clk_gate %s get failed\n", vpu->name);
 		ret = PTR_ERR(vpu->clk_gate);
 		goto err_get_vpu_clk_gate;
 	}
@@ -364,8 +379,11 @@ static int vpu_probe(struct platform_device *pdev)
         ret = PTR_ERR(vpu->clk);
         goto err_get_vpu_clk_cgu;
     }
-    clk_set_rate(vpu->clk,350000000);
-
+    clk_set_rate(vpu->clk,450000000);
+	clk_enable(vpu->clk);
+	//clk_enable(vpu->ahb1_gate);
+	clk_enable(vpu->clk_gate);
+#endif
 	spin_lock_init(&vpu->slock);
 	mutex_init(&vpu->mutex);
 	init_completion(&vpu->done);
@@ -403,7 +421,7 @@ err_vpu_request_power:
 #endif
 	free_irq(vpu->irq, vpu);
 err_vpu_request_irq:
-    clk_put(vpu->clk);
+	clk_put(vpu->clk);
 err_get_vpu_clk_cgu:
 	clk_put(vpu->clk_gate);
 err_get_vpu_clk_gate:
@@ -425,9 +443,12 @@ static int vpu_remove(struct platform_device *dev)
 	vpu_unregister(&vpu->vpu.vlist);
 	//cpm_pwc_put(vpu->cpm_pwc);
 	free_irq(vpu->irq, vpu);
+
+#ifndef CONFIG_FPGA_TEST
     clk_put(vpu->clk);
 	clk_put(vpu->clk_gate);
 	clk_put(vpu->ahb1_gate);
+#endif
 	iounmap(vpu->iomem);
 	kfree(vpu);
 

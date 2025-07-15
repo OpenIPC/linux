@@ -1,0 +1,17 @@
+
+choice
+	prompt "Chip type"
+	depends on SOC_T23
+	default CHIP_T23
+
+config CHIP_T23
+       bool "chip-t23"
+       select TRACEPOINTS
+       select SYS_SUPPORTS_HIGHMEM
+       select GENERIC_CLOCKEVENTS_BROADCAST
+
+endchoice
+
+if CHIP_T23
+source "arch/mips/xburst/soc-t23/chip-t23/Kconfig"
+endif

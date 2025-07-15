@@ -55,6 +55,10 @@ config SOC_T31
 	bool "t31"
 	select JZRISC
 
+config SOC_T23
+	bool "t23"
+	select JZRISC
+
 endchoice
 
 config JZRISC
@@ -92,6 +96,9 @@ source "arch/mips/xburst/soc-t21/Kconfig"
 endif
 if SOC_T31
 source "arch/mips/xburst/soc-t31/Kconfig"
+endif
+if SOC_T23
+source "arch/mips/xburst/soc-t23/Kconfig"
 endif
 
 config EXTAL_CLOCK

@@ -140,6 +140,23 @@ static inline void mmc_should_fail_request(struct mmc_host *host,
 
 #endif /* CONFIG_FAIL_MMC_REQUEST */
 
+/*
+ * mmc_wait_data_done() - done callback for data request
+ * @mrq: done data request
+ *
+ * Wakes up mmc context, passed as a callback to host controller driver
+ */
+static void mmc_wait_data_done(struct mmc_request *mrq)
+{
+	mrq->host->context_info.is_done_rcv = true;
+	wake_up_interruptible(&mrq->host->context_info.wait);
+}
+
+static void mmc_wait_done(struct mmc_request *mrq)
+{
+	complete(&mrq->completion);
+}
+
 /**
  *	mmc_request_done - finish processing an MMC request
  *	@host: MMC host which completed request
@@ -163,7 +180,7 @@ void mmc_request_done(struct mmc_host *host, struct mmc_request *mrq)
 		 * Request starter must handle retries - see
 		 * mmc_wait_for_req_done().
 		 */
-		if (mrq->done)
+		if (mrq->done == mmc_wait_data_done || mrq->done == mmc_wait_done)
 			mrq->done(mrq);
 	} else {
 		mmc_should_fail_request(host, mrq);
@@ -190,7 +207,7 @@ void mmc_request_done(struct mmc_host *host, struct mmc_request *mrq)
 				mrq->stop->resp[2], mrq->stop->resp[3]);
 		}
 
-		if (mrq->done)
+		if (mrq->done == mmc_wait_data_done || mrq->done == mmc_wait_done)
 			mrq->done(mrq);
 
 		mmc_host_clk_release(host);
@@ -326,23 +343,6 @@ out:
 	mmc_release_host(card->host);
 }
 EXPORT_SYMBOL(mmc_start_bkops);
-
-/*
- * mmc_wait_data_done() - done callback for data request
- * @mrq: done data request
- *
- * Wakes up mmc context, passed as a callback to host controller driver
- */
-static void mmc_wait_data_done(struct mmc_request *mrq)
-{
-	mrq->host->context_info.is_done_rcv = true;
-	wake_up_interruptible(&mrq->host->context_info.wait);
-}
-
-static void mmc_wait_done(struct mmc_request *mrq)
-{
-	complete(&mrq->completion);
-}
 
 /*
  *__mmc_start_data_req() - starts data request
@@ -2897,7 +2897,6 @@ EXPORT_SYMBOL(mmc_set_embedded_sdio_data);
 static int __init mmc_init(void)
 {
 	int ret, i;
-
 	for (i = 0; i < CUSTOMED_HOST_NUM; i++) {
 		char qname[8];
 		sprintf(qname, "kmmcd-%d", i);

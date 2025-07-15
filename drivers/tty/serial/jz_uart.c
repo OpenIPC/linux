@@ -23,7 +23,7 @@
  */
 
 
-#if defined(CONFIG_SERIAL_JZ47XX_CONSOLE) && defined(CONFIG_MAGIC_SYSRQ)
+#if defined(CONFIG_SERIAL_T23_CONSOLE) && defined(CONFIG_MAGIC_SYSRQ)
 #define SUPPORT_SYSRQ
 #endif
 #include <linux/module.h>
@@ -46,7 +46,7 @@
 #include <mach/jzdma.h>
 #include "jz_uart.h"
 
-#define PORT_NR 5
+#define PORT_NR 3
 #define DMA_BUFFER 1024
 #define COUNT_DMA_BUFFER 2048
 static unsigned short quot1[3] = {0}; /* quot[0]:baud_div, quot[1]:umr, quot[2]:uacr */
@@ -299,7 +299,7 @@ static inline void receive_chars(unsigned long data)
 			 */
 			status &= up->port.read_status_mask;
 
-#ifdef CONFIG_SERIAL_JZ47XX_CONSOLE
+#ifdef CONFIG_SERIAL_T23_CONSOLE
 			if (up->port.line == up->port.cons->index) {
 				/* Recover the break flag from console xmit */
 				status |= up->lsr_break_flag;
@@ -947,7 +947,7 @@ static int serial_jz47xx_request_port(struct uart_port *port)
 static void serial_jz47xx_config_port(struct uart_port *port, int flags)
 {
 	struct uart_jz47xx_port *up = (struct uart_jz47xx_port *)port;
-	up->port.type = PORT_JZ47XX;
+	up->port.type = PORT_T23;
 }
 
 static int serial_jz47xx_verify_port(struct uart_port *port, struct serial_struct *ser)
@@ -964,7 +964,7 @@ static const char *serial_jz47xx_type(struct uart_port *port)
 static struct uart_jz47xx_port *serial_jz47xx_ports[PORT_NR];
 static struct uart_driver serial_jz47xx_reg;
 
-#ifdef CONFIG_SERIAL_JZ47XX_CONSOLE
+#ifdef CONFIG_SERIAL_T23_CONSOLE
 
 #define BOTH_EMPTY (UART_LSR_TEMT | UART_LSR_THRE)
 
@@ -1065,9 +1065,9 @@ static struct console serial_jz47xx_console = {
 	.data		= &serial_jz47xx_reg,
 };
 
-#define JZ47XX_CONSOLE	&serial_jz47xx_console
+#define T23_CONSOLE	&serial_jz47xx_console
 #else
-#define JZ47XX_CONSOLE	NULL
+#define T23_CONSOLE	NULL
 #endif
 
 struct uart_ops serial_jz47xx_pops = {
@@ -1091,12 +1091,12 @@ struct uart_ops serial_jz47xx_pops = {
 
 static struct uart_driver serial_jz47xx_reg = {
 	.owner		= THIS_MODULE,
-	.driver_name	= "JZ47XX serial",
+	.driver_name	= "T23 serial",
 	.dev_name	= "ttyS",
 	.major		= TTY_MAJOR,
 	.minor		= 64,
 	.nr		= PORT_NR,
-	.cons		= JZ47XX_CONSOLE,
+	.cons		= T23_CONSOLE,
 };
 
 #ifdef CONFIG_PM
@@ -1150,7 +1150,7 @@ static int serial_jz47xx_probe(struct platform_device *dev)
 
 	clk_enable(up->clk);
 
-	up->port.type = PORT_JZ47XX;
+	up->port.type = PORT_T23;
 	up->port.iotype = UPIO_MEM;
 	up->port.mapbase = mmres->start;
 	up->port.irq = irqres->start;
@@ -1250,4 +1250,4 @@ module_init(serial_jz47xx_init);
 module_exit(serial_jz47xx_exit);
 
 MODULE_LICENSE("GPL");
-MODULE_ALIAS("platform:jz47xx-uart");
+MODULE_ALIAS("platform:T23-uart");

@@ -373,9 +373,6 @@ void jz_gpio_set_drive_strength(int gpio, gpio_drv_level_t lvl)
 	shift = (gpio % 16) * 2;
 
 	switch (lvl) {
-		case DS_2_MA:
-			b[1] = 0;  b[0] = 0;
-			break;
 		case DS_4_MA:
 			b[1] = 0;  b[0] = 1;
 			break;
@@ -520,9 +517,6 @@ static int jz_gpio_request(struct gpio_chip *chip, unsigned offset)
 		printk("%s:gpio functions has redefinition", __FILE__);
 	}
 	jz->dev_map[0] |= 1 << offset;
-
-	/* Disable pull up/down as default */
-	gpio_set_func(jz,GPIO_PULL_HIZ,BIT(offset));
 
 	clear_bit(offset, jz->gpio_map);
 	return 0;

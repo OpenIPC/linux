@@ -7,7 +7,7 @@
 #include "../jz_sfc_nand.h"
 #include "nand_common.h"
 
-#define GD_DEVICES_NUM          8
+#define GD_DEVICES_NUM          10
 #define TSETUP		5
 #define THOLD		5
 #define	TSHSL_R		20
@@ -205,7 +205,56 @@ static struct jz_nand_base_param gd_param[GD_DEVICES_NUM] = {
 	.need_quad = 0,
 #endif
 	},
+	[8] = {
+		/*IS37SML01G1*/
+		.pagesize = 2 * 1024,
+		.blocksize = 2 * 1024 * 64,
+		.oobsize = 64,
+		.flashsize = 2 * 1024 * 64 * 1024,
+
+		.tSETUP  = 5,
+		.tHOLD   = 5,
+		.tSHSL_R = TSHSL_R,
+		.tSHSL_W = TSHSL_W,
+
+		.tRD = 50,
+		.tPP = 500,
+		.tBE = 1,
+
+		.ecc_max = 0x2,
+#ifdef CONFIG_SPI_QUAD
+	.need_quad = 1,
+#else
+	.need_quad = 0,
+#endif
+	},
+	[9] = {
+		/*GD5F1GM7UE*/
+		.pagesize = 2 * 1024,
+		.blocksize = 2 * 1024 * 64,
+		.oobsize = 64,
+		.flashsize = 2 * 1024 * 64 * 1024,
+
+		.tSETUP  = 5,
+		.tHOLD   = 5,
+		.tSHSL_R = TSHSL_R,
+		.tSHSL_W = TSHSL_W,
+
+		.tRD = 50,
+		.tPP = 500,
+		.tBE = 1,
+
+		.ecc_max = 0x2,
+#ifdef CONFIG_SPI_QUAD
+	.need_quad = 1,
+#else
+	.need_quad = 0,
+#endif
+	},
+
+
 };
+
 
 static struct device_id_struct device_id[GD_DEVICES_NUM] = {
 	DEVICE_ID_STRUCT(0xD1, "GD5F1GQ4UB",&gd_param[0]),
@@ -216,6 +265,8 @@ static struct device_id_struct device_id[GD_DEVICES_NUM] = {
 	DEVICE_ID_STRUCT(0xB4, "GD5F4GQ4UC",&gd_param[5]),
 	DEVICE_ID_STRUCT(0x51, "GD5F1GQ5UE",&gd_param[6]),
 	DEVICE_ID_STRUCT(0x52, "GD5F2GQ5UE",&gd_param[7]),
+	DEVICE_ID_STRUCT(0x21, "IS37SML01G1",&gd_param[8]),
+	DEVICE_ID_STRUCT(0x91, "GD5F1GM7UE",&gd_param[9]),
 };
 
 static void gd_single_read(struct sfc_transfer *transfer, struct cmd_info *cmd, struct flash_operation_message *op_info) {
@@ -232,6 +283,10 @@ static void gd_single_read(struct sfc_transfer *transfer, struct cmd_info *cmd, 
 		    addr_len = 2;
 		    break;
 		case 0x51 ... 0x52:
+			addr_len = 2;
+			break;
+		case 0x21:
+		case 0x91:
 			addr_len = 2;
 			break;
 	    default:
@@ -258,6 +313,8 @@ static void gd_quad_read(struct sfc_transfer *transfer, struct cmd_info *cmd, st
 		    addr_len = 2;
 		    break;
 		case 0x51 ... 0x52:
+		case 0x21:
+		case 0x91:
 			addr_len = 2;
 			break;
 	    default:
@@ -344,13 +401,8 @@ static int32_t gd_get_read_feature(struct flash_operation_message *op_info) {
 		case 0xB1 ... 0xB4:
 			switch((ecc_status >> 4) & 0x7) {
 				case 0x7:
+					dev_err(flash->dev, "SFC ECC:Bit errors greater than %d bits detected and not corrected.\n", gd_param[3].ecc_max);
 					ret = -EBADMSG;
-					break;
-				case 0x6:
-					ret = 0x8;
-					break;
-				case 0x5:
-					ret = 0x7;
 					break;
 				default:
 					ret = 0;
@@ -359,17 +411,10 @@ static int32_t gd_get_read_feature(struct flash_operation_message *op_info) {
 			break;
 		case 0xD1 ... 0xD4:
 			switch((ecc_status >> 4) & 0x3) {
-				case 0x3:
-					ret = 0x8;
-					break;
 				case 0x2:
+					dev_err(flash->dev, "SFC ECC:Bit errors greater than %d bits detected and not corrected.\n", gd_param[0].ecc_max);
 					ret = -EBADMSG;
 					break;
-				case 0x1:
-					if((ret = gd_get_f0_register_value(flash)) < 0)
-						return ret;
-					if(((ret >> 4) & 0x3) == 0x3)
-						ret = 0x7;
 				default:
 					ret = 0;
 					break;
@@ -377,17 +422,33 @@ static int32_t gd_get_read_feature(struct flash_operation_message *op_info) {
 			break;
 		case 0x51 ... 0x52:
 			switch((ecc_status >> 4) & 0x3) {
-				case 0x0:
-				case 0x3:
-					ret = 0x0;
-					break;
-				case 0x1:
-					ret = 0x4;
+				case 0x2:
+					dev_err(flash->dev, "SFC ECC:Bit errors greater than %d bits detected and not corrected.\n", gd_param[7].ecc_max);
+					ret = -EBADMSG;
 					break;
 				default:
-					ret = -EBADMSG;
+					ret = 0;
 			}
 			break;
+		case 0x21:
+			switch((ecc_status >> 4) & 0x3) {
+				case 0x2:
+					dev_err(flash->dev, "SFC ECC:Bit errors greater than %d bits detected and not corrected.\n", gd_param[8].ecc_max);
+					ret = -EBADMSG;
+				default:
+					ret = 0;
+			}
+			break;
+		case 0x91:
+			switch((ecc_status >> 4) & 0x3) {
+				case 0x2:
+					dev_err(flash->dev, "SFC ECC:Bit errors greater than %d bits detected and not corrected.\n", gd_param[9].ecc_max);
+					ret = -EBADMSG;
+				default:
+					ret = 0;
+			}
+			break;
+
 		default:
 			pr_err("device_id err,it maybe don`t support this device, please check your device id: device_id = 0x%02x\n", device_id);
 			ret = -EIO;   //notice!!!

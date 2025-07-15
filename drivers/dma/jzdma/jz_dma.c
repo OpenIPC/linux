@@ -842,8 +842,8 @@ static int jzdma_control(struct dma_chan *chan, enum dma_ctrl_cmd cmd,
 			dmac->rx_dcm_def = DCM_SP_16 | DCM_DP_16;
 			break;
 		case DMA_SLAVE_BUSWIDTH_4_BYTES:
-			dmac->tx_dcm_def &= ~DCM_SP_32;
-			dmac->tx_dcm_def &= ~DCM_DP_32;
+			dmac->rx_dcm_def &= ~DCM_SP_32;
+			dmac->rx_dcm_def &= ~DCM_DP_32;
 			break;
 		case DMA_SLAVE_BUSWIDTH_8_BYTES:
 		case DMA_SLAVE_BUSWIDTH_UNDEFINED:

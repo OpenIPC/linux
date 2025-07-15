@@ -2281,7 +2281,7 @@ static int  jz_mii_bus_probe(struct platform_device *pdev)
 		clk_put(clk_gate);
 		goto out_err_alloc;
 	}
-	clk_set_rate(clk_cgu, 50000000);
+	clk_set_rate(clk_cgu, 25000000);
 
 	/* //	synopGMAC_multicast_enable(gmacdev); */
 

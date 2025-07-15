@@ -1,0 +1,14 @@
+choice
+	prompt "Board type"
+	depends on PLATFORM_T23_ISVP
+	default BOARD_PIKE
+
+config BOARD_PIKE
+       bool "Pike"
+       depends on PLATFORM_T23_ISVP
+
+endchoice
+
+config BOARD_NAME
+	string
+	default "Pike" if BOARD_PIKE

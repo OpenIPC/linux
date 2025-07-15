@@ -173,6 +173,7 @@
 #define	CMD_OFFSET		(0)
 #define	CMD_MSK			(0xffff << CMD_OFFSET)
 
+#define NOR_SIZE_16M    0x1000000
 #define N_MAX				6
 #define MAX_SEGS        128
 
@@ -241,6 +242,7 @@ struct jz_sfc {
 	unsigned int sfc_mode;
 	struct sfc_nor_info *nor_info;
 	u8 addr_len;
+	uint8_t quad_succeed;
 };
 
 static void sfc_writel(struct jz_sfc *sfc, unsigned short offset, u32 value)

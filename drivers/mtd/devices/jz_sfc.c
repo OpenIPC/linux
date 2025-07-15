@@ -96,6 +96,8 @@
 	JZ_NOR_INIT(CMD_FAST_READ,3,1,0,0,8,1), \
 	JZ_NOR_INIT(CMD_EN4B,0,0,0,0,0,0),\
 	JZ_NOR_INIT(CMD_EX4B,0,0,0,0,0,0),\
+	JZ_NOR_INIT(CMD_RESET_EN,0,0,0,0,0,0), \
+	JZ_NOR_INIT(CMD_RESET,0,0,0,0,0,0), \
 	JZ_NOR_INIT(CMD_NON,0,0,0,0,0,0)
 
 
@@ -332,11 +334,11 @@ static int sfc_pio_transfer(struct jz_sfc *flash)
 
 	if((flash->nor_info->addr_len !=0)&&(flash->nor_info->daten == 1)){
 		if(flash->rw_mode & R_MODE){
-#ifdef CONFIG_SPI_QUAD
-			sfc_mode(flash,0,flash->board_info->quad_mode->sfc_mode);
-#else
-			sfc_mode(flash,0,flash->sfc_mode);
-#endif
+			if(flash->quad_succeed == 1) {
+				sfc_mode(flash,0,flash->board_info->quad_mode->sfc_mode);
+			} else {
+				sfc_mode(flash,0,flash->sfc_mode);
+			}
 		}else{
 			sfc_mode(flash,0,flash->sfc_mode);
 		}
@@ -400,12 +402,11 @@ static int jz_sfc_pio_txrx(struct jz_sfc *flash, struct sfc_transfer *t)
 	flash->rlen = 0;
 	flash->rw_mode = 0;
 
-
-#ifdef CONFIG_SPI_QUAD
-	flash->sfc_mode = TRAN_SPI_QUAD;
-#else
-	flash->sfc_mode = 0;
-#endif
+	if(flash->quad_succeed == 1) {
+		flash->sfc_mode = TRAN_SPI_QUAD;
+	} else {
+		flash->sfc_mode = 0;
+	}
 
 	if(flash->rx){
 		flash->rw_mode = R_MODE;
@@ -601,6 +602,55 @@ static int jz_spi_norflash_wait_till_ready(struct jz_sfc *flash)
 	return -ETIMEDOUT;
 }
 
+#ifdef CONFIG_JZ_SFC_NOR_RESET
+static int jz_spi_norflash_reset_enable(struct jz_sfc *flash)
+{
+	int ret;
+	unsigned char command_stage1[1];
+	struct sfc_transfer transfer[1];
+
+	command_stage1[0] = CMD_RESET_EN;
+
+	transfer[0].tx_buf  = command_stage1;
+	transfer[0].tx_buf1 = NULL;
+	transfer[0].rx_buf =  NULL;
+	transfer[0].len = 0;
+	ret = jz_sfc_pio_txrx(flash, transfer);
+	if(ret != transfer[0].len)
+		dev_err(flash->dev,"the transfer length is error,%d,%s\n",__LINE__,__func__);
+
+	ret = jz_spi_norflash_wait_till_ready(flash);
+	if (ret)
+		return ret;
+	return 0;
+}
+
+static int jz_spi_norflash_reset(struct jz_sfc *flash)
+{
+	int ret = 0;
+	unsigned char command_stage1[1];
+	struct sfc_transfer transfer[1];
+
+	ret = jz_spi_norflash_reset_enable(flash);
+	if(ret)
+		return ret;
+	command_stage1[0] = CMD_RESET;
+
+	transfer[0].tx_buf  = command_stage1;
+	transfer[0].tx_buf1 = NULL;
+	transfer[0].rx_buf =  NULL;
+	transfer[0].len = 0;
+	ret = jz_sfc_pio_txrx(flash, transfer);
+	if(ret != transfer[0].len)
+		dev_err(flash->dev,"the transfer length is error,%d,%s\n",__LINE__,__func__);
+
+	ret = jz_spi_norflash_wait_till_ready(flash);
+	if (ret)
+		return ret;
+	return 0;
+}
+#endif
+
 static int jz_spi_norflash_write_enable(struct jz_sfc *flash)
 {
 	int ret;
@@ -662,6 +712,7 @@ static int jz_spi_norflash_set_quad_mode(struct jz_sfc *flash)
 		status = command_stage2[0];
 
 		if (!(status & flash->board_info->quad_mode->RDSR_DATE)) {
+			dev_err(flash->dev,"quad node configuration values do not match,%d,%s\n",__LINE__,__func__);
 			return -EROFS;
 		}
 
@@ -709,8 +760,6 @@ static int jz_spi_norflash_erase_sector(struct jz_sfc *flash, uint32_t offset)
 	unsigned char command_stage1[5];
 	struct sfc_transfer transfer[1];
 
-	jz_spi_norflash_set_address_mode(flash,1);
-
 	ret = jz_spi_norflash_write_enable(flash);
 	if (ret)
 		return ret;
@@ -749,8 +798,6 @@ static int jz_spi_norflash_erase_sector(struct jz_sfc *flash, uint32_t offset)
 		printk("wait timeout\n");
 		return ret;
 	}
-
-	jz_spi_norflash_set_address_mode(flash,0);
 
 	return 0;
 }
@@ -824,24 +871,17 @@ static int jz_spi_norflash_read(struct mtd_info *mtd, loff_t from,
 	unsigned int tmp_len = 0;
 	unsigned int rlen = 0;
 	unsigned char *swap_buf = NULL;
+
 	flash = to_jz_spi_norflash(mtd);
 	swap_buf = flash->swap_buf;
 
 	mutex_lock(&flash->lock);
 
-	jz_spi_norflash_set_address_mode(flash,1);
-
-#ifdef CONFIG_SPI_QUAD
-	if(quad_mode == 0)
-		jz_spi_norflash_set_quad_mode(flash);
-#endif
-
-
-#ifdef CONFIG_SPI_QUAD
-	command_stage1[0] = flash->board_info->quad_mode->cmd_read;//SPINOR_OP_READ_1_1_4;
-#else
-	command_stage1[0] = SPINOR_OP_READ;//SPINOR_OP_READ_FAST;
-#endif
+	if(flash->quad_succeed == 1) {
+		command_stage1[0] = flash->board_info->quad_mode->cmd_read;//SPINOR_OP_READ_1_1_4;
+	} else {
+		command_stage1[0] = SPINOR_OP_READ;//SPINOR_OP_READ_FAST;
+	}
 
     /*printk("[Debug-%s-%d]--len = %d----\n",__func__,__LINE__,len);*/
 	if(len <= SWAP_BUF_SIZE){
@@ -900,8 +940,6 @@ static int jz_spi_norflash_read(struct mtd_info *mtd, loff_t from,
 		}
 	}
 
-	jz_spi_norflash_set_address_mode(flash,0);
-
 	mutex_unlock(&flash->lock);
 
 	return 0;
@@ -925,18 +963,11 @@ static int jz_spi_norflash_write(struct mtd_info *mtd, loff_t to, size_t len,
 
 	ret_addr = (to & (mtd->writesize - 1));
 
-
 	if(mtd->writesize - ret_addr > len)
 		actual_len = len;
 	else
 		actual_len = mtd->writesize - ret_addr;
 
-	jz_spi_norflash_set_address_mode(flash,1);
-
-#ifdef CONFIG_SPI_QUAD
-	if(quad_mode == 0)
-		jz_spi_norflash_set_quad_mode(flash);
-#endif
 	/* less than mtd->writesize */
 		ret = jz_spi_norflash_write_enable(flash);
 		if (ret) {
@@ -946,12 +977,11 @@ static int jz_spi_norflash_write(struct mtd_info *mtd, loff_t to, size_t len,
 			return ret;
 		}
 
-
-#ifdef CONFIG_SPI_QUAD
-		command_stage1[0] = SPINOR_OP_QPP;
-#else
-		command_stage1[0] = SPINOR_OP_PP;
-#endif
+		if(flash->quad_succeed == 1) {
+			command_stage1[0] = SPINOR_OP_QPP;
+		} else {
+			command_stage1[0] = SPINOR_OP_PP;
+		}
 		/*
 		command_stage1[1] = to >> 16;
 		command_stage1[2] = to >> 8;
@@ -992,12 +1022,12 @@ static int jz_spi_norflash_write(struct mtd_info *mtd, loff_t to, size_t len,
 			return ret;
 		}
 
+		if(flash->quad_succeed == 1) {
+			command_stage1[0] = SPINOR_OP_QPP;
+		} else {
+			command_stage1[0] = SPINOR_OP_PP;
+		}
 
-#ifdef CONFIG_SPI_QUAD
-		command_stage1[0] = SPINOR_OP_QPP;
-#else
-		command_stage1[0] = SPINOR_OP_PP;
-#endif
 		/*
 		command_stage1[1] = (to + i) >> 16;
 		command_stage1[2] = (to + i) >> 8;
@@ -1034,8 +1064,6 @@ static int jz_spi_norflash_write(struct mtd_info *mtd, loff_t to, size_t len,
 
 		*retlen += ret;
 	}
-
-	jz_spi_norflash_set_address_mode(flash,0);
 
 	mutex_unlock(&flash->lock);
 
@@ -1077,18 +1105,10 @@ static int jz_spi_norflash_match_device(struct jz_sfc *flash)
 	}
 
 	if (i == flash->board_info_size) {
-		if ((id != 0)&&(id != 0xff)&&(quad_mode == 0)){
-			board_info = &flash->board_info[0];
-			printk("the id code = %x, the flash name is %s\n",id,board_info->name);
-			printk("#####unsupport ID is %04x if the id not be 0x00,the flash can be ok,but the quad mode may be not support!!!!! \n",id);
-			mdelay(200);
-		}else{
-			mutex_unlock(&flash->lock);
-			printk("error happen !!!!,ingenic: Unsupported ID %04x,the quad mode is not support\n", id);
-			return EINVAL;
-		}
+		printk("#####unsupport flash,the id code = %x\n",id);
+		mutex_unlock(&flash->lock);
+		return EINVAL;
 	}
-
 	mutex_unlock(&flash->lock);
 	return 0;
 }
@@ -1211,6 +1231,15 @@ static int __init jz_sfc_probe(struct platform_device *pdev)
 	/* SFC controller initializations for SFC */
 	jz_sfc_init_setup(flash);
 
+/* Reset nor flash once in the kernel, off by default */
+#ifdef CONFIG_JZ_SFC_NOR_RESET
+	dev_info(flash->dev, "Reset the nor flash\n");
+	ret = jz_spi_norflash_reset(flash);
+	if (ret)
+		return ret;
+	mdelay(50);
+#endif
+
 	/* For NM25Q64/128EVB flash,
 	 * flash busy when CS pulls down and up but no data is transmitted,
 	 * solve by get status.*/
@@ -1236,12 +1265,35 @@ static int __init jz_sfc_probe(struct platform_device *pdev)
 	flash->mtd._read    = jz_spi_norflash_read;
 	flash->mtd._write   = jz_spi_norflash_write;
 	flash->board_info   = board_info;
-
-#ifdef CONFIG_SPI_QUAD
-	printk("the flash->board_info->quad_mode = %x\n",flash->board_info->quad_mode->cmd_read);
-#endif
 	jz_mtd_partition = board_info->mtd_partition;
 	num_partition_info = board_info->num_partition_info;
+
+#ifdef CONFIG_SFC_DMA
+	dev_info(&pdev->dev, "sfc use DMA mode\n");
+#else
+	dev_info(&pdev->dev, "sfc use PIO mode\n");
+#endif
+
+#ifdef CONFIG_SPI_QUAD
+	ret = jz_spi_norflash_set_quad_mode(flash);
+	if (ret < 0) {
+		flash->quad_succeed = 0;
+		dev_info(&pdev->dev, "set quad mode error !\n");
+	} else {
+		flash->quad_succeed = 1;
+		dev_info(&pdev->dev, "nor flash quad mode is set, cmd = %x,now use quad mode!\n",flash->board_info->quad_mode->cmd_read);
+	}
+#else
+	flash->quad_succeed = 0;
+	dev_info(&pdev->dev, "nor flash now use standard mode!\n");
+#endif
+
+	if(flash->mtd.size > NOR_SIZE_16M) {
+		ret = jz_spi_norflash_set_address_mode(flash,1);
+		if (ret < 0) {
+			dev_info(&pdev->dev, "set 4 bytes mode error !\n");
+		}
+	}
 
 	printk(KERN_INFO "JZ SFC Controller for SFC channel %d driver register\n",flash->chnl);
 
@@ -1272,6 +1324,8 @@ err_no_pdata:
 static int __exit jz_sfc_remove(struct platform_device *pdev)
 {
 	struct jz_sfc *flash = platform_get_drvdata(pdev);
+
+	jz_spi_norflash_set_address_mode(flash,0);
 
 	clk_disable(flash->clk_gate);
 	clk_put(flash->clk_gate);

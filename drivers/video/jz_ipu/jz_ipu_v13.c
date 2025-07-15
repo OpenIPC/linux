@@ -443,6 +443,7 @@ static int _ipu_set_osd_chx_route(struct jz_ipu *ipu, struct ipu_param *ip, int 
 	unsigned int para = 0;
 	unsigned int fmt = 0;
 	unsigned int bak_argb = 0;
+	unsigned int src_stride = 0;
 
 	if ((ch < 0) || (ch > 3)) {
 		printk("ipu: osd channel num err ch = %d\n", ch);
@@ -453,37 +454,41 @@ static int _ipu_set_osd_chx_route(struct jz_ipu *ipu, struct ipu_param *ip, int 
 			fmt	= ip->osd_ch0_fmt;
 			posx  = ip->osd_ch0_pos_x;
 			posy  = ip->osd_ch0_pos_y;
-			srcw  = ip->osd_ch0_src_w;
-			srch  = ip->osd_ch0_src_h;
+            srcw  = ((ip->bg_w) > (ip->osd_ch0_pos_x + ip->osd_ch0_src_w)) ? (ip->osd_ch0_src_w) : (ip->bg_w-ip->osd_ch0_pos_x);
+            srch  = ((ip->bg_h) > (ip->osd_ch0_pos_y + ip->osd_ch0_src_h)) ? (ip->osd_ch0_src_h) : (ip->bg_h-ip->osd_ch0_pos_y);
 			para  = ip->osd_ch0_para;
 			bak_argb  = ip->osd_ch0_bak_argb;
+            src_stride = ip->osd_ch0_src_w;
 			break;
 		case 1:
 			fmt	= ip->osd_ch1_fmt;
 			posx  = ip->osd_ch1_pos_x;
 			posy  = ip->osd_ch1_pos_y;
-			srcw  = ip->osd_ch1_src_w;
-			srch  = ip->osd_ch1_src_h;
+            srcw  = ((ip->bg_w) > (ip->osd_ch1_pos_x + ip->osd_ch1_src_w)) ? (ip->osd_ch1_src_w) : (ip->bg_w-ip->osd_ch1_pos_x);
+            srch  = ((ip->bg_h) > (ip->osd_ch1_pos_y + ip->osd_ch1_src_h)) ? (ip->osd_ch1_src_h) : (ip->bg_h-ip->osd_ch1_pos_y);
 			para  = ip->osd_ch1_para;
 			bak_argb  = ip->osd_ch1_bak_argb;
+            src_stride = ip->osd_ch1_src_w;
 			break;
 		case 2:
 			fmt	= ip->osd_ch2_fmt;
 			posx  = ip->osd_ch2_pos_x;
 			posy  = ip->osd_ch2_pos_y;
-			srcw  = ip->osd_ch2_src_w;
-			srch  = ip->osd_ch2_src_h;
+            srcw  = ((ip->bg_w) > (ip->osd_ch2_pos_x + ip->osd_ch2_src_w)) ? (ip->osd_ch2_src_w) : (ip->bg_w-ip->osd_ch2_pos_x);
+            srch  = ((ip->bg_h) > (ip->osd_ch2_pos_y + ip->osd_ch2_src_h)) ? (ip->osd_ch2_src_h) : (ip->bg_h-ip->osd_ch2_pos_y);
 			para  = ip->osd_ch2_para;
 			bak_argb  = ip->osd_ch2_bak_argb;
+            src_stride = ip->osd_ch2_src_w;
 			break;
 		case 3:
 			fmt	= ip->osd_ch3_fmt;
 			posx  = ip->osd_ch3_pos_x;
 			posy  = ip->osd_ch3_pos_y;
-			srcw  = ip->osd_ch3_src_w;
-			srch  = ip->osd_ch3_src_h;
+            srcw  = ((ip->bg_w) > (ip->osd_ch3_pos_x + ip->osd_ch3_src_w)) ? (ip->osd_ch3_src_w) : (ip->bg_w-ip->osd_ch3_pos_x);
+            srch  = ((ip->bg_h) > (ip->osd_ch3_pos_y + ip->osd_ch3_src_h)) ? (ip->osd_ch3_src_h) : (ip->bg_h-ip->osd_ch3_pos_y);
 			para  = ip->osd_ch3_para;
 			bak_argb  = ip->osd_ch3_bak_argb;
+            src_stride = ip->osd_ch3_src_w;
 			break;
 		default :
 			printk("ipu: osd channel num err ch = %d\n", ch);
@@ -499,12 +504,12 @@ static int _ipu_set_osd_chx_route(struct jz_ipu *ipu, struct ipu_param *ip, int 
 	IPU_DEBUG("ipu: ch = %d, isrgb=%d, posx=%d, posy=%d, srcw=%d, srch=%d, para=%d\n",
 			ch, isrgb, posx, posy, srcw, srch, para);
 	if (isrgb == 1) {
-		reg_write(ipu, IPU_OSD_IN_CH0_Y_STRIDE+0x10*ch, srcw*4);
+		reg_write(ipu, IPU_OSD_IN_CH0_Y_STRIDE+0x10*ch, src_stride*4);
 	} else if (isrgb == 2){        //The format is RGBA5551
-		reg_write(ipu, IPU_OSD_IN_CH0_Y_STRIDE+0x10*ch, srcw*2);
+		reg_write(ipu, IPU_OSD_IN_CH0_Y_STRIDE+0x10*ch, src_stride*2);
 	} else {
-		reg_write(ipu, IPU_OSD_IN_CH0_Y_STRIDE+0x10*ch, srcw);
-		reg_write(ipu, IPU_OSD_IN_CH0_UV_STRIDE+0x10*ch, srcw);
+		reg_write(ipu, IPU_OSD_IN_CH0_Y_STRIDE+0x10*ch, src_stride);
+		reg_write(ipu, IPU_OSD_IN_CH0_UV_STRIDE+0x10*ch, src_stride);
 	}
 
     if((srcw > 0) && (srch > 0)) {
@@ -705,9 +710,6 @@ static int ipu_start(struct jz_ipu *ipu, struct ipu_param *ipu_param)
 	IPU_DEBUG("ipu: enter ipu_start %d\n", current->pid);
 
 	clk_enable(ipu->clk);
-#ifdef CONFIG_SOC_T31
-	clk_enable(ipu->ahb1_gate);
-#endif
 	__stop_ipu();
 	__reset_ipu();
 
@@ -813,9 +815,6 @@ static int ipu_start(struct jz_ipu *ipu, struct ipu_param *ipu_param)
 
     IPU_DEBUG("ipu: exit ipu_start %d\n", current->pid);
 
-#ifdef CONFIG_SOC_T31
-	clk_disable(ipu->ahb1_gate);
-#endif
 
     return 0;
 
@@ -824,9 +823,6 @@ err_ipu_set_osdx_buffer:
 err_ipu_set_bg_buffer:
 err_ipu_set_osd_chx_route:
 err_ipu_set_bg_route:
-#ifdef CONFIG_SOC_T31
-	clk_disable(ipu->ahb1_gate);
-#endif
 err_cmd:
 	return ret;
 
@@ -1043,14 +1039,6 @@ static int ipu_probe(struct platform_device *pdev)
 		ret = dev_err(&pdev->dev, "ipu clk get failed!\n");
 		goto err_get_clk;
 	}
-
-#ifdef CONFIG_SOC_T31
-	ipu->ahb1_gate = clk_get(ipu->dev, "ahb1");
-	if (IS_ERR(ipu->clk)) {
-		ret = dev_err(&pdev->dev, "ipu clk get failed!\n");
-		goto err_get_clk;
-	}
-#endif
 
 	dev_set_drvdata(&pdev->dev, ipu);
 

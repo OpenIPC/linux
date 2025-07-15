@@ -59,7 +59,7 @@ enum {
 	JZ_ADC_IRQ_AUX7,
 };
 
-#define JZ_ADC_IRQ_NUM	8
+#define JZ_ADC_IRQ_NUM	1
 
 #if ( JZ_ADC_IRQ_NUM > SADC_NR_IRQS )
 #error "SADC module get error irq number!"
@@ -257,89 +257,6 @@ static struct resource jz_aux_resources[] = {
 	},
 };
 
-static struct resource jz_aux_resources1[] = {
-	{
-		.start = JZ_ADC_IRQ_AUX1,
-		.flags = IORESOURCE_IRQ,
-	},
-	{
-		.start	= JZ_REG_ADC_AUX_BASE + 2,
-		.end	= JZ_REG_ADC_AUX_BASE + 3,
-		.flags	= IORESOURCE_MEM,
-	},
-};
-
-static struct resource jz_aux_resources2[] = {
-	{
-		.start = JZ_ADC_IRQ_AUX2,
-		.flags = IORESOURCE_IRQ,
-	},
-	{
-		.start	= JZ_REG_ADC_AUX_BASE + 4,
-		.end	= JZ_REG_ADC_AUX_BASE + 5,
-		.flags	= IORESOURCE_MEM,
-	},
-};
-
-static struct resource jz_aux_resources3[] = {
-	{
-		.start = JZ_ADC_IRQ_AUX3,
-		.flags = IORESOURCE_IRQ,
-	},
-	{
-		.start	= JZ_REG_ADC_AUX_BASE + 6,
-		.end	= JZ_REG_ADC_AUX_BASE + 7,
-		.flags	= IORESOURCE_MEM,
-	},
-};
-
-static struct resource jz_aux_resources4[] = {
-	{
-		.start = JZ_ADC_IRQ_AUX4,
-		.flags = IORESOURCE_IRQ,
-	},
-	{
-		.start	= JZ_REG_ADC_AUX_BASE + 8,
-		.end	= JZ_REG_ADC_AUX_BASE + 9,
-		.flags	= IORESOURCE_MEM,
-	},
-};
-
-static struct resource jz_aux_resources5[] = {
-	{
-		.start = JZ_ADC_IRQ_AUX5,
-		.flags = IORESOURCE_IRQ,
-	},
-	{
-		.start	= JZ_REG_ADC_AUX_BASE + 10,
-		.end	= JZ_REG_ADC_AUX_BASE + 11,
-		.flags	= IORESOURCE_MEM,
-	},
-};
-
-static struct resource jz_aux_resources6[] = {
-	{
-		.start = JZ_ADC_IRQ_AUX6,
-		.flags = IORESOURCE_IRQ,
-	},
-	{
-		.start	= JZ_REG_ADC_AUX_BASE + 12,
-		.end	= JZ_REG_ADC_AUX_BASE + 13,
-		.flags	= IORESOURCE_MEM,
-	},
-};
-
-static struct resource jz_aux_resources7[] = {
-	{
-		.start = JZ_ADC_IRQ_AUX7,
-		.flags = IORESOURCE_IRQ,
-	},
-	{
-		.start	= JZ_REG_ADC_AUX_BASE + 14,
-		.end	= JZ_REG_ADC_AUX_BASE + 15,
-		.flags	= IORESOURCE_MEM,
-	},
-};
 
 
 static struct mfd_cell jz_adc_cells[] = {
@@ -352,70 +269,6 @@ static struct mfd_cell jz_adc_cells[] = {
 		.enable	= jz_adc_cell_enable,
 		.disable = jz_adc_cell_disable,
 	},
-	{
-		.id = 1,
-		.name = "jz-aux",
-		.num_resources = ARRAY_SIZE(jz_aux_resources),
-		.resources = jz_aux_resources1,
-
-		.enable	= jz_adc_cell_enable,
-		.disable = jz_adc_cell_disable,
-	},
-	{
-		.id = 2,
-		.name = "jz-aux",
-		.num_resources = ARRAY_SIZE(jz_aux_resources),
-		.resources = jz_aux_resources2,
-
-		.enable	= jz_adc_cell_enable,
-		.disable = jz_adc_cell_disable,
-	},
-	{
-		.id = 3,
-		.name = "jz-aux",
-		.num_resources = ARRAY_SIZE(jz_aux_resources),
-		.resources = jz_aux_resources3,
-
-		.enable	= jz_adc_cell_enable,
-		.disable = jz_adc_cell_disable,
-	},
-	{
-		.id = 4,
-		.name = "jz-aux",
-		.num_resources = ARRAY_SIZE(jz_aux_resources),
-		.resources = jz_aux_resources4,
-
-		.enable	= jz_adc_cell_enable,
-		.disable = jz_adc_cell_disable,
-	},
-	{
-		.id = 5,
-		.name = "jz-aux",
-		.num_resources = ARRAY_SIZE(jz_aux_resources),
-		.resources = jz_aux_resources5,
-
-		.enable	= jz_adc_cell_enable,
-		.disable = jz_adc_cell_disable,
-	},
-	{
-		.id = 6,
-		.name = "jz-aux",
-		.num_resources = ARRAY_SIZE(jz_aux_resources),
-		.resources = jz_aux_resources6,
-
-		.enable	= jz_adc_cell_enable,
-		.disable = jz_adc_cell_disable,
-	},
-	{
-		.id = 7,
-		.name = "jz-aux",
-		.num_resources = ARRAY_SIZE(jz_aux_resources),
-		.resources = jz_aux_resources7,
-
-		.enable	= jz_adc_cell_enable,
-		.disable = jz_adc_cell_disable,
-	},
-
 };
 
 

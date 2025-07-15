@@ -11,3 +11,4 @@ obj-$(CONFIG_SOC_T20) 	+= soc-t20/
 obj-$(CONFIG_SOC_T30) 	+= soc-t30/
 obj-$(CONFIG_SOC_T21) 	+= soc-t21/
 obj-$(CONFIG_SOC_T31) 	+= soc-t31/
+obj-$(CONFIG_SOC_T23) 	+= soc-t23/

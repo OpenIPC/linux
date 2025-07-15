@@ -803,7 +803,7 @@ choice
 	depends on I2C0_V12_JZ
 	default I2C0_PA12_PA13
 config I2C0_PA12_PA13
-	depends on SOC_T10 || SOC_T20 || SOC_T30 || SOC_T21 || SOC_T31
+	depends on SOC_T10 || SOC_T20 || SOC_T30 || SOC_T21 || SOC_T31 || SOC_T23
 	bool "GPIO_PA12 & GPIO_PA13"
 endchoice
 
@@ -832,8 +832,11 @@ choice
 	depends on I2C1_V12_JZ
 	default I2C1_PB25_PB26
 config I2C1_PB25_PB26
-	depends on SOC_T10 || SOC_T20 || SOC_T30 || SOC_T21 || SOC_T31
+	depends on SOC_T10 || SOC_T20 || SOC_T30 || SOC_T21 || SOC_T31 || SOC_T23
 	bool "GPIO_PB25 & GPIO_PB26"
+config I2C1_PA16_PA17
+	depends on SOC_T31 || SOC_T23
+	bool "GPIO_PA16 & GPIO_PA17"
 config I2C1_PC08_PC09
 	depends on SOC_T31
 	bool "GPIO_PC08 & GPIO_PC09"
@@ -862,10 +865,10 @@ config I2C2_V12_JZ
 choice
 	prompt "JZ_v12 i2c controler 2 function pins select"
 	depends on I2C2_V12_JZ
-	default I2C2_PC27_PC28
-config I2C2_PC27_PC28
-	depends on SOC_T30
-	bool "GPIO_PC27 & GPIO_PC28"
+	default I2C2_PB20_PB21
+config I2C2_PB20_PB21
+	depends on SOC_T23
+	bool "GPIO_PB20 & GPIO_PB21"
 endchoice
 
 config I2C2_SPEED

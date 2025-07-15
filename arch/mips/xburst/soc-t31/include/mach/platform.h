@@ -13,15 +13,28 @@
 
 /*******************************************************************************************************************/
 #define UART0_PORTB							\
+	{ .name = "uart0", .port = GPIO_PORT_B, .func = GPIO_FUNC_0, .pins = 0x9 << 19, }
+#define UART0_PORTB_FC						\
 	{ .name = "uart0", .port = GPIO_PORT_B, .func = GPIO_FUNC_0, .pins = 0xF << 19, }
+#define UART1_PORTA							\
+	{ .name = "uart1", .port = GPIO_PORT_A, .func = GPIO_FUNC_2, .pins = 0x3 << 6, }
 #define UART1_PORTB							\
 	{ .name = "uart1", .port = GPIO_PORT_B, .func = GPIO_FUNC_0, .pins = 0x3 << 23, }
+#define UART2_PORTA							\
+	{ .name = "uart2", .port = GPIO_PORT_A, .func = GPIO_FUNC_2, .pins = 0x3 << 10, }
+#define UART2_PORTA_FC							\
+	{ .name = "uart2", .port = GPIO_PORT_A, .func = GPIO_FUNC_2, .pins = 0xF << 8, }
 #define UART2_PORTC							\
 	{ .name = "uart2", .port = GPIO_PORT_C, .func = GPIO_FUNC_2, .pins = 0x3 << 13, }
+#define UART2_PORTC_FC						\
+	{ .name = "uart2", .port = GPIO_PORT_C, .func = GPIO_FUNC_2, .pins = 0xF << 11, }
+
 /*******************************************************************************************************************/
 
 #define MSC0_PORTB_4BIT							\
 	{ .name = "msc0-pb-4bit",	.port = GPIO_PORT_B, .func = GPIO_OUTPUT0, .pins = (0x3f<<0), }
+#define MSC1_PORTA							\
+	{ .name = "msc1-pA",		.port = GPIO_PORT_A, .func = GPIO_FUNC_3, .pins = 0x30f00, }
 #define MSC1_PORTB							\
 	{ .name = "msc1-pB",		.port = GPIO_PORT_B, .func = GPIO_FUNC_1, .pins = (0x6f<<8), }, \
 	{ .name = "wyze-mmc-enable",	.port = GPIO_PORT_B, .func = GPIO_OUTPUT0, .pins = 0x8000, }, \
@@ -54,6 +67,8 @@
 
 #define I2C0_PORTA							\
 	{ .name = "i2c0-pa", .port = GPIO_PORT_A, .func = GPIO_FUNC_1, .pins = 0x3 << 12, }
+#define I2C1_PORTA							\
+	{ .name = "i2c1-pa", .port = GPIO_PORT_A, .func = GPIO_FUNC_2, .pins = 0x3 << 16, }
 #define I2C1_PORTB							\
 	{ .name = "i2c1-pb", .port = GPIO_PORT_B, .func = GPIO_FUNC_0, .pins = 0x3 << 25, }
 #define I2C1_PORTC							\

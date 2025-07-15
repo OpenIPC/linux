@@ -1666,20 +1666,12 @@ static struct platform_driver dwc2_driver = {
 	},
 };
 
-static int __init dwc2_init(void)
+int dwc2_init(void)
 {
 	return platform_driver_register(&dwc2_driver);
 }
 
-static void __exit dwc2_exit(void)
+void dwc2_exit(void)
 {
 	platform_driver_unregister(&dwc2_driver);
 }
-
-fs_initcall(dwc2_init);
-module_exit(dwc2_exit);
-
-MODULE_ALIAS("platform:dwc2");
-MODULE_AUTHOR("Lutts Cao <slcao@ingenic.cn>");
-MODULE_LICENSE("Dual BSD/GPL");
-MODULE_DESCRIPTION("DesignWare USB2.0 OTG Controller Driver");

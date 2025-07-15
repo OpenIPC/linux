@@ -1484,16 +1484,16 @@ config SERIAL_RP2_NR_UARTS
 	  If multiple cards are present, the default limit of 32 ports may
 	  need to be increased.
 
-config SERIAL_JZ47XX_UART
-	tristate "ingenic jz47xx serial port support"
+config SERIAL_T23_UART
+	tristate "ingenic t31 serial port support"
 	select SERIAL_CORE
 	help
 	  If you have a machine based on a xbrust mips soc you can
 	  enable its onboard serial port by enabling this option.
 
-config SERIAL_JZ47XX_CONSOLE
-	bool "Console on jz47xx and compatible serial port"
-	depends on SERIAL_JZ47XX_UART=y
+config SERIAL_T23_CONSOLE
+	bool "Console on t31 and compatible serial port"
+	depends on SERIAL_T23_UART=y
 	select SERIAL_CORE_CONSOLE
 	---help---
 	  If you say Y here, it will be possible to use a serial port as the
@@ -1515,48 +1515,52 @@ config SERIAL_JZ47XX_CONSOLE
 
 	  If unsure, say N.
 
-config SERIAL_JZ47XX_UART0
+config SERIAL_T23_UART0
 	bool "enable uart0"
-	depends on SERIAL_JZ47XX_UART=y
-config SERIAL_JZ47XX_UART0_DMA
+	depends on SERIAL_T23_UART=y
+config SERIAL_T23_UART0_DMA
 	bool "enable uart0 dma mode"
-	depends on SERIAL_JZ47XX_UART0
-
-config SERIAL_JZ47XX_UART1
-	bool "enable uart1"
-	depends on SERIAL_JZ47XX_UART=y
-config SERIAL_JZ47XX_UART1_DMA
-	bool "enable uart1 dma mode"
-	depends on SERIAL_JZ47XX_UART1
-
-config SERIAL_JZ47XX_UART2
-	bool "enable uart2"
-	depends on SERIAL_JZ47XX_UART=y
-config SERIAL_JZ47XX_UART2_DMA
-	bool "enable uart2 dma mode"
-	depends on SERIAL_JZ47XX_UART2
-
-config SERIAL_JZ47XX_UART3
-	bool "enable uart3"
-	depends on SERIAL_JZ47XX_UART=y
-config SERIAL_JZ47XX_UART3_DMA
-	bool "enable uart3 dma mode"
-	depends on SERIAL_JZ47XX_UART3
-
-config SERIAL_JZ47XX_UART4
-	bool "enable uart4"
-	depends on SERIAL_JZ47XX_UART=y
-config SERIAL_JZ47XX_UART4_DMA
-	bool "enable uart4 dma mode"
-	depends on SERIAL_JZ47XX_UART4
+	depends on SERIAL_T23_UART0
 choice
-	prompt "JZ SERIAL GPIO function pins select"
-	depends on SERIAL_JZ47XX_UART4
-	default SERIAL_JZ47XX_UART4_PB
-config SERIAL_JZ47XX_UART4_PB
-	bool "GPIO B"
-config SERIAL_JZ47XX_UART4_PF
-	bool "GPIO F"
+	depends on SERIAL_T23_UART0
+	prompt "UART0 GPIO select"
+	default UART0_PB
+config UART0_PB
+	bool "PB19 PB22"
+config UART0_PB_FC
+	bool "PB19 PB20 PB21 PB22 (Flow control)"
+endchoice
+
+config SERIAL_T23_UART1
+	bool "enable uart1"
+	depends on SERIAL_T23_UART=y
+config SERIAL_T23_UART1_DMA
+	bool "enable uart1 dma mode"
+	depends on SERIAL_T23_UART1
+choice
+	depends on SERIAL_T23_UART1
+	prompt "UART1 GPIO select"
+	default UART1_PB
+config UART1_PA
+	bool "PA06 PA07"
+config UART1_PB
+	bool "PB23 PB24"
+endchoice
+
+config SERIAL_T23_UART2
+	bool "enable uart2"
+	depends on SERIAL_T23_UART=y
+config SERIAL_T23_UART2_DMA
+	bool "enable uart2 dma mode"
+	depends on SERIAL_T23_UART2
+choice
+	depends on SERIAL_T23_UART2
+	prompt "UART2 GPIO select"
+	default UART2_PB
+config UART2_PB
+	bool "PB17 PB18"
+config UART2_PB_FC
+	bool "PB17 PB18 PB25 PB26 (Flow control)"
 endchoice
 
 endmenu

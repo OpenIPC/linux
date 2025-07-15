@@ -647,6 +647,13 @@ static int32_t jz_sfc_nand_try_id(struct sfc_flash *flash)
 		if(nand_desc->id_manufactory && nand_desc->id_device)
 			    break;
 	}
+	dev_info(flash->dev, "the nand id_manufactory = 0x%02x, id_device = 0x%02x\n", nand_desc->id_manufactory, nand_desc->id_device);
+#ifdef CONFIG_SPI_QUAD
+	dev_info(flash->dev,"sfc quad mode\n");
+#else
+	dev_info(flash->dev,"sfc stand mode\n");
+#endif
+
 
 	if(!nand_desc->id_manufactory && !nand_desc->id_device) {
 		dev_err(flash->dev, " ERROR!: don`t support this nand manufactory, please add nand driver\n");
@@ -769,6 +776,7 @@ static int jz_sfc_probe(struct platform_device *pdev)
 	struct nand_chip *chip;
 	struct jz_nand_descriptor *nand_desc;
 	int ret;
+	int chip_param = 1;
 
 	flash = kzalloc(sizeof(struct sfc_flash), GFP_KERNEL);
 	if (!flash)
@@ -858,15 +866,27 @@ static int jz_sfc_probe(struct platform_device *pdev)
 
 	if((ret = jz_nand_partition(flash))) {
 		if(ret == -EINVAL){
-			dev_err(flash->dev, "WARNING:read nand partition param failed!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-			return 0;
+			chip_param = 0;
+			dev_err(flash->dev, "WARNING:read nand partition param failed!\n");
 		}
-		dev_err(flash->dev, "read nand device param failed!\n");
-		goto free_all;
+		else {
+			dev_err(flash->dev, "read nand device param failed!\n");
+			goto free_all;
+		}
+	}else {
+		flash->mtd.name = "chip_param";
 	}
+#ifdef CONFIG_SPI_QUAD
+	dev_info(flash->dev,"sfc quad mode\n");
+#else
+	dev_info(flash->dev,"sfc stand mode\n");
+#endif
 
 /*	dump_flash_info(flash);*/
-	ret = mtd_device_parse_register(&flash->mtd, jz_probe_types, NULL, nand_desc->partition.partition, nand_desc->partition.num_partition);
+	if(chip_param)
+		ret = mtd_device_parse_register(&flash->mtd, jz_probe_types, NULL, nand_desc->partition.partition, nand_desc->partition.num_partition);
+	else
+		ret = mtd_device_parse_register(&flash->mtd, NULL, NULL, NULL, 0);
 	if (ret) {
 		kfree(nand_desc->partition.partition);
 		kfree(burn_param->partition);

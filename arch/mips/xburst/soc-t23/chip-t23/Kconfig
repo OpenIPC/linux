@@ -1,0 +1,18 @@
+
+choice
+	prompt "Platform type"
+	depends on CHIP_T23
+	default PLATFORM_T23_ISVP
+
+config PLATFORM_T23_ISVP
+	bool "isvp"
+
+endchoice
+
+config PRODUCT_NAME
+	string
+	default "isvp" if PLATFORM_T23_ISVP
+
+if PLATFORM_T23_ISVP
+source "arch/mips/xburst/soc-t23/chip-t23/isvp/Kconfig"
+endif

@@ -36,6 +36,9 @@ struct jz_gpio_func_def platform_devio_array[] = {
 #ifdef CONFIG_JZMMC_V12_MMC0_PB_4BIT
 	MSC0_PORTB_4BIT,
 #endif
+#ifdef CONFIG_JZMMC_V12_MMC1_PA_4BIT
+	MSC1_PORTA,
+#endif
 #ifdef CONFIG_JZMMC_V12_MMC1_PB_4BIT
 	MSC1_PORTB,
 #endif
@@ -45,6 +48,9 @@ struct jz_gpio_func_def platform_devio_array[] = {
 
 #ifdef CONFIG_I2C0_PA12_PA13
 	I2C0_PORTA,
+#endif
+#ifdef CONFIG_I2C1_PA16_PA17
+	I2C1_PORTA,
 #endif
 #ifdef CONFIG_I2C1_PB25_PB26
 	I2C1_PORTB,
@@ -58,15 +64,36 @@ struct jz_gpio_func_def platform_devio_array[] = {
 #ifdef CONFIG_SOC_MCLK
 	MCLK_PORTA,
 #endif
-#ifdef CONFIG_SERIAL_JZ47XX_UART0
+
+
+#ifdef CONFIG_SERIAL_T31_UART0
+#if defined(CONFIG_UART0_PB)
 	UART0_PORTB,
+#elif defined(CONFIG_UART0_PB_FC)
+	UART0_PORTB_FC,
 #endif
-#ifdef CONFIG_SERIAL_JZ47XX_UART1
+#endif
+
+#ifdef CONFIG_SERIAL_T31_UART1
+#if defined(CONFIG_UART1_PA)
+	UART1_PORTA,
+#elif defined(CONFIG_UART1_PB)
 	UART1_PORTB,
 #endif
-#ifdef CONFIG_SERIAL_JZ47XX_UART2
-	UART2_PORTC,
 #endif
+
+#ifdef CONFIG_SERIAL_T31_UART2
+#if defined(CONFIG_UART2_PA)
+	UART2_PORTA,
+#elif defined(CONFIG_UART2_PA_FC)
+	UART2_PORTA_FC,
+#elif defined(CONFIG_UART2_PC)
+	UART2_PORTC,
+#elif defined(CONFIG_UART2_PC_FC)
+	UART2_PORTC_FC,
+#endif
+#endif
+
 #ifdef CONFIG_JZ_PWM_GPIO_B17
 	PWM_PORTB_BIT17,
 #endif
@@ -194,11 +221,11 @@ static struct jzdma_platform_data jzdma_pdata = {
 		JZDMA_REQ_SSLV,
 		JZDMA_REQ_SSLV,
 		JZDMA_REQ_DMIC,
-#ifdef CONFIG_SERIAL_JZ47XX_UART1_DMA
+#ifdef CONFIG_SERIAL_T31_UART1_DMA
 		JZDMA_REQ_UART1,
 		JZDMA_REQ_UART1,
 #endif
-#ifdef CONFIG_SERIAL_JZ47XX_UART0_DMA
+#ifdef CONFIG_SERIAL_T31_UART0_DMA
 		JZDMA_REQ_UART0,
 		JZDMA_REQ_UART0,
 #endif
@@ -527,7 +554,7 @@ static struct resource jz_uart0_resources[] = {
 		.end = IRQ_UART0,
 		.flags = IORESOURCE_IRQ,
 	},
-#ifdef CONFIG_SERIAL_JZ47XX_UART0_DMA
+#ifdef CONFIG_SERIAL_T31_UART0_DMA
 	[2] = {
 		.start = JZDMA_REQ_UART0,
 		.flags = IORESOURCE_DMA,
@@ -553,7 +580,7 @@ static struct resource jz_uart1_resources[] = {
 		.end = IRQ_UART1,
 		.flags = IORESOURCE_IRQ,
 	},
-#ifdef CONFIG_SERIAL_JZ47XX_UART1_DMA
+#ifdef CONFIG_SERIAL_T31_UART1_DMA
 	[2] = {
 		.start = JZDMA_REQ_UART1,
 		.flags = IORESOURCE_DMA,
@@ -579,7 +606,7 @@ static struct resource jz_uart2_resources[] = {
 		.end = IRQ_UART2,
 		.flags = IORESOURCE_IRQ,
 	},
-#ifdef CONFIG_SERIAL_JZ47XX_UART2_DMA
+#ifdef CONFIG_SERIAL_T31_UART2_DMA
 	[2] = {
 		.start = JZDMA_REQ_UART2,
 		.flags = IORESOURCE_DMA,

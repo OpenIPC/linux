@@ -784,7 +784,11 @@ static int i2c_jz_xfer(struct i2c_adapter *adap, struct i2c_msg *msg, int count)
 #endif
 	clk_enable(i2c->clk);
 
-	i2c_writel(i2c, I2C_TAR, msg->addr);
+	//msg->addr &= 0x3ff;
+	i2c_writel(i2c, I2C_TAR, msg->addr); // 7bit addr
+	//i2c_writel(i2c, I2C_TAR, msg->addr | (3 << 12)); //10bit addr
+	//i2c_writel(i2c, I2C_TAR, msg->addr | (3 << 11)); //Call addr
+	//i2c_writel(i2c, I2C_TAR, msg->addr | (3 << 10)); //START Byte
 
 	for (i = 0; i < count; i++, msg++) {
 		enum msg_end_type end_type = MSG_END_STOP;

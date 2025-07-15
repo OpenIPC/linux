@@ -6,7 +6,7 @@ comment "MMC/SD/SDIO Host Controller Drivers"
 
 config JZMMC_V12
 	tristate "Ingenic(XBurst)  MMC/SD Card Controller(MSC) v1.2 support"
-	depends on SOC_M200 || SOC_T15 || SOC_T10 || SOC_T20 || SOC_T30 || SOC_T21 || SOC_T31
+	depends on SOC_M200 || SOC_T15 || SOC_T10 || SOC_T20 || SOC_T30 || SOC_T23 || SOC_T31
 	help
 	  This selects the Ingenic XBurst SD/MMC Card Controller v1.2.
 	  If you have platform with a SD/Multimedia Card slot and compact
@@ -57,7 +57,9 @@ config JZMMC_V12_MMC1
 choice
 	depends on JZMMC_V12_MMC1
 	prompt "JZMMC_V12 GPIO function pins select"
-	default JZMMC_V12_MMC1_PC_4BIT
+	default JZMMC_V12_MMC1_PB_4BIT
+config JZMMC_V12_MMC1_PA_4BIT
+	bool "GPIO A, Data width 4 bit"
 config JZMMC_V12_MMC1_PD_4BIT
 	bool "GPIO D, Data width 4 bit"
 config JZMMC_V12_MMC1_PB_4BIT

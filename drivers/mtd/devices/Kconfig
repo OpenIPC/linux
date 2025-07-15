@@ -102,6 +102,12 @@ config SFC_DMA
 	help
 		used dma
 
+config JZ_SFC_NOR_RESET
+	bool "Reset nor flash in the kernel"
+	depends on MTD_JZ_SFC_NOR
+	help
+		Reset nor flash in the kernel
+
 config SFC_SPEED
     int "JZ SFC speed in MHZ"
 	range 10 200

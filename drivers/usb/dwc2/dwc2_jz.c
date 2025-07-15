@@ -526,11 +526,12 @@ static int dwc2_jz_probe(struct platform_device *pdev) {
 		dev_err(&pdev->dev, "clk gate get error\n");
 		return PTR_ERR(jz->clk);
 	}
+
 	jz->cgu_clk = devm_clk_get(&pdev->dev, CGU_USB_CLK_NAME);
 	if (IS_ERR(jz->cgu_clk)) {
-		dev_warn(&pdev->dev, "cgu clk gate get error\n");
 		jz->cgu_clk = NULL;
 	}
+
 	jz->pwr_clk = devm_clk_get(&pdev->dev, USB_PWR_CLK_NAME);
 	if (IS_ERR(jz->pwr_clk))
 		jz->pwr_clk = NULL;
@@ -771,21 +772,25 @@ static struct platform_driver dwc2_jz_driver = {
 	},
 };
 
+int dwc2_init(void);
+void dwc2_exit(void);
 
 static int __init dwc2_jz_init(void)
 {
+	dwc2_init();
 	return platform_driver_register(&dwc2_jz_driver);
 }
 
 static void __exit dwc2_jz_exit(void)
 {
+	dwc2_exit();
 	platform_driver_unregister(&dwc2_jz_driver);
 }
 
 /* make us init after usbcore and i2c (transceivers, regulators, etc)
  * and before usb gadget and host-side drivers start to register
  */
-fs_initcall(dwc2_jz_init);
+module_init(dwc2_jz_init);
 module_exit(dwc2_jz_exit);
 MODULE_ALIAS("platform:jz-dwc2");
 MODULE_AUTHOR("Lutts Cao <slcao@ingenic.cn>");

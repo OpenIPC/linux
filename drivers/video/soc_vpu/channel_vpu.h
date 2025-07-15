@@ -43,6 +43,7 @@ struct channel_node {
 
 	unsigned int		n_flag; /*ncu start flag*/
 	void *				ncu_addr; /* ncu config addr, virtual*/
+	unsigned int        frame_type;
 };
 
 #if 0

@@ -101,16 +101,16 @@ static struct jz_platform_device platform_devices_array[] __initdata = {
 #ifdef CONFIG_JZ_IPU_V13
 	DEF_DEVICE(&jz_ipu_device, 0, 0),
 #endif
-#ifdef CONFIG_SERIAL_JZ47XX_UART0
+#ifdef CONFIG_SERIAL_T31_UART0
 	DEF_DEVICE(&jz_uart0_device, 0, 0),
 #endif
-#ifdef CONFIG_SERIAL_JZ47XX_UART1
+#ifdef CONFIG_SERIAL_T31_UART1
 	DEF_DEVICE(&jz_uart1_device, 0, 0),
 #endif
-#ifdef CONFIG_SERIAL_JZ47XX_UART2
+#ifdef CONFIG_SERIAL_T31_UART2
 	DEF_DEVICE(&jz_uart2_device, 0, 0),
 #endif
-#ifdef CONFIG_USB_JZ_DWC2
+#if (defined CONFIG_USB_JZ_DWC2) || (defined CONFIG_USB_JZ_DWC2_MODULE)
 	DEF_DEVICE(&jz_dwc_otg_device, 0, 0),
 #endif
 #ifdef CONFIG_RTC_DRV_JZ

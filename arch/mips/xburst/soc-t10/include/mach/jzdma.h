@@ -209,10 +209,9 @@ struct jzdma_channel {
     struct scatterlist  *sgl;
     unsigned long       sg_len;
     unsigned short      last_sg;
-#define FAKECYCLIC_ACTIVE (1 << 15)
-#define FAKECYCLIC_POSSIBLE (1 << 14)
-#define FAKECYCLIC_IDX 0x3fff
-    unsigned short      fake_cyclic;
+#define CYCLIC_ACTIVE (1 << 15)
+#define CYCLIC_POSSIBLE (1 << 14)
+    unsigned short      cyclic;
     unsigned long       tx_dcm_def;
     unsigned long       rx_dcm_def;
     struct dma_slave_config *config;

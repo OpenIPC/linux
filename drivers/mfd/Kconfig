@@ -271,21 +271,21 @@ config MFD_JZ_SADC_V12
 config MFD_JZ_SADC_V13
 	tristate "Support for the XBurst SADC core"
 	select MFD_CORE
-	depends on SOC_T15 || SOC_T10 || SOC_T20 || SOC_T30 || SOC_T21 || SOC_T31
+	depends on SOC_T15 || SOC_T10 || SOC_T20 || SOC_T30 || SOC_T23 || SOC_T31
 	help
 	  Say yes here if you want support for the SADC unit in the T15 SoC.
 
 config MFD_JZ_SADC_AUX
 	tristate "Support for the XBurst SADC AUX"
 	select MFD_CORE
-	depends on SOC_T15 || SOC_T10 || SOC_T20 || SOC_T30 || SOC_T21 || SOC_T31
+	depends on SOC_T15 || SOC_T10 || SOC_T20 || SOC_T30 || SOC_T23 || SOC_T31
 	help
 	  Say yes here if you want support for the SADC unit in the T15 SoC.
 
 config MFD_JZ_TCU
 	tristate "Support for XBurst TCU"
 	select MFD_CORE
-	depends on SOC_T15 || SOC_T10 || SOC_T20 || SOC_T30 || SOC_T21 || SOC_T31
+	depends on SOC_T15 || SOC_T10 || SOC_T20 || SOC_T30 || SOC_T23 || SOC_T31
 	help
 	  Say yes here if you want support for the TCU in the XBurst SoC.
 
