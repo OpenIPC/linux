@@ -1680,6 +1680,9 @@ static int __init jzmmc_msc_init(struct jzmmc_host *host)
 	return ret;
 }
 
+static int detect_pin;
+module_param(detect_pin, int, 0644);
+
 static int __init jzmmc_gpio_init(struct jzmmc_host *host)
 {
 	struct card_gpio *card_gpio = host->pdata->gpio;
@@ -1689,6 +1692,10 @@ static int __init jzmmc_gpio_init(struct jzmmc_host *host)
 	jz_gpio_set_func(36, GPIO_OUTPUT0);
 
 	if (card_gpio) {
+		if (detect_pin > 0) {
+			card_gpio->cd.num = detect_pin;
+		}
+
 		if (card_gpio->cd.num > 0)
 		{
 			cd_port = card_gpio->cd.num / 32;

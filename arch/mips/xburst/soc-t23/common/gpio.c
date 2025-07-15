@@ -85,6 +85,7 @@ int __init gpio_ss_recheck(void);
 #endif
 extern int __init gpio_customized_init(void);
 extern void __enable_irq(struct irq_desc *desc, unsigned int irq, bool resume);
+extern int disable_gmac;
 
 struct jzgpio_state {
 	unsigned int pxint;
@@ -352,6 +353,7 @@ int jz_gpio_set_func(int gpio, enum gpio_function func)
 	gpio_set_func(jz, func, pin);
 	return 0;
 }
+EXPORT_SYMBOL(jz_gpio_set_func);
 
 void jz_gpio_set_drive_strength(int gpio, gpio_drv_level_t lvl)
 {
@@ -966,11 +968,20 @@ int __init setup_gpio_pins(void)
 			break;
 		}
 
+		if (!strcmp(g->name,"gmac_pb") && disable_gmac) {
+			pr_info("Skipping GMAC GPIO setup\n");
+			continue;
+		}
+
+		if (!strcmp(g->name,"msc1-pB") && !disable_gmac) {
+			pr_info("Skipping MSC1_PB GPIO setup\n");
+			continue;
+		}
+
 		jz = &jz_gpio_chips[g->port];
 		if (GPIO_AS_FUNC(g->func)) {
 			if(jz->dev_map[0] & g->pins) {
-				panic("%s:gpio functions has redefinition of '%s'", __FILE__, g->name);
-				while(1);
+				pr_warning("gpio functions has redefinition of '%s'", g->name);
 			}
 			jz->dev_map[0] |= g->pins;
 		}
