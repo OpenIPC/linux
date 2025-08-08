@@ -26,6 +26,7 @@ Branch | Devices
 [hisilicon-hi3519v101](https://github.com/OpenIPC/linux/tree/hisilicon-hi3519v101) | hi3516av200, hi3519v101
 [hisilicon-hi3536cv100](https://github.com/OpenIPC/linux/tree/hisilicon-hi3536cv100) | hi3536cv100
 [hisilicon-hi3536dv100](https://github.com/OpenIPC/linux/tree/hisilicon-hi3536dv100) | hi3536dv100
+[ingenic-t23](https://github.com/OpenIPC/linux/tree/ingenic-t23) | t23
 [ingenic-t31](https://github.com/OpenIPC/linux/tree/ingenic-t31) | t10, t20, t21, t30, t31
 [ingenic-t40](https://github.com/OpenIPC/linux/tree/ingenic-t40) | t40
 [novatek-nt9856x](https://github.com/OpenIPC/linux/tree/novatek-nt9856x) | nt98562, nt98566
