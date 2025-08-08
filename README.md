@@ -30,6 +30,7 @@ Branch | Devices
 [ingenic-t31](https://github.com/OpenIPC/linux/tree/ingenic-t31) | t10, t20, t21, t30, t31
 [ingenic-t40](https://github.com/OpenIPC/linux/tree/ingenic-t40) | t40
 [novatek-nt9856x](https://github.com/OpenIPC/linux/tree/novatek-nt9856x) | nt98562, nt98566
+[rockchip-rv1106](https://github.com/OpenIPC/linux/tree/rockchip-rv1106) | rv1103, rv1106
 [rockchip-rv11xx](https://github.com/OpenIPC/linux/tree/rockchip-rv11xx) | rv1109, rv1126
 [sigmastar-infinity3](https://github.com/OpenIPC/linux/tree/sigmastar-infinity3) | msc313e, msc316dc, msc316dm
 [sigmastar-infinity6](https://github.com/OpenIPC/linux/tree/sigmastar-infinity6) | ssc325
