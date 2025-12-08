@@ -389,8 +389,8 @@
             interrupts = <GIC_SPI INT_IRQ_FUART IRQ_TYPE_LEVEL_HIGH>, <GIC_SPI INT_IRQ_URDMA IRQ_TYPE_LEVEL_HIGH>;
             clocks = <&CLK_fuart>;
             dma = <1>;
-            pad = <PAD_UART0_TX>;
-            //pad = <PAD_FUART_TX>;
+            //pad = <PAD_UART0_TX>;
+            pad = <PAD_FUART_TX>;
             //pad = <PAD_GPIO4>;
             status = "ok";
 #ifdef CONFIG_CAM_CLK
