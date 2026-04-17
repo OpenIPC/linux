@@ -1078,6 +1078,27 @@ struct spi_nor_platform_data spi_nor_pdata[] = {
 		.quad_mode = &flash_quad_mode[0],
 #endif
 	},
+	{
+		.name           = "EN25QX64A",
+		.pagesize       = 256,
+		.sectorsize     = 4 * 1024,
+		.chipsize       = 8 * 1024 * 1024,
+		.erasesize      = 4 * 1024,
+		.id             = 0x1c7117,
+
+		.block_info     = flash_block_info,
+		.num_block_info = ARRAY_SIZE(flash_block_info),
+
+		.addrsize       = 3,
+		.pp_maxbusy     = 3,            /* 3ms */
+		.se_maxbusy     = 300,          /* 300ms */
+		.ce_maxbusy     = 100 * 1000,    /* 100s */
+
+		.st_regnum      = 3,
+#ifdef CONFIG_SPI_QUAD
+		.quad_mode = &flash_quad_mode[0],
+#endif
+	}
 };
 
 struct jz_sfc_info sfc_info_cfg = {
