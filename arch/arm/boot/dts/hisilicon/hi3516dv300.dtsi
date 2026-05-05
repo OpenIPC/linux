@@ -67,12 +67,6 @@
 		interrupt-parent = <&gic>;
 		ranges;
 
-		clk_apb: clk_apb {
-			compatible = "fixed-clock";
-			#clock-cells = <0>;
-			clock-frequency = <24000000>;
-		};
-
 		sysctrl: system-controller@12020000 {
 			compatible = "hisilicon,sysctrl";
 			reg = <0x12020000 0x1000>;
@@ -90,7 +84,7 @@
 				compatible = "arm,pl011", "arm,primecell";
 				reg = <0x120a0000 0x1000>;
 				interrupts = <0 6 4>;
-				clocks = <&clk_apb>;
+				clocks = <&clock HI3516DV300_UART0_CLK>;
 				clock-names = "apb_pclk";
 				status = "okay";
 			};
@@ -116,9 +110,6 @@
 			status = "disabled";
 		};
 
-		/* Ethernet — disabled in DTS to avoid built-in femac probe hang.
-		 * The vendor load_hisilicon script brings up ethernet via
-		 * devmem CRG init + OSAL modules at runtime. */
 		mdio0: mdio@10011100 {
 			compatible = "hisilicon,hisi-femac-mdio";
 			reg = <0x10011100 0x10>;
@@ -128,7 +119,6 @@
 			reset-names = "external-phy";
 			#address-cells = <1>;
 			#size-cells = <0>;
-			status = "disabled";
 		};
 
 		hisi_femac0: ethernet@10010000 {
@@ -139,15 +129,12 @@
 			clocks = <&clock HI3516DV300_ETH0_CLK>;
 			resets = <&clock 0x16c 0>;
 			reset-names = "mac";
-			status = "disabled";
 		};
 
-		/* I2C — needed for sensor communication */
 		i2c_bus0: i2c@120b0000 {
 			compatible = "hisilicon,hibvt-i2c";
 			reg = <0x120b0000 0x1000>;
 			clocks = <&clock HI3516DV300_I2C0_CLK>;
-			status = "disabled";
 		};
 
 		/* Vendor media subsystem — initialized by OSAL modules */
