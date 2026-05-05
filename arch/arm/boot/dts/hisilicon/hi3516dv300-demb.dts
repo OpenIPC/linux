@@ -26,13 +26,18 @@
 		compatible = "jedec,spi-nor";
 		reg = <0>;
 		spi-max-frequency = <160000000>;
-		/* Limit to 16MB to avoid 4-byte address mode issues */
-		spi-tx-bus-width = <1>;
-		spi-rx-bus-width = <1>;
 	};
 };
 
-/* mdio0 disabled — see femac comment above */
+&mdio0 {
+	hisilicon,phy-reset-delays-us = <10000 20000 150000>;
+	phy0: ethernet-phy@1 {
+		reg = <1>;
+	};
+};
 
-/* femac disabled — built-in driver hangs in port_init.
- * Ethernet brought up by vendor OSAL load_hisilicon script. */
+&hisi_femac0 {
+	mac-address = [00 00 00 00 00 00];
+	phy-mode = "mii";
+	phy-handle = <&phy0>;
+};
