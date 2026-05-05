@@ -137,7 +137,30 @@
 			clocks = <&clock HI3516DV300_I2C0_CLK>;
 		};
 
-		/* Vendor media subsystem — initialized by OSAL modules */
+		i2c_bus1: i2c@120b1000 {
+			compatible = "hisilicon,hibvt-i2c";
+			reg = <0x120b1000 0x1000>;
+			clocks = <&clock HI3516DV300_I2C1_CLK>;
+			status = "disabled";
+		};
+
+		i2c_bus2: i2c@120b2000 {
+			compatible = "hisilicon,hibvt-i2c";
+			reg = <0x120b2000 0x1000>;
+			clocks = <&clock HI3516DV300_I2C2_CLK>;
+			status = "disabled";
+		};
+
+		i2c_bus6: i2c@120b6000 {
+			compatible = "hisilicon,hibvt-i2c";
+			reg = <0x120b6000 0x1000>;
+			clocks = <&clock HI3516DV300_I2C6_CLK>;
+			status = "disabled";
+		};
+
+		/* Vendor media subsystem — initialized by OSAL modules.
+		 * sys_config does pinmux + clock setup; the rest are matched
+		 * by hi3516cv500 init wrappers in OpenIPC/openhisilicon. */
 		media {
 			#address-cells = <1>;
 			#size-cells = <1>;
@@ -149,11 +172,123 @@
 				compatible = "hisilicon,osal";
 			};
 
+			sys_config: sys_config {
+				compatible = "hisilicon,sys_config";
+			};
+
 			sys: sys@12010000 {
 				compatible = "hisilicon,hisi-sys";
 				reg = <0x12010000 0x10000>, <0x12020000 0x8000>,
 					<0x12060000 0x10000>, <0x12030000 0x8000>;
 				reg-names = "crg", "sys", "ddr", "misc";
+			};
+
+			mipi: mipi@113a0000 {
+				compatible = "hisilicon,hisi-mipi";
+				reg = <0x113a0000 0x10000>;
+				reg-names = "mipi_rx";
+				interrupts = <0 57 4>;
+				interrupt-names = "mipi_rx";
+			};
+
+			vi: vi@11300000 {
+				compatible = "hisilicon,hisi-vi";
+				reg = <0x11300000 0xa0000>, <0x11000000 0x40000>;
+				reg-names = "VI_CAP0", "VI_PROC0";
+				interrupts = <0 56 4>, <0 44 4>;
+				interrupt-names = "VI_CAP0", "VI_PROC0";
+			};
+
+			isp: isp@11020000 {
+				compatible = "hisilicon,hisi-isp";
+				reg = <0x11020000 0x20000>;
+				reg-names = "ISP";
+				interrupts = <0 56 4>;
+				interrupt-names = "ISP";
+			};
+
+			vpss: vpss@11040000 {
+				compatible = "hisilicon,hisi-vpss";
+				reg = <0x11040000 0x10000>;
+				reg-names = "vpss0";
+				interrupts = <0 43 4>;
+				interrupt-names = "vpss0";
+			};
+
+			vgs: vgs@11240000 {
+				compatible = "hisilicon,hisi-vgs";
+				reg = <0x11240000 0x10000>;
+				reg-names = "vgs0";
+				interrupts = <0 38 4>;
+				interrupt-names = "vgs0";
+			};
+
+			vo: vo@11440000 {
+				compatible = "hisilicon,hisi-vo";
+				reg = <0x11440000 0x40000>;
+				reg-names = "vo";
+				interrupts = <0 58 4>;
+				interrupt-names = "vo";
+			};
+
+			tde: tde@11210000 {
+				compatible = "hisilicon,hisi-tde";
+				reg = <0x11210000 0x10000>;
+				reg-names = "tde";
+				interrupts = <0 35 4>;
+				interrupt-names = "tde_osr_isr";
+			};
+
+			gdc: gdc@11110000 {
+				compatible = "hisilicon,hisi-gdc";
+				reg = <0x11110000 0x10000>, <0x11100000 0x10000>;
+				reg-names = "gdc", "nnie0";
+				interrupts = <0 42 4>, <0 41 4>;
+				interrupt-names = "gdc", "nnie0";
+			};
+
+			jpegd: jpegd@11260000 {
+				compatible = "hisilicon,hisi-jpegd";
+				reg = <0x11260000 0x10000>;
+				reg-names = "jpegd";
+				interrupts = <0 45 4>;
+				interrupt-names = "jpegd";
+			};
+
+			vedu: vedu@11500000 {
+				compatible = "hisilicon,hisi-vedu";
+				reg = <0x11500000 0x10000>, <0x11220000 0x10000>;
+				reg-names = "vedu0", "jpge";
+				interrupts = <0 40 4>, <0 36 4>;
+				interrupt-names = "vedu0", "jpge";
+			};
+
+			venc: venc {
+				compatible = "hisilicon,hisi-venc";
+			};
+
+			scd: scd@10030000 {
+				compatible = "hisilicon,hisi-scd";
+				reg = <0x10030000 0x10000>;
+				reg-names = "scd";
+				interrupts = <0 67 4>;
+				interrupt-names = "scd";
+			};
+
+			aiao: aiao@113b0000 {
+				compatible = "hisilicon,hisi-aiao";
+				reg = <0x113b0000 0x10000>, <0x113c0000 0x10000>, <0x12010000 0x10000>;
+				reg-names = "aiao", "acodec", "crg";
+				interrupts = <0 55 4>;
+				interrupt-names = "AIO";
+			};
+
+			ive: ive@11230000 {
+				compatible = "hisilicon,hisi-ive";
+				reg = <0x11230000 0x10000>;
+				reg-names = "ive";
+				interrupts = <0 37 4>;
+				interrupt-names = "ive";
 			};
 		};
 	};
