@@ -13,7 +13,9 @@
 
 	memory {
 		device_type = "memory";
-		reg = <0x80000000 0x10000000>;
+		/* 1 GiB DDR — boards typically ship with 1 GiB; U-Boot
+		 * cmdline mem=${osmem} can clamp lower if needed. */
+		reg = <0x80000000 0x40000000>;
 	};
 };
 

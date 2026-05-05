@@ -60,6 +60,27 @@
 		clock-frequency = <50000000>;
 	};
 
+	/* CMA as the base allocator: reusable + linux,cma-default makes
+	 * dma_alloc and HiSilicon MMZ pull from this pool, while letting
+	 * the kernel borrow the same pages for movable allocations when
+	 * they are not pinned for DMA. Sized for 4K capture pipelines
+	 * (IMX415 3840x2160 + multi-channel encoders).
+	 * See OpenIPC wiki en/memory-tuning.md.
+	 */
+	reserved-memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		mmz_cma: mmz {
+			compatible = "shared-dma-pool";
+			size = <0x30000000>; /* 768 MiB */
+			alloc-ranges = <0x80000000 0x40000000>;
+			reusable;
+			linux,cma-default;
+		};
+	};
+
 	soc {
 		#address-cells = <1>;
 		#size-cells = <1>;
