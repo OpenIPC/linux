@@ -109,6 +109,51 @@
 				clock-names = "apb_pclk";
 				status = "okay";
 			};
+
+			/* PL022 SSP — vendor open_sensor_spi.ko probes
+			 * spi_busnum_to_master() across these and refuses
+			 * to load when no master is registered. Children
+			 * (sensor SPI etc.) are bound at runtime by the
+			 * OSAL stack; we only need the master nodes here. */
+			spi_bus0: spi@120c0000 {
+				compatible = "arm,pl022", "arm,primecell";
+				/* HiSilicon's hardware reports periphid 0x00800022,
+				 * which the mainline pl022 driver doesn't recognise.
+				 * Override to the standard ARM ID — register layout
+				 * is compatible. */
+				arm,primecell-periphid = <0x00041022>;
+				reg = <0x120c0000 0x1000>;
+				interrupts = <0 68 4>;
+				clocks = <&clock HI3516DV300_SPI0_CLK>;
+				clock-names = "apb_pclk";
+				#address-cells = <1>;
+				#size-cells = <0>;
+				status = "okay";
+			};
+
+			spi_bus1: spi@120c1000 {
+				compatible = "arm,pl022", "arm,primecell";
+				arm,primecell-periphid = <0x00041022>;
+				reg = <0x120c1000 0x1000>;
+				interrupts = <0 69 4>;
+				clocks = <&clock HI3516DV300_SPI1_CLK>;
+				clock-names = "apb_pclk";
+				#address-cells = <1>;
+				#size-cells = <0>;
+				status = "okay";
+			};
+
+			spi_bus2: spi@120c2000 {
+				compatible = "arm,pl022", "arm,primecell";
+				arm,primecell-periphid = <0x00041022>;
+				reg = <0x120c2000 0x1000>;
+				interrupts = <0 70 4>;
+				clocks = <&clock HI3516DV300_SPI2_CLK>;
+				clock-names = "apb_pclk";
+				#address-cells = <1>;
+				#size-cells = <0>;
+				status = "okay";
+			};
 		};
 
 		/* SPI NOR flash — boot device */
