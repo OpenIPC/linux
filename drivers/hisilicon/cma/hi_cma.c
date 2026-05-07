@@ -134,7 +134,31 @@ struct cma_zone *hisi_get_cma_zone(const char *name)
 		}
 
 	if (i == num_zones) {
-		return NULL;
+		/*
+		 * No zone with this name was registered via the cmdline mmz=.
+		 * That's the case on stock OpenIPC firmware where the U-Boot
+		 * bootargs were never customised — historically the vendor
+		 * binary hi_osal.ko had its own raw allocator and didn't need
+		 * a hisi_zone, but openhisilicon's cma_allocator.c expects one.
+		 *
+		 * Synthesize a single fallback zone backed by the kernel's
+		 * default CMA pool (CONFIG_CMA_SIZE_MBYTES / cma=). This lets
+		 * existing installs work after a sysupgrade without any
+		 * U-Boot bootargs change.
+		 */
+		static struct cma_zone fallback_zone;
+		struct cma *def = dma_contiguous_default_area;
+
+		if (def == NULL || fallback_zone.nbytes != 0)
+			return fallback_zone.nbytes ? &fallback_zone : NULL;
+
+		fallback_zone.pdev.coherent_dma_mask = DMA_BIT_MASK(64);
+		dev_set_cma_area(&fallback_zone.pdev, def);
+		strlcpy(fallback_zone.name, name, NAME_LEN_MAX);
+		fallback_zone.gfp = 0;
+		fallback_zone.phys_start = cma_get_base(def);
+		fallback_zone.nbytes = cma_get_size(def);
+		return &fallback_zone;
 	}
 
 	return &hisi_zone[i];
