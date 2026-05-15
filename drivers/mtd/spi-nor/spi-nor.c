@@ -1646,8 +1646,10 @@ static const struct flash_info spi_nor_ids[] = {
 
 	/* SiliconKaiser 3.3v */
 	{ "sk25p128", INFO(0x256018, 0, 64 * 1024,  256, SPI_NOR_DUAL_READ), PARAMS(xtx), CLK_MHZ_2X(70) },
-
 	{ "sk25p64", INFO(0x256017, 0, 64 * 1024,  128, SPI_NOR_DUAL_READ), PARAMS(xtx), CLK_MHZ_2X(70) },
+
+	/* Zetta 3.3v */
+	{ "zd25q128a", INFO(0xba4018, 0, 64 * 1024, 256, SECT_4K | SPI_NOR_DUAL_READ), PARAMS(winbond), CLK_MHZ_2X(80) },
 
 	{ },
 };
