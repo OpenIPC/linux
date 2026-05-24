@@ -47,6 +47,22 @@ config ARCH_HI3516CV200
 		Support for HiSilicon Hi3516CV200 / Hi3518EV20x V2 camera
 		SoC family (ARM926EJ-S single-core, ARMv5TE).
 
+config ARCH_HI3516CV100
+	bool "Hisilicon Hi3516CV100 / Hi3518EV100 ARM926EJ-S family (V1)"
+	depends on ARCH_MULTI_V5 && CPU_LITTLE_ENDIAN
+	select ARM_VIC
+	select ARM_TIMER_SP804
+	select PINCTRL
+	select COMMON_CLK_HI3516CV200
+	select ARCH_HAS_RESET_CONTROLLER
+	select RESET_CONTROLLER
+	help
+		Support for HiSilicon Hi3516CV100 / Hi3518CV100 / Hi3518EV100
+		V1 camera SoC family (ARM926EJ-S single-core, ARMv5TE).
+		Shares the V2 (Hi3516CV200) CRG driver — register layouts
+		match; VIC base is the only relevant MMIO difference,
+		overridden in the cv100 DTSI.
+
 config ARCH_HI3516AV100
 	bool "Hisilicon Hi3516AV100 / Hi3516DV100 Cortex-A7 family"
 	depends on ARCH_MULTI_V7
@@ -237,6 +253,7 @@ config HI_ZRELADDR
        default "0x80008000" if ARCH_HI3559V200
        default "0x80008000" if ARCH_HI3516A
        default "0x80008000" if ARCH_HI3518EV20X
+       default "0x80008000" if ARCH_HI3516CV100
        default "0x80008000" if ARCH_HI3536DV100
        default "0x80008000" if ARCH_HI3521A
        default "0x40008000" if ARCH_HI3531A

@@ -1,0 +1,40 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+/*
+ * HiSilicon Hi3516CV100 SoC family DT (V1 generation, ARM926EJ-S / ARMv5TE).
+ *
+ * Hi3516CV100 is the parent of Hi3516CV200 — same SoC architecture with
+ * a near-identical MMIO map. The only relevant difference for boot is
+ * the VIC base (0x10140000 vs cv200's 0x100d0000); CRG, sysctrl, UARTs,
+ * SP804 timers, PL022 SPI, FEMAC, FMC, pinmux all sit at identical
+ * addresses across the two families. Re-use cv200's full DT scaffold
+ * via #include and override the cv100-specific differences below.
+ *
+ * Sibling SoCs that re-use this dtsi (die-identical per qemu-hisilicon
+ * machine model decoding): Hi3518AV100, Hi3518CV100, Hi3518EV100.
+ */
+
+#include "hi3516cv200.dtsi"
+
+/ {
+	compatible = "hisilicon,hi3516cv100";
+};
+
+/*
+ * VIC moves on cv100 — overriding both the unit-address and reg property
+ * is straightforward via label-based references. The interrupt-controller
+ * type (pl190-vic) and cell layout are unchanged.
+ */
+&vic {
+	reg = <0x10140000 0x1000>;
+};
+
+/*
+ * cv100 has one I2C controller and uses the older register-poll
+ * "hisi-i2c-v1" hardware (not driver-compatible with cv200's HiBVT
+ * variant). Boot does not need it — the openhisilicon hi_i2c.ko
+ * userspace driver claims the same MMIO directly. Leave all i2c
+ * bus nodes disabled.
+ */
+&i2c_bus0 { status = "disabled"; };
+&i2c_bus1 { status = "disabled"; };
+&i2c_bus2 { status = "disabled"; };

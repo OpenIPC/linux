@@ -12,6 +12,7 @@ obj-$(CONFIG_ARCH_HI3516DV300) += mach-hi3516dv300.o
 obj-$(CONFIG_ARCH_HI3556V200) += mach-hi3556v200.o
 obj-$(CONFIG_ARCH_HI3559V200) += mach-hi3559v200.o
 obj-$(CONFIG_ARCH_HI3518EV20X) += mach-hi3518ev20x.o
+obj-$(CONFIG_ARCH_HI3516CV100) += mach-hi3518ev20x.o
 obj-$(CONFIG_ARCH_HI3536DV100) += mach-hi3536dv100.o
 obj-$(CONFIG_ARCH_HI3521A) += mach-hi3521a.o
 obj-$(CONFIG_ARCH_HI3531A) += mach-hi3531a.o

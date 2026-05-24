@@ -22,5 +22,7 @@ dtb-$(CONFIG_ARCH_HI3516CV300) += \
 	hi3516cv300-demb.dtb
 dtb-$(CONFIG_ARCH_HI3516CV200) += \
 	hi3516cv200-demb.dtb
+dtb-$(CONFIG_ARCH_HI3516CV100) += \
+	hi3516cv100-demb.dtb
 dtb-$(CONFIG_ARCH_HI3516AV100) += \
 	hi3516av100-demb.dtb

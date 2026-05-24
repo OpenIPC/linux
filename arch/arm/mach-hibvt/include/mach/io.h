@@ -9,6 +9,14 @@
 #include <mach/hi3518ev20x_io.h>
 #endif
 
+#ifdef CONFIG_ARCH_HI3516CV100
+/* cv100 reuses cv200's mach file (mach-hi3518ev20x.c) — share its IO map.
+ * The IOCH1 range (0x10000000-0x100E0000) doesn't cover cv100's VIC at
+ * 0x10140000, but the iotable_init() entry is a virt-mapping cache hint;
+ * absence just means ioremap() is called per-driver, which still works. */
+#include <mach/hi3518ev20x_io.h>
+#endif
+
 #ifdef CONFIG_ARCH_HI3536DV100
 #include <mach/hi3536dv100_io.h>
 #endif

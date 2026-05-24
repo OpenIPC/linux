@@ -1,0 +1,50 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+/*
+ * DTS for Hi3516CV100 DEMB (development reference) board.
+ *
+ * Memory: 64 MiB DDR2 at 0x80000000. The OS is given the lower 32 MiB
+ * (0x80000000-0x82000000); the upper 32 MiB are claimed at runtime by
+ * the openhisilicon mmz.ko allocator — matches the production cv100
+ * load_hisilicon defaults (totalmem=64, osmem=32). The DT memory node
+ * advertises the OS-visible slice only.
+ */
+
+/dts-v1/;
+#include "hi3516cv100.dtsi"
+
+/ {
+	model = "HiSilicon Hi3516CV100 DEMB Board";
+	compatible = "hisilicon,hi3516cv100-demb", "hisilicon,hi3516cv100";
+
+	memory@80000000 {
+		device_type = "memory";
+		reg = <0x80000000 0x02000000>;
+	};
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&hisi_femac {
+	status = "okay";
+	phy-mode = "mii";
+	phy-handle = <&phy0>;
+};
+
+&mdio {
+	status = "okay";
+	phy0: phy@0 {
+		reg = <0>;
+	};
+};
+
+&fmc {
+	status = "okay";
+	/* The flash node is populated via U-Boot or the bootloader; this
+	 * placeholder keeps the controller probe path alive. */
+};
