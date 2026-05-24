@@ -1,0 +1,39 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+/*
+ * DTS for Hi3519V101 DEMB (development reference) board.
+ *
+ * Memory: 256 MiB DDR at 0x80000000. The OS is given the lower 32 MiB
+ * (0x80000000-0x82000000); the upper 224 MiB are claimed at runtime by
+ * the openhisilicon mmz.ko allocator — matches the production cv101
+ * load_hisilicon defaults (totalmem=256, osmem=32). The DT memory
+ * node advertises the OS-visible slice only.
+ */
+
+/dts-v1/;
+#include "hi3519v101.dtsi"
+
+/ {
+	model = "HiSilicon Hi3519V101 DEMB Board";
+	compatible = "hisilicon,hi3519v101-demb", "hisilicon,hi3519v101";
+
+	aliases {
+		serial0 = &uart0;
+	};
+
+	memory@80000000 {
+		device_type = "memory";
+		reg = <0x80000000 0x02000000>;
+	};
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&dual_timer0 {
+	status = "okay";
+};

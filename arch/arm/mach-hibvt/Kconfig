@@ -77,6 +77,23 @@ config ARCH_HI3516AV100
 		SoC family (Cortex-A7 single Linux CPU, ARMv7). Sibling of
 		the older V2 cv200 line (which is ARM926EJ-S / ARMv5TE).
 
+config ARCH_HI3519V101
+	bool "Hisilicon Hi3519V101 / Hi3516AV200 Cortex-A17+A7 family (V3A)"
+	depends on ARCH_MULTI_V7
+	select HAVE_ARM_ARCH_TIMER
+	select ARM_GIC
+	select PINCTRL
+	select COMMON_CLK_HI3519
+	select ARCH_HAS_RESET_CONTROLLER
+	select RESET_CONTROLLER
+	help
+		Support for HiSilicon Hi3519V101 / Hi3516AV200 V3A camera SoC
+		family (Cortex-A17 + Cortex-A7 big.LITTLE die; mainline ARM
+		boots a single Cortex-A7). Reuses the upstream Hi3519 CRG
+		driver — Hi3519V101 inherits the Hi3519 MMIO map verbatim
+		(per HiSilicon's joint Hi3519V101/Hi3516AV200 hardware guide),
+		differing only in the SCSYSID0 sub-variant byte.
+
 config ARCH_HI3516CV500
 	bool "Hisilicon Hi3516CV500 Cortex-A7 family"
 	depends on ARCH_MULTI_V7
@@ -254,6 +271,7 @@ config HI_ZRELADDR
        default "0x80008000" if ARCH_HI3516A
        default "0x80008000" if ARCH_HI3518EV20X
        default "0x80008000" if ARCH_HI3516CV100
+       default "0x80008000" if ARCH_HI3519V101
        default "0x80008000" if ARCH_HI3536DV100
        default "0x80008000" if ARCH_HI3521A
        default "0x40008000" if ARCH_HI3531A

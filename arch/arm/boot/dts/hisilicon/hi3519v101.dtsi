@@ -1,0 +1,49 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+/*
+ * HiSilicon Hi3519V101 SoC DT (V3A generation, Cortex-A17 + Cortex-A7
+ * big.LITTLE; QEMU emulates as a single Cortex-A7).
+ *
+ * Hi3519V101 is a refresh of the original Hi3519 with the same MMIO map.
+ * Per the joint Hi3519V101/Hi3516AV200 hardware guide, every peripheral
+ * address, IRQ, GPIO count, and clock matches the base Hi3519 covered by
+ * the mainline arch/arm/boot/dts/hisilicon/hi3519.dtsi. Re-use that scaffold
+ * via #include and just publish the cv101-specific compatible string.
+ *
+ * Sibling SoC sharing this dtsi: Hi3516AV200 (same die, distinguished only
+ * by the SCSYSID0 sub-variant byte — 5 for AV200, default for V101).
+ */
+
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+#include "hi3519.dtsi"
+
+/ {
+	compatible = "hisilicon,hi3519v101";
+
+	soc {
+		/* HiGMAC at 0x10050000 — the mainline driver
+		 * (drivers/net/ethernet/hisilicon/hisi_higmac.c) matches
+		 * "hisilicon,hi3519v101-gmac". MDIO bus is a child node;
+		 * the higmac driver looks it up via
+		 * of_get_child_by_name(of_node, "mdio") and reuses the
+		 * parent ethernet device's MMIO window (MDIO regs sit at
+		 * the +0x3c0 sub-region per qemu-hisilicon's hisi-gmac.c
+		 * emulation and the vendor datasheet). qemu-hisilicon
+		 * #105 wired the real hisi-gmac device at this base; on
+		 * real hardware the same address is used. */
+		ethernet@10050000 {
+			compatible = "hisilicon,hi3519v101-gmac";
+			reg = <0x10050000 0x1000>;
+			interrupts = <GIC_SPI 25 IRQ_TYPE_LEVEL_HIGH>;
+			phy-mode = "rmii";
+			phy-handle = <&phy0>;
+
+			mdio {
+				#address-cells = <1>;
+				#size-cells = <0>;
+				phy0: ethernet-phy@1 {
+					reg = <1>;
+				};
+			};
+		};
+	};
+};
