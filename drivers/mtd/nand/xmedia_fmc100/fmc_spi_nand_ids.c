@@ -620,6 +620,35 @@ struct spi_nand_info fmc_spi_nand_flash_table[] = {
 	        .driver    = &spi_driver_general,
 	},
 
+	/* GD 3.3v GD5F1GM7UEYIG 1Gbit (0xc8 0x91), 24bit/1K on-die ECC */
+	{
+	        .name      = "GD5F1GM7UEYIG",
+	        .id        = {0xc8, 0x91},
+	        .id_len    = 2,
+	        .chipsize  = _128M,
+	        .erasesize = _128K,
+	        .pagesize  = _2K,
+	        .oobsize   = 128,
+	        .badblock_pos = BBP_FIRST_PAGE,
+	        .read      = {
+	            &READ_STD(1, INFINITE, 24),
+	            &READ_FAST(1, INFINITE, 133),
+	            &READ_DUAL(1, INFINITE, 133),
+	            &READ_QUAD(1, INFINITE, 133),
+	            0
+	        },
+	        .write     = {
+	            &WRITE_STD(0, 256, 133),
+	            &WRITE_QUAD(0, 256, 133),
+	            0
+	        },
+	        .erase     = {
+	            &ERASE_SECTOR_128K(0, _128K, 133),
+	            0
+	        },
+	        .driver    = &spi_driver_general,
+	},
+
 	/* GD 3.3v GD5F2GQ5UEYIG 2Gbit */
 	{
 	        .name      = "GD5F2GQ5UEYIG",
