@@ -1223,7 +1223,7 @@ static const struct spi_nor_basic_flash_parameter puya_params = {
  * For historical (and compatibility) reasons (before we got above config) some
  * old entries may be missing 4K flag.
  */
-#define SPI_NOR_IDS_VER     "1.2"
+#define SPI_NOR_IDS_VER     "1.3"
 
 /******* SPI Nor ID Table ************************************************************************
  * Version   Manufacturer    	Chip Name    		Chipsize	Block	Vol  	Operation
@@ -1279,6 +1279,7 @@ static const struct spi_nor_basic_flash_parameter puya_params = {
  *		FM		FM25Q128-SOB-T-G	16M		64K	3V3
  *		HUAHONG		H25S64			8M		64K	3V3
  *		HUAHONG		H25S128			16M		64K	3V3
+ * 1.3		Puya		PY25Q128HA		16M		64K	3V3
  ********************************************************************************************/
 static const struct flash_info spi_nor_ids[] = {
 	/* Atmel -- some are (confusingly) marketed as "DataFlash" */
@@ -1624,6 +1625,8 @@ static const struct flash_info spi_nor_ids[] = {
 
 	/*puya 3.3V */
 	{"p25q128h", INFO(0x856018, 0, 64 * 1024, 256,
+		SPI_NOR_DUAL_READ), PARAMS(puya), CLK_MHZ_2X(80) },
+	{"py25q128ha", INFO(0x852018, 0, 64 * 1024, 256,
 		SPI_NOR_DUAL_READ), PARAMS(puya), CLK_MHZ_2X(80) },
 
 	/* FM 3.3v */
