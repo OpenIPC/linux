@@ -2353,6 +2353,7 @@ static void bsp_get_spi_lock_info(struct spi_nor *nor, const struct flash_info *
 	switch (JEDEC_MFR(info)) {
 	case SNOR_MFR_GD:
 	case SNOR_MFR_FM:
+	case SNOR_MFR_PUYA:
 	case SNOR_MFR_ESMT:
 	case SNOR_MFR_EON:
 	case SNOR_MFR_SPANSION:
