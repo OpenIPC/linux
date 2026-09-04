@@ -537,16 +537,20 @@ static int fh_rtc_get_alarm_time(unsigned int base_addr)
 
 	return data;
 }
-static unsigned int fh_rtc_get_hw_sec_data(unsigned int func_switch)
-{
 
-	unsigned int ret_sec, raw_value, sec_value;
+static int fh_rtc_get_hw_sec_data(unsigned int func_switch,
+				  unsigned int *seconds)
+{
+	unsigned int ret_sec, sec_value;
 	unsigned int min_value, hour_value, day_value;
+	int raw_value;
 
 	if (func_switch == TIME_FUNC)
 		raw_value = fh_rtc_get_time((unsigned int)fh_rtc->regs);
 	else
 		raw_value = fh_rtc_get_alarm_time((unsigned int)fh_rtc->regs);
+	if (raw_value < 0)
+		return raw_value;
 
 	sec_value = FH_GET_RTC_SEC(raw_value);
 	min_value = FH_GET_RTC_MIN(raw_value);
@@ -555,7 +559,8 @@ static unsigned int fh_rtc_get_hw_sec_data(unsigned int func_switch)
 	ret_sec = (day_value * 86400) + (hour_value * 3600) + (min_value * 60)
 		+ sec_value;
 
-	return ret_sec;
+	*seconds = ret_sec;
+	return 0;
 }
 
 #ifdef DRIVER_TEST
@@ -647,8 +652,11 @@ static int fh_rtc_tm_compare(struct rtc_time *tm0, struct rtc_time *tm1)
 static int fh_rtc_gettime_nosync(struct device *dev, struct rtc_time *rtc_tm)
 {
 	unsigned int temp;
+	int status;
 
-	temp = fh_rtc_get_hw_sec_data(TIME_FUNC);
+	status = fh_rtc_get_hw_sec_data(TIME_FUNC, &temp);
+	if (status)
+		return status;
 	rtc_time_to_tm(temp, rtc_tm);
 	RTC_PRINT_DBG("rtc read date:0x%x\n", temp);
 
@@ -661,16 +669,19 @@ static int fh_rtc_settime(struct device *dev, struct rtc_time *tm)
 		tm->tm_mon + 1, tm->tm_mday, tm->tm_hour,
 		tm->tm_min, tm->tm_sec);
 
-	fh_rtc_set_hw_sec_data(tm, TIME_FUNC);
-
-	return 0;
+	return fh_rtc_set_hw_sec_data(tm, TIME_FUNC);
 }
 
 static int fh_rtc_getalarm(struct device *dev, struct rtc_wkalrm *alrm)
 {
 	struct rtc_time *rtc_tm = &alrm->time;
+	unsigned int temp;
+	int status;
 
-	rtc_time_to_tm(fh_rtc_get_hw_sec_data(ALARM_FUNC), rtc_tm);
+	status = fh_rtc_get_hw_sec_data(ALARM_FUNC, &temp);
+	if (status)
+		return status;
+	rtc_time_to_tm(temp, rtc_tm);
 
 	return 0;
 }
@@ -971,7 +982,6 @@ static const struct rtc_class_ops fh_rtcops = {
 
 /*get the read of SADC and adjust RTC clock*/
 static struct miscdevice fh_rtc_misc;
-
 
 static struct of_device_id const fh_rtc_of_match[] = {
 	{ .compatible = "fh,fh_rtc" },
