@@ -6,6 +6,10 @@
 
 #include "chip.h"
 
+void fh_pmu_set_reg(unsigned int offset, unsigned int data);
+unsigned int fh_pmu_get_reg(unsigned int offset);
+void fh_pmu_set_reg_m(unsigned int offset, unsigned int data,
+		      unsigned int mask);
 void fh_get_chipid(unsigned int *plat_id, unsigned int *chip_id);
 unsigned int fh_pmu_get_ptsl(void);
 unsigned int fh_pmu_get_ptsh(void);

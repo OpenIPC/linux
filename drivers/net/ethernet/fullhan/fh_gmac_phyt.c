@@ -30,6 +30,11 @@ struct mdio_pin_mux_ref {
 unsigned int phy_support_list[] = {
 	FH_GMAC_PHY_IP101G,
 	FH_GMAC_PHY_RTL8201,
+	FH_GMAC_PHY_JL1101_4023,
+	FH_GMAC_PHY_JL1101_4024,
+	FH_GMAC_PHY_JL1101_4025,
+	FH_GMAC_PHY_JL1101_4026,
+	FH_GMAC_PHY_JL1101_4027,
 	FH_GMAC_PHY_TI83848,
 	FH_GMAC_PHY_INTERNAL,
 };
@@ -43,6 +48,13 @@ struct mdio_pin_mux_ref _mdio_pin_ref_obj[] = {
 
 void external_phy_pin_sel(Gmac_Object *gmac, int flag)
 {
+#if defined(CONFIG_ARCH_FH8626V100)
+
+	/* FH8626V100 RAM bring-up keeps the U-Boot RMII mux. The exact
+	 * Linux 4.9 iopad table is closed separately before upstreaming.
+	 */
+	return;
+#else
 	int i;
 	char temp_buf[16] = {0};
 
@@ -79,8 +91,8 @@ void external_phy_pin_sel(Gmac_Object *gmac, int flag)
 				fh_pinctrl_set_oe("MAC_REF_CLK", 0);
 		}
 	}
+#endif
 }
-
 
 static int __fh_mdio_read(Gmac_Object *pGmac, int phyaddr, int phyreg)
 {
@@ -219,8 +231,10 @@ int auto_find_phy(Gmac_Object *gmac)
 		return -1;
 	}
 
+#if !defined(CONFIG_ARCH_FH8626V100)
 	if (strcmp(c_driver, "Generic PHY") == 0)
 		fh_pinctrl_sdev("RMII", 0);
+#endif
 
 	return 0;
 #endif
@@ -354,6 +368,11 @@ static int fh_mdio_set_mii(struct mii_bus *bus)
 
 	switch (pGmac->phydev->phy_id) {
 	case FH_GMAC_PHY_RTL8201:
+	case FH_GMAC_PHY_JL1101_4023:
+	case FH_GMAC_PHY_JL1101_4024:
+	case FH_GMAC_PHY_JL1101_4025:
+	case FH_GMAC_PHY_JL1101_4026:
+	case FH_GMAC_PHY_JL1101_4027:
 		fh_mdio_write(bus, phyid,
 				gmac_phyt_rtl8201_page_select, 7);
 		fh_mdio_write(bus, phyid,

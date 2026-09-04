@@ -68,6 +68,19 @@ endif
 
 choice
 prompt "Board"
+config ARCH_FH8626V100
+	bool "Fullhan FH8626V100"
+	depends on !USE_OF
+	select CPU_V6
+	select FULLHAN_INTC
+	select FULLHAN_TIMER
+	help
+	  Enable support for the Fullhan FH8626V100 SoC. The target uses an
+	  ARMv6 CPU with the Fullhan interrupt controller and timer. This
+	  option provides the SoC-level facilities required by the legacy
+	  non-device-tree platform code; board devices are registered by the
+	  matching machine configuration.
+
 config ARCH_FH885xV200
         bool "Fullhan FH885xV200"
         select CPU_V6
@@ -81,12 +94,48 @@ endchoice
 config FH_CHIP_NAME
         string
         prompt "Select chip name, keep default"
+        default "fh8626v100" if MACH_FH8626V100
         default "fh8856v200" if MACH_FH8856V200
         default "fh8852v200" if MACH_FH8852V200
         default "fh8858v200" if MACH_FH8858V200
         default "fh8856v210" if MACH_FH8856V210
         default "fh8852v210" if MACH_FH8852V210
         default "fh8858v210" if MACH_FH8858V210
+
+config MACH_FH8626V100
+	bool "FullHan FH8626V100 board"
+	default y
+	depends on ARCH_FH8626V100
+	help
+	  Enable the legacy non-device-tree machine description for
+	  FH8626V100 boards. It preserves the stock U-Boot ATAG handoff and
+	  the verified early MMIO mappings while the native OpenIPC kernel is
+	  brought up incrementally. Device support is added only after the
+	  corresponding FH8626V100 hardware contract is verified.
+
+config FH8626V100_ONCHIP_RTC
+	bool "Enable the FH8626V100 on-chip RTC"
+	default y
+	depends on MACH_FH8626V100 && RTC_DRV_FH
+	help
+	  Register the FH8626V100 on-chip RTC platform device. Individual board
+	  profiles may disable it when the required clock/backup hardware is not
+	  available or has not been validated on that board. The Fullhan TSENSOR
+	  is accessed through the same RTC core command channel rather than a
+	  direct temperature MMIO register, so enabling this option is also a
+	  prerequisite for the legacy TSENSOR path but does not prove that either
+	  function works on a particular board.
+
+config FH8626V100_AJL33PQ0866_MMC
+	bool "Enable AJL33PQ0866 one-bit SD0 slot"
+	default n
+	depends on MACH_FH8626V100 && MMC_FH
+	help
+	  Register only the SD0 controller wired to the microSD slot on the
+	  ANJIA AJL33PQ0866 and select its exact stock SD0_1BIT_NO_WP pinmux.
+	  The one-bit profile leaves pad66 available as the active-low GPIO61
+	  reset button. Other FH8626V100 boards must select their own controller
+	  registration and pinmux policy.
 
 config MACH_FH8856V200
     bool "FullHan FH8856V200 board"
