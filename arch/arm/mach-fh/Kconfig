@@ -70,6 +70,7 @@ choice
 prompt "Board"
 config ARCH_FH8626V100
 	bool "Fullhan FH8626V100"
+	depends on !USE_OF
 	select CPU_V6
 	select FULLHAN_INTC
 	select FULLHAN_TIMER
