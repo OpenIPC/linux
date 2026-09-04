@@ -235,60 +235,53 @@ int fh_pll_pr_clk_register(struct fh_clk *fh_clk)
 
 }
 
-static int fh_clk_set_phase(struct clk_hw *hw,
-						int degree)
+static int fh_clk_set_phase(struct clk_hw *hw, int degree)
 {
-	u32 reg;
 	struct fh_clk_phase *phase = (struct fh_clk_phase *)hw;
 	unsigned long flags = 0;
-	u32 local_degree = 0;
-	u32 shift = 0;
+	u32 reg;
+	u32 shift;
 
-    /*printk("fh_clk_set_phase:%d\n",degree);*/
+	if (!phase->mux)
+		return -EINVAL;
+
+	shift = ffs(phase->mux) - 1;
+
 	if (phase->lock)
 		spin_lock_irqsave(phase->lock, flags);
 
-		/* Fetch the register value */
-		reg = fh_pmu_get_reg(phase->reg);
+	reg = fh_pmu_get_reg(phase->reg);
+	reg &= ~phase->mux;
+	reg |= ((u32)degree << shift) & phase->mux;
+	fh_pmu_set_reg(phase->reg, reg);
 
-		local_degree = degree;
-
-		shift = ffs(phase->mux)-1;
-
-		reg |= (local_degree << shift);
-
-		/* Apply them now */
-		fh_pmu_set_reg(phase->reg, reg);
 	if (phase->lock)
 		spin_unlock_irqrestore(phase->lock, flags);
 
-	return 1;
+	return 0;
 }
 
 static int fh_clk_get_phase(struct clk_hw *hw)
 {
-	u32 reg;
 	struct fh_clk_phase *phase = (struct fh_clk_phase *)hw;
 	unsigned long flags = 0;
-	u32 local_degree = 0;
+	u32 reg;
 	u32 shift;
+
+	if (!phase->mux)
+		return -EINVAL;
+
+	shift = ffs(phase->mux) - 1;
 
 	if (phase->lock)
 		spin_lock_irqsave(phase->lock, flags);
 
-		/* Fetch the register value */
-		reg = fh_pmu_get_reg(phase->reg);
-		shift = ffs(phase->mux)-1;
-
-		reg = reg&(phase->mux) >> shift;
-		local_degree = reg;
-
-	 /*printk("fh_clk_get_phase:%d\n",local_degree);*/
+	reg = fh_pmu_get_reg(phase->reg);
 
 	if (phase->lock)
 		spin_unlock_irqrestore(phase->lock, flags);
 
-	return local_degree;
+	return (reg & phase->mux) >> shift;
 }
 
 

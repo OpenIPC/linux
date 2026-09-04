@@ -243,15 +243,25 @@ static int fh_pwm_wait_done(struct pwm_chip_data *pcd)
 static int fh_pwm_set_config(struct fh_pwm_chip_data *chip_data)
 {
 	unsigned int clk_rate = clk_get_rate(fh_pwm_drv->clk);
+	unsigned int tick_ns;
 	unsigned int ctrl = 0, period, duty, delay, phase, reg;
 	unsigned int inverse = 0;
 
-	fh_pwm_config_disable(chip_data->id);
+	if (!clk_rate) {
+		pr_err("PWM: cannot configure with a zero clock rate\n");
+		return -EINVAL;
+	}
 
-	period = chip_data->config.period_ns / (NSEC_PER_SEC / clk_rate);
-	duty = chip_data->config.duty_ns / (NSEC_PER_SEC / clk_rate);
-	delay = chip_data->config.delay_ns / (NSEC_PER_SEC / clk_rate);
-	phase = chip_data->config.phase_ns / (NSEC_PER_SEC / clk_rate);
+	tick_ns = NSEC_PER_SEC / clk_rate;
+	if (!tick_ns) {
+		pr_err("PWM: clock rate is too high\n");
+		return -EINVAL;
+	}
+
+	period = chip_data->config.period_ns / tick_ns;
+	duty = chip_data->config.duty_ns / tick_ns;
+	delay = chip_data->config.delay_ns / tick_ns;
+	phase = chip_data->config.phase_ns / tick_ns;
 
 	if (period > 0x1ffffff) {
 		pr_err("PWM: period exceed 24-bit\n");
@@ -282,6 +292,8 @@ static int fh_pwm_set_config(struct fh_pwm_chip_data *chip_data)
 			inverse = 1;
 		}
 	}
+
+	fh_pwm_config_disable(chip_data->id);
 
 	PRINT_DBG("set period: 0x%x\n", period);
 	PRINT_DBG("set duty: 0x%x\n", duty);
@@ -410,6 +422,7 @@ int fh_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
 		int duty_ns, int period_ns)
 {
 	struct fh_pwm_chip_data *chip_data;
+	int ret;
 
 	chip_data = kzalloc(sizeof(struct fh_pwm_chip_data), GFP_KERNEL);
 	if (chip_data == NULL) {
@@ -421,11 +434,11 @@ int fh_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
 	chip_data->config.duty_ns = duty_ns;
 	chip_data->config.period_ns = period_ns;
 
-	fh_pwm_set_config(chip_data);
+	ret = fh_pwm_set_config(chip_data);
 
 	kfree(chip_data);
 
-	return 0;
+	return ret;
 }
 
 int fh_pwm_enable(struct pwm_chip *chip, struct pwm_device *pwm)
