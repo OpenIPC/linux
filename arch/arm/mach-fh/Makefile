@@ -1,10 +1,15 @@
 CONFIG_FH_CHIP_NAME 	:= $(subst ",,$(CONFIG_FH_CHIP_NAME))
 EXTRA_CFLAGS      	+= -Iarch/arm/mach-fh/$(CONFIG_FH_CHIP_NAME)
 
-obj-y	+= pmu.o fullhan.o fh_common.o fh_chipid.o
+obj-y	+= fullhan.o fh_common.o fh_chipid.o
+
+ifneq ($(CONFIG_MACH_FH8626V100),y)
+obj-y	+= pmu.o
+endif
 
 ifneq ($(CONFIG_USE_OF),y)
-obj-y 			+= pinctrl.o clock.o
+obj-y 			+= clock.o
+obj-y 			+= pinctrl.o
 obj-y += $(CONFIG_FH_CHIP_NAME)/
 endif
 

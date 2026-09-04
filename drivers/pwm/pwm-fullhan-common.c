@@ -20,13 +20,18 @@
 #include <linux/wait.h>
 #include <linux/sched.h>
 #include <linux/delay.h>
+#include <linux/math64.h>
 #include <linux/uaccess.h>
 #include <linux/fh_pwm.h>
 #include "pwm-fullhan-common.h"
 #include <mach/fh_pwm_plat.h>
 #include <mach/pmu.h>
 
-#define FH_PWM_DEBUG
+/*
+ * Register-by-register logging materially delays staging a multi-channel
+ * one-shot group and is not present in the stock FH8626 production path.
+ */
+/* #define FH_PWM_DEBUG */
 #ifdef FH_PWM_DEBUG
 #define PRINT_DBG(fmt, args...)  printk(fmt, ##args)
 #else
@@ -343,6 +348,13 @@ static void fh_pwm_get_config(struct fh_pwm_chip_data *chip_data)
 	unsigned int ctrl = 0, period, duty, delay, phase, pulses,
 			status0, status1, status2;
 
+	if (!clk_rate) {
+		pr_err("PWM: cannot read config with a zero clock rate\n");
+		memset(&chip_data->config, 0, sizeof(chip_data->config));
+		memset(&chip_data->status, 0, sizeof(chip_data->status));
+		return;
+	}
+
 	period = readl(fh_pwm_drv->base + OFFSET_PWM_CFG0(chip_data->id));
 	duty = readl(fh_pwm_drv->base + OFFSET_PWM_CFG1(chip_data->id));
 	phase = readl(fh_pwm_drv->base + OFFSET_PWM_CFG2(chip_data->id));
@@ -378,8 +390,15 @@ static void fh_pwm_get_config(struct fh_pwm_chip_data *chip_data)
 	chip_data->config.delay_ns = delay * (NSEC_PER_SEC / clk_rate);
 	chip_data->config.pulses = pulses;
 	chip_data->config.stop = (ctrl >> 1) & 0x3;
-	chip_data->config.percent = chip_data->config.duty_ns /
-			(chip_data->config.period_ns / 100);
+	/* Unconfigured channels have period == 0. The proc status reader walks
+	 * every hardware channel, so never divide by the derived zero divisor.
+	 */
+	if (chip_data->config.period_ns)
+		chip_data->config.percent = div_u64(
+			(u64)chip_data->config.duty_ns * 100,
+			chip_data->config.period_ns);
+	else
+		chip_data->config.percent = 0;
 
 	chip_data->status.busy = (status2 >> 4) & 0x1;
 	chip_data->status.error = (status2 >> 3) & 0x1;
@@ -527,7 +546,7 @@ static long fh_pwm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			fh_pwm_drv->chip.pwms[chip_data.id].chip_data,
 			(void *)&chip_data,
 			sizeof(struct fh_pwm_chip_data));
-		pr_info("ioctl: SET_PWM_DUTY_CYCLE, "
+		pr_debug("ioctl: SET_PWM_DUTY_CYCLE, "
 			"pwm->id: %d, pwm->counter: %d, pwm->period: %d ns\n",
 			chip_data.id, chip_data.config.duty_ns,
 			chip_data.config.period_ns);
@@ -550,7 +569,7 @@ static long fh_pwm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			fh_pwm_drv->chip.pwms[chip_data.id].chip_data,
 			(void *)&chip_data,
 			sizeof(struct fh_pwm_chip_data));
-		pr_info("ioctl: GET_PWM_DUTY_CYCLE, "
+		pr_debug("ioctl: GET_PWM_DUTY_CYCLE, "
 			"pwm->id: %d, pwm->counter: %d, pwm->period: %d ns\n",
 			chip_data.id, chip_data.config.duty_ns,
 			chip_data.config.period_ns);
@@ -586,7 +605,7 @@ static long fh_pwm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			fh_pwm_drv->chip.pwms[chip_data.id].chip_data,
 			(void *)&chip_data,
 			sizeof(struct fh_pwm_chip_data));
-		pr_info("ioctl: SET_PWM_DUTY_CYCLE_PERCENT, "
+		pr_debug("ioctl: SET_PWM_DUTY_CYCLE_PERCENT, "
 			"pwm->id: %d, pwm->counter: %d, pwm->period: %d ns\n",
 			chip_data.id, chip_data.config.duty_ns,
 			chip_data.config.period_ns);
@@ -762,6 +781,10 @@ static int v_seq_show(struct seq_file *sfile, void *v)
 		struct fh_pwm_chip_data *chip_data;
 
 		pcd = pwm_get_chip_data(&fh_pwm_drv->chip.pwms[i]);
+		if (!pcd) {
+			seq_printf(sfile, "id: %d \tUNAVAILABLE\n", i);
+			continue;
+		}
 		chip_data = &pcd->chip_data;
 		fh_pwm_get_config(chip_data);
 
