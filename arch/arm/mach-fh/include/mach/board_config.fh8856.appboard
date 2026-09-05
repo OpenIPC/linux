@@ -27,6 +27,13 @@
  * GPIO55 -> SD1 WIFI Interrupt
  */
 
+/*
+ * GPIO11 is pad 46 (PWM7) on this board and is not routed to the PHY reset
+ * pin; see fh_phy_reset() in board-fh8856.c. Boards that do wire it, such as
+ * the FH8852 appboard, must not define this.
+ */
+#define CONFIG_GPIO_EMACPHY_RESET_UNWIRED	1
+
 #define CONFIG_GPIO_EMACPHY_RESET	11
 #define CONFIG_GPIO_EMACPHY_RXDV	41
 
@@ -39,7 +46,7 @@
 #define FH_BOARD_8856
 #define CONFIG_PINCTRL_SELECT					\
 		"I2C0", "I2C1", "MIPI", "RMII", "SD0_NO_WP", \
-		"SD1_NO_WP", "SSI0_4BIT", "UART0", "GPIO0", "GPIO1", \
+		"SSI0_4BIT", "UART0", "GPIO0", "GPIO1", \
 		"GPIO2", "GPIO3", "GPIO11", "GPIO13", "GPIO14", \
 		"GPIO19", "GPIO20", "GPIO24", "GPIO25", "GPIO26", \
 		"GPIO27", "GPIO28", "GPIO53", "GPIO55"
