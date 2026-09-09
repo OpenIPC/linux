@@ -465,7 +465,11 @@ static void himci_detect_card(uintptr_t  arg)
 		mmc_detect_change(host->mmc, 0);
 	}
 err:
-	mod_timer(&host->timer, jiffies + detect_time);
+	/* Not while the driver is going away: this handler re-arms itself, so a
+	 * remove that only called del_timer_sync() could cancel one timer and be
+	 * handed another, then free the host under it. */
+	if (!host->removing)
+		mod_timer(&host->timer, jiffies + detect_time);
 }
 
 static void himci_idma_start(struct himci_host *host)
@@ -2309,7 +2313,12 @@ out:
 	return ret;
 }
 
-static int __exit himci_remove(struct platform_device *pdev)
+/* Deliberately not __exit: this driver is built in on every board that uses it,
+ * and __exit code is discarded by the linker in a built-in build -- so the
+ * .remove pointer aimed at whatever happened to land at that address, and
+ * unbinding the host oopsed. See the commit message for the trace.
+ */
+static int himci_remove(struct platform_device *pdev)
 {
 	struct mmc_host *mmc = platform_get_drvdata(pdev);
 
@@ -2321,9 +2330,15 @@ static int __exit himci_remove(struct platform_device *pdev)
 	if (mmc) {
 		struct himci_host *host = mmc_priv(mmc);
 
+		/* First, and with the flag: the card-detect timer calls
+		 * mmc_detect_change() and reaches into everything below. It used
+		 * to be stopped after the host had already been removed and the
+		 * interrupt freed. */
+		host->removing = true;
+		del_timer_sync(&host->timer);
+
 		mmc_remove_host(mmc);
 		free_irq(host->irq, host);
-		del_timer_sync(&host->timer);
 		himci_ctrl_power(host, POWER_OFF, FORCE_DISABLE);
 		himci_control_cclk(host, DISABLE);
 		devm_iounmap(&pdev->dev, host->base);
