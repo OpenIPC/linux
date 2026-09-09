@@ -102,6 +102,10 @@ struct himci_host {
 	dma_addr_t		dma_paddr;
 	unsigned int		*dma_vaddr;
 	struct timer_list	timer;
+	/* Set while the driver is being detached, and read by the card-detect
+	 * timer before it re-arms itself. Without it del_timer_sync() can return
+	 * having cancelled a timer the handler has just queued again. */
+	bool			removing;
 	unsigned int		irq;
 	unsigned int		irq_status;
 	unsigned int		is_tuning;
@@ -113,6 +117,10 @@ struct himci_host {
 	unsigned int	card_rca;
 	unsigned int	card_status;
 	unsigned int	devid;
+	/* Which mci_host[] entry this host owns, so remove() can give it back.
+	 * Not devid: devid runs 0..2 across the three controllers while the array
+	 * holds HIMCI_SLOT_NUM of them. */
+	int		slot;
 	unsigned int	   hclk;
 	unsigned int	   cclk;
 	struct clk	*clk;

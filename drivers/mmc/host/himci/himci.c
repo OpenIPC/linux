@@ -106,7 +106,6 @@ static unsigned int detect_time = HI_MCI_DETECT_TIMEOUT;
 static unsigned int retry_count = MAX_RETRY_COUNT;
 static unsigned int request_timeout = HI_MCI_REQUEST_TIMEOUT;
 int trace_level = HIMCI_TRACE_LEVEL;
-unsigned int slot_index = 0;
 struct himci_host *mci_host[HIMCI_SLOT_NUM] = {NULL};
 
 #ifdef MODULE
@@ -465,7 +464,11 @@ static void himci_detect_card(uintptr_t  arg)
 		mmc_detect_change(host->mmc, 0);
 	}
 err:
-	mod_timer(&host->timer, jiffies + detect_time);
+	/* Not while the driver is going away: this handler re-arms itself, so a
+	 * remove that only called del_timer_sync() could cancel one timer and be
+	 * handed another, then free the host under it. */
+	if (!host->removing)
+		mod_timer(&host->timer, jiffies + detect_time);
 }
 
 static void himci_idma_start(struct himci_host *host)
@@ -2142,7 +2145,7 @@ static int himci_probe(struct platform_device *pdev)
 	struct mmc_host *mmc = NULL;
 	struct himci_host *host = NULL;
 	struct resource *host_ioaddr_res = NULL;
-	int ret = 0, irq;
+	int ret = 0, irq, i;
 	struct device_node *np = pdev->dev.of_node;
 	unsigned int regval;
 
@@ -2165,13 +2168,24 @@ static int himci_probe(struct platform_device *pdev)
     defined(CONFIG_ARCH_HI3556V200)  || defined(CONFIG_ARCH_HI3559V200)  || \
     defined(CONFIG_ARCH_HI3562V100)  || defined(CONFIG_ARCH_HI3566V100)
 
-	crg_ctrl = ioremap(0x12010000, 0x1000);
-	if (!crg_ctrl){
-		printk("%s ioremap fail\n",__func__);
-		ret = -ENOMEM;
-		goto out;
+	/* crg_ctrl is a SoC-wide window every instance keeps using -- the tuning
+	 * code reaches for it long after probe -- so it is mapped once and left
+	 * mapped. Re-mapping it per probe leaked the previous mapping on every
+	 * rebind, and unmapping it in remove would pull it out from under the
+	 * other host. */
+	if (!crg_ctrl) {
+		crg_ctrl = ioremap(0x12010000, 0x1000);
+		if (!crg_ctrl){
+			printk("%s ioremap fail\n",__func__);
+			ret = -ENOMEM;
+			goto out;
+		}
 	}
 
+	/* misc_ctrl_1 is the opposite: mapped, used once and released here. The
+	 * global was left pointing at the freed mapping, which only mattered
+	 * once a second probe could happen -- so it is cleared, and the next
+	 * probe maps its own. */
 	misc_ctrl_1 = ioremap(0x12030004,0x4);
 	if (!misc_ctrl_1){
 		printk("%s ioremap fail\n",__func__);
@@ -2183,6 +2197,7 @@ static int himci_probe(struct platform_device *pdev)
 	regval &= ~(0x1 << 2);
 	writel(regval,misc_ctrl_1);
 	iounmap(misc_ctrl_1);
+	misc_ctrl_1 = NULL;
 #endif
 
 	host_ioaddr_res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
@@ -2210,7 +2225,23 @@ static int himci_probe(struct platform_device *pdev)
 	mmc->ocr_avail = MMC_VDD_32_33 | MMC_VDD_33_34;
 
 	host = mmc_priv(mmc);
-	mci_host[slot_index++] = host;
+	host->slot = -1;
+	for (i = 0; i < HIMCI_SLOT_NUM; i++) {
+		if (!mci_host[i]) {
+			mci_host[i] = host;
+			host->slot = i;
+			break;
+		}
+	}
+	if (host->slot < 0) {
+		/* The counter this replaced only ever went up, so a third probe --
+		 * or any rebind, now that unbinding works -- wrote past the end of
+		 * the array into whatever follows it. */
+		himci_error("no free slot for host, HIMCI_SLOT_NUM is %d\n",
+				HIMCI_SLOT_NUM);
+		ret = -ENOSPC;
+		goto out;
+	}
 	pdev->id = host->devid;
 	host->pdev = pdev;
 	host->mmc = mmc;
@@ -2300,16 +2331,18 @@ out:
 	}
 	if (mmc)
 		mmc_free_host(mmc);
-#if defined(CONFIG_ARCH_HI3516CV500) || defined(CONFIG_ARCH_HI3516DV300) || \
-    defined(CONFIG_ARCH_HI3556V200)  || defined(CONFIG_ARCH_HI3559V200)  || \
-    defined(CONFIG_ARCH_HI3562V100)  || defined(CONFIG_ARCH_HI3566V100)
-	if (crg_ctrl)
-		iounmap(crg_ctrl);
-#endif
+	/* crg_ctrl and misc_ctrl_1 are deliberately left mapped: they are shared
+	 * by every instance, so a failing probe must not unmap them out from
+	 * under a host that is already running. */
 	return ret;
 }
 
-static int __exit himci_remove(struct platform_device *pdev)
+/* Deliberately not __exit: this driver is built in on every board that uses it,
+ * and __exit code is discarded by the linker in a built-in build -- so the
+ * .remove pointer aimed at whatever happened to land at that address, and
+ * unbinding the host oopsed. See the commit message for the trace.
+ */
+static int himci_remove(struct platform_device *pdev)
 {
 	struct mmc_host *mmc = platform_get_drvdata(pdev);
 
@@ -2321,11 +2354,27 @@ static int __exit himci_remove(struct platform_device *pdev)
 	if (mmc) {
 		struct himci_host *host = mmc_priv(mmc);
 
+		/* First, and with the flag: the card-detect timer calls
+		 * mmc_detect_change() and reaches into everything below. It used
+		 * to be stopped after the host had already been removed and the
+		 * interrupt freed. */
+		host->removing = true;
+		del_timer_sync(&host->timer);
+
+		/* Out of the lookup before it is freed: himci_proc and the
+		 * exported hisi_sdio_rescan() both reach hosts through
+		 * mci_host[], and neither would have known this one was gone. */
+		if (host->slot >= 0 && host->slot < HIMCI_SLOT_NUM)
+			mci_host[host->slot] = NULL;
+
 		mmc_remove_host(mmc);
 		free_irq(host->irq, host);
-		del_timer_sync(&host->timer);
 		himci_ctrl_power(host, POWER_OFF, FORCE_DISABLE);
 		himci_control_cclk(host, DISABLE);
+		/* Balances the clk_prepare_enable() in probe. Holding a devm
+		 * handle does not release the enable count, so without this each
+		 * unbind/rebind left the peripheral clock on for good. */
+		clk_disable_unprepare(host->clk);
 		devm_iounmap(&pdev->dev, host->base);
 		dma_free_coherent(&pdev->dev, CMD_DES_PAGE_SIZE, host->dma_vaddr,
 				host->dma_paddr);
