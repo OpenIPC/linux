@@ -46,7 +46,6 @@
 	 __res & __mask;                     \
 	 })
 
-extern unsigned int slot_index;
 //struct mmc_host *mci_host[HIMCI_SLOT_NUM] = {NULL};
 static struct proc_dir_entry *proc_mci_dir;
 
