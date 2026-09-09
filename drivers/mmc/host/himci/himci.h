@@ -117,6 +117,10 @@ struct himci_host {
 	unsigned int	card_rca;
 	unsigned int	card_status;
 	unsigned int	devid;
+	/* Which mci_host[] entry this host owns, so remove() can give it back.
+	 * Not devid: devid runs 0..2 across the three controllers while the array
+	 * holds HIMCI_SLOT_NUM of them. */
+	int		slot;
 	unsigned int	   hclk;
 	unsigned int	   cclk;
 	struct clk	*clk;
