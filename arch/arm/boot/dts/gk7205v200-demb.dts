@@ -13,6 +13,37 @@
 		device_type = "memory";
 		reg = <0x40000000 0x20000000>;
 	};
+
+	reserved-memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		/*
+		 * pstore/ramoops crash-log region (128K: one 64K panic record plus
+		 * headroom). Reserved here rather than carved out of bootargs so it
+		 * costs exactly its own size and leaves mem= and the media zone alone.
+		 *
+		 * Placement matters on this board:
+		 *  - Below the media (mmz/cma) zone, which starts at base+osmem
+		 *    (osmem >= 32M, so >= 0x42000000). Above that the region would either
+		 *    be beyond mem= in gk mode or collide with the cma zone.
+		 *  - Well below the top of DRAM: U-Boot relocates itself there on every
+		 *    boot (bdinfo on a 64M part: relocaddr 0x43F20000, page tables at
+		 *    0x43FF0000), so a log left near the top is overwritten across the
+		 *    panic reboot before the kernel can read it back.
+		 * 0x41F00000 satisfies both for every gk7205v200 memory layout and for
+		 * both allocators, and is clear of the kernel image and of U-Boot's
+		 * kernel/uImage load addresses.
+		 */
+		ramoops@41f00000 {
+			compatible = "ramoops";
+			reg = <0x41f00000 0x20000>;
+			record-size = <0x10000>;
+			console-size = <0>;
+			pmsg-size = <0>;
+		};
+	};
 };
 
 &uart0 {

@@ -13,6 +13,33 @@
 		device_type = "memory";
 		reg = <0x40000000 0x20000000>;
 	};
+
+	reserved-memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		/*
+		 * pstore/ramoops crash-log region (128K), reserved in the DT so it
+		 * costs exactly its own size and leaves mem= and the media (mmz/cma)
+		 * zone untouched -- one node serves both the gk and cma allocators.
+		 *
+		 * 0x41f00000 holds for every Goke SoC: the OS window is always the low
+		 * 32M and the media zone always starts at base+32M = 0x42000000
+		 * regardless of total DRAM, so this sits just below it, in kernel RAM
+		 * and clear of the media zone. It is also well below the top of DRAM,
+		 * where U-Boot relocates on every boot and would otherwise overwrite the
+		 * log across the panic reboot -- and that top only rises with more DRAM,
+		 * so the clearance only grows. Verified on gk7205v200 (both allocators).
+		 */
+		ramoops@41f00000 {
+			compatible = "ramoops";
+			reg = <0x41f00000 0x20000>;
+			record-size = <0x10000>;
+			console-size = <0>;
+			pmsg-size = <0>;
+		};
+	};
 };
 
 &uart0 {
