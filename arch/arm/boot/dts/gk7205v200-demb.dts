@@ -43,6 +43,15 @@
 			console-size = <0>;
 			pmsg-size = <0>;
 		};
+
+		/* Boot-attempt counter shared with U-Boot (bootcount). no-map so
+		 * userspace can clear it via /dev/mem under CONFIG_STRICT_DEVMEM; it
+		 * survives a warm reset (counting a crashloop) and is lost on power-off
+		 * (fresh attempts once power is pulled). */
+		bootcount@41f20000 {
+			reg = <0x41f20000 0x1000>;
+			no-map;
+		};
 	};
 };
 
