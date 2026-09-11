@@ -20,9 +20,11 @@
 		ranges;
 
 		/*
-		 * pstore/ramoops crash-log region (128K: one 64K panic record plus
-		 * headroom). Reserved here rather than carved out of bootargs so it
-		 * costs exactly its own size and leaves mem= and the media zone alone.
+		 * pstore/ramoops crash-log region (128K = two 64K dump records:
+		 * ramoops splits the region into record-size chunks, so this keeps the
+		 * newest panic and the one before it). Reserved here rather than carved
+		 * out of bootargs so it costs exactly its own size and leaves mem= and
+		 * the media zone alone.
 		 *
 		 * Placement matters on this board:
 		 *  - Below the media (mmz/cma) zone, which starts at base+osmem
