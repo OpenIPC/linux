@@ -131,9 +131,10 @@ typedef struct
 
 typedef struct
 {
-    void *vbase;
-    void *pbase;
-    PinCtrl_Pin *pinlist[PAD_NUM];
+	void *vbase;
+	void *pbase;
+	PinCtrl_Pin *pinlist[PAD_NUM];
+	PinCtrl_Register registers[PAD_NUM];
 } PinCtrl_Object;
 
 typedef struct
