@@ -865,9 +865,19 @@ static void himci_request(struct mmc_host *mmc, struct mmc_request *mrq)
 				 * recording stops and only a power cycle brings it
 				 * back.
 				 *
-				 * No DMA to unwind: himci_idma_start() is below.
+				 * The engine is not running yet -- himci_idma_start()
+				 * is below this point -- but himci_setup_data() has
+				 * already mapped the scatterlist and taken
+				 * host->data, and himci_data_done() is the only thing
+				 * that gives either back. Without it the buffer goes
+				 * back to the core still mapped for the device, and
+				 * host->data is left pointing at a request that has
+				 * been completed. Called with no status bits set, so
+				 * it keeps the error above rather than deciding its
+				 * own.
 				 */
 				mrq->data->error = -ETIMEDOUT;
+				himci_data_done(host, 0);
 				goto request_end;
 			}
 		} while (tmp_reg & FIFO_RESET);
