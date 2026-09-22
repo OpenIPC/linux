@@ -921,18 +921,11 @@ static void himci_request(struct mmc_host *mmc, struct mmc_request *mrq)
 				 * back.
 				 *
 				 * The engine is not running yet -- himci_idma_start()
-				 * is below this point -- but himci_setup_data() has
-				 * already mapped the scatterlist and taken
-				 * host->data, and himci_data_done() is the only thing
-				 * that gives either back. Without it the buffer goes
-				 * back to the core still mapped for the device, and
-				 * host->data is left pointing at a request that has
-				 * been completed. Called with no status bits set, so
-				 * it keeps the error above rather than deciding its
-				 * own.
+				 * is below this point -- and the mapping
+				 * himci_setup_data() took is given back by the unwind
+				 * at request_end, which every path here shares.
 				 */
 				mrq->data->error = -ETIMEDOUT;
-				himci_data_done(host, 0);
 				goto request_end;
 			}
 		} while (tmp_reg & FIFO_RESET);
@@ -1007,6 +1000,33 @@ static void himci_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	}
 
 request_end:
+	/* One place to give the transfer back.
+	 *
+	 * himci_setup_data() maps the scatterlist and takes host->data, and
+	 * himci_data_done() is the only thing that returns either. Several
+	 * paths reach here with that still outstanding -- a set-block-count
+	 * that failed, a command that could not be sent, a command that
+	 * completed with an error, a data size the descriptor table cannot
+	 * hold -- and every one of them left the buffer mapped for the device
+	 * for the life of the camera. himci_finish_request() below clears
+	 * host->data without unmapping, which is what kept it invisible.
+	 *
+	 * Done here rather than at each site so the next path added cannot
+	 * forget it. host->data is already NULL when the transfer completed
+	 * normally, so nothing is unwound twice.
+	 *
+	 * The error is filled in first because himci_data_done() reports a
+	 * full transfer when it finds none set, and nothing moved on any of
+	 * these paths.
+	 */
+	if (host->data) {
+		if (!host->data->error) {
+			host->data->error =
+				mrq->cmd->error ? mrq->cmd->error : -EIO;
+		}
+		himci_data_done(host, 0);
+	}
+
 	/* clear MMC host intr */
 	spin_lock_irqsave(&host->lock, flags);
 	himci_writel(ALL_SD_INT_CLR, host->base + MCI_RINTSTS);
