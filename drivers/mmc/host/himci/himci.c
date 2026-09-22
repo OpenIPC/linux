@@ -908,7 +908,32 @@ static void himci_request(struct mmc_host *mmc, struct mmc_request *mrq)
 			fifo_count++;
 			if (fifo_count >= retry_count) {
 				pr_info("fifo reset is timeout!");
-				return;
+				/*
+				 * Every other way out of this function reaches
+				 * request_end, and it has to: himci_finish_request()
+				 * is what calls mmc_request_done(). Returning here
+				 * instead left the core parked in mmc_wait_for_req()'s
+				 * uninterruptible wait_for_completion() with nothing
+				 * left to complete it -- an unkillable D state for the
+				 * caller, and the host still claimed, so every later
+				 * request blocked behind it. On a camera that means
+				 * recording stops and only a power cycle brings it
+				 * back.
+				 *
+				 * The engine is not running yet -- himci_idma_start()
+				 * is below this point -- but himci_setup_data() has
+				 * already mapped the scatterlist and taken
+				 * host->data, and himci_data_done() is the only thing
+				 * that gives either back. Without it the buffer goes
+				 * back to the core still mapped for the device, and
+				 * host->data is left pointing at a request that has
+				 * been completed. Called with no status bits set, so
+				 * it keeps the error above rather than deciding its
+				 * own.
+				 */
+				mrq->data->error = -ETIMEDOUT;
+				himci_data_done(host, 0);
+				goto request_end;
 			}
 		} while (tmp_reg & FIFO_RESET);
 
