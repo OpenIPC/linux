@@ -176,6 +176,28 @@ static int himci_wait_cmd(struct himci_host *host)
 	}
 }
 
+/*
+ * Latch a controller off after a clock-programming command never completes.
+ * On a board whose mmc node is left status = "okay" in the shared hi3516a-demb
+ * DT but has no eMMC/SD wired, the controller takes register writes yet never
+ * runs the "update clock registers" command, so himci_wait_cmd() times out.
+ * Left alone, the first mmc_set_ios() after mmc_add_host() and the card-detect
+ * timer retry forever and the resulting printk floods the console, so the board
+ * never finishes booting. Once latched, the clock/ios/detect/request paths bail
+ * (see below). himci_init_host() clears it, so a resume or explicit rescan that
+ * resets the controller gives it a fresh chance. Only the clock-programming
+ * callers latch this -- an ordinary card-command timeout must not disable the
+ * whole controller.
+ */
+static void himci_mark_broken(struct himci_host *host)
+{
+	if (host->broken)
+		return;
+	host->broken = 1;
+	pr_warn("controller %u clock stuck; disabling it so the board can boot\n",
+			host->devid);
+}
+
 static void himci_control_cclk(struct himci_host *host, unsigned int flag)
 {
 	unsigned int reg;
@@ -183,6 +205,9 @@ static void himci_control_cclk(struct himci_host *host, unsigned int flag)
 
 	himci_trace(2, "begin");
 	himci_assert(host);
+
+	if (host->broken)
+		return;
 
 	reg = himci_readl(host->base + MCI_CLKENA);
 	if (flag == ENABLE)
@@ -202,8 +227,10 @@ static void himci_control_cclk(struct himci_host *host, unsigned int flag)
 	cmd_reg.bits.wait_prvdata_complete = 0;
 	cmd_reg.bits.check_response_crc = 0;
 	himci_writel(cmd_reg.cmd_arg, host->base + MCI_CMD);
-	if (himci_wait_cmd(host) != 0)
+	if (himci_wait_cmd(host) != 0) {
 		himci_trace(5, "disable or enable clk is timeout!");
+		himci_mark_broken(host);
+	}
 }
 
 static void himci_set_cclk(struct himci_host *host, unsigned int cclk)
@@ -215,6 +242,9 @@ static void himci_set_cclk(struct himci_host *host, unsigned int cclk)
 	himci_trace(2, "begin");
 	himci_assert(host);
 	himci_assert(cclk);
+
+	if (host->broken)
+		return;
 
 	hclk = cclk > MMC_CRG_MIN ? cclk : MMC_CRG_MIN;
 	clk_set_rate(host->clk, hclk);
@@ -242,8 +272,10 @@ static void himci_set_cclk(struct himci_host *host, unsigned int cclk)
 	clk_cmd.bits.data_transfer_expected = 0;
 	clk_cmd.bits.response_expect = 0;
 	himci_writel(clk_cmd.cmd_arg, host->base + MCI_CMD);
-	if (himci_wait_cmd(host) != 0)
+	if (himci_wait_cmd(host) != 0) {
 		himci_trace(5, "set card clk divider is failed!");
+		himci_mark_broken(host);
+	}
 }
 
 static void himci_init_host(struct himci_host *host)
@@ -255,6 +287,12 @@ static void himci_init_host(struct himci_host *host)
 	himci_assert(host);
 
 	himci_sys_reset(host);
+
+	/*
+	 * Fresh controller lifecycle (probe, resume, card re-detect): drop any
+	 * previous "broken" latch and let the clock ops re-evaluate the hardware.
+	 */
+	host->broken = 0;
 
 	/* set drv/smpl phase shift */
 	tmp_reg |= SMPL_PHASE_DFLT | DRV_PHASE_DFLT;
@@ -297,6 +335,10 @@ static void himci_detect_card(unsigned long arg)
 	unsigned int i, curr_status, status[5], detect_retry_count = 0;
 
 	himci_assert(host);
+
+	/* controller is wedged (see himci_wait_cmd); stop re-arming the timer */
+	if (host->broken)
+		return;
 
 	while (1) {
 		for (i = 0; i < 5; i++) {
@@ -816,6 +858,13 @@ static void himci_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	himci_assert(mrq);
 	himci_assert(host);
 
+	/* controller is wedged (see himci_wait_cmd); fail fast, do not flood */
+	if (host->broken) {
+		mrq->cmd->error = -ENODEV;
+		mmc_request_done(mmc, mrq);
+		return;
+	}
+
 	host->mrq = mrq;
 	host->irq_status = 0;
 
@@ -1220,6 +1269,16 @@ static void himci_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		himci_ctrl_power(host, POWER_ON);
 		break;
 	}
+
+	/*
+	 * Power control above still reaches the controller so the core can cut
+	 * card power; but a wedged controller (see himci_mark_broken) skips the
+	 * clock programming and bus-width setup below, which would only time out
+	 * and flood the console.
+	 */
+	if (host->broken)
+		return;
+
 	himci_trace(3, "ios->clock = %d ", ios->clock);
 	if (ios->clock) {
 		himci_control_cclk(host, DISABLE);
@@ -1605,6 +1664,9 @@ void himci_mmc_rescan(int slot)
 
 	mmc = host->mmc;
 	del_timer_sync(&host->timer);
+
+	/* explicit rescan: give a previously wedged controller another chance */
+	host->broken = 0;
 
 	mmc_remove_host(mmc);
 

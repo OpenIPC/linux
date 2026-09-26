@@ -102,6 +102,7 @@ struct himci_host {
 	unsigned int	   cclk;
 	struct clk	*clk;
 	struct reset_control *crg_rst;
+	unsigned int	broken;
 };
 
 union cmd_arg_u {
