@@ -174,7 +174,7 @@
 
 //PY
 #define FLASH_IC_PUYA_PY25Q128HA      0x1500UL      // 16MB
-#define FLASH_IC_PUYA_PY25Q64HA       0x1501UL      // 16MB
+#define FLASH_IC_PUYA_PY25Q64HA       0x1501UL      // 8MB
 
 // Flash Manufacture ID
 #define MID_MXIC                0xC2UL
