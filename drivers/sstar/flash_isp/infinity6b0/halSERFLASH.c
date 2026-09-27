@@ -1262,6 +1262,8 @@ MS_BOOL HAL_SERFLASH_DetectType(void)
         if( bDetect != TRUE )
         {
             #if 1
+            MS_U8 u8Cap = u8FlashId[2];
+
             memcpy(&_hal_SERFLASH, &(_hal_SERFLASH_table[0]), sizeof(_hal_SERFLASH));
 
             /* Row 0 declares 16 MiB, and that becomes mtd.size. On an 8 MiB
@@ -1278,10 +1280,21 @@ MS_BOOL HAL_SERFLASH_DetectType(void)
              * before. Beyond that the chip needs extended addressing, and
              * _bHasEAR was settled above from the table row this part does not
              * have. Without it an unknown 32 MiB part would be advertised whole
-             * and every access to its upper half would wrap onto the lower. */
-            if (u8FlashId[2] >= 0x13 && u8FlashId[2] <= 0x18)
+             * and every access to its upper half would wrap onto the lower.
+             *
+             * Two device families in the table encode it one step lower:
+             * Spansion's 02 family (S25FL032P 02 15 and S25FL064P 02 16, at 4
+             * and 8 MiB) and PMC's 46 family (PM25LQ032C 46 15, 4 MiB). Their
+             * other families are log2 (S25FL128P 20 18, S25FL032K 40 16), as is
+             * every other vendor, so the adjustment is keyed on the family
+             * byte, not the manufacturer. */
+            if ((u8FlashId[0] == MID_SPAN && u8FlashId[1] == 0x02) ||
+                (u8FlashId[0] == MID_PMC && u8FlashId[1] == 0x46))
+                u8Cap++;
+
+            if (u8Cap >= 0x13 && u8Cap <= 0x18)
             {
-                _hal_SERFLASH.u32FlashSize = 1UL << u8FlashId[2];
+                _hal_SERFLASH.u32FlashSize = 1UL << u8Cap;
                 _hal_SERFLASH.u32NumSec = _hal_SERFLASH.u32FlashSize / _hal_SERFLASH.u32SecSize;
             }
 
