@@ -1264,12 +1264,33 @@ MS_BOOL HAL_SERFLASH_DetectType(void)
             #if 1
             memcpy(&_hal_SERFLASH, &(_hal_SERFLASH_table[0]), sizeof(_hal_SERFLASH));
 
+            /* Row 0 declares 16 MiB, and that becomes mtd.size. On an 8 MiB
+             * part the partitions then run past the end of the chip, the
+             * overlay lands on an aliased mirror of the bootloader and rootfs,
+             * and formatting it erases the whole chip: 3-byte addressing wraps
+             * every address at or above the real size back to zero
+             * (OpenIPC/firmware#1938, #1998; XM25QH64A 20 70 17 is one such
+             * part). The third JEDEC ID byte is log2 of the capacity on the
+             * SPI NOR parts these boards carry, so take the size from the chip
+             * itself and keep row 0 only for the conservative timings.
+             *
+             * Capped at 16 MiB (0x18), what row 0 gave every unknown part
+             * before. Beyond that the chip needs extended addressing, and
+             * _bHasEAR was settled above from the table row this part does not
+             * have. Without it an unknown 32 MiB part would be advertised whole
+             * and every access to its upper half would wrap onto the lower. */
+            if (u8FlashId[2] >= 0x13 && u8FlashId[2] <= 0x18)
+            {
+                _hal_SERFLASH.u32FlashSize = 1UL << u8FlashId[2];
+                _hal_SERFLASH.u32NumSec = _hal_SERFLASH.u32FlashSize / _hal_SERFLASH.u32SecSize;
+            }
+
             DEBUG_SER_FLASH(E_SERFLASH_DBGLV_INFO,
-                            printk("[FSP] Unknown flash type (0x%02X, 0x%02X, 0x%02X) and use default flash type 0x%04X\n",
-                                   _hal_SERFLASH.u8MID,
-                                   _hal_SERFLASH.u8DID0,
-                                   _hal_SERFLASH.u8DID1,
-                                   _hal_SERFLASH.u16FlashType
+                            printk("[FSP] Unknown flash type (0x%02X, 0x%02X, 0x%02X), using generic settings with %u KiB\n",
+                                   u8FlashId[0],
+                                   u8FlashId[1],
+                                   u8FlashId[2],
+                                   (unsigned int)(_hal_SERFLASH.u32FlashSize >> 10)
                                    )
                             );
             #else
