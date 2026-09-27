@@ -1656,6 +1656,6 @@ hal_SERFLASH_t _hal_SERFLASH_table[] =   // Need to Add more sample for robust
     { FLASH_IC_NM25Q128,         MID_NM,      0X21,  0X18,   NULL,                                 NULL,                  0x1000000,  256,    SIZE_64KB,  256,    50,     BITS(6:2, 0x0F),    ISP_DEV_PMC,    ISP_SPI_ENDIAN_LITTLE, {E_SPI_54M  , E_QUAD_MODE   },  TRUE,   TRUE},
     { FLASH_IC_IS25LP064D,	MID_IS,	    0x60,	0x17,	_pstWriteProtectTable_IS25LP064D,     NULL,                       0x800000,	  128,	  SIZE_64KB,  256,	  50,	 BITS(5:2, 0x0F),	 ISP_DEV_PMC,	     ISP_SPI_ENDIAN_LITTLE, {E_SPI_86M  , E_FAST_MODE},    TRUE,   TRUE},
     { FLASH_IC_PUYA_PY25Q128HA,     MID_PY, 0x20,   0x18,   NULL,  NULL, 0x1000000,   256,    SIZE_64KB,  256,        50,    BITS(5:2, 0x0F),        ISP_DEV_PMC,        ISP_SPI_ENDIAN_LITTLE, {E_SPI_86M  , E_FAST_MODE},    TRUE,   TRUE},
-    { FLASH_IC_PUYA_PY25Q64HA,      MID_PY, 0x60,   0x17,   NULL,  NULL, 0x1000000,   128,    SIZE_64KB,  256,        50,    BITS(5:2, 0x0F),        ISP_DEV_PMC,        ISP_SPI_ENDIAN_LITTLE, {E_SPI_86M  , E_FAST_MODE},    TRUE,   TRUE}
+    { FLASH_IC_PUYA_PY25Q64HA,      MID_PY, 0x60,   0x17,   NULL,  NULL, 0x800000,    128,    SIZE_64KB,  256,        50,    BITS(5:2, 0x0F),        ISP_DEV_PMC,        ISP_SPI_ENDIAN_LITTLE, {E_SPI_86M  , E_FAST_MODE},    TRUE,   TRUE}
 };
 
