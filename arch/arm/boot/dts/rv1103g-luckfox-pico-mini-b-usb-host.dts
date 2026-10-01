@@ -1,0 +1,12 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+
+#include "rv1103g-luckfox-pico-mini.dts"
+
+/ {
+	model = "Luckfox Pico Mini B (USB host)";
+};
+
+/* Dedicated host variant for externally connected USB devices. */
+&usbdrd_dwc3 {
+	dr_mode = "host";
+};
