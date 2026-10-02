@@ -2,6 +2,7 @@
  * Copyright (c) XMEDIA. All rights reserved.
  */
 
+#include <linux/string.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/clk.h>
@@ -85,6 +86,25 @@ static void fmc100_send_cmd_write(struct fmc_host *host)
 		pr_info("\n");
 	}
 	FMC_PR(WR_DBG, "*-Start send %s page write command\n", op);
+
+#ifndef FMC100_SPI_NAND_SUPPORT_REG_WRITE
+	/*
+	 * An all-0xFF page (data and OOB) carries nothing: leave it erased.
+	 * Programming it is not the no-op it is on bare NAND.  The controller
+	 * writes BCH parity for the 0xFF data and the empty-page mark is
+	 * zeroed below, so the page leaves the erased state while still
+	 * reading back as 0xFF.  UBI/UBIFS then take it for free space and
+	 * program it again, and the second program ANDs its parity into the
+	 * first: the ECC step that covers the empty-page mark turns
+	 * uncorrectable (ECC_ERR_NUM0_BUF0 = 0x0000ff00 on 2K pages).  Such
+	 * pages arrive routinely -- the padding in a UBI image written with
+	 * nandwrite, UBIFS master LEB space, ...
+	 */
+	if (!memchr_inv(host->buffer, 0xff, host->pagesize + host->oobsize)) {
+		FMC_PR(WR_DBG, "|-Blank page, not programmed\n");
+		return;
+	}
+#endif
 
 	mutex_lock(host->lock);
 	fmc100_operation_config(host, OP_STYPE_WRITE);
