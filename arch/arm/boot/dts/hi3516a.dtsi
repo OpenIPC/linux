@@ -525,6 +525,17 @@
 			mac-address = [00 00 00 00 00 00];
 		};
 
+		/*
+		 * No sd-uhs-* modes: every UHS-I mode signals at 1.8V, and the SD
+		 * pads here have no 1.8V rail -- himci offers 3.3V only and there is
+		 * no vqmmc-supply. With them declared, a card that accepts CMD11
+		 * switches its own side to 1.8V, the host's readback fails, and
+		 * without a power control to cycle the card it never comes back
+		 * ("cannot verify signal voltage switch", OpenIPC/firmware#2219).
+		 * 50MHz exactly: the MMC mux parents are 25/50/75/100MHz and the clock
+		 * framework picks the fastest one at or below the request, so 49.5MHz
+		 * would land on 25MHz.
+		 */
 		mmc0: himci.SD@0x206e0000 {
 			compatible = "hisilicon,hi3516a-himci";
 			reg = <0x206e0000 0x1000>;
@@ -533,13 +544,9 @@
 			clock-names = "mmc_clk";
 			resets = <&clock 0xc4 0>;
 			reset-names = "mmc_reset";
-			max-frequency = <100000000>;
+			max-frequency = <50000000>;
 			bus-width = <4>;
 			cap-sd-highspeed;
-			sd-uhs-sdr12;
-			sd-uhs-sdr25;
-			sd-uhs-sdr50;
-			sd-uhs-sdr104;
 			devid = <0>;
 			status = "disabled";
 		};
@@ -552,13 +559,9 @@
 			clock-names = "mmc_clk";
 			resets = <&clock 0xc4 8>;
 			reset-names = "mmc_reset";
-			max-frequency = <100000000>;
+			max-frequency = <50000000>;
 			bus-width = <4>;
 			cap-sd-highspeed;
-			sd-uhs-sdr12;
-			sd-uhs-sdr25;
-			sd-uhs-sdr50;
-			sd-uhs-sdr104;
 			devid = <1>;
 			status = "disabled";
 		};
