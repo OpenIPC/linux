@@ -19,6 +19,7 @@
 #include <linux/clk.h>
 #include <linux/dma-mapping.h>
 #include <linux/iopoll.h>
+#include <linux/math64.h>
 #include <linux/module.h>
 #include <linux/mfd/hisi_fmc.h>
 #include <linux/mtd/mtd.h>
@@ -150,6 +151,7 @@ static int hisi_spi_nor_prep(struct spi_nor *nor, enum spi_nor_ops ops)
 
 out:
 	mutex_unlock(host->lock);
+	mutex_unlock(&fmc_switch_mutex);
 	return ret;
 }
 
@@ -333,6 +335,81 @@ static int hisi_snor_device_register(struct mtd_info *mtd)
 	return parsed.nr_parts ? mtd_device_register(mtd, NULL, 0) : parsed.nr_parts;
 }
 
+/*
+ * Some XM hi3518ev200 boards carry a 0xc22017 part (MX25L6406E or a clone
+ * of it) that ignores the dual-I/O read the ID table selects for
+ * MX25L6436F: every read returns zeros while writes, erases and status
+ * reads, all single-I/O, keep working, so the root filesystem looks blank
+ * (OpenIPC/firmware#646).  The bootrom has already proved that a plain 0x03
+ * read from the 24 MHz source works on this board -- it is how U-Boot got
+ * loaded -- so read the flash both ways at a few offsets and keep the plain
+ * read when any of them disagree.  Several offsets, because one sample that
+ * happens to be zero would let a read that returns only zeros through.  That
+ * proof covers 3-byte addressing only: a part driven with 4-byte addresses
+ * may expect a dedicated 4-byte opcode, where 0x03 would read garbage on a
+ * healthy chip, so leave those alone.
+ */
+#define HIFMC_READ_CHECK_LEN		16
+#define HIFMC_READ_CHECK_SAMPLES	4
+#define HIFMC_SAFE_CLKRATE		24000000
+
+static int hisi_spi_nor_read_samples(struct spi_nor *nor, u8 *buf)
+{
+	int i, ret;
+
+	ret = nor->prepare(nor, SPI_NOR_OPS_READ);
+	if (ret)
+		return ret;
+
+	for (i = 0; i < HIFMC_READ_CHECK_SAMPLES; i++) {
+		loff_t from = div_u64(nor->mtd.size, HIFMC_READ_CHECK_SAMPLES) * i;
+
+		if (hisi_spi_nor_read(nor, from, HIFMC_READ_CHECK_LEN,
+				buf + HIFMC_READ_CHECK_LEN * i)
+				!= HIFMC_READ_CHECK_LEN) {
+			ret = -EIO;
+			break;
+		}
+	}
+
+	nor->unprepare(nor, SPI_NOR_OPS_READ);
+	return ret;
+}
+
+static void hisi_spi_nor_check_read(struct spi_nor *nor)
+{
+	struct hifmc_priv *priv = nor->priv;
+	u8 fast[HIFMC_READ_CHECK_LEN * HIFMC_READ_CHECK_SAMPLES];
+	u8 plain[HIFMC_READ_CHECK_LEN * HIFMC_READ_CHECK_SAMPLES];
+	enum spi_nor_protocol proto = nor->read_proto;
+	u8 opcode = nor->read_opcode, dummy = nor->read_dummy;
+	u32 clkrate = priv->clkrate;
+
+	if (proto == SNOR_PROTO_1_1_1 || nor->addr_width != 3)
+		return;
+
+	if (hisi_spi_nor_read_samples(nor, fast))
+		return;
+
+	nor->read_proto = SNOR_PROTO_1_1_1;
+	nor->read_opcode = SPINOR_OP_READ;
+	nor->read_dummy = 0;
+	priv->clkrate = HIFMC_SAFE_CLKRATE;
+
+	if (!hisi_spi_nor_read_samples(nor, plain) &&
+	    memcmp(fast, plain, sizeof(plain))) {
+		dev_warn(nor->dev, "read opcode 0x%02x returns other data than "
+			 "0x03, falling back to 0x03 from the 24 MHz clock\n",
+			 opcode);
+		return;
+	}
+
+	nor->read_proto = proto;
+	nor->read_opcode = opcode;
+	nor->read_dummy = dummy;
+	priv->clkrate = clkrate;
+}
+
 /**
  * Get spi flash device information and register it as a mtd device.
  */
@@ -401,6 +478,8 @@ static int hisi_spi_nor_register(struct device_node *np,
 	ret = spi_nor_scan(nor, NULL, &modes);
 	if (ret)
 		return ret;
+
+	hisi_spi_nor_check_read(nor);
 
 	mtd = &nor->mtd;
 	mtd->name = np->name;
