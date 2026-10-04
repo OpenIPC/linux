@@ -150,6 +150,7 @@ static int hisi_spi_nor_prep(struct spi_nor *nor, enum spi_nor_ops ops)
 
 out:
 	mutex_unlock(host->lock);
+	mutex_unlock(&fmc_switch_mutex);
 	return ret;
 }
 
@@ -341,7 +342,9 @@ static int hisi_snor_device_register(struct mtd_info *mtd)
  * (OpenIPC/firmware#646).  The bootrom has already proved that a plain 0x03
  * read from the 24 MHz source works on this board -- it is how U-Boot got
  * loaded -- so read the head of the flash both ways and keep the plain read
- * when the two disagree.
+ * when the two disagree.  That proof covers 3-byte addressing only: a part
+ * driven with 4-byte addresses may expect a dedicated 4-byte opcode, where
+ * 0x03 would read garbage on a healthy chip, so leave those alone.
  */
 #define HIFMC_READ_CHECK_LEN	16
 #define HIFMC_SAFE_CLKRATE	24000000
@@ -355,7 +358,7 @@ static void hisi_spi_nor_check_read(struct spi_nor *nor)
 	u32 clkrate = priv->clkrate;
 	ssize_t ret;
 
-	if (proto == SNOR_PROTO_1_1_1)
+	if (proto == SNOR_PROTO_1_1_1 || nor->addr_width != 3)
 		return;
 
 	if (nor->prepare(nor, SPI_NOR_OPS_READ))
