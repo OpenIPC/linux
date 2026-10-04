@@ -333,6 +333,62 @@ static int hisi_snor_device_register(struct mtd_info *mtd)
 	return parsed.nr_parts ? mtd_device_register(mtd, NULL, 0) : parsed.nr_parts;
 }
 
+/*
+ * Some XM hi3518ev200 boards carry a 0xc22017 part (MX25L6406E or a clone
+ * of it) that ignores the dual-I/O read the ID table selects for
+ * MX25L6436F: every read returns zeros while writes, erases and status
+ * reads, all single-I/O, keep working, so the root filesystem looks blank
+ * (OpenIPC/firmware#646).  The bootrom has already proved that a plain 0x03
+ * read from the 24 MHz source works on this board -- it is how U-Boot got
+ * loaded -- so read the head of the flash both ways and keep the plain read
+ * when the two disagree.
+ */
+#define HIFMC_READ_CHECK_LEN	16
+#define HIFMC_SAFE_CLKRATE	24000000
+
+static void hisi_spi_nor_check_read(struct spi_nor *nor)
+{
+	struct hifmc_priv *priv = nor->priv;
+	u8 fast[HIFMC_READ_CHECK_LEN], plain[HIFMC_READ_CHECK_LEN];
+	enum spi_nor_protocol proto = nor->read_proto;
+	u8 opcode = nor->read_opcode, dummy = nor->read_dummy;
+	u32 clkrate = priv->clkrate;
+	ssize_t ret;
+
+	if (proto == SNOR_PROTO_1_1_1)
+		return;
+
+	if (nor->prepare(nor, SPI_NOR_OPS_READ))
+		return;
+	ret = hisi_spi_nor_read(nor, 0, sizeof(fast), fast);
+	nor->unprepare(nor, SPI_NOR_OPS_READ);
+	if (ret != sizeof(fast))
+		return;
+
+	nor->read_proto = SNOR_PROTO_1_1_1;
+	nor->read_opcode = SPINOR_OP_READ;
+	nor->read_dummy = 0;
+	priv->clkrate = HIFMC_SAFE_CLKRATE;
+
+	ret = -EIO;
+	if (!nor->prepare(nor, SPI_NOR_OPS_READ)) {
+		ret = hisi_spi_nor_read(nor, 0, sizeof(plain), plain);
+		nor->unprepare(nor, SPI_NOR_OPS_READ);
+	}
+
+	if (ret == sizeof(plain) && memcmp(fast, plain, sizeof(plain))) {
+		dev_warn(nor->dev, "read opcode 0x%02x returns other data than "
+			 "0x03, falling back to 0x03 from the 24 MHz clock\n",
+			 opcode);
+		return;
+	}
+
+	nor->read_proto = proto;
+	nor->read_opcode = opcode;
+	nor->read_dummy = dummy;
+	priv->clkrate = clkrate;
+}
+
 /**
  * Get spi flash device information and register it as a mtd device.
  */
@@ -401,6 +457,8 @@ static int hisi_spi_nor_register(struct device_node *np,
 	ret = spi_nor_scan(nor, NULL, &modes);
 	if (ret)
 		return ret;
+
+	hisi_spi_nor_check_read(nor);
 
 	mtd = &nor->mtd;
 	mtd->name = np->name;
