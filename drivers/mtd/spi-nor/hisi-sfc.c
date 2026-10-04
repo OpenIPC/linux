@@ -19,6 +19,7 @@
 #include <linux/clk.h>
 #include <linux/dma-mapping.h>
 #include <linux/iopoll.h>
+#include <linux/math64.h>
 #include <linux/module.h>
 #include <linux/mfd/hisi_fmc.h>
 #include <linux/mtd/mtd.h>
@@ -341,31 +342,53 @@ static int hisi_snor_device_register(struct mtd_info *mtd)
  * reads, all single-I/O, keep working, so the root filesystem looks blank
  * (OpenIPC/firmware#646).  The bootrom has already proved that a plain 0x03
  * read from the 24 MHz source works on this board -- it is how U-Boot got
- * loaded -- so read the head of the flash both ways and keep the plain read
- * when the two disagree.  That proof covers 3-byte addressing only: a part
- * driven with 4-byte addresses may expect a dedicated 4-byte opcode, where
- * 0x03 would read garbage on a healthy chip, so leave those alone.
+ * loaded -- so read the flash both ways at a few offsets and keep the plain
+ * read when any of them disagree.  Several offsets, because one sample that
+ * happens to be zero would let a read that returns only zeros through.  That
+ * proof covers 3-byte addressing only: a part driven with 4-byte addresses
+ * may expect a dedicated 4-byte opcode, where 0x03 would read garbage on a
+ * healthy chip, so leave those alone.
  */
-#define HIFMC_READ_CHECK_LEN	16
-#define HIFMC_SAFE_CLKRATE	24000000
+#define HIFMC_READ_CHECK_LEN		16
+#define HIFMC_READ_CHECK_SAMPLES	4
+#define HIFMC_SAFE_CLKRATE		24000000
+
+static int hisi_spi_nor_read_samples(struct spi_nor *nor, u8 *buf)
+{
+	int i, ret;
+
+	ret = nor->prepare(nor, SPI_NOR_OPS_READ);
+	if (ret)
+		return ret;
+
+	for (i = 0; i < HIFMC_READ_CHECK_SAMPLES; i++) {
+		loff_t from = div_u64(nor->mtd.size, HIFMC_READ_CHECK_SAMPLES) * i;
+
+		if (hisi_spi_nor_read(nor, from, HIFMC_READ_CHECK_LEN,
+				buf + HIFMC_READ_CHECK_LEN * i)
+				!= HIFMC_READ_CHECK_LEN) {
+			ret = -EIO;
+			break;
+		}
+	}
+
+	nor->unprepare(nor, SPI_NOR_OPS_READ);
+	return ret;
+}
 
 static void hisi_spi_nor_check_read(struct spi_nor *nor)
 {
 	struct hifmc_priv *priv = nor->priv;
-	u8 fast[HIFMC_READ_CHECK_LEN], plain[HIFMC_READ_CHECK_LEN];
+	u8 fast[HIFMC_READ_CHECK_LEN * HIFMC_READ_CHECK_SAMPLES];
+	u8 plain[HIFMC_READ_CHECK_LEN * HIFMC_READ_CHECK_SAMPLES];
 	enum spi_nor_protocol proto = nor->read_proto;
 	u8 opcode = nor->read_opcode, dummy = nor->read_dummy;
 	u32 clkrate = priv->clkrate;
-	ssize_t ret;
 
 	if (proto == SNOR_PROTO_1_1_1 || nor->addr_width != 3)
 		return;
 
-	if (nor->prepare(nor, SPI_NOR_OPS_READ))
-		return;
-	ret = hisi_spi_nor_read(nor, 0, sizeof(fast), fast);
-	nor->unprepare(nor, SPI_NOR_OPS_READ);
-	if (ret != sizeof(fast))
+	if (hisi_spi_nor_read_samples(nor, fast))
 		return;
 
 	nor->read_proto = SNOR_PROTO_1_1_1;
@@ -373,13 +396,8 @@ static void hisi_spi_nor_check_read(struct spi_nor *nor)
 	nor->read_dummy = 0;
 	priv->clkrate = HIFMC_SAFE_CLKRATE;
 
-	ret = -EIO;
-	if (!nor->prepare(nor, SPI_NOR_OPS_READ)) {
-		ret = hisi_spi_nor_read(nor, 0, sizeof(plain), plain);
-		nor->unprepare(nor, SPI_NOR_OPS_READ);
-	}
-
-	if (ret == sizeof(plain) && memcmp(fast, plain, sizeof(plain))) {
+	if (!hisi_spi_nor_read_samples(nor, plain) &&
+	    memcmp(fast, plain, sizeof(plain))) {
 		dev_warn(nor->dev, "read opcode 0x%02x returns other data than "
 			 "0x03, falling back to 0x03 from the 24 MHz clock\n",
 			 opcode);
