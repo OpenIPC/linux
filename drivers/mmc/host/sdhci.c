@@ -3251,8 +3251,15 @@ static void sdhci_timeout_data_timer(struct timer_list *t)
 
 	spin_lock_irqsave(&host->lock, flags);
 
+	/*
+	 * sdhci_mod_timer() picks the timer from the request's own command, so
+	 * this one also guards that request's CMD23 and CMD12. A read's CMD12
+	 * is R1, not a data-line command, and sdhci_timeout_timer() is never
+	 * armed for it: if the card is gone and no interrupt comes, only this
+	 * timer can finish the request and release the host.
+	 */
 	if (host->data || host->data_cmd ||
-	    (host->cmd && sdhci_data_line_cmd(host->cmd))) {
+	    (host->cmd && sdhci_data_line_cmd(host->cmd->mrq->cmd))) {
 		pr_err("%s: Timeout waiting for hardware interrupt.\n",
 		       mmc_hostname(host->mmc));
 		sdhci_dumpregs(host);
