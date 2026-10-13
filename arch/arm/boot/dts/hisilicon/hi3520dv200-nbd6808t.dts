@@ -95,3 +95,20 @@
 		};
 	};
 };
+
+/*
+ * The vendor firmware's PHY value; with the Hi3520D reference one this
+ * board's link keeps resetting.
+ */
+&sata {
+	hisilicon,phy-config = <0x0e262709>;
+	status = "okay";
+};
+
+&ohci {
+	status = "okay";
+};
+
+&ehci {
+	status = "okay";
+};
