@@ -118,6 +118,16 @@
 			clock-names = "wdog_clk", "apb_pclk";
 		};
 
+		/* SFC v350: the register layout of the v3xx SPI-NOR controller. */
+		sfc: spi@10010000 {
+			compatible = "hisilicon,hi3520dv200-sfc";
+			reg = <0x10010000 0x1000>;
+			num-cs = <2>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
 		/*
 		 * The "hieth-sf" switch-fabric MAC: two ports, up (0x0000) and
 		 * down (+0x2000), sharing global registers at +0x1300 and an
