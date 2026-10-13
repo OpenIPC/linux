@@ -811,7 +811,7 @@ static int hisi_femac_drv_probe(struct platform_device *pdev)
 		goto out_free_netdev;
 	}
 
-	priv->mac_rst = devm_reset_control_get(dev, "mac");
+	priv->mac_rst = devm_reset_control_get_optional_exclusive(dev, "mac");
 	if (IS_ERR(priv->mac_rst)) {
 		ret = PTR_ERR(priv->mac_rst);
 		goto out_disable_clk;
