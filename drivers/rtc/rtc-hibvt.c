@@ -114,6 +114,13 @@ union u_spi_rw {
 #define REG_LOCK_STAT      BIT(1)
 #define REG_LOCK_BYPASS    BIT(2)
 
+/*
+ * A counter that lost every supply restarts from zero and reads as 1970.
+ * Times before 2000-01-01 are refused both ways, so such a counter reads
+ * as unset and every time set_time() accepts can be read back.
+ */
+#define RTC_MIN_VALID_SEC   946684800UL
+
 #define RTC_RW_RETRY_CNT    5
 #define SPI_RW_RETRY_CNT    500
 #define RTC_SLEEP_TIME_MS   20
@@ -209,12 +216,15 @@ static int hibvt_rtc_read_time(struct device *dev, struct rtc_time *time)
 		return ret;
 	}
 
-	if (raw_value & LV_INT_MASK) {
-		//dev_err(dev,
-		//	"low voltage detected, date/time is not reliable.\n");
-		hibvt_spi_write(rtc->regs, RTC_INT_CLR, 1);
-		//return -EINVAL;
-	}
+	/*
+	 * Not a verdict on the time: on a hi3516ev300 the flag stays set,
+	 * and returns about half a second after each clear, with a fresh
+	 * backup cell that keeps the counter through a power cut, exactly as
+	 * it did with a flat one. The counter below is what tells. Clear the
+	 * flag by its own bit: writing 1 acknowledged the alarm instead.
+	 */
+	if (raw_value & LV_INT_MASK)
+		hibvt_spi_write(rtc->regs, RTC_INT_CLR, LV_INT_MASK);
 
 	ret |= hibvt_spi_rtc_read(rtc->regs, RTC_LORD, &raw_value);
 	if (raw_value & REG_LOCK_BYPASS)
@@ -248,6 +258,13 @@ static int hibvt_rtc_read_time(struct device *dev, struct rtc_time *time)
 	day = (dayl | (dayh << 8));
 	seconds = DATE_TO_SEC(day, hour, minute, second);
 
+	/*
+	 * Report a counter that restarted from zero as unset, so hctosys
+	 * leaves the clock alone instead of stepping it to 1970.
+	 */
+	if (seconds < RTC_MIN_VALID_SEC)
+		return -EINVAL;
+
 	rtc_time_to_tm(seconds, time);
 
 	return rtc_valid_tm(time);
@@ -265,6 +282,8 @@ static int hibvt_rtc_set_time(struct device *dev, struct rtc_time *time)
 	ret = rtc_tm_to_time(time, &seconds);
 	if (ret)
 		return ret;
+	if (seconds < RTC_MIN_VALID_SEC)
+		return -EINVAL;
 	days = SEC_TO_DAY(seconds);
 
 	ret |= hibvt_spi_rtc_write(rtc->regs, RTC_LR_10MS, 0);
@@ -550,11 +569,8 @@ static int hibvt_rtc_init(struct hibvt_rtc *rtc)
 		return ret;
 	}
  
-	if (val & LV_INT_MASK) {
-		//dev_err(&rtc->rtc_dev->dev,
-		//	"low voltage detected, date/time is not reliable.\n");
-		hibvt_spi_write(rtc->regs, RTC_INT_CLR, 1);
-	}
+	if (val & LV_INT_MASK)
+		hibvt_spi_write(rtc->regs, RTC_INT_CLR, LV_INT_MASK);
 
 	return ret;
 }
