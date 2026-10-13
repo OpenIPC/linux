@@ -1,0 +1,139 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * HiSilicon Hi3520DV200 NVR/DVR SoC: a single Cortex-A9 with GIC, SP804
+ * timers and a HiSilicon (not PL310) L2 cache controller.
+ *
+ * Addresses and interrupt numbers follow the vendor 3.0.8 BSP
+ * (arch/arm/mach-hi3520d: platform.h, irqs.h). There is no clock driver
+ * yet: the rates below are fixed-clocks matching what the vendor bootloader
+ * programs (24 MHz crystal, 330 MHz bus). The SP804s and the PL011s both
+ * run from bus/4; the vendor kernel selects the APB source for the UARTs
+ * in PERI_CRG57 (0x200300e4), which the bootloader already leaves set.
+ */
+
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+
+/ {
+	#address-cells = <1>;
+	#size-cells = <1>;
+	interrupt-parent = <&gic>;
+
+	aliases {
+		serial0 = &uart0;
+		serial1 = &uart1;
+	};
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		cpu@0 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a9";
+			reg = <0>;
+		};
+	};
+
+	xtal: clock-24m {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <24000000>;
+		clock-output-names = "xtal";
+	};
+
+	/* APB/bus clock; U-Boot leaves the PLL at 1320 MHz, bus = PLL/4. */
+	busclk: clock-bus {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <330000000>;
+		clock-output-names = "busclk";
+	};
+
+	/* bus/4: feeds the SP804 timers and, with the APB source selected, the UARTs. */
+	timerclk: clock-timer {
+		compatible = "fixed-factor-clock";
+		#clock-cells = <0>;
+		clocks = <&busclk>;
+		clock-div = <4>;
+		clock-mult = <1>;
+		clock-output-names = "timerclk";
+	};
+
+	/* SP805 reference clock, measured: LOAD 0x10000000 resets after ~179 s. */
+	wdtclk: clock-3m {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <3000000>;
+		clock-output-names = "wdtclk";
+	};
+
+	soc {
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		scu@20300000 {
+			compatible = "arm,cortex-a9-scu";
+			reg = <0x20300000 0x100>;
+		};
+
+		gic: interrupt-controller@20301000 {
+			compatible = "arm,cortex-a9-gic";
+			#interrupt-cells = <3>;
+			#address-cells = <0>;
+			interrupt-controller;
+			reg = <0x20301000 0x1000>, <0x20300100 0x100>;
+		};
+
+		/*
+		 * 0x20700000 is HiSilicon's own L2 cache controller (the vendor
+		 * BSP's "hil2v200"), not an ARM PL310: its ID register reads 0.
+		 * The bootloader leaves it disabled and there is no driver for
+		 * it here yet, so the system runs without L2 for now.
+		 */
+
+		timer0: timer@20000000 {
+			compatible = "arm,sp804", "arm,primecell";
+			reg = <0x20000000 0x1000>;
+			interrupts = <GIC_SPI 3 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&timerclk>, <&timerclk>, <&busclk>;
+			clock-names = "timer0clk", "timer1clk", "apb_pclk";
+		};
+
+		timer1: timer@20010000 {
+			compatible = "arm,sp804", "arm,primecell";
+			reg = <0x20010000 0x1000>;
+			interrupts = <GIC_SPI 4 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&timerclk>, <&timerclk>, <&busclk>;
+			clock-names = "timer0clk", "timer1clk", "apb_pclk";
+			status = "disabled";
+		};
+
+		watchdog@20040000 {
+			compatible = "arm,sp805", "arm,primecell";
+			reg = <0x20040000 0x1000>;
+			clocks = <&wdtclk>, <&busclk>;
+			clock-names = "wdog_clk", "apb_pclk";
+		};
+
+		uart0: serial@20080000 {
+			compatible = "arm,pl011", "arm,primecell";
+			reg = <0x20080000 0x1000>;
+			interrupts = <GIC_SPI 8 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&timerclk>, <&busclk>;
+			clock-names = "uartclk", "apb_pclk";
+			status = "disabled";
+		};
+
+		uart1: serial@20090000 {
+			compatible = "arm,pl011", "arm,primecell";
+			reg = <0x20090000 0x1000>;
+			interrupts = <GIC_SPI 9 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&timerclk>, <&busclk>;
+			clock-names = "uartclk", "apb_pclk";
+			status = "disabled";
+		};
+	};
+};
