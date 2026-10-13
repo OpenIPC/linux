@@ -118,6 +118,33 @@
 			clock-names = "wdog_clk", "apb_pclk";
 		};
 
+		/*
+		 * The "hieth-sf" switch-fabric MAC: two ports, up (0x0000) and
+		 * down (+0x2000), sharing global registers at +0x1300 and an
+		 * MDIO controller at +0x1100. The up port's registers and bits
+		 * are those of hisi-femac, which drives it with the global block
+		 * passed as its second region.
+		 */
+		mdio: mdio@10091100 {
+			compatible = "hisilicon,hi3520dv200-femac-mdio",
+				     "hisilicon,hisi-femac-mdio";
+			/* MDIO, then the internal PHY control (SYS_CTRL PERI24) */
+			reg = <0x10091100 0x10>, <0x20050094 0x4>;
+			clocks = <&busclk>;
+			clock-names = "mdio";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
+		eth_up: ethernet@10090000 {
+			compatible = "hisilicon,hisi-femac-v1";
+			reg = <0x10090000 0x1000>, <0x10091300 0x200>;
+			interrupts = <GIC_SPI 24 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&busclk>;
+			status = "disabled";
+		};
+
 		uart0: serial@20080000 {
 			compatible = "arm,pl011", "arm,primecell";
 			reg = <0x20080000 0x1000>;
