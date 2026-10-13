@@ -18,6 +18,34 @@
 		device_type = "memory";
 		reg = <0x80000000 0x08000000>;
 	};
+
+	reserved-memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		vga_fb_mem: framebuffer@8f000000 {
+			reg = <0x8f000000 0x400000>;
+			no-map;
+		};
+	};
+
+	/*
+	 * VGA, 1920x1080@60. The vendor bootloader drives the display
+	 * controller ("startvo 0 4 10; startgx 0 0x8f000000 3840 0 0 1920
+	 * 1080" opens VGA at 1080p60 and graphics layer 0 at this buffer,
+	 * scanned out as ARGB1555 with the alpha bit ignored); Linux only
+	 * draws into it. Without those bootloader commands nothing is shown.
+	 */
+	framebuffer@8f000000 {
+		compatible = "simple-framebuffer";
+		reg = <0x8f000000 0x3f4800>;
+		memory-region = <&vga_fb_mem>;
+		width = <1920>;
+		height = <1080>;
+		stride = <3840>;
+		format = "x1r5g5b5";
+	};
 };
 
 &uart0 {
