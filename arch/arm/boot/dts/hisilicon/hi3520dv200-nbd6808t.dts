@@ -23,3 +23,18 @@
 &uart0 {
 	status = "okay";
 };
+
+/* The RJ45 is on the up port, through the SoC's internal PHY at address 3. */
+&mdio {
+	status = "okay";
+
+	phy_up: ethernet-phy@3 {
+		reg = <3>;
+	};
+};
+
+&eth_up {
+	phy-handle = <&phy_up>;
+	phy-mode = "mii";
+	status = "okay";
+};
