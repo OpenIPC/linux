@@ -288,6 +288,18 @@ config AHCI_XGENE
 	help
 	 This option enables support for APM X-Gene SoC SATA host controller.
 
+config AHCI_HI3520DV200
+	tristate "HiSilicon Hi3520DV200 AHCI SATA support"
+	depends on ARCH_HISI_BVT || COMPILE_TEST
+	select SATA_HOST
+	help
+	  This option enables support for the on-chip SATA controller of the
+	  HiSilicon Hi3520DV200 NVR/DVR SoC: a two-port AHCI block whose
+	  PHYs this glue clocks, resets and programs before handing the
+	  controller to the generic AHCI platform code.
+
+	  If unsure, say N.
+
 config AHCI_QORIQ
 	tristate "Freescale QorIQ AHCI SATA support"
 	depends on OF
