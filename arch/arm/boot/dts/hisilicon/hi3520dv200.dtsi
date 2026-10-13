@@ -88,11 +88,18 @@
 		};
 
 		/*
-		 * 0x20700000 is HiSilicon's own L2 cache controller (the vendor
-		 * BSP's "hil2v200"), not an ARM PL310: its ID register reads 0.
-		 * The bootloader leaves it disabled and there is no driver for
-		 * it here yet, so the system runs without L2 for now.
+		 * HiSilicon's own L2 controller ("hil2v200"), not a PL310: its
+		 * ID register reads 0. 128 KB, 8 ways, 32-byte lines.
 		 */
+		l2: cache-controller@20700000 {
+			compatible = "hisilicon,hi3520dv200-l2cache";
+			reg = <0x20700000 0x10000>;
+			interrupts = <GIC_SPI 29 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 30 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 31 IRQ_TYPE_LEVEL_HIGH>;
+			cache-unified;
+			cache-level = <2>;
+		};
 
 		timer0: timer@20000000 {
 			compatible = "arm,sp804", "arm,primecell";
