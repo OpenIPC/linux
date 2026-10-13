@@ -140,7 +140,13 @@ wdt_restart(struct watchdog_device *wdd, unsigned long mode, void *cmd)
 
 	writel_relaxed(UNLOCK, wdt->base + WDTLOCK);
 	writel_relaxed(0, wdt->base + WDTCONTROL);
-	writel_relaxed(0, wdt->base + WDTLOAD);
+	/*
+	 * The smallest load that counts. The SP805 in HiSilicon's Hi3520DV200
+	 * never resets the system with a load of 0, and stays stuck there, so
+	 * the restart (and any running timeout) silently fails; with 1 it
+	 * resets at once, as a 0 does on other implementations.
+	 */
+	writel_relaxed(LOAD_MIN, wdt->base + WDTLOAD);
 	writel_relaxed(INT_ENABLE | RESET_ENABLE, wdt->base + WDTCONTROL);
 
 	/* Flush posted writes. */
