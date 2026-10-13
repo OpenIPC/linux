@@ -135,6 +135,33 @@
 			status = "disabled";
 		};
 
+		/* reg 1 is PERI_CRG45, the SATA clock/reset register */
+		sata: sata@10080000 {
+			compatible = "hisilicon,hi3520dv200-ahci";
+			reg = <0x10080000 0x10000>, <0x200300b4 0x4>;
+			interrupts = <GIC_SPI 20 IRQ_TYPE_LEVEL_HIGH>;
+			status = "disabled";
+		};
+
+		/*
+		 * USB 2.0 host. The bootloader enables its clock and PHY
+		 * (PERI_CRG46 0x200300b8, PERI_USB 0x20050080) when it scans
+		 * the bus.
+		 */
+		ohci: usb@100a0000 {
+			compatible = "generic-ohci";
+			reg = <0x100a0000 0x10000>;
+			interrupts = <GIC_SPI 22 IRQ_TYPE_LEVEL_HIGH>;
+			status = "disabled";
+		};
+
+		ehci: usb@100b0000 {
+			compatible = "generic-ehci";
+			reg = <0x100b0000 0x10000>;
+			interrupts = <GIC_SPI 21 IRQ_TYPE_LEVEL_HIGH>;
+			status = "disabled";
+		};
+
 		mdio: mdio@10091100 {
 			compatible = "hisilicon,hi3520dv200-femac-mdio",
 				     "hisilicon,hisi-femac-mdio";
