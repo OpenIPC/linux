@@ -6,6 +6,8 @@
  * SP804 timers have generic drivers.
  */
 
+#include <linux/irqchip.h>
+#include <asm/hardware/cache-hil2v200.h>
 #include <asm/mach/arch.h>
 
 static const char *const hi3520dv200_compat[] __initconst = {
@@ -13,6 +15,17 @@ static const char *const hi3520dv200_compat[] __initconst = {
 	NULL,
 };
 
+/*
+ * The L2 is HiSilicon's own controller, so it is brought up here, at the
+ * point where the core would initialise a PL310.
+ */
+static void __init hi3520dv200_init_irq(void)
+{
+	irqchip_init();
+	hil2v200_of_init();
+}
+
 DT_MACHINE_START(HI3520DV200_DT, "Hisilicon Hi3520DV200 (Flattened Device Tree)")
 	.dt_compat	= hi3520dv200_compat,
+	.init_irq	= hi3520dv200_init_irq,
 MACHINE_END
