@@ -38,3 +38,60 @@
 	phy-mode = "mii";
 	status = "okay";
 };
+
+/*
+ * 8 MB MX25L6406E on CS1. Read-only for now: the stock firmware is still on
+ * it, laid out as the vendor bootargs describe.
+ */
+&sfc {
+	status = "okay";
+
+	flash@1 {
+		compatible = "jedec,spi-nor";
+		reg = <1>;
+		spi-max-frequency = <50000000>;
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			partition@0 {
+				label = "boot";
+				reg = <0x000000 0x030000>;
+				read-only;
+			};
+			partition@30000 {
+				label = "romfs";
+				reg = <0x030000 0x1f0000>;
+				read-only;
+			};
+			partition@220000 {
+				label = "usr";
+				reg = <0x220000 0x3b0000>;
+				read-only;
+			};
+			partition@5d0000 {
+				label = "custom";
+				reg = <0x5d0000 0x1a0000>;
+				read-only;
+			};
+			partition@770000 {
+				label = "logo";
+				reg = <0x770000 0x010000>;
+				read-only;
+			};
+			partition@780000 {
+				label = "mtd";
+				reg = <0x780000 0x080000>;
+				read-only;
+			};
+			/* the whole chip, for verifying it against a backup */
+			partition@0-all {
+				label = "all";
+				reg = <0x000000 0x800000>;
+				read-only;
+			};
+		};
+	};
+};
