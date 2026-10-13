@@ -984,6 +984,19 @@ config MIGHT_HAVE_CACHE_L2X0
 	  instead of this option, thus preventing the user from
 	  inadvertently configuring a broken kernel.
 
+config CACHE_HIL2V200
+	bool "Enable the HiSilicon L2 cache controller v200"
+	depends on ARCH_HI3520DV200
+	default y
+	select OUTER_CACHE
+	select OUTER_CACHE_SYNC
+	help
+	  This option enables the HiSilicon "hil2v200" L2 cache controller
+	  found in the Hi3520DV200 (128 KB, 8 ways). It is not a PL310:
+	  lines are maintained by physical address through its own
+	  registers, and it is driven as an outer cache. Without it the
+	  SoC runs with its L2 disabled.
+
 config CACHE_L2X0
 	bool "Enable the L2x0 outer cache controller" if MIGHT_HAVE_CACHE_L2X0
 	default MIGHT_HAVE_CACHE_L2X0
