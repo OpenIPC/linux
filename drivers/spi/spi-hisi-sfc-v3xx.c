@@ -477,7 +477,9 @@ static int hisi_sfc_v3xx_probe(struct platform_device *pdev)
 	}
 
 	ctlr->bus_num = -1;
-	ctlr->num_chipselect = 1;
+	/* The ACPI parts expose one chip select; the Hi3520DV200 flash is on CS1. */
+	if (device_property_read_u16(dev, "num-cs", &ctlr->num_chipselect))
+		ctlr->num_chipselect = 1;
 	ctlr->mem_ops = &hisi_sfc_v3xx_mem_ops;
 
 	/*
@@ -519,10 +521,22 @@ static const struct acpi_device_id hisi_sfc_v3xx_acpi_ids[] = {
 };
 MODULE_DEVICE_TABLE(acpi, hisi_sfc_v3xx_acpi_ids);
 
+/*
+ * The SFC v350 in HiSilicon's Hi3520DV200 has the register layout of the
+ * v3xx parts (GLB_CFG 0x100, interrupts 0x120-0x12c, CMD_CFG/INS/ADDR
+ * 0x300-0x30c, a 16-word data buffer at 0x400).
+ */
+static const struct of_device_id hisi_sfc_v3xx_of_ids[] = {
+	{ .compatible = "hisilicon,hi3520dv200-sfc" },
+	{}
+};
+MODULE_DEVICE_TABLE(of, hisi_sfc_v3xx_of_ids);
+
 static struct platform_driver hisi_sfc_v3xx_spi_driver = {
 	.driver = {
 		.name	= "hisi-sfc-v3xx",
 		.acpi_match_table = hisi_sfc_v3xx_acpi_ids,
+		.of_match_table = hisi_sfc_v3xx_of_ids,
 	},
 	.probe	= hisi_sfc_v3xx_probe,
 };
