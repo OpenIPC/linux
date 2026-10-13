@@ -173,6 +173,19 @@ config ARCH_HI3518EV20X
 	help
 		Support for Hisilicon Hi3518ev20x Soc family.
 
+config ARCH_HI3520DV200
+	bool "Hisilicon Hi3520DV200 Cortex-A9 family"
+	depends on ARCH_MULTI_V7
+	select ARM_GIC
+	select HAVE_ARM_SCU
+	select ARM_TIMER_SP804
+	help
+		Support for the Hisilicon Hi3520DV200, a single Cortex-A9 SoC
+		used in NVR and DVR boards. It has a GIC, SP804 timers, an
+		SP805 watchdog, HiSilicon's own L2 cache controller, a SATA
+		controller, USB 2.0, a switch-fabric Ethernet MAC and an
+		SFC v350 SPI-NOR controller.
+
 config ARCH_HI3536DV100
 	bool "Hisilicon Hi3536DV100 Cortex-A7(Single) family"
 	depends on ARCH_MULTI_V7

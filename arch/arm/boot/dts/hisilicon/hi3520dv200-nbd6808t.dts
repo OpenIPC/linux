@@ -1,0 +1,25 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * XiongMai NBD6808T-PL NVR (MBD0157 board), Hi3520DV200, 8 MB SPI NOR.
+ */
+
+/dts-v1/;
+#include "hi3520dv200.dtsi"
+
+/ {
+	model = "XiongMai NBD6808T-PL (Hi3520DV200)";
+	compatible = "xiongmai,nbd6808t-pl", "hisilicon,hi3520dv200";
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+
+	memory@80000000 {
+		device_type = "memory";
+		reg = <0x80000000 0x08000000>;
+	};
+};
+
+&uart0 {
+	status = "okay";
+};
