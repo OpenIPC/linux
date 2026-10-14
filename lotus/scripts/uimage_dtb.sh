@@ -82,7 +82,12 @@ if [ "ss$out" = "ss" ]; then
 	out=.
 fi
 
-kernel_version=linux-5.10.y
+# The name the kernel's own uImage rule stamps (UIMAGE_NAME in
+# scripts/Makefile.lib), so the image this script replaces it with still
+# carries the release -- and the localversion after it, which is where
+# OpenIPC's sysupgrade reads the SoC from. The SDK fixed this to
+# "linux-5.10.y".
+kernel_version=Linux-$(cat $out/include/config/kernel.release 2>/dev/null || echo 5.10.y)
 
 kernel_config=$out/.config
 
