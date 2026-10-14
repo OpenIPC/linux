@@ -123,15 +123,18 @@ static int gc1084_probe_id(void)
 static int gc1084_init(const AK_ISP_SENSOR_INIT_PARA *para)
 {
 	AK_ISP_SENSOR_REG_INFO *preg_info;
-	int i;
+	int i, ret;
 
 	if (gc1084_probe_id() != SENSOR_ID)
-		return -1;
+		return -ENODEV;
 
 	preg_info = para->reg_info;
-	for (i = 0; i < para->num; i++)
-		gc1084_sensor_write_register(preg_info[i].reg_addr,
-					     preg_info[i].value & 0xff);
+	for (i = 0; i < para->num; i++) {
+		ret = gc1084_sensor_write_register(preg_info[i].reg_addr,
+						 preg_info[i].value & 0xff);
+		if (ret != SENSOR_REGADDR_BYTE + SENSOR_DATA_BYTE)
+			return ret < 0 ? ret : -EIO;
+	}
 
 	g_fps = MAX_FPS;
 	to_fps = 0;
@@ -242,8 +245,9 @@ static int gc1084_cmos_updata_exp_time(unsigned int exp_time)
  */
 static int gc1084_set_fps(int fps)
 {
-	if (fps < 1 || fps > MAX_FPS)
-		return -1;
+	if (fps < 1 || fps > MAX_FPS ||
+	    SENSOR_VTS_30FPS * MAX_FPS / fps > 0x3fff)
+		return -EINVAL;
 
 	to_fps = fps;
 
@@ -253,16 +257,21 @@ static int gc1084_set_fps(int fps)
 static int gc1084_set_fps_async(int fps)
 {
 	unsigned int vts;
+	int ret;
 
 	if (fps < 1 || fps > MAX_FPS)
-		return -1;
+		return -EINVAL;
 
 	vts = SENSOR_VTS_30FPS * MAX_FPS / fps;
 	if (vts > 0x3fff)
-		vts = 0x3fff;
+		return -EINVAL;
 
-	gc1084_sensor_write_register(REG_VTS_HI, (vts >> 8) & 0x3f);
-	gc1084_sensor_write_register(REG_VTS_LO, vts & 0xff);
+	ret = gc1084_sensor_write_register(REG_VTS_HI, (vts >> 8) & 0x3f);
+	if (ret != SENSOR_REGADDR_BYTE + SENSOR_DATA_BYTE)
+		return ret < 0 ? ret : -EIO;
+	ret = gc1084_sensor_write_register(REG_VTS_LO, vts & 0xff);
+	if (ret != SENSOR_REGADDR_BYTE + SENSOR_DATA_BYTE)
+		return ret < 0 ? ret : -EIO;
 
 	g_fps = fps;
 
@@ -271,8 +280,12 @@ static int gc1084_set_fps_async(int fps)
 
 static int gc1084_cmos_timer(void)
 {
+	int ret;
+
 	if (to_fps) {
-		gc1084_set_fps_async(to_fps);
+		ret = gc1084_set_fps_async(to_fps);
+		if (ret)
+			return ret;
 		to_fps = 0;
 	}
 

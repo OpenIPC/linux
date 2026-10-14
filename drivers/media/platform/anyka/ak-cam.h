@@ -15,6 +15,7 @@
 #include <linux/workqueue.h>
 
 #include <media/v4l2-device.h>
+#include <media/v4l2-ctrls.h>
 #include <media/videobuf2-core.h>
 
 #include <plat-anyka/ak_isp_drv.h>
@@ -31,10 +32,6 @@
 #define AK_CAM_CHAN_MAIN	0
 #define AK_CAM_CHAN_SUB		1
 #define AK_CAM_CHANNELS		2
-
-/* isp_ae_work copies the motion-detection statistics to the byte after the
- * sub-channel frame. */
-#define AK_CAM_MD_INFO_BYTES	1024
 
 #define AK_CAM_MIN_WIDTH	32
 #define AK_CAM_MIN_HEIGHT	32
@@ -78,10 +75,11 @@ struct ak_cam_node {
 struct ak_cam_dev {
 	struct device		*dev;
 	struct v4l2_device	v4l2_dev;
+	struct v4l2_ctrl_handler	controls;
 	struct v4l2_subdev	*sensor;
 
 	struct clk		*clk;
-	struct clk		*cis_sclk;
+	struct pinctrl		*pinctrl;
 	unsigned long		mclk;
 	unsigned int		irq;
 	void			*alloc_ctx;
@@ -93,6 +91,14 @@ struct ak_cam_dev {
 
 	struct ak_cam_node	node[AK_CAM_CHANNELS];
 	unsigned int		users;
+	struct v4l2_rect		crop;
+	void			*ref_y_cpu;
+	void			*ref_uv_cpu;
+	dma_addr_t		ref_y_dma;
+	dma_addr_t		ref_uv_dma;
+	size_t			ref_y_bytes;
+	size_t			ref_uv_bytes;
+	unsigned int		ref_pixels;
 
 	void			*scratch_cpu;
 	dma_addr_t		scratch_dma;

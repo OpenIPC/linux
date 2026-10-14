@@ -12,6 +12,7 @@
 #include <linux/types.h>
 #include <linux/mutex.h>
 #include <linux/spinlock.h>
+#include <linux/workqueue.h>
 #include <media/v4l2-ctrls.h>
 #include <media/v4l2-device.h>
 #include <media/v4l2-fh.h>
@@ -374,6 +375,8 @@ struct ak_venc_ctx {
 	struct ak_venc_dev	*dev;
 	struct v4l2_m2m_ctx	*m2m_ctx;
 	struct v4l2_ctrl_handler ctrl_handler;
+	struct v4l2_ctrl		*qp_limits[2];
+	struct work_struct	program_error_work;
 
 	struct ak_venc_q_data	out_q;
 	struct ak_venc_q_data	cap_q;
@@ -403,6 +406,8 @@ struct ak_venc_ctx {
 	unsigned		idr_pic_id;
 
 	unsigned		streaming;	/* queues streaming, 0..2 */
+	unsigned		priv_width;
+	unsigned		priv_height;
 	bool			aborting;
 
 	bool			rc_dirty;	/* a control changed the config */

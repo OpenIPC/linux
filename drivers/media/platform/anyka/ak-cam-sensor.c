@@ -13,6 +13,7 @@
 #include <linux/i2c.h>
 #include <linux/init.h>
 #include <linux/module.h>
+#include <linux/of_gpio.h>
 #include <linux/slab.h>
 #include <linux/v4l2-mediabus.h>
 #include <linux/videodev2.h>
@@ -123,6 +124,8 @@ static int ak_cam_sensor_s_power(struct v4l2_subdev *sd, int on)
 	struct ak_cam_sensor *priv = to_ak_cam_sensor(sd);
 	int ret;
 
+	if (!cur_sensor_info)
+		return on ? -ENODEV : 0;
 	if (!!on == priv->powered)
 		return 0;
 
@@ -140,7 +143,36 @@ static int ak_cam_sensor_s_power(struct v4l2_subdev *sd, int on)
 	return 0;
 }
 
+static int ak_cam_sensor_identify(struct v4l2_subdev *sd, u32 val)
+{
+	struct ak_cam_sensor *priv = to_ak_cam_sensor(sd);
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
+	int width, height, x, y;
+
+	if (cur_sensor_info)
+		return ak_cam_sensor_s_power(sd, 1);
+
+	cur_sensor_info = ak_cam_sensor_probe_registry(client, priv->info);
+	if (!cur_sensor_info)
+		return -ENODEV;
+	priv->powered = 1;
+	ak_sensor_set_sensor_cb(cur_sensor_info);
+	cur_sensor_info->sensor_get_resolution_func(&width, &height);
+	cur_sensor_info->sensor_get_valid_coordinate_func(&x, &y);
+	if (width <= x || height <= y)
+		return -EINVAL;
+	priv->win.left = 0;
+	priv->win.top = 0;
+	priv->win.width = width - x;
+	priv->win.height = height - y;
+	priv->code = cur_sensor_info->sensor_get_bus_type_func() == BUS_TYPE_YUV ?
+		AK_CAM_MBUS_FMT_YUYV8_2X8 : AK_CAM_MBUS_FMT_SBGGR8_1X8;
+	priv->colorspace = V4L2_COLORSPACE_SMPTE170M;
+	return 0;
+}
+
 static struct v4l2_subdev_core_ops ak_cam_sensor_core_ops = {
+	.init		= ak_cam_sensor_identify,
 	.s_power	= ak_cam_sensor_s_power,
 };
 
@@ -163,7 +195,6 @@ static int ak_cam_sensor_s_stream(struct v4l2_subdev *sd, int enable)
 static int ak_cam_sensor_cropcap(struct v4l2_subdev *sd,
 				 struct v4l2_cropcap *a)
 {
-	struct ak_cam_sensor *priv = to_ak_cam_sensor(sd);
 	int width, height;
 	int x, y;
 
@@ -175,7 +206,7 @@ static int ak_cam_sensor_cropcap(struct v4l2_subdev *sd,
 	a->bounds.top = 0;
 	a->bounds.width = width - x;
 	a->bounds.height = height - y;
-	a->defrect = priv->win;
+	a->defrect = a->bounds;
 	a->pixelaspect.numerator = 1;
 	a->pixelaspect.denominator = 1;
 
@@ -280,7 +311,13 @@ static int ak_cam_sensor_s_parm(struct v4l2_subdev *sd,
 
 	ret = cur_sensor_info->sensor_set_fps_func(fps);
 	if (ret)
-		return ret;
+		return -ERANGE;
+	/* The capture bridge rejects S_PARM while frames are running. */
+	if (cur_sensor_info->sensor_timer_func) {
+		ret = cur_sensor_info->sensor_timer_func();
+		if (ret)
+			return -EIO;
+	}
 
 	return ak_cam_sensor_g_parm(sd, parm);
 }
@@ -313,16 +350,25 @@ static int ak_cam_sensor_probe(struct i2c_client *client,
 			       const struct i2c_device_id *did)
 {
 	struct i2c_adapter *adapter = to_i2c_adapter(client->dev.parent);
-	struct soc_camera_link *icl = client->dev.platform_data;
 	struct ak_cam_sensor *priv;
-	int width, height;
-	int x, y;
+	struct aksensor_camera_info *info;
+	int gpio;
 	int ret;
 
-	if (!icl || !icl->priv) {
-		dev_err(&client->dev, "missing platform data\n");
+	if (!client->dev.of_node)
 		return -EINVAL;
-	}
+	info = devm_kzalloc(&client->dev, sizeof(*info), GFP_KERNEL);
+	if (!info)
+		return -ENOMEM;
+	info->pin_avdd = info->pin_power = (unsigned long)-1;
+	gpio = of_get_named_gpio(client->dev.of_node, "reset-gpio", 0);
+	if (gpio == -EPROBE_DEFER)
+		return gpio;
+	info->pin_reset = gpio >= 0 ? gpio : (unsigned long)-1;
+	gpio = of_get_named_gpio(client->dev.of_node, "pwdn-gpio", 0);
+	if (gpio == -EPROBE_DEFER)
+		return gpio;
+	info->pin_pwdn = gpio >= 0 ? gpio : (unsigned long)-1;
 
 	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA)) {
 		dev_err(&adapter->dev, "no I2C_FUNC_SMBUS_BYTE_DATA\n");
@@ -333,35 +379,10 @@ static int ak_cam_sensor_probe(struct i2c_client *client,
 	if (!priv)
 		return -ENOMEM;
 
-	priv->info = icl->priv;
+	priv->info = info;
 	v4l2_i2c_subdev_init(&priv->subdev, client, &ak_cam_sensor_subdev_ops);
 
 	ak_sensor_i2c_set_client(client);
-
-	if (!cur_sensor_info) {
-		cur_sensor_info = ak_cam_sensor_probe_registry(client,
-							       priv->info);
-		if (!cur_sensor_info) {
-			dev_err(&client->dev, "no registered sensor answered\n");
-			ret = -ENODEV;
-			goto err_free;
-		}
-	}
-	priv->powered = 1;
-
-	switch (cur_sensor_info->sensor_get_bus_type_func()) {
-	case BUS_TYPE_YUV:
-		priv->code = AK_CAM_MBUS_FMT_YUYV8_2X8;
-		priv->colorspace = V4L2_COLORSPACE_SMPTE170M;
-		break;
-	case BUS_TYPE_RAW:
-	default:
-		priv->code = AK_CAM_MBUS_FMT_SBGGR8_1X8;
-		priv->colorspace = V4L2_COLORSPACE_SRGB;
-		break;
-	}
-
-	ak_sensor_set_sensor_cb(cur_sensor_info);
 
 	v4l2_ctrl_handler_init(&priv->hdl, 1);
 	priv->subdev.ctrl_handler = &priv->hdl;
@@ -370,13 +391,6 @@ static int ak_cam_sensor_probe(struct i2c_client *client,
 		v4l2_ctrl_handler_free(&priv->hdl);
 		goto err_free;
 	}
-
-	cur_sensor_info->sensor_get_resolution_func(&width, &height);
-	cur_sensor_info->sensor_get_valid_coordinate_func(&x, &y);
-	priv->win.left = 0;
-	priv->win.top = 0;
-	priv->win.width = width - x;
-	priv->win.height = height - y;
 
 	return 0;
 
@@ -407,9 +421,17 @@ static const struct i2c_device_id ak_cam_sensor_id[] = {
 };
 MODULE_DEVICE_TABLE(i2c, ak_cam_sensor_id);
 
+static const struct of_device_id ak_cam_sensor_of_match[] = {
+	{ .compatible = "anyka,sensor0" },
+	{ }
+};
+MODULE_DEVICE_TABLE(of, ak_cam_sensor_of_match);
+
 static struct i2c_driver ak_cam_sensor_i2c_driver = {
 	.driver = {
 		.name = AK_CAM_SENSOR_NAME,
+		.of_match_table = ak_cam_sensor_of_match,
+		.suppress_bind_attrs = true,
 	},
 	.probe		= ak_cam_sensor_probe,
 	.remove		= ak_cam_sensor_remove,

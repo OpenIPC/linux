@@ -1,17 +1,11 @@
 
 #include "anycloud_ak39ev330_common.dtsi"
 
-#define RESERVED_MEMORY_BASE  0x80000000
-#define RESERVED_MEMORY_SIZE  0x1800000
+#define VIDEO_POOL_BASE       0x82800000
+#define VIDEO_POOL_SIZE       0x01800000
 
-#define ION_HEAP_BASE         RESERVED_MEMORY_BASE
-#define ION_HEAP_SIZE         0xc00000
-
-#define VIDEO_POOL_BASE       (RESERVED_MEMORY_BASE + ION_HEAP_SIZE)
-#define VIDEO_POOL_SIZE       (RESERVED_MEMORY_SIZE - ION_HEAP_SIZE)
-
-#define LINUX_MEMORY_BASE     (RESERVED_MEMORY_BASE + RESERVED_MEMORY_SIZE)
-#define LINUX_MEMORY_SIZE     (0x04000000 - RESERVED_MEMORY_SIZE)
+#define LINUX_MEMORY_BASE     0x80000000
+#define LINUX_MEMORY_SIZE     0x04000000
 
 / {
     model = "anyka,ak3918ev200";
@@ -49,45 +43,25 @@
         #size-cells = <1>;
         ranges;
 
-        dma_reserved: dma_reserved@RESERVED_MEMORY_BASE {
-            size = <ION_HEAP_SIZE>;
-            reg = <ION_HEAP_BASE ION_HEAP_SIZE>;
-            no-map;
-            status = "okay";
-        };
-
-        video_pool: video_pool@80c00000 {
+        video_pool: video_pool@82800000 {
             compatible = "shared-dma-pool";
             size = <VIDEO_POOL_SIZE>;
             reg = <VIDEO_POOL_BASE VIDEO_POOL_SIZE>;
-            no-map;
+            reusable;
             status = "okay";
         };
     };
 
-    ion {
-        compatible = "anyka,ak3918ev200-ion-reserve";
-        memory-region = <&dma_reserved>;
-        #address-cells = <1>;
-        #size-cells = <1>;
-        heaps-nr = <1>;
-        ranges;
-
-        dma_reserved_heap: dma_reserved_heap {
-            compatible = "anyka,dma-reserve";
-            ion-id = <1>;
-            ion-type = <1>;
-            base-address = <ION_HEAP_BASE>;
-            size = <ION_HEAP_SIZE>;
-            align = <0x4>;
-            status = "okay";
-        };
-    };
 };
 
 &core_pll {
     clock-div-od = <1>;
     clock-frequency = <400000000>;
+};
+
+&ramdisk {
+    /delete-property/ memory-region;
+    status = "disabled";
 };
 
 &gpio {

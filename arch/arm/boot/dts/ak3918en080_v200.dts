@@ -214,7 +214,7 @@
 };
 
 &vencoder {
-	status = "okay";
+	status = "disabled";
 };
 
 &venc {

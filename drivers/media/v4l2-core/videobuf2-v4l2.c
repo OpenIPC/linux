@@ -787,16 +787,18 @@ unsigned int vb2_poll(struct vb2_queue *q, struct file *file, poll_table *wait)
 	if (test_bit(V4L2_FL_USES_V4L2_FH, &vfd->flags)) {
 		struct v4l2_fh *fh = file->private_data;
 
+		if (req_events & POLLPRI)
+			poll_wait(file, &fh->wait, wait);
 		if (v4l2_event_pending(fh))
 			res = POLLPRI;
-		else if (req_events & POLLPRI)
-			poll_wait(file, &fh->wait, wait);
 	}
 
 	if (!q->is_output && !(req_events & (POLLIN | POLLRDNORM)))
 		return res;
 	if (q->is_output && !(req_events & (POLLOUT | POLLWRNORM)))
 		return res;
+
+	poll_wait(file, &q->done_wq, wait);
 
 	/*
 	 * Start file I/O emulator only if streaming API has not been used yet.
@@ -846,8 +848,6 @@ unsigned int vb2_poll(struct vb2_queue *q, struct file *file, poll_table *wait)
 		 */
 		if (q->last_buffer_dequeued)
 			return res | POLLIN | POLLRDNORM;
-
-		poll_wait(file, &q->done_wq, wait);
 	}
 
 	/*

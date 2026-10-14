@@ -25,7 +25,9 @@
 #include <plat-anyka/ak_isp_drv.h>
 #include <plat-anyka/ak_sensor.h>
 #include <plat-anyka/ak_camera.h>
+#include <plat-anyka/ak_isp_lifecycle.h>
 #include "ak_isp_char.h"
+#include "ak_isp_tuning.h"
 
 //#define ISP_DEBUG
 #ifdef ISP_DEBUG
@@ -41,31 +43,24 @@
 
 #define AKISP_DEV_NAME	"isp_char"
 
-//#define OSD_CHN_NUM	2
-
-struct akisp_osd_info {
-	void *main_osd_vaddr;
-	void *main_osd_paddr;
-	int main_osd_byte_size;
-
-	void *sub_osd_vaddr;
-	void *sub_osd_paddr;
-	int sub_osd_byte_size;
-
-	AK_ISP_OSD_MEM_ATTR main_osd_irq_dma;
-	AK_ISP_OSD_MEM_ATTR sub_osd_irq_dma;
-};
-
 struct akisp_char_pirv {
 	void *base;
-	int used_cnt;
+	unsigned int capture_users;
+	bool prepared;
+	unsigned int tuning_style;
+	struct ak_isp_tuning tuning;
+	int (*set_style)(void *context, unsigned int style);
+	void *capture_context;
 	struct mutex lock;
 	AK_ISP_SENSOR_CB *sensor_cb;
-//	AK_ISP_OSD_MEM_ATTR osd_param[OSD_CHN_NUM];
-	struct akisp_osd_info osd_info[ISP_OSD_CHN_NUM];
 };
 
 static struct akisp_char_pirv *priv = NULL;
+
+static char *tuning_firmware = "anyka/isp.conf";
+module_param(tuning_firmware, charp, 0444);
+MODULE_PARM_DESC(tuning_firmware, "Sensor tuning firmware relative to /lib/firmware");
+MODULE_FIRMWARE("anyka/isp.conf");
 
 /*
  * ak_sensor_set_sensor_cb() can be called before akisp_init() has
@@ -1283,284 +1278,55 @@ static int printk_hue_para(AK_ISP_HUE_ATTR *hue_para)
 }
 
 
-static int ak_isp_set_user_params_do(AK_ISP_USER_PARAM *param)
-{
-	int ret = 0;
-
-	switch (param->id)
-	{
-	case AK_ISP_USER_CID_SET_ZOOM:
-		break;
-
-	case AK_ISP_USER_CID_SET_SUB_CHANNEL:
-		{
-		struct isp_channel2_info *sub = (void *)param->data;
-		ret = ak_isp_vo_set_sub_channel_scale(sub->width, sub->height);
-		}
-		break;
-
-	case AK_ISP_USER_CID_SET_OCCLUSION:
-		break;
-	case AK_ISP_USER_CID_SET_OCCLUSION_COLOR:
-		break;
-	case AK_ISP_USER_CID_SET_GAMMA:
-		break;
-	case AK_ISP_USER_CID_SET_SATURATION:
-		break;
-	case AK_ISP_USER_CID_SET_BRIGHTNESS:
-		break;
-	case AK_ISP_USER_CID_SET_CONTRAST:
-		break;
-	case AK_ISP_USER_CID_SET_SHARPNESS:
-		break;
-	case AK_ISP_USER_CID_SET_POWER_LINE_FREQUENCY:
-		break;
-	case AK_ISP_USER_CID_SET_OSD_COLOR_TABLE_ATTR:
-		{
-		struct isp_osd_color_table_attr *color_table = (void *)param->data;
-		AK_ISP_OSD_COLOR_TABLE_ATTR *isp_color_table = kzalloc(sizeof(AK_ISP_OSD_COLOR_TABLE_ATTR), GFP_KERNEL);
-		if (!isp_color_table) {
-			pr_err("kzalloc for isp_color_table failed\n");
-			ret = -ENOMEM;
-			goto out;
-		}
-		memcpy(isp_color_table, color_table, sizeof(AK_ISP_OSD_COLOR_TABLE_ATTR));
-		ret = ak_isp_vpp_set_osd_color_table_attr(isp_color_table);
-
-		kfree(isp_color_table);
-		}
-		break;
-	case AK_ISP_USER_CID_SET_MAIN_CHANNEL_OSD_CONTEXT_ATTR:
-	{
-		struct isp_osd_context_attr *user_context = (void *)param->data;
-		AK_ISP_OSD_CONTEXT_ATTR isp_osd_context;
-		int osd_byte_size = user_context->osd_width * user_context->osd_height / 2;
-		int chn = user_context->chn;
-		struct akisp_osd_info *p_osd_info = &priv->osd_info[chn];
-
-		if(user_context->enable){
-			if (!p_osd_info->main_osd_vaddr || 
-					p_osd_info->main_osd_paddr != user_context->osd_context_addr || 
-					p_osd_info->main_osd_byte_size != osd_byte_size) {
-				if (p_osd_info->main_osd_vaddr) {
-					iounmap(p_osd_info->main_osd_vaddr);
-					printk(KERN_ERR "MAINCHN%d iounmap %p %p size:%d\n",
-							chn, p_osd_info->main_osd_vaddr, p_osd_info->main_osd_paddr,
-							p_osd_info->main_osd_byte_size);
-					p_osd_info->main_osd_vaddr = NULL;
-					p_osd_info->main_osd_paddr = NULL;
-					p_osd_info->main_osd_byte_size = 0;
-				}
-
-				isp_osd_context.osd_context_addr = ioremap_nocache(
-						(unsigned long)user_context->osd_context_addr, osd_byte_size);
-				if (!isp_osd_context.osd_context_addr) {
-					printk(KERN_ERR "osd_context_addr fail\n");			
-					ret = -EINVAL;
-					goto out;
-				}
-
-				p_osd_info->main_osd_vaddr = isp_osd_context.osd_context_addr;
-				p_osd_info->main_osd_paddr = user_context->osd_context_addr;
-				p_osd_info->main_osd_byte_size = osd_byte_size;
-
-				printk(KERN_ERR "MAINCHN%d iomap %p %p size:%d\n",
-						chn, p_osd_info->main_osd_vaddr, p_osd_info->main_osd_paddr,
-						p_osd_info->main_osd_byte_size);
-			} else {
-				isp_osd_context.osd_context_addr = p_osd_info->main_osd_vaddr;		
-			}
-		} else  {
-			if (p_osd_info->main_osd_vaddr) {
-				iounmap(p_osd_info->main_osd_vaddr);
-				printk(KERN_ERR "MAINCHN%d iounmap %p %p size:%d\n",
-						chn, p_osd_info->main_osd_vaddr, p_osd_info->main_osd_paddr,
-						p_osd_info->main_osd_byte_size);
-				p_osd_info->main_osd_vaddr = NULL;
-				p_osd_info->main_osd_paddr = NULL;
-				p_osd_info->main_osd_byte_size = 0;
-			}
-			isp_osd_context.osd_context_addr = (T_U32 *)0;		
-		}
-		isp_osd_context.chn			= chn;
-		isp_osd_context.osd_width  = user_context->osd_width;
-		isp_osd_context.osd_height = user_context->osd_height;
-		isp_osd_context.start_xpos = user_context->start_xpos;
-		isp_osd_context.start_ypos = user_context->start_ypos;
-		isp_osd_context.alpha      = user_context->alpha;
-		isp_osd_context.enable     = user_context->enable;
-
-			/* 
-			printk(KERN_ERR "%s %d osd width: %d, height: %d, start_xpos: %d,"
-					"start_ypos: %d, alpha: %d\n", __func__, __LINE__,
-					user_context->osd_width, user_context->osd_height,
-					user_context->start_xpos, user_context->start_ypos,
-					user_context->alpha);
-			*/
-		ret = ak_isp_vpp_set_main_channel_osd_context_attr(&isp_osd_context);
-#if 0
-		if(0 == ret)
-			while (ak_isp_vpp_mainchn_osdmem_useok())
-				msleep(50);
-		if (isp_osd_context.osd_context_addr)
-			iounmap(isp_osd_context.osd_context_addr);
-#endif
-		
-	}
-	break;
-	case AK_ISP_USER_CID_SET_SUB_CHANNEL_OSD_CONTEXT_ATTR:
-	{
-		struct isp_osd_context_attr *user_context = (void *)param->data;
-		AK_ISP_OSD_CONTEXT_ATTR isp_osd_context ;
-		int osd_byte_size = user_context->osd_width * user_context->osd_height / 2;
-		int chn = user_context->chn;
-		struct akisp_osd_info *p_osd_info = &priv->osd_info[chn];
-
-		if(user_context->enable){
-			if (!p_osd_info->sub_osd_vaddr || 
-					p_osd_info->sub_osd_paddr != user_context->osd_context_addr || 
-					p_osd_info->sub_osd_byte_size != osd_byte_size) {
-
-				if (p_osd_info->sub_osd_vaddr) {
-					iounmap(p_osd_info->sub_osd_vaddr);
-					printk(KERN_ERR "SUBCHN%d iounmap %p %p size:%d\n",
-							chn, p_osd_info->sub_osd_vaddr, p_osd_info->sub_osd_paddr,
-							p_osd_info->sub_osd_byte_size);
-					p_osd_info->sub_osd_vaddr = NULL;
-					p_osd_info->sub_osd_paddr = NULL;
-					p_osd_info->sub_osd_byte_size = 0;
-				}
-
-				isp_osd_context.osd_context_addr = ioremap_nocache(
-						(unsigned long) user_context->osd_context_addr, osd_byte_size);
-				if (!isp_osd_context.osd_context_addr) {
-					printk(KERN_ERR "osd_context_addr failed\n");			
-					ret = -EINVAL;
-					goto out;
-				}
-
-				p_osd_info->sub_osd_vaddr = isp_osd_context.osd_context_addr;
-				p_osd_info->sub_osd_paddr = user_context->osd_context_addr;
-				p_osd_info->sub_osd_byte_size = osd_byte_size;
-
-				printk(KERN_ERR "SUBCHN%d iomap %p %p size:%d\n",
-						chn, p_osd_info->sub_osd_vaddr, p_osd_info->sub_osd_paddr,
-						p_osd_info->sub_osd_byte_size);
-			} else {
-				isp_osd_context.osd_context_addr = p_osd_info->sub_osd_vaddr;
-			}
-		} else {
-			if (p_osd_info->sub_osd_vaddr) {
-				iounmap(p_osd_info->sub_osd_vaddr);
-				printk(KERN_ERR "SUBCHN%d iounmap %p %p size:%d\n",
-						chn, p_osd_info->sub_osd_vaddr, p_osd_info->sub_osd_paddr,
-						p_osd_info->sub_osd_byte_size);
-				p_osd_info->sub_osd_vaddr = NULL;
-				p_osd_info->sub_osd_paddr = NULL;
-				p_osd_info->sub_osd_byte_size = 0;
-			}
-			isp_osd_context.osd_context_addr = (T_U32 *)0;
-		}
-		isp_osd_context.chn			= user_context->chn;
-		isp_osd_context.osd_width = user_context->osd_width;
-		isp_osd_context.osd_height = user_context->osd_height;
-		isp_osd_context.start_xpos = user_context->start_xpos;
-		isp_osd_context.start_ypos = user_context->start_ypos;
-		isp_osd_context.alpha = user_context->alpha;
-		isp_osd_context.enable = user_context->enable;
-			
-		ret = ak_isp_vpp_set_sub_channel_osd_context_attr(&isp_osd_context);
-#if 0
-		if(0 == ret)
-			while (ak_isp_vpp_subchn_osdmem_useok())
-				msleep(50);
-		if (isp_osd_context.osd_context_addr)
-			iounmap(isp_osd_context.osd_context_addr);
-#endif
-		
-	}
-	break;
-	case AK_ISP_USER_CID_SET_MAIN_CHANNEL_OSD_MEM_ATTR:
-	{
-		struct isp_osd_mem_attr *osd_mem = (void *)param->data;
-		int chn = osd_mem->chn;
-		AK_ISP_OSD_MEM_ATTR *isp_osd_mem = &priv->osd_info[chn].main_osd_irq_dma;
-		AK_ISP_OSD_MEM_ATTR tmp = {0};
-
-		/* save old param */
-		memcpy(&tmp, isp_osd_mem, sizeof(AK_ISP_OSD_MEM_ATTR));
-
-		/* wait isp use old mem finish, than we can modify it */
-		while (ak_isp_vpp_mainchn_osdmem_useok())
-			msleep(5);
-
-		isp_osd_mem->chn		= osd_mem->chn;
-		isp_osd_mem->dma_paddr = osd_mem->dma_paddr;
-		isp_osd_mem->dma_vaddr = ioremap_nocache((unsigned long)osd_mem->dma_paddr,
-				osd_mem->size);
-		isp_osd_mem->size = osd_mem->size;
-		
-		/* set mem addr to isp */
-		ret = ak_isp_vpp_set_main_channel_osd_mem_attr(isp_osd_mem);
-		if (!ret && tmp.dma_vaddr) {
-			iounmap(tmp.dma_vaddr);
-			
-		} else if (ret) {
-			pr_err("main channel osd mem attr rejected\n");
-			if (isp_osd_mem->dma_vaddr)
-				iounmap(isp_osd_mem->dma_vaddr);
-			memcpy(isp_osd_mem, &tmp, sizeof(AK_ISP_OSD_MEM_ATTR));
-		}
-	}
-	break;
-	case AK_ISP_USER_CID_SET_SUB_CHANNEL_OSD_MEM_ATTR:
-	{
-		struct isp_osd_mem_attr *osd_mem = (void *)param->data;
-		int chn = osd_mem->chn;
-		AK_ISP_OSD_MEM_ATTR *isp_osd_mem = &priv->osd_info[chn].sub_osd_irq_dma;
-		AK_ISP_OSD_MEM_ATTR tmp = {0};
-
-		/* save old param */
-		memcpy(&tmp, isp_osd_mem, sizeof(AK_ISP_OSD_MEM_ATTR));
-
-		/* wait isp use old mem finish, than we can modify it */
-		while (ak_isp_vpp_subchn_osdmem_useok())
-			msleep(5);
-
-		isp_osd_mem->chn		= osd_mem->chn;
-		isp_osd_mem->dma_paddr = osd_mem->dma_paddr;
-		isp_osd_mem->dma_vaddr = ioremap_nocache((unsigned long)osd_mem->dma_paddr,
-				osd_mem->size);
-		isp_osd_mem->size = osd_mem->size;
-		
-		ret = ak_isp_vpp_set_sub_channel_osd_mem_attr(isp_osd_mem);
-		if (!ret && tmp.dma_vaddr) {
-			iounmap(tmp.dma_vaddr);			
-		} else if (ret) {
-			pr_err("sub channel osd mem attr rejected\n");
-			if (isp_osd_mem->dma_vaddr)
-				iounmap(isp_osd_mem->dma_vaddr);
-			memcpy(isp_osd_mem, &tmp, sizeof(AK_ISP_OSD_MEM_ATTR));
-		}
-	}
-	break;
-
-	default:
-		ret = -EINVAL;
-		break;
-	}
-
-out:
-	return ret;
-}
-
 static long akisp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	long ret = 0;
 
+	/* Capture queues own geometry, DMA buffers and ISP start/stop. */
+	switch (cmd) {
+	case AK_ISP_INIT_SENSOR_DEV:
+	case AK_ISP_SET_3D_NR_REF:
+	case AK_ISP_SET_3D_NR_PHYADDR:
+	case AK_ISP_SET_USER_PARAMS:
+	case AK_ISP_SET_ISP_CAPTURING:
+		return -ENOTTY;
+	}
+
+	if (cmd == AK_ISP_SET_TUNING_STYLE) {
+		unsigned int style;
+		int (*set_style)(void *context, unsigned int style);
+		void *context;
+
+		if (copy_from_user(&style, (void __user *)arg, sizeof(style)))
+			return -EFAULT;
+		mutex_lock(&priv->lock);
+		if (!priv->capture_users || !priv->prepared || !priv->set_style) {
+			mutex_unlock(&priv->lock);
+			return -ENODEV;
+		}
+		if (style >= priv->tuning.style_count) {
+			mutex_unlock(&priv->lock);
+			return -EINVAL;
+		}
+		set_style = priv->set_style;
+		context = priv->capture_context;
+		mutex_unlock(&priv->lock);
+		/* The capture mutex must precede the ISP control mutex. */
+		return set_style(context, style);
+	}
+
 	mutex_lock(&priv->lock);
+	if (!priv->capture_users || !priv->prepared) {
+		ret = -ENODEV;
+		goto fini;
+	}
 	switch(cmd)
 	{
+	case AK_ISP_GET_TUNING_STYLE:
+		if (copy_to_user((void __user *)arg, &priv->tuning_style,
+				 sizeof(priv->tuning_style)))
+			ret = -EFAULT;
+		break;
 	case AK_ISP_VP_SET_BLC:
 		{
 			AK_ISP_BLC_ATTR  *blc_para;
@@ -2100,25 +1866,6 @@ static long akisp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		break;
 
 
-	case AK_ISP_SET_3D_NR_REF:
-		{
-			AK_ISP_3D_NR_REF_ATTR *nr_3d_ref_para;
-			nr_3d_ref_para = kmalloc(sizeof(AK_ISP_3D_NR_REF_ATTR),GFP_KERNEL);
-			if (!nr_3d_ref_para){
-				ret = -ENOMEM;
-				goto fini;
-			}
-			memset(nr_3d_ref_para,0,sizeof(AK_ISP_3D_NR_REF_ATTR));
-			if(copy_from_user(nr_3d_ref_para,(AK_ISP_3D_NR_REF_ATTR *)arg, sizeof(AK_ISP_3D_NR_REF_ATTR))){
-			    ret = -EFAULT;
-			    kfree(nr_3d_ref_para);
-			    goto fini;
-			}
-			ak_isp_vp_set_3d_nr_ref_addr(nr_3d_ref_para);
-			printk_3d_nr_ref(nr_3d_ref_para);
-			kfree(nr_3d_ref_para);
-		}
-		break;
 	case AK_ISP_GET_3D_NR_REF:
 		{
 			AK_ISP_3D_NR_REF_ATTR *nr_3d_ref_para;
@@ -3137,74 +2884,11 @@ static long akisp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		}
 		break;
 
-	case AK_ISP_INIT_SENSOR_DEV:
-		{
-			void *p_reg_info;
-			AK_ISP_SENSOR_INIT_PARA sensor_para;
-			AK_ISP_SENSOR_CB *sensor_cb = ak_sensor_get_sensor_cb();
-			int init_ret;
-
-			/*
-			 * sensor_cb can be NULL if the sensor driver never
-			 * published its callback block (module load order,
-			 * probe failure, ...); dereferencing it unconditionally
-			 * is a NULL-pointer oops reachable from an unprivileged
-			 * /dev/isp_char ioctl. Guard style matches the existing
-			 * SET/GET_SENSOR_FPS handlers elsewhere in this switch.
-			 */
-			if (!sensor_cb) {
-				ret = -ENODEV;
-				goto fini;
-			}
-
-			if (copy_from_user(&sensor_para, (void *)arg, sizeof(AK_ISP_SENSOR_INIT_PARA)))
-			{
-			    ret = -EFAULT;
-			    goto fini;
-			}
-			/*
-			 * sensor_para.num is copied from userspace immediately
-			 * above and was unclamped before sizing this allocation.
-			 * Its type bounds it to 65535, so the multiplication
-			 * itself cannot wrap on 32-bit, but an unprivileged
-			 * caller could still force an oversized kmalloc; clamp
-			 * to a generous real-world sensor init-table size.
-			 */
-			if (sensor_para.num > 4096) {
-				ret = -EINVAL;
-				goto fini;
-			}
-			p_reg_info = sensor_para.reg_info;
-			sensor_para.reg_info = kmalloc(sizeof(AK_ISP_SENSOR_REG_INFO) * sensor_para.num, GFP_KERNEL);
-			if (!sensor_para.reg_info) {
-				ret = -ENOMEM;
-				goto fini;
-			} else {
-				if (copy_from_user(sensor_para.reg_info, p_reg_info, sizeof(AK_ISP_SENSOR_REG_INFO) * sensor_para.num))
-				{
-					ret = -EFAULT;
-					kfree(sensor_para.reg_info);
-					goto fini;
-				}
-				/*
-				 * sensor_init_func()'s return value must be
-				 * propagated: otherwise this ioctl reports
-				 * success even after a failed sensor init.
-				 */
-				init_ret = sensor_cb->sensor_init_func(&sensor_para);
-				if (init_ret)
-					ret = init_ret;
-				kfree(sensor_para.reg_info);
-			}
-		}
-		break;
-
 	case AK_ISP_SET_SENSOR_REG:
 		{
 			AK_ISP_SENSOR_CB *sensor_cb = ak_sensor_get_sensor_cb();
 			AK_ISP_SENSOR_REG_INFO reg_info;
 
-			/* sensor_cb can be NULL -- see AK_ISP_INIT_SENSOR_DEV above. */
 			if (!sensor_cb) {
 				ret = -ENODEV;
 				goto fini;
@@ -3224,7 +2908,6 @@ static long akisp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			AK_ISP_SENSOR_CB *sensor_cb = ak_sensor_get_sensor_cb();
 			AK_ISP_SENSOR_REG_INFO reg_info;
 
-			/* sensor_cb can be NULL -- see AK_ISP_INIT_SENSOR_DEV above. */
 			if (!sensor_cb) {
 				ret = -ENODEV;
 				goto fini;
@@ -3249,7 +2932,6 @@ static long akisp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			int id;
 			AK_ISP_SENSOR_CB *sensor_cb = ak_sensor_get_sensor_cb();
 
-			/* sensor_cb can be NULL -- see AK_ISP_INIT_SENSOR_DEV above. */
 			if (!sensor_cb) {
 				ret = -ENODEV;
 				goto fini;
@@ -3264,29 +2946,6 @@ static long akisp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		}
 		break;
 
-	case AK_ISP_SET_ISP_CAPTURING:
-		{
-			int resume;
-			if (copy_from_user(&resume, (void *)arg, sizeof(int)))
-			{
-			    ret = -EFAULT;
-			    goto fini;
-			}
-			ret = ak_isp_set_isp_capturing(resume);
-		}
-		break;
-
-	case AK_ISP_SET_USER_PARAMS:
-		{
-			AK_ISP_USER_PARAM param;
-			if (copy_from_user(&param, (void *)arg, sizeof(AK_ISP_USER_PARAM)))
-			{
-			    ret = -EFAULT;
-			    goto fini;
-			}
-			ret = ak_isp_set_user_params_do(&param);
-		}
-		break;
 
 	case AK_ISP_SET_MISC_ATTR:
 		{
@@ -3314,17 +2973,6 @@ static long akisp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		}
 		break;
 
-	case AK_ISP_SET_3D_NR_PHYADDR:
-		{
-			AK_ISP_3D_NR_REF_ATTR p_ref = {0};
-			if(copy_from_user(&p_ref, (void *)arg, sizeof(AK_ISP_3D_NR_REF_ATTR)))
-			{
-				ret = -EFAULT;
-				goto fini;
-			}
-			ak_isp_vp_set_3d_nr_ref_addr(&p_ref);
-		}
-		break;
 
 	case AK_ISP_SET_Y_GAMMA:
 		{
@@ -3476,8 +3124,7 @@ static long akisp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		}
 		break;
 	default:
-		printk(KERN_ERR "akisp: the ioctl is unknow. cmd=0x%X\n", cmd);
-		ret = -EINVAL;
+		ret = -ENOTTY;
 		break;
 	}
 
@@ -3531,7 +3178,8 @@ static inline void akisp_abi_build_assertions(void)
 }
 #endif
 
-static int akisp_open(struct inode *node, struct file *file)
+int ak_isp_acquire(int (*set_style)(void *context, unsigned int style),
+		   void *context)
 {
 	int err;
 	void *base;
@@ -3539,9 +3187,14 @@ static int akisp_open(struct inode *node, struct file *file)
 	AK_ISP_SENSOR_CB *sensor_cb;
 
 
+	if (!priv)
+		return -EPROBE_DEFER;
 	mutex_lock(&priv->lock);
-
-	priv->used_cnt++;
+	sensor_cb = ak_sensor_get_sensor_cb();
+	if (!sensor_cb) {
+		err = -EPROBE_DEFER;
+		goto fail_req4reg;
+	}
 
 	if (priv->base) {
 		pr_debug("isp already initialised\n");
@@ -3557,8 +3210,6 @@ static int akisp_open(struct inode *node, struct file *file)
 	cb.cb_dmafree	= dmafree;
 	cb.cb_msleep	= (ISPDRV_CB_MSLEEP)msleep;
 	
-	sensor_cb = ak_sensor_get_sensor_cb();
-
 	if (!request_mem_region(AKISP_REG_MEM_START, RESOURCE_SIZE, AKISP_DEV_NAME)) {
 		err = -EBUSY;
 		goto fail_req4reg;
@@ -3577,6 +3228,9 @@ static int akisp_open(struct inode *node, struct file *file)
 	priv->base = base;
 
 fini:
+	priv->set_style = set_style;
+	priv->capture_context = context;
+	priv->capture_users++;
 	mutex_unlock(&priv->lock);
 	return 0;
 
@@ -3585,65 +3239,167 @@ fail_isp2_init:
 fail_ior4reg:
 	release_mem_region(AKISP_REG_MEM_START, RESOURCE_SIZE);
 fail_req4reg:
-	priv->used_cnt--;
 	mutex_unlock(&priv->lock);
 	return err;
+}
+EXPORT_SYMBOL_GPL(ak_isp_acquire);
+
+int ak_isp_prepare(struct device *dev)
+{
+	int ret, sensor_id;
+
+	if (!priv)
+		return -ENODEV;
+	mutex_lock(&priv->lock);
+	if (!priv->capture_users || !priv->base || !priv->sensor_cb ||
+	    !priv->sensor_cb->sensor_read_id_func) {
+		ret = -ENODEV;
+		goto out;
+	}
+	if (priv->prepared) {
+		ret = 0;
+		goto out;
+	}
+	sensor_id = priv->sensor_cb->sensor_read_id_func();
+	if (sensor_id <= 0) {
+		ret = -ENODEV;
+		goto out;
+	}
+	if (!priv->tuning.firmware) {
+		ret = ak_isp_tuning_load(dev, tuning_firmware, sensor_id, &priv->tuning);
+		if (ret)
+			goto out;
+	}
+	ret = ak_isp_tuning_apply(&priv->tuning, 0, priv->sensor_cb, true);
+	if (!ret) {
+		priv->tuning_style = 0;
+		priv->prepared = true;
+	}
+out:
+	mutex_unlock(&priv->lock);
+	return ret;
+}
+EXPORT_SYMBOL_GPL(ak_isp_prepare);
+
+int ak_isp_apply_tuning_style(unsigned int style)
+{
+	int ret;
+
+	if (!priv)
+		return -ENODEV;
+	mutex_lock(&priv->lock);
+	if (!priv->capture_users || !priv->prepared) {
+		ret = -ENODEV;
+		goto out;
+	}
+	if (style >= priv->tuning.style_count) {
+		ret = -EINVAL;
+		goto out;
+	}
+	ret = ak_isp_tuning_apply(&priv->tuning, style, priv->sensor_cb, false);
+	if (!ret)
+		priv->tuning_style = style;
+	else
+		priv->prepared = false;
+out:
+	mutex_unlock(&priv->lock);
+	return ret;
+}
+EXPORT_SYMBOL_GPL(ak_isp_apply_tuning_style);
+
+int ak_isp_get_awb_auto(int *enabled)
+{
+	AK_ISP_WB_TYPE_ATTR type;
+	int ret;
+
+	if (!priv || !enabled)
+		return -ENODEV;
+	mutex_lock(&priv->lock);
+	if (!priv->capture_users || !priv->prepared) {
+		ret = -ENODEV;
+		goto out;
+	}
+	ret = ak_isp_vp_get_wb_type(&type);
+	if (!ret) {
+		if (type.wb_type > 1)
+			ret = -EIO;
+		else
+			*enabled = type.wb_type;
+	}
+out:
+	mutex_unlock(&priv->lock);
+	return ret;
+}
+EXPORT_SYMBOL_GPL(ak_isp_get_awb_auto);
+
+int ak_isp_set_awb_auto(int enabled)
+{
+	AK_ISP_WB_TYPE_ATTR type;
+	int ret;
+
+	if (enabled != 0 && enabled != 1)
+		return -EINVAL;
+	if (!priv)
+		return -ENODEV;
+	mutex_lock(&priv->lock);
+	if (!priv->capture_users || !priv->prepared)
+		ret = -ENODEV;
+	else {
+		type.wb_type = enabled;
+		ret = ak_isp_vp_set_wb_type(&type);
+	}
+	mutex_unlock(&priv->lock);
+	return ret;
+}
+EXPORT_SYMBOL_GPL(ak_isp_set_awb_auto);
+
+static void akisp_put_locked(void)
+{
+	if (priv->capture_users)
+		return;
+
+	isp2_module_fini();
+	iounmap(priv->base);
+	release_mem_region(AKISP_REG_MEM_START, RESOURCE_SIZE);
+	priv->base = NULL;
+	ak_isp_tuning_free(&priv->tuning);
+}
+
+void ak_isp_release(void)
+{
+	if (!priv)
+		return;
+	mutex_lock(&priv->lock);
+	if (WARN_ON(!priv->capture_users)) {
+		mutex_unlock(&priv->lock);
+		return;
+	}
+	priv->capture_users--;
+	if (!priv->capture_users) {
+		priv->prepared = false;
+		priv->set_style = NULL;
+		priv->capture_context = NULL;
+	}
+	akisp_put_locked();
+	mutex_unlock(&priv->lock);
+}
+EXPORT_SYMBOL_GPL(ak_isp_release);
+
+static int akisp_open(struct inode *node, struct file *file)
+{
+	int ret = 0;
+
+	if (!priv)
+		return -ENODEV;
+	mutex_lock(&priv->lock);
+	if (!priv->capture_users || !priv->prepared)
+		ret = -ENODEV;
+	mutex_unlock(&priv->lock);
+	return ret;
 }
 
 static int akisp_release(struct inode *node, struct file *file)
 {
-	int chn;
-	AK_ISP_OSD_MEM_ATTR *isp_osd_mem = NULL;
-	struct akisp_osd_info *p_osd_info;
-
-	mutex_lock(&priv->lock);
-
-	priv->used_cnt--;
-	if (priv->used_cnt) {
-		goto fini;
-	}
-
-	isp2_module_fini();
-
-	for (chn = 0; chn < ISP_OSD_CHN_NUM; chn++) {
-		p_osd_info = &priv->osd_info[chn];
-		if (p_osd_info->main_osd_vaddr) {
-			iounmap(p_osd_info->main_osd_vaddr);
-			p_osd_info->main_osd_vaddr = NULL;
-			p_osd_info->main_osd_paddr = NULL;
-			p_osd_info->main_osd_byte_size = 0;
-		}
-
-		if (p_osd_info->sub_osd_vaddr) {
-			iounmap(p_osd_info->sub_osd_vaddr);
-			p_osd_info->sub_osd_vaddr = NULL;
-			p_osd_info->sub_osd_paddr = NULL;
-			p_osd_info->sub_osd_byte_size = 0;
-		}
-
-		/* release osd irq dma memory */
-		isp_osd_mem = &p_osd_info->main_osd_irq_dma;
-		if (isp_osd_mem->dma_vaddr) {
-			iounmap(isp_osd_mem->dma_vaddr);
-			isp_osd_mem->dma_vaddr = NULL;
-		}
-
-
-		isp_osd_mem = &p_osd_info->sub_osd_irq_dma;
-		if (isp_osd_mem->dma_vaddr) {
-			iounmap(isp_osd_mem->dma_vaddr);
-			isp_osd_mem->dma_vaddr = NULL;
-		}
-	}
-	
-	
-	iounmap(priv->base);
-	release_mem_region(AKISP_REG_MEM_START, RESOURCE_SIZE);
-
-	priv->base = NULL;
-
-fini:
-	mutex_unlock(&priv->lock);
 	return 0;
 }
 
@@ -3658,23 +3414,18 @@ static struct miscdevice akisp_dev = {
 	.minor = MISC_DYNAMIC_MINOR,
 	.name = AKISP_DEV_NAME,
 	.fops = &akisp_ops,
-	.mode	= S_IRWXO,
+	.mode	= 0600,
 };
 
 int __init akisp_init(void)
 {
 	int err = 0;
-	if (misc_register(&akisp_dev)) {
-		printk(KERN_ERR "akisp: Unable register misc device.\n");
-		err = -ENODEV;
-		goto fail_reg;
-	}
 
 	priv = kzalloc(sizeof(struct akisp_char_pirv), GFP_KERNEL);
 	if (!priv) {
 		pr_err("%s: no mem\n", __func__);
 		err = -ENOMEM;
-		goto fail_mem4isp;
+		return err;
 	}
 
 	mutex_init(&priv->lock);
@@ -3684,13 +3435,14 @@ int __init akisp_init(void)
 		priv->sensor_cb = pending_sensor_cb;
 		pending_sensor_cb = NULL;
 	}
+	err = misc_register(&akisp_dev);
+	if (err) {
+		kfree(priv);
+		priv = NULL;
+		return err;
+	}
 
 	return 0;
-
-fail_mem4isp:
-	misc_deregister(&akisp_dev);
-fail_reg:
-	return err;
 }
 
 void __exit akisp_exit(void)

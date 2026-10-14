@@ -563,11 +563,12 @@ config AK_MOTOR
 	  If unsure, say N.
 
 config AK_ISP_CHAR
-	bool "Anyka ISP character device (/dev/isp_char)"
+	bool "Anyka ISP lifecycle and controls"
 	depends on ARCH_AK && AK_ISP_CORE && I2C && SOC_CAMERA
+	select FW_LOADER
 	help
-	  Character device that the userspace libakispsdk.so ISP library
-	  drives.
+	  Capture-owned ISP initialization and sensor tuning firmware loading,
+	  with a control-only /dev/isp_char interface.
 
 	  If unsure, say N.
 

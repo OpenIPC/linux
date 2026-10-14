@@ -57,7 +57,9 @@ static struct map_desc ak39ev330_iodesc[] __initdata = {
 	IODESC_ENT(SUBCTRL),
 	IODESC_ENT(MIPI1),
 	IODESC_ENT(L2MEM),
+#ifndef CONFIG_MACH_AK3918EV200
 	IODESC_ENT(RESERVED_MEM),
+#endif
 };
 
 void __init ak39ev330_map_io(void)

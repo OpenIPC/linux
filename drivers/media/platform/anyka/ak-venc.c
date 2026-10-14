@@ -63,13 +63,10 @@
 struct ak_venc_buffer {
 	struct v4l2_m2m_buffer	m2m;
 	void __iomem		*map;
-	bool			iomapped;
 };
 
 static const struct ak_venc_fmt ak_venc_formats[] = {
 	{
-		/* What the capture path delivers. The ISP driver enumerates
-		 * NV12 and does not produce it. */
 		.name	= "YUV 4:2:0 planar",
 		.fourcc	= V4L2_PIX_FMT_YUV420,
 		.depth	= 12,
@@ -209,9 +206,6 @@ static int ak_venc_alloc_priv(struct ak_venc_ctx *ctx)
 	struct ak_venc_q_data *q = &ctx->out_q;
 	size_t frames, nal;
 
-	if (ctx->priv_cpu)
-		return 0;
-
 	/*
 	 * A JPEG context needs none of this. The vendor's allocator, asked for
 	 * JPEG, returns without allocating a reference frame, a reconstruction
@@ -219,7 +213,7 @@ static int ak_venc_alloc_priv(struct ak_venc_ctx *ctx)
 	 * leaves all four frame-store address registers at zero.
 	 */
 	if (ak_venc_cap_is_jpeg(ctx))
-		return 0;
+		return ctx->priv_cpu ? -EINVAL : 0;
 
 	frames = akcam_h8290_frames_bytes(q->width, q->height);
 	if (!frames)
@@ -227,6 +221,11 @@ static int ak_venc_alloc_priv(struct ak_venc_ctx *ctx)
 
 	nal = (ALIGN(q->height, 16) / 16 + AK_VENC_NAL_SPARE) * sizeof(u32);
 	nal = ALIGN(nal, 8);
+	if (ctx->priv_cpu)
+		return ctx->priv_width == q->width &&
+		       ctx->priv_height == q->height &&
+		       ctx->priv_size == frames + nal + AK_VENC_CABAC_BYTES ?
+		       0 : -EINVAL;
 
 	ctx->nal_off = frames;
 	ctx->nal_bytes = nal;
@@ -237,6 +236,8 @@ static int ak_venc_alloc_priv(struct ak_venc_ctx *ctx)
 					   &ctx->priv_dma, GFP_KERNEL);
 	if (!ctx->priv_cpu)
 		return -ENOMEM;
+	ctx->priv_width = q->width;
+	ctx->priv_height = q->height;
 
 	memset(ctx->priv_cpu, 0, ctx->priv_size);
 	akcam_h8290_frames_init(&ctx->frames, (u32)ctx->priv_dma,
@@ -252,6 +253,7 @@ static void ak_venc_free_priv(struct ak_venc_ctx *ctx)
 			  ctx->priv_dma);
 	ctx->priv_cpu = NULL;
 	ctx->priv_size = 0;
+	ctx->priv_width = ctx->priv_height = 0;
 }
 
 /* -------------------------------------------------------------------------
@@ -531,6 +533,18 @@ static int ak_venc_program(struct ak_venc_ctx *ctx, struct vb2_buffer *src,
 	return 0;
 }
 
+static void ak_venc_program_error(struct work_struct *work)
+{
+	struct ak_venc_ctx *ctx = container_of(work, struct ak_venc_ctx,
+					     program_error_work);
+	struct ak_venc_dev *dev = ctx->dev;
+
+	disable_irq(dev->irq);
+	if (v4l2_m2m_get_curr_priv(dev->m2m_dev) == ctx)
+		ak_venc_job_done(ctx, VB2_BUF_STATE_ERROR);
+	enable_irq(dev->irq);
+}
+
 static void ak_venc_device_run(void *priv)
 {
 	struct ak_venc_ctx *ctx = priv;
@@ -540,7 +554,7 @@ static void ak_venc_device_run(void *priv)
 	src = v4l2_m2m_next_src_buf(ctx->m2m_ctx);
 	dst = v4l2_m2m_next_dst_buf(ctx->m2m_ctx);
 	if (!src || !dst) {
-		ak_venc_job_done(ctx, VB2_BUF_STATE_ERROR);
+		schedule_work(&ctx->program_error_work);
 		return;
 	}
 
@@ -548,7 +562,7 @@ static void ak_venc_device_run(void *priv)
 		if (ak_venc_note(dev, AK_VENC_EV_PROGRAM_FAIL))
 			v4l2_err(&dev->v4l2_dev,
 				 "cannot program a frame; counted in venc_stats from here on\n");
-		ak_venc_job_done(ctx, VB2_BUF_STATE_ERROR);
+		schedule_work(&ctx->program_error_work);
 		return;
 	}
 
@@ -570,10 +584,22 @@ static int ak_venc_job_ready(void *priv)
 static void ak_venc_job_abort(void *priv)
 {
 	struct ak_venc_ctx *ctx = priv;
+	struct ak_venc_dev *dev = ctx->dev;
+	u32 status;
 
 	ctx->aborting = true;
-	ak_venc_stop_core(ctx->dev);
-	ak_venc_job_done(ctx, VB2_BUF_STATE_ERROR);
+	cancel_work_sync(&ctx->program_error_work);
+	/* Completion can advance curr_ctx after mem2mem decides to abort. */
+	disable_irq(dev->irq);
+	if (v4l2_m2m_get_curr_priv(dev->m2m_dev) == ctx) {
+		ak_venc_stop_core(dev);
+		status = ak_venc_reg_read(dev, AKCAM_H8290_STATUS_REG);
+		writel(status & ~AK_VENC_IRQ_LINE,
+		       dev->regs + AKCAM_H8290_STATUS_REG * 4);
+		ak_venc_gop_restart(&ctx->gop);
+		ak_venc_job_done(ctx, VB2_BUF_STATE_ERROR);
+	}
+	enable_irq(dev->irq);
 }
 
 static void ak_venc_lock(void *priv)
@@ -752,22 +778,13 @@ static int ak_venc_queue_setup(struct vb2_queue *vq,
 
 static void ak_venc_unmap_buf(struct ak_venc_buffer *buf)
 {
-	if (buf->iomapped && buf->map)
-		iounmap(buf->map);
 	buf->map = NULL;
-	buf->iomapped = false;
 }
 
-/*
- * Software writes SPS and PPS into the head of the CAPTURE buffer, so the
- * driver needs a CPU view of it. MMAP buffers have one; a USERPTR buffer does
- * not, and the mapping cannot be made in device_run, which runs from the
- * interrupt handler by way of v4l2_m2m_job_finish().
- */
+/* CAPTURE headers require a coherent CPU mapping throughout device ownership. */
 static int ak_venc_map_capture(struct ak_venc_ctx *ctx, struct vb2_buffer *vb)
 {
 	struct ak_venc_buffer *buf = to_ak_buf(vb);
-	dma_addr_t dma;
 	void *vaddr;
 
 	ak_venc_unmap_buf(buf);
@@ -778,20 +795,7 @@ static int ak_venc_map_capture(struct ak_venc_ctx *ctx, struct vb2_buffer *vb)
 		return 0;
 	}
 
-	dma = vb2_dma_contig_plane_dma_addr(vb, 0);
-	if (!dma)
-		return -EINVAL;
-
-	if (pfn_valid(__phys_to_pfn(dma))) {
-		buf->map = (void __iomem __force *)phys_to_virt(dma);
-		return 0;
-	}
-
-	buf->map = ioremap_nocache(dma, vb2_plane_size(vb, 0));
-	if (!buf->map)
-		return -ENOMEM;
-	buf->iomapped = true;
-	return 0;
+	return -EINVAL;
 }
 
 static int ak_venc_buf_prepare(struct vb2_buffer *vb)
@@ -830,6 +834,10 @@ static void ak_venc_buf_queue(struct vb2_buffer *vb)
 	ak_venc_m2m_buf_queue(ctx->m2m_ctx, vb);
 }
 
+static void ak_venc_return_queued(struct ak_venc_ctx *ctx,
+				  struct vb2_queue *vq,
+				  enum vb2_buffer_state state);
+
 static int ak_venc_start_streaming(struct vb2_queue *vq, unsigned int count)
 {
 	struct ak_venc_ctx *ctx = vb2_get_drv_priv(vq);
@@ -838,20 +846,18 @@ static int ak_venc_start_streaming(struct vb2_queue *vq, unsigned int count)
 
 	ret = ak_venc_alloc_priv(ctx);
 	if (ret)
-		return ret;
+		goto fail;
 
 	ctx->rc_cfg.width = ctx->out_q.width;
 	ctx->rc_cfg.height = ctx->out_q.height;
 	ret = ak_venc_rc_reset(&ctx->rc, &ctx->rc_cfg);
-	if (ret)
-		return -EINVAL;
+	if (ret) {
+		ret = -EINVAL;
+		goto fail;
+	}
 	ctx->rc_dirty = false;
 
-	/*
-	 * The interrupt is taken here and not in probe() so that the UIO codec
-	 * driver, which takes it on its own first open, can still be used while
-	 * nothing is streaming. Whichever driver has it, the other one fails.
-	 */
+	/* The first streaming queue owns the IRQ until the last queue stops. */
 	if (dev->streaming_queues == 0) {
 		memset(&dev->ev_stats, 0, sizeof(dev->ev_stats));
 		dev->ev_reported = 0;
@@ -860,21 +866,27 @@ static int ak_venc_start_streaming(struct vb2_queue *vq, unsigned int count)
 		if (ret) {
 			v4l2_err(&dev->v4l2_dev, "cannot take irq %d\n",
 				 dev->irq);
-			return ret;
+			goto fail;
 		}
 		ak_venc_hw_on(dev);
 	}
 	dev->streaming_queues++;
 
 	if (!ctx->streaming) {
-		ctx->aborting = false;
 		ctx->frame_num = 0;
 		ctx->idr_pic_id = 0;
 		ak_venc_gop_restart(&ctx->gop);
 	}
+	ctx->aborting = false;
 	ctx->streaming++;
 
 	return 0;
+
+fail:
+	ak_venc_return_queued(ctx, vq, VB2_BUF_STATE_QUEUED);
+	if (!ctx->streaming)
+		ak_venc_free_priv(ctx);
+	return ret;
 }
 
 /*
@@ -883,7 +895,8 @@ static int ak_venc_start_streaming(struct vb2_queue *vq, unsigned int count)
  * __vb2_queue_cancel() counts. Give every one of them back here.
  */
 static void ak_venc_return_queued(struct ak_venc_ctx *ctx,
-				  struct vb2_queue *vq)
+				  struct vb2_queue *vq,
+				  enum vb2_buffer_state state)
 {
 	struct ak_venc_dev *dev = ctx->dev;
 	struct vb2_buffer *vb;
@@ -898,7 +911,7 @@ static void ak_venc_return_queued(struct ak_venc_ctx *ctx,
 			break;
 
 		spin_lock_irqsave(&dev->irqlock, flags);
-		ak_venc_m2m_buf_done(vb, VB2_BUF_STATE_ERROR);
+		ak_venc_m2m_buf_done(vb, state);
 		spin_unlock_irqrestore(&dev->irqlock, flags);
 	}
 }
@@ -908,7 +921,8 @@ static AK_VENC_STOP_STREAMING_RET ak_venc_stop_streaming(struct vb2_queue *vq)
 	struct ak_venc_ctx *ctx = vb2_get_drv_priv(vq);
 	struct ak_venc_dev *dev = ctx->dev;
 
-	ak_venc_return_queued(ctx, vq);
+	cancel_work_sync(&ctx->program_error_work);
+	ak_venc_return_queued(ctx, vq, VB2_BUF_STATE_ERROR);
 
 	if (ctx->streaming)
 		ctx->streaming--;
@@ -957,7 +971,7 @@ static int queue_init(void *priv, struct vb2_queue *src_vq,
 
 	memset(src_vq, 0, sizeof(*src_vq));
 	src_vq->type = V4L2_BUF_TYPE_VIDEO_OUTPUT;
-	src_vq->io_modes = VB2_MMAP | VB2_USERPTR;
+	src_vq->io_modes = VB2_MMAP | VB2_USERPTR | VB2_DMABUF;
 	src_vq->drv_priv = ctx;
 	src_vq->buf_struct_size = sizeof(struct ak_venc_buffer);
 	src_vq->ops = &ak_venc_qops;
@@ -970,7 +984,7 @@ static int queue_init(void *priv, struct vb2_queue *src_vq,
 
 	memset(dst_vq, 0, sizeof(*dst_vq));
 	dst_vq->type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	dst_vq->io_modes = VB2_MMAP | VB2_USERPTR;
+	dst_vq->io_modes = VB2_MMAP;
 	dst_vq->drv_priv = ctx;
 	dst_vq->buf_struct_size = sizeof(struct ak_venc_buffer);
 	dst_vq->ops = &ak_venc_qops;
@@ -990,10 +1004,8 @@ static int vidioc_querycap(struct file *file, void *priv,
 	strlcpy(cap->driver, AK_VENC_NAME, sizeof(cap->driver));
 	strlcpy(cap->card, "Anyka 8290 H.264/JPEG encoder", sizeof(cap->card));
 	strlcpy(cap->bus_info, "platform:" AK_VENC_NAME, sizeof(cap->bus_info));
-	/* No V4L2_CAP_VIDEO_M2M on this tree; mem2mem_testdev reports the
-	 * capture/output pair the same way. */
-	cap->capabilities = V4L2_CAP_VIDEO_CAPTURE | V4L2_CAP_VIDEO_OUTPUT |
-			    V4L2_CAP_STREAMING;
+	cap->device_caps = V4L2_CAP_VIDEO_M2M | V4L2_CAP_STREAMING;
+	cap->capabilities = cap->device_caps | V4L2_CAP_DEVICE_CAPS;
 	return 0;
 }
 
@@ -1127,14 +1139,22 @@ static int vidioc_try_fmt_vid_cap(struct file *file, void *priv,
 	return 0;
 }
 
+static bool ak_venc_queues_busy(struct ak_venc_ctx *ctx)
+{
+	return ctx->streaming ||
+		vb2_is_busy(v4l2_m2m_get_vq(ctx->m2m_ctx,
+					 V4L2_BUF_TYPE_VIDEO_OUTPUT)) ||
+		vb2_is_busy(v4l2_m2m_get_vq(ctx->m2m_ctx,
+					 V4L2_BUF_TYPE_VIDEO_CAPTURE));
+}
+
 static int vidioc_s_fmt_vid_out(struct file *file, void *priv,
 				struct v4l2_format *f)
 {
 	struct ak_venc_ctx *ctx = fh_to_ctx(priv);
-	struct vb2_queue *vq = v4l2_m2m_get_vq(ctx->m2m_ctx, f->type);
 	int ret;
 
-	if (vb2_is_busy(vq))
+	if (ak_venc_queues_busy(ctx))
 		return -EBUSY;
 
 	ret = vidioc_try_fmt_vid_out(file, priv, f);
@@ -1165,10 +1185,9 @@ static int vidioc_s_fmt_vid_cap(struct file *file, void *priv,
 				struct v4l2_format *f)
 {
 	struct ak_venc_ctx *ctx = fh_to_ctx(priv);
-	struct vb2_queue *vq = v4l2_m2m_get_vq(ctx->m2m_ctx, f->type);
 	int ret;
 
-	if (vb2_is_busy(vq))
+	if (ak_venc_queues_busy(ctx))
 		return -EBUSY;
 
 	ret = vidioc_try_fmt_vid_cap(file, priv, f);
@@ -1288,18 +1307,6 @@ static const struct v4l2_ioctl_ops ak_venc_ioctl_ops = {
  * controls
  * ------------------------------------------------------------------------- */
 
-/*
- * V4L2_CID_MPEG_VIDEO_FORCE_KEY_FRAME does not exist on this tree and its
- * upstream number is not in it either, so it is not used and not invented.
- * V4L2_CID_MPEG_MFC51_VIDEO_FORCE_FRAME_TYPE does exist in the uAPI header;
- * v4l2-ctrls.c has no case for it, so the driver supplies the menu itself.
- */
-static const char * const ak_venc_force_frame_menu[] = {
-	"Disabled",
-	"I Frame",
-	NULL,
-};
-
 static const char * const ak_venc_mb_rc_mode_menu[] = {
 	"MAD",
 	"Checkpoint",
@@ -1327,10 +1334,22 @@ static void ak_venc_apply_mb_rc(struct ak_venc_ctx *ctx)
 		ctx->rc_cfg.mb_rc = AK_VENC_MB_RC_MAD;
 }
 
+static int ak_venc_try_ctrl(struct v4l2_ctrl *ctrl)
+{
+	struct ak_venc_ctx *ctx =
+		container_of(ctrl->handler, struct ak_venc_ctx, ctrl_handler);
+
+	if (ctrl->id == V4L2_CID_MPEG_VIDEO_H264_MIN_QP &&
+	    ctx->qp_limits[0]->val > ctx->qp_limits[1]->val)
+		return -ERANGE;
+	return 0;
+}
+
 static int ak_venc_s_ctrl(struct v4l2_ctrl *ctrl)
 {
 	struct ak_venc_ctx *ctx =
 		container_of(ctrl->handler, struct ak_venc_ctx, ctrl_handler);
+	unsigned long flags;
 
 	switch (ctrl->id) {
 	case V4L2_CID_MPEG_VIDEO_H264_I_FRAME_QP:
@@ -1340,11 +1359,15 @@ static int ak_venc_s_ctrl(struct v4l2_ctrl *ctrl)
 		ctx->rc_cfg.fixed_p_qp = ctrl->val;
 		break;
 	case V4L2_CID_MPEG_VIDEO_H264_MIN_QP:
-		ctx->rc_cfg.qp_min = ctrl->val;
-		break;
 	case V4L2_CID_MPEG_VIDEO_H264_MAX_QP:
-		ctx->rc_cfg.qp_max = ctrl->val;
-		break;
+		if (ctx->qp_limits[0]->val > ctx->qp_limits[1]->val)
+			return -ERANGE;
+		spin_lock_irqsave(&ctx->dev->irqlock, flags);
+		ctx->rc_cfg.qp_min = ctx->qp_limits[0]->val;
+		ctx->rc_cfg.qp_max = ctx->qp_limits[1]->val;
+		ctx->rc_dirty = true;
+		spin_unlock_irqrestore(&ctx->dev->irqlock, flags);
+		return 0;
 	case V4L2_CID_MPEG_VIDEO_BITRATE:
 		ctx->rc_cfg.bitrate = ctrl->val;
 		break;
@@ -1372,10 +1395,9 @@ static int ak_venc_s_ctrl(struct v4l2_ctrl *ctrl)
 	case V4L2_CID_MPEG_VIDEO_H264_LEVEL:
 		ctx->level_idc = ak_venc_level_idc(ctrl->val);
 		break;
-	case V4L2_CID_MPEG_MFC51_VIDEO_FORCE_FRAME_TYPE:
-		if (ctrl->val == V4L2_MPEG_MFC51_VIDEO_FORCE_FRAME_TYPE_I_FRAME)
-			ak_venc_gop_request_intra(&ctx->gop);
-		break;
+	case V4L2_CID_MPEG_VIDEO_FORCE_KEY_FRAME:
+		ak_venc_gop_request_intra(&ctx->gop);
+		return 0;
 	case AK_VENC_CID_INTRA_QP_DELTA:
 		ctx->rc_cfg.intra_qp_delta = ctrl->val;
 		break;
@@ -1413,19 +1435,18 @@ static int ak_venc_s_ctrl(struct v4l2_ctrl *ctrl)
 }
 
 static const struct v4l2_ctrl_ops ak_venc_ctrl_ops = {
+	.try_ctrl = ak_venc_try_ctrl,
 	.s_ctrl = ak_venc_s_ctrl,
 };
 
 static const struct v4l2_ctrl_config ak_venc_custom_ctrls[] = {
 	{
 		.ops	= &ak_venc_ctrl_ops,
-		.id	= V4L2_CID_MPEG_MFC51_VIDEO_FORCE_FRAME_TYPE,
-		.name	= "Force Frame Type",
-		.type	= V4L2_CTRL_TYPE_MENU,
-		.min	= 0,
-		.max	= V4L2_MPEG_MFC51_VIDEO_FORCE_FRAME_TYPE_I_FRAME,
-		.def	= 0,
-		.qmenu	= ak_venc_force_frame_menu,
+		.id	= V4L2_CID_MPEG_VIDEO_FORCE_KEY_FRAME,
+		.name	= "Force Key Frame",
+		.type	= V4L2_CTRL_TYPE_BUTTON,
+		.flags	= V4L2_CTRL_FLAG_WRITE_ONLY |
+			  V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
 	}, {
 		.ops	= &ak_venc_ctrl_ops,
 		.id	= AK_VENC_CID_INTRA_QP_DELTA,
@@ -1496,10 +1517,10 @@ static int ak_venc_init_ctrls(struct ak_venc_ctx *ctx)
 	v4l2_ctrl_new_std(hdl, &ak_venc_ctrl_ops,
 			  V4L2_CID_MPEG_VIDEO_H264_P_FRAME_QP,
 			  0, 51, 1, AK_VENC_DEF_QP);
-	v4l2_ctrl_new_std(hdl, &ak_venc_ctrl_ops,
+	ctx->qp_limits[0] = v4l2_ctrl_new_std(hdl, &ak_venc_ctrl_ops,
 			  V4L2_CID_MPEG_VIDEO_H264_MIN_QP,
 			  0, 51, 1, AK_VENC_DEF_QP_MIN);
-	v4l2_ctrl_new_std(hdl, &ak_venc_ctrl_ops,
+	ctx->qp_limits[1] = v4l2_ctrl_new_std(hdl, &ak_venc_ctrl_ops,
 			  V4L2_CID_MPEG_VIDEO_H264_MAX_QP,
 			  0, 51, 1, AK_VENC_DEF_QP_MAX);
 	v4l2_ctrl_new_std(hdl, &ak_venc_ctrl_ops,
@@ -1552,6 +1573,7 @@ static int ak_venc_init_ctrls(struct ak_venc_ctx *ctx)
 		return ret;
 	}
 
+	v4l2_ctrl_cluster(ARRAY_SIZE(ctx->qp_limits), ctx->qp_limits);
 	return v4l2_ctrl_handler_setup(hdl);
 }
 
@@ -1587,6 +1609,7 @@ static int ak_venc_open(struct file *file)
 		return -ENOMEM;
 
 	ctx->dev = dev;
+	INIT_WORK(&ctx->program_error_work, ak_venc_program_error);
 	ak_venc_rc_defaults(&ctx->rc_cfg);
 	ctx->rc_cfg.gop_len = AK_VENC_DEF_GOP;
 	ctx->rc_cfg.fps_num = AK_VENC_DEF_FPS;
@@ -1627,13 +1650,17 @@ err_fh:
 static int ak_venc_release(struct file *file)
 {
 	struct ak_venc_ctx *ctx = fh_to_ctx(file->private_data);
+	struct ak_venc_dev *dev = ctx->dev;
 
+	mutex_lock(&dev->dev_mutex);
 	v4l2_m2m_ctx_release(ctx->m2m_ctx);
+	cancel_work_sync(&ctx->program_error_work);
 	ak_venc_free_priv(ctx);
 	v4l2_ctrl_handler_free(&ctx->ctrl_handler);
 	v4l2_fh_del(&ctx->fh);
 	v4l2_fh_exit(&ctx->fh);
 	kfree(ctx);
+	mutex_unlock(&dev->dev_mutex);
 	return 0;
 }
 
@@ -1752,11 +1779,9 @@ static int ak_venc_probe(struct platform_device *pdev)
 		goto err_free;
 	}
 
-	/* The window is 0x430 wide but only one page is ever mapped, and
-	 * nothing above 0x1fc is written. */
-	dev->regs = ioremap_nocache(res->start, AK_VENC_REG_WINDOW);
-	if (!dev->regs) {
-		ret = -ENOMEM;
+	dev->regs = devm_ioremap_resource(&pdev->dev, res);
+	if (IS_ERR(dev->regs)) {
+		ret = PTR_ERR(dev->regs);
 		goto err_free;
 	}
 
@@ -1838,7 +1863,6 @@ err_v4l2:
 err_unmap:
 	if (dev->clk)
 		clk_disable_unprepare(dev->clk);
-	iounmap(dev->regs);
 err_free:
 	of_reserved_mem_device_release(&pdev->dev);
 	kfree(dev);
@@ -1856,7 +1880,6 @@ static int ak_venc_remove(struct platform_device *pdev)
 	v4l2_device_unregister(&dev->v4l2_dev);
 	if (dev->clk)
 		clk_disable_unprepare(dev->clk);
-	iounmap(dev->regs);
 	of_reserved_mem_device_release(&pdev->dev);
 	kfree(dev);
 	return 0;
@@ -1873,6 +1896,7 @@ static struct platform_driver ak_venc_driver = {
 	.remove	= ak_venc_remove,
 	.driver	= {
 		.name		= AK_VENC_NAME,
+		.suppress_bind_attrs = true,
 		.owner		= THIS_MODULE,
 		.of_match_table	= ak_venc_of_match,
 	},

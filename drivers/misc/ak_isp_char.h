@@ -116,8 +116,10 @@
         
 #define AK_ISP_SET_3D_NR_REF		_IOW(AKISP_MAGIC,  103, int)
 #define AK_ISP_GET_3D_NR_REF	    _IOR(AKISP_MAGIC,  104, int)
-        
+
+/* Retired sensor initialization command; the driver returns ENOTTY. */
 #define AK_ISP_INIT_SENSOR_DEV		_IOW(AKISP_MAGIC,  105, int)
+
 #define AK_ISP_SET_3D_NR_PHYADDR	_IOW(AKISP_MAGIC,  106, int)
 #define AK_ISP_SET_SENSOR_REG		_IOW(AKISP_MAGIC,  107, int)
 #define AK_ISP_GET_SENSOR_REG		_IOR(AKISP_MAGIC,  108, int)
@@ -151,6 +153,9 @@
 
 #define AK_ISP_SET_MAE              _IOW(AKISP_MAGIC,  127, int)
 #define AK_ISP_GET_MAE			    _IOR(AKISP_MAGIC,  128, int)
+
+#define AK_ISP_SET_TUNING_STYLE _IOW(AKISP_MAGIC, 129, unsigned int)
+#define AK_ISP_GET_TUNING_STYLE _IOR(AKISP_MAGIC, 130, unsigned int)
 
 /* Blow is the params that user can adjust in real time */
 typedef struct {

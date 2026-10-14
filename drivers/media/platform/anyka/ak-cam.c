@@ -2,8 +2,8 @@
 /*
  * Anyka AK3918EV200 V4L2 capture bridge.
  *
- * The ISP2 core is a register library owned by /dev/isp_char and reached
- * through the ispdrv_* shim; this driver owns the DVP capture interface, the
+ * The ISP2 core is reached through the ispdrv_* shim; this driver owns the
+ * capture-time ISP reference, the DVP capture interface, the
  * four ISP video-output address slots, the frame interrupt and the deferred 3A
  * work, and presents them as plain V4L2 capture nodes over videobuf2.
  *
@@ -36,6 +36,7 @@
 #include <mach/map.h>
 #include <mach-anyka/ispdrv_interface.h>
 #include <plat-anyka/ak_sensor.h>
+#include <plat-anyka/ak_isp_lifecycle.h>
 
 #include "ak-cam.h"
 
@@ -63,6 +64,66 @@ static unsigned int ak_cam_frame_bytes(unsigned int width, unsigned int height)
 	return width * height * 3 / 2;
 }
 
+static int ak_cam_apply_crop(struct ak_cam_dev *dev,
+			     const struct v4l2_rect *rect);
+static int ak_cam_bound_format(struct ak_cam_node *node,
+			       struct v4l2_pix_format *pix);
+static int ak_cam_set_tuning_style(void *context, unsigned int style);
+
+static void ak_cam_free_ref(struct ak_cam_dev *dev)
+{
+	if (dev->ref_y_cpu)
+		dma_free_coherent(dev->dev, dev->ref_y_bytes, dev->ref_y_cpu,
+				  dev->ref_y_dma);
+	if (dev->ref_uv_cpu)
+		dma_free_coherent(dev->dev, dev->ref_uv_bytes, dev->ref_uv_cpu,
+				  dev->ref_uv_dma);
+	dev->ref_y_cpu = dev->ref_uv_cpu = NULL;
+	dev->ref_pixels = 0;
+}
+
+static int ak_cam_prepare_ref(struct ak_cam_dev *dev)
+{
+	struct ak_cam_node *main_node = &dev->node[AK_CAM_CHAN_MAIN];
+	struct v4l2_cropcap cap = { .type = V4L2_BUF_TYPE_VIDEO_CAPTURE };
+	unsigned int pixels;
+	AK_ISP_3D_NR_REF_ATTR ref;
+	int ret;
+
+	ret = v4l2_subdev_call(dev->sensor, video, cropcap, &cap);
+	if (ret)
+		return ret;
+	if (cap.bounds.width < AK_CAM_MIN_WIDTH ||
+	    cap.bounds.height < AK_CAM_MIN_HEIGHT ||
+	    main_node->width > cap.bounds.width ||
+	    main_node->height > cap.bounds.height ||
+	    (u64)cap.bounds.width * cap.bounds.height > UINT_MAX / 3)
+		return -EINVAL;
+	pixels = cap.bounds.width * cap.bounds.height;
+
+	if (dev->ref_pixels < pixels) {
+		ak_cam_free_ref(dev);
+		dev->ref_y_bytes = pixels * 2;
+		dev->ref_uv_bytes = pixels;
+		dev->ref_y_cpu = dma_alloc_coherent(dev->dev, dev->ref_y_bytes,
+						 &dev->ref_y_dma, GFP_KERNEL);
+		dev->ref_uv_cpu = dma_alloc_coherent(dev->dev, dev->ref_uv_bytes,
+						  &dev->ref_uv_dma, GFP_KERNEL);
+		if (!dev->ref_y_cpu || !dev->ref_uv_cpu) {
+			ak_cam_free_ref(dev);
+			return -ENOMEM;
+		}
+		dev->ref_pixels = pixels;
+	}
+	ref.yaddr_3d = dev->ref_y_dma;
+	ref.ysize_3d = dev->ref_y_bytes;
+	ref.uaddr_3d = dev->ref_uv_dma;
+	ref.usize_3d = dev->ref_uv_bytes / 2;
+	ref.vaddr_3d = dev->ref_uv_dma + dev->ref_uv_bytes / 2;
+	ref.vsize_3d = dev->ref_uv_bytes / 2;
+	return ispdrv_vp_set_3d_nr_ref_addr(&ref);
+}
+
 /* -------------------------------------------------------------------------
  * ISP slot scheduling
  * ------------------------------------------------------------------------- */
@@ -72,15 +133,30 @@ static void ak_cam_resume_work(struct work_struct *work)
 	struct ak_cam_dev *dev = container_of(work, struct ak_cam_dev,
 					      resume_work);
 	unsigned long flags;
+	unsigned int i;
+	int ret;
 
 	mutex_lock(&dev->stream_lock);
-	if (dev->stream_ctrl_off && dev->users &&
+	if (!dev->stream_active && dev->users &&
+	    dev->node[AK_CAM_CHAN_MAIN].streaming &&
+	    !dev->node[AK_CAM_CHAN_MAIN].vq.error &&
 	    dev->list_state >= LIST_FOUR) {
-		ispdrv_set_isp_resume();
-		dev->stream_ctrl_off = 0;
-		spin_lock_irqsave(&dev->lock, flags);
-		dev->stream_active = 1;
-		spin_unlock_irqrestore(&dev->lock, flags);
+		disable_irq(dev->irq);
+		ispdrv_vi_apply_mode(dev->cur_mode);
+		ispdrv_vo_enable_irq_status(0x1);
+		ret = dev->stream_ctrl_off ? ispdrv_set_isp_resume() :
+			ispdrv_vi_start_capturing();
+		if (!ret) {
+			dev->stream_ctrl_off = 0;
+			spin_lock_irqsave(&dev->lock, flags);
+			dev->stream_active = 1;
+			spin_unlock_irqrestore(&dev->lock, flags);
+		} else {
+			for (i = 0; i < AK_CAM_CHANNELS; i++)
+				if (dev->node[i].streaming)
+					vb2_queue_error(&dev->node[i].vq);
+		}
+		enable_irq(dev->irq);
 	}
 	mutex_unlock(&dev->stream_lock);
 }
@@ -129,13 +205,14 @@ static void ak_cam_arm_slot(struct ak_cam_dev *dev, unsigned int slot)
 
 	if (dev->slot_armed & (1ul << slot))
 		return;
-	if (!main_node->streaming || !main_node->armed[slot])
+	if (!main_node->streaming || main_node->vq.error ||
+	    !main_node->armed[slot])
 		return;
 	if (sub_node->streaming && !sub_node->armed[slot])
 		return;
 
 	yaddr_chl1 = vb2_dma_contig_plane_dma_addr(ak_cam_buf_vb(main_node->armed[slot]), 0);
-	if (sub_node->armed[slot]) {
+	if (sub_node->streaming && sub_node->armed[slot]) {
 		yaddr_chl2 = vb2_dma_contig_plane_dma_addr(ak_cam_buf_vb(sub_node->armed[slot]), 0);
 		dev->slot_sub |= 1ul << slot;
 	} else {
@@ -155,17 +232,8 @@ static void ak_cam_arm_slot(struct ak_cam_dev *dev, unsigned int slot)
 	if (dev->list_state < LIST_FIVE)
 		dev->list_state++;
 
-	if (dev->list_state == LIST_FOUR) {
-		ispdrv_vi_apply_mode(dev->cur_mode);
-		ispdrv_vo_enable_irq_status(0x1);
-
-		if (dev->stream_ctrl_off == 0) {
-			ispdrv_vi_start_capturing();
-			dev->stream_active = 1;
-		} else {
-			schedule_work(&dev->resume_work);
-		}
-	}
+	if (dev->list_state == LIST_FOUR)
+		schedule_work(&dev->resume_work);
 }
 
 static void ak_cam_arm_all(struct ak_cam_dev *dev)
@@ -181,20 +249,6 @@ static void ak_cam_arm_all(struct ak_cam_dev *dev)
  * interrupt
  * ------------------------------------------------------------------------- */
 
-static inline unsigned long get_timestamp(void)
-{
-	unsigned long ul;
-
-	ul = jiffies;
-	if (ul >= INITIAL_JIFFIES)
-		ul -= INITIAL_JIFFIES;
-	else
-		ul = (~(unsigned long)0) - INITIAL_JIFFIES + ul;
-	ul = jiffies_to_msecs(ul);
-
-	return ul;
-}
-
 static void ak_cam_delay_works(struct ak_cam_dev *dev)
 {
 	if (dev->cur_mode_class >= AK_CAM_MBUS_FMT_SBGGR8_1X8 &&
@@ -207,20 +261,17 @@ static void ak_cam_delay_works(struct ak_cam_dev *dev)
 static void ak_cam_finish_buffer(struct ak_cam_node *node,
 				 struct ak_cam_buffer *buf, int data_err)
 {
-	unsigned long timestamp_ms;
+	struct timeval timestamp;
 
-	if (!data_err) {
-		timestamp_ms = get_timestamp();
-		ak_cam_vb_set_timestamp(ak_cam_buf_vb(buf), timestamp_ms / 1000,
-					(timestamp_ms % 1000) * 1000);
-	} else {
-		ak_cam_vb_set_timestamp(ak_cam_buf_vb(buf), 0, 0);
-	}
+	v4l2_get_timestamp(&timestamp);
+	ak_cam_vb_set_timestamp(ak_cam_buf_vb(buf), timestamp.tv_sec,
+				timestamp.tv_usec);
 
 	ak_cam_vb_set_sequence(ak_cam_buf_vb(buf), node->sequence++);
 	list_del_init(&buf->list);
 	node->armed[ak_cam_vb_index(ak_cam_buf_vb(buf))] = NULL;
-	vb2_buffer_done(ak_cam_buf_vb(buf), VB2_BUF_STATE_DONE);
+	vb2_buffer_done(ak_cam_buf_vb(buf), data_err ? VB2_BUF_STATE_ERROR :
+			VB2_BUF_STATE_DONE);
 }
 
 static void ak_cam_finish_sub(struct ak_cam_dev *dev, unsigned int slot,
@@ -243,7 +294,6 @@ static int ak_cam_irq_continuous(struct ak_cam_dev *dev)
 	int video_data_err = 0;
 	int id;
 	struct ak_cam_buffer *buf;
-	struct list_head *next;
 	unsigned long ul, ul2;
 	int fps = 10;
 	unsigned int slot;
@@ -269,24 +319,18 @@ static int ak_cam_irq_continuous(struct ak_cam_dev *dev)
 	sjf = ul2;
 
 	id = ispdrv_vo_get_using_frame_buf_id();
-
-	next = node->capture.next;
-	if (next == &node->capture)
-		return 0;
-
-	buf = list_entry(next, struct ak_cam_buffer, list);
-	slot = ak_cam_vb_index(ak_cam_buf_vb(buf));
-
 	if (id == -1)
 		return 0;
-	else if ((id & 0x7F) != slot)
+	slot = id & 0x7f;
+	if (slot >= AK_CAM_SLOTS || !(dev->slot_armed & (1ul << slot)))
 		return 0;
-	else if (id >= 0x80)
+	buf = node->armed[slot];
+	if (!buf)
+		return 0;
+	if (id >= 0x80)
 		video_data_err = 1;
 
-	next = next->next;
-
-	if (next != &node->capture) {
+	if (hweight_long(dev->slot_armed) > 1) {
 		ispdrv_vo_disable_buffer(BUFFER_ONE + slot);
 		dev->slot_armed &= ~(1ul << slot);
 
@@ -296,7 +340,7 @@ static int ak_cam_irq_continuous(struct ak_cam_dev *dev)
 		dev->cur_buf_id = slot;
 	} else {
 		dev->cur_buf_id = -1;
-		v4l2_warn(&dev->v4l2_dev, "lost frame at %ld\n", jiffies);
+		dev_warn_ratelimited(dev->dev, "capture buffer underrun\n");
 	}
 
 	return 0;
@@ -308,6 +352,8 @@ static irqreturn_t ak_cam_irq(int irq, void *data)
 	unsigned long stat;
 	unsigned long flags;
 
+	if (!ispdrv_is_ready())
+		return IRQ_NONE;
 	in_irq_jf = jiffies;
 
 	spin_lock_irqsave(&dev->lock, flags);
@@ -319,7 +365,7 @@ static irqreturn_t ak_cam_irq(int irq, void *data)
 	}
 
 	ispdrv_irq_work();
-	if (dev->list_state == LIST_ZERO)
+	if (!dev->stream_active || dev->list_state == LIST_ZERO)
 		goto out;
 
 	if (!ispdrv_is_continuous()) {
@@ -385,21 +431,6 @@ static void ak_cam_ae_work(struct work_struct *work)
 
 	ispdrv_ae_work();
 
-	if (dev->cur_buf_id != -1) {
-		void *yuv_paddr, *mdinfo;
-		void *yuv_vaddr;
-
-		ispdrv_get_yuvaddr_and_mdinfo(dev->cur_buf_id,
-					      &yuv_paddr, &mdinfo);
-		yuv_vaddr = ioremap_nocache((unsigned long)yuv_paddr,
-					    AK_CAM_MD_INFO_BYTES);
-		if (yuv_vaddr) {
-			memcpy(yuv_vaddr, mdinfo, AK_CAM_MD_INFO_BYTES);
-			iounmap(yuv_vaddr);
-		}
-		dev->cur_buf_id = -1;
-	}
-
 	if (_tdnr_flag && !_tdnr_set) {
 		ispdrv_set_td();
 		spin_lock_irqsave(&dev->lock, flags);
@@ -457,6 +488,12 @@ static void set_sensor_cis_sclk(unsigned int cis_sclk)
 	regval &= ~(0x3f << 10);
 	regval |= (cis_sclk_div << 10);
 	REG32(CLOCK_PERI_PLL_CTRL2) = (1 << 19) | regval;
+	REG32(CLOCK_PERI_PLL_CTRL2) |= 1 << 18;
+}
+
+static void disable_sensor_cis_sclk(void)
+{
+	REG32(CLOCK_PERI_PLL_CTRL2) &= ~(1 << 18);
 }
 
 static void set_pclk_polar(int is_rising)
@@ -494,10 +531,18 @@ static int ak_cam_power_on(struct ak_cam_dev *dev)
 	enum sensor_bus_type sensor_bus_type = BUS_TYPE_RAW;
 	unsigned long sensor_mclk = dev->mclk;
 	AK_ISP_SENSOR_CB *sensor_cb;
+	struct v4l2_cropcap cropcap = { .type = V4L2_BUF_TYPE_VIDEO_CAPTURE };
+	unsigned int i;
 	int ret;
 
-	v4l2_subdev_call(dev->sensor, core, s_power, 1);
-	v4l2_subdev_call(dev->sensor, core, init, 0);
+	ret = clk_prepare_enable(dev->clk);
+	if (ret)
+		return ret;
+	REG32(CLOCK_PERI_PLL_CTRL1) &= ~(0x01 << 25);
+	set_sensor_cis_sclk(sensor_mclk);
+	ret = v4l2_subdev_call(dev->sensor, core, init, 0);
+	if (ret)
+		goto err_power;
 
 	sensor_cb = ak_sensor_get_sensor_cb();
 	if (sensor_cb) {
@@ -521,19 +566,43 @@ static int ak_cam_power_on(struct ak_cam_dev *dev)
 		"sensor bus %d, interface %d, IO level %d, mclk %luMHz\n",
 		sensor_bus_type, sensor_interface, sensor_io_level, sensor_mclk);
 
-	clk_prepare_enable(dev->cis_sclk);
 	set_sensor_cis_sclk(sensor_mclk);
 
-	clk_prepare_enable(dev->clk);
-	REG32(CLOCK_PERI_PLL_CTRL1) &= ~(0x01 << 25);
-
 	ret = set_sensor_interface(dev, sensor_interface);
-	if (ret) {
-		clk_disable_unprepare(dev->clk);
-		clk_disable_unprepare(dev->cis_sclk);
-		v4l2_subdev_call(dev->sensor, core, reset, 0);
-		v4l2_subdev_call(dev->sensor, core, s_power, 0);
-		return ret;
+	if (ret)
+		goto err_power;
+	ret = ak_isp_acquire(ak_cam_set_tuning_style, dev);
+	if (ret)
+		goto err_power;
+	ret = ak_isp_prepare(dev->dev);
+	if (ret)
+		goto err_isp;
+	ret = v4l2_subdev_call(dev->sensor, video, cropcap, &cropcap);
+	if (ret)
+		goto err_isp;
+	if (!dev->crop.width || !dev->crop.height)
+		dev->crop = cropcap.defrect;
+	ret = ak_cam_apply_crop(dev, &dev->crop);
+	if (ret)
+		goto err_isp;
+	for (i = 0; i < AK_CAM_CHANNELS; i++) {
+		struct ak_cam_node *node = &dev->node[i];
+		struct v4l2_pix_format pix = { .width = node->width,
+			.height = node->height };
+
+		ret = ak_cam_bound_format(node, &pix);
+		if (ret)
+			goto err_isp;
+		node->width = pix.width;
+		node->height = pix.height;
+		node->bytesperline = pix.bytesperline;
+		node->sizeimage = pix.sizeimage;
+		if (i == AK_CAM_CHAN_MAIN)
+			ret = ispdrv_vo_set_main_channel_scale(pix.width, pix.height);
+		else
+			ret = ispdrv_vo_set_sub_channel_scale(pix.width, pix.height);
+		if (ret)
+			goto err_isp;
 	}
 
 	if (sensor_bus_type == BUS_TYPE_YUV) {
@@ -544,7 +613,17 @@ static int ak_cam_power_on(struct ak_cam_dev *dev)
 		dev->cur_mode = ISP_RGB_VIDEO_OUT;
 	}
 
+	ispdrv_vo_clear_irq_status(0xffff);
+	enable_irq(dev->irq);
 	return 0;
+
+err_isp:
+	ak_isp_release();
+err_power:
+	v4l2_subdev_call(dev->sensor, core, s_power, 0);
+	disable_sensor_cis_sclk();
+	clk_disable_unprepare(dev->clk);
+	return ret;
 }
 
 static void ak_cam_power_off(struct ak_cam_dev *dev)
@@ -553,13 +632,15 @@ static void ak_cam_power_off(struct ak_cam_dev *dev)
 	_tdnr_flag = 0;
 
 	ak_cam_stop_capture(dev);
+	disable_irq(dev->irq);
 	v4l2_subdev_call(dev->sensor, core, reset, 0);
 	v4l2_subdev_call(dev->sensor, core, s_power, 0);
 
 	mdelay(500);
 
+	ak_isp_release();
+	disable_sensor_cis_sclk();
 	clk_disable_unprepare(dev->clk);
-	clk_disable_unprepare(dev->cis_sclk);
 
 	mutex_lock(&dev->stream_lock);
 	dev->stream_ctrl_off = 0;
@@ -599,7 +680,7 @@ static int ak_cam_buf_prepare(struct vb2_buffer *vb)
 	if (vb2_plane_size(vb, 0) < node->sizeimage)
 		return -EINVAL;
 
-	vb2_set_plane_payload(vb, 0, node->sizeimage);
+	vb2_set_plane_payload(vb, 0, ak_cam_frame_bytes(node->width, node->height));
 	ak_cam_vb_set_field(vb, V4L2_FIELD_NONE);
 
 	return 0;
@@ -637,6 +718,57 @@ static void ak_cam_return_buffers(struct ak_cam_node *node,
 		vb2_buffer_done(ak_cam_buf_vb(buf), state);
 	}
 	spin_unlock_irqrestore(&dev->lock, flags);
+}
+
+static int ak_cam_set_tuning_style(void *context, unsigned int style)
+{
+	struct ak_cam_dev *dev = context;
+	unsigned long flags;
+	unsigned int i;
+	bool resume;
+	int ret, resume_ret = 0;
+
+	mutex_lock(&dev->mutex);
+	if (!dev->users) {
+		ret = -ENODEV;
+		goto out;
+	}
+	flush_work(&dev->resume_work);
+	if (dev->node[AK_CAM_CHAN_MAIN].vq.error) {
+		ret = -EIO;
+		goto out;
+	}
+	resume = dev->stream_active ||
+		(dev->stream_ctrl_off && dev->node[AK_CAM_CHAN_MAIN].streaming &&
+		 dev->list_state >= LIST_FOUR);
+	ak_cam_stop_capture(dev);
+	disable_irq(dev->irq);
+	ret = ak_isp_apply_tuning_style(style);
+	if (resume && !ret) {
+		mutex_lock(&dev->stream_lock);
+		resume_ret = ispdrv_set_isp_resume();
+		if (!resume_ret) {
+			dev->stream_ctrl_off = 0;
+			spin_lock_irqsave(&dev->lock, flags);
+			dev->stream_active = 1;
+			spin_unlock_irqrestore(&dev->lock, flags);
+		}
+		mutex_unlock(&dev->stream_lock);
+	}
+	enable_irq(dev->irq);
+	if (ret || resume_ret) {
+		for (i = 0; i < AK_CAM_CHANNELS; i++) {
+			if (!dev->node[i].streaming)
+				continue;
+			vb2_queue_error(&dev->node[i].vq);
+			ak_cam_return_buffers(&dev->node[i], VB2_BUF_STATE_ERROR);
+		}
+		if (!ret)
+			ret = resume_ret;
+	}
+out:
+	mutex_unlock(&dev->mutex);
+	return ret;
 }
 
 static int ak_cam_alloc_scratch(struct ak_cam_dev *dev)
@@ -682,6 +814,9 @@ static int ak_cam_start_main(struct ak_cam_dev *dev)
 	ret = ak_cam_alloc_scratch(dev);
 	if (ret)
 		return ret;
+	ret = ak_cam_prepare_ref(dev);
+	if (ret)
+		return ret;
 
 	if (!sub->streaming) {
 		ret = ispdrv_vo_set_sub_channel_scale(sub->width, sub->height);
@@ -712,26 +847,20 @@ static int ak_cam_start_streaming(struct vb2_queue *vq, unsigned int count)
 	unsigned long flags;
 	int ret;
 
-	if (!ispdrv_is_ready()) {
-		v4l2_err(&dev->v4l2_dev,
-			 "ISP core is down - open /dev/isp_char first\n");
-		return -ENODEV;
-	}
-
 	if (count < AK_CAM_SLOTS) {
 		v4l2_err(&dev->v4l2_dev, "%u buffers queued, %u needed\n",
 			 count, AK_CAM_SLOTS);
-		return -EINVAL;
+		ret = -EINVAL;
+		goto fail;
 	}
 
 	if (node->chan == AK_CAM_CHAN_MAIN) {
 		ret = ak_cam_start_main(dev);
 		if (ret)
-			return ret;
+			goto fail;
 	} else if (!dev->node[AK_CAM_CHAN_MAIN].streaming) {
-		ret = ispdrv_vo_set_sub_channel_scale(node->width, node->height);
-		if (ret)
-			return ret;
+		ret = -EPIPE;
+		goto fail;
 	}
 
 	node->sequence = 0;
@@ -742,6 +871,10 @@ static int ak_cam_start_streaming(struct vb2_queue *vq, unsigned int count)
 	spin_unlock_irqrestore(&dev->lock, flags);
 
 	return 0;
+
+fail:
+	ak_cam_return_buffers(node, VB2_BUF_STATE_QUEUED);
+	return ret;
 }
 
 static AK_CAM_STOP_STREAMING_RET ak_cam_stop_streaming(struct vb2_queue *vq)
@@ -750,22 +883,29 @@ static AK_CAM_STOP_STREAMING_RET ak_cam_stop_streaming(struct vb2_queue *vq)
 	struct ak_cam_dev *dev = node->dev;
 	unsigned long flags;
 
-	if (node->chan == AK_CAM_CHAN_MAIN) {
-		ak_cam_stop_capture(dev);
+	/* Both output addresses share each hardware slot. */
+	ak_cam_stop_capture(dev);
+	if (node->chan == AK_CAM_CHAN_MAIN)
 		v4l2_subdev_call(dev->sensor, video, s_stream, 0);
-	}
 
 	spin_lock_irqsave(&dev->lock, flags);
 	node->streaming = 0;
-	if (node->chan == AK_CAM_CHAN_MAIN) {
-		dev->list_state = LIST_ZERO;
-		dev->slot_armed = 0;
-	} else {
-		dev->slot_sub = 0;
-	}
+	dev->list_state = LIST_ZERO;
+	dev->slot_armed = 0;
+	dev->slot_sub = 0;
 	spin_unlock_irqrestore(&dev->lock, flags);
 
 	ak_cam_return_buffers(node, VB2_BUF_STATE_ERROR);
+	if (node->chan == AK_CAM_CHAN_MAIN &&
+	    dev->node[AK_CAM_CHAN_SUB].streaming) {
+		dev->node[AK_CAM_CHAN_SUB].streaming = 0;
+		vb2_queue_error(&dev->node[AK_CAM_CHAN_SUB].vq);
+		ak_cam_return_buffers(&dev->node[AK_CAM_CHAN_SUB], VB2_BUF_STATE_ERROR);
+	} else if (dev->node[AK_CAM_CHAN_MAIN].streaming) {
+		spin_lock_irqsave(&dev->lock, flags);
+		ak_cam_arm_all(dev);
+		spin_unlock_irqrestore(&dev->lock, flags);
+	}
 
 	ak_cam_stop_streaming_done();
 }
@@ -807,7 +947,8 @@ static int ak_cam_querycap(struct file *file, void *priv,
 	strlcpy(cap->card, ak_cam_card, sizeof(cap->card));
 	snprintf(cap->bus_info, sizeof(cap->bus_info), "platform:%s.%u",
 		 AK_CAM_NAME, node->chan);
-	cap->capabilities = V4L2_CAP_VIDEO_CAPTURE | V4L2_CAP_STREAMING;
+	cap->device_caps = V4L2_CAP_VIDEO_CAPTURE | V4L2_CAP_STREAMING;
+	cap->capabilities = cap->device_caps | V4L2_CAP_DEVICE_CAPS;
 
 	return 0;
 }
@@ -857,6 +998,11 @@ static int ak_cam_bound_format(struct ak_cam_node *node,
 	ret = v4l2_subdev_call(dev->sensor, video, cropcap, &cropcap);
 	if (ret)
 		return ret;
+	if (dev->crop.width && dev->crop.height)
+		cropcap.bounds = dev->crop;
+	if (cropcap.bounds.width < AK_CAM_MIN_WIDTH ||
+	    cropcap.bounds.height < AK_CAM_MIN_HEIGHT)
+		return -EINVAL;
 
 	if (pix->width < AK_CAM_MIN_WIDTH)
 		pix->width = AK_CAM_MIN_WIDTH;
@@ -874,8 +1020,6 @@ static int ak_cam_bound_format(struct ak_cam_node *node,
 	pix->field = V4L2_FIELD_NONE;
 	pix->bytesperline = pix->width;
 	pix->sizeimage = ak_cam_frame_bytes(pix->width, pix->height);
-	if (node->chan == AK_CAM_CHAN_SUB)
-		pix->sizeimage += AK_CAM_MD_INFO_BYTES;
 	pix->colorspace = V4L2_COLORSPACE_SMPTE170M;
 
 	return 0;
@@ -899,12 +1043,6 @@ static int ak_cam_s_fmt(struct file *file, void *priv, struct v4l2_format *f)
 	if (node->chan == AK_CAM_CHAN_SUB && !node->streaming &&
 	    dev->node[AK_CAM_CHAN_MAIN].streaming)
 		return -EBUSY;
-
-	if (!ispdrv_is_ready()) {
-		v4l2_err(&dev->v4l2_dev,
-			 "ISP core is down - open /dev/isp_char first\n");
-		return -ENODEV;
-	}
 
 	ret = ak_cam_bound_format(node, pix);
 	if (ret)
@@ -940,27 +1078,25 @@ static int ak_cam_g_crop(struct file *file, void *priv, struct v4l2_crop *crop)
 {
 	struct ak_cam_node *node = ak_cam_file_node(file);
 
-	return v4l2_subdev_call(node->dev->sensor, video, g_crop, crop);
+	if (crop->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
+		return -EINVAL;
+	crop->c = node->dev->crop;
+	return 0;
 }
 
 /*
  * The ISP input window. Without it the VI never completes a frame, so it is
  * driven from the main node only and the sub channel scales what it produces.
  */
-static int ak_cam_s_crop(struct file *file, void *priv,
-			 AK_CAM_S_CROP_ARG *crop)
+static int ak_cam_apply_crop(struct ak_cam_dev *dev,
+			     const struct v4l2_rect *rect)
 {
-	struct ak_cam_node *node = ak_cam_file_node(file);
-	struct ak_cam_dev *dev = node->dev;
-	struct v4l2_cropcap cropcap;
-	struct v4l2_crop local_crop;
+	struct v4l2_cropcap cropcap = { .type = V4L2_BUF_TYPE_VIDEO_CAPTURE };
+	struct v4l2_crop local_crop = { .type = V4L2_BUF_TYPE_VIDEO_CAPTURE };
 	struct v4l2_rect off_rect;
 	int total_left, total_top;
 	int ret;
 	AK_ISP_SENSOR_CB *sensor_cb;
-
-	if (node->chan != AK_CAM_CHAN_MAIN)
-		return -ENOTTY;
 
 	sensor_cb = ak_sensor_get_sensor_cb();
 	if (!sensor_cb)
@@ -973,28 +1109,93 @@ static int ak_cam_s_crop(struct file *file, void *priv,
 	if (ret)
 		return -EINVAL;
 
-	if ((cropcap.bounds.width - crop->c.left < crop->c.width) ||
-	    (cropcap.bounds.height - crop->c.top < crop->c.height)) {
-		v4l2_err(&dev->v4l2_dev, "error crop values\n");
+	if (rect->left < 0 || rect->top < 0 ||
+	    rect->width < AK_CAM_MIN_WIDTH || rect->height < AK_CAM_MIN_HEIGHT ||
+	    ((rect->left | rect->top | rect->width | rect->height) & 1) ||
+	    rect->left > cropcap.bounds.width || rect->top > cropcap.bounds.height ||
+	    rect->width > cropcap.bounds.width - rect->left ||
+	    rect->height > cropcap.bounds.height - rect->top)
 		return -EINVAL;
-	}
 
-	total_left = off_rect.left + crop->c.left;
-	total_top = off_rect.top + crop->c.top;
+	total_left = off_rect.left + rect->left;
+	total_top = off_rect.top + rect->top;
 
-	ret = ispdrv_vi_set_crop(total_left, total_top, crop->c.width,
-				 crop->c.height);
+	ret = ispdrv_vi_set_crop(total_left, total_top, rect->width,
+				 rect->height);
 	if (ret) {
 		v4l2_err(&dev->v4l2_dev, "error set isp crop\n");
 		return -EINVAL;
 	}
 
-	local_crop.c.left = total_left;
-	local_crop.c.top = total_top;
-	local_crop.c.width = crop->c.width;
-	local_crop.c.height = crop->c.height;
+	local_crop.c = *rect;
+	ret = v4l2_subdev_call(dev->sensor, video, s_crop, &local_crop);
+	if (!ret)
+		dev->crop = *rect;
+	return ret;
+}
 
-	return v4l2_subdev_call(dev->sensor, video, s_crop, &local_crop);
+static int ak_cam_s_crop(struct file *file, void *priv,
+			 AK_CAM_S_CROP_ARG *crop)
+{
+	struct ak_cam_node *node = ak_cam_file_node(file);
+	struct ak_cam_dev *dev = node->dev;
+	int ret;
+
+	if (crop->type != V4L2_BUF_TYPE_VIDEO_CAPTURE ||
+	    node->chan != AK_CAM_CHAN_MAIN)
+		return -EINVAL;
+	if (vb2_is_busy(&dev->node[0].vq) || vb2_is_busy(&dev->node[1].vq))
+		return -EBUSY;
+	if (crop->c.width < dev->node[0].width ||
+	    crop->c.height < dev->node[0].height ||
+	    crop->c.width < dev->node[1].width ||
+	    crop->c.height < dev->node[1].height)
+		return -EINVAL;
+	ret = ak_cam_apply_crop(dev, &crop->c);
+	if (ret)
+		return ret;
+	ret = ispdrv_vo_set_main_channel_scale(dev->node[0].width,
+						dev->node[0].height);
+	if (ret)
+		return ret;
+	return ispdrv_vo_set_sub_channel_scale(dev->node[1].width,
+					      dev->node[1].height);
+}
+
+static int ak_cam_g_selection(struct file *file, void *priv,
+			      struct v4l2_selection *selection)
+{
+	struct ak_cam_node *node = ak_cam_file_node(file);
+	struct v4l2_cropcap cap = { .type = V4L2_BUF_TYPE_VIDEO_CAPTURE };
+	int ret;
+
+	if (selection->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
+		return -EINVAL;
+	switch (selection->target) {
+	case V4L2_SEL_TGT_CROP:
+		selection->r = node->dev->crop;
+		return 0;
+	case V4L2_SEL_TGT_CROP_BOUNDS:
+	case V4L2_SEL_TGT_CROP_DEFAULT:
+		ret = v4l2_subdev_call(node->dev->sensor, video, cropcap, &cap);
+		if (ret)
+			return ret;
+		selection->r = selection->target == V4L2_SEL_TGT_CROP_BOUNDS ?
+			cap.bounds : cap.defrect;
+		return 0;
+	default:
+		return -EINVAL;
+	}
+}
+
+static int ak_cam_s_selection(struct file *file, void *priv,
+			      struct v4l2_selection *selection)
+{
+	struct v4l2_crop crop = { .type = selection->type, .c = selection->r };
+
+	if (selection->target != V4L2_SEL_TGT_CROP || selection->flags)
+		return -EINVAL;
+	return ak_cam_s_crop(file, priv, &crop);
 }
 
 static int ak_cam_g_parm(struct file *file, void *priv,
@@ -1012,6 +1213,8 @@ static int ak_cam_s_parm(struct file *file, void *priv,
 
 	if (node->chan != AK_CAM_CHAN_MAIN)
 		return -ENOTTY;
+	if (node->streaming)
+		return -EBUSY;
 
 	return v4l2_subdev_call(node->dev->sensor, video, s_parm, parm);
 }
@@ -1050,6 +1253,12 @@ static int ak_cam_querybuf(struct file *file, void *priv,
 			   struct v4l2_buffer *p)
 {
 	return vb2_querybuf(&ak_cam_file_node(file)->vq, p);
+}
+
+static int ak_cam_expbuf(struct file *file, void *priv,
+			struct v4l2_exportbuffer *p)
+{
+	return vb2_expbuf(&ak_cam_file_node(file)->vq, p);
 }
 
 static int ak_cam_qbuf(struct file *file, void *priv, struct v4l2_buffer *p)
@@ -1092,6 +1301,8 @@ static const struct v4l2_ioctl_ops ak_cam_ioctl_ops = {
 	.vidioc_cropcap			= ak_cam_cropcap,
 	.vidioc_g_crop			= ak_cam_g_crop,
 	.vidioc_s_crop			= ak_cam_s_crop,
+	.vidioc_g_selection		= ak_cam_g_selection,
+	.vidioc_s_selection		= ak_cam_s_selection,
 
 	.vidioc_g_parm			= ak_cam_g_parm,
 	.vidioc_s_parm			= ak_cam_s_parm,
@@ -1102,6 +1313,7 @@ static const struct v4l2_ioctl_ops ak_cam_ioctl_ops = {
 
 	.vidioc_reqbufs			= ak_cam_reqbufs,
 	.vidioc_querybuf		= ak_cam_querybuf,
+	.vidioc_expbuf			= ak_cam_expbuf,
 	.vidioc_qbuf			= ak_cam_qbuf,
 	.vidioc_dqbuf			= ak_cam_dqbuf,
 	.vidioc_prepare_buf		= ak_cam_prepare_buf,
@@ -1154,6 +1366,7 @@ static int ak_cam_release(struct file *file)
 	if (--dev->users == 0) {
 		ak_cam_power_off(dev);
 		ak_cam_free_scratch(dev);
+		ak_cam_free_ref(dev);
 	}
 
 	mutex_unlock(&dev->mutex);
@@ -1203,6 +1416,30 @@ static struct video_device ak_cam_videodev = {
  * platform driver
  * ------------------------------------------------------------------------- */
 
+static int ak_cam_set_ctrl(struct v4l2_ctrl *ctrl)
+{
+	if (ctrl->id == V4L2_CID_AUTO_WHITE_BALANCE)
+		return ak_isp_set_awb_auto(ctrl->val);
+	return -EINVAL;
+}
+
+static int ak_cam_get_ctrl(struct v4l2_ctrl *ctrl)
+{
+	int value, ret;
+
+	if (ctrl->id != V4L2_CID_AUTO_WHITE_BALANCE)
+		return -EINVAL;
+	ret = ak_isp_get_awb_auto(&value);
+	if (!ret)
+		ctrl->val = value;
+	return ret;
+}
+
+static const struct v4l2_ctrl_ops ak_cam_ctrl_ops = {
+	.s_ctrl = ak_cam_set_ctrl,
+	.g_volatile_ctrl = ak_cam_get_ctrl,
+};
+
 static int ak_cam_init_node(struct ak_cam_dev *dev, unsigned int chan)
 {
 	struct ak_cam_node *node = &dev->node[chan];
@@ -1221,8 +1458,7 @@ static int ak_cam_init_node(struct ak_cam_dev *dev, unsigned int chan)
 	} else {
 		node->width = AK_CAM_SUB_DEF_WIDTH;
 		node->height = AK_CAM_SUB_DEF_HEIGHT;
-		node->sizeimage = ak_cam_frame_bytes(node->width, node->height) +
-				  AK_CAM_MD_INFO_BYTES;
+		node->sizeimage = ak_cam_frame_bytes(node->width, node->height);
 	}
 	node->bytesperline = node->width;
 
@@ -1233,6 +1469,8 @@ static int ak_cam_init_node(struct ak_cam_dev *dev, unsigned int chan)
 	vq->buf_struct_size = sizeof(struct ak_cam_buffer);
 	vq->ops = &ak_cam_qops;
 	vq->mem_ops = &vb2_dma_contig_memops;
+	vq->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC;
+	vq->min_buffers_needed = AK_CAM_SLOTS;
 
 	ret = vb2_queue_init(vq);
 	if (ret)
@@ -1247,7 +1485,7 @@ static int ak_cam_init_node(struct ak_cam_dev *dev, unsigned int chan)
 		 chan == AK_CAM_CHAN_MAIN ? "main" : "sub");
 	vfd->v4l2_dev = &dev->v4l2_dev;
 	vfd->lock = &dev->mutex;
-	vfd->ctrl_handler = dev->sensor->ctrl_handler;
+	vfd->ctrl_handler = &dev->controls;
 	node->vdev = vfd;
 	video_set_drvdata(vfd, node);
 
@@ -1275,9 +1513,8 @@ static void ak_cam_free_node(struct ak_cam_dev *dev, unsigned int chan)
 static int ak_cam_init_sensor(struct ak_cam_dev *dev)
 {
 	struct device_node *ep, *remote;
-	struct i2c_adapter *adapter;
-	struct i2c_board_info info;
-	u32 addr;
+	struct i2c_client *client;
+	int ret;
 
 	ep = of_graph_get_next_endpoint(dev->dev->of_node, NULL);
 	if (!ep)
@@ -1288,30 +1525,18 @@ static int ak_cam_init_sensor(struct ak_cam_dev *dev)
 	if (!remote)
 		return -ENODEV;
 
-	if (of_property_read_u32(remote, "reg", &addr)) {
-		of_node_put(remote);
-		return -ENODEV;
-	}
-
-	adapter = of_get_i2c_adapter_by_node(remote->parent);
-	if (!adapter) {
-		of_node_put(remote);
+	client = of_find_i2c_device_by_node(remote);
+	of_node_put(remote);
+	if (!client)
+		return -EPROBE_DEFER;
+	dev->sensor = i2c_get_clientdata(client);
+	if (!dev->sensor || !client->dev.driver) {
+		put_device(&client->dev);
 		return -EPROBE_DEFER;
 	}
-
-	memset(&info, 0, sizeof(info));
-	strlcpy(info.type, AK_CAM_SENSOR_NAME, sizeof(info.type));
-	info.addr = addr;
-	info.of_node = remote;
-
-	dev->sensor = v4l2_i2c_new_subdev_board(&dev->v4l2_dev, adapter,
-						&info, NULL);
-	i2c_put_adapter(adapter);
-	of_node_put(remote);
-	if (!dev->sensor)
-		return -ENODEV;
-
-	return 0;
+	ret = v4l2_device_register_subdev(&dev->v4l2_dev, dev->sensor);
+	put_device(&client->dev);
+	return ret;
 }
 
 static int ak_cam_claim_pool(struct platform_device *pdev, size_t *bytes)
@@ -1349,6 +1574,7 @@ static int ak_cam_claim_pool(struct platform_device *pdev, size_t *bytes)
 static int ak_cam_probe(struct platform_device *pdev)
 {
 	struct ak_cam_dev *dev;
+	struct v4l2_ctrl *awb;
 	int ret;
 
 	dev = kzalloc(sizeof(*dev), GFP_KERNEL);
@@ -1388,15 +1614,23 @@ static int ak_cam_probe(struct platform_device *pdev)
 		goto err_pool;
 	}
 
-	dev->cis_sclk = clk_get(&pdev->dev, "sensor");
-	if (IS_ERR(dev->cis_sclk)) {
-		ret = PTR_ERR(dev->cis_sclk);
+	dev->pinctrl = devm_pinctrl_get_select_default(&pdev->dev);
+	if (IS_ERR(dev->pinctrl)) {
+		ret = PTR_ERR(dev->pinctrl);
 		goto err_put_clk;
 	}
 
 	ret = v4l2_device_register(&pdev->dev, &dev->v4l2_dev);
 	if (ret)
-		goto err_put_cis_sclk;
+		goto err_put_clk;
+	v4l2_ctrl_handler_init(&dev->controls, 1);
+	awb = v4l2_ctrl_new_std(&dev->controls, &ak_cam_ctrl_ops,
+			      V4L2_CID_AUTO_WHITE_BALANCE, 0, 1, 1, 1);
+	if (dev->controls.error) {
+		ret = dev->controls.error;
+		goto err_v4l2;
+	}
+	awb->flags |= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE;
 
 	dev->alloc_ctx = vb2_dma_contig_init_ctx(&pdev->dev);
 	if (IS_ERR(dev->alloc_ctx)) {
@@ -1411,6 +1645,7 @@ static int ak_cam_probe(struct platform_device *pdev)
 	ret = request_irq(dev->irq, ak_cam_irq, 0, AK_CAM_NAME, dev);
 	if (ret)
 		goto err_ctx;
+	disable_irq(dev->irq);
 
 	ret = ak_cam_init_node(dev, AK_CAM_CHAN_MAIN);
 	if (ret)
@@ -1436,9 +1671,10 @@ err_irq:
 err_ctx:
 	vb2_dma_contig_cleanup_ctx(dev->alloc_ctx);
 err_v4l2:
+	v4l2_ctrl_handler_free(&dev->controls);
+	if (dev->sensor)
+		v4l2_device_unregister_subdev(dev->sensor);
 	v4l2_device_unregister(&dev->v4l2_dev);
-err_put_cis_sclk:
-	clk_put(dev->cis_sclk);
 err_put_clk:
 	clk_put(dev->clk);
 err_pool:
@@ -1461,10 +1697,12 @@ static int ak_cam_remove(struct platform_device *pdev)
 	cancel_delayed_work_sync(&dev->ae_work);
 
 	ak_cam_free_scratch(dev);
+	ak_cam_free_ref(dev);
 	vb2_dma_contig_cleanup_ctx(dev->alloc_ctx);
+	v4l2_ctrl_handler_free(&dev->controls);
+	v4l2_device_unregister_subdev(dev->sensor);
 	v4l2_device_unregister(&dev->v4l2_dev);
 
-	clk_put(dev->cis_sclk);
 	clk_put(dev->clk);
 	kfree(dev);
 
@@ -1486,6 +1724,7 @@ static struct platform_driver ak_cam_driver = {
 		.name		= AK_CAM_NAME,
 		.owner		= THIS_MODULE,
 		.of_match_table	= ak_cam_of_match,
+		.suppress_bind_attrs = true,
 	},
 };
 

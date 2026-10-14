@@ -4577,9 +4577,10 @@ int ak_isp_set_isp_capturing(int resume)
 					__func__, __LINE__);
 
 		/*3.set isp enable bit*/
+		ak_isp_vi_apply_mode(isp->cur_mode);
+		_isp_enable_buffer();
 		ak_isp_vo_update_regtable(MODE_ALL);
 		peri_status = REG32(isp->base + GEN_CTRL_ADDR);
-		//SET_BITS(peri_status, VIDEO_MODE, 1); //lz0499 9_19
 		SET_BITS(peri_status, ISP_ENABLE, 1);
 		REG32(isp->base + GEN_CTRL_ADDR) = peri_status;
 	} else {

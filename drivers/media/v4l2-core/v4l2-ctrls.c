@@ -675,6 +675,7 @@ const char *v4l2_ctrl_get_name(u32 id)
 	case V4L2_CID_MPEG_VIDEO_ASPECT:	return "Video Aspect";
 	case V4L2_CID_MPEG_VIDEO_B_FRAMES:	return "Video B Frames";
 	case V4L2_CID_MPEG_VIDEO_GOP_SIZE:	return "Video GOP Size";
+	case V4L2_CID_MPEG_VIDEO_FORCE_KEY_FRAME:	return "Force Key Frame";
 	case V4L2_CID_MPEG_VIDEO_GOP_CLOSURE:	return "Video GOP Closure";
 	case V4L2_CID_MPEG_VIDEO_PULLDOWN:	return "Video Pulldown";
 	case V4L2_CID_MPEG_VIDEO_BITRATE_MODE:	return "Video Bitrate Mode";
@@ -992,6 +993,7 @@ void v4l2_ctrl_fill(u32 id, const char **name, enum v4l2_ctrl_type *type,
 	case V4L2_CID_AUTO_FOCUS_START:
 	case V4L2_CID_AUTO_FOCUS_STOP:
 	case V4L2_CID_DO_WHITE_BALANCE:
+	case V4L2_CID_MPEG_VIDEO_FORCE_KEY_FRAME:
 		*type = V4L2_CTRL_TYPE_BUTTON;
 		*flags |= V4L2_CTRL_FLAG_WRITE_ONLY |
 			  V4L2_CTRL_FLAG_EXECUTE_ON_WRITE;
