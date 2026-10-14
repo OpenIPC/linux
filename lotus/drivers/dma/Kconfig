@@ -1,0 +1,13 @@
+config EDMAC
+        tristate "Lotus EDMAC Controller support"
+        depends on ARCH_XMFALCON  || ARCH_XMORCA
+        select DMA_ENGINE
+        select DMA_VIRTUAL_CHANNELS
+        help
+          The Direction Memory Access(EDMA) is a high-speed data transfer
+          operation. It supports data read/write between peripherals and
+          memories without using the CPU.
+          Lotus EDMA Controller(EDMAC) directly transfers data between
+          a memory and a peripheral, or between memories.
+          This avoids the CPU intervention and reduces the interrupt handling
+          overhead of the CPU.

@@ -1,0 +1,12 @@
+config LOTUS_FTGMAC030
+	tristate "Ftgmac030 Ethernet MAC controller support"
+	depends on HAS_IOMEM
+	select PHYLIB
+	select RESET_CONTROLLER
+	help
+	  This selects the Ftgmac030 Ethernet MAC Controller(FTMAC).
+	  The FTMAC receives and transmits data over Ethernet
+	  ports at 10/100 Mbps in full-duplex or half-duplex mode.
+	  The FTMAC exchanges data with the CPU, and supports
+	  the energy efficient Ethernet (EEE).
+

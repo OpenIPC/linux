@@ -1,0 +1,1 @@
+zreladdr-$(CONFIG_ARCH_LOTUS)      := $(CONFIG_BSP_ZRELADDR)

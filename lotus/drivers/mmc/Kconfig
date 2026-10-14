@@ -1,0 +1,6 @@
+
+if MMC
+
+source "lotus/drivers/mmc/host/Kconfig"
+
+endif # MMC

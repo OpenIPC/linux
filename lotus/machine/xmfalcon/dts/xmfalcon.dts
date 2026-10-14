@@ -1,0 +1,280 @@
+// SPDX-License-Identifier: GPL-2.0
+
+/dts-v1/;
+#include "xmfalcon.dtsi"
+
+/ {
+	model = "Lotus XMFALCON DEMO Board";
+	compatible = "lotus,xmfalcon";
+
+	memory {
+		device_type = "memory";
+		reg = <0x40000000 0xc0000000>;
+	};
+};
+
+&uart0 {
+	status = "ok";
+};
+
+&uart1 {
+	status = "ok";
+};
+
+&uart2 {
+	status = "ok";
+};
+
+&uart3 {
+	status = "ok";
+};
+
+&uart4 {
+	status = "ok";
+};
+
+&can0 {
+	status = "okay";
+};
+
+&can1 {
+	status = "okay";
+};
+
+&i2c_bus0 {
+	status = "ok";
+#ifdef CONFIG_FPGA_SUPPORT
+	clock-frequency = <40000>;
+#else
+	clock-frequency = <100000>;
+#endif
+};
+
+&i2c_bus1 {
+	status = "ok";
+#ifdef CONFIG_FPGA_SUPPORT
+	clock-frequency = <40000>;
+#else
+	clock-frequency = <100000>;
+#endif
+};
+
+&i2c_bus2 {
+	status = "ok";
+#ifdef CONFIG_FPGA_SUPPORT
+	clock-frequency = <40000>;
+#else
+	clock-frequency = <100000>;
+#endif
+};
+
+&i2c_bus3 {
+	status = "ok";
+#ifdef CONFIG_FPGA_SUPPORT
+	clock-frequency = <40000>;
+#else
+	clock-frequency = <100000>;
+#endif
+};
+
+&i2c_bus4 {
+	status = "ok";
+#ifdef CONFIG_FPGA_SUPPORT
+	clock-frequency = <40000>;
+#else
+	clock-frequency = <100000>;
+#endif
+};
+
+&i2c_bus5 {
+	status = "ok";
+#ifdef CONFIG_FPGA_SUPPORT
+	clock-frequency = <40000>;
+#else
+	clock-frequency = <100000>;
+#endif
+};
+
+&i2c_bus6 {
+	status = "ok";
+#ifdef CONFIG_FPGA_SUPPORT
+	clock-frequency = <40000>;
+#else
+	clock-frequency = <100000>;
+#endif
+};
+
+&i2c_bus7 {
+	status = "ok";
+#ifdef CONFIG_FPGA_SUPPORT
+	clock-frequency = <40000>;
+#else
+	clock-frequency = <100000>;
+#endif
+};
+
+&spi_bus0{
+	status = "ok";
+	num-cs = <1>;
+
+	spidev@0 {
+		compatible = "rohm,dh2228fv";
+		reg = <0>;
+		pl022,interface = <0>;
+		pl022,com-mode = <0>;
+#ifdef CONFIG_FPGA_SUPPORT
+		spi-max-frequency = <28000000>;
+#else
+		spi-max-frequency = <50000000>;
+#endif
+	};
+};
+
+&spi_bus1{
+	status = "ok";
+	num-cs = <2>;
+
+	spidev@0 {
+		compatible = "rohm,dh2228fv";
+		reg = <0>;
+		pl022,interface = <0>;
+		pl022,com-mode = <0>;
+#ifdef CONFIG_FPGA_SUPPORT
+		spi-max-frequency = <28000000>;
+#else
+		spi-max-frequency = <50000000>;
+#endif
+	};
+	spidev@1 {
+		compatible = "rohm,dh2228fv";
+		reg = <1>;
+		pl022,interface = <0>;
+		pl022,com-mode = <0>;
+#ifdef CONFIG_FPGA_SUPPORT
+		spi-max-frequency = <28000000>;
+#else
+		spi-max-frequency = <50000000>;
+#endif
+	};
+};
+
+&spi_bus2{
+	status = "ok";
+	num-cs = <1>;
+
+	spidev@0 {
+		compatible = "rohm,dh2228fv";
+		reg = <0>;
+		pl022,interface = <0>;
+		pl022,com-mode = <0>;
+#ifdef CONFIG_FPGA_SUPPORT
+		spi-max-frequency = <28000000>;
+#else
+		spi-max-frequency = <50000000>;
+#endif
+	};
+};
+
+&timer_sp804 {
+	status = "disabled";
+};
+#ifdef CONFIG_MDIO_LOTUS_FEMAC
+&mdio0 {
+	lotus,phy-reset-delays-us = <10000 20000 150000>;
+	phy0: ethernet-phy@1 {
+		reg = <1>;
+	};
+};
+#endif
+#ifdef CONFIG_LOTUS_FEMAC
+&femac {
+	mac-address = [00 00 00 00 00 00];
+	phy-mode = "mii";
+	phy-handle = <&phy0>;
+	status = "okay";
+};
+#endif
+&sfc {
+	sfc@0 {
+		compatible = "jedec,spi-nor";
+		reg = <0>;
+		spi-max-frequency = <160000000>;
+	};
+};
+
+&snfc {
+	nand@0 {
+		compatible = "jedec,spi-nand";
+		reg = <0>;
+		spi-max-frequency = <160000000>;
+		status = "disabled";
+	};
+};
+
+&mmc0 {
+	status = "okay";
+};
+
+&mmc1 {
+	status = "okay";
+};
+
+&mmc2 {
+	status = "okay";
+};
+
+&gpio_chip0 {
+	status = "ok";
+};
+
+&gpio_chip1 {
+	status = "ok";
+};
+
+&gpio_chip2 {
+	status = "ok";
+};
+
+&gpio_chip3 {
+	status = "ok";
+};
+
+&gpio_chip4 {
+	status = "ok";
+};
+
+&gpio_chip5 {
+	status = "ok";
+};
+
+&gpio_chip6 {
+	status = "ok";
+};
+
+&gpio_chip7 {
+	status = "ok";
+};
+
+&gpio_chip8 {
+	status = "ok";
+};
+
+&gpio_chip9 {
+	status = "ok";
+};
+
+&gpio_chip10 {
+	status = "ok";
+};
+
+&gpio_chip11 {
+	status = "ok";
+};
+
+&gpio_chip12 {
+	status = "ok";
+};
+
+&pwm {
+	status = "ok";
+};

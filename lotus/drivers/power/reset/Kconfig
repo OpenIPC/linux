@@ -1,0 +1,7 @@
+
+config POWER_RESET_LOTUS
+	bool "Power-Off(Reboot) Driver"
+	depends on ARCH_LOTUS
+	help
+	  Reboot support for Lotus boards.
+

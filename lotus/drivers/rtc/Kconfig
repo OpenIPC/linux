@@ -1,0 +1,9 @@
+config RTC_DRV_LOTUS
+        tristate "Lotus RTC support"
+        depends on ARCH_LOTUS
+        help
+          Generic RTC framework driver for Xmedia SoCs.
+
+          To compile this driver as a module, choose M here: the module
+          will be called rtc.
+

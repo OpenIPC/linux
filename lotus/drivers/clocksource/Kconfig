@@ -1,0 +1,7 @@
+
+config TIMER_LOTUS_SP804
+	bool "Support for Lotus SP804 Timer"
+	depends on GENERIC_SCHED_CLOCK && CLKDEV_LOOKUP && (ARCH_XMFALCON || ARCH_XMORCA)
+	select CLKSRC_MMIO
+	select CLKSRC_OF if OF
+

@@ -1,0 +1,9 @@
+
+config MMC_SDHCI_LOTUS
+	tristate "SDHCI support on the Lotus SoC"
+	depends on ARCH_XMFALCON || ARCH_XMORCA
+	depends on MMC_SDHCI_PLTFM
+	help
+	  This selects the SDHCI support for Lotus System-on-Chip devices.
+	  If you have a controller with this interface, say Y or M here.
+	  If unsure, say N.

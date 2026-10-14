@@ -1,0 +1,9 @@
+#
+# File system configuration
+#
+
+menu "File systems"
+
+source "lotus/fs/yaffs2/Kconfig"
+
+endmenu

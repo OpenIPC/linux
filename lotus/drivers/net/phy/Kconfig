@@ -1,0 +1,5 @@
+config LOTUS_PHY
+	tristate "Lotus PHY controller support"
+	help
+	  This selects the Lotus PHY Controller(PHY).
+

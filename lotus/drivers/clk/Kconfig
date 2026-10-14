@@ -1,0 +1,26 @@
+menu "Clock & Reset"
+
+config COMMON_CLK_XMFALCON
+	tristate "XMFALCON Clock Driver"
+	depends on ARCH_XMFALCON || COMPILE_TEST
+	select RESET_LOTUS
+	default ARCH_LOTUS
+	help
+	  Build the clock driver for XMFALCON.
+
+config COMMON_CLK_XMORCA
+	tristate "XMORCA Clock Driver"
+	depends on ARCH_XMORCA || COMPILE_TEST
+	select RESET_LOTUS
+	default ARCH_LOTUS
+	help
+	  Build the clock driver for XMORCA.
+
+config RESET_LOTUS
+	bool "Reset Controller Driver"
+	depends on ARCH_LOTUS || COMPILE_TEST
+	select RESET_CONTROLLER
+	help
+	  Build reset controller driver for Lotus device chipsets.
+
+endmenu

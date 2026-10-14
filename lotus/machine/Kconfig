@@ -1,0 +1,57 @@
+menuconfig ARCH_LOTUS
+	bool "Lotus SoCs"
+	select ARM_AMBA
+	select ARM_GIC if ARCH_MULTI_V7
+	select POWER_RESET
+	select POWER_RESET_LOTUS
+	select POWER_SUPPLY
+	select HAVE_ARCH_KCSAN
+	# select HAVE_ARCH_KASAN
+	# select ARCH_HAS_UBSAN_SANITIZE_ALL
+
+if ARCH_LOTUS
+
+config ARCH_XMFALCON
+	bool "XMFALCON Cortex-A55 Family"
+	select HAVE_ARM_ARCH_TIMER
+	select HAVE_KERNEL_GZIP
+	select HAVE_KERNEL_LZMA
+	select PINCTRL
+	select POWER_RESET_LOTUS
+	help
+	  Support for XMFALCON Soc Family.
+
+config ARCH_XMORCA
+	bool "XMORCA Cortex-A7 Family"
+	depends on ARCH_MULTI_V7
+	select HAVE_ARM_ARCH_TIMER
+	select PINCTRL
+	select POWER_RESET_LOTUS
+	help
+	  Support for XMORCA Soc Family.
+
+endif
+
+config LOTUS_SOC_NAME
+	string "Soc name"
+	default "xmfalcon" if ARCH_XMFALCON
+	default "xmorca" if ARCH_XMORCA
+
+# config TINY_LINUX
+#         bool "Tiny Linux"
+#         default n
+#
+
+menu "Boot options"
+
+config BSP_ZRELADDR
+	hex 'zreladdr'
+	default "0x40008000"
+
+endmenu
+
+config FPGA_SUPPORT
+	bool "FPGA Support"
+	help
+	  Support for FPGA board.
+

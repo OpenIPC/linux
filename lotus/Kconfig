@@ -1,0 +1,15 @@
+menu "Lotus Support"
+
+source "lotus/machine/Kconfig"
+
+source "lotus/scripts/Kconfig"
+
+menu "Lotus Device Drivers"
+source "lotus/drivers/Kconfig"
+endmenu
+
+source "lotus/fs/Kconfig"
+
+source "lotus/self-test/Kconfig"
+
+endmenu

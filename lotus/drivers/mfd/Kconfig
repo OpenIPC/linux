@@ -1,0 +1,11 @@
+
+config MFD_LOTUS_FMC
+	tristate "Multi-Functions Flash Memory Controller"
+	depends on OF
+	depends on ARCH_LOTUS
+	select MFD_CORE
+	select REGMAP_MMIO
+	help
+	  Select this option to enable the Multi-Functions Flash Memory
+	  CMFD_LOTUS_FMController(FMC) driver.
+

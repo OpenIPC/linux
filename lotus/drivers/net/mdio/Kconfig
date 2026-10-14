@@ -1,0 +1,8 @@
+
+config MDIO_LOTUS_FEMAC
+	tristate "Fast Ethernet MAC MDIO bus support"
+	depends on HAS_IOMEM && OF_MDIO && LOTUS_FEMAC
+	help
+	  This module provides a driver for the MDIO busses found in the
+	  Lotus SoC that have an Fast Ethernet.
+

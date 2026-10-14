@@ -1,0 +1,6 @@
+
+config HW_GZIP_TOOL
+	string "HW GZIP Tool"
+	default ""
+	help
+	  "HW GZIP Tool file path"

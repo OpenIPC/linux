@@ -1,0 +1,5 @@
+
+source "lotus/drivers/net/phy/Kconfig"
+source "lotus/drivers/net/ethernet/Kconfig"
+source "lotus/drivers/net/mdio/Kconfig"
+source "lotus/drivers/net/can/Kconfig"

@@ -1,0 +1,2 @@
+
+source "lotus/drivers/i2c/busses/Kconfig"

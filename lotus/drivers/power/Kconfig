@@ -1,0 +1,3 @@
+
+source "lotus/drivers/power/reset/Kconfig"
+source "lotus/drivers/power/dvfs/Kconfig"

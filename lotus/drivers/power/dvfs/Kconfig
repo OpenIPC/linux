@@ -1,0 +1,8 @@
+
+config POWER_DVFS_LOTUS
+	bool "Lotus Cpufreq Driver"
+	depends on ARCH_LOTUS
+	select PM_OPP
+	help
+	  cpufreq support for Lotus boards.
+

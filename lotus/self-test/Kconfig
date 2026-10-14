@@ -1,0 +1,15 @@
+
+menuconfig LOTUS_SELF_TEST
+	bool "Self test"
+	default n
+
+if LOTUS_SELF_TEST
+config LOTUS_HRTIMER_TEST
+	tristate "Support hrtimer test"
+	default y if LOTUS_SELF_TEST
+
+config LOTUS_TIMESTAMP_TEST
+	tristate "Support timestamp test"
+	default y if LOTUS_SELF_TEST
+endif # if LOTUS_SELF_TEST
+

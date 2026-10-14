@@ -1,0 +1,9 @@
+config PWM_LOTUS
+        tristate "Lotus IPC PWM Controller"
+        depends on ARCH_LOTUS
+	select PWM
+        help
+	  Generic PWM framework driver for Lotus SoCs.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called pwm-lotus.

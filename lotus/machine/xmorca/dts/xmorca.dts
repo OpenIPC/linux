@@ -1,0 +1,216 @@
+// SPDX-License-Identifier: GPL-2.0
+
+/dts-v1/;
+#include "xmorca.dtsi"
+
+/ {
+	model = "Lotus XMORCA DEMO Board";
+	compatible = "lotus,xmorca";
+
+	memory {
+		device_type = "memory";
+		reg = <0x40000000 0xc0000000>;
+	};
+};
+
+&uart0 {
+	status = "ok";
+};
+
+&uart1 {
+	status = "ok";
+};
+
+&uart2 {
+	status = "ok";
+};
+
+&uart3 {
+	status = "disabled";
+};
+
+
+&i2c_bus0 {
+	status = "ok";
+#ifdef CONFIG_FPGA_SUPPORT
+	clock-frequency = <40000>;
+#else
+	clock-frequency = <100000>;
+#endif
+};
+
+&i2c_bus1 {
+	status = "ok";
+#ifdef CONFIG_FPGA_SUPPORT
+	clock-frequency = <40000>;
+#else
+	clock-frequency = <100000>;
+#endif
+};
+
+&i2c_bus2 {
+	status = "ok";
+#ifdef CONFIG_FPGA_SUPPORT
+	clock-frequency = <40000>;
+#else
+	clock-frequency = <100000>;
+#endif
+};
+
+&i2c_bus3 {
+	status = "ok";
+#ifdef CONFIG_FPGA_SUPPORT
+	clock-frequency = <40000>;
+#else
+	clock-frequency = <100000>;
+#endif
+};
+
+&spi_bus0{
+	status = "ok";
+	num-cs = <1>;
+
+	spidev@0 {
+		compatible = "rohm,dh2228fv";
+		reg = <0>;
+		pl022,interface = <0>;
+		pl022,com-mode = <0>;
+#ifdef CONFIG_FPGA_SUPPORT
+		spi-max-frequency = <28000000>;
+#else
+		spi-max-frequency = <50000000>;
+#endif
+	};
+};
+
+&spi_bus1{
+	status = "ok";
+	num-cs = <2>;
+
+	spidev@0 {
+		compatible = "rohm,dh2228fv";
+		reg = <0>;
+		pl022,interface = <0>;
+		pl022,com-mode = <0>;
+#ifdef CONFIG_FPGA_SUPPORT
+		spi-max-frequency = <28000000>;
+#else
+		spi-max-frequency = <50000000>;
+#endif
+	};
+	spidev@1 {
+		compatible = "rohm,dh2228fv";
+		reg = <1>;
+		pl022,interface = <0>;
+		pl022,com-mode = <0>;
+#ifdef CONFIG_FPGA_SUPPORT
+		spi-max-frequency = <28000000>;
+#else
+		spi-max-frequency = <50000000>;
+#endif
+	};
+};
+
+&spi_bus2{
+	status = "ok";
+	num-cs = <1>;
+
+	spidev@0 {
+		compatible = "rohm,dh2228fv";
+		reg = <0>;
+		pl022,interface = <0>;
+		/* pl022,com-mode：0=INTERRUPT, 1=POLLING, 2=DMA（enum ssp_mode, pl022.h）。
+		 * 2026-07-28 改 <0>→<1>：原 INTERRUPT 模式刷 ST7789 整帧(115KB RGB565)大数据时
+		 * 永久卡死。真因——lotus PL022 中断完成要求 rx 收到 rx_end 才让 spi_sync 返回，
+		 * 而 RX 尾巴不足水位线时只能靠接收超时中断 RTIM，该中断在本 SoC 上"被驱动判为
+		 * 不可信而丢弃"(spi-pl022.c:1600-1604)，且整条中断路径无完成超时 → spi_sync
+		 * 不可中断地永久等待，Ctrl+C 杀不掉。POLLING 模式 do_polling_transfer 死循环每轮
+		 * readwriter 把 RX 排空(RNE 即读)，不依赖 RXIM/RTIM，必然完成，且有 1s 超时兜底
+		 * (超时返回 -EAGAIN 而非挂死)。代价：传输期 CPU 忙等，可调高 spi-max-frequency 补偿。
+		 * 注：bus0/bus1 未接 SPI 屏，仍保留 <0>。详见 source/app/spi_display。 */
+		pl022,com-mode = <1>;
+#ifdef CONFIG_FPGA_SUPPORT
+		spi-max-frequency = <28000000>;
+#else
+		spi-max-frequency = <50000000>;
+#endif
+	};
+};
+
+&timer_sp804 {
+	status = "disabled";
+};
+&sfc {
+	sfc@0 {
+		compatible = "jedec,spi-nor";
+		reg = <0>;
+		spi-max-frequency = <160000000>;
+	};
+};
+
+&snfc {
+	nand@0 {
+		compatible = "jedec,spi-nand";
+		reg = <0>;
+		spi-max-frequency = <160000000>;
+		status = "disabled";
+	};
+};
+
+&mmc0 {
+	status = "okay";
+};
+
+&mmc1 {
+	status = "okay";
+};
+
+&mmc2 {
+	status = "okay";
+};
+
+&gpio_chip0 {
+	status = "ok";
+};
+
+&gpio_chip1 {
+	status = "ok";
+};
+
+&gpio_chip2 {
+	status = "ok";
+};
+
+&gpio_chip3 {
+	status = "ok";
+};
+
+&gpio_chip4 {
+	status = "ok";
+};
+
+&gpio_chip5 {
+	status = "ok";
+};
+
+&gpio_chip6 {
+	status = "ok";
+};
+
+&gpio_chip7 {
+	status = "ok";
+};
+
+&gpio_chip8 {
+	status = "ok";
+};
+
+&pwm {
+	status = "ok";
+};
+
+&ftgmac030 {
+	status = "okay";
+	phy-mode = "mii";
+	phy-addr = <0>;
+};

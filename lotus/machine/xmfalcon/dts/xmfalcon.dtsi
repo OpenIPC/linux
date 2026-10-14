@@ -1,0 +1,939 @@
+// SPDX-License-Identifier: GPL-2.0
+
+#include <linux/kconfig.h>
+#include <dt-bindings/clock/xmfalcon-clock.h>
+
+/memreserve/ 0x40008000 0x84000;
+
+#ifdef CONFIG_ARM
+#include "xmfalcon-arm.dtsi"
+#elif defined(CONFIG_ARM64)
+#include "xmfalcon-arm64.dtsi"
+#else
+#error "Not Supported ARCH!"
+#endif
+
+
+/ {
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	aliases {
+		serial0 = &uart0;
+		serial1 = &uart1;
+		serial2 = &uart2;
+		serial3 = &uart3;
+		serial4 = &uart4;
+		i2c0 = &i2c_bus0;
+		i2c1 = &i2c_bus1;
+		i2c2 = &i2c_bus2;
+		i2c3 = &i2c_bus3;
+		i2c4 = &i2c_bus4;
+		i2c5 = &i2c_bus5;
+		i2c6 = &i2c_bus6;
+		i2c7 = &i2c_bus7;
+		spi0 = &spi_bus0;
+		spi1 = &spi_bus1;
+		gpio0 = &gpio_chip0;
+		gpio1 = &gpio_chip1;
+		gpio2 = &gpio_chip2;
+		gpio3 = &gpio_chip3;
+		gpio4 = &gpio_chip4;
+		gpio5 = &gpio_chip5;
+		gpio6 = &gpio_chip6;
+		gpio7 = &gpio_chip7;
+		gpio8 = &gpio_chip8;
+		gpio9 = &gpio_chip9;
+		gpio10 = &gpio_chip10;
+		gpio11 = &gpio_chip11;
+		gpio12 = &gpio_chip12;
+	};
+
+	chosen {
+		bootargs = "mem=128M console=ttyAMA0,115200 root=/dev/mtdblock4 rootfstype=jffs2 rw mtdparts=sfc:512K(boot),256K(bootargs),256K(bl31),4M(kernel),11M(rootfs) earlycon=pl011,0x12040000 no_console_suspend";
+	};
+
+	psci {
+		compatible = "arm,psci-0.2";
+		method = "smc";
+	};
+
+	clock: clock@12010000 {
+		compatible = "lotus,xmfalcon-clock", "syscon";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		#clock-cells = <1>;
+		#reset-cells = <2>;
+		reg = <0x12010000 0x1000>;
+	};
+
+	gic: interrupt-controller@10400000 {
+		compatible = "arm,gic-400";
+		#interrupt-cells = <3>;
+		#address-cells = <0>;
+		interrupt-controller;
+		/* gic dist base, gic cpu base , no virtual support */
+		reg = <0x10401000 0x1000>, <0x10402000 0x100>;
+	 };
+
+	syscounter {
+		compatible = "arm,armv7-timer", "arm,armv8-timer";
+		interrupt-parent = <&gic>;
+		interrupts = <1 13 0xf08>,
+			<1 14 0xf08>;
+		 /* clock-frequency = <50000000>; */
+	};
+	#ifdef CONFIG_OPTEE
+	reserved-memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		/* op-tee shared memory: 4M */
+		optee@4d200000 {
+			reg = <0x4d200000 0x400000>;
+			no-map;
+		};
+	};
+	#endif
+	soc {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "simple-bus";
+		interrupt-parent = <&gic>;
+		ranges;
+
+		clk_3m: clk_3m {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <3000000>;
+		};
+
+		clk_24m: clk_24m {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <24000000>;
+		};
+
+		clk_apb: clk_apb {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <50000000>;
+		};
+
+		pmu {
+			compatible = "arm,cortex-a7-pmu";
+			interrupts = <0 58 4>;
+		};
+
+		sysctrl: system-controller@12020000 {
+			compatible = "lotus,sysctrl", "syscon";
+			reg = <0x12020000 0x10000>;
+			reboot-offset = <0x8>;
+			#clock-cells = <1>;
+		};
+
+		iocfg_ctrl: iocfg-controller@100c0000 {
+			compatible = "syscon";
+			reg = <0x100C0000 0x10000>;
+		};
+
+		iocfg_ctrl2: iocfg-controller2@112c0000 {
+			compatible = "syscon";
+			reg = <0x112C0000 0x10000>;
+		};
+
+		iocfg_ctrl3: iocfg-controller3@11980000 {
+			compatible = "syscon";
+			reg = <0x11980000 0x10000>;
+		};
+
+		tsensor: tsensor@11980000 {
+			compatible = "lotus,lotus-tsensor";
+		};
+
+#ifdef CONFIG_EDMAC
+		edmac: edma-controller@100B0000 {
+			compatible = "lotus,edmac";
+			reg = <0x100B0000 0x1000>;
+			interrupts = <0 49 4>;
+			clocks = <&clock XMFALCON_EDMAC_CLK>, <&clock XMFALCON_EDMAC_AXICLK>;
+			clock-names = "apb_pclk", "axi_aclk";
+			clock-cells = <2>;
+			resets = <&clock 0x194 0>;
+			reset-names = "dma-reset";
+			dma-requests = <16>;
+			dma-channels = <4>;
+			devid = <0>;
+			#dma-cells = <2>;
+			status = "okay";
+		};
+#endif
+		amba {
+			#address-cells = <1>;
+			#size-cells = <1>;
+			compatible = "arm,amba-bus";
+			ranges;
+
+			timer_sp804: timer@lotus_sp804 {
+				compatible = "lotus,sp804";
+				reg =<0x12000000 0x30>, /* timer0:clocksource */
+					 <0x12000100 0x30>, /* timer1: local timer for each cpu */
+					 <0x12000200 0x30>, /* timer2: local timer  */
+					 <0x12000300 0x30>; /* timer3: local timer   */
+				interrupts = <0 8 4>, /* irq of local timer1 */
+						<0 9 4>,  /* irq of local timer2  */
+						<0 10 4>;  /* irq of local timer3  */
+				clocks = <&clk_24m>;
+				clock-names = "timer00";
+				status = "disabled";
+			};
+
+			uart0: uart@12040000 {
+				compatible = "arm,pl011", "arm,primecell";
+				arm,primecell-periphid = <0x241011>;
+				reg = <0x12040000 0x1000>;
+				interrupts = <0 13 4>;
+				clocks = <&clock XMFALCON_UART0_CLK>;
+				clock-names = "apb_pclk";
+				status = "disabled";
+			};
+
+			uart1: uart@12041000 {
+				compatible = "arm,pl011", "arm,primecell";
+				arm,primecell-periphid = <0x241011>;
+				reg = <0x12041000 0x1000>;
+				interrupts = <0 14 4>;
+				clocks = <&clock XMFALCON_UART1_CLK>;
+				clock-names = "apb_pclk";
+#ifdef CONFIG_EDMAC
+				dmas = <&edmac 9 9>, <&edmac 8 8>;
+				dma-names = "tx","rx";
+#endif
+				status = "disabled";
+			};
+
+			uart2: uart@12042000 {
+				compatible = "arm,pl011", "arm,primecell";
+				arm,primecell-periphid = <0x241011>;
+				reg = <0x12042000 0x1000>;
+				interrupts = <0 15 4>;
+				clocks = <&clock XMFALCON_UART2_CLK>;
+				clock-names = "apb_pclk";
+#ifdef CONFIG_EDMAC
+				dmas = <&edmac 11 11>, <&edmac 10 10>;
+				dma-names = "tx","rx";
+#endif
+				status = "disabled";
+			};
+
+			uart3: uart@12043000 {
+				compatible = "arm,pl011", "arm,primecell";
+				arm,primecell-periphid = <0x241011>;
+				reg = <0x12043000 0x1000>;
+				interrupts = <0 16 4>;
+				clocks = <&clock XMFALCON_UART3_CLK>;
+				clock-names = "apb_pclk";
+				status = "disabled";
+			};
+
+			uart4: uart@12044000 {
+				compatible = "arm,pl011", "arm,primecell";
+				arm,primecell-periphid = <0x241011>;
+				reg = <0x12044000 0x1000>;
+				interrupts = <0 17 4>;
+				clocks = <&clock XMFALCON_UART4_CLK>;
+				clock-names = "apb_pclk";
+				status = "disabled";
+			};
+
+			wdt0: watchdog@12030000 {
+				compatible = "arm,sp805", "arm,primecell";
+				arm,primecell-periphid = <0x00141805>;
+				reg = <0x12030000 0x20>;
+				interrupts = <0 2 4>;
+				clocks = <&clk_24m>;
+				clock-names = "apb_pclk";
+				status = "okay";
+			};
+
+			wdt1: watchdog@12030020 {
+				compatible = "arm,sp805", "arm,primecell";
+				arm,primecell-periphid = <0x00141805>;
+				reg = <0x12030020 0x20>;
+				interrupts = <0 3 4>;
+				clocks = <&clk_24m>;
+				clock-names = "apb_pclk";
+				status = "okay";
+			};
+
+			can0: can@12048000 {
+				compatible = "lotus,lotus-can";
+				reg = <0x12048000 0x1000>;
+				interrupts = <0 11 4>;
+				status = "okay";
+			};
+
+			can1: can@12049000 {
+				compatible = "lotus,lotus-can";
+				reg = <0x12049000 0x1000>;
+				interrupts = <0 12 4>;
+				status = "okay";
+			};
+		};
+
+		i2c_bus0: i2c@12060000 {
+			compatible = "lotus,lotus-i2c";
+			reg = <0x12060000 0x1000>;
+			clocks = <&clock XMFALCON_I2C0_CLK>;
+#ifdef CONFIG_EDMAC
+			dmas = <&edmac 1 1>, <&edmac 0 0>;
+			dma-names = "tx","rx";
+#endif
+			status = "disabled";
+		};
+
+		i2c_bus1: i2c@12061000 {
+			compatible = "lotus,lotus-i2c";
+			reg = <0x12061000 0x1000>;
+			clocks = <&clock XMFALCON_I2C1_CLK>;
+#ifdef CONFIG_EDMAC
+			dmas = <&edmac 3 3>, <&edmac 2 2>;
+			dma-names = "tx","rx";
+#endif
+			status = "disabled";
+		};
+
+		i2c_bus2: i2c@12062000 {
+			compatible = "lotus,lotus-i2c";
+			reg = <0x12062000 0x1000>;
+			clocks = <&clock XMFALCON_I2C2_CLK>;
+#ifdef CONFIG_EDMAC
+			dmas = <&edmac 5 5>, <&edmac 4 4>;
+			dma-names = "tx","rx";
+#endif
+			status = "disabled";
+		};
+
+		i2c_bus3: i2c@12063000 {
+			compatible = "lotus,lotus-i2c";
+			reg = <0x12063000 0x1000>;
+			clocks = <&clock XMFALCON_I2C3_CLK>;
+			status = "disabled";
+		};
+
+		i2c_bus4: i2c@12064000 {
+			compatible = "lotus,lotus-i2c";
+			reg = <0x12064000 0x1000>;
+			clocks = <&clock XMFALCON_I2C4_CLK>;
+			status = "disabled";
+		};
+
+		i2c_bus5: i2c@12065000 {
+			compatible = "lotus,lotus-i2c";
+			reg = <0x12065000 0x1000>;
+			clocks = <&clock XMFALCON_I2C5_CLK>;
+			status = "disabled";
+		};
+
+		i2c_bus6: i2c@12066000 {
+			compatible = "lotus,lotus-i2c";
+			reg = <0x12066000 0x1000>;
+			clocks = <&clock XMFALCON_I2C6_CLK>;
+			status = "disabled";
+		};
+
+		i2c_bus7: i2c@12067000 {
+			compatible = "lotus,lotus-i2c";
+			reg = <0x12067000 0x1000>;
+			clocks = <&clock XMFALCON_I2C7_CLK>;
+			status = "disabled";
+		};
+
+		spi_bus0: spi@12070000 {
+			compatible = "arm,pl022", "arm,primecell";
+			arm,primecell-periphid = <0x00800022>;
+			reg = <0x12070000 0x1000>;
+			interrupts = <0 30 4>;
+			clocks = <&clock XMFALCON_SPI0_CLK>;
+			clock-names = "apb_pclk";
+			pl022,autosuspend-delay = <1000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+#ifdef CONFIG_EDMAC
+			dmas = <&edmac 13 13>, <&edmac 12 12>;
+			dma-names = "tx","rx";
+#endif
+			status = "disabled";
+		};
+
+		spi_bus1: spi@12071000 {
+			compatible = "arm,pl022", "arm,primecell";
+			arm,primecell-periphid = <0x00800022>;
+			reg = <0x12071000 0x1000>, <0x12028000 0x4>;
+			interrupts = <0 31 4>;
+			clocks = <&clock XMFALCON_SPI1_CLK>;
+			clock-names = "apb_pclk";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			num-cs = <2>;
+			pl022,autosuspend-delay = <1000>;
+			spi_cs_sb = <2>;
+			spi_cs_mask_bit = <0x4>;//0100
+#ifdef CONFIG_EDMAC
+			dmas = <&edmac 15 15>, <&edmac 14 14>;
+			dma-names = "tx","rx";
+#endif
+			status = "disabled";
+		};
+
+		spi_bus2: spi@12072000 {
+			compatible = "arm,pl022", "arm,primecell";
+			arm,primecell-periphid = <0x00800022>;
+			reg = <0x12072000 0x1000>;
+			interrupts = <0 32 4>;
+			clocks = <&clock XMFALCON_SPI2_CLK>;
+			clock-names = "apb_pclk";
+			pl022,autosuspend-delay = <1000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
+#ifdef CONFIG_MDIO_LOTUS_FEMAC
+		mdio0: mdio@10041100 {
+			compatible = "lotus,femac-mdio";
+			reg = <0x11941100 0x10>,<0x12028024 0x4>;
+			clocks = <&clock XMFALCON_ETH0_CLK>;
+			clock-names = "mdio";
+			resets = <&clock 0x16c 3>;
+#ifdef CONFIG_FPGA_SUPPORT
+			reset-names = "external-phy";
+#else
+			reset-names = "internal-phy";
+#endif
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "okay";
+		};
+#endif
+#ifdef CONFIG_LOTUS_FEMAC
+		femac: ethernet@10040000 {
+			compatible = "lotus,femac",
+				"lotus,femac-v2";
+			reg = <0x11940000 0x1000>,<0x11941300 0x200>;
+			interrupts = <0 52 4>;
+			clocks = <&clock XMFALCON_ETH0_CLK>;
+			resets = <&clock 0x240 27>;
+			reset-names = "mac";
+		};
+#endif
+
+		ftgmac030: ethernet@11900000 {
+			compatible = "lotus,ftgmac030";
+			reg = <0x11900000 0x180>;
+			interrupts = <0 55 4>;
+			resets = <&clock 0x16c 1>, <&clock 0x170 1>;
+			reset-names = "phy_reset", "mac_reset";
+			sysctrl_regmap = <&sysctrl>;
+			crg_regmap = <&clock>;
+			mac-reset-delay = <10000 20000 150000>;
+			phy-reset-delay = <10000 20000 150000>;
+		};
+
+		fmc: flash-memory-controller@10000000 {
+			compatible = "lotus,fmc";
+			reg = <0x10000010 0x1000>, <0x14000000 0x10000>;
+			reg-names = "control", "memory";
+			interrupts = <0 54 4>;
+			clocks = <&clock XMFALCON_FMC_CLK>;
+			max-dma-size = <0x2000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "okay";
+
+			sfc:spi-nor@0 {
+				compatible = "lotus,fmc-spi-nor";
+				assigned-clocks = <&clock XMFALCON_FMC_CLK>;
+				assigned-clock-rates = <24000000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+			};
+
+			snfc:spi-nand@0 {
+				compatible = "lotus,fmc-spi-nand";
+				assigned-clocks = <&clock XMFALCON_FMC_CLK>;
+				assigned-clock-rates = <24000000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+				status = "disabled";
+			};
+		};
+
+		mmc0: sdhci@0x10010000 {
+			compatible = "lotus,sdhci";
+			reg = <0x10010000 0x1000>;
+			interrupts = <0 50 4>;
+			clocks = <&clock XMFALCON_MMC0_CLK>;
+			clock-names = "mmc_clk";
+			resets = <&clock 0x1f4 27>, <&clock 0x1f4 29>;
+			reset-names = "crg_reset", "dll_reset";
+			max-frequency = <200000000>;
+			crg_regmap = <&clock>;
+			iocfg_regmap = <&iocfg_ctrl>;
+			sysctrl_regmap = <&sysctrl>;
+			bus-width = <4>;
+			/* bus-width = <8>; */
+			cap-mmc-highspeed;
+			cap-mmc-hw-reset;
+			mmc-ddr-1_8v;
+			mmc-hs200-1_8v;
+			/* mmc-hs400-1_8v; */
+			/* mmc-hs400-enhanced-strobe; */
+			non-removable;
+			full-pwr-cycle;
+			devid = <0>;
+			status = "enable";
+		};
+
+		mmc1: sdhci@0x10020000 {
+			compatible = "lotus,sdhci";
+			reg = <0x10020000 0x1000>;
+			interrupts = <0 51 4>;
+			clocks = <&clock XMFALCON_MMC1_CLK>;
+			clock-names = "mmc_clk";
+			resets = <&clock 0x22c 27>, <&clock 0x22c 29>;
+			reset-names = "crg_reset", "dll_reset";
+			max-frequency = <200000000>;
+			crg_regmap = <&clock>;
+			iocfg_regmap = <&iocfg_ctrl>;
+			sysctrl_regmap = <&sysctrl>;
+			bus-width = <4>;
+			cap-sd-highspeed;
+			sd-uhs-sdr12;
+			sd-uhs-sdr25;
+			sd-uhs-sdr50;
+			sd-uhs-ddr50;
+			sd-uhs-sdr104;
+			full-pwr-cycle;
+			devid = <1>;
+			status = "enable";
+		};
+
+		mmc2: sdhci@0x11940000 {
+			compatible = "lotus,sdhci";
+			reg = <0x11940000  0x1000>;
+			interrupts = <0 52 4>;
+			clocks = <&clock XMFALCON_MMC2_CLK>;
+			clock-names = "mmc_clk";
+			resets = <&clock 0x240 27>, <&clock 0x240 29>;
+			reset-names = "crg_reset", "dll_reset";
+			max-frequency = <200000000>;
+			crg_regmap = <&clock>;
+			iocfg_regmap = <&iocfg_ctrl>;
+			iocfg3_regmap = <&iocfg_ctrl3>;
+			sysctrl_regmap = <&sysctrl>;
+			bus-width = <4>;
+			cap-sd-highspeed;
+			sd-uhs-sdr12;
+			sd-uhs-sdr25;
+			sd-uhs-sdr50;
+			sd-uhs-ddr50;
+			sd-uhs-sdr104;
+			cap-sdio-irq;
+			non-removable;
+			full-pwr-cycle;
+			devid = <2>;
+			status = "enable";
+			//reset-gpio-dev = <86>; //GPIO10_6
+		};
+
+		usb2_phy0: phy2-0 {
+			compatible = "lotus,usb2-phy";
+			reg = <0x12010000 0x1000>,
+				<0x12028000 0x2000>;
+			u2_outer_phy_eye_val = <0x20>;
+			u2_outer_phy_eye_offset = <0x988>;
+			#phy-cells = <0>;
+			status = "okay";
+		};
+
+		usb3_phy0: phy3-0 {
+			compatible = "lotus,usb3-phy";
+			reg = <0x12010000 0x1000>,
+				<0x12028000 0x2000>;
+			#phy-cells = <0>;
+			status = "okay";
+		};
+
+		usbdrd3_0: usb3-0{
+			compatible = "lotus,dwcusb2";
+			reg = <0x10030000  0x10000>,
+				<0x12010000 0x1000>,
+				<0x12028000 0x2000>;
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges;
+			status = "okay";
+			dwc3@0x10030000 {
+				compatible = "snps,dwc3";
+				reg = <0x10030000 0x10000>;
+				interrupts = <0 56 4>;
+				interrupt-names = "peripheral";
+				phys = <&usb2_phy0>;
+				phy-names = "usb2-phy";
+				phy_type = "utmi_wide";
+				maximum-speed = "high-speed";
+                                dr_mode = "host";
+                                eps_directions = <0x6a>;
+				snps,eps_new_init;
+				eps_map=<0x0 0x1 0x2 0x3 0x4 0x5 0x7>;
+				snps,usb2-lpm-disable;
+				snps,dis_u2_susphy_quirk;
+			};
+		};
+
+		usbdrd3_1: usb3-1{
+			compatible = "lotus,dwcusb3";
+			reg = <0x10040000  0x10000>,
+				<0x12010000 0x1000>,
+				<0x12028000 0x2000>;
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges;
+			status = "okay";
+			dwc3@0x10040000 {
+				compatible = "snps,dwc3";
+				reg = <0x10040000 0x10000>;
+				interrupts = <0 57 4>;
+				interrupt-names = "peripheral";
+				phys = <&usb3_phy0>, <&usb2_phy0>;
+				phy-names = "usb3-phy", "usb2-phy";
+				phy_type = "utmi_wide";
+				maximum-speed = "super-speed";
+				dr_mode = "host";
+				eps_directions = <0x6a>;
+				snps,eps_new_init;
+				eps_map=<0x0 0x1 0x2 0x3 0x4 0x5 0x7>;
+				snps,usb2-lpm-disable;
+			};
+		};
+
+		gpio_chip0: gpio_chip@120b0000 {
+			compatible = "arm,pl061", "arm,primecell";
+			reg = <0x120b0000 0x1000>;
+			interrupts = <0 35 4>;
+			clocks = <&clock  XMFALCON_SYSAPB_CLK>;
+			clock-names = "apb_pclk";
+			#gpio-cells = <2>;
+			status = "disabled";
+		};
+
+		gpio_chip1: gpio_chip@120b1000 {
+			compatible = "arm,pl061", "arm,primecell";
+			reg = <0x120b1000 0x1000>;
+			interrupts = <0 36 4>;
+			clocks = <&clock  XMFALCON_SYSAPB_CLK>;
+			clock-names = "apb_pclk";
+			#gpio-cells = <2>;
+			status = "disabled";
+		};
+
+		gpio_chip2: gpio_chip@120b2000 {
+			compatible = "arm,pl061", "arm,primecell";
+			reg = <0x120b2000 0x1000>;
+			interrupts = <0 37 4>;
+			clocks = <&clock  XMFALCON_SYSAPB_CLK>;
+			clock-names = "apb_pclk";
+			#gpio-cells = <2>;
+			status = "disabled";
+		};
+
+		gpio_chip3: gpio_chip@120b3000 {
+			compatible = "arm,pl061", "arm,primecell";
+			reg = <0x120b3000 0x1000>;
+			interrupts = <0 38 4>;
+			clocks = <&clock  XMFALCON_SYSAPB_CLK>;
+			clock-names = "apb_pclk";
+			#gpio-cells = <2>;
+			status = "disabled";
+		};
+
+		gpio_chip4: gpio_chip@120b4000 {
+			compatible = "arm,pl061", "arm,primecell";
+			reg = <0x120b4000 0x1000>;
+			interrupts = <0 39 4>;
+			clocks = <&clock  XMFALCON_SYSAPB_CLK>;
+			clock-names = "apb_pclk";
+			#gpio-cells = <2>;
+			status = "disabled";
+		};
+
+		gpio_chip5: gpio_chip@120b5000 {
+			compatible = "arm,pl061", "arm,primecell";
+			reg = <0x120b5000 0x1000>;
+			interrupts = <0 40 4>;
+			clocks = <&clock  XMFALCON_SYSAPB_CLK>;
+			clock-names = "apb_pclk";
+			#gpio-cells = <2>;
+			status = "disabled";
+		};
+
+		gpio_chip6: gpio_chip@120b6000 {
+			compatible = "arm,pl061", "arm,primecell";
+			reg = <0x120b6000 0x1000>;
+			interrupts = <0 41 4>;
+			clocks = <&clock  XMFALCON_SYSAPB_CLK>;
+			clock-names = "apb_pclk";
+			#gpio-cells = <2>;
+			status = "disabled";
+		};
+
+		gpio_chip7: gpio_chip@120b7000 {
+			compatible = "arm,pl061", "arm,primecell";
+			reg = <0x120b7000 0x1000>;
+			interrupts = <0 42 4>;
+			clocks = <&clock  XMFALCON_SYSAPB_CLK>;
+			clock-names = "apb_pclk";
+			#gpio-cells = <2>;
+			status = "disabled";
+		};
+
+		gpio_chip8: gpio_chip@120b8000 {
+			compatible = "arm,pl061", "arm,primecell";
+			reg = <0x120b8000 0x1000>;
+			interrupts = <0 43 4>;
+			clocks = <&clock  XMFALCON_SYSAPB_CLK>;
+			clock-names = "apb_pclk";
+			#gpio-cells = <2>;
+			status = "disabled";
+		};
+
+		gpio_chip9: gpio_chip@120b9000 {
+			compatible = "arm,pl061", "arm,primecell";
+			reg = <0x120b9000 0x1000>;
+			interrupts = <0 44 4>;
+			clocks = <&clock  XMFALCON_SYSAPB_CLK>;
+			clock-names = "apb_pclk";
+			#gpio-cells = <2>;
+			status = "disabled";
+		};
+
+		gpio_chip10: gpio_chip@120ba000 {
+			compatible = "arm,pl061", "arm,primecell";
+			reg = <0x120ba000 0x1000>;
+			interrupts = <0 45 4>;
+			clocks = <&clock  XMFALCON_SYSAPB_CLK>;
+			clock-names = "apb_pclk";
+			#gpio-cells = <2>;
+			status = "disabled";
+		};
+
+		gpio_chip11: gpio_chip@120bb000 {
+			compatible = "arm,pl061", "arm,primecell";
+			reg = <0x120bb000 0x1000>;
+			interrupts = <0 46 4>;
+			clocks = <&clock  XMFALCON_SYSAPB_CLK>;
+			clock-names = "apb_pclk";
+			#gpio-cells = <2>;
+			status = "disabled";
+		};
+
+		gpio_chip12: gpio_chip@120bc000 {
+			compatible = "arm,pl061", "arm,primecell";
+			reg = <0x120bc000 0x1000>;
+			interrupts = <0 47 4>;
+			clocks = <&clock  XMFALCON_SYSAPB_CLK>;
+			clock-names = "apb_pclk";
+			#gpio-cells = <2>;
+			status = "disabled";
+		};
+
+		rtc: rtc@120e0000 {
+			compatible = "lotus,rtc";
+			reg = <0x120e0000 0x1000>;
+			interrupts = <0 0 4>;
+		};
+
+		cipher: cipher@0x10050000 {
+			compatible = "lotus,cipher";
+			reg = <0x10050000 0x10000>;
+			reg-names = "cipher";
+			interrupts = <0 53 4>, <0 53 4>;
+			interrupt-names = "cipher", "hash";
+		};
+
+		adc: adc@120a0000 {
+			compatible = "lotus,lsadc";
+			reg = <0x120a0000 0x1000>;
+			interrupts = <0 6 4>;
+			interrupt-names = "adc";
+			resets = <&clock 0x1bc 2>;
+			reset-names = "lsadc-crg";
+			status = "okay";
+		};
+
+		ir: ir@0x12090000 {
+			compatible = "lotus,ir";
+			reg = <0x12090000 0x10000>;
+			reg-names = "ir";
+			interrupts = <0 5 4>;
+			interrupt-names = "ir";
+		};
+	};
+
+	media {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "simple-bus";
+		interrupt-parent = <&gic>;
+		ranges;
+
+		osal: osal {
+			compatible = "lotus,osal";
+		};
+
+		sys: sys@12010000 {
+			compatible = "lotus,sys";
+		};
+
+		mipi: mipi@0x11240000 {
+			compatible = "lotus,mipi";
+			reg = <0x11240000 0x10000>;
+			reg-names = "mipi_rx";
+			interrupts = <0 45 4>;
+			interrupt-names = "mipi_rx";
+		};
+
+		vi: vi@11000000 {
+			compatible = "lotus,vi";
+			reg = <0x11000000 0x200000>, <0x11200000 0x40000>;
+			reg-names = "VI_CAP0", "VI_PROC0";
+			interrupts = <0 73 4>, <0 70 4>;
+			interrupt-names = "VI_CAP0", "VI_PROC0";
+		};
+
+		isp: isp@11220000 {
+			compatible = "lotus,isp";
+			reg = <0x11220000 0x20000>;
+			reg-names = "ISP";
+			interrupts = <0 73 4>;
+			interrupt-names = "ISP";
+		};
+
+		pwm: pwm@12080000 {
+			compatible = "lotus,pwm";
+			reg = <0x12080000 0x1100>;
+			reg-names = "PWM";
+		};
+
+		piris: piris@120B3000 {
+			compatible = "lotus,piris";
+			reg = <0x120B3000 0x1000>;
+			reg-names = "PIRIS";
+		};
+
+		vpss: vpss@11400000 {
+			compatible = "lotus,vpss";
+			reg = <0x11400000 0x10000>;
+			reg-names = "vpss0";
+			interrupts = <0 61 4>;
+			interrupt-names = "vpss0";
+		};
+
+		mcf: mcf {
+			compatible = "lotus,mcf";
+		};
+
+		gdc: gdc@11480000 {
+			compatible = "lotus,gdc";
+			reg = <0x11480000 0x10000>;
+			reg-names = "gdc";
+			interrupts = <0 59 4>;
+			interrupt-names = "gdc";
+		};
+
+		vo: vo@11280000 {
+			compatible = "lotus,vo";
+			reg = <0x11280000 0x40000>;
+			reg-names = "vo";
+			interrupts = <0 74 4>;
+			interrupt-names = "vo";
+		};
+
+		gfbg: gfbg@11280000 {
+			compatible = "lotus,gfbg";
+			reg = <0x11280000 0x40000>;
+			reg-names = "gfbg";
+			interrupts = <0 41 4>;
+			interrupt-names = "gfbg";
+		};
+		tde: tde@112F0000 {
+			compatible = "lotus,tde";
+			reg = <0x112F0000 0x10000>;
+			reg-names = "tde";
+			interrupts = <0 65 4>;
+			interrupt-names = "tde";
+		};
+		vgs: vgs@11300000 {
+			compatible = "lotus,vgs";
+			reg = <0x11300000 0x10000>;
+			reg-names = "vgs0";
+			interrupts = <0 64 4>;
+			interrupt-names = "vgs0";
+		};
+
+		npu: npu@11340000 {
+			compatible = "lotus,npu";
+			reg = <0x11340000 0x10000>;
+			reg-names = "npu";
+			interrupts = <0 68 4>;
+			interrupt-names = "npu";
+		};
+
+		gzip: gzip@11310000 {
+			compatible = "lotus,gzip";
+			reg = <0x11310000 0x10000>;
+			reg-names = "gzip";
+			interrupts = <0 50 4>;
+			interrupt-names = "gzip";
+		};
+
+		vedu: vedu@11800000 {
+			compatible = "lotus,vedu";
+			reg = <0x11800000 0x10000>, <0x11420000 0x10000>, <0x11320000 0x10000>;
+			reg-names = "vedu0", "jpge", "scd";
+			interrupts = <0 67 4>, <0 60 4>, <0 92 4>;
+			interrupt-names = "vedu0","jpge", "scd";
+		};
+
+		venc: venc {
+			compatible = "lotus,venc";
+		};
+
+		aiao: aiao@100e0000 {
+			compatible = "lotus,aiao";
+			reg = <0x100e0000 0x10000>,<0x100f0000 0x10000>;
+			reg-names = "aiao","acodec";
+			interrupts = <0 69 4>;
+			interrupt-names = "AIO";
+			codec-mute-pin = <55 1>;
+		};
+
+		ive: ive@11490000 {
+			compatible = "lotus,ive";
+			reg = <0x11490000 0x10000>;
+			reg-names = "ive";
+			interrupts = <0 91 4>;
+			interrupt-names = "ive";
+		};
+	};
+	#ifdef CONFIG_OPTEE
+	firmware {
+		optee {
+			compatible = "linaro,optee-tz";
+			method = "smc";
+		};
+	};
+	#endif
+};

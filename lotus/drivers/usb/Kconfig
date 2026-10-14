@@ -1,0 +1,7 @@
+config USB_DWC3_LOTUS
+	tristate "Platforms Device DWC3"
+	depends on ARCH_LOTUS
+	depends on USB_SUPPORT
+	help
+	  LOTUS SoCs with one DesignWare Core USB3 IP
+	  Say 'Y' or 'M' if you have one such device.

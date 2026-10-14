@@ -1,0 +1,12 @@
+config LOTUS_FEMAC
+	tristate "Fast Ethernet MAC controller support"
+	depends on HAS_IOMEM
+	select PHYLIB
+	select RESET_CONTROLLER
+	help
+	  This selects the Fast Ethernet MAC Controller(FEMAC).
+	  The FEMAC receives and transmits data over Ethernet
+	  ports at 10/100 Mbps in full-duplex or half-duplex mode.
+	  The FEMAC exchanges data with the CPU, and supports
+	  the energy efficient Ethernet (EEE).
+

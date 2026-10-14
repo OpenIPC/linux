@@ -1,0 +1,6 @@
+
+if CAN_DEV
+
+source "lotus/drivers/net/can/ftcan010/Kconfig"
+
+endif

@@ -1,0 +1,2 @@
+
+dtb-y += xmorca.dtb
