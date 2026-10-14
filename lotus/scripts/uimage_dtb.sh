@@ -117,7 +117,7 @@ function create_hw_gzip_image()
 		$hwgzip -9 -c $image >$hwzimage
 		dd if=$hwzimage of=$hwzimage.4aligned bs=4 conv=sync
 		mkimage -A $arch -O linux -C $compress -T kernel -a ${loadaddr} \
-			-e ${entryaddr} -n ${kernel_version} \
+			-e ${entryaddr} -n "${kernel_version}" \
 			-d $hwzimage.4aligned $hwzimage.u
 		cat $hwzimage.u $dtb >$hwzimage-dtb
 	fi
@@ -127,7 +127,7 @@ function create_arm_uimage()
 {
 	cat $zimage $dtb >$zimage_dtb
 	mkimage -A $arch -O linux -C none -T kernel -a ${loadaddr} \
-		-e ${entryaddr} -n ${kernel_version} \
+		-e ${entryaddr} -n "${kernel_version}" \
 		-d $zimage_dtb $uimage
 }
 
@@ -135,7 +135,7 @@ function create_arm64_uimage()
 {
 	dd if=$zimage of=$zimage-aligned-4k bs=4096 conv=sync
 	mkimage -A $arch -O linux -C $compress -T kernel -a ${loadaddr} \
-		-e ${entryaddr} -n ${kernel_version} \
+		-e ${entryaddr} -n "${kernel_version}" \
 		-d $zimage-aligned-4k $uimage
 	cat $uimage $dtb >$uimage_dtb
 	cp $uimage_dtb $uimage
