@@ -1351,7 +1351,10 @@ ifneq ($(wildcard $(srctree)/arch/$(SRCARCH)/boot/dts/),)
 dtstree := arch/$(SRCARCH)/boot/dts
 endif
 
-dtstree := lotus/machine/xmfalcon/dts
+# The SDK pinned this to xmfalcon, so `make xmorca.dtb` (what Buildroot runs
+# for an in-tree DTS) looked for it in the wrong machine. Follow the SoC the
+# config selects instead.
+dtstree := lotus/machine/$(patsubst "%",%,$(CONFIG_LOTUS_SOC_NAME))/dts
 
 ifneq ($(dtstree),)
 
