@@ -82,7 +82,12 @@ if [ "ss$out" = "ss" ]; then
 	out=.
 fi
 
-kernel_version=linux-5.10.y
+# The name the kernel's own uImage rule stamps (UIMAGE_NAME in
+# scripts/Makefile.lib), so the image this script replaces it with still
+# carries the release -- and the localversion after it, which is where
+# OpenIPC's sysupgrade reads the SoC from. The SDK fixed this to
+# "linux-5.10.y".
+kernel_version=Linux-$(cat $out/include/config/kernel.release 2>/dev/null || echo 5.10.y)
 
 kernel_config=$out/.config
 
@@ -112,7 +117,7 @@ function create_hw_gzip_image()
 		$hwgzip -9 -c $image >$hwzimage
 		dd if=$hwzimage of=$hwzimage.4aligned bs=4 conv=sync
 		mkimage -A $arch -O linux -C $compress -T kernel -a ${loadaddr} \
-			-e ${entryaddr} -n ${kernel_version} \
+			-e ${entryaddr} -n "${kernel_version}" \
 			-d $hwzimage.4aligned $hwzimage.u
 		cat $hwzimage.u $dtb >$hwzimage-dtb
 	fi
@@ -122,7 +127,7 @@ function create_arm_uimage()
 {
 	cat $zimage $dtb >$zimage_dtb
 	mkimage -A $arch -O linux -C none -T kernel -a ${loadaddr} \
-		-e ${entryaddr} -n ${kernel_version} \
+		-e ${entryaddr} -n "${kernel_version}" \
 		-d $zimage_dtb $uimage
 }
 
@@ -130,7 +135,7 @@ function create_arm64_uimage()
 {
 	dd if=$zimage of=$zimage-aligned-4k bs=4096 conv=sync
 	mkimage -A $arch -O linux -C $compress -T kernel -a ${loadaddr} \
-		-e ${entryaddr} -n ${kernel_version} \
+		-e ${entryaddr} -n "${kernel_version}" \
 		-d $zimage-aligned-4k $uimage
 	cat $uimage $dtb >$uimage_dtb
 	cp $uimage_dtb $uimage
