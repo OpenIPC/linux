@@ -342,9 +342,7 @@ struct UVC_EXTENSION_UNIT_DESCRIPTOR(p, n) {		\
 	__u8  iExtension;				\
 } __attribute__ ((packed))
 
-#if defined(CONFIG_ARCH_XMFALCON) || defined(CONFIG_ARCH_XMORCA)
 DECLARE_UVC_EXTENSION_UNIT_DESCRIPTOR(1, 4);
-#endif
 
 /* 3.8.2.2. Video Control Interrupt Endpoint Descriptor */
 struct uvc_control_endpoint_descriptor {
@@ -571,7 +569,6 @@ struct UVC_FRAME_MJPEG(n) {				\
 	__le32 dwFrameInterval[n];			\
 } __attribute__ ((packed))
 
-#if defined(CONFIG_ARCH_XMFALCON) || defined(CONFIG_ARCH_XMORCA)
 /* 3.1.1  Frame Based Payload Video Format Descriptor */
 struct uvc_frame_based_format_desc {
 	__u8  bLength;
@@ -629,7 +626,6 @@ struct UVC_FRAME_BASED(n) {             \
 	__u32 dwBytesPerLine;           \
 	__u32 dwFrameInterval[n];           \
 } __attribute__ ((packed))
-#endif
 
 #endif /* __LINUX_USB_VIDEO_H */
 
