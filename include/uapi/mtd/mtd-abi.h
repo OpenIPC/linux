@@ -208,13 +208,13 @@ struct otp_info {
 /* read ID len   */
 #define CMD_DATA_LEN_MAX		256
 struct mtd_cmd_opt {
-	u8 cmd;
-	u32 addr;
-	u8 addr_cycle;
-	u8 dummy;
-	u8 op;// 0:read 1:write
-	u32 data_len;
-	u8 data[CMD_DATA_LEN_MAX];
+	__u8 cmd;
+	__u32 addr;
+	__u8 addr_cycle;
+	__u8 dummy;
+	__u8 op;	/* 0: read, 1: write */
+	__u32 data_len;
+	__u8 data[CMD_DATA_LEN_MAX];
 } __attribute__((packed));
 
 #define MTDCMDOPT		_IOWR('M', 28, struct mtd_cmd_opt)
