@@ -41,9 +41,16 @@
 		ramoops@41f00000 {
 			compatible = "ramoops";
 			reg = <0x41f00000 0x20000>;
-			record-size = <0x10000>;
+			/* Two 32K oops records (zlib-compressed, ample for one
+			 * oops) and a 64K pmsg ring: userspace copies its syslog --
+			 * klogd's kernel lines at every level included -- into
+			 * /dev/pmsg0, so a boot that hung or was reset without an oops
+			 * still leaves the log of what it was doing. console-size
+			 * stays 0: kernel.printk keeps the console at errors only, so
+			 * a console record would hold next to nothing. */
+			record-size = <0x8000>;
 			console-size = <0>;
-			pmsg-size = <0>;
+			pmsg-size = <0x10000>;
 		};
 
 		/* Boot-attempt counter shared with U-Boot (bootcount). no-map so
