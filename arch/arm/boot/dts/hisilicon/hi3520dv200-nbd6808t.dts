@@ -68,8 +68,9 @@
 };
 
 /*
- * 8 MB MX25L6406E on CS1. Read-only for now: the stock firmware is still on
- * it, laid out as the vendor bootargs describe.
+ * 8 MB MX25L6406E on CS1. The partitions below are the stock firmware's
+ * layout, read-only; they only apply when the bootloader passes no
+ * "mtdparts=hi_sfc:..." of its own.
  */
 &sfc {
 	status = "okay";
@@ -77,6 +78,8 @@
 	flash@1 {
 		compatible = "jedec,spi-nor";
 		reg = <1>;
+		/* the name both the vendor and OpenIPC bootloaders use in mtdparts= */
+		label = "hi_sfc";
 		spi-max-frequency = <50000000>;
 
 		partitions {
