@@ -12,6 +12,7 @@
 #include <linux/iopoll.h>
 #include <linux/module.h>
 #include <linux/mod_devicetable.h>
+#include <linux/of.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 #include <linux/spi/spi.h>
@@ -368,7 +369,24 @@ static int hisi_sfc_v3xx_exec_op(struct spi_mem *mem,
 	return hisi_sfc_v3xx_generic_exec_op(host, op, chip_select);
 }
 
+/*
+ * Name the flash after its DT "label" when it has one. Bootloaders on
+ * Hi3520DV200 boards pass "mtdparts=hi_sfc:...", which only matches an MTD
+ * device of that name; without a label the default (the SPI device name) is
+ * kept.
+ */
+static const char *hisi_sfc_v3xx_get_name(struct spi_mem *mem)
+{
+	const char *name;
+
+	if (!of_property_read_string(mem->spi->dev.of_node, "label", &name))
+		return name;
+
+	return dev_name(&mem->spi->dev);
+}
+
 static const struct spi_controller_mem_ops hisi_sfc_v3xx_mem_ops = {
+	.get_name = hisi_sfc_v3xx_get_name,
 	.adjust_op_size = hisi_sfc_v3xx_adjust_op_size,
 	.supports_op = hisi_sfc_v3xx_supports_op,
 	.exec_op = hisi_sfc_v3xx_exec_op,
@@ -477,7 +495,9 @@ static int hisi_sfc_v3xx_probe(struct platform_device *pdev)
 	}
 
 	ctlr->bus_num = -1;
-	ctlr->num_chipselect = 1;
+	/* The ACPI parts expose one chip select; the Hi3520DV200 flash is on CS1. */
+	if (device_property_read_u16(dev, "num-cs", &ctlr->num_chipselect))
+		ctlr->num_chipselect = 1;
 	ctlr->mem_ops = &hisi_sfc_v3xx_mem_ops;
 
 	/*
@@ -519,10 +539,22 @@ static const struct acpi_device_id hisi_sfc_v3xx_acpi_ids[] = {
 };
 MODULE_DEVICE_TABLE(acpi, hisi_sfc_v3xx_acpi_ids);
 
+/*
+ * The SFC v350 in HiSilicon's Hi3520DV200 has the register layout of the
+ * v3xx parts (GLB_CFG 0x100, interrupts 0x120-0x12c, CMD_CFG/INS/ADDR
+ * 0x300-0x30c, a 16-word data buffer at 0x400).
+ */
+static const struct of_device_id hisi_sfc_v3xx_of_ids[] = {
+	{ .compatible = "hisilicon,hi3520dv200-sfc" },
+	{}
+};
+MODULE_DEVICE_TABLE(of, hisi_sfc_v3xx_of_ids);
+
 static struct platform_driver hisi_sfc_v3xx_spi_driver = {
 	.driver = {
 		.name	= "hisi-sfc-v3xx",
 		.acpi_match_table = hisi_sfc_v3xx_acpi_ids,
+		.of_match_table = hisi_sfc_v3xx_of_ids,
 	},
 	.probe	= hisi_sfc_v3xx_probe,
 };

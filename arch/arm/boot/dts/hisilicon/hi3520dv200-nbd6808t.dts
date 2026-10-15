@@ -1,0 +1,145 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * XiongMai NBD6808T-PL NVR (MBD0157 board), Hi3520DV200, 8 MB SPI NOR.
+ */
+
+/dts-v1/;
+#include "hi3520dv200.dtsi"
+
+/ {
+	model = "XiongMai NBD6808T-PL (Hi3520DV200)";
+	compatible = "xiongmai,nbd6808t-pl", "hisilicon,hi3520dv200";
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+
+	memory@80000000 {
+		device_type = "memory";
+		reg = <0x80000000 0x08000000>;
+	};
+
+	reserved-memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		vga_fb_mem: framebuffer@8f000000 {
+			reg = <0x8f000000 0x400000>;
+			no-map;
+		};
+	};
+
+	/*
+	 * VGA, 1920x1080@60. The vendor bootloader drives the display
+	 * controller ("startvo 0 4 10; startgx 0 0x8f000000 3840 0 0 1920
+	 * 1080" opens VGA at 1080p60 and graphics layer 0 at this buffer,
+	 * scanned out as ARGB1555 with the alpha bit ignored); Linux only
+	 * draws into it. Without those bootloader commands nothing is shown.
+	 */
+	framebuffer@8f000000 {
+		compatible = "simple-framebuffer";
+		reg = <0x8f000000 0x3f4800>;
+		memory-region = <&vga_fb_mem>;
+		width = <1920>;
+		height = <1080>;
+		stride = <3840>;
+		format = "x1r5g5b5";
+	};
+};
+
+&uart0 {
+	status = "okay";
+};
+
+/* The RJ45 is on the up port, through the SoC's internal PHY at address 3. */
+&mdio {
+	status = "okay";
+
+	phy_up: ethernet-phy@3 {
+		reg = <3>;
+	};
+};
+
+&eth_up {
+	phy-handle = <&phy_up>;
+	phy-mode = "mii";
+	status = "okay";
+};
+
+/*
+ * 8 MB MX25L6406E on CS1. The partitions below are the stock firmware's
+ * layout, read-only; they only apply when the bootloader passes no
+ * "mtdparts=hi_sfc:..." of its own.
+ */
+&sfc {
+	status = "okay";
+
+	flash@1 {
+		compatible = "jedec,spi-nor";
+		reg = <1>;
+		/* the name both the vendor and OpenIPC bootloaders use in mtdparts= */
+		label = "hi_sfc";
+		spi-max-frequency = <50000000>;
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			partition@0 {
+				label = "boot";
+				reg = <0x000000 0x030000>;
+				read-only;
+			};
+			partition@30000 {
+				label = "romfs";
+				reg = <0x030000 0x1f0000>;
+				read-only;
+			};
+			partition@220000 {
+				label = "usr";
+				reg = <0x220000 0x3b0000>;
+				read-only;
+			};
+			partition@5d0000 {
+				label = "custom";
+				reg = <0x5d0000 0x1a0000>;
+				read-only;
+			};
+			partition@770000 {
+				label = "logo";
+				reg = <0x770000 0x010000>;
+				read-only;
+			};
+			partition@780000 {
+				label = "mtd";
+				reg = <0x780000 0x080000>;
+				read-only;
+			};
+			/* the whole chip, for verifying it against a backup */
+			partition@0-all {
+				label = "all";
+				reg = <0x000000 0x800000>;
+				read-only;
+			};
+		};
+	};
+};
+
+/*
+ * The vendor firmware's PHY value; with the Hi3520D reference one this
+ * board's link keeps resetting.
+ */
+&sata {
+	hisilicon,phy-config = <0x0e262709>;
+	status = "okay";
+};
+
+&ohci {
+	status = "okay";
+};
+
+&ehci {
+	status = "okay";
+};
