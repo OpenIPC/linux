@@ -12,6 +12,7 @@
 #include <linux/iopoll.h>
 #include <linux/module.h>
 #include <linux/mod_devicetable.h>
+#include <linux/of.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 #include <linux/spi/spi.h>
@@ -368,7 +369,24 @@ static int hisi_sfc_v3xx_exec_op(struct spi_mem *mem,
 	return hisi_sfc_v3xx_generic_exec_op(host, op, chip_select);
 }
 
+/*
+ * Name the flash after its DT "label" when it has one. Bootloaders on
+ * Hi3520DV200 boards pass "mtdparts=hi_sfc:...", which only matches an MTD
+ * device of that name; without a label the default (the SPI device name) is
+ * kept.
+ */
+static const char *hisi_sfc_v3xx_get_name(struct spi_mem *mem)
+{
+	const char *name;
+
+	if (!of_property_read_string(mem->spi->dev.of_node, "label", &name))
+		return name;
+
+	return dev_name(&mem->spi->dev);
+}
+
 static const struct spi_controller_mem_ops hisi_sfc_v3xx_mem_ops = {
+	.get_name = hisi_sfc_v3xx_get_name,
 	.adjust_op_size = hisi_sfc_v3xx_adjust_op_size,
 	.supports_op = hisi_sfc_v3xx_supports_op,
 	.exec_op = hisi_sfc_v3xx_exec_op,
