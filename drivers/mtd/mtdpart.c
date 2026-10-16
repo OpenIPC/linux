@@ -29,9 +29,11 @@
 #include <linux/kmod.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
+#include <linux/magic.h>
 #include <linux/err.h>
 
 #include "mtdcore.h"
+#include "mtdsplit/mtdsplit.h"
 
 /* Our partition linked list */
 static LIST_HEAD(mtd_partitions);
@@ -44,6 +46,8 @@ struct mtd_part {
 	uint64_t offset;
 	struct list_head list;
 };
+
+static void mtd_partition_split(struct mtd_info *master, struct mtd_part *part);
 
 /*
  * Given a pointer to the MTD object in the mtd_part structure, we can retrieve
@@ -650,6 +654,7 @@ int mtd_add_partition(struct mtd_info *master, const char *name,
 
 	add_mtd_device(&new->mtd);
 
+	mtd_partition_split(master, new);
 	mtd_add_partition_attrs(new);
 
 	return ret;
@@ -681,6 +686,88 @@ int mtd_del_partition(struct mtd_info *master, int partno)
 }
 EXPORT_SYMBOL_GPL(mtd_del_partition);
 
+static int
+run_parsers_by_type(struct mtd_part *slave, enum mtd_parser_type type)
+{
+	struct mtd_partition *parts;
+	int nr_parts;
+	int i;
+
+	nr_parts = parse_mtd_partitions_by_type(&slave->mtd, type, (const struct mtd_partition **)&parts,
+						NULL);
+	if (nr_parts <= 0)
+		return nr_parts;
+
+	if (WARN_ON(!parts))
+		return 0;
+
+	for (i = 0; i < nr_parts; i++) {
+		/* adjust partition offsets */
+		parts[i].offset += slave->offset;
+
+		mtd_add_partition(slave->master,
+				  parts[i].name,
+				  parts[i].offset,
+				  parts[i].size);
+	}
+
+	kfree(parts);
+
+	return nr_parts;
+}
+
+static inline unsigned long
+mtd_pad_erasesize(struct mtd_info *mtd, int offset, int len)
+{
+	unsigned long mask = mtd->erasesize - 1;
+
+	len += offset & mask;
+	len = (len + mask) & ~mask;
+	len -= offset & mask;
+	return len;
+}
+
+#ifdef CONFIG_MTD_SPLIT_FIRMWARE_NAME
+#define SPLIT_FIRMWARE_NAME	CONFIG_MTD_SPLIT_FIRMWARE_NAME
+#else
+#define SPLIT_FIRMWARE_NAME	"unused"
+#endif
+
+/*
+ * Set while the firmware partition is being split. The rootfs parsers run only
+ * on the "rootfs" child that split creates: a partition the command line names
+ * "rootfs" (a fixed layout, kernel and rootfs in slots of their own) is left as
+ * it is, so its slack never grows a second rootfs_data.
+ */
+static int splitting_firmware;
+
+static void split_firmware(struct mtd_info *master, struct mtd_part *part)
+{
+	splitting_firmware = 1;
+	run_parsers_by_type(part, MTD_PARSER_TYPE_FIRMWARE);
+	splitting_firmware = 0;
+}
+
+static void mtd_partition_split(struct mtd_info *master, struct mtd_part *part)
+{
+	static int rootfs_found = 0;
+
+	if (rootfs_found)
+		return;
+
+	if (splitting_firmware && !strcmp(part->mtd.name, "rootfs")) {
+		run_parsers_by_type(part, MTD_PARSER_TYPE_ROOTFS);
+
+		rootfs_found = 1;
+	}
+
+	if (!splitting_firmware && !strcmp(part->mtd.name, SPLIT_FIRMWARE_NAME) &&
+	    IS_ENABLED(CONFIG_MTD_SPLIT_FIRMWARE))
+		split_firmware(master, part);
+
+	arch_split_mtd_part(master, part->mtd.name, part->offset,
+			    part->mtd.size);
+}
 /*
  * This function, given a master MTD object and a partition table, creates
  * and registers slave MTD objects which are bound to the master according to
@@ -712,6 +799,7 @@ int add_mtd_partitions(struct mtd_info *master,
 		mutex_unlock(&mtd_partitions_mutex);
 
 		add_mtd_device(&slave->mtd);
+		mtd_partition_split(master, slave);
 		mtd_add_partition_attrs(slave);
 
 		cur_offset = slave->offset + slave->mtd.size;
@@ -865,6 +953,62 @@ void mtd_part_parser_cleanup(struct mtd_partitions *parts)
 	}
 }
 
+static struct mtd_part_parser *
+get_partition_parser_by_type(enum mtd_parser_type type,
+			     struct mtd_part_parser *start)
+{
+	struct mtd_part_parser *p, *ret = NULL;
+
+	spin_lock(&part_parser_lock);
+
+	p = list_prepare_entry(start, &part_parsers, list);
+	if (start)
+		mtd_part_parser_put(start);
+
+	list_for_each_entry_continue(p, &part_parsers, list) {
+		if (p->type == type && try_module_get(p->owner)) {
+			ret = p;
+			break;
+		}
+	}
+
+	spin_unlock(&part_parser_lock);
+
+	return ret;
+}
+
+int parse_mtd_partitions_by_type(struct mtd_info *master,
+				 enum mtd_parser_type type,
+				 const struct mtd_partition **pparts,
+				 struct mtd_part_parser_data *data)
+{
+	struct mtd_part_parser *prev = NULL;
+	int ret = 0;
+
+	while (1) {
+		struct mtd_part_parser *parser;
+
+		parser = get_partition_parser_by_type(type, prev);
+		if (!parser)
+			break;
+
+		ret = (*parser->parse_fn)(master, pparts, data);
+
+		if (ret > 0) {
+			mtd_part_parser_put(parser);
+			printk(KERN_NOTICE
+			       "%d %s partitions found on MTD device %s\n",
+			       ret, parser->name, master->name);
+			break;
+		}
+
+		prev = parser;
+	}
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(parse_mtd_partitions_by_type);
+
 int mtd_is_partition(const struct mtd_info *mtd)
 {
 	struct mtd_part *part;
@@ -881,6 +1025,24 @@ int mtd_is_partition(const struct mtd_info *mtd)
 	return ispart;
 }
 EXPORT_SYMBOL_GPL(mtd_is_partition);
+
+struct mtd_info *mtdpart_get_master(const struct mtd_info *mtd)
+{
+	if (!mtd_is_partition(mtd))
+		return (struct mtd_info *)mtd;
+
+	return mtd_to_part(mtd)->master;
+}
+EXPORT_SYMBOL_GPL(mtdpart_get_master);
+
+uint64_t mtdpart_get_offset(const struct mtd_info *mtd)
+{
+	if (!mtd_is_partition(mtd))
+		return 0;
+
+	return mtd_to_part(mtd)->offset;
+}
+EXPORT_SYMBOL_GPL(mtdpart_get_offset);
 
 /* Returns the size of the entire flash chip */
 uint64_t mtd_get_device_size(const struct mtd_info *mtd)
