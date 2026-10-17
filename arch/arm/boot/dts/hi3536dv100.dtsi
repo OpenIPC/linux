@@ -170,6 +170,7 @@
 			compatible = "hisilicon,hi3536dv100-i2c",
 					"hisilicon,hibvt-i2c";
 			reg = <0x120c0000 0x1000>;
+			interrupts = <0 10 4>;
 			clocks = <&clock HI3536DV100_SYSAPB_CLK>;
 			status = "disabled";
 		};
