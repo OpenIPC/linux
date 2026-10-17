@@ -264,6 +264,7 @@
 		i2c_bus0: i2c@120b0000 {
 			compatible = "hisilicon,hibvt-i2c";
 			reg = <0x120b0000 0x1000>;
+			interrupts = <0 11 4>;
 			clocks = <&clock HI3516CV500_I2C0_CLK>;
 #ifdef CONFIG_HIEDMAC
 				dmas = <&hiedmacv310_0 1 1>, <&hiedmacv310_0 0 0>;
@@ -275,6 +276,7 @@
 		i2c_bus1: i2c@120b1000 {
 			compatible = "hisilicon,hibvt-i2c";
 			reg = <0x120b1000 0x1000>;
+			interrupts = <0 12 4>;
 			clocks = <&clock HI3516CV500_I2C1_CLK>;
 #ifdef CONFIG_HIEDMAC
 				dmas = <&hiedmacv310_0 3 3>, <&hiedmacv310_0 2 2>;
@@ -286,6 +288,7 @@
 		i2c_bus2: i2c@120b2000 {
 			compatible = "hisilicon,hibvt-i2c";
 			reg = <0x120b2000 0x1000>;
+			interrupts = <0 13 4>;
 			clocks = <&clock HI3516CV500_I2C2_CLK>;
 #ifdef CONFIG_HIEDMAC
 				dmas = <&hiedmacv310_0 5 5>, <&hiedmacv310_0 4 4>;
@@ -297,6 +300,7 @@
 		i2c_bus3: i2c@120b3000 {
 			compatible = "hisilicon,hibvt-i2c";
 			reg = <0x120b3000 0x1000>;
+			interrupts = <0 14 4>;
 			clocks = <&clock HI3516CV500_I2C3_CLK>;
 #ifdef CONFIG_HIEDMAC
 				dmas = <&hiedmacv310_0 7 7>, <&hiedmacv310_0 6 6>;
@@ -308,6 +312,7 @@
 		i2c_bus5: i2c@120b5000 {
 			compatible = "hisilicon,hibvt-i2c";
 			reg = <0x120b5000 0x1000>;
+			interrupts = <0 77 4>;
 			clocks = <&clock HI3516CV500_I2C5_CLK>;
 #ifdef CONFIG_HIEDMAC
 				dmas = <&hiedmacv310_0 11 11>, <&hiedmacv310_0 10 10>;
@@ -319,6 +324,7 @@
 		i2c_bus6: i2c@120b6000 {
 			compatible = "hisilicon,hibvt-i2c";
 			reg = <0x120b6000 0x1000>;
+			interrupts = <0 78 4>;
 			clocks = <&clock HI3516CV500_I2C6_CLK>;
 #ifdef CONFIG_HIEDMAC
 				dmas = <&hiedmacv310_0 13 13>, <&hiedmacv310_0 12 12>;
@@ -330,6 +336,7 @@
 		i2c_bus7: i2c@120b7000 {
 			compatible = "hisilicon,hibvt-i2c";
 			reg = <0x120b7000 0x1000>;
+			interrupts = <0 79 4>;
 			clocks = <&clock HI3516CV500_I2C7_CLK>;
 #ifdef CONFIG_HIEDMAC
 				dmas = <&hiedmacv310_0 15 15>, <&hiedmacv310_0 14 14>;
