@@ -691,7 +691,7 @@ run_parsers_by_type(struct mtd_part *slave, enum mtd_parser_type type)
 {
 	struct mtd_partition *parts;
 	int nr_parts;
-	int i, err;
+	int i, err, ret;
 
 	nr_parts = parse_mtd_partitions_by_type(&slave->mtd, type, (const struct mtd_partition **)&parts,
 						NULL);
@@ -701,6 +701,7 @@ run_parsers_by_type(struct mtd_part *slave, enum mtd_parser_type type)
 	if (WARN_ON(!parts))
 		return 0;
 
+	ret = nr_parts;
 	for (i = 0; i < nr_parts; i++) {
 		/* adjust partition offsets */
 		parts[i].offset += slave->offset;
@@ -709,14 +710,18 @@ run_parsers_by_type(struct mtd_part *slave, enum mtd_parser_type type)
 					parts[i].name,
 					parts[i].offset,
 					parts[i].size);
-		if (err)
+		if (err) {
 			pr_err("cannot add \"%s\" split from \"%s\": %d\n",
 			       parts[i].name, slave->mtd.name, err);
+			if (ret > 0)
+				ret = err;
+		}
 	}
 
 	kfree(parts);
 
-	return nr_parts;
+	/* The first child that could not be added, else how many were. */
+	return ret;
 }
 
 #ifdef CONFIG_MTD_SPLIT_FIRMWARE_NAME
@@ -738,11 +743,16 @@ static struct task_struct *splitting_task;
 
 static void split_firmware(struct mtd_info *master, struct mtd_part *part)
 {
+	int ret;
+
 	mutex_lock(&split_lock);
 	splitting_task = current;
-	run_parsers_by_type(part, MTD_PARSER_TYPE_FIRMWARE);
+	ret = run_parsers_by_type(part, MTD_PARSER_TYPE_FIRMWARE);
 	splitting_task = NULL;
 	mutex_unlock(&split_lock);
+
+	if (ret < 0 && ret != -ENODEV)
+		pr_err("\"%s\" was not fully split: %d\n", part->mtd.name, ret);
 }
 
 static void mtd_partition_split(struct mtd_info *master, struct mtd_part *part)
