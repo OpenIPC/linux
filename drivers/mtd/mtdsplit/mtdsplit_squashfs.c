@@ -49,6 +49,12 @@ mtdsplit_parse_squashfs(struct mtd_info *master,
 	part->name = ROOTFS_SPLIT_NAME;
 	part->offset = mtd_roundup_to_eb(part_offset + squashfs_len,
 					 parent_mtd) - part_offset;
+	if (part->offset >= master->size) {
+		pr_info("no room for \"%s\" after the squashfs in \"%s\"\n",
+			ROOTFS_SPLIT_NAME, master->name);
+		kfree(part);
+		return -ENOSPC;
+	}
 	part->size = mtd_rounddown_to_eb(master->size - part->offset, master);
 
 	*pparts = part;

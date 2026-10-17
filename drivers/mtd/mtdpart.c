@@ -691,7 +691,7 @@ run_parsers_by_type(struct mtd_part *slave, enum mtd_parser_type type)
 {
 	struct mtd_partition *parts;
 	int nr_parts;
-	int i;
+	int i, err;
 
 	nr_parts = parse_mtd_partitions_by_type(&slave->mtd, type, (const struct mtd_partition **)&parts,
 						NULL);
@@ -705,26 +705,18 @@ run_parsers_by_type(struct mtd_part *slave, enum mtd_parser_type type)
 		/* adjust partition offsets */
 		parts[i].offset += slave->offset;
 
-		mtd_add_partition(slave->master,
-				  parts[i].name,
-				  parts[i].offset,
-				  parts[i].size);
+		err = mtd_add_partition(slave->master,
+					parts[i].name,
+					parts[i].offset,
+					parts[i].size);
+		if (err)
+			pr_err("cannot add \"%s\" split from \"%s\": %d\n",
+			       parts[i].name, slave->mtd.name, err);
 	}
 
 	kfree(parts);
 
 	return nr_parts;
-}
-
-static inline unsigned long
-mtd_pad_erasesize(struct mtd_info *mtd, int offset, int len)
-{
-	unsigned long mask = mtd->erasesize - 1;
-
-	len += offset & mask;
-	len = (len + mask) & ~mask;
-	len -= offset & mask;
-	return len;
 }
 
 #ifdef CONFIG_MTD_SPLIT_FIRMWARE_NAME
@@ -734,39 +726,35 @@ mtd_pad_erasesize(struct mtd_info *mtd, int offset, int len)
 #endif
 
 /*
- * Set while the firmware partition is being split. The rootfs parsers run only
- * on the "rootfs" child that split creates: a partition the command line names
- * "rootfs" (a fixed layout, kernel and rootfs in slots of their own) is left as
- * it is, so its slack never grows a second rootfs_data.
+ * The task splitting the firmware partition, while it does. The rootfs parsers
+ * run only on the "rootfs" child that split creates, which is added from the
+ * same task: a partition the command line names "rootfs" (a fixed layout,
+ * kernel and rootfs in slots of their own) is left as it is, so its slack never
+ * grows a second rootfs_data. One split at a time, so a partition added from
+ * elsewhere meanwhile is never mistaken for a child.
  */
-static int splitting_firmware;
+static DEFINE_MUTEX(split_lock);
+static struct task_struct *splitting_task;
 
 static void split_firmware(struct mtd_info *master, struct mtd_part *part)
 {
-	splitting_firmware = 1;
+	mutex_lock(&split_lock);
+	splitting_task = current;
 	run_parsers_by_type(part, MTD_PARSER_TYPE_FIRMWARE);
-	splitting_firmware = 0;
+	splitting_task = NULL;
+	mutex_unlock(&split_lock);
 }
 
 static void mtd_partition_split(struct mtd_info *master, struct mtd_part *part)
 {
-	static int rootfs_found = 0;
+	bool child = READ_ONCE(splitting_task) == current;
 
-	if (rootfs_found)
-		return;
-
-	if (splitting_firmware && !strcmp(part->mtd.name, "rootfs")) {
+	if (child && !strcmp(part->mtd.name, ROOTFS_PART_NAME))
 		run_parsers_by_type(part, MTD_PARSER_TYPE_ROOTFS);
 
-		rootfs_found = 1;
-	}
-
-	if (!splitting_firmware && !strcmp(part->mtd.name, SPLIT_FIRMWARE_NAME) &&
+	if (!child && !strcmp(part->mtd.name, SPLIT_FIRMWARE_NAME) &&
 	    IS_ENABLED(CONFIG_MTD_SPLIT_FIRMWARE))
 		split_firmware(master, part);
-
-	arch_split_mtd_part(master, part->mtd.name, part->offset,
-			    part->mtd.size);
 }
 /*
  * This function, given a master MTD object and a partition table, creates

@@ -61,7 +61,7 @@ mtdsplit_fit_parse(struct mtd_info *mtd,
 
 	/* Parse the MTD device & search for the FIT image location */
 	for(offset = 0; offset < mtd->size; offset += mtd->erasesize) {
-		ret = mtd_read(mtd, 0, hdr_len, &retlen, (void*) &hdr);
+		ret = mtd_read(mtd, offset, hdr_len, &retlen, (void*) &hdr);
 		if (ret) {
 			pr_err("read error in \"%s\" at offset 0x%llx\n",
 			       mtd->name, (unsigned long long) offset);
@@ -84,14 +84,24 @@ mtdsplit_fit_parse(struct mtd_info *mtd,
 		break;
 	}
 
+	/* No FIT anywhere: a uImage, say, which is not ours to split. */
+	if (offset >= mtd->size)
+		return -ENODEV;
+
 	fit_offset = offset;
 	fit_size = be32_to_cpu(hdr.totalsize);
 
-	if (fit_size == 0) {
-		pr_err("FIT image in \"%s\" at offset %llx has null size\n",
-		       mtd->name, (unsigned long long) fit_offset);
+	if (fit_size == 0 || fit_size > mtd->size - fit_offset) {
+		pr_err("FIT image in \"%s\" at offset %llx has bad size %zu\n",
+		       mtd->name, (unsigned long long) fit_offset, fit_size);
 		return -ENODEV;
 	}
+
+	/*
+	 * The kernel partition is the FIT to a whole eraseblock, and the rootfs
+	 * is looked for from there, so the two never share a block.
+	 */
+	fit_size = mtd_roundup_to_eb(fit_size, mtd);
 
 	/* Search for the rootfs partition after the FIT image */
 	ret = mtd_find_rootfs_from(mtd, fit_offset + fit_size, mtd->size,
@@ -110,7 +120,7 @@ mtdsplit_fit_parse(struct mtd_info *mtd,
 
 	parts[0].name = KERNEL_PART_NAME;
 	parts[0].offset = fit_offset;
-	parts[0].size = mtd_rounddown_to_eb(fit_size, mtd) + mtd->erasesize;
+	parts[0].size = fit_size;
 
 	parts[1].name = ROOTFS_PART_NAME;
 	parts[1].offset = rootfs_offset;

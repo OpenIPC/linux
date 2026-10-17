@@ -91,7 +91,8 @@ int mtd_check_rootfs_magic(struct mtd_info *mtd, size_t offset,
 		if (type)
 			*type = MTDSPLIT_PART_TYPE_SQUASHFS;
 		return 0;
-	} else if (magic == 0x19852003) {
+	} else if (le16_to_cpu(*(__le16 *) &magic) == 0x1985 ||
+		   be16_to_cpu(*(__be16 *) &magic) == 0x1985) {
 		if (type)
 			*type = MTDSPLIT_PART_TYPE_JFFS2;
 		return 0;
