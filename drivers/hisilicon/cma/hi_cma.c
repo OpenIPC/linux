@@ -324,10 +324,28 @@ static phys_addr_t __init hisi_probe_dram(void)
 	return SZ_512M;
 }
 
+/*
+ * The parts this is for: DRAM on-chip (hi3516ev200/ev300, hi3518ev300) or
+ * external up to 512 MiB (hi3516dv200). Other BVT boards in this tree carry
+ * more than the probe looks for, and keep their memory as the bootloader
+ * set it.
+ */
+static const char * const hisi_mem_compat[] __initconst = {
+	"hisilicon,hi3516ev200", "hisilicon,hi3516ev300",
+	"hisilicon,hi3518ev300", "hisilicon,hi3516dv200", NULL
+};
+
 void __init hisi_memory_init(void)
 {
 	phys_addr_t base = PHYS_OFFSET, booted = memblock_end_of_DRAM() - base;
-	bool cma;
+	unsigned long root = of_get_flat_dt_root();
+	bool cma, ours = false;
+	int i;
+
+	for (i = 0; hisi_mem_compat[i]; i++)
+		ours |= of_flat_dt_is_compatible(root, hisi_mem_compat[i]) > 0;
+	if (!ours)
+		return;
 
 	hisi_dram = hisi_probe_dram();
 	if (!hisi_dram) {
@@ -450,8 +468,10 @@ static int __init hisi_memory_publish(void)
 	}
 
 	np = of_find_node_by_path("/memory");
-	if (!np)
+	if (!np) {
+		pr_warn("hisi_mem: no /memory node, its size not updated\n");
 		return 0;
+	}
 	prop = kzalloc(sizeof(*prop) + 2 * sizeof(*reg), GFP_KERNEL);
 	if (prop) {
 		reg = (__be32 *)(prop + 1);
@@ -460,7 +480,12 @@ static int __init hisi_memory_publish(void)
 		prop->name = "reg";
 		prop->length = 2 * sizeof(*reg);
 		prop->value = reg;
-		of_update_property(np, prop);
+		if (of_update_property(np, prop)) {
+			pr_warn("hisi_mem: /memory not updated to the measured %uM\n", dram);
+			kfree(prop);
+		}
+	} else {
+		pr_warn("hisi_mem: /memory not updated to the measured %uM\n", dram);
 	}
 	of_node_put(np);
 	return 0;
