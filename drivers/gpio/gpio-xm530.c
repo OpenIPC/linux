@@ -14,9 +14,17 @@
  *
  * Pad N is GPIO N. A lab XM550 populates pads 0..99; the words after them
  * are control registers. Vendor code writes whole words, so every update
- * here is read-modify-write and leaves the drive strength alone. A pad whose
- * MUX bits are set belongs to another function (SD, Ethernet, I2C, the
- * sensor bus) and is refused, so an export cannot take it over.
+ * here is read-modify-write and leaves the drive strength alone.
+ *
+ * Two kinds of pad are not ours to hand out:
+ *  - one whose MUX bits are set belongs to another function (SD, Ethernet,
+ *    I2C, the sensor bus). That is checked at request and again at every
+ *    write, because sdio0_sd is a module that muxes its pads when it loads,
+ *    possibly after a GPIO was requested;
+ *  - one an in-tree driver drives as a plain pad through gpio_write(), with
+ *    no MUX bit to show for it: SD card detect, power and write protect
+ *    (49, 50, 51, sdio0_sd.c) and the Ethernet PHY reset (59,
+ *    stmmac_main.c). Those are reserved outright.
  *
  * There is no GPIO interrupt.
  */
@@ -36,22 +44,37 @@
 #define PAD_IN_EN		(1 << 12)
 #define PAD_IN_LEVEL		(1 << 13)
 
+/* Pads in-tree drivers drive directly, with no MUX bit set. */
+static const u8 xm530_reserved_pads[] = { 49, 50, 51, 59 };
+
 static void __iomem *xm530_pads;
 static DEFINE_SPINLOCK(xm530_pad_lock);
 
-static void xm530_pad_update(unsigned offset, u32 clear, u32 set)
+/* -EBUSY, and nothing written, once the pad has been muxed to something
+ * else -- even if it was a plain pad when the GPIO was requested. */
+static int xm530_pad_update(unsigned offset, u32 clear, u32 set)
 {
 	unsigned long flags;
+	int ret = 0;
 	u32 v;
 
 	spin_lock_irqsave(&xm530_pad_lock, flags);
 	v = readl(xm530_pads + offset * 4);
-	writel((v & ~clear) | set, xm530_pads + offset * 4);
+	if (v & PAD_MUX)
+		ret = -EBUSY;
+	else
+		writel((v & ~clear) | set, xm530_pads + offset * 4);
 	spin_unlock_irqrestore(&xm530_pad_lock, flags);
+	return ret;
 }
 
 static int xm530_gpio_request(struct gpio_chip *chip, unsigned offset)
 {
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(xm530_reserved_pads); i++)
+		if (offset == xm530_reserved_pads[i])
+			return -EBUSY;
 	if (readl(xm530_pads + offset * 4) & PAD_MUX)
 		return -EBUSY;
 	return 0;
@@ -60,16 +83,14 @@ static int xm530_gpio_request(struct gpio_chip *chip, unsigned offset)
 static int xm530_gpio_direction_input(struct gpio_chip *chip,
 				      unsigned offset)
 {
-	xm530_pad_update(offset, PAD_OUT_EN, PAD_IN_EN);
-	return 0;
+	return xm530_pad_update(offset, PAD_OUT_EN, PAD_IN_EN);
 }
 
 static int xm530_gpio_direction_output(struct gpio_chip *chip,
 				       unsigned offset, int value)
 {
-	xm530_pad_update(offset, PAD_IN_EN | PAD_OUT_HIGH,
-			 PAD_OUT_EN | (value ? PAD_OUT_HIGH : 0));
-	return 0;
+	return xm530_pad_update(offset, PAD_IN_EN | PAD_OUT_HIGH,
+				PAD_OUT_EN | (value ? PAD_OUT_HIGH : 0));
 }
 
 static int xm530_gpio_get(struct gpio_chip *chip, unsigned offset)
