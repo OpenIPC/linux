@@ -34,6 +34,7 @@ phys_addr_t goke_get_zones_start(void);
 struct cma_zone *goke_get_cma_zone(const char *name);
 struct device *goke_get_cma_device(const char *name);
 int __init goke_declare_heap_memory(void);
+void __init goke_memory_init(void);
 #endif /* CONFIG_CMA */
 
 #endif

@@ -1086,6 +1086,13 @@ void __init setup_arch(char **cmdline_p)
 	early_ioremap_init();
 
 	parse_early_param();
+#if defined CONFIG_CMA && defined CONFIG_ARCH_GOKE
+	{
+		/* DRAM measured, and laid out between the OS and the media zone */
+		extern void goke_memory_init(void);
+		goke_memory_init();
+	}
+#endif
 
 #ifdef CONFIG_MMU
 	early_paging_init(mdesc);
