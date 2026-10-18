@@ -14,9 +14,14 @@
 		stdout-path = "serial0:115200n8";
 	};
 
+	/*
+	 * 256 MB of DDR. The vendor firmware gave Linux the first 128 MB and
+	 * the rest to the media memory zone; without the MPP all of it is
+	 * ordinary memory except the VGA framebuffer reserved below.
+	 */
 	memory@80000000 {
 		device_type = "memory";
-		reg = <0x80000000 0x08000000>;
+		reg = <0x80000000 0x10000000>;
 	};
 
 	reserved-memory {
