@@ -15,6 +15,7 @@
 #include <linux/tty.h>
 #include <linux/suspend.h>
 #include <linux/root_dev.h>
+#include <linux/major.h>
 #include <linux/security.h>
 #include <linux/delay.h>
 #include <linux/genhd.h>
@@ -546,6 +547,22 @@ void __init mount_root(void)
 }
 
 /*
+ * Whether root= leaves the root to the flash: no root= at all, or one naming
+ * an MTD device, by name ("mtd...", "/dev/mtdblockN") or by number ("31:N",
+ * or its hex encoding).
+ */
+static bool __init root_names_flash(const char *name)
+{
+	if (!name[0] || !strncmp(name, "mtd", 3) ||
+	    !strncmp(name, "/dev/mtdblock", 13))
+		return true;
+	if (!strncmp(name, "/dev/", 5) || !strncmp(name, "PARTUUID=", 9) ||
+	    !strncmp(name, "PARTLABEL=", 10) || !strncmp(name, "ubi", 3))
+		return false;
+	return MAJOR(name_to_dev_t(name)) == MTD_BLOCK_MAJOR;
+}
+
+/*
  * Prepare the namespace - decide what/where to mount, load ramdisks, etc.
  */
 void __init prepare_namespace(void)
@@ -575,11 +592,10 @@ void __init prepare_namespace(void)
 	 * give way for an MTD root; a root elsewhere (NFS, an SD card, a RAM disk)
 	 * is the bootloader's to choose.
 	 */
-	if (root_dev_from_flash && saved_root_name[0] &&
-	    (!strncmp(saved_root_name, "mtd", 3) ||
-	     !strncmp(saved_root_name, "/dev/mtdblock", 13))) {
-		pr_notice("VFS: root=%s ignored, the flash names its own root\n",
-			  saved_root_name);
+	if (root_dev_from_flash && root_names_flash(saved_root_name)) {
+		if (saved_root_name[0])
+			pr_notice("VFS: root=%s ignored, the flash names its own root\n",
+				  saved_root_name);
 		saved_root_name[0] = '\0';
 		root_fs_names = NULL;
 	}
