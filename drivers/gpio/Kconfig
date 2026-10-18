@@ -108,6 +108,15 @@ config GPIO_MAX730X
 
 comment "Memory mapped GPIO drivers:"
 
+config GPIO_XM530
+	bool "Xiongmai XM530/XM550 pad GPIO"
+	depends on ARCH_XM530
+	default y
+	help
+	  The XM530/XM550 pad controller at 0x10020000, one register per
+	  pad. Exposes pads 0..99 as GPIOs 0..99; a pad already muxed to
+	  another function is refused.
+
 config GPIO_CLPS711X
 	def_bool y
 	depends on ARCH_CLPS711X

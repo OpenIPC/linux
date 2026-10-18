@@ -885,6 +885,7 @@ config ARCH_XM530
 	select USB_ARCH_HAS_OHCI
 	select USB_ARCH_HAS_EHCI
 	select USB_ARCH_HAS_XHCI
+	select ARCH_WANT_OPTIONAL_GPIOLIB
 	help 
 		This enables support for XM xm530 platform.
 
