@@ -40,6 +40,8 @@ int __initdata rd_doload;	/* 1 = load RAM disk, 0 = don't load */
 int root_mountflags = MS_RDONLY | MS_SILENT;
 static char * __initdata root_device_name;
 static char __initdata saved_root_name[64];
+
+bool root_dev_from_flash;
 static int root_wait;
 
 dev_t ROOT_DEV;
@@ -566,6 +568,21 @@ void __init prepare_namespace(void)
 	wait_for_device_probe();
 
 	md_run_setup();
+
+	/*
+	 * The bootloader's root= and rootfstype= describe its idea of the flash.
+	 * When the kernel found the root filesystem on the flash itself, those
+	 * give way for an MTD root; a root elsewhere (NFS, an SD card, a RAM disk)
+	 * is the bootloader's to choose.
+	 */
+	if (root_dev_from_flash && saved_root_name[0] &&
+	    (!strncmp(saved_root_name, "mtd", 3) ||
+	     !strncmp(saved_root_name, "/dev/mtdblock", 13))) {
+		pr_notice("VFS: root=%s ignored, the flash names its own root\n",
+			  saved_root_name);
+		saved_root_name[0] = '\0';
+		root_fs_names = NULL;
+	}
 
 	if (saved_root_name[0]) {
 		root_device_name = saved_root_name;
