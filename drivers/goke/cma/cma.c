@@ -309,7 +309,39 @@ void __init goke_memory_init(void)
 	}
 
 	if (use_bootargs) {
-		/* An explicit mmz=: the zone and mem= as the bootloader gave them. */
+		/*
+		 * An explicit mmz=: the zone and mem= as the bootloader gave them,
+		 * except where they claim memory the board does not have. Past the
+		 * end of DRAM the address wraps onto the kernel's own pages, so a
+		 * zone or a mem= reaching there corrupts it as soon as it is used.
+		 */
+		phys_addr_t end = base + goke_dram;
+		int i, n = 0;
+
+		if (base + booted > end) {
+			pr_warn("goke_mem: mem=%lluM is more than the %lluM of DRAM, cut to it\n",
+				(u64)booted >> 20, (u64)goke_dram >> 20);
+			memblock_remove(end, base + booted - end);
+		}
+		for (i = 0; i < num_zones; i++) {
+			if (zone[i].phys_start + zone[i].nbytes > end) {
+				pr_warn("goke_mem: mmz zone %s at 0x%llx, %lluM, runs past the %lluM of DRAM\n",
+					zone[i].name, (u64)zone[i].phys_start,
+					(u64)zone[i].nbytes >> 20, (u64)goke_dram >> 20);
+				if (zone[i].phys_start >= end)
+					continue;
+				zone[i].nbytes = end - zone[i].phys_start;
+			}
+			if (n != i)
+				zone[n] = zone[i];
+			n++;
+		}
+		num_zones = n;
+		if (!num_zones) {
+			use_bootargs = 0;
+			goto auto_layout;
+		}
+		booted = memblock_end_of_DRAM() - base;
 		goke_os = goke_get_zones_start() - base;
 		pr_info("goke_mem: DRAM %lluM (probed), cma, zones from mmz=, mem=%lluM as passed\n",
 			(u64)goke_dram >> 20, (u64)booted >> 20);
@@ -317,6 +349,7 @@ void __init goke_memory_init(void)
 		return;
 	}
 
+auto_layout:
 	cma = goke_alloc_req[0] ? !strcmp(goke_alloc_req, "cma") : goke_dram > SZ_64M;
 	goke_os = GOKE_OS_MIN;
 	if (goke_os_req) {
