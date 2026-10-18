@@ -24,6 +24,7 @@
 #include <linux/of_address.h>
 #include <linux/of_mdio.h>
 #include <linux/platform_device.h>
+#include <linux/property.h>
 #include <linux/reset.h>
 
 #define MDIO_RWCTRL		0x00
@@ -80,6 +81,7 @@ struct hisi_femac_mdio_data {
 	void __iomem *fephy_trim_iobase;
 	struct mii_bus *bus;
 	u32 phy_addr;
+	bool fephy_addr_only;
 };
 
 static int hisi_femac_mdio_wait_ready(struct hisi_femac_mdio_data *data)
@@ -321,6 +323,22 @@ static void hisi_femac_fephy_reset_and_trim(struct hisi_femac_mdio_data *data)
 	hisi_femac_fephy_trim(data);
 }
 
+/*
+ * The Hi3520DV200 internal PHY answers at the address in bits 4:0 of its
+ * control register, which is 0 after power-on. Only the bootloader's network
+ * code sets it, so a kernel booted without it finds no PHY. This SoC has no
+ * festa trim data, and its PHY is not a festa, so only the address is set.
+ */
+static void hisi_femac_fephy_write_addr(struct hisi_femac_mdio_data *data)
+{
+	u32 val;
+
+	val = readl(data->fephy_iobase);
+	val &= ~BIT_MASK_FEPHY_ADDR;
+	val |= data->phy_addr;
+	writel(val, data->fephy_iobase);
+}
+
 static void hisi_femac_fephy_set_phy_addr(struct hisi_femac_mdio_data *data)
 {
 	u32 val;
@@ -424,6 +442,8 @@ static int hisi_femac_mdio_probe(struct platform_device *pdev)
 	}
 
 	hisi_femac_get_phy_addr(data, np);
+	data->fephy_addr_only = data->fephy_iobase &&
+				device_get_match_data(&pdev->dev);
 	dev_info(&pdev->dev, "fephy_iobase=%p fephy_rst=%p fephy_clk=%p use_fephy=%d phy_addr=%d\n",
 		 data->fephy_iobase, data->fephy_rst, data->fephy_clk,
 		 hisi_femac_use_fephy(data), data->phy_addr);
@@ -431,7 +451,9 @@ static int hisi_femac_mdio_probe(struct platform_device *pdev)
 		dev_info(&pdev->dev, "FEPHY ctrl reg=0x%08x\n",
 			 readl(data->fephy_iobase));
 
-	if (hisi_femac_use_fephy(data))
+	if (data->fephy_addr_only)
+		hisi_femac_fephy_write_addr(data);
+	else if (hisi_femac_use_fephy(data))
 		hisi_femac_fephy_reset_and_trim(data);
 	else
 		hisi_femac_fephy_set_phy_addr(data);
@@ -465,6 +487,7 @@ static void hisi_femac_mdio_remove(struct platform_device *pdev)
 }
 
 static const struct of_device_id hisi_femac_mdio_dt_ids[] = {
+	{ .compatible = "hisilicon,hi3520dv200-femac-mdio", .data = (void *)true },
 	{ .compatible = "hisilicon,hisi-femac-mdio" },
 	{ }
 };
