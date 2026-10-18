@@ -890,6 +890,7 @@ config ARCH_XM510
 	select GENERIC_TIME
 	select GENERIC_CLOCKEVENTS
 	select ARCH_HAS_CPUFREQ
+	select ARCH_WANT_OPTIONAL_GPIOLIB
 	help 
 		This enables support for XM xm510 platform.
 
