@@ -3,6 +3,7 @@
  */
 #include <linux/goke_cma.h>
 #include <linux/io.h>
+#include <linux/mmzone.h>
 #include <linux/sizes.h>
 #include <linux/slab.h>
 #include <asm/early_ioremap.h>
@@ -207,6 +208,12 @@ RESERVEDMEM_OF_DECLARE(cma, "mmz", mmz_setup);
 
 #define GOKE_OS_MIN	SZ_32M
 /*
+ * cma_declare_contiguous() rounds a fixed zone's base and size up to this
+ * (PAGE_SIZE << max(MAX_ORDER - 1, pageblock_order)); a zone has to stay
+ * inside DRAM after the rounding, not only before it.
+ */
+#define GOKE_ZONE_ALIGN	((phys_addr_t)PAGE_SIZE << max_t(unsigned int, MAX_ORDER - 1, pageblock_order))
+/*
  * The page the probe writes, saving and restoring it: the bootcount page,
  * which every board device tree of this family reserves no-map at
  * base + 0x1f20000, below the 32 MiB OS share and out of the kernel image.
@@ -220,7 +227,7 @@ static phys_addr_t goke_os_req;
 static unsigned int dram;
 static unsigned int osmem;
 static char allocator[8];
-static char mmz[96];
+static char mmz[256];
 module_param(dram, uint, 0444);
 module_param(osmem, uint, 0444);
 module_param_string(allocator, allocator, sizeof(allocator), 0444);
@@ -324,13 +331,19 @@ void __init goke_memory_init(void)
 			memblock_remove(end, base + booted - end);
 		}
 		for (i = 0; i < num_zones; i++) {
-			if (zone[i].phys_start + zone[i].nbytes > end) {
+			phys_addr_t start = ALIGN(zone[i].phys_start, GOKE_ZONE_ALIGN);
+
+			if (start + ALIGN(zone[i].nbytes, GOKE_ZONE_ALIGN) > end) {
 				pr_warn("goke_mem: mmz zone %s at 0x%llx, %lluM, runs past the %lluM of DRAM\n",
 					zone[i].name, (u64)zone[i].phys_start,
 					(u64)zone[i].nbytes >> 20, (u64)goke_dram >> 20);
-				if (zone[i].phys_start >= end)
+				if (start >= end)
 					continue;
-				zone[i].nbytes = end - zone[i].phys_start;
+				/* as CMA will place it, and only whole units of its alignment */
+				zone[i].phys_start = start;
+				zone[i].nbytes = round_down(end - start, GOKE_ZONE_ALIGN);
+				if (!zone[i].nbytes)
+					continue;
 			}
 			if (n != i)
 				zone[n] = zone[i];
@@ -353,8 +366,9 @@ auto_layout:
 	cma = goke_alloc_req[0] ? !strcmp(goke_alloc_req, "cma") : goke_dram > SZ_64M;
 	goke_os = GOKE_OS_MIN;
 	if (goke_os_req) {
-		if (goke_os_req >= GOKE_OS_MIN && goke_os_req + SZ_8M <= goke_dram)
-			goke_os = ALIGN(goke_os_req, SZ_1M);
+		if (goke_os_req >= GOKE_OS_MIN &&
+		    ALIGN(goke_os_req, GOKE_ZONE_ALIGN) + SZ_8M <= goke_dram)
+			goke_os = ALIGN(goke_os_req, GOKE_ZONE_ALIGN);
 		else
 			pr_warn("goke_mem: osmem=%lluM ignored, out of range for %lluM DRAM\n",
 				(u64)goke_os_req >> 20, (u64)goke_dram >> 20);
@@ -395,11 +409,21 @@ static int __init goke_memory_publish(void)
 	dram = goke_dram >> 20;
 	osmem = goke_os >> 20;
 	if (num_zones) {
-		/* the zones as declared, which is what osal looks up */
-		for (i = 0; i < num_zones && len < sizeof(mmz); i++)
-			len += snprintf(mmz + len, sizeof(mmz) - len, "%s%s,0,0x%llx,%lluM",
-					i ? ":" : "", zone[i].name, (u64)zone[i].phys_start,
-					(u64)zone[i].nbytes >> 20);
+		/* the zones as declared, which is what osal looks up; whole entries only */
+		for (i = 0; i < num_zones; i++) {
+			char entry[NAME_LEN_MAX + 40];
+			int n = snprintf(entry, sizeof(entry), "%s%s,0,0x%llx,%lluM",
+					 i ? ":" : "", zone[i].name, (u64)zone[i].phys_start,
+					 (u64)zone[i].nbytes >> 20);
+
+			if (n >= sizeof(entry) || len + n >= sizeof(mmz)) {
+				pr_warn("goke_mem: mmz zones from %s on not published, too long\n",
+					zone[i].name);
+				break;
+			}
+			memcpy(mmz + len, entry, n + 1);
+			len += n;
+		}
 	} else {
 		snprintf(mmz, sizeof(mmz), "anonymous,0,0x%llx,%lluM",
 			 (u64)(PHYS_OFFSET + goke_os), (u64)(goke_dram - goke_os) >> 20);
