@@ -1,0 +1,210 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * HiSilicon Hi3520DV200 NVR/DVR SoC: a single Cortex-A9 with GIC, SP804
+ * timers and a HiSilicon (not PL310) L2 cache controller.
+ *
+ * Addresses and interrupt numbers follow the vendor 3.0.8 BSP
+ * (arch/arm/mach-hi3520d: platform.h, irqs.h). There is no clock driver
+ * yet: the rates below are fixed-clocks matching what the vendor bootloader
+ * programs (24 MHz crystal, 330 MHz bus). The SP804s and the PL011s both
+ * run from bus/4; the vendor kernel selects the APB source for the UARTs
+ * in PERI_CRG57 (0x200300e4), which the bootloader already leaves set.
+ */
+
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+
+/ {
+	#address-cells = <1>;
+	#size-cells = <1>;
+	interrupt-parent = <&gic>;
+
+	aliases {
+		serial0 = &uart0;
+		serial1 = &uart1;
+	};
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		cpu@0 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a9";
+			reg = <0>;
+		};
+	};
+
+	xtal: clock-24m {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <24000000>;
+		clock-output-names = "xtal";
+	};
+
+	/* APB/bus clock; U-Boot leaves the PLL at 1320 MHz, bus = PLL/4. */
+	busclk: clock-bus {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <330000000>;
+		clock-output-names = "busclk";
+	};
+
+	/* bus/4: feeds the SP804 timers and, with the APB source selected, the UARTs. */
+	timerclk: clock-timer {
+		compatible = "fixed-factor-clock";
+		#clock-cells = <0>;
+		clocks = <&busclk>;
+		clock-div = <4>;
+		clock-mult = <1>;
+		clock-output-names = "timerclk";
+	};
+
+	/* SP805 reference clock, measured: LOAD 0x10000000 resets after ~179 s. */
+	wdtclk: clock-3m {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <3000000>;
+		clock-output-names = "wdtclk";
+	};
+
+	soc {
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		scu@20300000 {
+			compatible = "arm,cortex-a9-scu";
+			reg = <0x20300000 0x100>;
+		};
+
+		gic: interrupt-controller@20301000 {
+			compatible = "arm,cortex-a9-gic";
+			#interrupt-cells = <3>;
+			#address-cells = <0>;
+			interrupt-controller;
+			reg = <0x20301000 0x1000>, <0x20300100 0x100>;
+		};
+
+		/*
+		 * HiSilicon's own L2 controller ("hil2v200"), not a PL310: its
+		 * ID register reads 0. 128 KB, 8 ways, 32-byte lines.
+		 */
+		l2: cache-controller@20700000 {
+			compatible = "hisilicon,hi3520dv200-l2cache";
+			reg = <0x20700000 0x10000>;
+			interrupts = <GIC_SPI 29 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 30 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 31 IRQ_TYPE_LEVEL_HIGH>;
+			cache-unified;
+			cache-level = <2>;
+		};
+
+		timer0: timer@20000000 {
+			compatible = "arm,sp804", "arm,primecell";
+			reg = <0x20000000 0x1000>;
+			interrupts = <GIC_SPI 3 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&timerclk>, <&timerclk>, <&busclk>;
+			clock-names = "timer0clk", "timer1clk", "apb_pclk";
+		};
+
+		timer1: timer@20010000 {
+			compatible = "arm,sp804", "arm,primecell";
+			reg = <0x20010000 0x1000>;
+			interrupts = <GIC_SPI 4 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&timerclk>, <&timerclk>, <&busclk>;
+			clock-names = "timer0clk", "timer1clk", "apb_pclk";
+			status = "disabled";
+		};
+
+		watchdog@20040000 {
+			compatible = "arm,sp805", "arm,primecell";
+			reg = <0x20040000 0x1000>;
+			clocks = <&wdtclk>, <&busclk>;
+			clock-names = "wdog_clk", "apb_pclk";
+		};
+
+		/*
+		 * The "hieth-sf" switch-fabric MAC: two ports, up (0x0000) and
+		 * down (+0x2000), sharing global registers at +0x1300 and an
+		 * MDIO controller at +0x1100. The up port's registers and bits
+		 * are those of hisi-femac, which drives it with the global block
+		 * passed as its second region.
+		 */
+		/* SFC v350: the register layout of the v3xx SPI-NOR controller. */
+		sfc: spi@10010000 {
+			compatible = "hisilicon,hi3520dv200-sfc";
+			reg = <0x10010000 0x1000>;
+			num-cs = /bits/ 16 <2>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
+		/* reg 1 is PERI_CRG45, the SATA clock/reset register */
+		sata: sata@10080000 {
+			compatible = "hisilicon,hi3520dv200-ahci";
+			reg = <0x10080000 0x10000>, <0x200300b4 0x4>;
+			interrupts = <GIC_SPI 20 IRQ_TYPE_LEVEL_HIGH>;
+			status = "disabled";
+		};
+
+		/*
+		 * USB 2.0 host. The bootloader enables its clock and PHY
+		 * (PERI_CRG46 0x200300b8, PERI_USB 0x20050080) when it scans
+		 * the bus.
+		 */
+		ohci: usb@100a0000 {
+			compatible = "generic-ohci";
+			reg = <0x100a0000 0x10000>;
+			interrupts = <GIC_SPI 22 IRQ_TYPE_LEVEL_HIGH>;
+			status = "disabled";
+		};
+
+		ehci: usb@100b0000 {
+			compatible = "generic-ehci";
+			reg = <0x100b0000 0x10000>;
+			interrupts = <GIC_SPI 21 IRQ_TYPE_LEVEL_HIGH>;
+			status = "disabled";
+		};
+
+		mdio: mdio@10091100 {
+			compatible = "hisilicon,hi3520dv200-femac-mdio",
+				     "hisilicon,hisi-femac-mdio";
+			/* MDIO, then the internal PHY control (SYS_CTRL PERI24) */
+			reg = <0x10091100 0x10>, <0x20050094 0x4>;
+			clocks = <&busclk>;
+			clock-names = "mdio";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
+		eth_up: ethernet@10090000 {
+			compatible = "hisilicon,hisi-femac-v1";
+			reg = <0x10090000 0x1000>, <0x10091300 0x200>;
+			interrupts = <GIC_SPI 24 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&busclk>;
+			status = "disabled";
+		};
+
+		uart0: serial@20080000 {
+			compatible = "arm,pl011", "arm,primecell";
+			reg = <0x20080000 0x1000>;
+			interrupts = <GIC_SPI 8 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&timerclk>, <&busclk>;
+			clock-names = "uartclk", "apb_pclk";
+			status = "disabled";
+		};
+
+		uart1: serial@20090000 {
+			compatible = "arm,pl011", "arm,primecell";
+			reg = <0x20090000 0x1000>;
+			interrupts = <GIC_SPI 9 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&timerclk>, <&busclk>;
+			clock-names = "uartclk", "apb_pclk";
+			status = "disabled";
+		};
+	};
+};
