@@ -24,3 +24,12 @@ config MTD_SPLIT_FIT_FW
 	bool "FIT based firmware partition parser"
 	depends on MTD_SPLIT_SUPPORT
 	select MTD_SPLIT
+
+config MTD_SPLIT_UIMAGE_FW
+	bool "uImage based firmware partition parser"
+	depends on MTD_SPLIT_SUPPORT
+	select MTD_SPLIT
+	help
+	  Splits a firmware partition holding a legacy uImage followed, at the
+	  next erase block, by a squashfs into "kernel" and "rootfs". Any
+	  bootloader that can bootm a uImage boots such an image.

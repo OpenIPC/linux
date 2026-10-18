@@ -34,6 +34,8 @@
 
 #include "mtdcore.h"
 #include "mtdsplit/mtdsplit.h"
+#include <linux/major.h>
+#include <linux/root_dev.h>
 
 /* Our partition linked list */
 static LIST_HEAD(mtd_partitions);
@@ -759,8 +761,17 @@ static void mtd_partition_split(struct mtd_info *master, struct mtd_part *part)
 {
 	bool child = READ_ONCE(splitting_task) == current;
 
-	if (child && !strcmp(part->mtd.name, ROOTFS_PART_NAME))
+	if (child && !strcmp(part->mtd.name, ROOTFS_PART_NAME)) {
+		/*
+		 * The root filesystem the firmware split found is the root,
+		 * whatever root= the bootloader passed (see prepare_namespace).
+		 */
+		if (IS_ENABLED(CONFIG_MTD_ROOTFS_ROOT_DEV)) {
+			ROOT_DEV = MKDEV(MTD_BLOCK_MAJOR, part->mtd.index);
+			root_dev_from_flash = true;
+		}
 		run_parsers_by_type(part, MTD_PARSER_TYPE_ROOTFS);
+	}
 
 	if (!child && !strcmp(part->mtd.name, SPLIT_FIRMWARE_NAME) &&
 	    IS_ENABLED(CONFIG_MTD_SPLIT_FIRMWARE))
