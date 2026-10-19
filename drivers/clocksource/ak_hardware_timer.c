@@ -42,7 +42,7 @@
 #define AK_TIMER5_CTRL1       	(AK_VA_SYSCTRL + 0xD4)
 #define AK_TIMER5_CTRL2       	(AK_VA_SYSCTRL + 0xD8)
 
-#ifdef CONFIG_MACH_AK39EV330
+#if defined(CONFIG_MACH_AK39EV330) && !defined(CONFIG_AK39_SYSCTRL_5TIMERS)
 #define AK_TIMER6_CTRL1			(AK_VA_SYSCTRL + 0xF4)
 #define AK_TIMER6_CTRL2       	(AK_VA_SYSCTRL + 0xF8)
 #define AK_TIMER7_CTRL1       	(AK_VA_SYSCTRL + 0xFC)
@@ -95,12 +95,12 @@ static unsigned long flags;
 #ifdef CONFIG_MACH_AK37D
 static int timers_irq_list[7] = {0};
 #endif
-#if defined(CONFIG_MACH_AK39EV330) || defined(CONFIG_MACH_AK37E)
+#if (defined(CONFIG_MACH_AK39EV330) && !defined(CONFIG_AK39_SYSCTRL_5TIMERS)) || defined(CONFIG_MACH_AK37E)
 static int timers_irq_list[10] = {0};
 #endif
-#ifdef CONFIG_AK3918_FAMILY
+#ifdef CONFIG_AK39_SYSCTRL_5TIMERS
 /*
- * AK3918EV200 has no extended timer6-10 bank: it only programs timers
+ * No extended timer6-10 bank (AK3918, EV200, EV300): only timers
  * within the base 0xB4-0xD8 range. Size the array for timers 1-5 only.
  */
 static int timers_irq_list[6] = {0};
@@ -200,7 +200,7 @@ void * ak_timer_probe(int which_timer)
 		ptimer->ctrl2 	= AK_TIMER5_CTRL2;
 		ptimer->irq 	= timers_irq_list[4];
 		break;
-#ifdef CONFIG_MACH_AK39EV330
+#if defined(CONFIG_MACH_AK39EV330) && !defined(CONFIG_AK39_SYSCTRL_5TIMERS)
 	case 6:
 		ptimer->ctrl1 	= AK_TIMER6_CTRL1;
 		ptimer->ctrl2 	= AK_TIMER6_CTRL2;
@@ -238,7 +238,7 @@ void * ak_timer_probe(int which_timer)
 #ifdef CONFIG_MACH_AK37D
 		pr_debug("ak only support 5 normal timers(timer1~5).\n");
 #endif
-#ifdef CONFIG_MACH_AK39EV330
+#if defined(CONFIG_MACH_AK39EV330) && !defined(CONFIG_AK39_SYSCTRL_5TIMERS)
 		pr_debug("ak only support 8 normal timers(timer1~8).\n");
 #endif
 #ifdef CONFIG_MACH_AK37E

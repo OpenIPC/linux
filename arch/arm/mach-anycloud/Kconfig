@@ -29,6 +29,14 @@ config MACH_AK3918
 	  of three, the pad mux is laid out differently, the MAC is the older
 	  Anyka one and the camera host is ISP v1, not ISP2.
 
+config AK39_SYSCTRL_5TIMERS
+	bool
+	default y if AK3918_FAMILY
+	help
+	  The SYSCTRL with only the five base timers (0xB4-0xD8) and eleven
+	  system sub-interrupts, as on AK3918 (Aimer39) and AK3918EV200.
+	  EV330 adds timers 6-10 and five more sub-interrupts.
+
 config AK3918_FAMILY
 	bool
 	default y if MACH_AK3918EV200 || MACH_AK3918

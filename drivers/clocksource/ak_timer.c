@@ -60,7 +60,7 @@
 #define AK_TIMER6_CTRL2       	(AK_VA_SYSCTRL + 0x1CC)
 #endif
 
-#ifdef CONFIG_MACH_AK39EV330
+#if defined(CONFIG_MACH_AK39EV330) && !defined(CONFIG_AK39_SYSCTRL_5TIMERS)
 #define AK_TIMER5_CTRL1			(AK_VA_SYSCTRL + 0xF4)
 #define AK_TIMER5_CTRL2       	(AK_VA_SYSCTRL + 0xF8)
 #define AK_TIMER6_CTRL1       	(AK_VA_SYSCTRL + 0xFC)
@@ -102,7 +102,7 @@
 #define AK_CE_TIMER_INDEX		8
 #endif
 
-#ifdef CONFIG_MACH_AK39EV330
+#if defined(CONFIG_MACH_AK39EV330) && !defined(CONFIG_AK39_SYSCTRL_5TIMERS)
 #define AK_CE_CTRL1       		AK_TIMER5_CTRL1
 #define AK_CE_CTRL2       		AK_TIMER5_CTRL2
 #define AK_CS_CTRL1       		AK_TIMER6_CTRL1
@@ -110,7 +110,7 @@
 #define AK_CE_TIMER_INDEX		5
 #endif
 
-#ifdef CONFIG_AK3918_FAMILY
+#ifdef CONFIG_AK39_SYSCTRL_5TIMERS
 /*
  * No extended timer6-10 bank on this part. Use two of the base 5 timers
  * instead: clocksource on this file's 0-based AK_TIMER4 (SYSCTRL+0xD4,
@@ -290,10 +290,10 @@ static int parse_and_map_all_timers(struct device_node *node)
 #ifdef CONFIG_MACH_AK37D
 	num_irqs = 7;
 #endif
-#if defined(CONFIG_MACH_AK39EV330) || defined(CONFIG_MACH_AK37E)
+#if (defined(CONFIG_MACH_AK39EV330) && !defined(CONFIG_AK39_SYSCTRL_5TIMERS)) || defined(CONFIG_MACH_AK37E)
 	num_irqs = 10;
 #endif
-#ifdef CONFIG_AK3918_FAMILY
+#ifdef CONFIG_AK39_SYSCTRL_5TIMERS
 	/*
 	 * 5 timers: the base 0xB4-0xD8 bank only, no extended timer6-10
 	 * bank on this part.
