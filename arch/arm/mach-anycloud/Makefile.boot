@@ -6,4 +6,4 @@ endif
 params_phys-y	:= 0x80000100
 
 # The DTB the uImage carries (arch/arm/boot/Makefile, DTB_OBJS).
-dtb-openipc-$(CONFIG_MACH_AK3918EV200)	:= ak3918ev200-demb.dtb
+dtb-openipc-y	:= $(patsubst "%",%,$(CONFIG_AK_OPENIPC_DTB)).dtb

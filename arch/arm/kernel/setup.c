@@ -774,7 +774,12 @@ static int __init early_mem(char *p)
 	if (*endp == '@')
 		start = memparse(endp + 1, NULL);
 
-#ifdef CONFIG_VIDEO_RESERVED_MEM_SIZE
+/*
+ * Only EV200 keeps its video pool below PHYS_OFFSET (mach-ak39ev330.c); the
+ * EV300/EV330 boards carve theirs out of the middle of RAM in the device
+ * tree, and taking it off the top as well would lose it twice.
+ */
+#if defined(CONFIG_MACH_AK3918EV200) && defined(CONFIG_VIDEO_RESERVED_MEM_SIZE)
 	if (first && start == PHYS_OFFSET &&
 	    size > (u64)CONFIG_VIDEO_RESERVED_MEM_SIZE)
 		size -= CONFIG_VIDEO_RESERVED_MEM_SIZE;

@@ -1,0 +1,77 @@
+/*
+ * AK3918EV300/EV330 (and the AK3916/AK3919 packages of both) as OpenIPC
+ * boots it: Anyka's EV330 EVB with the capture path moved onto the open
+ * ISP2 host. Anyka's own 4.4 SDK builds its EV300 boards from the same
+ * ak39ev330 dtsi (C300_SQ38_AK3918EV300_*), and the chip-ID registers tell
+ * the two apart only by revision.
+ *
+ * The bootargs are the defaults for OpenIPC's NOR layout, used whenever
+ * U-Boot passes no command line of its own; U-Boot's bootargs, when present,
+ * still replace them.
+ */
+
+#include "EVB_CBD_AK3918EV330_V1.0.0.dts"
+
+/ {
+	model = "AK3918EV300/EV330 (OpenIPC)";
+
+	chosen {
+		bootargs = "console=ttySAK0,115200n8 root=/dev/mtdblock3 rootfstype=squashfs init=/init mem=64M memsize=64M mtdparts=spi0.0:256k(boot),64k(env),2048k(kernel),5120k(rootfs),-(rootfs_data)";
+	};
+
+	/*
+	 * The SDK hands this carve-out to its ION heap and its ramdisk for the
+	 * vendor's ISP and encoder libraries. Here the open ISP2 host owns it
+	 * as its capture pool, as on EV200.
+	 */
+	ion {
+		status = "disabled";
+	};
+};
+
+/* 24 MB, as the EV330 cameras' own device trees size it, not the EVB's 32. */
+&dma_reserved {
+	compatible = "shared-dma-pool";
+	reg = <0x81400000 0x01800000>;
+	size = <0x01800000>;
+	no-map;
+};
+
+&ramdisk {
+	/delete-property/ memory-region;
+	status = "disabled";
+};
+
+/* The vendor's prebuilt host binds here; the open one binds &isp. */
+&vi0 {
+	status = "disabled";
+};
+
+&mipicsi0 {
+	clocks = <&gclk_asic 15>;
+	clock-names = "mipi_csi_clk";
+	status = "okay";
+};
+
+&isp {
+	pinctrl-names = "default", "mipi0_1lane", "mipi0_2lane";
+	pinctrl-0 = <&dvp0_10bits_pins>;
+	pinctrl-1 = <&mipi0_1lane_pins>;
+	pinctrl-2 = <&mipi0_2lane_pins>;
+
+	clocks = <&gclk_asic 17>;
+	clock-names = "camera";
+	mclk-mhz = <24>;
+	memory-region = <&dma_reserved>;
+	status = "okay";
+
+	port {
+		isp_ep: endpoint {
+			remote-endpoint = <&sensor0_0>;
+		};
+	};
+};
+
+&sensor0_0 {
+	remote-endpoint = <&isp_ep>;
+};

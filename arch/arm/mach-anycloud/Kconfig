@@ -18,6 +18,18 @@ config MACH_AK3918EV200
 	help
 	  Support for the AK3918EV200 SoC variant.
 
+config AK_OPENIPC_DTB
+	string "Device tree appended to the uImage"
+	depends on ARCH_AK
+	default "ak3918ev200-demb" if MACH_AK3918EV200
+	default "ak3918ev300-demb"
+	help
+	  Name, without .dtb, of the blob arch/arm/boot/Makefile appends to
+	  the zImage to make the uImage (CONFIG_ARM_APPENDED_DTB). One
+	  machine covers boards that differ only in memory: ak3918ev300-demb
+	  for the 64 MB EV300/EV330 parts, ak3918ev331-demb for the 128 MB
+	  EV331 ones.
+
 config CPU_AK3918EV200
 	bool
 	default y if MACH_AK3918EV200
