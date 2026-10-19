@@ -158,6 +158,9 @@ config UIO_MF624
 config UIO_AK_VCODEC
 	tristate "Anyka AK39 video codec UIO driver"
 	depends on ARCH_AK
+	# AV130 lays struct uio_info out as its SDK's modules expect, which has
+	# no ioctl hook, and drives the codec through the SDK's own ak_uio.
+	depends on !MACH_AK3918AV130
 	help
 	  Userspace I/O driver exposing the Anyka AK39 SoC's H.264 video
 	  codec engine MMIO to userspace, with a custom ioctl set.
