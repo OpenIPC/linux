@@ -35,6 +35,10 @@
 #define AKCPU_VALUE			0x20160101
 #define AKCPU_TYPE			"AK39XXEV330"
 
+/* The Cloud39EV300 SDK's release value, its mach-ak39/cpu.c. */
+#define AKCPU_VALUE_EV300		0x20160100
+#define AKCPU_TYPE_EV300		"AK39XXEV300"
+
 /*
  * AK3918EV200 boards report one of two CPU-ID values at this register;
  * both identify AK3918EV200 silicon.
@@ -76,6 +80,10 @@ void __init ak39ev330_map_io(void)
 	regval = __raw_readl(AK_CPU_ID);
 	if (regval == AKCPU_VALUE)
 		pr_info("ANYKA CPU %s (ID 0x%lx)\n", AKCPU_TYPE, regval);
+#ifdef CONFIG_MACH_AK3918EV300
+	else if (regval == AKCPU_VALUE_EV300)
+		pr_info("ANYKA CPU %s (ID 0x%lx)\n", AKCPU_TYPE_EV300, regval);
+#endif
 #ifdef CONFIG_MACH_AK3918
 	else if (regval == AKCPU_VALUE_AK3918)
 		pr_info("ANYKA CPU %s (ID 0x%lx)\n", AKCPU_TYPE_AK3918, regval);
@@ -114,6 +122,7 @@ static void __init ak39ev330_init(void)
 }
 
 
+#ifndef CONFIG_MACH_AK3918EV300
 static const char * const ak39ev330_dt_compat[] = {
     "anyka,ak3916ev330",
 	"anyka,ak3918ev330",
@@ -136,6 +145,35 @@ DT_MACHINE_START(AK39xxEV330, "AK39EV330")
 	.reserve = NULL,
     .restart = ak39ev330_restart,
 MACHINE_END
+#endif /* !CONFIG_MACH_AK3918EV300 */
+
+#ifdef CONFIG_MACH_AK3918EV300
+/*
+ * "CLOUD39EV3_AK3918EV300_MNBD" is the Hardware line the Cloud39EV300 SDK's
+ * own machines (mach-cloud39ev3_ak3918ev300_mnbd.c and its AK3916/AK3919
+ * siblings) gave /proc/cpuinfo. It replaces the EV330 machine rather than
+ * joining ak39ev330_dt_compat: this kernel drives only the five base timers,
+ * and the EV330 one drives timers 6 and 7, which the EV300 does not have, so
+ * each kernel takes only its own chip's device trees and says nothing for
+ * the other's instead of hanging at the first tick.
+ */
+static const char * const ak3918ev300_dt_compat[] = {
+	"anyka,ak3918ev300",
+	"anyka,ak3916ev300",
+	"anyka,ak3919ev300",
+	NULL
+};
+
+DT_MACHINE_START(AK3918EV300, "CLOUD39EV3_AK3918EV300_MNBD")
+	.dt_compat	= ak3918ev300_dt_compat,
+	.map_io = ak39ev330_map_io,
+	.init_time = NULL,
+	.init_machine = ak39ev330_init,
+	.init_early = NULL,
+	.reserve = NULL,
+	.restart = ak39ev330_restart,
+MACHINE_END
+#endif /* CONFIG_MACH_AK3918EV300 */
 
 #ifdef CONFIG_AK3918_FAMILY
 

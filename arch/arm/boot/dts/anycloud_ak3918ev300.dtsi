@@ -1,0 +1,41 @@
+/*
+ * What the AnyCloud39EV300 silicon (AK3918EV300, AK3916EV300, AK3919EV300;
+ * chip ID 0x20160100) takes away from the EV330 description it is built on.
+ * The pad mux, clocks, ISP2, MIPI, GMAC, SPI, UART and memory map are the
+ * EV330's; the Cloud39EV300 SDK (kernel/arch/arm/mach-ak39) differs from
+ * the EV330 in three blocks only:
+ *
+ *  - SYSCTRL has the five base timers at 0xB4-0xD8 and eleven sub-interrupts
+ *    (time.c, irqs.h, irq.c's 0x7FF mask), not EV330's ten and sixteen;
+ *  - one I2C controller, the older one, at 0x20150000 (map.h AK_VA_I2C,
+ *    irqs.h IRQ_I2C, drivers/i2c/busses/i2c-ak39.c);
+ *  - the SPI controller drives the flash chip select itself: GPIO 25 is
+ *    muxed to SPI0 CS (ak39-gpio.c, ePIN_AS_SPI1 on pins 25-26), there is no
+ *    chip-select GPIO.
+ */
+
+/ {
+	timer {
+		interrupts = <6 1>,
+			     <5 1>,
+			     <4 1>,
+			     <3 1>,
+			     <2 1>;
+	};
+};
+
+&i2c0 {
+	compatible = "anyka,ak3918ev300-i2c";
+};
+
+&i2c1 {
+	status = "disabled";
+};
+
+&i2c2 {
+	status = "disabled";
+};
+
+&spi0 {
+	/delete-property/ cs-gpios;
+};

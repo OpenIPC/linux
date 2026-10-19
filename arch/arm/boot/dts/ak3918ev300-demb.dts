@@ -1,0 +1,14 @@
+/*
+ * AK3918EV300 (and its AK3916/AK3919 packages) as OpenIPC boots it: the
+ * EV330 board of ak3918ev330-demb, with the bootargs, memory, ISP pool,
+ * MIPI/DVP and RMII pads and UART0 it sets up, on the AnyCloud39EV300
+ * silicon that came before the EV330.
+ */
+
+#include "ak3918ev330-demb.dts"
+#include "anycloud_ak3918ev300.dtsi"
+
+/ {
+	model = "AK3918EV300 (OpenIPC)";
+	compatible = "anyka,ak3918ev300";
+};

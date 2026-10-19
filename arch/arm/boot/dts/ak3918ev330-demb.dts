@@ -1,7 +1,8 @@
 /*
  * AK3918EV330 (and its AK3916/AK3919 packages) as OpenIPC boots it:
  * Anyka's EV330 EVB with the capture path moved onto the open ISP2 host.
- * ak3918ev331-demb is this board with 128 MB.
+ * ak3918ev300-demb is this board on the AnyCloud39EV300 silicon that came
+ * before it, and ak3918ev331-demb this board with 128 MB.
  *
  * The bootargs are the defaults for OpenIPC's NOR layout, used whenever
  * U-Boot passes no command line of its own; U-Boot's bootargs, when present,
