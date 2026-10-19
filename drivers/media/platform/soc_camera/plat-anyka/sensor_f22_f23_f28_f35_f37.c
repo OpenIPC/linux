@@ -126,7 +126,7 @@ static int f22_probe_id (void)
     id |= value;
 
 //    for(i=0; i<(sizeof(sensor_parameter)/sizeof(struct ak_sensor_parameter));i++)
-    for(i=0;i<5;i++)
+    for (i = 0; i < ARRAY_SIZE(sensor_parameter); i++)
     {
         if(id == sensor_parameter[i].sensor_ucode)
         {
@@ -134,7 +134,15 @@ static int f22_probe_id (void)
             break;
         }
     }
-    
+
+    /*
+     * Not one of the five: every registered sensor is probed in turn, so
+     * this is the ordinary answer on any board with another sensor. 0 is
+     * what f22_read_id() never returns (it says -1), so it cannot match.
+     */
+    if (!current_sensor_parameter)
+        return 0;
+
     SENSOR_ID = current_sensor_parameter->sensor_id;
     return SENSOR_ID;
  /*   
