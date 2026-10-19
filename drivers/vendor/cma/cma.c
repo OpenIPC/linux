@@ -17,6 +17,7 @@ static u32 num_zones;
 static struct cma_zone bsp_zone[ZONE_MAX];
 static int use_bootargs;
 static bool bsp_zones_held;
+static bool bsp_zones_failed;	/* a zone CMA could not reserve was left out */
 
 unsigned int get_cma_size(void)
 {
@@ -155,7 +156,7 @@ EXPORT_SYMBOL(get_cma_device);
 
 int __init declare_heap_memory(void)
 {
-	u32 i;
+	u32 i, n;
 	int ret = 0;
 
 	/* bsp_memory_init() kept early allocations clear of the zones until now */
@@ -168,19 +169,34 @@ int __init declare_heap_memory(void)
 		return ret;
 	}
 
-	for (i = 0; i < num_zones; i++) {
+	for (i = 0, n = 0; i < num_zones; i++) {
 		ret = dma_contiguous_reserve_area(bsp_zone[i].nbytes,
 						  bsp_zone[i].phys_start, 0, &bsp_zone[i].pdev.cma_area, true);
-		if (ret)
-			panic("declare cma zone %s base: 0x%lx size:%lu MB failed. ret:%d",
-			      bsp_zone[i].name, (unsigned long)bsp_zone[i].phys_start,
-			      (unsigned long)bsp_zone[i].nbytes >> 20, ret);
+		if (ret) {
+			/*
+			 * Memory something else holds already (a zone from the
+			 * command line over reserved memory, say). The camera
+			 * boots without this zone rather than not at all, as the
+			 * panic here used to have it, rebooting in a loop.
+			 */
+			pr_err("hisi_mem: cma zone %s at 0x%llx, %lluM not reserved (%d), left out\n",
+			       bsp_zone[i].name, (u64)bsp_zone[i].phys_start,
+			       (u64)bsp_zone[i].nbytes >> 20, ret);
+			bsp_zones_failed = true;
+			continue;
+		}
 
 		bsp_zone[i].phys_start = cma_get_base(bsp_zone[i].pdev.cma_area);
 		bsp_zone[i].nbytes = cma_get_size(bsp_zone[i].pdev.cma_area);
+		if (n != i)
+			bsp_zone[n] = bsp_zone[i];
+		n++;
 	}
+	num_zones = n;
+	if (!num_zones)
+		use_bootargs = 0;
 
-	return ret;
+	return 0;
 }
 
 static int bsp_mmz_setup(struct reserved_mem *rmem)
@@ -667,8 +683,16 @@ static int __init bsp_memory_publish(void)
 	int i, ac, sc, cells;
 	size_t len = 0;
 
-	if (!bsp_dram)
+	/*
+	 * Nothing to publish when the kernel did not lay memory out, or when
+	 * every zone it laid out failed to be reserved: no zone is then the
+	 * media's, and a carve-out's "anonymous" range would claim memory that
+	 * is the kernel's or someone else's. Userspace keeps the bootloader's.
+	 */
+	if (!bsp_dram || (bsp_zones_failed && !num_zones)) {
+		allocator[0] = '\0';	/* what load_hisilicon looks at first */
 		return 0;
+	}
 	dram = bsp_dram >> 20;
 	osmem = bsp_os >> 20;
 	if (num_zones) {
