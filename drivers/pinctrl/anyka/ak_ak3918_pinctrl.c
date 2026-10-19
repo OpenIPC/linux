@@ -1026,19 +1026,24 @@ static void ak_pinctrl_irq_handler(struct irq_desc *desc)
 	unsigned long irq_status;
 	int i;
 
-	for (i = 0; i < 3; i++) {
+	/*
+	 * Two banks on this part, and the domain maps only their 64 pins: a
+	 * third status word (EV200's layout) would hand generic_handle_irq()
+	 * an unmapped IRQ. One enter/exit pair per invocation.
+	 */
+	chained_irq_enter(chip, desc);
+	for (i = 0; i < AK37D_NUM_GPIOS / 32; i++) {
 		int off = 0;
 
-		chained_irq_enter(chip, desc);
-        irq_status = __raw_readl(pc->gpio_base + AK_GPIO_EDGE_STATUS1 + i * 4);
+		irq_status = __raw_readl(pc->gpio_base + AK_GPIO_EDGE_STATUS1 + i * 4);
 		for_each_set_bit(off, &irq_status, 32) {
-		    int pin_irq = irq_find_mapping(pc->irq_domain, i * 32 + off);
+			int pin_irq = irq_find_mapping(pc->irq_domain, i * 32 + off);
 
-            generic_handle_irq(pin_irq);
-
+			if (pin_irq)
+				generic_handle_irq(pin_irq);
 		}
-		chained_irq_exit(chip, desc);
 	}
+	chained_irq_exit(chip, desc);
 }
 
 static void ak_gpio_irq_enable(struct irq_data *data)
@@ -1754,17 +1759,14 @@ static int ak_pinctrl_probe(struct platform_device *pdev)
 	 */
 
 	pc->irq = platform_get_irq(pdev, 0);
-	if (pc->irq < 0) {
-		ret = pc->irq;
-		goto clk_err;
-	}
+	if (pc->irq < 0)
+		return pc->irq;
 
 	pc->irq_domain = irq_domain_add_linear(np, AK37D_NUM_GPIOS,
 			&irq_domain_simple_ops, pc);
 	if (!pc->irq_domain) {
 		dev_err(dev, "could not create IRQ domain\n");
-		ret = -ENOMEM;
-		goto clk_err;
+		return -ENOMEM;
 	}
 
 	for (i = 0; i < AK37D_NUM_GPIOS; i++) {
@@ -1782,14 +1784,14 @@ static int ak_pinctrl_probe(struct platform_device *pdev)
 	ret = gpiochip_add(&pc->gc);
 	if (ret) {
 		dev_err(dev, "could not add GPIO chip\n");
-		goto clk_err;
+		goto irq_err;
 	}
 
 	pc->pctl_dev = pinctrl_register(&ak_pinctrl_desc, dev, pc);
 	if (IS_ERR(pc->pctl_dev)) {
 		gpiochip_remove(&pc->gc);
 		ret = PTR_ERR(pc->pctl_dev);
-		goto clk_err;
+		goto irq_err;
 	}
 
 	pc->gpio_range = ak_pinctrl_gpio_range;
@@ -1799,9 +1801,16 @@ static int ak_pinctrl_probe(struct platform_device *pdev)
 
 	return 0;
 
-clk_err:
-	clk_disable_unprepare(pc->clk);
-	clk_put(pc->clk);
+	/*
+	 * No clk_disable_unprepare()/clk_put() on the way out: this driver
+	 * never enabled the clock (U-Boot left it running, see above), and
+	 * devm_clk_get() releases its reference itself.
+	 */
+irq_err:
+	irq_set_chained_handler_and_data(pc->irq, NULL, NULL);
+	for (i = 0; i < AK37D_NUM_GPIOS; i++)
+		irq_dispose_mapping(irq_find_mapping(pc->irq_domain, i));
+	irq_domain_remove(pc->irq_domain);
 
 	return ret;
 }
@@ -1812,8 +1821,6 @@ static int ak_pinctrl_remove(struct platform_device *pdev)
 
 	pinctrl_unregister(pc->pctl_dev);
 	gpiochip_remove(&pc->gc);
-	clk_disable_unprepare(pc->clk);
-	clk_put(pc->clk);
 
 	return 0;
 }
