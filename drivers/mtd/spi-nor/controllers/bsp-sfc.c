@@ -456,12 +456,72 @@ static ssize_t bsp_spi_nor_write(struct spi_nor *nor, loff_t to,
 	return len;
 }
 
+#ifdef CONFIG_ARCH_BSP
+/*
+ * The split NOR layout: one "firmware" partition holding a legacy uImage and,
+ * at the next erase block after it, the root squashfs; mtdsplit divides it at
+ * boot. A fixed-slot layout also starts with a kernel image, but its squashfs
+ * sits at the slot boundary, so it never has this shape.
+ */
+static bool bsp_snor_split_at(struct mtd_info *mtd, u64 offset)
+{
+	struct {
+		__be32 magic, hcrc, time, size;
+	} hdr;
+	__le32 squashfs;
+	size_t retlen;
+	u64 kernel;
+
+	if (mtd_read(mtd, offset, sizeof(hdr), &retlen, (u_char *)&hdr) ||
+	    retlen != sizeof(hdr) || be32_to_cpu(hdr.magic) != 0x27051956)
+		return false;
+	kernel = round_up(64 + (u64)be32_to_cpu(hdr.size), mtd->erasesize);
+	if (offset + kernel + sizeof(squashfs) > mtd->size)
+		return false;
+	return !mtd_read(mtd, offset + kernel, sizeof(squashfs), &retlen,
+			 (u_char *)&squashfs) &&
+		retlen == sizeof(squashfs) &&
+		le32_to_cpu(squashfs) == 0x73717368;	/* "hsqs" */
+}
+
+static bool bsp_snor_split_layout(struct mtd_info *mtd)
+{
+	struct device_node *parts, *pp;
+	bool split = false;
+
+	/* without the splitters, "firmware" would never become a root */
+	if (!IS_ENABLED(CONFIG_MTD_SPLIT_FIRMWARE) || !IS_ENABLED(CONFIG_MTD_SPLIT_UIMAGE_FW))
+		return false;
+
+	parts = of_get_child_by_name(mtd_get_of_node(mtd), "partitions");
+	if (!parts)
+		return false;
+	for_each_child_of_node(parts, pp) {
+		const __be32 *reg;
+		const char *label;
+		int len;
+
+		if (of_property_read_string(pp, "label", &label) ||
+		    strcmp(label, "firmware"))
+			continue;
+		reg = of_get_property(pp, "reg", &len);
+		if (reg && len >= (int)sizeof(*reg))
+			split = bsp_snor_split_at(mtd,
+					of_read_number(reg, of_n_addr_cells(pp)));
+		of_node_put(pp);
+		break;
+	}
+	of_node_put(parts);
+	return split;
+}
+
 /**
  * parse partitions info and register spi flash device as mtd device.
  */
-#ifdef CONFIG_ARCH_BSP
 static int bsp_snor_device_register(struct mtd_info *mtd)
 {
+	static const char * const split_probes[] = { "ofpart", NULL };
+	bool split = bsp_snor_split_layout(mtd);
 	int ret;
 
 	/*
@@ -471,7 +531,14 @@ static int bsp_snor_device_register(struct mtd_info *mtd)
 	INIT_LIST_HEAD(&mtd->partitions);
 	mutex_init(&mtd->master.partitions_lock);
 
-	ret = mtd_device_parse_register(mtd, NULL, NULL, NULL, 0);
+	/*
+	 * The split layout is the device tree's: whatever mtdparts the
+	 * bootloader passes describes a layout that is not on the flash.
+	 * Otherwise the command line still comes first.
+	 */
+	if (split)
+		pr_info("%s: split NOR layout, device tree partitions\n", mtd->name);
+	ret = mtd_device_parse_register(mtd, split ? split_probes : NULL, NULL, NULL, 0);
 
 	return ret;
 }

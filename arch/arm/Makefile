@@ -320,6 +320,10 @@ PHONY += bzImage $(BOOT_TARGETS) $(INSTALL_TARGETS)
 
 bootpImage uImage: zImage
 zImage: Image
+# the uImage appends these dtbs (arch/arm/boot/Makefile, zImage-dtb)
+ifneq ($(patsubst "%",%,$(CONFIG_BUILD_ARM_APPENDED_DTB_IMAGE_NAMES)),)
+uImage: dtbs
+endif
 
 $(BOOT_TARGETS): vmlinux
 	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $(boot)/$@

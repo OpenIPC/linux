@@ -29,7 +29,12 @@ INITRD_PHYS := $(initrd_phys-y)
 
 export ZRELADDR INITRD_PHYS PARAMS_PHYS
 
-targets := Image zImage xipImage bootpImage uImage
+# The device tree blobs uImage carries appended to the zImage
+# (CONFIG_BUILD_ARM_APPENDED_DTB_IMAGE_NAMES); none, and it is the zImage alone.
+DTB_OBJS ?= $(addsuffix .dtb,$(patsubst "%",%,$(CONFIG_BUILD_ARM_APPENDED_DTB_IMAGE_NAMES)))
+DTB_OBJS_FULL := $(addprefix $(obj)/dts/,$(DTB_OBJS))
+
+targets := Image zImage xipImage bootpImage uImage zImage-dtb
 
 ifeq ($(CONFIG_XIP_KERNEL),y)
 
@@ -68,6 +73,10 @@ $(obj)/compressed/vmlinux: $(obj)/Image FORCE
 $(obj)/zImage:	$(obj)/compressed/vmlinux FORCE
 	$(call if_changed,objcopy)
 
+$(obj)/zImage-dtb:	$(obj)/zImage $(DTB_OBJS_FULL) FORCE
+	@cat $(obj)/zImage $(DTB_OBJS_FULL) > $@
+	@$(kecho) '  Kernel: $@ is ready'
+
 endif
 
 ifneq ($(LOADADDR),)
@@ -88,7 +97,7 @@ if [ $(words $(UIMAGE_LOADADDR)) -ne 1 ]; then \
 	false; \
 fi
 
-$(obj)/uImage:	$(obj)/zImage FORCE
+$(obj)/uImage:	$(obj)/zImage-dtb FORCE
 	@$(check_for_multiple_loadaddr)
 	$(call if_changed,uimage)
 
