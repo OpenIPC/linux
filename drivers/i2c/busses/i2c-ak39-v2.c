@@ -15,10 +15,17 @@
  *   0x08 ADDR  slave address byte (addr << 1 | R/W) | 0x300
  *   0x10..0x1C DATA0..3: up to 16 data bytes, little endian
  *
- * One transfer is START, the address byte, up to 16 data bytes, STOP;
- * there is no repeated start, so each message is a transaction of its
- * own, as in the vendor driver. The vendor driver polls with interrupts
- * off and no timeout; this one polls with a timeout and leaves them on.
+ * One transfer is START, the address byte, up to 16 data bytes, STOP.
+ * Nothing in the controller or the vendor driver issues a repeated start,
+ * so each message is a transaction of its own: a register-address write
+ * followed by a read (i2c_smbus_read_byte_data() and friends) reaches the
+ * device with a STOP between the two, as on the vendor kernel. The camera
+ * sensors on these boards are SCCB-style and accept that; a device that
+ * needs a true repeated start will not work on this bus. Messages longer
+ * than the 16-byte data registers are refused rather than split.
+ *
+ * The vendor driver polls with interrupts off and no timeout; this one
+ * polls with a timeout and leaves them on.
  *
  * Licensed under the GPL-2.
  */
@@ -81,6 +88,7 @@ static int ak_i2c2_write_chunk(struct ak_i2c2 *i2c, const u8 *buf,
 {
 	unsigned int i;
 	u32 ctrl;
+	int ret;
 
 	for (i = 0; i < n; i += 4) {
 		u32 word = 0;
@@ -96,11 +104,19 @@ static int ak_i2c2_write_chunk(struct ak_i2c2 *i2c, const u8 *buf,
 	ctrl |= ((n & 0x1f) << CTRL_COUNT_SHIFT) | CTRL_WRITE_GO;
 	writel(ctrl, i2c->regs + AK_I2C2_CTRL);
 
+	ret = ak_i2c2_wait_done(i2c);
+	if (ret)
+		return ret;
 	/*
-	 * The vendor driver looks at the acknowledge only after a read; a
-	 * write to an absent device completes the same way, so this does too.
+	 * The vendor driver looks at bit 27 only after reads. It is the
+	 * transfer's no-acknowledge flag, and nothing confines it to reads,
+	 * so a write nobody acknowledged fails here instead of reporting
+	 * success; on hardware that leaves it clear for writes this check
+	 * never fires.
 	 */
-	return ak_i2c2_wait_done(i2c);
+	if (readl(i2c->regs + AK_I2C2_CTRL) & CTRL_NAK)
+		return -ENXIO;
+	return 0;
 }
 
 static int ak_i2c2_read_chunk(struct ak_i2c2 *i2c, u8 *buf, unsigned int n)
@@ -136,9 +152,7 @@ static int ak_i2c2_read_chunk(struct ak_i2c2 *i2c, u8 *buf, unsigned int n)
 static int ak_i2c2_xfer_msg(struct ak_i2c2 *i2c, struct i2c_msg *msg)
 {
 	bool read = msg->flags & I2C_M_RD;
-	unsigned int done = 0;
 	u8 ab;
-	int ret;
 
 	if (msg->flags & I2C_M_TEN)
 		return -EOPNOTSUPP;
@@ -157,24 +171,18 @@ static int ak_i2c2_xfer_msg(struct ak_i2c2 *i2c, struct i2c_msg *msg)
 	writel(ab | ADDR_FLAGS, i2c->regs + AK_I2C2_ADDR);
 
 	/*
-	 * More than 16 bytes go as consecutive transactions of up to 16, each
-	 * with its own address phase. That is what the vendor driver does for
-	 * writes; for reads it programs one 16-byte count and then re-reads
-	 * the same data registers, so longer reads never worked there.
+	 * One transaction carries at most the 16 data registers. Splitting a
+	 * longer message would put a STOP and a new address phase inside what
+	 * the caller sent as one, which a device can read differently, so it
+	 * is refused. (The vendor driver split writes, and for reads
+	 * re-read the same 16 bytes.)
 	 */
-	while (done < msg->len) {
-		unsigned int n = min_t(unsigned int, msg->len - done,
-				       AK_I2C2_FIFO);
+	if (msg->len > AK_I2C2_FIFO)
+		return -EOPNOTSUPP;
 
-		if (read)
-			ret = ak_i2c2_read_chunk(i2c, msg->buf + done, n);
-		else
-			ret = ak_i2c2_write_chunk(i2c, msg->buf + done, n);
-		if (ret)
-			return ret;
-		done += n;
-	}
-	return 0;
+	if (read)
+		return ak_i2c2_read_chunk(i2c, msg->buf, msg->len);
+	return ak_i2c2_write_chunk(i2c, msg->buf, msg->len);
 }
 
 static int ak_i2c2_xfer(struct i2c_adapter *adap, struct i2c_msg *msgs,
@@ -193,8 +201,14 @@ static int ak_i2c2_xfer(struct i2c_adapter *adap, struct i2c_msg *msgs,
 
 static u32 ak_i2c2_func(struct i2c_adapter *adap)
 {
+	/*
+	 * No quick (zero-length) and no block transfers: their 32 data bytes
+	 * do not fit one 16-byte transaction.
+	 */
 	return I2C_FUNC_I2C |
-	       (I2C_FUNC_SMBUS_EMUL & ~I2C_FUNC_SMBUS_QUICK);
+	       (I2C_FUNC_SMBUS_EMUL & ~(I2C_FUNC_SMBUS_QUICK |
+					I2C_FUNC_SMBUS_WRITE_BLOCK_DATA |
+					I2C_FUNC_SMBUS_I2C_BLOCK));
 }
 
 static const struct i2c_algorithm ak_i2c2_algo = {
@@ -265,7 +279,9 @@ static int ak_i2c2_probe(struct platform_device *pdev)
 	i2c->adap.class = I2C_CLASS_HWMON;
 	i2c->adap.dev.parent = &pdev->dev;
 	i2c->adap.dev.of_node = np;
-	i2c->adap.nr = of_alias_get_id(np, "i2c");
+	/* -1 lets i2c_add_numbered_adapter() pick a number when no i2cN alias. */
+	ret = of_alias_get_id(np, "i2c");
+	i2c->adap.nr = ret >= 0 ? ret : -1;
 	strlcpy(i2c->adap.name, "AK39 I2C v2", sizeof(i2c->adap.name));
 	i2c_set_adapdata(&i2c->adap, i2c);
 	platform_set_drvdata(pdev, i2c);
