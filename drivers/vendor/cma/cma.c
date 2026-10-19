@@ -332,17 +332,17 @@ extern unsigned int __atags_pointer;
  * it liked; the device tree's /memreserve/ entries and its static
  * /reserved-memory (OP-TEE's shared memory on the -tee boards, say).
  */
-#define BSP_MAX_BLOBS	16
+#define BSP_MAX_BLOBS	32
 static phys_addr_t bsp_blobs[BSP_MAX_BLOBS][2] __initdata;
 static int bsp_nblobs __initdata;
+static bool bsp_blobs_full __initdata;
 
 static void __init bsp_blob(phys_addr_t base, phys_addr_t size)
 {
 	if (!size)
 		return;
 	if (bsp_nblobs == BSP_MAX_BLOBS) {
-		pr_warn("hisi_mem: more than %d reserved regions; 0x%llx and on not avoided\n",
-			BSP_MAX_BLOBS, (u64)base);
+		bsp_blobs_full = true;
 		return;
 	}
 	bsp_blobs[bsp_nblobs][0] = base;
@@ -350,15 +350,18 @@ static void __init bsp_blob(phys_addr_t base, phys_addr_t size)
 	bsp_nblobs++;
 }
 
-static void __init bsp_find_blobs(void)
+/* False when there were more than it holds: then no zone can be placed safely. */
+static bool __init bsp_find_blobs(void)
 {
 	const void *fdt = initial_boot_params;
+	const __be32 *prop;
 	int node, child, i;
 
 	bsp_nblobs = 0;
+	bsp_blobs_full = false;
 	bsp_blob(__pa_symbol(_text), __pa_symbol(_end) - __pa_symbol(_text));
 	if (!fdt)
-		return;
+		return !bsp_blobs_full;
 	bsp_blob(BSP_FDT_PHYS, fdt_totalsize(fdt));
 #ifdef CONFIG_BLK_DEV_INITRD
 	bsp_blob(phys_initrd_start, phys_initrd_size);
@@ -369,14 +372,24 @@ static void __init bsp_find_blobs(void)
 		if (!fdt_get_mem_rsv(fdt, i, &base, &size))
 			bsp_blob(base, size);
 	}
+	/*
+	 * /reserved-memory as the kernel's own scan takes it
+	 * (__reserved_mem_check_root): the root's cell counts and a ranges, or
+	 * none of it is reserved at all.
+	 */
 	node = fdt_path_offset(fdt, "/reserved-memory");
 	if (node < 0)
-		return;
+		return !bsp_blobs_full;
+	prop = fdt_getprop(fdt, node, "#size-cells", NULL);
+	if (!prop || be32_to_cpup(prop) != dt_root_size_cells)
+		return !bsp_blobs_full;
+	prop = fdt_getprop(fdt, node, "#address-cells", NULL);
+	if (!prop || be32_to_cpup(prop) != dt_root_addr_cells)
+		return !bsp_blobs_full;
+	if (!fdt_getprop(fdt, node, "ranges", NULL) || !(dt_root_addr_cells + dt_root_size_cells))
+		return !bsp_blobs_full;
 	fdt_for_each_subnode(child, fdt, node) {
-		const __be32 *ac = fdt_getprop(fdt, node, "#address-cells", NULL);
-		const __be32 *sc = fdt_getprop(fdt, node, "#size-cells", NULL);
-		int na = ac ? be32_to_cpup(ac) : dt_root_addr_cells;
-		int ns = sc ? be32_to_cpup(sc) : dt_root_size_cells;
+		const int t_len = (dt_root_addr_cells + dt_root_size_cells) * sizeof(__be32);
 		const char *status = fdt_getprop(fdt, child, "status", NULL);
 		const __be32 *reg;
 		int len;
@@ -384,15 +397,17 @@ static void __init bsp_find_blobs(void)
 		if (status && strcmp(status, "okay") && strcmp(status, "ok"))
 			continue;
 		reg = fdt_getprop(fdt, child, "reg", &len);
-		if (!reg)
-			continue;	/* dynamic: placed later, bottom-up, in the OS's */
-		for (len /= sizeof(*reg); len >= na + ns; len -= na + ns) {
-			u64 base = dt_mem_next_cell(na, &reg);
-			u64 size = dt_mem_next_cell(ns, &reg);
+		/* none: dynamic, placed later, bottom-up, in the OS's; malformed: ignored */
+		if (!reg || !len || len % t_len)
+			continue;
+		for (; len >= t_len; len -= t_len) {
+			u64 base = dt_mem_next_cell(dt_root_addr_cells, &reg);
+			u64 size = dt_mem_next_cell(dt_root_size_cells, &reg);
 
 			bsp_blob(base, size);
 		}
 	}
+	return !bsp_blobs_full;
 }
 
 /*
@@ -513,13 +528,18 @@ void __init bsp_memory_init(void)
 		pr_warn("hisi_mem: DRAM size not measured, memory as the bootloader set it\n");
 		return;
 	}
+	if (!bsp_find_blobs()) {
+		pr_warn("hisi_mem: more than %d reserved regions to keep a zone clear of; memory as the bootloader set it\n",
+			BSP_MAX_BLOBS);
+		bsp_dram = 0;
+		return;
+	}
 #ifdef CONFIG_ARM64
 	/* measured: mem= is applied here, as ARM32 already has, and not again */
 	arm64_set_memory_limit(PHYS_ADDR_MAX);
 	memblock_remove(bsp_lo + keep, PHYS_ADDR_MAX - (bsp_lo + keep));
 #endif
 	end = bsp_ddr + bsp_dram;
-	bsp_find_blobs();
 
 	if (use_bootargs) {
 		/* mmz_allocator=ot: the zones are a carve-out, which CMA must not take */
