@@ -34,6 +34,7 @@ phys_addr_t get_zones_start(void);
 struct cma_zone *get_cma_zone(const char *name);
 struct device *get_cma_device(const char *name);
 int __init declare_heap_memory(void);
+void __init bsp_memory_init(void);
 #endif /* CONFIG_CMA */
 
 #endif

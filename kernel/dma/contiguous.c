@@ -165,9 +165,7 @@ void __init dma_pernuma_cma_reserve(void)
  * memory.
  */
 #ifdef CONFIG_ARCH_BSP
-#ifdef CONFIG_64BIT
 extern __init int declare_heap_memory(void);
-#endif
 #endif
 void __init dma_contiguous_reserve(phys_addr_t limit)
 {
@@ -179,9 +177,8 @@ void __init dma_contiguous_reserve(phys_addr_t limit)
 	pr_debug("%s(limit %08lx)\n", __func__, (unsigned long)limit);
 
 #ifdef CONFIG_ARCH_BSP
-#ifdef CONFIG_64BIT
+	/* the media zones (drivers/vendor/cma), on 32 and 64 bits alike */
 	declare_heap_memory();
-#endif
 #endif
 	if (size_cmdline != -1) {
 		selected_size = size_cmdline;
