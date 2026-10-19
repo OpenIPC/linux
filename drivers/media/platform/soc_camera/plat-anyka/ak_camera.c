@@ -1336,6 +1336,12 @@ static int mipi_ip_initiation(struct ak_camera_dev *pcdev,
 		MIPI_W(0x60, value);
 		MIPI_W(0x00, 0x7d);
 		MIPI_W(0xe0, 0xf8);
+		/*
+		 * The SDK's one-lane path never wrote the IO mode: it reached here
+		 * from reset. This host sets the bus up as DVP to identify the
+		 * sensor first, which leaves 0x01 (DVP) behind.
+		 */
+		MIPI_W(0xb3, 0x02);	/* IO mode: MIPI */
 	} else {
 		pr_err("%s: %d MIPI lanes\n", __func__, mipi_lane);
 		return -EINVAL;
