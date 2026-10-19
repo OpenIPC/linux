@@ -623,6 +623,13 @@ static irqreturn_t ak_camera_dma_irq(int channel, void *data)
 		goto out;
 	}
 
+	/*
+	 * A frame interrupt can land before the first buffer is queued, or
+	 * while capture is being torn down; there is nothing to complete.
+	 */
+	if (!pcdev->active)
+		goto out;
+
 	vb = &pcdev->active->vb;
 	buf = container_of(vb, struct ak_buffer, vb);
 	//buf = pcdev->active;
@@ -1000,7 +1007,14 @@ static void ak_camera_remove_device(struct soc_camera_device *icd)
 	dev_info(icd->parent, "AK Camera driver detached from camera %d\n",
 		 icd->devnum);	
 
-	pcdev->active = NULL;   
+	{
+		unsigned long flags;
+
+		/* The interrupt handler reads active under this lock. */
+		spin_lock_irqsave(&pcdev->lock, flags);
+		pcdev->active = NULL;
+		spin_unlock_irqrestore(&pcdev->lock, flags);
+	}
 	pcdev->icd = NULL;
 
 	CAMDBG("Leave %s\n", __func__);	
