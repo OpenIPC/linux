@@ -6,6 +6,20 @@
 #include <linux/of.h>
 
 struct pwm_device;
+
+/*
+ * The AnyCloud39AV130 SDK widened PWM durations to 64 bits, and its prebuilt
+ * modules (ak_pwm_char registers a pwm_chip, ak_isp calls pwm_config()) are
+ * built against that: the argument registers and the pwm_device layout both
+ * differ. Everything else keeps mainline's int.
+ */
+#ifdef CONFIG_MACH_AK3918AV130
+typedef long long pwm_arg_ns_t;
+typedef unsigned long long pwm_ns_t;
+#else
+typedef int pwm_arg_ns_t;
+typedef unsigned int pwm_ns_t;
+#endif
 struct seq_file;
 
 #if IS_ENABLED(CONFIG_PWM)
@@ -22,7 +36,7 @@ void pwm_free(struct pwm_device *pwm);
 /*
  * pwm_config - change a PWM device configuration
  */
-int pwm_config(struct pwm_device *pwm, int duty_ns, int period_ns);
+int pwm_config(struct pwm_device *pwm, pwm_arg_ns_t duty_ns, pwm_arg_ns_t period_ns);
 
 /*
  * pwm_enable - start a PWM output toggling
@@ -43,7 +57,8 @@ static inline void pwm_free(struct pwm_device *pwm)
 {
 }
 
-static inline int pwm_config(struct pwm_device *pwm, int duty_ns, int period_ns)
+static inline int pwm_config(struct pwm_device *pwm, pwm_arg_ns_t duty_ns,
+			     pwm_arg_ns_t period_ns)
 {
 	return -EINVAL;
 }
@@ -102,8 +117,8 @@ struct pwm_device {
 	void *chip_data;
 	struct mutex lock;
 
-	unsigned int period;
-	unsigned int duty_cycle;
+	pwm_ns_t period;
+	pwm_ns_t duty_cycle;
 	enum pwm_polarity polarity;
 };
 
@@ -123,7 +138,7 @@ static inline unsigned int pwm_get_period(const struct pwm_device *pwm)
 	return pwm ? pwm->period : 0;
 }
 
-static inline void pwm_set_duty_cycle(struct pwm_device *pwm, unsigned int duty)
+static inline void pwm_set_duty_cycle(struct pwm_device *pwm, pwm_ns_t duty)
 {
 	if (pwm)
 		pwm->duty_cycle = duty;
@@ -158,8 +173,13 @@ static inline enum pwm_polarity pwm_get_polarity(const struct pwm_device *pwm)
 struct pwm_ops {
 	int (*request)(struct pwm_chip *chip, struct pwm_device *pwm);
 	void (*free)(struct pwm_chip *chip, struct pwm_device *pwm);
+#ifdef CONFIG_MACH_AK3918AV130
+	int (*config)(struct pwm_chip *chip, struct pwm_device *pwm,
+		      unsigned long long duty_ns, unsigned long long period_ns);
+#else
 	int (*config)(struct pwm_chip *chip, struct pwm_device *pwm,
 		      int duty_ns, int period_ns);
+#endif
 	int (*set_polarity)(struct pwm_chip *chip, struct pwm_device *pwm,
 			    enum pwm_polarity polarity);
 	int (*enable)(struct pwm_chip *chip, struct pwm_device *pwm);

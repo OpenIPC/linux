@@ -108,7 +108,13 @@ struct mmc_data {
 	unsigned int		timeout_clks;	/* data timeout (in clocks) */
 	unsigned int		blksz;		/* data block size */
 	unsigned int		blocks;		/* number of blocks */
+#ifndef CONFIG_MACH_AK3918AV130
+	/*
+	 * Not on AV130: the SDK's prebuilt ak_mci writes error, flags and the
+	 * rest at mainline's offsets, which this field would move.
+	 */
 	unsigned int		retries;	/* max number of retries */
+#endif
 	int			error;		/* data error */
 	unsigned int		flags;
 

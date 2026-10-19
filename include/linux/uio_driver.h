@@ -41,7 +41,16 @@ struct uio_mem {
 	struct uio_map		*map;
 };
 
+/*
+ * AK3918AV130 keeps upstream's five maps and no ioctl hook: the
+ * AnyCloud39AV130 SDK's prebuilt ak_uio registers a struct uio_info laid out
+ * that way.
+ */
+#ifdef CONFIG_MACH_AK3918AV130
+#define MAX_UIO_MAPS	5
+#else
 #define MAX_UIO_MAPS	16
+#endif
 
 struct uio_portio;
 
@@ -106,7 +115,9 @@ struct uio_info {
 	int (*open)(struct uio_info *info, struct inode *inode);
 	int (*release)(struct uio_info *info, struct inode *inode);
 	int (*irqcontrol)(struct uio_info *info, s32 irq_on);
+#ifndef CONFIG_MACH_AK3918AV130
 	int (*ioctl)(struct uio_info *info, unsigned int cmd, unsigned long arg);
+#endif
 };
 
 extern int __must_check

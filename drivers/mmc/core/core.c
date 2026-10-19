@@ -148,8 +148,13 @@ void mmc_request_done(struct mmc_host *host, struct mmc_request *mrq)
 			cmd->retries = 0;
 	}
 
+#ifdef CONFIG_MACH_AK3918AV130
+#define MMC_DATA_RETRIES(d)	0
+#else
+#define MMC_DATA_RETRIES(d)	((d)->retries)
+#endif
 	if ((err && cmd->retries && !mmc_card_removed(host->card))
-		|| (mrq->data && mrq->data->error && mrq->data->retries)) {
+		|| (mrq->data && mrq->data->error && MMC_DATA_RETRIES(mrq->data))) {
 		if (err && cmd->retries) {
 			pr_debug("%s: req failed (CMD%u): %d, retrying...\n",
 				mmc_hostname(host), cmd->opcode, err);
@@ -157,7 +162,9 @@ void mmc_request_done(struct mmc_host *host, struct mmc_request *mrq)
 			cmd->retries--;
 			cmd->error = 0;
 			__mmc_start_request(host, mrq);
-		} else {
+		}
+#ifndef CONFIG_MACH_AK3918AV130
+		else {
 			printk("%s: data(%s) req failed (CMD%u): %d, retrying(%d)...\n",
 				mmc_hostname(host),
 				(mrq->data->flags & MMC_DATA_READ) ? "read" : "write",
@@ -167,6 +174,7 @@ void mmc_request_done(struct mmc_host *host, struct mmc_request *mrq)
 			mrq->data->error = 0;
 			__mmc_start_request(host, mrq);
 		}
+#endif
 	} else {
 		mmc_should_fail_request(host, mrq);
 
@@ -297,7 +305,9 @@ static int mmc_start_request(struct mmc_host *host, struct mmc_request *mrq)
 
 		mrq->cmd->data = mrq->data;
 		mrq->data->error = 0;
+#ifndef CONFIG_MACH_AK3918AV130
 		mrq->data->retries = 3;
+#endif
 		mrq->data->mrq = mrq;
 		if (mrq->stop) {
 			mrq->data->stop = mrq->stop;

@@ -481,7 +481,9 @@ struct iio_dev {
 
 	int				modes;
 	int				currentmode;
+#ifndef CONFIG_MACH_AK3918AV130
 	struct device			dev;
+#endif
 
 	struct iio_event_interface	*event_interface;
 
@@ -517,6 +519,13 @@ struct iio_dev {
 #if defined(CONFIG_DEBUG_FS)
 	struct dentry			*debugfs_dentry;
 	unsigned			cached_reg_addr;
+#endif
+#ifdef CONFIG_MACH_AK3918AV130
+	/*
+	 * The AnyCloud39AV130 SDK moved dev to the end; its prebuilt ak_saradc
+	 * reaches the fields above by offset.
+	 */
+	struct device			dev;
 #endif
 };
 
