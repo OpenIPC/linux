@@ -113,6 +113,156 @@ config SENSOR_GC1084
 
 	  If unsure, say N.
 
+config SENSOR_AR0130_ISP2
+	bool "OnSemi AR0130 (ISP2) sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  OnSemi AR0130 (ISP2) on the ISP2 sensor framework, from the Cloud39EV300 SDK
+	  (drivers/media/video/plat-anyka/). Detected at run time against
+	  the other selected sensors by ID.
+
+	  If unsure, say N.
+
+config SENSOR_BF3703
+	bool "BYD BF3703 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  BYD BF3703 on the ISP2 sensor framework, from the Cloud39EV300 SDK
+	  (drivers/media/video/plat-anyka/). Detected at run time against
+	  the other selected sensors by ID.
+
+	  If unsure, say N.
+
+config SENSOR_F22_F23_F28_F35_F37
+	bool "SOI JX-F22/F23/F28/F35/F37 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  SOI JX-F22/F23/F28/F35/F37 on the ISP2 sensor framework, from the Cloud39EV300 SDK
+	  (drivers/media/video/plat-anyka/). Detected at run time against
+	  the other selected sensors by ID.
+
+	  If unsure, say N.
+
+config SENSOR_GC1054
+	bool "GalaxyCore GC1054 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  GalaxyCore GC1054 on the ISP2 sensor framework, from the Cloud39EV300 SDK
+	  (drivers/media/video/plat-anyka/). Detected at run time against
+	  the other selected sensors by ID.
+
+	  If unsure, say N.
+
+config SENSOR_GC2053
+	bool "GalaxyCore GC2053 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  GalaxyCore GC2053 on the ISP2 sensor framework, from the Cloud39EV300 SDK
+	  (drivers/media/video/plat-anyka/). Detected at run time against
+	  the other selected sensors by ID.
+
+	  If unsure, say N.
+
+config SENSOR_H63
+	bool "SOI JX-H63 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  SOI JX-H63 on the ISP2 sensor framework, from the Cloud39EV300 SDK
+	  (drivers/media/video/plat-anyka/). Detected at run time against
+	  the other selected sensors by ID.
+
+	  If unsure, say N.
+
+config SENSOR_H65
+	bool "SOI JX-H65 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  SOI JX-H65 on the ISP2 sensor framework, from the Cloud39EV300 SDK
+	  (drivers/media/video/plat-anyka/). Detected at run time against
+	  the other selected sensors by ID.
+
+	  If unsure, say N.
+
+config SENSOR_IMX307
+	bool "Sony IMX307 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  Sony IMX307 on the ISP2 sensor framework, from the Cloud39EV300 SDK
+	  (drivers/media/video/plat-anyka/). Detected at run time against
+	  the other selected sensors by ID.
+
+	  If unsure, say N.
+
+config SENSOR_PS5260
+	bool "PrimeSensor PS5260 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  PrimeSensor PS5260 on the ISP2 sensor framework, from the Cloud39EV300 SDK
+	  (drivers/media/video/plat-anyka/). Detected at run time against
+	  the other selected sensors by ID.
+
+	  If unsure, say N.
+
+config SENSOR_SC1235
+	bool "SmartSens SC1235 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  SmartSens SC1235 on the ISP2 sensor framework, from the Cloud39EV300 SDK
+	  (drivers/media/video/plat-anyka/). Detected at run time against
+	  the other selected sensors by ID.
+
+	  If unsure, say N.
+
+config SENSOR_SC1245
+	bool "SmartSens SC1245 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  SmartSens SC1245 on the ISP2 sensor framework, from the Cloud39EV300 SDK
+	  (drivers/media/video/plat-anyka/). Detected at run time against
+	  the other selected sensors by ID.
+
+	  If unsure, say N.
+
+config SENSOR_SC2232H_SC2135E
+	bool "SmartSens SC2232H/SC2135E sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  SmartSens SC2232H/SC2135E on the ISP2 sensor framework, from the Cloud39EV300 SDK
+	  (drivers/media/video/plat-anyka/). Detected at run time against
+	  the other selected sensors by ID.
+
+	  If unsure, say N.
+
+config SENSOR_SC2235
+	bool "SmartSens SC2235 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  SmartSens SC2235 on the ISP2 sensor framework, from the Cloud39EV300 SDK
+	  (drivers/media/video/plat-anyka/). Detected at run time against
+	  the other selected sensors by ID.
+
+	  If unsure, say N.
+
+config SENSOR_SC2239_SC2332_SC2335
+	bool "SmartSens SC2239/SC2332/SC2335 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  SmartSens SC2239/SC2332/SC2335 on the ISP2 sensor framework, from the Cloud39EV300 SDK
+	  (drivers/media/video/plat-anyka/). Detected at run time against
+	  the other selected sensors by ID.
+
+	  If unsure, say N.
+
+config SENSOR_SP2305
+	bool "SuperPix SP2305 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  SuperPix SP2305 on the ISP2 sensor framework, from the Cloud39EV300 SDK
+	  (drivers/media/video/plat-anyka/). Detected at run time against
+	  the other selected sensors by ID.
+
+	  If unsure, say N.
+
 config LINUX_AKSENSOR
 	tristate "Anyka legacy sensor stack (aksensor)"
 	depends on SOC_CAMERA && I2C
