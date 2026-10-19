@@ -22,4 +22,11 @@ enum {
 
 extern dev_t ROOT_DEV;
 
+/*
+ * Set when the flash itself names the root filesystem (the "rootfs" an mtdsplit
+ * of the firmware partition found): a root= naming an MTD device -- whatever
+ * layout the bootloader believes in -- then gives way to it.
+ */
+extern bool root_dev_from_flash;
+
 #endif
