@@ -17,6 +17,7 @@ static u32 num_zones;
 static struct cma_zone bsp_zone[ZONE_MAX];
 static int use_bootargs;
 static bool bsp_zones_held;
+static bool bsp_zones_failed;	/* a zone CMA could not reserve was left out */
 
 unsigned int get_cma_size(void)
 {
@@ -181,6 +182,7 @@ int __init declare_heap_memory(void)
 			pr_err("hisi_mem: cma zone %s at 0x%llx, %lluM not reserved (%d), left out\n",
 			       bsp_zone[i].name, (u64)bsp_zone[i].phys_start,
 			       (u64)bsp_zone[i].nbytes >> 20, ret);
+			bsp_zones_failed = true;
 			continue;
 		}
 
@@ -681,8 +683,16 @@ static int __init bsp_memory_publish(void)
 	int i, ac, sc, cells;
 	size_t len = 0;
 
-	if (!bsp_dram)
+	/*
+	 * Nothing to publish when the kernel did not lay memory out, or when
+	 * every zone it laid out failed to be reserved: no zone is then the
+	 * media's, and a carve-out's "anonymous" range would claim memory that
+	 * is the kernel's or someone else's. Userspace keeps the bootloader's.
+	 */
+	if (!bsp_dram || (bsp_zones_failed && !num_zones)) {
+		allocator[0] = '\0';	/* what load_hisilicon looks at first */
 		return 0;
+	}
 	dram = bsp_dram >> 20;
 	osmem = bsp_os >> 20;
 	if (num_zones) {
