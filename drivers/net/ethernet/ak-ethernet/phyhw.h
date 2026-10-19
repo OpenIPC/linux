@@ -67,8 +67,6 @@
 
 /* Link partner ability register */   
 #define MII_LPA                                 0x05 
-    #define LPA_SLCT                            0x001   /* Same as advertise selector  */
-    #define LPA_10HALF                          0x002   /* Can do 10mbps half-duplex   */
     #define LPA_10FULL                          0x0040  /* Can do 10mbps full-duplex   */
     #define LPA_100HALF                         0x0080  /* Can do 100mbps half-duplex  */
     #define LPA_100FULL                         0x0100  /* Can do 100mbps full-duplex  */
