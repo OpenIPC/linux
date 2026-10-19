@@ -88,3 +88,4 @@ obj-$(CONFIG_NET_VENDOR_WIZNET) += wiznet/
 obj-$(CONFIG_NET_VENDOR_XILINX) += xilinx/
 obj-$(CONFIG_NET_VENDOR_XIRCOM) += xircom/
 obj-$(CONFIG_AK_ETHERNET) += ak-ethernet/
+obj-$(CONFIG_AK_GMAC) += anyka-gmac/

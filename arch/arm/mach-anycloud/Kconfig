@@ -18,6 +18,52 @@ config MACH_AK3918EV200
 	help
 	  Support for the AK3918EV200 SoC variant.
 
+config MACH_AK3918
+	bool "AK3918/AK3916 (Aimer39) support"
+	depends on ARCH_AK && !MACH_AK39EV330 && !MACH_AK3918EV200
+	help
+	  Support for the first AK39 generation, the AK3918 and AK3916 of
+	  Anyka's Aimer39 SDK (chip ID 0x20120100). Same memory map, timers,
+	  interrupt controller, clock tree, SPI, I2C, MMC and UART as the
+	  AK3918EV200 that followed it; the GPIO block has two banks instead
+	  of three, the pad mux is laid out differently, the MAC is the older
+	  Anyka one and the camera host is ISP v1, not ISP2.
+
+config AK3918_FAMILY
+	bool
+	default y if MACH_AK3918EV200 || MACH_AK3918
+	help
+	  The blocks AK3918 (Aimer39) and AK3918EV200 share: machine
+	  descriptor, timers, interrupt controller, L2, clocks, SPI, and the
+	  video pool kept below PHYS_OFFSET.
+
+config MACH_AK3918AV130
+	bool "AK3918AV130 support"
+	depends on ARCH_AK && !MACH_AK39EV330 && !MACH_AK3918EV200 && !MACH_AK3918
+	select MULTI_IRQ_HANDLER
+	# The SDK's prebuilt ak_isp module is a videobuf2 dma-contig user.
+	select VIDEOBUF2_DMA_CONTIG if VIDEO_V4L2
+	help
+	  Support for the AK3918AV130 (N/A/L), with the SoC drivers of the
+	  vendor's AnyCloud39AV130 SDK. It shares no clock, pinctrl,
+	  interrupt, timer or UART block with EV200/EV330, so it cannot be
+	  built into the same kernel as those.
+
+config AK_OPENIPC_DTB
+	string "Device tree appended to the uImage"
+	depends on ARCH_AK
+	default "ak3918ev200-demb" if MACH_AK3918EV200
+	default "ak3918-demb" if MACH_AK3918
+	default "ak3918av130-demb" if MACH_AK3918AV130
+	default "ak3918ev300-demb"
+	help
+	  Name, without .dtb, of the blob arch/arm/boot/Makefile appends to
+	  the zImage to make the uImage (CONFIG_ARM_APPENDED_DTB). One
+	  machine covers boards that differ only in memory or package
+	  (ak3918-demb and ak3910-demb on MACH_AK3918): ak3918ev300-demb
+	  for the 64 MB EV300/EV330 parts, ak3918ev331-demb for the 128 MB
+	  EV331 ones.
+
 config CPU_AK3918EV200
 	bool
 	default y if MACH_AK3918EV200

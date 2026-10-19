@@ -333,6 +333,42 @@ int of_reserved_mem_device_init(struct device *dev)
 EXPORT_SYMBOL_GPL(of_reserved_mem_device_init);
 
 /**
+ * of_reserved_mem_device_init_by_idx() - assign the idx-th "memory-region"
+ * of node @np to @dev
+ *
+ * The upstream 4.7 interface, which the AnyCloud39AV130 SDK's prebuilt
+ * ak_ion module calls. Unlike upstream, of_reserved_mem_device_init() is left
+ * as it was rather than rewritten on top of this.
+ */
+int of_reserved_mem_device_init_by_idx(struct device *dev,
+				       struct device_node *np, int idx)
+{
+	struct reserved_mem *rmem;
+	struct device_node *target;
+	int ret;
+
+	if (!np || !dev)
+		return -EINVAL;
+
+	target = of_parse_phandle(np, "memory-region", idx);
+	if (!target)
+		return -ENODEV;
+
+	rmem = __find_rmem(target);
+	of_node_put(target);
+
+	if (!rmem || !rmem->ops || !rmem->ops->device_init)
+		return -EINVAL;
+
+	ret = rmem->ops->device_init(rmem, dev);
+	if (ret == 0)
+		dev_info(dev, "assigned reserved memory node %s\n", rmem->name);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(of_reserved_mem_device_init_by_idx);
+
+/**
  * of_reserved_mem_device_release() - release reserved memory device structures
  *
  * This function releases structures allocated for memory region handling for

@@ -438,7 +438,7 @@ EXPORT_SYMBOL_GPL(pwm_free);
  *
  * Returns: 0 on success or a negative error code on failure.
  */
-int pwm_config(struct pwm_device *pwm, int duty_ns, int period_ns)
+int pwm_config(struct pwm_device *pwm, pwm_arg_ns_t duty_ns, pwm_arg_ns_t period_ns)
 {
 	int err;
 

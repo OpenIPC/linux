@@ -853,7 +853,7 @@ static int camera_gc0308_reg(void)
 #ifdef __CC_ARM
 #pragma arm section rwdata = "__initcall_", zidata = "__initcall_"
 #endif
-module_init(camera_gc0308_reg)
+module_init(camera_gc0308_reg);
 #ifdef __CC_ARM
 #pragma arm section
 #endif
@@ -1171,15 +1171,15 @@ static const struct v4l2_ctrl_config gc0308_ctrls[] = {
  */
 static const struct aksensor_color_format gc0308_formats[] = {
 	{
-		.code = V4L2_MBUS_FMT_YUYV8_2X8,
+		.code = MEDIA_BUS_FMT_YUYV8_2X8,
 		.colorspace = V4L2_COLORSPACE_JPEG,
 	},
 	{
-		.code		= V4L2_MBUS_FMT_YVYU8_2X8,
+		.code		= MEDIA_BUS_FMT_YVYU8_2X8,
 		.colorspace = V4L2_COLORSPACE_JPEG,
 	},
 	{
-		.code		= V4L2_MBUS_FMT_UYVY8_2X8,
+		.code		= MEDIA_BUS_FMT_UYVY8_2X8,
 		.colorspace = V4L2_COLORSPACE_JPEG,
 	},
 };
@@ -1205,7 +1205,7 @@ static int gc0308_module_init(void)
 {
 	return register_sensor(&gc0308_sensor_info);
 }
-module_init(gc0308_module_init)
+module_init(gc0308_module_init);
 #endif
 
 #endif

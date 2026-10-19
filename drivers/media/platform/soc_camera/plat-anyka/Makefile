@@ -16,6 +16,21 @@ obj-$(CONFIG_LINUX_AKSENSOR)   += wrap_sensor.o aksensor.o
 # added.  Keep every sensor_*.o in this block so probe_sensors() sees the whole
 # runtime-detection registry when an existing board-info client probes.
 obj-$(CONFIG_SENSOR_GC1084)   += sensor_gc1084.o
+obj-$(CONFIG_SENSOR_AR0130_ISP2)	+= sensor_ar0130.o
+obj-$(CONFIG_SENSOR_BF3703)	+= sensor_bf3703.o
+obj-$(CONFIG_SENSOR_F22_F23_F28_F35_F37)	+= sensor_f22_f23_f28_f35_f37.o
+obj-$(CONFIG_SENSOR_GC1054)	+= sensor_gc1054.o
+obj-$(CONFIG_SENSOR_GC2053)	+= sensor_gc2053.o
+obj-$(CONFIG_SENSOR_H63)	+= sensor_h63.o
+obj-$(CONFIG_SENSOR_H65)	+= sensor_h65.o
+obj-$(CONFIG_SENSOR_IMX307)	+= sensor_imx307.o
+obj-$(CONFIG_SENSOR_PS5260)	+= sensor_ps5260.o
+obj-$(CONFIG_SENSOR_SC1235)	+= sensor_sc1235.o
+obj-$(CONFIG_SENSOR_SC1245)	+= sensor_sc1245.o
+obj-$(CONFIG_SENSOR_SC2232H_SC2135E)	+= sensor_sc2232h_sc2135e.o
+obj-$(CONFIG_SENSOR_SC2235)	+= sensor_sc2235.o
+obj-$(CONFIG_SENSOR_SC2239_SC2332_SC2335)	+= sensor_sc2239_sc2332_sc2335.o
+obj-$(CONFIG_SENSOR_SP2305)	+= sensor_sp2305.o
 
 # ISP2 sensor framework.  This must follow the stack-B sensor drivers above;
 # i2c_add_driver() can synchronously probe an already registered client.
@@ -37,3 +52,7 @@ obj-$(CONFIG_AK_ISP_CORE)     += ak39_isp2.o ak39_isp2_3a.o
 # specific content, so both live here rather than under an arch/arm
 # machine directory.
 obj-$(CONFIG_VIDEO_AK)         += ak_camera.o
+
+# ISP v1 host for the first AK39 generation (Aimer39 AK3918/AK3916). Its
+# sensors are the aksensor stack's camera_* drivers above.
+obj-$(CONFIG_VIDEO_AK_ISP1)	+= ak_camera_isp1.o ak39_isp1.o

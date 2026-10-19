@@ -32,6 +32,12 @@ config PWM_SYSFS
 	bool
 	default y if SYSFS
 
+# On AV130, struct pwm_ops' config callback takes 64-bit duty and period
+# (include/linux/pwm.h), the layout the AnyCloud39AV130 SDK's modules were
+# built against. None of the providers below implements that signature, so
+# none of them is offered there.
+if !MACH_AK3918AV130
+
 config PWM_AB8500
 	tristate "AB8500 PWM support"
 	depends on AB8500_CORE && ARCH_U8500
@@ -432,5 +438,7 @@ config PWM_VT8500
 
 	  To compile this driver as a module, choose M here: the module
 	  will be called pwm-vt8500.
+
+endif # !MACH_AK3918AV130
 
 endif

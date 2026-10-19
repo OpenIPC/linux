@@ -97,6 +97,23 @@ config VIDEO_AK
 	  This is a v4l2 driver for the AK Platform Camera Interface. It uses
 	  the ISP2 interface provided by AK_ISP_CHAR.
 
+config VIDEO_AK_ISP1
+	tristate "Anyka AK3918/AK3916 (Aimer39) camera host, ISP v1"
+	depends on VIDEO_DEV && SOC_CAMERA && ARCH_AK && OF
+	depends on !VIDEO_AK && !AK_ISP_CORE
+	depends on LINUX_AKSENSOR
+	select VIDEOBUF_DMA_CONTIG
+	help
+	  soc_camera host for the first AK39 generation, the Aimer39
+	  AK3918 and AK3916, whose camera block is the ISP v1 that came
+	  before EV200's ISP2. Ported from the Aimer39 SDK's
+	  drivers/media/video/plat-anyka/{ak_camera.c,ak39_isp.c}. The
+	  sensors are the aksensor stack's camera_* drivers.
+
+	  Binds "anyka,ak3918-isp". Only one AK camera host can be built.
+
+	  If unsure, say N.
+
 config AK_ISP_CORE
 	bool "Anyka ISP core, built from source"
 	depends on ARCH_AK
@@ -113,12 +130,166 @@ config SENSOR_GC1084
 
 	  If unsure, say N.
 
+config SENSOR_AR0130_ISP2
+	bool "OnSemi AR0130 (ISP2) sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  OnSemi AR0130 (ISP2) on the ISP2 sensor framework, from the Cloud39EV300 SDK
+	  (drivers/media/video/plat-anyka/). Detected at run time against
+	  the other selected sensors by ID.
+
+	  If unsure, say N.
+
+config SENSOR_BF3703
+	bool "BYD BF3703 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  BYD BF3703 on the ISP2 sensor framework, from the Cloud39EV300 SDK
+	  (drivers/media/video/plat-anyka/). Detected at run time against
+	  the other selected sensors by ID.
+
+	  If unsure, say N.
+
+config SENSOR_F22_F23_F28_F35_F37
+	bool "SOI JX-F22/F23/F28/F35/F37 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  SOI JX-F22/F23/F28/F35/F37 on the ISP2 sensor framework, from the Cloud39EV300 SDK
+	  (drivers/media/video/plat-anyka/). Detected at run time against
+	  the other selected sensors by ID.
+
+	  If unsure, say N.
+
+config SENSOR_GC1054
+	bool "GalaxyCore GC1054 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  GalaxyCore GC1054 on the ISP2 sensor framework, from the Cloud39EV300 SDK
+	  (drivers/media/video/plat-anyka/). Detected at run time against
+	  the other selected sensors by ID.
+
+	  If unsure, say N.
+
+config SENSOR_GC2053
+	bool "GalaxyCore GC2053 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  GalaxyCore GC2053 on the ISP2 sensor framework, from the Cloud39EV300 SDK
+	  (drivers/media/video/plat-anyka/). Detected at run time against
+	  the other selected sensors by ID.
+
+	  If unsure, say N.
+
+config SENSOR_H63
+	bool "SOI JX-H63 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  SOI JX-H63 on the ISP2 sensor framework, from the Cloud39EV300 SDK
+	  (drivers/media/video/plat-anyka/). Detected at run time against
+	  the other selected sensors by ID.
+
+	  If unsure, say N.
+
+config SENSOR_H65
+	bool "SOI JX-H65 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  SOI JX-H65 on the ISP2 sensor framework, from the Cloud39EV300 SDK
+	  (drivers/media/video/plat-anyka/). Detected at run time against
+	  the other selected sensors by ID.
+
+	  If unsure, say N.
+
+config SENSOR_IMX307
+	bool "Sony IMX307 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  Sony IMX307 on the ISP2 sensor framework, from the Cloud39EV300 SDK
+	  (drivers/media/video/plat-anyka/). Detected at run time against
+	  the other selected sensors by ID.
+
+	  If unsure, say N.
+
+config SENSOR_PS5260
+	bool "PrimeSensor PS5260 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  PrimeSensor PS5260 on the ISP2 sensor framework, from the Cloud39EV300 SDK
+	  (drivers/media/video/plat-anyka/). Detected at run time against
+	  the other selected sensors by ID.
+
+	  If unsure, say N.
+
+config SENSOR_SC1235
+	bool "SmartSens SC1235 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  SmartSens SC1235 on the ISP2 sensor framework, from the Cloud39EV300 SDK
+	  (drivers/media/video/plat-anyka/). Detected at run time against
+	  the other selected sensors by ID.
+
+	  If unsure, say N.
+
+config SENSOR_SC1245
+	bool "SmartSens SC1245 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  SmartSens SC1245 on the ISP2 sensor framework, from the Cloud39EV300 SDK
+	  (drivers/media/video/plat-anyka/). Detected at run time against
+	  the other selected sensors by ID.
+
+	  If unsure, say N.
+
+config SENSOR_SC2232H_SC2135E
+	bool "SmartSens SC2232H/SC2135E sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  SmartSens SC2232H/SC2135E on the ISP2 sensor framework, from the Cloud39EV300 SDK
+	  (drivers/media/video/plat-anyka/). Detected at run time against
+	  the other selected sensors by ID.
+
+	  If unsure, say N.
+
+config SENSOR_SC2235
+	bool "SmartSens SC2235 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  SmartSens SC2235 on the ISP2 sensor framework, from the Cloud39EV300 SDK
+	  (drivers/media/video/plat-anyka/). Detected at run time against
+	  the other selected sensors by ID.
+
+	  If unsure, say N.
+
+config SENSOR_SC2239_SC2332_SC2335
+	bool "SmartSens SC2239/SC2332/SC2335 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  SmartSens SC2239/SC2332/SC2335 on the ISP2 sensor framework, from the Cloud39EV300 SDK
+	  (drivers/media/video/plat-anyka/). Detected at run time against
+	  the other selected sensors by ID.
+
+	  If unsure, say N.
+
+config SENSOR_SP2305
+	bool "SuperPix SP2305 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  SuperPix SP2305 on the ISP2 sensor framework, from the Cloud39EV300 SDK
+	  (drivers/media/video/plat-anyka/). Detected at run time against
+	  the other selected sensors by ID.
+
+	  If unsure, say N.
+
 config LINUX_AKSENSOR
 	tristate "Anyka legacy sensor stack (aksensor)"
-	depends on SOC_CAMERA && I2C
+	depends on SOC_CAMERA && I2C && OF_GPIO
+	depends on !AK_ISP_CHAR
 	help
-	  A board-info-registered SCCB/I2C sensor stack (aksensor.c/
-	  wrap_sensor.c) and its camera_*.c client drivers below.
+	  The first AK39 generation's SCCB/I2C sensor stack (aksensor.c/
+	  wrap_sensor.c) and its camera_*.c client drivers below, used by
+	  the ISP v1 host (VIDEO_AK_ISP1). It binds the same
+	  "anyka,sensor0" node and driver name as the ISP2 sensor glue that
+	  AK_ISP_CHAR builds, so only one of the two can be selected.
 
 	  If unsure, say N.
 

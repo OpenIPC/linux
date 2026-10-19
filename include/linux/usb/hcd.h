@@ -87,7 +87,11 @@ struct usb_hcd {
 
 	struct timer_list	rh_timer;	/* drives root-hub polling */
 	struct urb		*status_urb;	/* the current status urb */
-#ifdef CONFIG_PM
+/*
+ * Always present on AV130, as in the AnyCloud39AV130 SDK's kernel, whose
+ * prebuilt ak_hcd finds hcd_priv past it.
+ */
+#if defined(CONFIG_PM) || defined(CONFIG_MACH_AK3918AV130)
 	struct work_struct	wakeup_work;	/* for remote wakeup */
 #endif
 

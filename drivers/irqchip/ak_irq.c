@@ -61,7 +61,7 @@ static int bank_pre_irqs[NR_BANKS];
 #define AK_SYS_IRQ_MAX_NUB		16
 #endif
 
-#ifdef CONFIG_MACH_AK3918EV200
+#ifdef CONFIG_AK3918_FAMILY
 /*
  * 11 sysctrl sub-IRQs: SARADC 0, TIMER5..1 1-5, WAKEUP 6,
  * RTC_RDY/ALARM/TIMER/WATCHDOG 7-10.
@@ -181,7 +181,7 @@ static void ak_sysctrl_handler(struct irq_desc *desc)
 	intpnd = (regval_mask & 0xFFFF) & (regval_sta & 0xFFFF);
 #endif
 
-#ifdef CONFIG_MACH_AK3918EV200
+#ifdef CONFIG_AK3918_FAMILY
 	/* AK3918EV200 system irq number is 11. */
 	intpnd = (regval_mask & 0x7FF) & (regval_sta & 0x7FF);
 #endif
@@ -296,7 +296,7 @@ static int __init ak_sysint_of_init(struct device_node *node,
 	return 0;
 }
 
-#if defined(CONFIG_MACH_AK39EV330) || defined(CONFIG_MACH_AK3918EV200)
+#if defined(CONFIG_MACH_AK39EV330) || defined(CONFIG_AK3918_FAMILY)
 IRQCHIP_DECLARE(ak39ev330_irqchip, "anyka,ak39ev330-ic",
 		ak_int_of_init);
 IRQCHIP_DECLARE(ak39ev330_sysirqchip, "anyka,ak39ev330-system-ic",

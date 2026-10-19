@@ -105,6 +105,16 @@ struct ak_camera_dev {
 
 	struct pinctrl		*pinctrl;
 	struct pinctrl_state	*pins_default;	/* DVP data/clock/mclk pads */
+#ifndef CONFIG_CPU_AK3918EV200
+	/*
+	 * EV300 and EV330 route both sensor buses through the MIPI/D-PHY block:
+	 * its IO-mode register picks DVP or CSI-2, and DVP's pad voltage is set
+	 * there too. EV200 has neither the block nor the MIPI pads.
+	 */
+	void __iomem		*mipi_base;
+	struct clk		*mipi_clk;
+	struct pinctrl_state	*pins_mipi[2];	/* 1 and 2 data lanes */
+#endif
 	struct list_head capture;
 	/* members to manage the dma and buffer*/
 	spinlock_t		lock;  /* for videobuf_queue , passed in init_videobuf */
@@ -1164,8 +1174,246 @@ static void disable_sensor_cis_sclk(void)
 	REG32(CLOCK_PERI_PLL_CTRL2) &= ~CIS_SCLK_ENABLE;
 }
 
+#ifndef CONFIG_CPU_AK3918EV200
+/*
+ * The MIPI/D-PHY bring-up below is the Cloud39EV300 SDK's own
+ * (drivers/media/video/plat-anyka/ak_camera.c, mach-ak39 clock.c and
+ * reset.c), moved from fixed virtual mappings onto the device tree's
+ * "anyka,ak39ev330-mipi-csi0" node and the sysctrl window.
+ */
+#define MODULE_RESET_CON1	(AK_VA_SYSCTRL + 0x20)
+#define AK_SHAREPIN_CON1	(AK_VA_SYSCTRL + 0x74)
+#define AK_SRESET_MIPI		16
+
+#define MIPI_W(off, val)	__raw_writeb((val), pcdev->mipi_base + (off))
+
+static void ak_mipi_soft_reset(void)
+{
+	REG32(MODULE_RESET_CON1) |= 1 << AK_SRESET_MIPI;
+	mdelay(5);
+	REG32(MODULE_RESET_CON1) &= ~(1 << AK_SRESET_MIPI);
+}
+
+static void ak_wait_cis_pclk(void)
+{
+	int timeout = 0xffff;
+
+	while ((REG32(CLOCK_PERI_PLL_CTRL2) & (1 << 29)) && timeout-- > 0)
+		;
+}
+
+static void ak_set_cis_pclk(unsigned int pclk_mhz)
+{
+	unsigned long regval;
+	unsigned int div = ak_get_peri_pll_clk() / 1000000 / pclk_mhz;
+
+	REG32(CLOCK_PERI_PLL_CTRL2) &= ~(1 << 28);
+	ak_wait_cis_pclk();
+	regval = REG32(CLOCK_PERI_PLL_CTRL2);
+	regval &= ~(0x3f << 20);
+	regval |= (div - 1) << 20;
+	REG32(CLOCK_PERI_PLL_CTRL2) = regval;
+	REG32(CLOCK_PERI_PLL_CTRL2) |= 1 << 29;
+	ak_wait_cis_pclk();
+	REG32(CLOCK_PERI_PLL_CTRL2) |= 1 << 28;
+	ak_wait_cis_pclk();
+}
+
+static void ak_peri_ctrl1_bit(int bit, int on)
+{
+	if (on)
+		REG32(CLOCK_PERI_PLL_CTRL1) |= 1 << bit;
+	else
+		REG32(CLOCK_PERI_PLL_CTRL1) &= ~(1 << bit);
+}
+
+static void set_dvp_initiation(struct ak_camera_dev *pcdev, int io_level)
+{
+	MIPI_W(0x00, 0x7d);
+	MIPI_W(0x20, 0x3f);
+	MIPI_W(0xb3, 0x01);
+	switch (io_level) {
+	case SENSOR_IO_LEVEL_1V8:
+		MIPI_W(0xb8, 0x10);
+		break;
+	case SENSOR_IO_LEVEL_2V5:
+		MIPI_W(0xb8, 0x08);
+		break;
+	case SENSOR_IO_LEVEL_3V3:
+		MIPI_W(0xb8, 0x04);
+		break;
+	default:
+		pr_err("%s: sensor IO level %d is not defined\n",
+		       __func__, io_level);
+		break;
+	}
+}
+
+static int mipi_mhz_to_thssettle(int mhz)
+{
+	static const int top[] = { 110, 150, 200, 250, 300, 400, 500, 600,
+				   700, 800, 1000 };
+	int i;
+
+	if (mhz < 80)
+		return -1;
+	for (i = 0; i < ARRAY_SIZE(top); i++)
+		if (mhz <= top[i])
+			return i;
+	return -1;
+}
+
+/* time_formula per THS-SETTLE value, from the SDK's ths_settle table. */
+static const int ths_settle_formula[] = { 4, 6, 9, 10, 13, 17, 23, 28,
+					  33, 35, 44 };
+
+static int mipi_thssettle_to_time(int thssettle, int mbps)
+{
+	int ui = 1000 * 100 / mbps;	/* 100 times the UI in ns */
+
+	if (thssettle < 0 || thssettle >= ARRAY_SIZE(ths_settle_formula))
+		return 0;
+	return 2 * ths_settle_formula[thssettle] * ui / 100;
+}
+
+/* Move the IP's THS-SETTLE into the window the D-PHY spec allows. */
+static int mipi_thssettle_init(int base, int mbps)
+{
+	int ui = 1000 * 100 / mbps;
+	int min = 85 + 6 * ui / 100, max = 145 + 10 * ui / 100;
+	int t = mipi_thssettle_to_time(base, mbps);
+	int i;
+
+	if (t > min && t <= max)
+		return base;
+	if (t <= min) {
+		for (i = base; i < ARRAY_SIZE(ths_settle_formula); i++) {
+			t = mipi_thssettle_to_time(i, mbps);
+			if (t > min && t <= max)
+				return i;
+		}
+	} else {
+		for (i = base; i >= 0; i--) {
+			t = mipi_thssettle_to_time(i, mbps);
+			if (t > min && t <= max)
+				return i;
+		}
+	}
+	return -1;
+}
+
+static int mipi_ip_initiation(struct ak_camera_dev *pcdev,
+			      AK_ISP_SENSOR_CB *sensor_cb)
+{
+	int mipi_mhz = 200, mipi_lane = 2, thssettle;
+	unsigned char value;
+
+	if (!sensor_cb || !sensor_cb->sensor_get_parameter_func)
+		return -EINVAL;
+	sensor_cb->sensor_get_parameter_func(GET_MIPI_MHZ, &mipi_mhz);
+	sensor_cb->sensor_get_parameter_func(GET_MIPI_LANE, &mipi_lane);
+
+	thssettle = mipi_mhz_to_thssettle(mipi_mhz);
+	if (thssettle >= 0)
+		thssettle = mipi_thssettle_init(thssettle, mipi_mhz);
+	if (thssettle < 0) {
+		pr_err("%s: no THS-SETTLE for %d MHz\n", __func__, mipi_mhz);
+		return -EINVAL;
+	}
+	value = 0x80 | (thssettle & 0x0f);
+
+	if (mipi_lane == 2) {
+		MIPI_W(0x00, 0x7d);	/* D-PHY data and clock lanes on */
+		MIPI_W(0x20, 0x1f);	/* TTL register bank off */
+		MIPI_W(0xe0, 0xf9);	/* two-lane mode */
+		MIPI_W(0xe1, 0x01);	/* error reporting on */
+		MIPI_W(0x40, value);	/* THS-SETTLE: clock, data0, data1 */
+		MIPI_W(0x60, value);
+		MIPI_W(0x80, value);
+		MIPI_W(0xb3, 0x02);	/* IO mode: MIPI */
+	} else if (mipi_lane == 1) {
+		MIPI_W(0x40, value);
+		MIPI_W(0x60, value);
+		MIPI_W(0x00, 0x7d);
+		MIPI_W(0xe0, 0xf8);
+		/*
+		 * The SDK's one-lane path never wrote the IO mode: it reached here
+		 * from reset. This host sets the bus up as DVP to identify the
+		 * sensor first, which leaves 0x01 (DVP) behind.
+		 */
+		MIPI_W(0xb3, 0x02);	/* IO mode: MIPI */
+	} else {
+		pr_err("%s: %d MIPI lanes\n", __func__, mipi_lane);
+		return -EINVAL;
+	}
+	MIPI_W(0xb8, 0x04);
+	MIPI_W(0x0d, 0xc0);
+	return 0;
+}
+
 static int set_sensor_interface(struct ak_camera_dev *pcdev,
-				int sensor_interface)
+				int sensor_interface, int sensor_io_level,
+				AK_ISP_SENSOR_CB *sensor_cb)
+{
+	struct device *dev = pcdev->soc_host.v4l2_dev.dev;
+	struct pinctrl_state *pins;
+	int mipi_lane = 2;
+	int ret;
+
+	if (!pcdev->mipi_base) {
+		dev_err(dev, "no MIPI/D-PHY block, cannot set up the sensor bus\n");
+		return -ENODEV;
+	}
+
+	switch (sensor_interface) {
+	case DVP_INTERFACE:
+		pins = pcdev->pins_default;
+		break;
+	case MIPI_INTERFACE:
+		if (sensor_cb && sensor_cb->sensor_get_parameter_func)
+			sensor_cb->sensor_get_parameter_func(GET_MIPI_LANE,
+							     &mipi_lane);
+		pins = pcdev->pins_mipi[mipi_lane == 1 ? 0 : 1];
+		break;
+	default:
+		dev_err(dev, "unsupported sensor interface %d\n",
+			sensor_interface);
+		return -EINVAL;
+	}
+
+	if (pcdev->pinctrl && pins) {
+		ret = pinctrl_select_state(pcdev->pinctrl, pins);
+		if (ret) {
+			dev_err(dev, "failed to select the sensor pinmux: %d\n",
+				ret);
+			return ret;
+		}
+	} else {
+		dev_warn(dev, "no pinctrl state for interface %d; assuming pads pre-muxed\n",
+			 sensor_interface);
+	}
+
+	if (sensor_interface == DVP_INTERFACE) {
+		ak_peri_ctrl1_bit(26, 0);	/* CIS input: DVP */
+		set_dvp_initiation(pcdev, sensor_io_level);
+		return 0;
+	}
+
+	ak_set_cis_pclk(75);			/* internal CIS pclk */
+	REG32(AK_SHAREPIN_CON1) |= (1 << 30) | (1 << 4);	/* pclk -> cis2_sclk */
+	ak_mipi_soft_reset();
+	ak_peri_ctrl1_bit(27, 0);		/* release byte-clock reset */
+	ak_peri_ctrl1_bit(24, 1);		/* pclk from the PLL */
+	ak_peri_ctrl1_bit(26, 1);		/* CIS input: MIPI */
+	if (pcdev->mipi_clk)
+		clk_prepare_enable(pcdev->mipi_clk);
+	ak_mipi_soft_reset();
+	return mipi_ip_initiation(pcdev, sensor_cb);
+}
+#else
+static int set_sensor_interface(struct ak_camera_dev *pcdev,
+				int sensor_interface, int sensor_io_level,
+				AK_ISP_SENSOR_CB *sensor_cb)
 {
 	struct device *dev = pcdev->soc_host.v4l2_dev.dev;
 	int ret;
@@ -1188,12 +1436,8 @@ static int set_sensor_interface(struct ak_camera_dev *pcdev,
 		}
 		return 0;
 	case MIPI_INTERFACE:
-		/*
-		 * The 1.0.05 platform layer has no MIPI register map, reset or
-		 * clock API. Keep the interface decision explicit so adding that
-		 * platform support does not disturb DVP sensor selection.
-		 */
-		dev_err(dev, "MIPI sensor selected but platform support is absent\n");
+		/* EV200 has no MIPI receiver. */
+		dev_err(dev, "MIPI sensor selected, and this SoC has no MIPI receiver\n");
 		return -EOPNOTSUPP;
 	default:
 		dev_err(dev, "unsupported sensor interface %d\n",
@@ -1201,6 +1445,7 @@ static int set_sensor_interface(struct ak_camera_dev *pcdev,
 		return -EINVAL;
 	}
 }
+#endif
 
 /**
  * @brief: Called when the /dev/videox is opened. initial ISP and sensor device.
@@ -1261,7 +1506,8 @@ static int ak_camera_add_device(struct soc_camera_device *icd)
 	clk_prepare_enable(pcdev->clk);
 	REG32(CLOCK_PERI_PLL_CTRL1) &= ~(0x01<<25);
 
-	ret = set_sensor_interface(pcdev, sensor_interface);
+	ret = set_sensor_interface(pcdev, sensor_interface, sensor_io_level,
+				   NULL);
 	if (ret)
 		goto err_isp_clk;
 
@@ -1301,8 +1547,16 @@ static int ak_camera_add_device(struct soc_camera_device *icd)
 	if (sensor_mclk != running_mclk)
 		set_sensor_cis_sclk(sensor_mclk);
 
-	if (sensor_interface != DVP_INTERFACE) {
-		ret = set_sensor_interface(pcdev, sensor_interface);
+	/*
+	 * Again with what the sensor reported: its bus, and on EV300/EV330 the
+	 * DVP pad voltage, which the first pass could only guess.
+	 */
+#ifdef CONFIG_CPU_AK3918EV200
+	if (sensor_interface != DVP_INTERFACE)
+#endif
+	{
+		ret = set_sensor_interface(pcdev, sensor_interface,
+					   sensor_io_level, sensor_cb);
 		if (ret)
 			goto err_sensor;
 	}
@@ -2030,6 +2284,34 @@ static int ak_camera_probe(struct platform_device *pdev)
 			pcdev->pins_default = NULL;
 		}
 	}
+#ifndef CONFIG_CPU_AK3918EV200
+	if (pcdev->pinctrl) {
+		static const char * const names[] = { "mipi0_1lane",
+						      "mipi0_2lane" };
+		int i;
+
+		for (i = 0; i < ARRAY_SIZE(names); i++) {
+			pcdev->pins_mipi[i] = pinctrl_lookup_state(
+						pcdev->pinctrl, names[i]);
+			if (IS_ERR(pcdev->pins_mipi[i]))
+				pcdev->pins_mipi[i] = NULL;
+		}
+	}
+	{
+		struct device_node *np = of_find_compatible_node(NULL, NULL,
+					"anyka,ak39ev330-mipi-csi0");
+
+		if (np) {
+			pcdev->mipi_base = of_iomap(np, 0);
+			pcdev->mipi_clk = of_clk_get_by_name(np, "mipi_csi_clk");
+			if (IS_ERR(pcdev->mipi_clk))
+				pcdev->mipi_clk = NULL;
+			of_node_put(np);
+		}
+		if (!pcdev->mipi_base)
+			dev_warn(&pdev->dev, "no MIPI/D-PHY block mapped\n");
+	}
+#endif
 
 	/*
 	  * request irq

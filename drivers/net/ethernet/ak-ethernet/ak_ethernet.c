@@ -27,21 +27,37 @@
 #include <asm/irq.h>
 #include <asm/io.h>
 
+#include <linux/of.h>
+#include <linux/of_gpio.h>
+#include <linux/of_net.h>
+#include <linux/gpio.h>
+#include <linux/dma-mapping.h>
+
 #include <mach/map.h>
-#include <mach/gpio.h>
-#include <mach-anyka/mac.h>
-#include <mach/clock.h>
-//#include <mach/l2cache.h>
-#include <plat-anyka/anyka_types.h>
-#include <plat-anyka/fha_asa.h>
+
+/* Formerly from <mach/gpio.h>: plain register accessors on mapped addresses. */
+#define REG32(_reg)	(*(volatile unsigned long *)(_reg))
+#define REG16(_reg)	(*(volatile unsigned short *)(_reg))
+
+/*
+ * What the Aimer39 SDK's board file handed over as platform data
+ * (mach-aimer39_ak3918.c ak39_mac_pdata), now read from the device tree:
+ * the address, and the PHY reset line if the board wires one.
+ */
+struct ak_mac_data {
+	unsigned char dev_addr[ETH_ALEN];
+	int phy_rst_gpio;		/* -1: none */
+	int phy_rst_active_low;
+};
+
+/* The device the descriptor rings and buffers are allocated for. */
+static struct device *ak_mac_dma_dev;
 
 #define MACNAME	"ak98_mac"
 #define DRV_VERSION	"1.0"
 #define TPD_RING_SIZE 0x50
 #define RFD_RING_SIZE 0x50
 #define RRD_RING_SIZE 0x50
-#define MAC_FILE_NAME	"MACADDR"
-#define CTOI(c) (isdigit(c) ? (c - '0') : (c - 'A' + 10))
 
 #include "eth_ops.h"
 #include "Ethernethw.h"
@@ -407,14 +423,14 @@ bool InitEthernetMemory(void)
 	unsigned long *tempp;
 
 	if (RingbufVa == NULL)
-		RingbufVa = dma_alloc_coherent(NULL, TPD_RING_SIZE * 16 + RRD_RING_SIZE * 16, &RingbufPa, GFP_KERNEL);
+		RingbufVa = dma_alloc_coherent(ak_mac_dma_dev, TPD_RING_SIZE * 16 + RRD_RING_SIZE * 16, &RingbufPa, GFP_KERNEL);
 	if(RingbufVa == NULL)
 	{
 		dbg("Alloc Memory for RingBuf Failed!");
 		return false;
 	}
 	if (rfd_sequenceva == NULL)
-		rfd_sequenceva = dma_alloc_coherent(NULL, RFD_RING_SIZE * 8, &rfd_sequence, GFP_KERNEL);
+		rfd_sequenceva = dma_alloc_coherent(ak_mac_dma_dev, RFD_RING_SIZE * 8, &rfd_sequence, GFP_KERNEL);
 	if (rfd_sequenceva == NULL)
 	{
 		dbg("Alloc rfd sequence buffer failed!");
@@ -422,14 +438,14 @@ bool InitEthernetMemory(void)
 	}
 
 	if (tpdbufaddressVa == NULL)
-		tpdbufaddressVa = dma_alloc_coherent(NULL, TPD_RING_SIZE * 1520, &tpdbufaddressPa, GFP_KERNEL);
+		tpdbufaddressVa = dma_alloc_coherent(ak_mac_dma_dev, TPD_RING_SIZE * 1520, &tpdbufaddressPa, GFP_KERNEL);
 	if(tpdbufaddressVa == NULL)
 	{
 		dbg("Alloc tpd sequence buffer failed!");
 		return false;
 	}
 	if (rfdbaseva == NULL)
-		rfdbaseva = dma_alloc_coherent(NULL, RFD_RING_SIZE * 1520, &rfdbasepa, GFP_KERNEL);
+		rfdbaseva = dma_alloc_coherent(ak_mac_dma_dev, RFD_RING_SIZE * 1520, &rfdbasepa, GFP_KERNEL);
 	if(rfdbaseva == NULL)
 	{
 		dbg("Alloc rfd  buffer failed!");
@@ -449,29 +465,25 @@ bool InitEthernetMemory(void)
 	return true;
 }
 
+/*
+ * As the SDK did it: drive reset active for 10 ms, then release the line
+ * by turning it into an input and let the PHY's own pull take it out of
+ * reset.
+ */
 static void mac_phy_reset(struct ak_mac_data *pdata)
 {
-	/* first set phy level low */
-	pdata->gpio_init(&pdata->phy_rst_gpio);
+	gpio_direction_output(pdata->phy_rst_gpio,
+			      pdata->phy_rst_active_low ? 0 : 1);
 	mdelay(10);
-	/* second set gpio as input and be in powersave */
-	ak_gpio_cfgpin(pdata->phy_rst_gpio.pin, !pdata->phy_rst_gpio.dir);
+	gpio_direction_input(pdata->phy_rst_gpio);
 	mdelay(1);
 }
 
+/* The MII pads come from the node's default pinctrl state, applied at probe. */
 static int mac_init_hw(struct ak_mac_data *pdata)
 {
-	ak_group_config(ePIN_AS_MAC);
-	
-	if (pdata != NULL) {
-		/* init mac power on */
-		if (pdata->pwr_gpio.pin > 0) 
-			pdata->gpio_init(&pdata->pwr_gpio);
-
-		/* init the gpio for phy */
-		if (pdata->phy_rst_gpio.pin > 0) 
-			mac_phy_reset(pdata);
-	}
+	if (pdata && gpio_is_valid(pdata->phy_rst_gpio))
+		mac_phy_reset(pdata);
 	return 0;
 }
 
@@ -774,25 +786,25 @@ bool MacInit(struct net_device *ndev)
 void Macexit(struct net_device *ndev)
 {
 	if (rfd_sequenceva) {
-		dma_free_coherent(NULL, RFD_RING_SIZE * 4, rfd_sequenceva, rfd_sequence);
+		dma_free_coherent(ak_mac_dma_dev, RFD_RING_SIZE * 4, rfd_sequenceva, rfd_sequence);
 		rfd_sequenceva = NULL;
 		rfd_sequence = 0;
 	}
 
 	if (tpdbufaddressVa) {
-		dma_free_coherent(NULL, TPD_RING_SIZE * 1520, tpdbufaddressVa, tpdbufaddressPa);
+		dma_free_coherent(ak_mac_dma_dev, TPD_RING_SIZE * 1520, tpdbufaddressVa, tpdbufaddressPa);
 		tpdbufaddressVa = NULL;
 		tpdbufaddressPa = 0;
 	}
 
 	if (rfdbaseva) {
-		dma_free_coherent(NULL, RFD_RING_SIZE * 1520, rfdbaseva, rfdbasepa);
+		dma_free_coherent(ak_mac_dma_dev, RFD_RING_SIZE * 1520, rfdbaseva, rfdbasepa);
 		rfdbaseva = NULL;
 		rfdbasepa = 0;
 	}
 
 	if (RingbufVa) {
-		dma_free_coherent(NULL, TPD_RING_SIZE * 16 + RRD_RING_SIZE * 16, RingbufVa, RingbufPa);
+		dma_free_coherent(ak_mac_dma_dev, TPD_RING_SIZE * 16 + RRD_RING_SIZE * 16, RingbufVa, RingbufPa);
 		RingbufVa = NULL;
 		RingbufPa = 0;
 	}
@@ -932,14 +944,13 @@ void SendPacket(unsigned char *sendbuffer, unsigned long length)
 static void
 ak_mac_release_board(struct platform_device *pdev, struct mac_info *db)
 {
-	/* unmap our resources */
-
-	iounmap(db->io_addr);
-
-	/* release the resources */
-
-	release_resource(db->addr_req);
-	kfree(db->addr_req);
+	/* The probe's error path gets here with either still unset. */
+	if (db->io_addr)
+		iounmap(db->io_addr);
+	if (db->addr_req) {
+		release_resource(db->addr_req);
+		kfree(db->addr_req);
+	}
 }
 
 /*
@@ -1403,55 +1414,37 @@ static const struct net_device_ops ak_mac_netdev_ops = {
 	.ndo_get_stats		= ak_mac_get_stats,
 };
 
-static int get_mac_addr(struct ak_mac_data *pdata)
-{
-	int i;
-	unsigned char mac_addr[32] = {0};
-	unsigned char file_len[4] = {0};
-
-	if (FHA_asa_read_file(MAC_FILE_NAME, file_len, 4) == AK_FALSE) {
-		goto out;
-	}
-
-	if (FHA_asa_read_file(MAC_FILE_NAME, mac_addr, *(unsigned long*)file_len + 4) == AK_FALSE) {
-		goto out;
-	}
-
-	for (i = 0; i < MAC_ADDR_STRING_LEN; i++) {
-		if ((i % 3 != 2)) {
-			mac_addr[i + 4] = toupper(mac_addr[i + 4]);
-			if (!(isdigit(mac_addr[i + 4]) || (mac_addr[i + 4] <= 'F' && mac_addr[i + 4] >= 'A')))
-				goto out;
-		}
-		else if (mac_addr[i + 4] != ':')
-			goto out;
-	}
-	
-	for (i = 0; i < MAC_ADDR_LEN; i++)
-		pdata->dev_addr[i] = CTOI(mac_addr[i * 3 + 4]) * 16 + CTOI(mac_addr[i * 3 + 5]);
-
-	return 0;
-out:
-	
-	printk("Failed to read MAC addres in medium storage, use default mac\n");
-	return -1;
-}
-
-
 /*
  * Search AK98 MAC, allocate space and register it
  */
-static int __devinit ak_mac_probe(struct platform_device *pdev)
+static int ak_mac_probe(struct platform_device *pdev)
 {
-	struct ak_mac_data *pdata = pdev->dev.platform_data;
+	struct device_node *np = pdev->dev.of_node;
+	struct ak_mac_data *pdata;
 	struct mac_info *db;	/* Point a board information structure */
+	enum of_gpio_flags flags;
+	const void *mac;
 	struct net_device *ndev;
 	int ret = 0;
 	int iosize;
 	int i = 0;
 
-	//cpu_clk_2x_switch();
-	
+	pdata = devm_kzalloc(&pdev->dev, sizeof(*pdata), GFP_KERNEL);
+	if (!pdata)
+		return -ENOMEM;
+	pdata->phy_rst_gpio = of_get_named_gpio_flags(np, "reset-gpios", 0,
+						      &flags);
+	if (gpio_is_valid(pdata->phy_rst_gpio)) {
+		pdata->phy_rst_active_low = !!(flags & OF_GPIO_ACTIVE_LOW);
+		if (devm_gpio_request(&pdev->dev, pdata->phy_rst_gpio,
+				      "ak-mac-phy-reset"))
+			pdata->phy_rst_gpio = -1;
+	} else {
+		pdata->phy_rst_gpio = -1;
+	}
+	pdev->dev.platform_data = pdata;
+	ak_mac_dma_dev = &pdev->dev;
+
 	/* Init network device */
 	ndev = alloc_etherdev(sizeof(struct mac_info));
 	if (!ndev) {
@@ -1471,9 +1464,9 @@ static int __devinit ak_mac_probe(struct platform_device *pdev)
 
 	/* get the register and irq resource */
 	db->addr_res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	db->irq_res  = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
+	ret = platform_get_irq(pdev, 0);
 
-	if (db->addr_res == NULL || db->irq_res == NULL) {
+	if (db->addr_res == NULL || ret < 0) {
 		dev_err(db->dev, "insufficient resources\n");
 		ret = -ENOENT;
 		goto out;
@@ -1496,19 +1489,17 @@ static int __devinit ak_mac_probe(struct platform_device *pdev)
 		ret = -EINVAL;
 		goto out;
 	}
-#if 0
-	/* get mac clock */
-	db->clk = clk_get(db->dev, "mac_clk");
-	if (IS_ERR(db->clk)) {
-		dbg("clocks missing");
-		ret = -ENODEV;
-		goto out;
-	}
+	/* The MAC gate; the SDK opened it by hand below as well. */
+	db->clk = devm_clk_get(db->dev, "ethernet");
+	if (IS_ERR(db->clk))
+		db->clk = NULL;
+	else
+		clk_prepare_enable(db->clk);
 	spin_lock_init(&db->lock);
-#endif
+
 	/* fill in parameters for net-dev structure */
 	ndev->base_addr = (unsigned long)db->io_addr;
-	ndev->irq	= db->irq_res->start;
+	ndev->irq	= platform_get_irq(pdev, 0);
 
 	/* driver system function */
 	ether_setup(ndev);
@@ -1516,34 +1507,32 @@ static int __devinit ak_mac_probe(struct platform_device *pdev)
 	ndev->netdev_ops	= &ak_mac_netdev_ops;
 	ndev->watchdog_timeo	= msecs_to_jiffies(5000);
 
-	/* get Ethernet address from flash area */
-	if ((get_mac_addr(pdata) < 0)||(!is_valid_ether_addr(pdata->dev_addr))) {
-		
-		dev_warn(db->dev, "%s, Invalid Ethernet address. "
-				"Generate software assigned\n\trandom Ethernet address.\n", ndev->name);
-
-		/* Generate software assigned random Ethernet address */
-		random_ether_addr(pdata->dev_addr);
-		if (!is_valid_ether_addr(pdata->dev_addr))
-			dev_warn(db->dev, "%s: Invalid Ethernet address. Please "
-				"set using ifconfig\n", ndev->name);
+	/*
+	 * The address comes from the device tree, where U-Boot puts its
+	 * ethaddr; the SDK's own copy in the flash ASA area is not read.
+	 */
+	mac = of_get_mac_address(np);
+	if (mac && is_valid_ether_addr(mac)) {
+		memcpy(pdata->dev_addr, mac, ETH_ALEN);
+	} else {
+		dev_warn(db->dev, "no valid MAC address, using a random one\n");
+		eth_random_addr(pdata->dev_addr);
 	}
-	
+
 	memcpy(ndev->dev_addr, pdata->dev_addr, 6);
 
 	pMacBase = db->io_addr;
 
 	psysbase = AK_VA_SYSCTRL; 
-	if(psysbase == NULL)
-	{
-		dbg("sysbase alloc error!");
-	}
 
 	platform_set_drvdata(pdev, ndev);
 	INIT_WORK(&db->link_chg_task, ak_mac_link_chg_task);
-	REG32(psysbase + 0x74) &= ~(3 << 2);
-		REG32(psysbase + 0x74) |= (1 << 2);
-		REG32(psysbase + 0x80) |= (1 << 2);
+	/*
+	 * The SDK muxed pad 47 (MDC) and dropped its pull here by hand; the
+	 * default pinctrl state does both now. What remains is the clock
+	 * bring-up only it knows: the 25 MHz oscillator and the opclk select
+	 * in the peri control, the MAC gate, and six pulses of bit 20.
+	 */
 	//REG32(psysbase + 0x14) |= (1 << 18);
 	//REG32(psysbase + 0x1c) |= (1 << 13);
 	REG32(psysbase + 0x14) |= (1 << 16|1 << 18);
@@ -1554,10 +1543,11 @@ static int __devinit ak_mac_probe(struct platform_device *pdev)
 	REG32(psysbase + 0x14) &= ~(1 << 20);
    	}
 	ret = register_netdev(ndev);
+	if (ret)
+		goto out;
 
-	if (ret == 0)
-		printk(KERN_INFO "%s: ak98_mac at %p IRQ %d MAC: %pM\n",
-		       ndev->name, db->io_addr, ndev->irq, ndev->dev_addr);
+	printk(KERN_INFO "%s: ak98_mac at %p IRQ %d MAC: %pM\n",
+	       ndev->name, db->io_addr, ndev->irq, ndev->dev_addr);
 
 	return 0;
 out:
@@ -1625,34 +1615,39 @@ static struct dev_pm_ops ak_mac_drv_pm_ops = {
 	.resume		= ak_mac_drv_resume,
 };
 
-static int __devexit ak_mac_drv_remove(struct platform_device *pdev)
+static int ak_mac_drv_remove(struct platform_device *pdev)
 {
 	struct net_device *ndev = platform_get_drvdata(pdev);
-	struct ak_mac_data *pdata = pdev->dev.platform_data;
+	mac_info_t *db = netdev_priv(ndev);
 	
 	platform_set_drvdata(pdev, NULL);
 
 	unregister_netdev(ndev);
-	ak_mac_release_board(pdev, (mac_info_t *) netdev_priv(ndev));
+	ak_mac_release_board(pdev, db);
 	Macexit(ndev);
+	if (db->clk)
+		clk_disable_unprepare(db->clk);
 	free_netdev(ndev);		/* free device structure */
 
-	//mac power off
-	if (pdata != NULL)
-		ak_gpio_setpin(pdata->pwr_gpio.pin, !pdata->pwr_gpio.value);
-	
 	dev_dbg(&pdev->dev, "released and freed device\n");
 	return 0;
 }
+
+static const struct of_device_id ak_mac_of_match[] = {
+	{ .compatible = "anyka,ak3918-ethernet" },
+	{ }
+};
+MODULE_DEVICE_TABLE(of, ak_mac_of_match);
 
 static struct platform_driver ak_mac_driver = {
 	.driver	= {
 		.name    = "ak_ethernet",
 		.owner	 = THIS_MODULE,
 		.pm	 = &ak_mac_drv_pm_ops,
+		.of_match_table = ak_mac_of_match,
 	},
 	.probe   = ak_mac_probe,
-	.remove  = __devexit_p(ak_mac_drv_remove),
+	.remove  = ak_mac_drv_remove,
 };
 
 static int __init ak_mac_init(void)

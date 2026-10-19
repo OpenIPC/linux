@@ -490,6 +490,7 @@ static int uio_release(struct inode *inode, struct file *filep)
 	return ret;
 }
 
+#ifndef CONFIG_MACH_AK3918AV130
 static long uio_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
 {
 	struct uio_listener *listener = filep->private_data;
@@ -502,6 +503,7 @@ static long uio_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
 
 	return ret;
 }
+#endif
 
 static unsigned int uio_poll(struct file *filep, poll_table *wait)
 {
@@ -730,7 +732,9 @@ static const struct file_operations uio_fops = {
 	.poll		= uio_poll,
 	.fasync		= uio_fasync,
 	.llseek		= noop_llseek,
+#ifndef CONFIG_MACH_AK3918AV130
 	.unlocked_ioctl	= uio_ioctl,
+#endif
 };
 
 static int uio_major_init(void)

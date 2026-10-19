@@ -1,4 +1,12 @@
 /*
+ * AK3918AV130 keeps the vendor's own copy of this header, from the
+ * AnyCloud39AV130 SDK, in mach/av130/: its register map and IRQ layout
+ * share nothing with EV200/EV330 beyond the names.
+ */
+#ifdef CONFIG_MACH_AK3918AV130
+#include <mach/av130/uncompress.h>
+#else
+/*
  * linux/arch/arm/mach-ak39/include/mach/uncompress.h
  *
  * Copyright (C) 2018 Anyka(Guangzhou) Microelectronics Technology Co., Ltd.
@@ -61,6 +69,20 @@
 #define SRDPIN_CTRL1_REG     	REG32(AK_PA_SYSCTRL + 0x74) //0x08000074
 #define UART0_RXD				2
 #define UART0_TXD				3
+
+#elif defined(CONFIG_MACH_AK3918)
+/*
+ * Aimer39 AK3918/AK3916: the console pair is SHAREPIN_CON1 bits 14 and 15,
+ * pulled up through PULL_REG0 bits 19 and 20 (the Aimer39 SDK's
+ * mach-ak39/include/mach/uncompress.h).
+ */
+#define PPU_PPD1_REG           	REG32(AK_PA_SYSCTRL + 0x80)  //0x08000080
+#define TXD0_PU_BIT             20
+#define RXD0_PU_BIT             19
+/*********** Shared pin control reigsters ********/
+#define SRDPIN_CTRL1_REG     	REG32(AK_PA_SYSCTRL + 0x74) //0x08000074
+#define UART0_RXD				14
+#define UART0_TXD				15
 
 #elif defined(CONFIG_MACH_AK3918EV200)
 /*
@@ -157,7 +179,7 @@ static unsigned long __get_asic_pll_clk(void)
 		return asic_pll_clk;
 #endif
 
-#if defined(CONFIG_MACH_AK37D) || defined(CONFIG_MACH_AK39EV330) || defined(CONFIG_MACH_AK3918EV200)
+#if defined(CONFIG_MACH_AK37D) || defined(CONFIG_MACH_AK39EV330) || defined(CONFIG_AK3918_FAMILY)
 	asic_pll_clk = (12 * pll_m)/(pll_n * (1 << pll_od)); // clk unit: MHz
 
 	if ((pll_od >= 1) && ((pll_n >= 2) && (pll_n <= 6)) 
@@ -180,7 +202,7 @@ static unsigned long __get_vclk(void)
 	return __get_asic_pll_clk()/(2*(div + 1));
 #endif
 
-#if defined(CONFIG_MACH_AK37D) || defined(CONFIG_MACH_AK39EV330) || defined(CONFIG_MACH_AK3918EV200)
+#if defined(CONFIG_MACH_AK37D) || defined(CONFIG_MACH_AK39EV330) || defined(CONFIG_AK3918_FAMILY)
 	div = (regval & (0x7 << 17)) >> 17;
 	if (div == 0)
 		return __get_asic_pll_clk() >> 1;
@@ -226,7 +248,7 @@ static void uart_init(void)
 #ifdef CONFIG_MACH_AK37E
 	UART_CONF1_REG &= ~((0x1 << TX_STATUS_CLR_BIT) | (0x1 << RX_STATUS_CLR_BIT) | 0xFFFF);
 #endif
-#if defined(CONFIG_MACH_AK37D) || defined(CONFIG_MACH_AK39EV330) || defined(CONFIG_MACH_AK3918EV200)
+#if defined(CONFIG_MACH_AK37D) || defined(CONFIG_MACH_AK39EV330) || defined(CONFIG_AK3918_FAMILY)
 	UART_CONF1_REG &= ~((0x1 << TX_STATUS_CLR_BIT) | (0x1 << RX_STATUS_CLR_BIT) | 0xFF);
 #endif
 	UART_CONF1_REG |= (0x1 << TX_STATUS_CLR_BIT) | (0x1 << RX_STATUS_CLR_BIT) | clk_div;
@@ -276,3 +298,4 @@ static inline void arch_decomp_setup(void)
 #define arch_decomp_wdog()
 
 #endif   /* __UNCOMPRESS_H_ */
+#endif /* CONFIG_MACH_AK3918AV130 */

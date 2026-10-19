@@ -144,6 +144,13 @@ struct mmc_host_ops {
 	 */
 	int	(*multi_io_quirk)(struct mmc_card *card,
 				  unsigned int direction, int blk_size);
+#ifdef CONFIG_MACH_AK3918AV130
+	/*
+	 * Layout only: the AnyCloud39AV130 SDK's prebuilt ak_mci fills this
+	 * in. Nothing here calls it.
+	 */
+	void	(*card_recovery)(struct mmc_host *host);
+#endif
 };
 
 struct mmc_card;
@@ -201,7 +208,9 @@ struct mmc_supply {
 
 struct mmc_host {
 	struct device		*parent;
+#ifndef CONFIG_MACH_AK3918AV130
 	struct device		class_dev;
+#endif
 	int			index;
 	const struct mmc_host_ops *ops;
 	struct mmc_pwrseq	*pwrseq;
@@ -370,6 +379,13 @@ struct mmc_host {
 	int			dsr_req;	/* DSR value is valid */
 	u32			dsr;	/* optional driver stage (DSR) value */
 
+#ifdef CONFIG_MACH_AK3918AV130
+	/*
+	 * The AnyCloud39AV130 SDK moved class_dev to the end, and its prebuilt
+	 * ak_mci reaches every field above by offset.
+	 */
+	struct device		class_dev;
+#endif
 	unsigned long		private[0] ____cacheline_aligned;
 };
 

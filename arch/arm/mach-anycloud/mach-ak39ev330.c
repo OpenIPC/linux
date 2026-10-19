@@ -43,6 +43,10 @@
 #define AKCPU_VALUE_EV200_2		0x20150200
 #define AKCPU_TYPE_EV200		"AK3918EV200"
 
+/* The Aimer39 SDK's own release value, its mach-ak39/cpu.c. */
+#define AKCPU_VALUE_AK3918		0x20120100
+#define AKCPU_TYPE_AK3918		"AK3918"
+
 #define IODESC_ENT(x) 							\
 {												\
 	.virtual = (unsigned long)AK_VA_##x,		\
@@ -57,7 +61,7 @@ static struct map_desc ak39ev330_iodesc[] __initdata = {
 	IODESC_ENT(SUBCTRL),
 	IODESC_ENT(MIPI1),
 	IODESC_ENT(L2MEM),
-#ifndef CONFIG_MACH_AK3918EV200
+#ifndef CONFIG_AK3918_FAMILY
 	IODESC_ENT(RESERVED_MEM),
 #endif
 };
@@ -72,6 +76,10 @@ void __init ak39ev330_map_io(void)
 	regval = __raw_readl(AK_CPU_ID);
 	if (regval == AKCPU_VALUE)
 		pr_info("ANYKA CPU %s (ID 0x%lx)\n", AKCPU_TYPE, regval);
+#ifdef CONFIG_MACH_AK3918
+	else if (regval == AKCPU_VALUE_AK3918)
+		pr_info("ANYKA CPU %s (ID 0x%lx)\n", AKCPU_TYPE_AK3918, regval);
+#endif
 	else if (regval == AKCPU_VALUE_EV200_1 || regval == AKCPU_VALUE_EV200_2)
 		pr_info("ANYKA CPU %s (ID 0x%lx)\n", AKCPU_TYPE_EV200, regval);
 	else
@@ -129,16 +137,47 @@ DT_MACHINE_START(AK39xxEV330, "AK39EV330")
     .restart = ak39ev330_restart,
 MACHINE_END
 
-#ifdef CONFIG_MACH_AK3918EV200
+#ifdef CONFIG_AK3918_FAMILY
 
 #define AK3918EV200_DRAM_BASE	0x80000000
 
 #ifndef CONFIG_PHYS_OFFSET
-#error "AK3918EV200 needs a fixed CONFIG_PHYS_OFFSET; ARM_PATCH_PHYS_VIRT cannot align it"
+#error "AK3918/AK3918EV200 need a fixed CONFIG_PHYS_OFFSET; ARM_PATCH_PHYS_VIRT cannot align it"
 #endif
 #if CONFIG_PHYS_OFFSET != AK3918EV200_DRAM_BASE + CONFIG_VIDEO_RESERVED_MEM_SIZE
 #error "CONFIG_PHYS_OFFSET must equal 0x80000000 + CONFIG_VIDEO_RESERVED_MEM_SIZE"
 #endif
+#endif
+
+#ifdef CONFIG_MACH_AK3918
+/*
+ * "Aimer39_AK3918_MB_V1.0.0" is the Hardware line the Aimer39 SDK's own machine
+ * (mach-aimer39_ak3918.c) gave /proc/cpuinfo, which is what ipctool and
+ * the vendor tools match on.
+ */
+static const char * const ak3918_dt_compat[] = {
+	"anyka,ak3918",
+	"anyka,ak3916",
+	/*
+	 * The SDK's third package of the same die: same CPU ID 0x20120100,
+	 * eleven pads not bonded out (ak39-gpio.c ak3910_invalid_gpio[]).
+	 */
+	"anyka,ak3910",
+	NULL
+};
+
+DT_MACHINE_START(AK3918, "Aimer39_AK3918_MB_V1.0.0")
+	.dt_compat	= ak3918_dt_compat,
+	.map_io = ak39ev330_map_io,
+	.init_time = NULL,
+	.init_machine = ak39ev330_init,
+	.init_early = NULL,
+	.reserve = NULL,
+	.restart = ak39ev330_restart,
+MACHINE_END
+#endif /* CONFIG_MACH_AK3918 */
+
+#ifdef CONFIG_MACH_AK3918EV200
 
 /*
  * The second DT_MACHINE_START() argument is what ends up in

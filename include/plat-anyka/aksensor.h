@@ -87,6 +87,17 @@ struct sensor_info
 
 #define SENSOR_MAX_SUPPORT        20
 
+/*
+ * The SDK's private controls, at the numbers its include/linux/videodev2.h
+ * gave them, which its userspace was built against. Mainline never had them.
+ */
+#ifndef V4L2_CID_PICTURE
+#define V4L2_CID_PICTURE	(V4L2_CID_USER_BASE + 4)
+#endif
+#ifndef V4L2_CID_NIGHTMODE
+#define V4L2_CID_NIGHTMODE	(V4L2_CID_USER_BASE + 6)
+#endif
+
 /**
  * @brief register a camera device, which will be probed at camera open
  * @author dengzhou/wudaochao

@@ -16,12 +16,14 @@
 #include <linux/videodev2.h>
 
 #include <media/soc_camera.h>
-#include <media/v4l2-chip-ident.h>
+#include <media/v4l2-async.h>
 #include <media/v4l2-subdev.h>
 #include <media/v4l2-ctrls.h>
 
 #include <plat-anyka/aksensor.h>
-#include <mach/gpio.h>
+#include <linux/of.h>
+#include <linux/of_gpio.h>
+#include <linux/gpio.h>
 
 //#define SENSOR_DEBUG
 #ifdef SENSOR_DEBUG
@@ -262,197 +264,124 @@ s32 aksensor_i2c_read_byte_data(u8 daddr, u8 raddr)
 }
 
 /*****************************************/
+
 static struct aksensor_priv *to_aksensor(const struct i2c_client *client)
 {
 	return container_of(i2c_get_clientdata(client), struct aksensor_priv, subdev);
 }
 
+static int aksensor_video_probe(struct i2c_client *client);
+
 /**
  * @brief: initial sensor device, open clock
- * 
- * @author: caolianming
- * @date: 2014-01-09
- * @param [in] *sd: v4l2_subdev struct, v4l2 sub-device info
- * @param [in] val: none
+ *
+ * The sensors answer on I2C only once the camera host drives their clock,
+ * which on 4.4 is long after this client probed from the device tree. The
+ * 3.4 SDK identified them at probe because soc_camera instantiated the
+ * client from board data after the host's .add; here the host starts the
+ * clock and calls .init, and that is when the sensor is looked for.
+ *
+ * Returns the sensor's master clock in MHz, as the SDK's host expects.
  */
 static int aksensor_init(struct v4l2_subdev *sd, u32 val)
 {
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
 	int ret;
+
 	SENDBG("entry %s\n", __func__);
-	if (cur_sensor_info->handler != NULL)
-	{
+
+	if (!cur_sensor_info) {
+		ret = aksensor_video_probe(client);
+		if (ret)
+			return ret;
+	}
+
+	if (cur_sensor_info->handler != NULL) {
 		cur_sensor_info->handler->cam_open_func();
-		ret = cur_sensor_info->handler->cam_mclk;
-		return ret;
+		return cur_sensor_info->handler->cam_mclk;
 	}
 
 	return 0;
 }
 
-/**
- * @brief: read sensor register value by i2c bus
- * 
- * @author: caolianming
- * @date: 2014-01-09
- * @param [in] *sd: v4l2_subdev struct, v4l2 sub-device info
- */
 static int aksensor_loadfw(struct v4l2_subdev *sd)
 {
 	SENDBG("entry %s\n", __func__);
-	if ((cur_sensor_info->handler != NULL) 
-		&& (cur_sensor_info->handler->cam_init_func != NULL)) 
-	{
+
+	if (cur_sensor_info && cur_sensor_info->handler &&
+	    cur_sensor_info->handler->cam_init_func) {
 		if (cur_sensor_info->handler->cam_init_func())
 			return AK_TRUE;
 	}
+
 	return AK_FALSE;
 }
 
-/**
- * @brief: close sensor device, close clock
- * 
- * @author: caolianming
- * @date: 2014-01-09
- * @param [in] *sd: v4l2_subdev struct, v4l2 sub-device info
- * @param [in] val: none
- */
-static int aksensor_reset( struct v4l2_subdev *sd, u32 val )
+static int aksensor_reset(struct v4l2_subdev *sd, u32 val)
 {
-//	struct i2c_client *client = v4l2_get_subdevdata(sd);
-//	struct aksensor_priv *priv = i2c_get_clientdata(client);
-	
 	SENDBG("entry %s\n", __func__);
 
-	//priv->win.width  = VGA_WIDTH;
-	//priv->win.height = VGA_HEIGHT;
-	
-	if (NULL != cur_sensor_info->handler) {
+	if (cur_sensor_info && cur_sensor_info->handler)
 		cur_sensor_info->handler->cam_close_func();
-	}
-	
-	return 0;
-}
-
-static int aksensor_g_chip_ident(struct v4l2_subdev *sd,
-			       struct v4l2_dbg_chip_ident *id)
-{
-	struct i2c_client *client = v4l2_get_subdevdata(sd);
-	struct aksensor_priv *priv = to_aksensor(client);
-
-	id->ident    = priv->model;
-	id->revision = 0;
 
 	return 0;
 }
 
-/**
- * @brief: query v4l2 sub-device ctroller function
- * 
- * @author: caolianming
- * @date: 2014-01-09
- * @param [in] *sd: v4l2_subdev struct, v4l2 sub-device info
- * @param [in] *qc: v4l2_queryctrl struct
- */
-static int aksensor_queryctrl(struct v4l2_subdev *sd, struct v4l2_queryctrl *qc)
-{
-	int ret = 0;
-	sensor_dbg("entry %s\n", __func__);
-	//if (cur_sensor_info->ctrls)
-	//	ret = cur_sensor_info->ctrls->ops->queryctrl(ctrl);
-	return ret;
-}
 static int aksensor_g_ctrl(struct v4l2_subdev *sd, struct v4l2_control *ctrl)
 {
-//	struct v4l2_ctrl v4l2ctrl;
-	
 	sensor_dbg("entry %s\n", __func__);
-#if 0
-	if (cur_sensor_info->ctrls) {
-		cur_sensor_info->ctrls->ops->g_volatile_ctrl(&v4l2ctrl);
-		ctrl->id = v4l2ctrl.id;
-		ctrl->val = v4l2ctrl.val;
-	}
-#endif
 	return 0;
 }
 
-/**
- * @brief: query v4l2 sub-device ctroller function
- * 
- * @author: caolianming
- * @date: 2014-01-09
- * @param [in] *sd: v4l2_subdev struct, v4l2 sub-device info
- * @param [in] *ctrl: v4l2_control struct
- */
 static int aksensor_s_ctrl(struct v4l2_subdev *sd, struct v4l2_control *ctrl)
 {
 	int ret = 0;
 	struct v4l2_ctrl v4l2ctrl;
-	
-	sensor_dbg("entry %s  ctrl->id=%d, ctrl->value=%d\n", 
+
+	sensor_dbg("entry %s  ctrl->id=%d, ctrl->value=%d\n",
 			__func__, ctrl->id, ctrl->value);
 
-	if (cur_sensor_info->ctrls) {
+	if (cur_sensor_info && cur_sensor_info->ctrls) {
 		v4l2ctrl.id = ctrl->id;
 		v4l2ctrl.val = ctrl->value;
 		ret = cur_sensor_info->ctrls->ops->s_ctrl(&v4l2ctrl);
 	}
+
 	return ret;
 }
 
 static struct v4l2_subdev_core_ops aksensor_subdev_core_ops = {
-	.init			= aksensor_init,
-	.load_fw		= aksensor_loadfw,	
-	.reset			= aksensor_reset,
-	.g_chip_ident	= aksensor_g_chip_ident,
-	.queryctrl		= aksensor_queryctrl,
-	.g_ctrl			= aksensor_g_ctrl,
-	.s_ctrl			= aksensor_s_ctrl,
+	.init		= aksensor_init,
+	.load_fw	= aksensor_loadfw,
+	.reset		= aksensor_reset,
+	.g_ctrl		= aksensor_g_ctrl,
+	.s_ctrl		= aksensor_s_ctrl,
 };
 
-
-/*
- * soc_camera_ops function
- */
 static int aksensor_s_stream(struct v4l2_subdev *sd, int enable)
 {
-	SENDBG("entry %s\n", __func__);
-	SENDBG("%s==>enable=%d\n", __func__, enable);
-	SENDBG("leave %s\n", __func__);
+	SENDBG("entry %s enable=%d\n", __func__, enable);
 	return 0;
 }
 
-static int aksensor_get_params(struct i2c_client *client,
-			enum v4l2_mbus_pixelcode code)
+static int aksensor_get_params(struct i2c_client *client, u32 code)
 {
 	struct aksensor_priv *priv = to_aksensor(client);
-	int ret = -EINVAL;
 	int i;
 
-	SENDBG("entry %s\n", __func__);
- 
-	/*
-	 * select format
-	 */
 	priv->cfmt = NULL;
 	for (i = 0; i < cur_sensor_info->num_formats; i++) {
 		if (code == cur_sensor_cfmts[i].code) {
 			priv->cfmt = cur_sensor_cfmts + i;
-			break;
+			return 0;
 		}
 	}
-	if (!priv->cfmt)
-		goto aksensor_set_fmt_error;
- 
-	return 0;
 
-aksensor_set_fmt_error:
-	priv->cfmt = NULL;
-	return ret;
+	return -EINVAL;
 }
 
-/* first called by soc_camera_prove to initialize icd->user_width... */
-static int aksensor_g_fmt(struct v4l2_subdev *sd, 
+/* first called by soc_camera_probe to initialize icd->user_width... */
+static int aksensor_g_fmt(struct v4l2_subdev *sd,
 			struct v4l2_mbus_framefmt *mf)
 {
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
@@ -461,9 +390,12 @@ static int aksensor_g_fmt(struct v4l2_subdev *sd,
 
 	SENDBG("entry %s\n", __func__);
 
+	if (!cur_sensor_info)
+		return -ENODEV;
+
 	if (!priv->cfmt) {
 		SENDBG("select VGA for first time\n");
-		ret = aksensor_get_params(client, V4L2_MBUS_FMT_YUYV8_2X8);
+		ret = aksensor_get_params(client, MEDIA_BUS_FMT_YUYV8_2X8);
 		if (ret < 0)
 			return ret;
 	}
@@ -472,107 +404,81 @@ static int aksensor_g_fmt(struct v4l2_subdev *sd,
 	mf->height	= priv->win.height;
 	mf->code	= priv->cfmt->code;
 	mf->colorspace	= priv->cfmt->colorspace;
-	mf->field		= V4L2_FIELD_NONE;
+	mf->field	= V4L2_FIELD_NONE;
 
 	return 0;
 }
 
-
-static int aksensor_try_fmt(struct v4l2_subdev *sd,
-			  struct v4l2_mbus_framefmt *mf)
-{
-	SENDBG("entry %s\n", __func__);
-	SENDBG("leave %s\n", __func__);
-	
-	return 0;
-}
-
-static int aksensor_s_fmt(struct v4l2_subdev *sd, 
+static int aksensor_s_fmt(struct v4l2_subdev *sd,
 			struct v4l2_mbus_framefmt *mf)
 {
 	struct aksensor_priv *priv = container_of(sd, struct aksensor_priv, subdev);
-//	struct v4l2_pix_format *pix = &f->fmt.pix;
-
 	T_BOOL bRet = AK_FALSE;
-	int ret = -EINVAL;
 
 	sensor_dbg("entry %s\n", __func__);
 
-	//must set mode once before switching modes
-	if ( V4L2_BUF_TYPE_PRIVATE == mf->reserved[0])
-	{
+	if (!cur_sensor_info)
+		return -ENODEV;
+
+	/*
+	 * The SDK's camera host passes the working mode through the reserved
+	 * words of the format: [0] V4L2_BUF_TYPE_PRIVATE, [1] the mode.
+	 */
+	if (V4L2_BUF_TYPE_PRIVATE == mf->reserved[0])
 		g_mode = mf->reserved[1];
-	}
+
 	priv->win.width = mf->width;
-	priv->win.height =mf->height;
+	priv->win.height = mf->height;
 
-	sensor_dbg("---%s. g_mode=%d mf->width=%d mf->height=%d\n", 
-			__func__, g_mode, mf->width, mf->height);
-	
-	switch (g_mode)
-	{
-		case CAMERA_WMODE_PREV:
-			if (cur_sensor_info->handler->cam_set_to_prev_func != NULL)
-				bRet = cur_sensor_info->handler->cam_set_to_prev_func(mf->width, mf->height);
-			break;
-		case CAMERA_WMODE_CAP:
-			if (cur_sensor_info->handler->cam_set_to_cap_func != NULL)
-				bRet = cur_sensor_info->handler->cam_set_to_cap_func(mf->width, mf->height);
-			break;
-		case CAMERA_WMODE_REC:
-			if (cur_sensor_info->handler->cam_set_to_record_func != NULL)
-				bRet = cur_sensor_info->handler->cam_set_to_record_func(mf->width, mf->height);
-			break;
-		default :
-			if (cur_sensor_info->handler->cam_set_to_record_func != NULL)
-				bRet = cur_sensor_info->handler->cam_set_to_record_func(mf->width, mf->height);
-			break;
+	switch (g_mode) {
+	case CAMERA_WMODE_PREV:
+		if (cur_sensor_info->handler->cam_set_to_prev_func != NULL)
+			bRet = cur_sensor_info->handler->cam_set_to_prev_func(mf->width, mf->height);
+		break;
+	case CAMERA_WMODE_CAP:
+		if (cur_sensor_info->handler->cam_set_to_cap_func != NULL)
+			bRet = cur_sensor_info->handler->cam_set_to_cap_func(mf->width, mf->height);
+		break;
+	case CAMERA_WMODE_REC:
+	default:
+		if (cur_sensor_info->handler->cam_set_to_record_func != NULL)
+			bRet = cur_sensor_info->handler->cam_set_to_record_func(mf->width, mf->height);
+		break;
 	}
 
-	if ( bRet )
-		ret = 0;
-
-	SENDBG("leave %s\n", __func__);
-	return ret;
+	return bRet ? 0 : -EINVAL;
 }
-
-
 
 static int aksensor_cropcap(struct v4l2_subdev *sd, struct v4l2_cropcap *a)
 {
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
 	struct aksensor_priv *priv = to_aksensor(client);
- 	int i;
+	int i;
 
-	sensor_dbg("entry %s. priv=%p\n", __func__, priv);
+	if (!cur_sensor_info)
+		return -ENODEV;
 
 	for (i = 0; i < cur_sensor_info->num_resolution; ++i) {
-		if (!strcmp(cur_sensor_info->resolution[i].name, "720P")) 
+		if (!strcmp(cur_sensor_info->resolution[i].name, "720P"))
 			break;
 	}
-	// the resolution is 720P or larger
+
+	/* the resolution is 720P or larger */
 	if (i == cur_sensor_info->num_resolution)
 		--i;
-	a->bounds.width	= cur_sensor_info->resolution[i].width;
-	a->bounds.height = cur_sensor_info->resolution[i].height;
-	a->bounds.left			= 0;
-	a->bounds.top			= 0;
-		
-	a->defrect.width		= priv->win.width;
-	a->defrect.height		= priv->win.height;
-	a->defrect.left			= 0;
-	a->defrect.top			= 0;
-	
-	a->type					= V4L2_BUF_TYPE_VIDEO_CAPTURE;
+
+	a->bounds.width		= cur_sensor_info->resolution[i].width;
+	a->bounds.height	= cur_sensor_info->resolution[i].height;
+	a->bounds.left		= 0;
+	a->bounds.top		= 0;
+	a->defrect.width	= priv->win.width;
+	a->defrect.height	= priv->win.height;
+	a->defrect.left		= 0;
+	a->defrect.top		= 0;
+	a->type			= V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	a->pixelaspect.numerator	= 1;
 	a->pixelaspect.denominator	= 1;
 
-	sensor_dbg("%s.\n"
-				"	a->bounds.width=%d, a->bounds.height=%d\n"
-				"	a->defrect.width=%d, a->defrect.height=%d\n",
-				__func__, 
-				a->bounds.width, a->bounds.height,
-				a->defrect.width, a->defrect.height);
 	return 0;
 }
 
@@ -581,88 +487,80 @@ static int aksensor_g_crop(struct v4l2_subdev *sd, struct v4l2_crop *a)
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
 	struct aksensor_priv *priv = to_aksensor(client);
 
-	sensor_dbg("entry %s\n", __func__);
-
 	a->c.left	= 0;
 	a->c.top	= 0;
 	a->c.width	= priv->win.width;
 	a->c.height	= priv->win.height;
-	
+
 	return 0;
 }
 
-static int aksensor_s_crop(struct v4l2_subdev *sd, struct v4l2_crop *a)
+static int aksensor_s_crop(struct v4l2_subdev *sd, const struct v4l2_crop *a)
 {
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
 	struct aksensor_priv *priv = to_aksensor(client);
-	int ret = -EINVAL;
 	T_BOOL bRet = AK_FALSE;
-	
-	sensor_dbg("entry %s\n", __func__);
-	
+
+	if (!cur_sensor_info)
+		return -ENODEV;
+
 	priv->win.width = a->c.width;
-	priv->win.height =a->c.height;
-		
-	switch (g_mode)
-	{
-		case CAMERA_WMODE_PREV:
-			if (cur_sensor_info->handler->cam_set_to_prev_func != NULL)
-				bRet = cur_sensor_info->handler->cam_set_to_prev_func(a->c.width, a->c.height);
-			break;
-		case CAMERA_WMODE_CAP:
-			if (cur_sensor_info->handler->cam_set_to_cap_func != NULL)
-				bRet = cur_sensor_info->handler->cam_set_to_cap_func(a->c.width, a->c.height);
-			break;
-		case CAMERA_WMODE_REC:
-			if (cur_sensor_info->handler->cam_set_to_record_func != NULL)
-				bRet = cur_sensor_info->handler->cam_set_to_record_func(a->c.width, a->c.height);
-			break;
-		default :
-			if (cur_sensor_info->handler->cam_set_to_record_func != NULL)
-				bRet = cur_sensor_info->handler->cam_set_to_record_func(a->c.width, a->c.height);
-			break;
+	priv->win.height = a->c.height;
+
+	switch (g_mode) {
+	case CAMERA_WMODE_PREV:
+		if (cur_sensor_info->handler->cam_set_to_prev_func != NULL)
+			bRet = cur_sensor_info->handler->cam_set_to_prev_func(a->c.width, a->c.height);
+		break;
+	case CAMERA_WMODE_CAP:
+		if (cur_sensor_info->handler->cam_set_to_cap_func != NULL)
+			bRet = cur_sensor_info->handler->cam_set_to_cap_func(a->c.width, a->c.height);
+		break;
+	case CAMERA_WMODE_REC:
+	default:
+		if (cur_sensor_info->handler->cam_set_to_record_func != NULL)
+			bRet = cur_sensor_info->handler->cam_set_to_record_func(a->c.width, a->c.height);
+		break;
 	}
 
-	if ( bRet )
-		ret = 0;
-	
-	return ret;
+	return bRet ? 0 : -EINVAL;
 }
 
 static int aksensor_video_probe(struct i2c_client *client)
 {
 	struct aksensor_priv *priv = to_aksensor(client);
-	const char         *devname;
-		
-	SENDBG("entry %s\n", __func__);
+	int i;
 
-	/*
-	 * check and show product ID and manufacturer ID
-	 */
 	g_client = client;
-	if (cur_sensor_info != NULL) {
-		dev_info(&client->dev, "Probing %s Sensor ID 0x%x\n",
-				cur_sensor_info->sensor_name, 
-				cur_sensor_info->sensor_id);
-	} else {
-		cur_sensor_info = probe_sensors(client);
-		if (cur_sensor_info == NULL) {
-			dev_err(&client->dev,  "Sensor ID error\n");
-			return -ENODEV;	
-		}
+	cur_sensor_info = probe_sensors(client);
+	if (cur_sensor_info == NULL) {
+		dev_err(&client->dev, "Sensor ID error\n");
+		return -ENODEV;
 	}
+
 	cur_sensor_cfmts = cur_sensor_info->formats;
-	
-	devname 	= "aksensor";
 	priv->model = cur_sensor_info->sensor_id;
+
+	/* the sensor's custom controls, now that we know which one it is */
+	for (i = 0; i < cur_sensor_info->nr_ctrls; i++)
+		v4l2_ctrl_new_custom(&priv->hdl, &cur_sensor_info->ctrls[i], NULL);
+	if (priv->hdl.error)
+		dev_warn(&client->dev, "sensor controls: %d\n", priv->hdl.error);
+
+	/* init sensor resolution, default VGA */
+	for (i = 0; i < cur_sensor_info->num_resolution; i++)
+		if (!strcmp(cur_sensor_info->resolution[i].name, "VGA")) {
+			priv->win.width = cur_sensor_info->resolution[i].width;
+			priv->win.height = cur_sensor_info->resolution[i].height;
+		}
 
 	return 0;
 }
 
 static int aksensor_enum_fmt(struct v4l2_subdev *sd, unsigned int index,
-			   enum v4l2_mbus_pixelcode *code)
+			   u32 *code)
 {
-	if (index >= cur_sensor_info->num_formats)
+	if (!cur_sensor_info || index >= cur_sensor_info->num_formats)
 		return -EINVAL;
 
 	*code = cur_sensor_cfmts[index].code;
@@ -673,47 +571,119 @@ static int aksensor_g_mbus_config(struct v4l2_subdev *sd,
 				struct v4l2_mbus_config *cfg)
 {
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
-	struct soc_camera_link *icl = soc_camera_i2c_to_link(client);
+	struct soc_camera_subdev_desc *ssdd = soc_camera_i2c_to_desc(client);
 
-	SENDBG("entry %s\n", __func__);
 	cfg->flags = V4L2_MBUS_PCLK_SAMPLE_RISING | V4L2_MBUS_MASTER |
 		V4L2_MBUS_VSYNC_ACTIVE_HIGH | V4L2_MBUS_HSYNC_ACTIVE_HIGH |
 		V4L2_MBUS_DATA_ACTIVE_HIGH;
 	cfg->type = V4L2_MBUS_PARALLEL;
-	cfg->flags = soc_camera_apply_board_flags(icl, cfg);
-	SENDBG("leave %s\n", __func__);
+	if (ssdd)
+		cfg->flags = soc_camera_apply_board_flags(ssdd, cfg);
 
 	return 0;
 }
 
 static struct v4l2_subdev_video_ops aksensor_subdev_video_ops = {
 	.s_stream	= aksensor_s_stream,
-	.g_mbus_fmt	= aksensor_g_fmt,
-	.s_mbus_fmt	= aksensor_s_fmt,
-	.try_mbus_fmt	= aksensor_try_fmt,
 	.cropcap	= aksensor_cropcap,
 	.g_crop		= aksensor_g_crop,
 	.s_crop		= aksensor_s_crop,
-	.enum_mbus_fmt	= aksensor_enum_fmt,
 	.g_mbus_config	= aksensor_g_mbus_config,
+};
+
+static int aksensor_enum_mbus_code(struct v4l2_subdev *sd,
+				    struct v4l2_subdev_pad_config *cfg,
+				    struct v4l2_subdev_mbus_code_enum *code_enum)
+{
+	if (code_enum->pad)
+		return -EINVAL;
+	return aksensor_enum_fmt(sd, code_enum->index, &code_enum->code);
+}
+
+static int aksensor_get_fmt(struct v4l2_subdev *sd,
+			     struct v4l2_subdev_pad_config *cfg,
+			     struct v4l2_subdev_format *format)
+{
+	if (format->pad)
+		return -EINVAL;
+	return aksensor_g_fmt(sd, &format->format);
+}
+
+/* TRY does nothing, as the SDK's try_mbus_fmt did not either. */
+static int aksensor_set_fmt(struct v4l2_subdev *sd,
+			     struct v4l2_subdev_pad_config *cfg,
+			     struct v4l2_subdev_format *format)
+{
+	if (format->pad)
+		return -EINVAL;
+	if (format->which == V4L2_SUBDEV_FORMAT_TRY)
+		return 0;
+	return aksensor_s_fmt(sd, &format->format);
+}
+
+static struct v4l2_subdev_pad_ops aksensor_subdev_pad_ops = {
+	.enum_mbus_code	= aksensor_enum_mbus_code,
+	.get_fmt	= aksensor_get_fmt,
+	.set_fmt	= aksensor_set_fmt,
 };
 
 static struct v4l2_subdev_ops aksensor_subdev_ops = {
 	.core	= &aksensor_subdev_core_ops,
 	.video	= &aksensor_subdev_video_ops,
+	.pad	= &aksensor_subdev_pad_ops,
 };
 
 void aksensor_set_param(unsigned int cmd, unsigned int data)
 {
-	cur_sensor_info->handler->cam_set_sensor_param_func(cmd, data);
+	if (cur_sensor_info)
+		cur_sensor_info->handler->cam_set_sensor_param_func(cmd, data);
 }
 EXPORT_SYMBOL(aksensor_set_param);
 
 unsigned short aksensor_get_param(unsigned int cmd)
 {
+	if (!cur_sensor_info)
+		return 0;
 	return cur_sensor_info->handler->cam_get_sensor_param_func(cmd);
 }
 EXPORT_SYMBOL(aksensor_get_param);
+
+/*
+ * The 3.4 board files handed the sensor's AVDD, chip-enable and reset pins
+ * over in soc_camera_link platform data. Here they are optional properties
+ * of the sensor's device tree node: avdd-gpio, pwdn-gpio (the SDK's "power",
+ * the chip enable) and reset-gpio. A pin a board does not wire is left out.
+ */
+static unsigned long aksensor_of_gpio(struct i2c_client *client,
+				      const char *name)
+{
+	int gpio = of_get_named_gpio(client->dev.of_node, name, 0);
+
+	if (!gpio_is_valid(gpio))
+		return (unsigned long)INVALID_GPIO;
+	if (devm_gpio_request(&client->dev, gpio, name)) {
+		dev_warn(&client->dev, "cannot claim %s (gpio %d)\n", name, gpio);
+		return (unsigned long)INVALID_GPIO;
+	}
+
+	return gpio;
+}
+
+static struct aksensor_camera_info *aksensor_parse_of(struct i2c_client *client)
+{
+	struct aksensor_camera_info *info;
+
+	info = devm_kzalloc(&client->dev, sizeof(*info), GFP_KERNEL);
+	if (!info)
+		return NULL;
+
+	info->pin_avdd = aksensor_of_gpio(client, "avdd-gpio");
+	info->pin_power = aksensor_of_gpio(client, "pwdn-gpio");
+	info->pin_pwdn = info->pin_power;
+	info->pin_reset = aksensor_of_gpio(client, "reset-gpio");
+
+	return info;
+}
 
 /*
  * i2c_driver function
@@ -721,74 +691,58 @@ EXPORT_SYMBOL(aksensor_get_param);
 static int aksensor_probe(struct i2c_client *client,
 			const struct i2c_device_id *did)
 {
-	struct aksensor_priv        *priv;
-	struct soc_camera_link	*icl = soc_camera_i2c_to_link(client);
-	struct i2c_adapter        *adapter = to_i2c_adapter(client->dev.parent);
-	int i, ret;
+	struct aksensor_priv *priv;
+	struct i2c_adapter *adapter = to_i2c_adapter(client->dev.parent);
+	struct aksensor_camera_info *info;
+	int ret;
 
 	SENDBG("entry %s\n", __func__);
 
-	if (!icl || !icl->priv) {
-		dev_err(&client->dev, "AKSENSOR: missing platform data!\n");
+	if (!client->dev.of_node) {
+		dev_err(&client->dev, "AKSENSOR: no device tree node\n");
 		return -EINVAL;
 	}
 
 	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA)) {
 		dev_err(&adapter->dev,
-			"I2C-Adapter doesn't support "
-			"I2C_FUNC_SMBUS_BYTE_DATA\n");
+			"I2C-Adapter doesn't support I2C_FUNC_SMBUS_BYTE_DATA\n");
 		return -EIO;
 	}
 
-	priv = kzalloc(sizeof(*priv), GFP_KERNEL);
-	if (!priv) {
+	info = aksensor_parse_of(client);
+	if (!info)
 		return -ENOMEM;
-	}	
 
-	priv->info = icl->priv;
+	priv = devm_kzalloc(&client->dev, sizeof(*priv), GFP_KERNEL);
+	if (!priv)
+		return -ENOMEM;
+
+	priv->info = info;
 	v4l2_i2c_subdev_init(&priv->subdev, client, &aksensor_subdev_ops);
+	g_client = client;
 
-	ret = aksensor_video_probe(client);
-	
+	v4l2_ctrl_handler_init(&priv->hdl, 8);
+	priv->subdev.ctrl_handler = &priv->hdl;
+
+	ret = v4l2_async_register_subdev(&priv->subdev);
 	if (ret) {
-		kfree(priv);
+		v4l2_ctrl_handler_free(&priv->hdl);
 		return ret;
 	}
 
-	v4l2_ctrl_handler_init(&priv->hdl, cur_sensor_info->nr_ctrls);
-	for (i = 0; i < cur_sensor_info->nr_ctrls; i++)
-		v4l2_ctrl_new_custom(&priv->hdl, &cur_sensor_info->ctrls[i], NULL);
-	priv->subdev.ctrl_handler = &priv->hdl;
-	if (priv->hdl.error) {
-		int err = priv->hdl.error;
-		v4l2_ctrl_handler_free(&priv->hdl);
-		kfree(priv);
-		return err;
-	}
-
-	// init sensor resolution, default VGA
-	for (i = 0; i < cur_sensor_info->num_resolution; i++)
-		if (!strcmp(cur_sensor_info->resolution[i].name, "VGA")) {
-		priv->win.width = cur_sensor_info->resolution[i].width; 
-		priv->win.height = cur_sensor_info->resolution[i].height;
-	}
-	sensor_dbg("%s: priv->win.width=%d priv->win.height=%d\n",
-			__func__, priv->win.width, priv->win.height);
-	return ret;
+	return 0;
 }
 
 static int aksensor_remove(struct i2c_client *client)
 {
 	struct aksensor_priv *priv = to_aksensor(client);
 
-	if (NULL != cur_sensor_info->handler) {
+	if (cur_sensor_info && cur_sensor_info->handler)
 		cur_sensor_info->handler->cam_close_func();
-		cur_sensor_info->handler = NULL; 
-	}
-	
-	v4l2_device_unregister_subdev(&priv->subdev);
+
+	v4l2_async_unregister_subdev(&priv->subdev);
 	v4l2_ctrl_handler_free(&priv->hdl);
-	kfree(priv);
+	g_client = NULL;
 	return 0;
 }
 
@@ -796,11 +750,18 @@ static const struct i2c_device_id aksensor_id[] = {
 	{ "aksensor", 0 },
 	{ }
 };
-MODULE_DEVICE_TABLE(i2c, aksensor);
+MODULE_DEVICE_TABLE(i2c, aksensor_id);
+
+static const struct of_device_id aksensor_of_match[] = {
+	{ .compatible = "anyka,sensor0" },
+	{ }
+};
+MODULE_DEVICE_TABLE(of, aksensor_of_match);
 
 static struct i2c_driver aksensor_i2c_driver = {
 	.driver = {
 		.name = "aksensor",
+		.of_match_table = aksensor_of_match,
 	},
 	.probe    = aksensor_probe,
 	.remove   = aksensor_remove,
@@ -813,52 +774,43 @@ static struct i2c_driver aksensor_i2c_driver = {
  * @date 2012-03-16
  * @param GPIO pin type
  * @return GPIO pin value
- * @retval
  */
 T_U32 cam_getpin(T_CAMERA_PINTYPE pin_type)
 {
-	T_U32 pin = INVALID_GPIO;
+	T_U32 pin = (T_U32)INVALID_GPIO;
 
-//	SENDBG("entry %s\n", __func__);
-
-	if (AK_NULL != g_client)
-	{
+	if (AK_NULL != g_client) {
 		struct aksensor_priv *priv = to_aksensor(g_client);
-		
-		switch (pin_type)
-		{
-			case PIN_AVDD:
-				pin = priv->info->pin_avdd;
-				break;
-			case PIN_POWER:
-				pin = priv->info->pin_power;
-				break;
-			case PIN_RESET:
-				pin = priv->info->pin_reset;
-				break;
-			default :
-				break;
+
+		switch (pin_type) {
+		case PIN_AVDD:
+			pin = priv->info->pin_avdd;
+			break;
+		case PIN_POWER:
+			pin = priv->info->pin_power;
+			break;
+		case PIN_RESET:
+			pin = priv->info->pin_reset;
+			break;
+		default:
+			break;
 		}
 	}
-	
+
 	return pin;
 }
+EXPORT_SYMBOL(cam_getpin);
 
 /*
  * module function
  */
-
 static int __init aksensor_module_init(void)
 {
-	SENDBG("entry %s\n", __func__);
-
 	return i2c_add_driver(&aksensor_i2c_driver);
 }
 
 static void __exit aksensor_module_exit(void)
 {
-	SENDBG("entry %s\n", __func__);
-
 	i2c_del_driver(&aksensor_i2c_driver);
 }
 

@@ -783,7 +783,7 @@ static int camera_h22_reg(void)
 #ifdef __CC_ARM
 #pragma arm section rwdata = "__initcall_", zidata = "__initcall_"
 #endif
-module_init(camera_h22_reg)
+module_init(camera_h22_reg);
 #ifdef __CC_ARM
 #pragma arm section
 #endif
@@ -1069,19 +1069,19 @@ static const struct v4l2_ctrl_config h22_ctrls[] = {
  */
 static const struct aksensor_color_format h22_formats[] = {
 	{
-		.code		= V4L2_MBUS_FMT_RGB555_2X8_PADHI_LE,
+		.code		= MEDIA_BUS_FMT_RGB555_2X8_PADHI_LE,
 		.colorspace = V4L2_COLORSPACE_SRGB,
 	},
 	{
-		.code		= V4L2_MBUS_FMT_RGB555_2X8_PADHI_BE,
+		.code		= MEDIA_BUS_FMT_RGB555_2X8_PADHI_BE,
 		.colorspace = V4L2_COLORSPACE_SRGB,
 	},
 	{
-		.code		= V4L2_MBUS_FMT_RGB565_2X8_LE,
+		.code		= MEDIA_BUS_FMT_RGB565_2X8_LE,
 		.colorspace = V4L2_COLORSPACE_SRGB,
 	},
 	{
-		.code		= V4L2_MBUS_FMT_RGB565_2X8_BE,
+		.code		= MEDIA_BUS_FMT_RGB565_2X8_BE,
 		.colorspace = V4L2_COLORSPACE_SRGB,
 	},
 };
@@ -1108,7 +1108,7 @@ static int h22_module_init(void)
 {
 	return register_sensor(&h22_sensor_info);
 }
-module_init(h22_module_init)
+module_init(h22_module_init);
 #endif
 
 #endif

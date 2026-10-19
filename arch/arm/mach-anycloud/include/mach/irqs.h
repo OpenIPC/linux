@@ -1,4 +1,12 @@
 /*
+ * AK3918AV130 keeps the vendor's own copy of this header, from the
+ * AnyCloud39AV130 SDK, in mach/av130/: its register map and IRQ layout
+ * share nothing with EV200/EV330 beyond the names.
+ */
+#ifdef CONFIG_MACH_AK3918AV130
+#include <mach/av130/irqs.h>
+#else
+/*
  * linux/arch/arm/mach-ak37d/include/mach/irqs.h
  *
  * Copyright (C) 2018 Anyka(Guangzhou) Microelectronics Technology Co., Ltd.
@@ -78,7 +86,7 @@
 #define	IRQ_TWI3				AK_IRQ(30)
 #define	IRQ_NULL2				AK_IRQ(31)
 #endif
-#if defined(CONFIG_MACH_AK39EV330) || defined(CONFIG_MACH_AK3918EV200)
+#if defined(CONFIG_MACH_AK39EV330) || defined(CONFIG_AK3918_FAMILY)
 #define	IRQ_TWI2				AK_IRQ(21)
 #define	IRQ_SD_PLUGIN			AK_IRQ(22)
 #define	IRQ_NULL2				AK_IRQ(23)
@@ -132,7 +140,7 @@
 #define	IRQ_TIMER6				AK_SYSCTRL_IRQ(19)
 #endif
 
-#if defined(CONFIG_MACH_AK39EV330) || defined(CONFIG_MACH_AK3918EV200)
+#if defined(CONFIG_MACH_AK39EV330) || defined(CONFIG_AK3918_FAMILY)
 #define	IRQ_TIMER10				AK_SYSCTRL_IRQ(11)
 #define	IRQ_TIMER9				AK_SYSCTRL_IRQ(12)
 #define	IRQ_TIMER8				AK_SYSCTRL_IRQ(13)
@@ -147,7 +155,7 @@
 #define NR_IRQS     	(IRQ_TIMER6 + 123 + 1)   /* AK37D has 123 gpio irqs */
 #endif
 
-#if defined(CONFIG_MACH_AK39EV330) || defined(CONFIG_MACH_AK3918EV200)
+#if defined(CONFIG_MACH_AK39EV330) || defined(CONFIG_AK3918_FAMILY)
 #define NR_IRQS     	(IRQ_TIMER6 + 86 + 1)   /* AK39EV330 has 86 gpio irqs */
 #endif
 
@@ -157,3 +165,4 @@
 
 #endif  /* __ASM_ARCH_IRQS_H_ */
 
+#endif /* CONFIG_MACH_AK3918AV130 */

@@ -1,4 +1,12 @@
 /*
+ * AK3918AV130 keeps the vendor's own copy of this header, from the
+ * AnyCloud39AV130 SDK, in mach/av130/: its register map and IRQ layout
+ * share nothing with EV200/EV330 beyond the names.
+ */
+#ifdef CONFIG_MACH_AK3918AV130
+#include <mach/av130/entry-macro.S>
+#else
+/*
  * linux/arch/arm/mach-anycloud/include/mach/entry-macro.S
  *
  * Low-level IRQ helper macros for AK39-based platforms
@@ -47,7 +55,7 @@
 		bne	1001f
 
 #if defined(CONFIG_MACH_AK37D) || defined(CONFIG_MACH_AK39EV330) || \
-	defined(CONFIG_MACH_AK3918EV200)
+	defined(CONFIG_AK3918_FAMILY)
 		tst	\irqstat, #(1<<IRQ_VIDEO_ENCODER)
 		bicne	\irqstat, \irqstat, #(1<<IRQ_VIDEO_ENCODER)
 		movne	\irqnr, #IRQ_VIDEO_ENCODER
@@ -115,7 +123,7 @@
 		bne	1001f
 
 #if defined(CONFIG_MACH_AK37D) || defined(CONFIG_MACH_AK39EV330) || \
-	defined(CONFIG_MACH_AK3918EV200)
+	defined(CONFIG_AK3918_FAMILY)
 		tst	\irqstat, #(1<<IRQ_IRDA)
 		bicne	\irqstat, \irqstat, #(1<<IRQ_IRDA)
 		movne	\irqnr, #IRQ_IRDA
@@ -138,7 +146,7 @@
 		bne	1001f
 
 #if defined(CONFIG_MACH_AK37D) || defined(CONFIG_MACH_AK39EV330) || \
-	defined(CONFIG_MACH_AK3918EV200)
+	defined(CONFIG_AK3918_FAMILY)
 		tst	\irqstat, #(1<<IRQ_ENCRYTION)
 		bicne	\irqstat, \irqstat, #(1<<IRQ_ENCRYTION)
 		movne	\irqnr, #IRQ_ENCRYTION
@@ -262,7 +270,7 @@
 #endif
 
 #if defined(CONFIG_MACH_AK37D) || defined(CONFIG_MACH_AK39EV330) || \
-	defined(CONFIG_MACH_AK3918EV200)
+	defined(CONFIG_AK3918_FAMILY)
 		tst	\irqstat, #(1<<IRQ_NULL2)
 		bicne	\irqstat, \irqstat, #(1<<IRQ_NULL2)
 		movne	\irqnr, #IRQ_NULL2
@@ -279,3 +287,4 @@
 	.macro	disable_fiq
 	.endm
 	
+#endif /* CONFIG_MACH_AK3918AV130 */

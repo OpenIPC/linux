@@ -1,0 +1,8 @@
+config AK_ETHERNET
+	tristate "Anyka AK3918 (Aimer39) Ethernet support"
+	depends on ARCH_AK && OF
+	depends on MACH_AK3918
+	help
+	  The older Anyka 10/100 MAC of the AK3910/AK3916/AK3918 (Aimer39),
+	  from the Aimer39 SDK. The module is ak_ethernet. EV200, EV300 and
+	  EV330 have a Synopsys GMAC instead (AK_GMAC).

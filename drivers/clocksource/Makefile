@@ -65,5 +65,11 @@ obj-$(CONFIG_H8300_TMR16)		+= h8300_timer16.o
 obj-$(CONFIG_H8300_TPU)			+= h8300_tpu.o
 obj-$(CONFIG_CLKSRC_ST_LPC)		+= clksrc_st_lpc.o
 obj-$(CONFIG_X86_NUMACHIP)		+= numachip.o
+# AK3918AV130's timers sit in a separate block with their own register
+# layout; the vendor's drivers for them are kept whole as *_av130.o.
+ifeq ($(CONFIG_MACH_AK3918AV130),y)
+obj-y					+= ak_timer_av130.o ak_hardware_timer_av130.o
+else
 obj-$(CONFIG_ARCH_AK)			+= ak_timer.o
 obj-$(CONFIG_ARCH_AK)			+= ak_hardware_timer.o
+endif

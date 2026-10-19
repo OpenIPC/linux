@@ -1,0 +1,14 @@
+/*
+ * Cloud39EV2 as OpenIPC boots it. The vendor bootargs in the SoC dtsi point
+ * root= and init= at the Anyka rootfs layout; these are the defaults for
+ * OpenIPC's NOR layout, used whenever U-Boot passes no command line of its
+ * own. U-Boot's bootargs, when present, still replace them.
+ */
+
+#include "ak3918en080_v200.dts"
+
+/ {
+	chosen {
+		bootargs = "console=ttySAK0,115200n8 root=/dev/mtdblock3 rootfstype=squashfs init=/init mem=64M memsize=64M mtdparts=spi0.0:256k(boot),64k(env),2048k(kernel),5120k(rootfs),-(rootfs_data)";
+	};
+};

@@ -1570,7 +1570,7 @@ static int ak_parse_part_table(struct mtd_info *mtd, const unsigned char *tbl,
 	return nr;
 }
 
-static int ak_mount_partitions(struct spi_device *spi)
+static int ak_register_partitions(struct spi_device *spi)
 {
 	struct mtd_info *mtd = ak_mtd_info;
 	struct mtd_part_parser_data ppdata;
@@ -1578,7 +1578,7 @@ static int ak_mount_partitions(struct spi_device *spi)
 	unsigned char *hdr = NULL, *tbl = NULL;
 	char *names = NULL;
 	loff_t tbl_off;
-	int nr, i, ret;
+	int nr = 0, i, ret;
 
 	hdr = kzalloc(AK_PART_HDR_SCAN, GFP_KERNEL);
 	tbl = kzalloc(AK_PART_TBL_SIZE, GFP_KERNEL);
@@ -1629,18 +1629,26 @@ static int ak_mount_partitions(struct spi_device *spi)
 			break;
 		printk("ak-spiflash: partition table at 0x%llx is unusable\n", at);
 	}
-	if (nr <= 0) {
-		ret = nr < 0 ? nr : -EINVAL;
-		goto out;
-	}
 
+out:
+	/*
+	 * One registration, with the on-flash table as the fallback: the
+	 * default parsers (mtdparts= on the command line, then the device
+	 * tree) go first, and only when they find nothing does the SPIP table
+	 * apply, or failing that the whole chip. Registering the chip and then
+	 * the table on top of it, as this used to, gave every partition twice
+	 * once the command line named them too: the SPIP boot header is at
+	 * 0x18c on every EV200, EV300 and EV330 flash dump we have, whatever
+	 * layout follows it.
+	 */
+	if (nr <= 0)
+		nr = 0;
 	memset(&ppdata, 0, sizeof(ppdata));
 	ppdata.of_node = spi->dev.of_node;
-	ret = mtd_device_parse_register(mtd, NULL, &ppdata, parts, nr);
+	ret = mtd_device_parse_register(mtd, NULL, &ppdata, nr ? parts : NULL, nr);
 	if (ret)
 		printk("ak-spiflash: adding MTD partitions failed\n");
 
-out:
 	/*
 	 * add_mtd_partitions() kstrdup()s each name and copies the descriptors,
 	 * so none of this has to outlive the call.
@@ -1882,16 +1890,13 @@ static int ak_spiflash_probe(struct spi_device *spi)
 	/* partitions should match sector boundaries; and it may be good to
 	 * use readonly partitions for writeprotected sectors (BP2..BP0).
 	 */
-	ret = mtd_device_parse_register(ak_mtd_info, NULL, NULL, NULL, 0);
+	ret = ak_register_partitions(spi);
 	if (ret) {
 		printk("Add root MTD device failed\n");
 		kfree(flash->buf);
 		kfree(flash);
 		return -EINVAL;
 	}
-	ret = ak_mount_partitions(spi);
-	if (ret)
-		printk("Add MTD partitions failed\n");
 
 	return 0;
 }
