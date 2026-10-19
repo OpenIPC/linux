@@ -486,7 +486,14 @@ static void __init ak_timer_init(struct device_node *node)
 
     __raw_writel(AK_TIMER_INTCLR,  AK_CS_CTRL+CFG_TIMER_INTCLR);
     __raw_writel(AK_TIMER_INTCLR,  AK_CE_CTRL+CFG_TIMER_INTCLR);
+    /*
+     * Stop both timers, keeping the rest of each control word. The vendor
+     * code wrote an uninitialised local here, i.e. stack contents, into
+     * both control registers.
+     */
+    timer_val = __raw_readl(AK_CS_CTRL + CFG_TIMER_CTRL);
     __raw_writel(timer_val & ~ENABLE_TIMER,   AK_CS_CTRL+CFG_TIMER_CTRL);
+    timer_val = __raw_readl(AK_CE_CTRL + CFG_TIMER_CTRL);
     __raw_writel(timer_val & ~ENABLE_TIMER,   AK_CE_CTRL+CFG_TIMER_CTRL);
   
     #if 0
