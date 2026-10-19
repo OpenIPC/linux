@@ -2417,12 +2417,18 @@ void synop_handle_received_data(struct net_device *netdev)
             // cdh:dma_addr = pci_map_single(pcidev, skb->data, skb_tailroom(skb), PCI_DMA_FROMDEVICE);
 
             dma_addr1 = dma_map_single(gmac_dma_dev, skb->data, skb_tailroom(skb), DMA_FROM_DEVICE);
+            if (dma_mapping_error(gmac_dma_dev, dma_addr1)) {
+                adapter->net_dev_stats.rx_dropped++;
+                dev_kfree_skb_irq(skb);
+                continue;
+            }
             //TR("SKB map ok \n");
 
             desc_index = gmac_set_rx_qptr(gmacdev, dma_addr1, skb_tailroom(skb), (u32)skb, 0, 0, 0);
             if(desc_index < 0)
             {
                 //TR("Cannot set Rx Descriptor for skb %08x\n", (u32)skb);
+                dma_unmap_single(gmac_dma_dev, dma_addr1, skb_tailroom(skb), DMA_FROM_DEVICE);
                 dev_kfree_skb_irq(skb);
             }
             //TR("set rx qptr ok \n");
@@ -4076,10 +4082,17 @@ static s32 init_hw(struct net_device *ndev)
 		*/
 		// cdh:malloc buffer to descriptor dma buffer, dma_addr as physic address
 		dma_addr = dma_map_single(gmac_dma_dev, skb->data, skb_tailroom(skb), DMA_FROM_DEVICE);
+		if (dma_mapping_error(gmac_dma_dev, dma_addr)) {
+			/* The ring keeps the descriptors filled so far. */
+			dev_kfree_skb(skb);
+			break;
+		}
 //		  printk("cdh:skb=0x%x, dma_addr=0x%x\n", (u32 *)skb, dma_addr);
 		status = gmac_set_rx_qptr(gmacdev, dma_addr, skb_tailroom(skb), (u32)skb, 0, 0, 0);
-		if(status < 0)
+		if(status < 0) {
+			dma_unmap_single(gmac_dma_dev, dma_addr, skb_tailroom(skb), DMA_FROM_DEVICE);
 			dev_kfree_skb(skb);
+		}
 		else
 			; // cdh:printk("skb, head, data, tail: %x, %x, %x, %x\n", skb->head, (u32 *)skb->data, (u32 *)skb->tail, (u32 *)skb->len);
 	}while(status >= 0);
@@ -4407,16 +4420,15 @@ static s32 synop_xmit_frames(struct sk_buff *skb, struct net_device *netdev)
 
     if(skb == NULL) {
         printk("skb is NULL What happened to Linux Kernel? \n ");
-        return -ESYNOPGMACNOMEM;
+        return NETDEV_TX_OK;
     }
 
     adapter = (nt_adapter *)netdev_priv(netdev);
-    if(adapter == NULL)
-        return -ESYNOPGMACNOMEM;
-
-    gmacdev = (gmac_device *)adapter->gmacdev_pt;
-    if(gmacdev == NULL)
-        return -ESYNOPGMACNOMEM;
+    gmacdev = adapter ? (gmac_device *)adapter->gmacdev_pt : NULL;
+    if (gmacdev == NULL) {
+        dev_kfree_skb_any(skb);
+        return NETDEV_TX_OK;
+    }
 
     db = adapter->db_pt;
 
@@ -4435,16 +4447,27 @@ static s32 synop_xmit_frames(struct sk_buff *skb, struct net_device *netdev)
 	
     /* cdh:because dma_map_single hase owned dma_spin lock ,so we need protect,Now we have skb ready and OS invoked this function. Lets make our DMA know about this*/
     dma_addr = dma_map_single(gmac_dma_dev, skb->data, skb->len, DMA_TO_DEVICE);
+    if (dma_mapping_error(gmac_dma_dev, dma_addr)) {
+        /* Never hand the GMAC an address the mapping did not produce. */
+        adapter->net_dev_stats.tx_dropped++;
+        dev_kfree_skb_any(skb);
+        netif_wake_queue(netdev);
+        return NETDEV_TX_OK;
+    }
 
     /* cdh:protect share resources here,and we used only one data buffer */
     spin_lock_irqsave(&db->lock, flags);
     status = gmac_set_tx_qptr(gmacdev, dma_addr, skb->len, (u32)skb, 0, 0, 0, offload_needed);
     if(status < 0)
     {
-        printk("%s No More Free Tx Descriptors\n", __FUNCTION__);
+        /*
+         * Ring full. NETDEV_TX_BUSY with the queue left stopped hands the
+         * skb back to the stack to retry; the TX-completion path wakes the
+         * queue. A negative errno here counted as sent and leaked the skb.
+         */
         spin_unlock_irqrestore(&db->lock, flags);
-        dma_unmap_single(gmac_dma_dev, dma_addr, 0, DMA_TO_DEVICE);
-        return -EBUSY;
+        dma_unmap_single(gmac_dma_dev, dma_addr, skb->len, DMA_TO_DEVICE);
+        return NETDEV_TX_BUSY;
     }
 
     /* cdh:Now force the DMA to start transmission*/
@@ -4455,7 +4478,7 @@ static s32 synop_xmit_frames(struct sk_buff *skb, struct net_device *netdev)
     /*Now start the netdev queue*/
     netif_wake_queue(netdev);
 
-    return -ESYNOPGMACNOERR;
+    return NETDEV_TX_OK;
 }
 
 /**
@@ -5185,7 +5208,7 @@ MODULE_DEVICE_TABLE(of, ak_ethernet_of_ids);
 
 static struct platform_driver ak_mac_driver = {
 	.driver	= {
-		.name    = "ak_ethernet",
+		.name    = "ak_gmac",
 		.owner	 = THIS_MODULE,
 		.pm	 = &ak_mac_drv_pm_ops,
 		.of_match_table = ak_ethernet_of_ids,

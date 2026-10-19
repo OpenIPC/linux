@@ -1,11 +1,12 @@
 config AK_GMAC
-	tristate "Anyka EV300/EV330 Synopsys GMAC Ethernet"
+	tristate "Anyka EV200/EV300/EV330 Synopsys GMAC Ethernet"
 	depends on ARCH_AK && OF
+	depends on MACH_AK39EV330 || MACH_AK3918EV200
 	select CRC32
 	help
-	  The Synopsys GMAC in the AK3918EV300 and AK39EV330 parts
-	  (anyka,ak39ev330-ethernet), from the Cloud39EV300 SDK's driver.
-	  The MAC interface comes from the device tree's phy-mode, RMII
-	  unless "mii" is given.
+	  The Synopsys GMAC in the AK3918EV200, AK3918EV300 and AK39EV330
+	  parts (anyka,ak39ev330-ethernet), from the Cloud39EV300 SDK's
+	  driver. The MAC interface comes from the device tree's phy-mode,
+	  RMII unless "mii" is given. The module is ak_gmac.
 
-	  The EV200's older MAC is AK_ETHERNET instead.
+	  The first AK39 generation's older MAC is AK_ETHERNET instead.
