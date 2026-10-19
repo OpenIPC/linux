@@ -1507,7 +1507,8 @@ _l_cpu_read:
             if (ret) {
                 sfc_trace(SFC_ERR,
                         "%s: sfc_nor_cpu_read failed with %d\n", __func__, ret);
-                return -EFAULT;
+                /* Through the unlock below: returning here kept the lock. */
+                goto err_dma_read;
             }
             offset += len1;
         }
@@ -1522,6 +1523,8 @@ _l_cpu_read:
     return 0;
 
 err_dma_read:
+    if (retlen)
+        *retlen = offset;
     sfc_free_l2buf(c);
     sfc_nor_unlock_and_unprep(nor, SPI_NOR_OPS_READ);
     return -EFAULT;
@@ -1800,19 +1803,32 @@ static int sfc_nor_write(struct mtd_info *mtd, loff_t to, size_t len,
     if (ret)
         return ret;
 
-    if (sfc_alloc_l2buf(c))
+    if (sfc_alloc_l2buf(c)) {
+        ret = -ENOMEM;
         goto write_err;
+    }
 
     page_offset = to & (nor->page_size - 1);
 
+    /*
+     * Every page write is checked, and only what it reports written is
+     * counted: the vendor loop dropped the errors and added a length the
+     * callee never set when it failed, so a failed write came back as done.
+     */
     /* do all the bytes fit onto one page? */
     if (page_offset + len <= nor->page_size) {
-        _sfc_nor_write(nor, to, len, &tmp, (u_char*)buf);
+        tmp = 0;
+        ret = _sfc_nor_write(nor, to, len, &tmp, (u_char*)buf);
+        if (ret)
+            goto write_err;
         total += tmp;
     } else {
         /* the size of data remaining on the first page */
         page_size = nor->page_size - page_offset;
-        _sfc_nor_write(nor, to, page_size, &tmp, (u_char*)buf);
+        tmp = 0;
+        ret = _sfc_nor_write(nor, to, page_size, &tmp, (u_char*)buf);
+        if (ret)
+            goto write_err;
         total += tmp;
 
         /* write everything in nor->page_size chunks */
@@ -1825,7 +1841,10 @@ static int sfc_nor_write(struct mtd_info *mtd, loff_t to, size_t len,
             if (ret)
                 goto write_err;
 
-            _sfc_nor_write(nor, to + i, page_size, &tmp, (u_char*)(buf + i));
+            tmp = 0;
+            ret = _sfc_nor_write(nor, to + i, page_size, &tmp, (u_char*)(buf + i));
+            if (ret)
+                goto write_err;
             total += tmp;
         }
     }
