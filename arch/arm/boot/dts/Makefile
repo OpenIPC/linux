@@ -1,7 +1,7 @@
 ifeq ($(CONFIG_OF),y)
 
 dtb-$(CONFIG_MACH_AK39EV330) += EVB_CBD_AK3918EV330_V1.0.0.dtb
-dtb-$(CONFIG_MACH_AK3918EV200) += ak3918en080_v200.dtb \
+dtb-$(CONFIG_MACH_AK3918EV200) += ak3918en080_v200.dtb ak3918ev200-demb.dtb \
 	ak3918en080_v200_lab.dtb
 dtb-$(CONFIG_ARCH_ALPINE) += \
 	alpine-db.dtb
