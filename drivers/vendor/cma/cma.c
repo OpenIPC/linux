@@ -9,7 +9,9 @@
 #include <linux/securec.h>
 #include <linux/initrd.h>
 #include <linux/libfdt.h>
+#include <linux/of_fdt.h>
 #include <asm/early_ioremap.h>
+#include <asm/sections.h>
 
 static u32 num_zones;
 static struct cma_zone bsp_zone[ZONE_MAX];
@@ -228,12 +230,12 @@ RESERVEDMEM_OF_DECLARE(cma, "bsp-mmz", bsp_mmz_setup);
  */
 static const struct {
 	const char *compatible;
-	phys_addr_t max, os;
+	phys_addr_t ddr, max, os;
 } bsp_mem_parts[] __initconst = {
-	{ "hisilicon,hi3516cv610", SZ_512M, SZ_32M },
-	{ "hisilicon,hi3516cv608", SZ_512M, SZ_32M },
-	{ "vendor,hi3519dv500", SZ_2G, SZ_128M },
-	{ "vendor,hi3516dv500", SZ_2G, SZ_128M },
+	{ "hisilicon,hi3516cv610", 0x40000000, SZ_512M, SZ_32M },
+	{ "hisilicon,hi3516cv608", 0x40000000, SZ_512M, SZ_32M },
+	{ "vendor,hi3519dv500", 0x40000000, SZ_2G, SZ_128M },
+	{ "vendor,hi3516dv500", 0x40000000, SZ_2G, SZ_128M },
 };
 
 static phys_addr_t bsp_dram, bsp_os, bsp_ddr, bsp_lo;
@@ -324,12 +326,74 @@ extern unsigned int __atags_pointer;
 #define BSP_FDT_PHYS	((phys_addr_t)__atags_pointer)
 #endif
 
-#define BSP_BLOBS(blob) \
-	phys_addr_t blob[2][2] = { \
-		{ BSP_FDT_PHYS, initial_boot_params ? fdt_totalsize(initial_boot_params) : 0 }, \
-		{ IS_ENABLED(CONFIG_BLK_DEV_INITRD) ? phys_initrd_start : 0, \
-		  IS_ENABLED(CONFIG_BLK_DEV_INITRD) ? phys_initrd_size : 0 }, \
+/*
+ * What a zone must stay clear of, as memblock reserves it before the zone is
+ * declared: the kernel; the device tree and initrd the bootloader left where
+ * it liked; the device tree's /memreserve/ entries and its static
+ * /reserved-memory (OP-TEE's shared memory on the -tee boards, say).
+ */
+#define BSP_MAX_BLOBS	16
+static phys_addr_t bsp_blobs[BSP_MAX_BLOBS][2] __initdata;
+static int bsp_nblobs __initdata;
+
+static void __init bsp_blob(phys_addr_t base, phys_addr_t size)
+{
+	if (!size)
+		return;
+	if (bsp_nblobs == BSP_MAX_BLOBS) {
+		pr_warn("hisi_mem: more than %d reserved regions; 0x%llx and on not avoided\n",
+			BSP_MAX_BLOBS, (u64)base);
+		return;
 	}
+	bsp_blobs[bsp_nblobs][0] = base;
+	bsp_blobs[bsp_nblobs][1] = size;
+	bsp_nblobs++;
+}
+
+static void __init bsp_find_blobs(void)
+{
+	const void *fdt = initial_boot_params;
+	int node, child, i;
+
+	bsp_nblobs = 0;
+	bsp_blob(__pa_symbol(_text), __pa_symbol(_end) - __pa_symbol(_text));
+	if (!fdt)
+		return;
+	bsp_blob(BSP_FDT_PHYS, fdt_totalsize(fdt));
+#ifdef CONFIG_BLK_DEV_INITRD
+	bsp_blob(phys_initrd_start, phys_initrd_size);
+#endif
+	for (i = 0; i < fdt_num_mem_rsv(fdt); i++) {
+		u64 base, size;
+
+		if (!fdt_get_mem_rsv(fdt, i, &base, &size))
+			bsp_blob(base, size);
+	}
+	node = fdt_path_offset(fdt, "/reserved-memory");
+	if (node < 0)
+		return;
+	fdt_for_each_subnode(child, fdt, node) {
+		const __be32 *ac = fdt_getprop(fdt, node, "#address-cells", NULL);
+		const __be32 *sc = fdt_getprop(fdt, node, "#size-cells", NULL);
+		int na = ac ? be32_to_cpup(ac) : dt_root_addr_cells;
+		int ns = sc ? be32_to_cpup(sc) : dt_root_size_cells;
+		const char *status = fdt_getprop(fdt, child, "status", NULL);
+		const __be32 *reg;
+		int len;
+
+		if (status && strcmp(status, "okay") && strcmp(status, "ok"))
+			continue;
+		reg = fdt_getprop(fdt, child, "reg", &len);
+		if (!reg)
+			continue;	/* dynamic: placed later, bottom-up, in the OS's */
+		for (len /= sizeof(*reg); len >= na + ns; len -= na + ns) {
+			u64 base = dt_mem_next_cell(na, &reg);
+			u64 size = dt_mem_next_cell(ns, &reg);
+
+			bsp_blob(base, size);
+		}
+	}
+}
 
 /*
  * Where a zone from start can end, at most at end: below what the bootloader
@@ -339,12 +403,11 @@ extern unsigned int __atags_pointer;
  */
 static phys_addr_t __init bsp_zone_end(phys_addr_t start, phys_addr_t end)
 {
-	BSP_BLOBS(blob);
 	int i;
 
-	for (i = 0; i < ARRAY_SIZE(blob); i++)
-		if (blob[i][1] && blob[i][0] < end && blob[i][0] + blob[i][1] > start)
-			end = max(start, round_down(blob[i][0], BSP_ZONE_ALIGN));
+	for (i = 0; i < bsp_nblobs; i++)
+		if (bsp_blobs[i][0] < end && bsp_blobs[i][0] + bsp_blobs[i][1] > start)
+			end = max(start, round_down(bsp_blobs[i][0], BSP_ZONE_ALIGN));
 	return end;
 }
 
@@ -356,15 +419,14 @@ static phys_addr_t __init bsp_zone_end(phys_addr_t start, phys_addr_t end)
  */
 static phys_addr_t __init bsp_zone_span(phys_addr_t *start, phys_addr_t end)
 {
-	BSP_BLOBS(blob);
 	phys_addr_t lo = *start, best = bsp_zone_end(lo, end);
 	int i;
 
-	for (i = 0; i < ARRAY_SIZE(blob); i++) {
-		phys_addr_t from = ALIGN(blob[i][0] + blob[i][1], BSP_ZONE_ALIGN);
+	for (i = 0; i < bsp_nblobs; i++) {
+		phys_addr_t from = ALIGN(bsp_blobs[i][0] + bsp_blobs[i][1], BSP_ZONE_ALIGN);
 		phys_addr_t to;
 
-		if (!blob[i][1] || from <= lo || from >= end)
+		if (from <= lo || from >= end)
 			continue;
 		to = bsp_zone_end(from, end);
 		if (to - from > best - *start) {
@@ -410,11 +472,15 @@ void __init bsp_memory_init(void)
 {
 	unsigned long root = of_get_flat_dt_root();
 	phys_addr_t max = 0, os_default = 0, booted, end;
+#ifdef CONFIG_ARM64
+	phys_addr_t keep;
+#endif
 	bool cma;
 	int i, n;
 
 	for (i = 0; i < ARRAY_SIZE(bsp_mem_parts); i++)
 		if (of_flat_dt_is_compatible(root, bsp_mem_parts[i].compatible) > 0) {
+			bsp_ddr = bsp_mem_parts[i].ddr;
 			max = bsp_mem_parts[i].max;
 			os_default = bsp_mem_parts[i].os;
 			break;
@@ -423,24 +489,21 @@ void __init bsp_memory_init(void)
 		return;
 
 	/*
-	 * DDR starts on a 64 MiB boundary; the first usable byte is where the
-	 * device tree's memory starts (above firmware the kernel must not touch).
+	 * The DDR base is the part's; the first usable byte is where the device
+	 * tree's memory starts, above firmware the kernel must not touch (ATF;
+	 * OP-TEE's whole first 80 MiB on the -tee boards).
 	 */
 	bsp_lo = memblock_start_of_DRAM();
-	bsp_ddr = round_down(bsp_lo, SZ_64M);
-#ifdef CONFIG_ARM64
-	/*
-	 * mem= waits in memory_limit here, as an amount of memory from the
-	 * first usable byte; apply it now, as ARM32 already has.
-	 */
-	{
-		phys_addr_t keep = min_t(phys_addr_t, arm64_memory_limit(),
-					 memblock_end_of_DRAM() - bsp_lo);
-
-		arm64_set_memory_limit(PHYS_ADDR_MAX);
-		memblock_remove(bsp_lo + keep, PHYS_ADDR_MAX - (bsp_lo + keep));
-		booted = bsp_lo + keep - bsp_ddr;
+	/* the probe writes the last page of the default OS share: the kernel's */
+	if (bsp_lo < bsp_ddr || bsp_lo > bsp_ddr + os_default - PAGE_SIZE) {
+		pr_warn("hisi_mem: memory from 0x%llx, not this part's DDR; as the bootloader set it\n",
+			(u64)bsp_lo);
+		return;
 	}
+#ifdef CONFIG_ARM64
+	/* mem= waits in memory_limit, as an amount from the first usable byte */
+	keep = min_t(phys_addr_t, arm64_memory_limit(), memblock_end_of_DRAM() - bsp_lo);
+	booted = bsp_lo + keep - bsp_ddr;
 #else
 	booted = memblock_end_of_DRAM() - bsp_ddr;
 #endif
@@ -450,7 +513,13 @@ void __init bsp_memory_init(void)
 		pr_warn("hisi_mem: DRAM size not measured, memory as the bootloader set it\n");
 		return;
 	}
+#ifdef CONFIG_ARM64
+	/* measured: mem= is applied here, as ARM32 already has, and not again */
+	arm64_set_memory_limit(PHYS_ADDR_MAX);
+	memblock_remove(bsp_lo + keep, PHYS_ADDR_MAX - (bsp_lo + keep));
+#endif
 	end = bsp_ddr + bsp_dram;
+	bsp_find_blobs();
 
 	if (use_bootargs) {
 		/* mmz_allocator=ot: the zones are a carve-out, which CMA must not take */
@@ -468,20 +537,27 @@ void __init bsp_memory_init(void)
 			memblock_remove(end, bsp_ddr + booted - end);
 		}
 		for (i = 0, n = 0; i < num_zones; i++) {
-			phys_addr_t start = ALIGN(bsp_zone[i].phys_start, BSP_ZONE_ALIGN);
-			phys_addr_t zend = bsp_zone_end(start, end);
+			/*
+			 * Whole units of CMA's alignment, which it reserves only at
+			 * an aligned base; at or above the first usable byte, and
+			 * within DRAM, clear of what is reserved there.
+			 */
+			phys_addr_t start = ALIGN(max(bsp_zone[i].phys_start, bsp_lo),
+						  BSP_ZONE_ALIGN);
+			phys_addr_t zend = min(round_down(bsp_zone[i].phys_start +
+							  bsp_zone[i].nbytes, BSP_ZONE_ALIGN),
+					       bsp_zone_end(start, end));
 
-			if (start + ALIGN(bsp_zone[i].nbytes, BSP_ZONE_ALIGN) > zend) {
-				pr_warn("hisi_mem: mmz zone %s at 0x%llx, %lluM, runs past the %lluM of DRAM or into the bootloader's device tree\n",
+			if (start != bsp_zone[i].phys_start ||
+			    zend != bsp_zone[i].phys_start + bsp_zone[i].nbytes) {
+				pr_warn("hisi_mem: mmz zone %s at 0x%llx, %lluM: outside the %lluM of DRAM from 0x%llx, over reserved memory, or not in whole %lluM units\n",
 					bsp_zone[i].name, (u64)bsp_zone[i].phys_start,
-					(u64)bsp_zone[i].nbytes >> 20, (u64)bsp_dram >> 20);
+					(u64)bsp_zone[i].nbytes >> 20, (u64)bsp_dram >> 20,
+					(u64)bsp_lo, (u64)BSP_ZONE_ALIGN >> 20);
 				if (start >= zend)
 					continue;
-				/* as CMA will place it, and only whole units of its alignment */
 				bsp_zone[i].phys_start = start;
-				bsp_zone[i].nbytes = round_down(zend - start, BSP_ZONE_ALIGN);
-				if (!bsp_zone[i].nbytes)
-					continue;
+				bsp_zone[i].nbytes = zend - start;
 			}
 			/*
 			 * DRAM, as just measured, whatever mem= said: CMA hands
@@ -544,6 +620,7 @@ void __init bsp_memory_init(void)
 			/* the bootloader's blobs leave no whole unit for it */
 			pr_warn("hisi_mem: DRAM %lluM (probed), no room for a media zone; all of it is the OS's\n",
 				(u64)bsp_dram >> 20);
+			/* nothing published: userspace keeps to the bootloader's layout */
 			bsp_dram = 0;
 			return;
 		}
