@@ -1,6 +1,6 @@
 ifeq ($(CONFIG_OF),y)
 
-dtb-$(CONFIG_MACH_AK39EV330) += EVB_CBD_AK3918EV330_V1.0.0.dtb ak3918ev300-demb.dtb \
+dtb-$(CONFIG_MACH_AK39EV330) += EVB_CBD_AK3918EV330_V1.0.0.dtb ak3918ev330-demb.dtb \
 	ak3918ev331-demb.dtb
 dtb-$(CONFIG_MACH_AK3918AV130) += ak3918av130-demb.dtb
 dtb-$(CONFIG_MACH_AK3918) += ak3918-demb.dtb ak3910-demb.dtb

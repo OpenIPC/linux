@@ -1,9 +1,7 @@
 /*
- * AK3918EV300/EV330 (and the AK3916/AK3919 packages of both) as OpenIPC
- * boots it: Anyka's EV330 EVB with the capture path moved onto the open
- * ISP2 host. Anyka's own 4.4 SDK builds its EV300 boards from the same
- * ak39ev330 dtsi (C300_SQ38_AK3918EV300_*), and the chip-ID registers tell
- * the two apart only by revision.
+ * AK3918EV330 (and its AK3916/AK3919 packages) as OpenIPC boots it:
+ * Anyka's EV330 EVB with the capture path moved onto the open ISP2 host.
+ * ak3918ev331-demb is this board with 128 MB.
  *
  * The bootargs are the defaults for OpenIPC's NOR layout, used whenever
  * U-Boot passes no command line of its own; U-Boot's bootargs, when present,
@@ -13,7 +11,7 @@
 #include "EVB_CBD_AK3918EV330_V1.0.0.dts"
 
 / {
-	model = "AK3918EV300/EV330 (OpenIPC)";
+	model = "AK3918EV330 (OpenIPC)";
 
 	chosen {
 		bootargs = "console=ttySAK0,115200n8 root=/dev/mtdblock3 rootfstype=squashfs init=/init mem=64M memsize=64M mtdparts=spi0.0:256k(boot),64k(env),2048k(kernel),5120k(rootfs),-(rootfs_data)";
