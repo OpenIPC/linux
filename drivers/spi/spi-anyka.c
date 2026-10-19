@@ -484,6 +484,29 @@ static int ak_spi_setup(struct spi_device *spi)
 		cs->hz = -1;
 		spi->controller_state = cs;
 		cs->initialed = 0;
+
+		/*
+		 * With cs-gpios in the device tree (the EV330 boards' flash, on
+		 * GPIO 25) the SPI core selects the device through that GPIO and
+		 * never calls set_cs(), so FORCE_CS is never raised; the pin has
+		 * to be an output, deasserted, before the first transfer, and
+		 * nothing else requests it. Not devm: setup() runs before the
+		 * flash driver probes, and devres on the device then would stop
+		 * it probing; ak_spi_cleanup() releases it.
+		 */
+		if (gpio_is_valid(spi->cs_gpio)) {
+			ret = gpio_request_one(spi->cs_gpio,
+				(spi->mode & SPI_CS_HIGH) ? GPIOF_OUT_INIT_LOW :
+							    GPIOF_OUT_INIT_HIGH,
+				dev_name(&spi->dev));
+			if (ret) {
+				dev_err(&spi->dev, "cannot claim CS GPIO %d: %d\n",
+					spi->cs_gpio, ret);
+				spi->controller_state = NULL;
+				kfree(cs);
+				return ret;
+			}
+		}
 	}
 
 	if (spi->mode & ~(hw->master->mode_bits)) {
@@ -506,6 +529,8 @@ static int ak_spi_setup(struct spi_device *spi)
 
 static void ak_spi_cleanup(struct spi_device *spi)
 {
+	if (spi->controller_state && gpio_is_valid(spi->cs_gpio))
+		gpio_free(spi->cs_gpio);
 	kfree(spi->controller_state);
 }
 

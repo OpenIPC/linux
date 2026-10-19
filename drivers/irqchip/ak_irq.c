@@ -57,11 +57,11 @@ static int bank_pre_irqs[NR_BANKS];
 #define AK_SYS_IRQ_MAX_NUB		23
 #endif
 
-#ifdef CONFIG_MACH_AK39EV330
+#if defined(CONFIG_MACH_AK39EV330) && !defined(CONFIG_AK39_SYSCTRL_5TIMERS)
 #define AK_SYS_IRQ_MAX_NUB		16
 #endif
 
-#ifdef CONFIG_AK3918_FAMILY
+#ifdef CONFIG_AK39_SYSCTRL_5TIMERS
 /*
  * 11 sysctrl sub-IRQs: SARADC 0, TIMER5..1 1-5, WAKEUP 6,
  * RTC_RDY/ALARM/TIMER/WATCHDOG 7-10.
@@ -176,13 +176,13 @@ static void ak_sysctrl_handler(struct irq_desc *desc)
 	intpnd = (regval_mask & 0xFFFFFF) & (regval_sta & 0xFFFFFF);
 #endif
 
-#ifdef CONFIG_MACH_AK39EV330
+#if defined(CONFIG_MACH_AK39EV330) && !defined(CONFIG_AK39_SYSCTRL_5TIMERS)
 	/*Beware!  H3B chip System irq number is 16.  */
 	intpnd = (regval_mask & 0xFFFF) & (regval_sta & 0xFFFF);
 #endif
 
-#ifdef CONFIG_AK3918_FAMILY
-	/* AK3918EV200 system irq number is 11. */
+#ifdef CONFIG_AK39_SYSCTRL_5TIMERS
+	/* AK3918, EV200 and EV300: 11 system irqs. */
 	intpnd = (regval_mask & 0x7FF) & (regval_sta & 0x7FF);
 #endif
 

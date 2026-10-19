@@ -1,9 +1,9 @@
 /*
- * The 128 MB parts, AK3918EV331 and its AK3916/AK3919 packages: the EV300/
- * EV330 board with the memory Anyka's anycloud_ak39ev331.dtsi gives them.
+ * The 128 MB parts, AK3918EV331 and its AK3916/AK3919 packages: the EV330
+ * board with the memory Anyka's anycloud_ak39ev331.dtsi gives them.
  */
 
-#include "ak3918ev300-demb.dts"
+#include "ak3918ev330-demb.dts"
 
 / {
 	compatible = "anyka,ak3918ev331";

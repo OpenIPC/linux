@@ -12,3 +12,13 @@
 		bootargs = "console=ttySAK0,115200n8 root=/dev/mtdblock3 rootfstype=squashfs init=/init mem=64M memsize=64M mtdparts=spi0.0:256k(boot),64k(env),2048k(kernel),5120k(rootfs),-(rootfs_data)";
 	};
 };
+
+/*
+ * EV200 has the same Synopsys GMAC as EV300/EV330: its own vendor firmware
+ * drives it with the SDK's synopGMAC driver. The pad mux for its RMII pins
+ * is not in this tree's EV200 pinctrl table, so the pads stay as U-Boot set
+ * them, and there is no PHY reset line: both are board wiring.
+ */
+&ethernet {
+	status = "okay";
+};

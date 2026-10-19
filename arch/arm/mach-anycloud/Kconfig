@@ -12,6 +12,22 @@ config MACH_AK39EV330
 	help
 	  Support for ak39ev330
 
+config MACH_AK3918EV300
+	bool "AK3918EV300/AK3916EV300/AK3919EV300 (AnyCloud39EV300) silicon"
+	depends on MACH_AK39EV330
+	help
+	  The AnyCloud39EV300 parts (chip ID 0x20160100). The EV330
+	  (0x20160101) that followed them kept their pad mux, clock tree,
+	  ISP2, MIPI receiver, GMAC, SPI, UART and L2, so they build on the
+	  EV330 machine. What the EV300 lacks is EV330's second timer bank:
+	  it has the five SYSCTRL timers at 0xB4-0xD8 and eleven system
+	  sub-interrupts, as the EV200 does (Cloud39EV300 SDK
+	  mach-ak39/time.c, irqs.h, irq.c), the older I2C controller, and
+	  no flash chip-select GPIO. Say Y on top of
+	  MACH_AK39EV330 for an EV300 kernel. Its machine then takes the
+	  EV300 device trees in place of the EV330 ones, so one kernel image
+	  serves one of the two chips, not both.
+
 config MACH_AK3918EV200
 	bool "AK3918EV200 support"
 	depends on ARCH_AK
@@ -28,6 +44,15 @@ config MACH_AK3918
 	  AK3918EV200 that followed it; the GPIO block has two banks instead
 	  of three, the pad mux is laid out differently, the MAC is the older
 	  Anyka one and the camera host is ISP v1, not ISP2.
+
+config AK39_SYSCTRL_5TIMERS
+	bool
+	default y if AK3918_FAMILY || MACH_AK3918EV300
+	help
+	  The SYSCTRL with only the five base timers (0xB4-0xD8) and eleven
+	  system sub-interrupts: AK3918 (Aimer39), AK3918EV200 and the
+	  AnyCloud39EV300 parts. EV330 adds timers 6-10 and five more
+	  sub-interrupts.
 
 config AK3918_FAMILY
 	bool
@@ -55,14 +80,15 @@ config AK_OPENIPC_DTB
 	default "ak3918ev200-demb" if MACH_AK3918EV200
 	default "ak3918-demb" if MACH_AK3918
 	default "ak3918av130-demb" if MACH_AK3918AV130
-	default "ak3918ev300-demb"
+	default "ak3918ev300-demb" if MACH_AK3918EV300
+	default "ak3918ev330-demb"
 	help
 	  Name, without .dtb, of the blob arch/arm/boot/Makefile appends to
 	  the zImage to make the uImage (CONFIG_ARM_APPENDED_DTB). One
 	  machine covers boards that differ only in memory or package
-	  (ak3918-demb and ak3910-demb on MACH_AK3918): ak3918ev300-demb
-	  for the 64 MB EV300/EV330 parts, ak3918ev331-demb for the 128 MB
-	  EV331 ones.
+	  (ak3918-demb and ak3910-demb on MACH_AK3918): ak3918ev330-demb
+	  for the 64 MB EV330 parts, ak3918ev331-demb for the 128 MB EV331
+	  ones, ak3918ev300-demb for the AnyCloud39EV300 silicon.
 
 config CPU_AK3918EV200
 	bool
