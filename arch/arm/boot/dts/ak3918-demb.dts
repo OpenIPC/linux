@@ -1,0 +1,283 @@
+/*
+ * AK3918/AK3916 (Aimer39), the first AK39 generation, as OpenIPC boots it:
+ * the peripherals of Anyka's Aimer39_AK3918_MB reference board
+ * (arch/arm/mach-ak39/mach-aimer39_ak3918.c in the Aimer39 SDK) on the
+ * AK39 common device tree. Pad functions are the Aimer39 SDK's own
+ * (mach-ak39/ak39-gpio.c share_cfg_module[]). Board wiring that drives an
+ * output -- motors, LEDs, the PHY reset line, Wi-Fi power, the speaker
+ * amplifier -- is left out, since it differs from camera to camera; the
+ * sensor's power-down and reset lines and the SD card detect input are the
+ * reference board's.
+ *
+ * The AK3916 is the same die in a smaller package, with the same pads,
+ * and boots this board too (the SDK's mach-aimer39_ak3916.c differs only
+ * in board GPIOs).
+ *
+ * The bootargs are the defaults for OpenIPC's NOR layout, used whenever
+ * U-Boot passes no command line of its own.
+ */
+
+/dts-v1/;
+#include "anycloud_ak3918.dtsi"
+#include "anycloud_ak39ev330_norflash.dtsi"
+
+/ {
+	compatible = "anyka,ak3918";
+	model = "Aimer39_AK3918_MB (OpenIPC)";
+
+	chosen {
+		bootargs = "console=ttySAK0,115200n8 root=/dev/mtdblock3 rootfstype=squashfs init=/init mem=64M memsize=64M mtdparts=spi0.0:256k(boot),64k(env),2048k(kernel),5120k(rootfs),-(rootfs_data)";
+	};
+};
+
+&gpio {
+	/* ePIN_AS_UART1 (the console UART0): pads 1 and 2. */
+	uart0_pins: uart0_pins {
+		anyka,pins = <1 2>;
+		anyka,function = <1>;
+		anyka,pull = <0x00000010>;
+	};
+
+	/* ePIN_AS_I2C: pads 27 and 28. */
+	i2c0_pins: i2c0_pins {
+		anyka,pins = <27 28>;
+		anyka,function = <1>;
+		anyka,pull = <0x00000010>;
+	};
+
+	/* ePIN_AS_SPI1: clock and chip select on 25/26, data on 43-46. */
+	spiflash_pins: spiflash_pins {
+		anyka,pins = <25 26 43 44 45 46>;
+		anyka,function = <1 1 2 2 2 2>;
+		anyka,pull = <0x00000010>;
+	};
+
+	/* ePIN_AS_MCI, 4-bit: pads 31-36. */
+	mci0_pins: mci0_pins {
+		anyka,pins = <31 32 33 34 35 36>;
+		anyka,function = <1>;
+		anyka,pull = <0x00000010>;
+	};
+
+	/* ePIN_AS_MAC (MII): pads 12-24 and 47, pulls off as the SDK's MAC probe left them. */
+	ethernet_pins: ethernet_pins {
+		anyka,pins = <12 13 14 15 16 17 18 19 20 21 22 23 24 47>;
+		anyka,function = <1>;
+		anyka,pull = <0x00000000>;
+	};
+
+	/* ePIN_AS_CAMERA: the DVP bus's shared pads 8-11, function 0 here. */
+	dvp_pins: dvp_pins {
+		anyka,pins = <8 9 10 11>;
+		anyka,function = <0>;
+		anyka,pull = <0x00000010>;
+	};
+};
+
+&rtc {
+	status = "okay";
+};
+
+&watchdog {
+	def_heartbeat = <10>;
+	status = "okay";
+};
+
+&uart0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart0_pins>;
+	status = "okay";
+};
+
+&i2c0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c0_pins>;
+
+	clock-frequency = <312000>;
+	sda-delay = <100>;
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	/*
+	 * The SDK registers its aksensor client at a fake address and lets
+	 * each sensor driver probe its own; the reference board powers the
+	 * sensor from GPIO 48 and resets it on GPIO 51.
+	 */
+	sensor0: camera@30 {
+		compatible = "anyka,sensor0";
+		reg = <0x30>;
+		reset-gpio = <&gpio 51 1>;
+		pwdn-gpio = <&gpio 48 1>;
+		status = "okay";
+
+		port {
+			sensor_ep: endpoint {
+				remote-endpoint = <&isp_ep>;
+			};
+		};
+	};
+};
+
+&mmc0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&mci0_pins>;
+	bus-width = <4>;
+	max-frequency = <25000000>;
+	/* Card detect is GPIO 63 on the reference board, active low. */
+	cd-gpios = <&gpio 63 1>;
+	status = "okay";
+};
+
+&spi0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&spiflash_pins>;
+	status = "okay";
+};
+
+&spif0 {
+	spi-max-frequency = <20000000>;
+	spi-tx-bus-width = <1>;
+	spi-rx-bus-width = <1>;
+	status = "okay";
+};
+
+&mx25l6405d {
+	status = "okay";
+};
+
+&mx25l12805d {
+	status = "okay";
+};
+
+&w25q64 {
+	status = "okay";
+};
+
+&w25q128 {
+	status = "okay";
+};
+
+&gd25q64 {
+	status = "okay";
+};
+
+&gd25q128 {
+	status = "okay";
+};
+
+&xm25qh64a {
+	status = "okay";
+};
+
+&xm25qh128a {
+	status = "okay";
+};
+
+&xm25qh64b {
+	status = "okay";
+};
+
+&xm25qh64c {
+	status = "okay";
+};
+
+&xm25qh128c {
+	status = "okay";
+};
+
+&pn26f64b {
+	status = "okay";
+};
+
+&by25q64a {
+	status = "okay";
+};
+
+&by25q128a {
+	status = "okay";
+};
+
+&fm25q64 {
+	status = "okay";
+};
+
+&fm25q128 {
+	status = "okay";
+};
+
+&zb25vq64 {
+	status = "okay";
+};
+
+&zb25vq128 {
+	status = "okay";
+};
+
+&zd25q64a {
+	status = "okay";
+};
+
+&kh25l64 {
+	status = "okay";
+};
+
+&kh25l128 {
+	status = "okay";
+};
+
+&xt25f64b {
+	status = "okay";
+};
+
+&xt25f128b {
+	status = "okay";
+};
+
+/*
+ * The common dtsi's MAC node is the EV300/EV330 Synopsys GMAC; AK3918 has
+ * the older Anyka MAC at the same address, driven by ak-ethernet.
+ */
+&ethernet {
+	compatible = "anyka,ak3918-ethernet";
+	pinctrl-names = "default";
+	pinctrl-0 = <&ethernet_pins>;
+	clock-names = "ethernet";
+	clocks = <&gclk_asic 12>;
+	status = "okay";
+};
+
+&vencoder {
+	status = "okay";
+};
+
+&venc {
+	status = "disabled";
+};
+
+&usb {
+	status = "okay";
+};
+
+&isp {
+	pinctrl-names = "default";
+	pinctrl-0 = <&dvp_pins>;
+
+	clocks = <&gclk_asic 17>;
+	clock-names = "camera";
+	mclk-mhz = <24>;
+	memory-region = <&video_pool>;
+	status = "okay";
+
+	port {
+		isp_ep: endpoint {
+			remote-endpoint = <&sensor_ep>;
+		};
+	};
+};
+
+/* The speaker amplifier enable (GPIO 3 on the reference board) is board wiring. */
+&adc_dac {
+	reg = <0x08000000 0xffff>, <0x20110000 0x8010>;
+	status = "okay";
+};

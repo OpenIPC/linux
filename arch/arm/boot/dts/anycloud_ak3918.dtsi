@@ -1,0 +1,80 @@
+
+#include "anycloud_ak39ev330_common.dtsi"
+
+/*
+ * The Aimer39 SDK keeps its video memory below the kernel: PHYS_OFFSET
+ * 0x81000000 and VIDEO_RESERVED_MEM_SIZE 16 MB in aimer39_ak3918_defconfig.
+ * The pool is that bottom 16 MB, which Linux never maps as RAM.
+ */
+#define VIDEO_POOL_BASE       0x80000000
+#define VIDEO_POOL_SIZE       0x01000000
+
+#define LINUX_MEMORY_BASE     0x80000000
+#define LINUX_MEMORY_SIZE     0x04000000
+
+/ {
+    model = "anyka,ak3918";
+    compatible = "anyka,ak3918";
+
+	chosen {
+		bootargs = "console=ttySAK0,115200n8 root=/dev/mtdblock1 rootfstype=squashfs init=/sbin/init mem=64M memsize=64M";
+	};
+
+	cpus {
+	    #address-cells = <1>;
+	    #size-cells = <0>;
+
+	    cpu@0 {
+	        compatible = "arm, arm926ej-s";
+	        device_type = "cpu";
+	        reg = <0>;
+	        d-cache-line-size = <32>;
+	        i-cache-line-size = <32>;
+	        d-cache-size = <0x8000>;
+	        i-cache-size = <0x8000>;
+	        timebase-frequency = <0>;
+	        bus-frequency = <0>;
+	        clock-frequency = <0>;
+	    };
+	};
+
+    memory {
+	    device_type = "memory";
+	    reg = <LINUX_MEMORY_BASE LINUX_MEMORY_SIZE>;
+	};
+
+    reserved-memory {
+        #address-cells = <1>;
+        #size-cells = <1>;
+        ranges;
+
+        video_pool: video_pool@80000000 {
+            compatible = "shared-dma-pool";
+            size = <VIDEO_POOL_SIZE>;
+            reg = <VIDEO_POOL_BASE VIDEO_POOL_SIZE>;
+            no-map;
+            status = "okay";
+        };
+    };
+
+};
+
+/*
+ * The Aimer39 SDK's ASIC PLL (mach-ak39/clock.c aisc_freq_set()): od 2, n 2,
+ * and a 90 MHz ASIC clock (CONFIG_ASIC_FREQ_VALUE), which below 100 MHz is a
+ * quarter of the PLL. EV200 runs the same PLL at 400 MHz with od 1, n 3.
+ */
+&core_pll {
+    clock-div-od = <2>;
+    clock-div-n = <2>;
+    clock-frequency = <360000000>;
+};
+
+&ramdisk {
+    /delete-property/ memory-region;
+    status = "disabled";
+};
+
+&gpio {
+    compatible = "anyka,ak3918-gpio";
+};
