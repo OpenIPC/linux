@@ -98,7 +98,7 @@ static int timers_irq_list[7] = {0};
 #if defined(CONFIG_MACH_AK39EV330) || defined(CONFIG_MACH_AK37E)
 static int timers_irq_list[10] = {0};
 #endif
-#ifdef CONFIG_MACH_AK3918EV200
+#ifdef CONFIG_AK3918_FAMILY
 /*
  * AK3918EV200 has no extended timer6-10 bank: it only programs timers
  * within the base 0xB4-0xD8 range. Size the array for timers 1-5 only.

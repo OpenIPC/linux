@@ -152,7 +152,7 @@ typedef enum {
 	ADDR_MMC1,				/* MMC1 interface */
 #if defined(CONFIG_MACH_AK37D)
 	ADDR_MMC2,				/* MMC2 interface */
-#elif defined(CONFIG_MACH_AK39EV330) || defined(CONFIG_MACH_AK3918EV200)
+#elif defined(CONFIG_MACH_AK39EV330) || defined(CONFIG_AK3918_FAMILY)
 	ADDR_RESERVED1,
 #else
 #error "ak_l2: no L2 device enumeration for this machine"

@@ -110,7 +110,7 @@
 #define AK_CE_TIMER_INDEX		5
 #endif
 
-#ifdef CONFIG_MACH_AK3918EV200
+#ifdef CONFIG_AK3918_FAMILY
 /*
  * No extended timer6-10 bank on this part. Use two of the base 5 timers
  * instead: clocksource on this file's 0-based AK_TIMER4 (SYSCTRL+0xD4,
@@ -293,7 +293,7 @@ static int parse_and_map_all_timers(struct device_node *node)
 #if defined(CONFIG_MACH_AK39EV330) || defined(CONFIG_MACH_AK37E)
 	num_irqs = 10;
 #endif
-#ifdef CONFIG_MACH_AK3918EV200
+#ifdef CONFIG_AK3918_FAMILY
 	/*
 	 * 5 timers: the base 0xB4-0xD8 bank only, no extended timer6-10
 	 * bank on this part.
@@ -356,7 +356,7 @@ static void __init ak_timer_init(struct device_node *node)
 CLOCKSOURCE_OF_DECLARE(ak_hrtimer, "anyka,ak37d-system-timer", ak_timer_init);
 #endif
 
-#if defined(CONFIG_MACH_AK39EV330) || defined(CONFIG_MACH_AK3918EV200)
+#if defined(CONFIG_MACH_AK39EV330) || defined(CONFIG_AK3918_FAMILY)
 CLOCKSOURCE_OF_DECLARE(ak_hrtimer, "anyka,ak39ev330-system-timer", ak_timer_init);
 #endif
 

@@ -96,7 +96,7 @@ static l2_device_info_t l2_device_info[] = {
 	{ ADDR_MMC1,		BUF_NULL },
 #if defined(CONFIG_MACH_AK37D)
 	{ ADDR_MMC2,		BUF_NULL },
-#elif defined(CONFIG_MACH_AK39EV330) || defined(CONFIG_MACH_AK3918EV200)
+#elif defined(CONFIG_MACH_AK39EV330) || defined(CONFIG_AK3918_FAMILY)
 	{ ADDR_RESERVED1,	BUF_NULL },
 #else
 #error "ak_l2: no L2 device table layout for this machine"
@@ -922,7 +922,7 @@ static u8 __l2_alloc(l2_device_t device, bool need_wait)
 	bool l2_allocated = false;
 #if defined(CONFIG_MACH_AK37D)
 	if (unlikely(device == ADDR_RESERVED0))
-#elif defined(CONFIG_MACH_AK39EV330) || defined(CONFIG_MACH_AK3918EV200)
+#elif defined(CONFIG_MACH_AK39EV330) || defined(CONFIG_AK3918_FAMILY)
 	if (unlikely((device == ADDR_RESERVED0) || (device == ADDR_RESERVED1) || (device == ADDR_RESERVED2)))
 #else
 #error "ak_l2: no L2 reserved-device list for this machine"
