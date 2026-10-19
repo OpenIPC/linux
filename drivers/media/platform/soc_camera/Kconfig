@@ -97,6 +97,22 @@ config VIDEO_AK
 	  This is a v4l2 driver for the AK Platform Camera Interface. It uses
 	  the ISP2 interface provided by AK_ISP_CHAR.
 
+config VIDEO_AK_ISP1
+	tristate "Anyka AK3918/AK3916 (Aimer39) camera host, ISP v1"
+	depends on VIDEO_DEV && SOC_CAMERA && ARCH_AK && OF
+	depends on !VIDEO_AK && !AK_ISP_CORE
+	depends on LINUX_AKSENSOR
+	select VIDEOBUF_DMA_CONTIG
+	help
+	  soc_camera host for the first AK39 generation, the Aimer39
+	  AK3918 and AK3916, whose camera block is the ISP v1 that came
+	  before EV200's ISP2. Ported from the Aimer39 SDK's
+	  drivers/media/video/plat-anyka/{ak_camera.c,ak39_isp.c}. The
+	  sensors are the aksensor stack's camera_* drivers.
+
+	  Binds "anyka,ak3918-isp". Only one AK camera host can be built.
+
+	  If unsure, say N.
 
 config AK_ISP_CORE
 	bool "Anyka ISP core, built from source"

@@ -52,3 +52,7 @@ obj-$(CONFIG_AK_ISP_CORE)     += ak39_isp2.o ak39_isp2_3a.o
 # specific content, so both live here rather than under an arch/arm
 # machine directory.
 obj-$(CONFIG_VIDEO_AK)         += ak_camera.o
+
+# ISP v1 host for the first AK39 generation (Aimer39 AK3918/AK3916). Its
+# sensors are the aksensor stack's camera_* drivers above.
+obj-$(CONFIG_VIDEO_AK_ISP1)	+= ak_camera_isp1.o ak39_isp1.o
