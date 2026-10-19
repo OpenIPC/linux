@@ -874,7 +874,15 @@ static struct dev_pm_ops ak39_i2c_dev_pm_ops = {
 #endif
 
 static const struct of_device_id ak39_i2c_of_match[] = {
+	/*
+	 * The EV200 boards' device trees name this controller after the
+	 * EV330's node, which is the later controller's on EV330 itself;
+	 * the board's kernel decides which driver gets it.
+	 */
+#if !IS_ENABLED(CONFIG_I2C_AK39_V2)
 	{ .compatible = "anyka,ak39ev330-i2c0" },
+#endif
+	{ .compatible = "anyka,ak3918ev300-i2c" },
 	{ },
 };
 MODULE_DEVICE_TABLE(of, ak39_i2c_of_match);
