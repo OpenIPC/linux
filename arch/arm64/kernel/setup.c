@@ -320,6 +320,13 @@ void __init __no_sanitize_address setup_arch(char **cmdline_p)
 	 */
 	jump_label_init();
 	parse_early_param();
+#if defined CONFIG_CMA && defined CONFIG_ARCH_BSP
+	{
+		/* DRAM measured, and laid out between the OS and the media zone */
+		extern void bsp_memory_init(void);
+		bsp_memory_init();
+	}
+#endif
 
 	/*
 	 * Unmask asynchronous aborts and fiq after bringing up possible

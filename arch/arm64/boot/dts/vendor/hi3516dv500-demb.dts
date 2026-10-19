@@ -54,10 +54,8 @@
 	};
 
 	chosen {
-		bootargs = "earlycon=pl011,0x11040000 mem=512M console=ttyAMA0,115200 clk_ignore_unused root=/dev/mtdblock2 rootfstype=yaffs2 rw mtdparts=bspnand:1M(boot),9M(kernel),32M(rootfs),1M(this_bootargs_string_is_reserved_for_bootargs_form_uboot!!!_it_must_be_longer_than_bootargs_form_uboot!!!_this_bootargs_string_is_reserved_for_bootargs_form_uboot!!!_it_must_be_longer_than_bootargs_form_uboot!!!_this_bootargs_string_is_reserved_for_bootargs_form_uboot!!!_it_must_be_longer_than_bootargs_form_uboot!!!_this_bootargs_string_is_reserved_for_bootargs_form_uboot!!!_it_must_be_longer_than_bootargs_form_uboot!!!_this_bootargs_string_is_reserved_for_bootargs_form_uboot!!!_it_must_be_longer_than_bootargs_form_uboot!!!)";
-
-		linux,initrd-start = <0x60000040>;
-		linux,initrd-end = <0x61000000>;
+		/* the bootloader's; no initrd */
+		bootargs = "";
 	};
 
 	cpus {
@@ -272,6 +270,35 @@
 		reg = <0>;
 		spi-max-frequency = <200000000>;
 		m25p,fast-read;
+
+		/*
+		 * The split NOR layout: the signed boot image (512K), the U-Boot
+		 * environment (256K), and one "firmware" partition from 0xc0000
+		 * to the end of the chip, which mtdsplit divides into kernel,
+		 * rootfs and rootfs_data. The driver takes it over a bootloader's
+		 * mtdparts only when the flash holds that shape (a uImage, then
+		 * the squashfs at the next block).
+		 */
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			u-boot@0 {
+				label = "u-boot";
+				reg = <0x0 0x80000>;
+			};
+
+			env@80000 {
+				label = "env";
+				reg = <0x80000 0x40000>;
+			};
+
+			firmware@c0000 {
+				label = "firmware";
+				reg = <0xc0000 0x0>;
+			};
+		};
 	};
 };
 
