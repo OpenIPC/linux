@@ -288,6 +288,16 @@ static int __init early_mem(char *p)
 }
 early_param("mem", early_mem);
 
+phys_addr_t __init arm64_memory_limit(void)
+{
+	return memory_limit;
+}
+
+void __init arm64_set_memory_limit(phys_addr_t limit)
+{
+	memory_limit = limit;
+}
+
 static int __init early_init_dt_scan_usablemem(unsigned long node,
 		const char *uname, int depth, void *data)
 {

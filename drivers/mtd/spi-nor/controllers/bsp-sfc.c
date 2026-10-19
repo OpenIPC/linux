@@ -489,6 +489,10 @@ static bool bsp_snor_split_layout(struct mtd_info *mtd)
 	struct device_node *parts, *pp;
 	bool split = false;
 
+	/* without the splitters, "firmware" would never become a root */
+	if (!IS_ENABLED(CONFIG_MTD_SPLIT_FIRMWARE) || !IS_ENABLED(CONFIG_MTD_SPLIT_UIMAGE_FW))
+		return false;
+
 	parts = of_get_child_by_name(mtd_get_of_node(mtd), "partitions");
 	if (!parts)
 		return false;

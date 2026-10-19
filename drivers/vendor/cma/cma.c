@@ -156,15 +156,17 @@ int __init declare_heap_memory(void)
 	u32 i;
 	int ret = 0;
 
+	/* bsp_memory_init() kept early allocations clear of the zones until now */
+	if (bsp_zones_held) {
+		memblock_set_bottom_up(false);
+		bsp_zones_held = false;
+	}
 	if (use_bootargs == 0) {
 		pr_info("cma zone is not set!\n");
 		return ret;
 	}
 
 	for (i = 0; i < num_zones; i++) {
-		/* held by bsp_memory_init() since it chose the zone; CMA takes it over */
-		if (bsp_zones_held)
-			memblock_free(bsp_zone[i].phys_start, bsp_zone[i].nbytes);
 		ret = dma_contiguous_reserve_area(bsp_zone[i].nbytes,
 						  bsp_zone[i].phys_start, 0, &bsp_zone[i].pdev.cma_area, true);
 		if (ret)
@@ -374,16 +376,33 @@ static phys_addr_t __init bsp_zone_span(phys_addr_t *start, phys_addr_t end)
 }
 
 /*
+ * A carve-out from start is not the kernel's to keep anything in, nor above
+ * it: mmz refuses a zone inside the span of the kernel's memory. An initrd
+ * the bootloader put up there is not used, since arm64 would add its pages
+ * back to the kernel's memory (arm64_memblock_init).
+ */
+static void __init bsp_carve_out(phys_addr_t start)
+{
+#ifdef CONFIG_BLK_DEV_INITRD
+	if (phys_initrd_size && phys_initrd_start + phys_initrd_size > start) {
+		pr_warn("hisi_mem: the initrd at 0x%llx is in the carve-out, and is not used\n",
+			(u64)phys_initrd_start);
+		phys_initrd_size = 0;
+	}
+#endif
+}
+
+/*
  * Keep early allocations out of the zones until declare_heap_memory() reserves
  * them for CMA: on arm64 the page tables and the memory map are taken from the
  * top of memory, where the zones are, before dma_contiguous_reserve() runs.
+ * Bottom-up, they come from just above the kernel, in the OS share, instead.
+ * (Reserving the zones and freeing them again would also free whatever the
+ * kernel reserved inside them meanwhile.)
  */
 static void __init bsp_hold_zones(void)
 {
-	u32 i;
-
-	for (i = 0; i < num_zones; i++)
-		memblock_reserve(bsp_zone[i].phys_start, bsp_zone[i].nbytes);
+	memblock_set_bottom_up(true);
 	bsp_zones_held = true;
 }
 
@@ -434,6 +453,9 @@ void __init bsp_memory_init(void)
 	end = bsp_ddr + bsp_dram;
 
 	if (use_bootargs) {
+		/* mmz_allocator=ot: the zones are a carve-out, which CMA must not take */
+		bool carve = !strcmp(bsp_alloc_req, "ot");
+
 		/*
 		 * An explicit mmz=: the zone and mem= as the bootloader gave them,
 		 * except where they claim memory the board does not have. Past the
@@ -464,9 +486,14 @@ void __init bsp_memory_init(void)
 			/*
 			 * DRAM, as just measured, whatever mem= said: CMA hands
 			 * a zone's pages to the page allocator, and only memory
-			 * memblock knows of has them.
+			 * memblock knows of has them. A carve-out is kept out.
 			 */
-			memblock_add(bsp_zone[i].phys_start, bsp_zone[i].nbytes);
+			if (!carve)
+				memblock_add(bsp_zone[i].phys_start, bsp_zone[i].nbytes);
+			else {	/* mem= counts from the first usable byte, and may reach in */
+				memblock_remove(bsp_zone[i].phys_start, bsp_zone[i].nbytes);
+				bsp_carve_out(bsp_zone[i].phys_start);
+			}
 			if (n != i)
 				bsp_zone[n] = bsp_zone[i];
 			n++;
@@ -475,10 +502,13 @@ void __init bsp_memory_init(void)
 		if (num_zones) {
 			booted = min(booted, bsp_dram);
 			bsp_os = get_zones_start() - bsp_ddr;
-			pr_info("hisi_mem: DRAM %lluM (probed), cma, zones from mmz=, mem=%lluM as passed\n",
-				(u64)bsp_dram >> 20, (u64)booted >> 20);
-			strlcpy(allocator, "cma", sizeof(allocator));
-			bsp_hold_zones();
+			strlcpy(allocator, carve ? "ot" : "cma", sizeof(allocator));
+			pr_info("hisi_mem: DRAM %lluM (probed), %s, zones from mmz=, mem=%lluM as passed\n",
+				(u64)bsp_dram >> 20, allocator, (u64)booted >> 20);
+			if (carve)
+				use_bootargs = 0;	/* published, not declared */
+			else
+				bsp_hold_zones();
 			return;
 		}
 		use_bootargs = 0;
@@ -486,6 +516,9 @@ void __init bsp_memory_init(void)
 
 	cma = bsp_alloc_req[0] ? !strcmp(bsp_alloc_req, "cma") : bsp_dram > SZ_64M;
 	bsp_os = os_default;
+	/* a part with less DRAM than usual still gets a zone, half of it */
+	if (bsp_os + SZ_8M > bsp_dram)
+		bsp_os = ALIGN(bsp_dram / 2, BSP_ZONE_ALIGN);
 	if (bsp_os_req) {
 		if (bsp_os_req >= SZ_32M &&
 		    ALIGN(bsp_os_req, BSP_ZONE_ALIGN) + SZ_8M <= bsp_dram)
@@ -507,6 +540,13 @@ void __init bsp_memory_init(void)
 		bsp_zone[0].phys_start = bsp_ddr + bsp_os;
 		bsp_zone[0].nbytes = bsp_zone_span(&bsp_zone[0].phys_start, end) -
 				     bsp_zone[0].phys_start;
+		if (!bsp_zone[0].nbytes) {
+			/* the bootloader's blobs leave no whole unit for it */
+			pr_warn("hisi_mem: DRAM %lluM (probed), no room for a media zone; all of it is the OS's\n",
+				(u64)bsp_dram >> 20);
+			bsp_dram = 0;
+			return;
+		}
 		/* below the zone is the OS's; above it too, under cma */
 		bsp_os = bsp_zone[0].phys_start - bsp_ddr;
 		num_zones = 1;
@@ -514,6 +554,7 @@ void __init bsp_memory_init(void)
 		bsp_hold_zones();
 	} else {
 		memblock_add(bsp_lo, bsp_ddr + bsp_os - bsp_lo);
+		bsp_carve_out(bsp_ddr + bsp_os);
 	}
 	strlcpy(allocator, cma ? "cma" : "ot", sizeof(allocator));
 	pr_info("hisi_mem: DRAM %lluM (probed), %s, OS %lluM, mmz=anonymous,0,0x%llx,%lluM\n",
