@@ -992,12 +992,14 @@ config I2C_AK39_HW
 config I2C_AK39_V2
 	bool "Anyka AK39EV330 (ak3790d) I2C controller"
 	depends on ARCH_AK && OF
-	default y if MACH_AK39EV330
+	default y if MACH_AK39EV330 && !MACH_AK3918EV300
 	help
 	  The later Anyka I2C master of the AK39EV330/EV331 parts
 	  ("anyka,ak39ev330-i2cN", "anyka,ak3790d-i2cN"). Its register
 	  layout differs from I2C_AK39_HW's; driving it with that driver
-	  waits forever for a done flag that never comes.
+	  waits forever for a done flag that never comes. EV300 silicon
+	  (MACH_AK3918EV300) has the older controller, so it defaults off
+	  there.
 
 config I2C_XLP9XX
 	tristate "XLP9XX I2C support"
