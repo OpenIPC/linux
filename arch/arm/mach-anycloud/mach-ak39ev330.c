@@ -158,6 +158,11 @@ MACHINE_END
 static const char * const ak3918_dt_compat[] = {
 	"anyka,ak3918",
 	"anyka,ak3916",
+	/*
+	 * The SDK's third package of the same die: same CPU ID 0x20120100,
+	 * eleven pads not bonded out (ak39-gpio.c ak3910_invalid_gpio[]).
+	 */
+	"anyka,ak3910",
 	NULL
 };
 

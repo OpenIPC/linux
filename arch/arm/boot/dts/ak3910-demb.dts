@@ -1,0 +1,18 @@
+/*
+ * AK3910: the AK3918 die in the SDK's smallest package (SDK3910, "Athena v2"
+ * board). Same CPU ID, same blocks; the Aimer39 SDK's ak39-gpio.c lists pads
+ * 37-40, 56 and 58-63 as not bonded out (ak3910_invalid_gpio[]). Of those the
+ * AK3918 board uses only GPIO 63, for SD card detect, so the slot is polled.
+ */
+
+#include "ak3918-demb.dts"
+
+/ {
+	compatible = "anyka,ak3910";
+	model = "AK3910 (OpenIPC)";
+};
+
+&mmc0 {
+	/delete-property/ cd-gpios;
+	broken-cd;
+};

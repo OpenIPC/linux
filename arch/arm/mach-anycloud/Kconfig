@@ -59,7 +59,8 @@ config AK_OPENIPC_DTB
 	help
 	  Name, without .dtb, of the blob arch/arm/boot/Makefile appends to
 	  the zImage to make the uImage (CONFIG_ARM_APPENDED_DTB). One
-	  machine covers boards that differ only in memory: ak3918ev300-demb
+	  machine covers boards that differ only in memory or package
+	  (ak3918-demb and ak3910-demb on MACH_AK3918): ak3918ev300-demb
 	  for the 64 MB EV300/EV330 parts, ak3918ev331-demb for the 128 MB
 	  EV331 ones.
 
