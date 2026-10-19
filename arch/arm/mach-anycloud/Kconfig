@@ -18,10 +18,23 @@ config MACH_AK3918EV200
 	help
 	  Support for the AK3918EV200 SoC variant.
 
+config MACH_AK3918AV130
+	bool "AK3918AV130 support"
+	depends on ARCH_AK && !MACH_AK39EV330 && !MACH_AK3918EV200
+	select MULTI_IRQ_HANDLER
+	# The SDK's prebuilt ak_isp module is a videobuf2 dma-contig user.
+	select VIDEOBUF2_DMA_CONTIG if VIDEO_V4L2
+	help
+	  Support for the AK3918AV130 (N/A/L), with the SoC drivers of the
+	  vendor's AnyCloud39AV130 SDK. It shares no clock, pinctrl,
+	  interrupt, timer or UART block with EV200/EV330, so it cannot be
+	  built into the same kernel as those.
+
 config AK_OPENIPC_DTB
 	string "Device tree appended to the uImage"
 	depends on ARCH_AK
 	default "ak3918ev200-demb" if MACH_AK3918EV200
+	default "ak3918av130-demb" if MACH_AK3918AV130
 	default "ak3918ev300-demb"
 	help
 	  Name, without .dtb, of the blob arch/arm/boot/Makefile appends to

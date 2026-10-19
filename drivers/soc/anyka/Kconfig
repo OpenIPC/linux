@@ -1,0 +1,11 @@
+menu "Anyka SoC drivers"
+
+config ANYKA_SOCINFO
+	bool "Anyka SoC Information driver"
+	depends on MACH_AK3918AV130
+	select SOC_BUS
+	help
+	  Say yes to support decoding of Anyka SoC family
+	  information about the type and version.
+
+endmenu

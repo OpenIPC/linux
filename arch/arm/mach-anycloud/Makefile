@@ -26,3 +26,14 @@ obj-$(CONFIG_MACH_AK3918EV200)	   += ak_rtc.o
 # driver at all" situation as ak_rtc.o above.
 obj-$(CONFIG_MACH_AK39EV330)	   += ak_adc1.o
 obj-$(CONFIG_MACH_AK3918EV200)	   += ak_adc1.o
+
+# AK3918AV130: the AnyCloud39AV130 SDK's machine and L2 code. Its L2
+# controller differs from EV330's, so the vendor's ak_l2.c is kept whole
+# as ak_l2_av130.o rather than merged into the EV330 one.
+obj-$(CONFIG_MACH_AK3918AV130)	+= mach-ak3918av130.o
+obj-$(CONFIG_MACH_AK3918AV130)	+= ak_l2_av130.o
+obj-$(CONFIG_MACH_AK3918AV130)	+= ak_module_interface.o
+obj-$(CONFIG_MACH_AK3918AV130)	+= ak_cache_count.o
+obj-$(CONFIG_MACH_AK3918AV130)	+= ak_notifier.o
+obj-$(CONFIG_MACH_AK3918AV130)	+= ak_pm.o
+obj-$(CONFIG_MACH_AK3918AV130)	+= ak_l2_exebuf.o

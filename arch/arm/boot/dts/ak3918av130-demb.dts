@@ -1,0 +1,16 @@
+/*
+ * The AK3918AV130 EVB as OpenIPC boots it. The vendor bootargs in the SoC
+ * dtsi put the root filesystem on mtdblock5 of the Anyka layout; these are
+ * the defaults for OpenIPC's NOR layout, used whenever U-Boot passes no
+ * command line of its own. U-Boot's bootargs, when present, still replace
+ * them. The NOR behind the SFC registers as "spi-nor" (drivers/mtd/spi-nor/
+ * ak_nor.c), which is the name mtdparts= has to use.
+ */
+
+#include "EVB_CBDM_AK3918AV130L_V1.0.0.dts"
+
+/ {
+	chosen {
+		bootargs = "console=ttySAK0,115200n8 root=/dev/mtdblock3 rootfstype=squashfs init=/init mem=64M memsize=64M mtdparts=spi-nor:256k(boot),64k(env),2048k(kernel),5120k(rootfs),-(rootfs_data)";
+	};
+};

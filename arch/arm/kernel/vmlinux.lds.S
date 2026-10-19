@@ -82,6 +82,9 @@ SECTIONS
 #endif
 		*(.discard)
 		*(.discard.*)
+#ifdef CONFIG_MACH_AK3918AV130
+		*(.ARM.exidx.l2mem_standby)
+#endif
 	}
 
 #ifdef CONFIG_XIP_KERNEL
@@ -121,6 +124,22 @@ SECTIONS
 	. = ALIGN(1<<SECTION_SHIFT);
 #endif
 	RO_DATA(PAGE_SIZE)
+
+#ifdef CONFIG_MACH_AK3918AV130
+	/*
+	 * The AV130 standby entry (mach-anycloud/ak_pm.c) runs from on-chip
+	 * L2 memory at 0x48000000 while DRAM is in self-refresh: it is linked
+	 * there, stored here, and copied over by ak_l2_exebuf before use.
+	 */
+	_start_standby = .;
+	.l2mem_standby 0x48000000 : AT(_start_standby) {
+		__l2mem_start_standby = .;
+		*(.l2mem_standby)
+		__l2mem_end_standby = .;
+	}
+	. = _start_standby + __l2mem_end_standby - __l2mem_start_standby;
+	_end_standby = .;
+#endif
 
 	. = ALIGN(4);
 	__ex_table : AT(ADDR(__ex_table) - LOAD_OFFSET) {

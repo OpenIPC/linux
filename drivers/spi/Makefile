@@ -10,7 +10,11 @@ obj-$(CONFIG_SPI_MASTER)		+= spi.o
 obj-$(CONFIG_SPI_SPIDEV)		+= spidev.o
 
 # SPI master controller drivers (bus)
+ifeq ($(CONFIG_MACH_AK3918AV130),y)
+obj-$(CONFIG_SPI_AK) 			+= spi-anyka_av130.o
+else
 obj-$(CONFIG_SPI_AK) 			+= spi-anyka.o
+endif
 obj-$(CONFIG_SPI_ALTERA)		+= spi-altera.o
 obj-$(CONFIG_SPI_ATMEL)			+= spi-atmel.o
 obj-$(CONFIG_SPI_ATH79)			+= spi-ath79.o

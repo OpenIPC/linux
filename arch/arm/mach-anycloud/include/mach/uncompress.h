@@ -1,4 +1,12 @@
 /*
+ * AK3918AV130 keeps the vendor's own copy of this header, from the
+ * AnyCloud39AV130 SDK, in mach/av130/: its register map and IRQ layout
+ * share nothing with EV200/EV330 beyond the names.
+ */
+#ifdef CONFIG_MACH_AK3918AV130
+#include <mach/av130/uncompress.h>
+#else
+/*
  * linux/arch/arm/mach-ak39/include/mach/uncompress.h
  *
  * Copyright (C) 2018 Anyka(Guangzhou) Microelectronics Technology Co., Ltd.
@@ -276,3 +284,4 @@ static inline void arch_decomp_setup(void)
 #define arch_decomp_wdog()
 
 #endif   /* __UNCOMPRESS_H_ */
+#endif /* CONFIG_MACH_AK3918AV130 */

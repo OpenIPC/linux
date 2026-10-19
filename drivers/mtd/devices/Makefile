@@ -17,8 +17,13 @@ obj-$(CONFIG_MTD_SST25L)	+= sst25l.o
 obj-$(CONFIG_MTD_BCM47XXSFLASH)	+= bcm47xxsflash.o
 obj-$(CONFIG_MTD_ST_SPI_FSM)    += st_spi_fsm.o
 obj-$(CONFIG_MTD_POWERNV_FLASH)	+= powernv_flash.o
+# On AK3918AV130 both NOR and SPI NAND hang off the SFC, which
+# drivers/mtd/spi-nor/ak_nor.c drives; these are the SPI-bus drivers of the
+# EV200/EV330 parts and would define the same symbols.
+ifneq ($(CONFIG_MACH_AK3918AV130),y)
 obj-$(CONFIG_MTD_AK_SPINAND) 	+= ak_spi_nandflash.o
 obj-$(CONFIG_MTD_AK_SPIFLASH) 	+= ak_spiflash.o
+endif
 
 
 CFLAGS_docg3.o			+= -I$(src)

@@ -192,5 +192,9 @@ obj-$(CONFIG_WM8350_WATCHDOG) += wm8350_wdt.o
 obj-$(CONFIG_MAX63XX_WATCHDOG) += max63xx_wdt.o
 obj-$(CONFIG_SOFT_WATCHDOG) += softdog.o
 obj-$(CONFIG_MENF21BMC_WATCHDOG) += menf21bmc_wdt.o
+ifeq ($(CONFIG_MACH_AK3918AV130),y)
+obj-$(CONFIG_AK_WATCHDOG_TOP) += ak_top_wdt_av130.o
+else
 obj-$(CONFIG_AK_WATCHDOG_TOP) += ak_top_wdt.o
+endif
 obj-$(CONFIG_AK_WATCHDOG_RTC) += ak_rtc_wdt.o
