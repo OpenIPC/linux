@@ -16,12 +16,17 @@
  *
  * Two kinds of pin are not ours to hand out:
  *  - one muxed to a function (SD, Ethernet, the sensor bus): checked at
- *    request and again at every write, because sdio1_sd muxes port 5 when it
- *    powers up, possibly after a GPIO was requested. The mux words are never
- *    written here;
- *  - all of port 8. stmmac_main.c resets the PHY on pin 1 of it every time
- *    eth0 opens, writing port 8's output enable and data as whole words, so
- *    whatever another pin of that port was doing is lost.
+ *    request and again at every write. The mux words are never written here;
+ *  - one an in-tree driver takes over by writing the block directly, with
+ *    none of this driver's locking. Those are reserved outright:
+ *    - all of port 8: stmmac_main.c resets the PHY on its pin 1 every time
+ *      eth0 opens, writing the port's output enable and data as whole words;
+ *    - all of port 5: sdio1_sd.c rewrites its mux word whole when the card
+ *      slot powers up, and sdio2_wifi.c powers the Wi-Fi chip from pin 4 of
+ *      it (its default value=0x54);
+ *    - port 6 pins 0-3: sdio2_wifi.c muxes them to its slot when it loads.
+ *    A board that moves the Wi-Fi power or SD detect pin elsewhere with
+ *    those modules' value= parameter owns that pin itself.
  *
  * There is no GPIO interrupt.
  */
@@ -41,8 +46,12 @@
 #define DATA(port)		(0x40 + (port) * 0x10)
 #define OUT_EN(port)		(0x44 + (port) * 0x10)
 
-/* stmmac_main.c's gpio8_reset_phy() owns port 8 outright. */
-#define XM510_PHY_PORT		8
+/* Pins in-tree drivers write directly, a bit per pin, per port. */
+static const u8 xm510_reserved[XM510_GPIO_PORTS] = {
+	[5] = 0xff,	/* sdio1_sd: the slot; sdio2_wifi: Wi-Fi power */
+	[6] = 0x0f,	/* sdio2_wifi: the slot */
+	[8] = 0xff,	/* stmmac_main: the PHY reset, written as whole words */
+};
 
 static void __iomem *xm510_gpio;
 static DEFINE_SPINLOCK(xm510_gpio_lock);
@@ -80,7 +89,8 @@ static int xm510_gpio_update(unsigned offset, unsigned reg, int on)
 
 static int xm510_gpio_request(struct gpio_chip *chip, unsigned offset)
 {
-	if (offset / 8 == XM510_PHY_PORT || pin_muxed(offset))
+	if ((xm510_reserved[offset / 8] & (1 << (offset % 8))) ||
+	    pin_muxed(offset))
 		return -EBUSY;
 	return 0;
 }
