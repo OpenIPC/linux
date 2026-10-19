@@ -75,3 +75,16 @@
 &sensor0_0 {
 	remote-endpoint = <&isp_ep>;
 };
+
+/*
+ * The RMII pads are the same on the EVB and on EV330 cameras (their own
+ * device trees list GPIO 10 11 13 14 15 19 20 23 24 47), but the PHY reset
+ * line is not: GPIO 82 on the EVB, GPIO 0 on at least one camera. Driving a
+ * board's GPIO on the EVB's say-so could hold anything in reset, so the
+ * generic board leaves the PHY as power-on reset left it.
+ */
+&ethernet {
+	pinctrl-0 = <&ethernet_pins_rmii>;
+	/delete-property/ reset-gpios;
+	status = "okay";
+};
