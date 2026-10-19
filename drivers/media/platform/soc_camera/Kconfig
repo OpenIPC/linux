@@ -97,6 +97,7 @@ config VIDEO_AK
 	  This is a v4l2 driver for the AK Platform Camera Interface. It uses
 	  the ISP2 interface provided by AK_ISP_CHAR.
 
+
 config AK_ISP_CORE
 	bool "Anyka ISP core, built from source"
 	depends on ARCH_AK
@@ -265,10 +266,14 @@ config SENSOR_SP2305
 
 config LINUX_AKSENSOR
 	tristate "Anyka legacy sensor stack (aksensor)"
-	depends on SOC_CAMERA && I2C
+	depends on SOC_CAMERA && I2C && OF_GPIO
+	depends on !AK_ISP_CHAR
 	help
-	  A board-info-registered SCCB/I2C sensor stack (aksensor.c/
-	  wrap_sensor.c) and its camera_*.c client drivers below.
+	  The first AK39 generation's SCCB/I2C sensor stack (aksensor.c/
+	  wrap_sensor.c) and its camera_*.c client drivers below, used by
+	  the ISP v1 host (VIDEO_AK_ISP1). It binds the same
+	  "anyka,sensor0" node and driver name as the ISP2 sensor glue that
+	  AK_ISP_CHAR builds, so only one of the two can be selected.
 
 	  If unsure, say N.
 

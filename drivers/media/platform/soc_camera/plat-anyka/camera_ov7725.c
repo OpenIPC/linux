@@ -868,7 +868,7 @@ static int camera_ov7725_reg(void)
 #ifdef __CC_ARM
 #pragma arm section rwdata = "__initcall_", zidata = "__initcall_"
 #endif
-module_init(camera_ov7725_reg)
+module_init(camera_ov7725_reg);
 #ifdef __CC_ARM
 #pragma arm section
 #endif
@@ -1090,15 +1090,15 @@ static const struct v4l2_ctrl_config ov7725_ctrls[] = {
  */
 static const struct aksensor_color_format ov7725_formats[] = {
 	{
-		.code = V4L2_MBUS_FMT_YUYV8_2X8,
+		.code = MEDIA_BUS_FMT_YUYV8_2X8,
 		.colorspace = V4L2_COLORSPACE_JPEG,
 	},
 	{
-		.code		= V4L2_MBUS_FMT_YVYU8_2X8,
+		.code		= MEDIA_BUS_FMT_YVYU8_2X8,
 		.colorspace = V4L2_COLORSPACE_JPEG,
 	},
 	{
-		.code		= V4L2_MBUS_FMT_UYVY8_2X8,
+		.code		= MEDIA_BUS_FMT_UYVY8_2X8,
 		.colorspace = V4L2_COLORSPACE_JPEG,
 	},
 };
@@ -1124,7 +1124,7 @@ static int ov7725_module_init(void)
 {
 	return register_sensor(&ov7725_sensor_info);
 }
-module_init(ov7725_module_init)
+module_init(ov7725_module_init);
 #endif
 
 #endif

@@ -3,6 +3,7 @@
 
 #include <mach/anyka_types.h>
 #include <linux/i2c.h>
+#include <linux/gpio.h>
 #include <plat-anyka/cam_com_sensor.h>
 
 /**
@@ -81,5 +82,57 @@ T_VOID sccb_init(T_U32 pin_scl, T_U32 pin_sda);
  * @return T_VOID
  */
 void sensor_set_handle(struct i2c_client *client);
+
+/*
+ * The camera_* drivers drive their sensor's AVDD, chip-enable and reset pins
+ * through these names. In the 3.4 SDK they were the mach-ak39 GPIO calls on
+ * pins from board data; here they are gpiolib on the pins aksensor.c took
+ * from the sensor's device tree node. A pin the board does not wire is
+ * INVALID_GPIO, and every operation on it does nothing, as the SDK's I2C
+ * pins already were.
+ */
+#ifndef INVALID_GPIO
+#define INVALID_GPIO		(-1)
+#endif
+
+#define GPIO_I2C_SCL		INVALID_GPIO
+#define GPIO_I2C_SDA		INVALID_GPIO
+
+T_U32 cam_getpin(T_CAMERA_PINTYPE pin_type);
+
+#define GPIO_CAMERA_AVDD		cam_getpin(PIN_AVDD)
+#define GPIO_CAMERA_CHIP_ENABLE		cam_getpin(PIN_POWER)
+#define GPIO_CAMERA_RESET		cam_getpin(PIN_RESET)
+
+#define GPIO_DIR_INPUT		0
+#define GPIO_DIR_OUTPUT		1
+#define GPIO_LEVEL_LOW		0
+#define GPIO_LEVEL_HIGH		1
+
+static inline void gpio_set_pin_dir(int pin, int dir)
+{
+	if (!gpio_is_valid(pin))
+		return;
+	if (dir == GPIO_DIR_OUTPUT)
+		gpio_direction_output(pin, gpio_get_value(pin));
+	else
+		gpio_direction_input(pin);
+}
+
+static inline void gpio_set_pin_level(int pin, int level)
+{
+	if (gpio_is_valid(pin))
+		gpio_set_value(pin, level);
+}
+
+/* The pad mux is the pinctrl driver's; claiming the GPIO already selects it. */
+static inline void gpio_set_pin_as_gpio(int pin)
+{
+}
+
+static inline int gpio_pin_get_ActiveLevel(int pin)
+{
+	return gpio_is_valid(pin) ? gpio_get_value(pin) : 0;
+}
 
 #endif

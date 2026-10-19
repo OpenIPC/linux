@@ -752,7 +752,7 @@ static int camera_ov2643_reg(void)
 #ifdef __CC_ARM
 #pragma arm section rwdata = "__initcall_", zidata = "__initcall_"
 #endif
-module_init(camera_ov2643_reg)
+module_init(camera_ov2643_reg);
 #ifdef __CC_ARM
 #pragma arm section
 #endif
@@ -1020,15 +1020,15 @@ static const struct v4l2_ctrl_config ov2643_ctrls[] = {
  */
 static const struct aksensor_color_format ov2643_formats[] = {
 	{
-		.code = V4L2_MBUS_FMT_YUYV8_2X8,
+		.code = MEDIA_BUS_FMT_YUYV8_2X8,
 		.colorspace = V4L2_COLORSPACE_JPEG,
 	},
 	{
-		.code		= V4L2_MBUS_FMT_YVYU8_2X8,
+		.code		= MEDIA_BUS_FMT_YVYU8_2X8,
 		.colorspace = V4L2_COLORSPACE_JPEG,
 	},
 	{
-		.code		= V4L2_MBUS_FMT_UYVY8_2X8,
+		.code		= MEDIA_BUS_FMT_UYVY8_2X8,
 		.colorspace = V4L2_COLORSPACE_JPEG,
 	},
 };
@@ -1057,7 +1057,7 @@ static int ov2643_module_init(void)
 {
 	return register_sensor(&ov2643_sensor_info);
 }
-module_init(ov2643_module_init)
+module_init(ov2643_module_init);
 #endif
 
 #endif
