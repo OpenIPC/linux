@@ -151,6 +151,11 @@ static const struct flash_info general_parts[] = {
 	{ "xm25qh128c", INFO(0x204018, 0, 64 * 1024,   256, SPI_NOR_QUAD_READ)
 					PARAMS(xmc), CLK_MHZ_2X(104) },
 	{ "by25q64", INFO(0x684017, 0, 64 * 1024,  128, 0) PARAMS(spansion), CLK_MHZ_2X(50) },
+	/* Zbit */
+	{ "zb25vq64d",  INFO(0x5e4017, 0, 64 * 1024, 128,
+					SECT_4K | SPI_NOR_QUAD_READ) PARAMS(gd), CLK_MHZ_2X(104) },
+	{ "zb25vq128d", INFO(0x5e4018, 0, 64 * 1024, 256,
+					SECT_4K | SPI_NOR_QUAD_READ) PARAMS(gd), CLK_MHZ_2X(104) },
 };
 
 static void spinor_default_init(struct spi_nor *nor)
