@@ -78,3 +78,12 @@
 &gpio {
     compatible = "anyka,ak3918-gpio";
 };
+
+/*
+ * The first AK39 generation has the ISP v1 block at the same address as the
+ * later parts' ISP2; the ISP v1 host (drivers/media/.../ak_camera_isp1.c)
+ * binds this, and the ISP2 host must not.
+ */
+&isp {
+	compatible = "anyka,ak3918-isp";
+};
