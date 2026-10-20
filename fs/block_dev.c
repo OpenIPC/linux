@@ -326,14 +326,11 @@ int thaw_bdev(struct block_device *bdev, struct super_block *sb)
 		goto out;
 
 	error = thaw_super(sb);
-	if (error) {
+	if (error)
 		bdev->bd_fsfreeze_count++;
-		mutex_unlock(&bdev->bd_fsfreeze_mutex);
-		return error;
-	}
 out:
 	mutex_unlock(&bdev->bd_fsfreeze_mutex);
-	return 0;
+	return error;
 }
 EXPORT_SYMBOL(thaw_bdev);
 
