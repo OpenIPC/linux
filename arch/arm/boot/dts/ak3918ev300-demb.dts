@@ -12,3 +12,20 @@
 	model = "AK3918EV300 (OpenIPC)";
 	compatible = "anyka,ak3918ev300";
 };
+
+/*
+ * Every board in the Cloud39EV300 SDK runs the SD slot 1-bit on pads 31-33
+ * (mci1_plat_data .bus_width = MCI_BUS_WIDTH_1), and so does Anyka's own
+ * U-Boot for it. The EVB's D1-D3 on pads 34, 80 and 81 are not SD data on
+ * EV300 boards: 4-bit reads fail with -EILSEQ on every block
+ * (OpenIPC/firmware#2639).
+ */
+&mci0_pins {
+	anyka,pins = <31 32 33>;
+	anyka,function = <1>;
+	anyka,pull = <0x00000010>;
+};
+
+&mmc0 {
+	bus-width = <1>;
+};
