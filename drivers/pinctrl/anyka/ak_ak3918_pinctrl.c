@@ -1033,9 +1033,19 @@ static void ak_pinctrl_irq_handler(struct irq_desc *desc)
 	 */
 	chained_irq_enter(chip, desc);
 	for (i = 0; i < AK37D_NUM_GPIOS / 32; i++) {
+		void __iomem *bank = pc->gpio_base + i * 4;
 		int off = 0;
 
-		irq_status = __raw_readl(pc->gpio_base + AK_GPIO_EDGE_STATUS1 + i * 4);
+		/*
+		 * Level-mode pins are pending while their input differs from
+		 * their polarity bit; the edge status latches edge-mode pins
+		 * only. The Aimer39 SDK's GPIO handler finds them the same way.
+		 */
+		irq_status = __raw_readl(bank + AK_GPIO_EDGE_STATUS1) |
+			(__raw_readl(bank + AK_GPIO_INT_MASK1) &
+			 ~__raw_readl(bank + AK_GPIO_INT_MODE1) &
+			 (__raw_readl(bank + AK_GPIO_INTP1) ^
+			  __raw_readl(bank + AK_GPIO_INPUT1)));
 		for_each_set_bit(off, &irq_status, 32) {
 			int pin_irq = irq_find_mapping(pc->irq_domain, i * 32 + off);
 

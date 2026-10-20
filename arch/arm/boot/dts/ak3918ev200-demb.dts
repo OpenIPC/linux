@@ -22,3 +22,11 @@
 &ethernet {
 	status = "okay";
 };
+
+/*
+ * The SDK board's key is on GPIO 47; cameras wire theirs elsewhere, and a
+ * button is board wiring, so the generic board declares none.
+ */
+&gpiokeys {
+	status = "disabled";
+};
