@@ -362,9 +362,29 @@ XM_AMBA_DEVICE(uart0, "uart:0",  UART0,    NULL);
 XM_AMBA_DEVICE(uart1, "uart:1",  UART1,    NULL);
 //XM_AMBA_DEVICE(uart1, "uart:1",  UART1,    &uart1_plat_data);
 
+/*
+ * The watchdog is an ARM SP805 (its ID registers read 0x00141805), so the
+ * stock sp805_wdt driver gives a standard /dev/watchdog: write() feeding,
+ * WDIOC_* and magic close, idle until opened. The vendor's xm_wdt.ko
+ * offered only private ioctls and started counting at insmod. sp805_wdt
+ * uses no interrupt, and xm_wdt never asked for one either.
+ */
+static struct amba_device xm_ambadevice_wdt = {
+	.dev		= {
+		.init_name	= "sp805-wdt",
+	},
+	.res		= {
+		.start	= WDT_BASE,
+		.end	= WDT_BASE + 0x1000 - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	.irq		= { NO_IRQ, NO_IRQ },
+};
+
 static struct amba_device *amba_devs[] __initdata = {
 	&XM_AMBADEV_NAME(uart0),
 	&XM_AMBADEV_NAME(uart1),
+	&xm_ambadevice_wdt,
 };
 
 /*
@@ -372,6 +392,10 @@ static struct amba_device *amba_devs[] __initdata = {
  */
 static struct clk uart_clk = {
 	.rate   = 24000000,
+};
+/* 24 MHz / 256: xm_wdt.ko loaded 93750 * t / 2 for a t-second timeout. */
+static struct clk wdt_clk = {
+	.rate   = 93750,
 };
 
 static struct clk_lookup lookups[] = {
@@ -382,6 +406,10 @@ static struct clk_lookup lookups[] = {
 	{       /* UART1 */
 		.dev_id         = "uart:1",
 		.clk            = &uart_clk,
+	},
+	{	/* SP805 watchdog */
+		.dev_id         = "sp805-wdt",
+		.clk            = &wdt_clk,
 	},
 };
 
