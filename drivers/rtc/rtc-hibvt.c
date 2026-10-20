@@ -255,7 +255,7 @@ static int hibvt_rtc_read_time(struct device *dev, struct rtc_time *time)
 static int hibvt_rtc_set_time(struct device *dev, struct rtc_time *time)
 {
 	struct hibvt_rtc	*rtc = dev_get_drvdata(dev);
-	unsigned char ret = 0;
+	int ret = 0;
 	unsigned int days;
 	unsigned long seconds = 0;
 	unsigned int cnt = RETRY_CNT;
