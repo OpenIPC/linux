@@ -123,7 +123,9 @@ XM_AMBA_DEVICE(uart1, "uart:1",  UART1,    NULL);
  * stock sp805_wdt driver gives a standard /dev/watchdog: write() feeding,
  * WDIOC_* and magic close, idle until opened. The vendor's xm_wdt.ko
  * offered only private ioctls and started counting at insmod. sp805_wdt
- * uses no interrupt, and xm_wdt never asked for one either.
+ * uses no interrupt, and xm_wdt never asked for one either; .irq is left
+ * zero, which is "none" to this kernel's AMBA bus -- NO_IRQ trips its
+ * WARN_ON in amba_device_add().
  */
 static struct amba_device xm_ambadevice_wdt = {
 	.dev		= {
@@ -134,7 +136,6 @@ static struct amba_device xm_ambadevice_wdt = {
 		.end	= WDT_BASE + 0x1000 - 1,
 		.flags	= IORESOURCE_MEM,
 	},
-	.irq		= { NO_IRQ, NO_IRQ },
 };
 
 static struct amba_device *amba_devs[] __initdata = {
