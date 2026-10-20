@@ -17,6 +17,7 @@
 #define PLL_CPUCLK_CTRL              0x20000028
 
 /*#define WDG_BASE		0x20040000*/
+#define WDT_BASE		0x20060000	/* ARM SP805 */
 /*#define CRG_REG_BASE		0x20030000*/
 
 #define TIMER0_REG_BASE         0x100C0000
