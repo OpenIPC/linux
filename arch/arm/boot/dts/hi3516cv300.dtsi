@@ -641,7 +641,7 @@
 		};
 
 		rtc: rtc@12090000 {
-			compatible = "hisilicon,hi_rtc";
+			compatible = "hisilicon,hi35xx-rtc";
 			interrupts = <2>;
 			reg = <0x12090000 0x10000>;
 		};
