@@ -90,7 +90,7 @@
 
 /*
  * The EVB's key is on GPIO 84; the EV300 SDK's boards put theirs on GPIO 5,
- * 10, 70 or 81, and the TECKIN TC100 has GPIO 10 (OpenIPC/firmware#2639).
+ * 10, 70 or 81 (OpenIPC/firmware#2639).
  * A button is board wiring, so the generic board declares none.
  */
 &gpiokeys {
