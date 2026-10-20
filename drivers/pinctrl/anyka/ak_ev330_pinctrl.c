@@ -1300,10 +1300,25 @@ static void ak_pinctrl_irq_handler(struct irq_desc *desc)
 	int i;
 
 	for (i = 0; i < 3; i++) {
+		void __iomem *bank = pc->gpio_base + i * 4;
+		unsigned long level;
 		int off = 0;
 
 		chained_irq_enter(chip, desc);
-        irq_status = __raw_readl(pc->gpio_base + AK_GPIO_EDGE_STATUS1 + i * 4);
+        irq_status = __raw_readl(bank + AK_GPIO_EDGE_STATUS1);
+		/*
+		 * The edge status only latches pins in edge mode. A pin in level
+		 * mode is pending while its input differs from its polarity bit,
+		 * which is how the Cloud39EV300 SDK's ak39_gpio_irqhandler()
+		 * finds it. Without this, an enabled level interrupt on EV300
+		 * holds the GPIO line up with nothing to dispatch, and the CPU
+		 * never leaves this handler (OpenIPC/firmware#2639).
+		 */
+		level = __raw_readl(bank + AK_GPIO_INT_MASK1) &
+			~__raw_readl(bank + AK_GPIO_INT_MODE1) &
+			(__raw_readl(bank + AK_GPIO_INTP1) ^
+			 __raw_readl(bank + AK_GPIO_INPUT1));
+		irq_status |= level;
 		for_each_set_bit(off, &irq_status, 32) {
 		    /* check all int status and handle the Edge/level interrupt */
 		    int pin_irq = irq_find_mapping(pc->irq_domain, i * 32 + off);
