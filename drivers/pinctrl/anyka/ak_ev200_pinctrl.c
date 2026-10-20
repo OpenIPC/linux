@@ -1113,10 +1113,22 @@ static void ak_pinctrl_irq_handler(struct irq_desc *desc)
 	int i;
 
 	for (i = 0; i < 3; i++) {
+		void __iomem *bank = pc->gpio_base + i * 4;
 		int off = 0;
 
 		chained_irq_enter(chip, desc);
-        irq_status = __raw_readl(pc->gpio_base + AK_GPIO_EDGE_STATUS1 + i * 4);
+		/*
+		 * The edge status only latches pins in edge mode; a level-mode
+		 * pin is pending while its input differs from its polarity bit,
+		 * as on EV300 (OpenIPC/linux#112). Without this an enabled level
+		 * interrupt -- the gpio-keys driver asks for one -- holds the
+		 * GPIO line up with nothing to dispatch, and boot hangs there.
+		 */
+		irq_status = __raw_readl(bank + AK_GPIO_EDGE_STATUS1) |
+			(__raw_readl(bank + AK_GPIO_INT_MASK1) &
+			 ~__raw_readl(bank + AK_GPIO_INT_MODE1) &
+			 (__raw_readl(bank + AK_GPIO_INTP1) ^
+			  __raw_readl(bank + AK_GPIO_INPUT1)));
 		for_each_set_bit(off, &irq_status, 32) {
 		    int pin_irq = irq_find_mapping(pc->irq_domain, i * 32 + off);
 
