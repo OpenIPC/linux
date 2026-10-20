@@ -323,12 +323,13 @@ static void hisi_spi_nor_write(struct spi_nor *nor, loff_t to,
  * vendor's own, which uses this same mtd-id -- so any U-Boot that bootm's the
  * uImage at the start of the partition boots it. The fixed-slot layout also
  * starts with a uImage, but its squashfs sits at the slot boundary: it keeps
- * the command line, as before. Only with the splitters built, or the DT
- * layout would leave a split image unbootable.
+ * the command line, as before. Only with the splitters and the flash root
+ * (MTD_ROOTFS_ROOT_DEV) built, or the DT layout would leave a split image
+ * unbootable: the bootloader's root= would name another partition.
  */
 static const char * const hisi_snor_split_probes[] = { "ofpart", NULL };
 
-static bool hisi_snor_split_at(struct mtd_info *mtd, u64 offset)
+static bool hisi_snor_split_at(struct mtd_info *mtd, u64 offset, u64 size)
 {
 	struct {
 		__be32 magic, hcrc, time, size;
@@ -337,11 +338,18 @@ static bool hisi_snor_split_at(struct mtd_info *mtd, u64 offset)
 	size_t retlen;
 	u64 kernel;
 
-	if (mtd_read(mtd, offset, sizeof(hdr), &retlen, (u_char *)&hdr) ||
+	/* ofpart: size 0 is the rest of the chip */
+	if (offset >= mtd->size)
+		return false;
+	if (!size || size > mtd->size - offset)
+		size = mtd->size - offset;
+	if (size < sizeof(hdr) ||
+	    mtd_read(mtd, offset, sizeof(hdr), &retlen, (u_char *)&hdr) ||
 	    retlen != sizeof(hdr) || be32_to_cpu(hdr.magic) != 0x27051956)
 		return false;
 	kernel = round_up(64 + (u64)be32_to_cpu(hdr.size), mtd->erasesize);
-	if (offset + kernel + sizeof(squashfs) > mtd->size)
+	/* The splitter reads within the partition, so must this. */
+	if (kernel + sizeof(squashfs) > size)
 		return false;
 	return !mtd_read(mtd, offset + kernel, sizeof(squashfs), &retlen,
 			 (u_char *)&squashfs) &&
@@ -356,6 +364,7 @@ static bool hisi_snor_split_layout(struct mtd_info *mtd, struct device_node *np)
 
 	if (!IS_ENABLED(CONFIG_MTD_SPLIT_FIRMWARE) ||
 	    !IS_ENABLED(CONFIG_MTD_SPLIT_UIMAGE_FW) ||
+	    !IS_ENABLED(CONFIG_MTD_ROOTFS_ROOT_DEV) ||
 	    !IS_ENABLED(CONFIG_MTD_OF_PARTS) || !np)
 		return false;
 
@@ -363,15 +372,17 @@ static bool hisi_snor_split_layout(struct mtd_info *mtd, struct device_node *np)
 	for_each_child_of_node(np, pp) {
 		const __be32 *reg;
 		const char *label;
-		int len;
+		int len, na, ns;
 
 		if (of_property_read_string(pp, "label", &label) ||
 		    strcmp(label, "firmware"))
 			continue;
 		reg = of_get_property(pp, "reg", &len);
-		if (reg && len >= of_n_addr_cells(pp) * (int)sizeof(*reg))
-			split = hisi_snor_split_at(mtd,
-					of_read_number(reg, of_n_addr_cells(pp)));
+		na = of_n_addr_cells(pp);
+		ns = of_n_size_cells(pp);
+		if (reg && len >= (na + ns) * (int)sizeof(*reg))
+			split = hisi_snor_split_at(mtd, of_read_number(reg, na),
+						   of_read_number(reg + na, ns));
 		of_node_put(pp);
 		break;
 	}

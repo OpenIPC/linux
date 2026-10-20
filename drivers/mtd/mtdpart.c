@@ -613,7 +613,13 @@ int mtd_add_partition(struct mtd_info *master, const char *name,
 	list_add(&new->list, &mtd_partitions);
 	mutex_unlock(&mtd_partitions_mutex);
 
-	add_mtd_device(&new->mtd);
+	if (add_mtd_device(&new->mtd)) {
+		mutex_lock(&mtd_partitions_mutex);
+		list_del(&new->list);
+		mutex_unlock(&mtd_partitions_mutex);
+		free_partition(new);
+		return -ENOMEM;
+	}
 
 	mtd_partition_split(master, new);
 
@@ -714,8 +720,9 @@ static void mtd_partition_split(struct mtd_info *master, struct mtd_part *part)
 		/*
 		 * The root filesystem the firmware split found is the root,
 		 * whatever root= the bootloader passed (see prepare_namespace).
+		 * The first split found keeps it: the boot flash registers first.
 		 */
-		if (IS_ENABLED(CONFIG_MTD_ROOTFS_ROOT_DEV)) {
+		if (IS_ENABLED(CONFIG_MTD_ROOTFS_ROOT_DEV) && !root_dev_from_flash) {
 			ROOT_DEV = MKDEV(MTD_BLOCK_MAJOR, part->mtd.index);
 			root_dev_from_flash = true;
 		}
@@ -755,8 +762,9 @@ int add_mtd_partitions(struct mtd_info *master,
 		list_add(&slave->list, &mtd_partitions);
 		mutex_unlock(&mtd_partitions_mutex);
 
-		add_mtd_device(&slave->mtd);
-		mtd_partition_split(master, slave);
+		/* An unregistered partition has no index: never split or root */
+		if (!add_mtd_device(&slave->mtd))
+			mtd_partition_split(master, slave);
 
 		cur_offset = slave->offset + slave->mtd.size;
 	}
