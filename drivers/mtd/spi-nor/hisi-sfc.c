@@ -328,7 +328,24 @@ static ssize_t hisi_spi_nor_write(struct spi_nor *nor, loff_t to,
  * root (MTD_ROOTFS_ROOT_DEV) built, or the DT layout would leave a split
  * image unbootable: the bootloader's root= would name another partition.
  */
+#ifdef CONFIG_MTD_SPLIT_FIRMWARE_NAME
+#define HISI_SNOR_FW_NAME CONFIG_MTD_SPLIT_FIRMWARE_NAME
+#else
+#define HISI_SNOR_FW_NAME "firmware"
+#endif
+
 static const char * const hisi_snor_split_probes[] = { "ofpart", NULL };
+/* Otherwise the command line only, as before the DT had partitions */
+static const char * const hisi_snor_cmdline_probes[] = { "cmdlinepart", NULL };
+
+/* mtd_read() succeeded, or returned the data with corrected bitflips */
+static bool hisi_snor_read(struct mtd_info *mtd, u64 off, size_t len, void *buf)
+{
+	size_t retlen;
+	int err = mtd_read(mtd, off, len, &retlen, buf);
+
+	return (!err || mtd_is_bitflip(err)) && retlen == len;
+}
 
 static bool hisi_snor_split_at(struct mtd_info *mtd, u64 offset, u64 size)
 {
@@ -336,7 +353,6 @@ static bool hisi_snor_split_at(struct mtd_info *mtd, u64 offset, u64 size)
 		__be32 magic, hcrc, time, size;
 	} hdr;
 	__le32 squashfs;
-	size_t retlen;
 	u64 kernel;
 
 	/* ofpart: size 0 is the rest of the chip */
@@ -344,17 +360,14 @@ static bool hisi_snor_split_at(struct mtd_info *mtd, u64 offset, u64 size)
 		return false;
 	if (!size || size > mtd->size - offset)
 		size = mtd->size - offset;
-	if (size < sizeof(hdr) ||
-	    mtd_read(mtd, offset, sizeof(hdr), &retlen, (u_char *)&hdr) ||
-	    retlen != sizeof(hdr) || be32_to_cpu(hdr.magic) != 0x27051956)
+	if (size < sizeof(hdr) || !hisi_snor_read(mtd, offset, sizeof(hdr), &hdr) ||
+	    be32_to_cpu(hdr.magic) != 0x27051956)
 		return false;
 	kernel = round_up(64 + (u64)be32_to_cpu(hdr.size), mtd->erasesize);
 	/* The splitter reads within the partition, so must this. */
 	if (kernel + sizeof(squashfs) > size)
 		return false;
-	return !mtd_read(mtd, offset + kernel, sizeof(squashfs), &retlen,
-			 (u_char *)&squashfs) &&
-		retlen == sizeof(squashfs) &&
+	return hisi_snor_read(mtd, offset + kernel, sizeof(squashfs), &squashfs) &&
 		le32_to_cpu(squashfs) == 0x73717368;	/* "hsqs" */
 }
 
@@ -378,7 +391,7 @@ static bool hisi_snor_split_layout(struct mtd_info *mtd)
 		int len, na, ns;
 
 		if (of_property_read_string(pp, "label", &label) ||
-		    strcmp(label, "firmware"))
+		    strcmp(label, HISI_SNOR_FW_NAME))
 			continue;
 		reg = of_get_property(pp, "reg", &len);
 		na = of_n_addr_cells(pp);
@@ -400,7 +413,7 @@ static int hisi_snor_device_register(struct mtd_info *mtd)
 {
 	int ret;
 	struct mtd_partitions parsed;
-	const char * const *probes = NULL;
+	const char * const *probes = hisi_snor_cmdline_probes;
 
 	if (hisi_snor_split_layout(mtd)) {
 		pr_info("%s: split NOR layout, device tree partitions\n", mtd->name);
