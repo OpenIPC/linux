@@ -665,8 +665,12 @@ int mtd_add_partition(struct mtd_info *master, const char *name,
 		 * (mtd_release() only removes a /dev/mtdXro node that was never
 		 * made) before the partition, zeroed at allocation, is freed.
 		 */
-		if (new->mtd.dev.kobj.state_initialized)
+		if (new->mtd.dev.kobj.state_initialized) {
+			/* no /dev/mtdXro was made, and the index may be another
+			 * device's by now: mtd_release() must not remove its node */
+			dev_set_drvdata(&new->mtd.dev, NULL);
 			put_device(&new->mtd.dev);
+		}
 		free_partition(new);
 		return -ENOMEM;
 	}
