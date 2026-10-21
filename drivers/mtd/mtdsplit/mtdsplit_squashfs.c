@@ -56,6 +56,13 @@ mtdsplit_parse_squashfs(struct mtd_info *master,
 		return -ENOSPC;
 	}
 	part->size = mtd_rounddown_to_eb(master->size - part->offset, master);
+	/* A size of 0 would be "the rest of the chip" to mtd_add_partition() */
+	if (!part->size) {
+		pr_info("no room for \"%s\" after the squashfs in \"%s\"\n",
+			ROOTFS_SPLIT_NAME, master->name);
+		kfree(part);
+		return -ENOSPC;
+	}
 
 	*pparts = part;
 	return 1;
