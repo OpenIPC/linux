@@ -104,7 +104,13 @@ static LIST_HEAD(mtd_notifiers);
 static void mtd_release(struct device *dev)
 {
 	struct mtd_info *mtd = dev_get_drvdata(dev);
-	dev_t index = MTD_DEVT(mtd->index);
+	dev_t index;
+
+	/* A device whose registration failed never had a /dev/mtdXro node,
+	 * and its index may already belong to another device. */
+	if (!mtd)
+		return;
+	index = MTD_DEVT(mtd->index);
 
 	/* remove /dev/mtdXro node */
 	device_destroy(&mtd_class, index + 1);
