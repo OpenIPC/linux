@@ -658,6 +658,15 @@ int mtd_add_partition(struct mtd_info *master, const char *name,
 		mutex_lock(&mtd_partitions_mutex);
 		list_del(&new->list);
 		mutex_unlock(&mtd_partitions_mutex);
+		/*
+		 * add_mtd_device() returns 1 whether or not device_register()
+		 * ran. When it did, the embedded device holds the reference
+		 * device_initialize() took: drop it through the driver core
+		 * (mtd_release() only removes a /dev/mtdXro node that was never
+		 * made) before the partition, zeroed at allocation, is freed.
+		 */
+		if (new->mtd.dev.kobj.state_initialized)
+			put_device(&new->mtd.dev);
 		free_partition(new);
 		return -ENOMEM;
 	}
