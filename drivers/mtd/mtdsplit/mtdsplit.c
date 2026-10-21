@@ -36,10 +36,11 @@ int mtd_get_squashfs_len(struct mtd_info *master,
 {
 	struct squashfs_super_block sb;
 	size_t retlen;
+	u64 used;
 	int err;
 
 	err = mtd_read(master, offset, sizeof(sb), &retlen, (void *)&sb);
-	if (err || (retlen != sizeof(sb))) {
+	if ((err && !mtd_is_bitflip(err)) || (retlen != sizeof(sb))) {
 		pr_alert("error occured while reading from \"%s\"\n",
 			 master->name);
 		return -EIO;
@@ -50,19 +51,20 @@ int mtd_get_squashfs_len(struct mtd_info *master,
 		return -EINVAL;
 	}
 
-	retlen = le64_to_cpu(sb.bytes_used);
-	if (retlen <= 0) {
+	/* 64-bit, checked before it is narrowed to size_t */
+	used = le64_to_cpu(sb.bytes_used);
+	if (!used) {
 		pr_alert("squashfs is empty in \"%s\"\n", master->name);
 		return -ENODEV;
 	}
 
-	if (offset + retlen > master->size) {
+	if (offset > master->size || used > master->size - offset) {
 		pr_alert("squashfs has invalid size in \"%s\"\n",
 			 master->name);
 		return -EINVAL;
 	}
 
-	*squashfs_len = retlen;
+	*squashfs_len = used;
 	return 0;
 }
 EXPORT_SYMBOL_GPL(mtd_get_squashfs_len);
@@ -81,7 +83,7 @@ int mtd_check_rootfs_magic(struct mtd_info *mtd, size_t offset,
 
 	ret = mtd_read(mtd, offset, sizeof(magic), &retlen,
 		       (unsigned char *) &magic);
-	if (ret)
+	if (ret && !mtd_is_bitflip(ret))
 		return ret;
 
 	if (retlen != sizeof(magic))

@@ -49,7 +49,8 @@ static int mtdsplit_uimage_parse(struct mtd_info *mtd,
 	int ret;
 
 	ret = mtd_read(mtd, 0, sizeof(hdr), &retlen, (u_char *)&hdr);
-	if (ret)
+	/* -EUCLEAN: corrected bitflips, the data is good */
+	if (ret && !mtd_is_bitflip(ret))
 		return ret;
 	if (retlen != sizeof(hdr) || be32_to_cpu(hdr.ih_magic) != IH_MAGIC)
 		return -ENODEV;
