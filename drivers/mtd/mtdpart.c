@@ -655,10 +655,16 @@ int mtd_add_partition(struct mtd_info *master, const char *name,
 	mutex_unlock(&mtd_partitions_mutex);
 
 	if (add_mtd_device(&new->mtd)) {
+		/*
+		 * Off the list, so nothing splits or mounts it. Not freed:
+		 * add_mtd_device() returns 1 whether or not device_register()
+		 * ran, and when it did, new->mtd.dev keeps a reference it
+		 * never drops. Leaking it on this OOM/sysfs-error path is
+		 * safer than freeing memory a device still points at.
+		 */
 		mutex_lock(&mtd_partitions_mutex);
 		list_del(&new->list);
 		mutex_unlock(&mtd_partitions_mutex);
-		free_partition(new);
 		return -ENOMEM;
 	}
 
