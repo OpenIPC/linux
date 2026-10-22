@@ -629,6 +629,7 @@ int mtd_add_partition(struct mtd_info *master, const char *name,
 	struct mtd_partition part;
 	struct mtd_part *new;
 	int ret = 0;
+	int err;
 
 	/* the direct offset is expected */
 	if (offset == MTDPART_OFS_APPEND ||
@@ -654,13 +655,14 @@ int mtd_add_partition(struct mtd_info *master, const char *name,
 	list_add(&new->list, &mtd_partitions);
 	mutex_unlock(&mtd_partitions_mutex);
 
-	if (add_mtd_device(&new->mtd)) {
+	err = add_mtd_device(&new->mtd);
+	if (err) {
 		mutex_lock(&mtd_partitions_mutex);
 		list_del(&new->list);
 		mutex_unlock(&mtd_partitions_mutex);
 		/*
-		 * add_mtd_device() returns 1 whether or not device_register()
-		 * ran. When it did, the embedded device holds the reference
+		 * add_mtd_device() returns a negative errno whether or not
+		 * device_register() ran. When it did, the embedded device holds the reference
 		 * device_initialize() took: drop it through the driver core
 		 * before the partition, zeroed at allocation, is freed. No
 		 * /dev/mtdXro node was made, and add_mtd_device() has already
@@ -672,7 +674,7 @@ int mtd_add_partition(struct mtd_info *master, const char *name,
 			put_device(&new->mtd.dev);
 		}
 		free_partition(new);
-		return -ENOMEM;
+		return err < 0 ? err : -ENOMEM;
 	}
 
 	mtd_partition_split(master, new);
@@ -1014,7 +1016,7 @@ int parse_mtd_partitions_by_type(struct mtd_info *master,
 				 struct mtd_part_parser_data *data)
 {
 	struct mtd_part_parser *prev = NULL;
-	int ret = 0;
+	int ret = 0, err = 0;
 
 	while (1) {
 		struct mtd_part_parser *parser;
@@ -1030,13 +1032,17 @@ int parse_mtd_partitions_by_type(struct mtd_info *master,
 			printk(KERN_NOTICE
 			       "%d %s partitions found on MTD device %s\n",
 			       ret, parser->name, master->name);
-			break;
+			return ret;
 		}
+		/* Keep the first real failure: a later parser's no-match
+		 * must not hide it, as parse_mtd_partitions() does */
+		if (ret < 0 && !err)
+			err = ret;
 
 		prev = parser;
 	}
 
-	return ret;
+	return err ? err : ret;
 }
 EXPORT_SYMBOL_GPL(parse_mtd_partitions_by_type);
 

@@ -41,6 +41,7 @@ int __initdata rd_doload;	/* 1 = load RAM disk, 0 = don't load */
 int root_mountflags = MS_RDONLY | MS_SILENT;
 static char * __initdata root_device_name;
 static char saved_root_name[64];
+static bool __initdata flash_root_named;
 
 bool root_dev_from_flash;
 static int root_wait;
@@ -617,6 +618,10 @@ void __init prepare_namespace(void)
 				  saved_root_name);
 		saved_root_name[0] = '\0';
 		root_fs_names = NULL;
+		/* what was mounted, for get_rootfs_type() readers after boot:
+		 * the split rootfs is a squashfs (mtdsplit_squashfs) */
+		strlcpy(save_root_fs_names, "squashfs", sizeof(save_root_fs_names));
+		flash_root_named = true;
 	}
 
 	if (saved_root_name[0]) {
@@ -650,6 +655,10 @@ void __init prepare_namespace(void)
 		ROOT_DEV = Root_RAM0;
 
 	mount_root();
+	/* get_root_name() is read after boot: name the root actually mounted */
+	if (flash_root_named)
+		snprintf(saved_root_name, sizeof(saved_root_name),
+			 "/dev/mtdblock%u", MINOR(ROOT_DEV));
 out:
 	devtmpfs_mount("dev");
 	sys_mount(".", "/", NULL, MS_MOVE, NULL);

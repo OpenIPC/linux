@@ -370,6 +370,12 @@ static bool bsp_snor_split_layout(struct mtd_info *mtd)
 	parts = of_get_child_by_name(mtd_get_of_node(mtd), "partitions");
 	if (!parts)
 		return false;
+	/* ofpart reads only a fixed-partitions node; anything else would leave
+	 * the flash with no partitions at all */
+	if (!of_device_is_compatible(parts, "fixed-partitions")) {
+		of_node_put(parts);
+		return false;
+	}
 	for_each_child_of_node(parts, pp) {
 		const __be32 *reg;
 		const char *label;
@@ -414,6 +420,15 @@ static int bsp_snor_device_register(struct mtd_info *mtd)
 	if (ret)
 		return ret;
 	mtd_part_parser_cleanup(&parsed);
+	if (!parsed.nr_parts && probes != bsp_snor_cmdline_probes) {
+		/* The DT table gave nothing: the command line's, as before */
+		probes = bsp_snor_cmdline_probes;
+		memset(&parsed, 0, sizeof(parsed));
+		ret = parse_mtd_partitions(mtd, probes, &parsed, NULL);
+		if (ret)
+			return ret;
+		mtd_part_parser_cleanup(&parsed);
+	}
 
 	return parsed.nr_parts ?
 		mtd_device_parse_register(mtd, probes, NULL, NULL, 0) : 0;

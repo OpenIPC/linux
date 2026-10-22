@@ -62,7 +62,8 @@ mtdsplit_fit_parse(struct mtd_info *mtd,
 	/* Parse the MTD device & search for the FIT image location */
 	for(offset = 0; offset < mtd->size; offset += mtd->erasesize) {
 		ret = mtd_read(mtd, offset, hdr_len, &retlen, (void*) &hdr);
-		if (ret) {
+		/* -EUCLEAN: corrected bitflips, the data is good */
+		if (ret && !mtd_is_bitflip(ret)) {
 			pr_err("read error in \"%s\" at offset 0x%llx\n",
 			       mtd->name, (unsigned long long) offset);
 			return ret;
