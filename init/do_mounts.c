@@ -15,6 +15,7 @@
 #include <linux/tty.h>
 #include <linux/suspend.h>
 #include <linux/root_dev.h>
+#include <linux/major.h>
 #include <linux/security.h>
 #include <linux/delay.h>
 #include <linux/genhd.h>
@@ -40,6 +41,9 @@ int __initdata rd_doload;	/* 1 = load RAM disk, 0 = don't load */
 int root_mountflags = MS_RDONLY | MS_SILENT;
 static char * __initdata root_device_name;
 static char saved_root_name[64];
+static bool __initdata flash_root_named;
+
+bool root_dev_from_flash;
 static int root_wait;
 
 dev_t ROOT_DEV;
@@ -563,6 +567,22 @@ void __init mount_root(void)
 }
 
 /*
+ * Whether root= leaves the root to the flash: no root= at all, or one naming
+ * an MTD device, by name ("mtd...", "/dev/mtdblockN") or by number ("31:N",
+ * or its hex encoding).
+ */
+static bool __init root_names_flash(const char *name)
+{
+	if (!name[0] || !strncmp(name, "mtd", 3) ||
+	    !strncmp(name, "/dev/mtdblock", 13))
+		return true;
+	if (!strncmp(name, "/dev/", 5) || !strncmp(name, "PARTUUID=", 9) ||
+	    !strncmp(name, "PARTLABEL=", 10) || !strncmp(name, "ubi", 3))
+		return false;
+	return MAJOR(name_to_dev_t(name)) == MTD_BLOCK_MAJOR;
+}
+
+/*
  * Prepare the namespace - decide what/where to mount, load ramdisks, etc.
  */
 void __init prepare_namespace(void)
@@ -585,6 +605,24 @@ void __init prepare_namespace(void)
 	wait_for_device_probe();
 
 	md_run_setup();
+
+	/*
+	 * The bootloader's root= and rootfstype= describe its idea of the flash.
+	 * When the kernel found the root filesystem on the flash itself, those
+	 * give way for an MTD root; a root elsewhere (NFS, an SD card, a RAM disk)
+	 * is the bootloader's to choose.
+	 */
+	if (root_dev_from_flash && root_names_flash(saved_root_name)) {
+		if (saved_root_name[0])
+			pr_notice("VFS: root=%s ignored, the flash names its own root\n",
+				  saved_root_name);
+		saved_root_name[0] = '\0';
+		root_fs_names = NULL;
+		/* what was mounted, for get_rootfs_type() readers after boot:
+		 * the split rootfs is a squashfs (mtdsplit_squashfs) */
+		strlcpy(save_root_fs_names, "squashfs", sizeof(save_root_fs_names));
+		flash_root_named = true;
+	}
 
 	if (saved_root_name[0]) {
 		root_device_name = saved_root_name;
@@ -617,6 +655,10 @@ void __init prepare_namespace(void)
 		ROOT_DEV = Root_RAM0;
 
 	mount_root();
+	/* get_root_name() is read after boot: name the root actually mounted */
+	if (flash_root_named)
+		snprintf(saved_root_name, sizeof(saved_root_name),
+			 "/dev/mtdblock%u", MINOR(ROOT_DEV));
 out:
 	devtmpfs_mount("dev");
 	sys_mount(".", "/", NULL, MS_MOVE, NULL);

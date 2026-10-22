@@ -29,9 +29,13 @@
 #include <linux/kmod.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
+#include <linux/magic.h>
 #include <linux/err.h>
 
 #include "mtdcore.h"
+#include "mtdsplit/mtdsplit.h"
+#include <linux/major.h>
+#include <linux/root_dev.h>
 
 /* Our partition linked list */
 static LIST_HEAD(mtd_partitions);
@@ -44,6 +48,8 @@ struct mtd_part {
 	uint64_t offset;
 	struct list_head list;
 };
+
+static void mtd_partition_split(struct mtd_info *master, struct mtd_part *part);
 
 /*
  * Given a pointer to the MTD object in the mtd_part structure, we can retrieve
@@ -623,6 +629,7 @@ int mtd_add_partition(struct mtd_info *master, const char *name,
 	struct mtd_partition part;
 	struct mtd_part *new;
 	int ret = 0;
+	int err;
 
 	/* the direct offset is expected */
 	if (offset == MTDPART_OFS_APPEND ||
@@ -648,8 +655,29 @@ int mtd_add_partition(struct mtd_info *master, const char *name,
 	list_add(&new->list, &mtd_partitions);
 	mutex_unlock(&mtd_partitions_mutex);
 
-	add_mtd_device(&new->mtd);
+	err = add_mtd_device(&new->mtd);
+	if (err) {
+		mutex_lock(&mtd_partitions_mutex);
+		list_del(&new->list);
+		mutex_unlock(&mtd_partitions_mutex);
+		/*
+		 * add_mtd_device() returns a negative errno whether or not
+		 * device_register() ran. When it did, the embedded device holds the reference
+		 * device_initialize() took: drop it through the driver core
+		 * before the partition, zeroed at allocation, is freed. No
+		 * /dev/mtdXro node was made, and add_mtd_device() has already
+		 * given the index back, so mtd_release() is told (no drvdata)
+		 * not to remove the node of whichever device took it since.
+		 */
+		if (new->mtd.dev.kobj.state_initialized) {
+			dev_set_drvdata(&new->mtd.dev, NULL);
+			put_device(&new->mtd.dev);
+		}
+		free_partition(new);
+		return err < 0 ? err : -ENOMEM;
+	}
 
+	mtd_partition_split(master, new);
 	mtd_add_partition_attrs(new);
 
 	return ret;
@@ -681,6 +709,96 @@ int mtd_del_partition(struct mtd_info *master, int partno)
 }
 EXPORT_SYMBOL_GPL(mtd_del_partition);
 
+static int
+run_parsers_by_type(struct mtd_part *slave, enum mtd_parser_type type)
+{
+	struct mtd_partition *parts;
+	int nr_parts;
+	int i, err, ret;
+
+	nr_parts = parse_mtd_partitions_by_type(&slave->mtd, type, (const struct mtd_partition **)&parts,
+						NULL);
+	if (nr_parts <= 0)
+		return nr_parts;
+
+	if (WARN_ON(!parts))
+		return 0;
+
+	ret = nr_parts;
+	for (i = 0; i < nr_parts; i++) {
+		/* adjust partition offsets */
+		parts[i].offset += slave->offset;
+
+		err = mtd_add_partition(slave->master,
+					parts[i].name,
+					parts[i].offset,
+					parts[i].size);
+		if (err) {
+			pr_err("cannot add \"%s\" split from \"%s\": %d\n",
+			       parts[i].name, slave->mtd.name, err);
+			if (ret > 0)
+				ret = err;
+		}
+	}
+
+	kfree(parts);
+
+	/* The first child that could not be added, else how many were. */
+	return ret;
+}
+
+#ifdef CONFIG_MTD_SPLIT_FIRMWARE_NAME
+#define SPLIT_FIRMWARE_NAME	CONFIG_MTD_SPLIT_FIRMWARE_NAME
+#else
+#define SPLIT_FIRMWARE_NAME	"unused"
+#endif
+
+/*
+ * The task splitting the firmware partition, while it does. The rootfs parsers
+ * run only on the "rootfs" child that split creates, which is added from the
+ * same task: a partition the command line names "rootfs" (a fixed layout,
+ * kernel and rootfs in slots of their own) is left as it is, so its slack never
+ * grows a second rootfs_data. One split at a time, so a partition added from
+ * elsewhere meanwhile is never mistaken for a child.
+ */
+static DEFINE_MUTEX(split_lock);
+static struct task_struct *splitting_task;
+
+static void split_firmware(struct mtd_info *master, struct mtd_part *part)
+{
+	int ret;
+
+	mutex_lock(&split_lock);
+	splitting_task = current;
+	ret = run_parsers_by_type(part, MTD_PARSER_TYPE_FIRMWARE);
+	splitting_task = NULL;
+	mutex_unlock(&split_lock);
+
+	if (ret < 0 && ret != -ENODEV)
+		pr_err("\"%s\" was not fully split: %d\n", part->mtd.name, ret);
+}
+
+static void mtd_partition_split(struct mtd_info *master, struct mtd_part *part)
+{
+	bool child = READ_ONCE(splitting_task) == current;
+
+	if (child && !strcmp(part->mtd.name, ROOTFS_PART_NAME)) {
+		/*
+		 * The root filesystem the firmware split found is the root,
+		 * whatever root= the bootloader passed (see prepare_namespace).
+		 * The first split found keeps it: the boot flash registers first.
+		 */
+		if (IS_ENABLED(CONFIG_MTD_ROOTFS_ROOT_DEV) && !root_dev_from_flash) {
+			ROOT_DEV = MKDEV(MTD_BLOCK_MAJOR, part->mtd.index);
+			root_dev_from_flash = true;
+		}
+		run_parsers_by_type(part, MTD_PARSER_TYPE_ROOTFS);
+	}
+
+	if (!child && !strcmp(part->mtd.name, SPLIT_FIRMWARE_NAME) &&
+	    IS_ENABLED(CONFIG_MTD_SPLIT_FIRMWARE))
+		split_firmware(master, part);
+}
 /*
  * This function, given a master MTD object and a partition table, creates
  * and registers slave MTD objects which are bound to the master according to
@@ -711,7 +829,9 @@ int add_mtd_partitions(struct mtd_info *master,
 		list_add(&slave->list, &mtd_partitions);
 		mutex_unlock(&mtd_partitions_mutex);
 
-		add_mtd_device(&slave->mtd);
+		/* An unregistered partition has no index: never split or root */
+		if (!add_mtd_device(&slave->mtd))
+			mtd_partition_split(master, slave);
 		mtd_add_partition_attrs(slave);
 
 		cur_offset = slave->offset + slave->mtd.size;
@@ -866,6 +986,66 @@ void mtd_part_parser_cleanup(struct mtd_partitions *parts)
 	}
 }
 
+static struct mtd_part_parser *
+get_partition_parser_by_type(enum mtd_parser_type type,
+			     struct mtd_part_parser *start)
+{
+	struct mtd_part_parser *p, *ret = NULL;
+
+	spin_lock(&part_parser_lock);
+
+	p = list_prepare_entry(start, &part_parsers, list);
+	if (start)
+		mtd_part_parser_put(start);
+
+	list_for_each_entry_continue(p, &part_parsers, list) {
+		if (p->type == type && try_module_get(p->owner)) {
+			ret = p;
+			break;
+		}
+	}
+
+	spin_unlock(&part_parser_lock);
+
+	return ret;
+}
+
+int parse_mtd_partitions_by_type(struct mtd_info *master,
+				 enum mtd_parser_type type,
+				 const struct mtd_partition **pparts,
+				 struct mtd_part_parser_data *data)
+{
+	struct mtd_part_parser *prev = NULL;
+	int ret = 0, err = 0;
+
+	while (1) {
+		struct mtd_part_parser *parser;
+
+		parser = get_partition_parser_by_type(type, prev);
+		if (!parser)
+			break;
+
+		ret = (*parser->parse_fn)(master, pparts, data);
+
+		if (ret > 0) {
+			mtd_part_parser_put(parser);
+			printk(KERN_NOTICE
+			       "%d %s partitions found on MTD device %s\n",
+			       ret, parser->name, master->name);
+			return ret;
+		}
+		/* Keep the first real failure: a later parser's no-match
+		 * must not hide it, as parse_mtd_partitions() does */
+		if (ret < 0 && !err)
+			err = ret;
+
+		prev = parser;
+	}
+
+	return err ? err : ret;
+}
+EXPORT_SYMBOL_GPL(parse_mtd_partitions_by_type);
+
 int mtd_is_partition(const struct mtd_info *mtd)
 {
 	struct mtd_part *part;
@@ -882,6 +1062,24 @@ int mtd_is_partition(const struct mtd_info *mtd)
 	return ispart;
 }
 EXPORT_SYMBOL_GPL(mtd_is_partition);
+
+struct mtd_info *mtdpart_get_master(const struct mtd_info *mtd)
+{
+	if (!mtd_is_partition(mtd))
+		return (struct mtd_info *)mtd;
+
+	return mtd_to_part(mtd)->master;
+}
+EXPORT_SYMBOL_GPL(mtdpart_get_master);
+
+uint64_t mtdpart_get_offset(const struct mtd_info *mtd)
+{
+	if (!mtd_is_partition(mtd))
+		return 0;
+
+	return mtd_to_part(mtd)->offset;
+}
+EXPORT_SYMBOL_GPL(mtdpart_get_offset);
 
 /* Returns the size of the entire flash chip */
 uint64_t mtd_get_device_size(const struct mtd_info *mtd)

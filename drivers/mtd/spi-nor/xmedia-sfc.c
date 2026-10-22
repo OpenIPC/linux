@@ -301,6 +301,102 @@ static ssize_t bsp_spi_nor_write(struct spi_nor *nor, loff_t to,
 	return len;
 }
 
+/*
+ * The split NOR layout: the device tree's "firmware" partition starts with a
+ * uImage and the root squashfs follows it at the next erase block (mtdsplit
+ * divides it at boot). Its partitions are then the device tree's, whatever
+ * the bootloader passed -- an OpenIPC U-Boot's fixed-slot mtdparts, or a
+ * vendor's own, which uses this same mtd-id -- so any U-Boot that bootm's the
+ * uImage at the start of the partition boots it. The fixed-slot layout also
+ * starts with a uImage, but its squashfs sits at the slot boundary: it keeps
+ * the command line first, as before. Only with the splitters and the flash
+ * root (MTD_ROOTFS_ROOT_DEV) built, or the DT layout would leave a split
+ * image unbootable: the bootloader's root= would name another partition.
+ */
+#ifdef CONFIG_MTD_SPLIT_FIRMWARE_NAME
+#define BSP_SNOR_FW_NAME CONFIG_MTD_SPLIT_FIRMWARE_NAME
+#else
+#define BSP_SNOR_FW_NAME "firmware"
+#endif
+
+static const char * const bsp_snor_split_probes[] = { "ofpart", NULL };
+/* Otherwise the command line only, as before the DT had partitions */
+static const char * const bsp_snor_cmdline_probes[] = { "cmdlinepart", NULL };
+
+/* mtd_read() succeeded, or returned the data with corrected bitflips */
+static bool bsp_snor_read(struct mtd_info *mtd, u64 off, size_t len, void *buf)
+{
+	size_t retlen;
+	int err = mtd_read(mtd, off, len, &retlen, buf);
+
+	return (!err || mtd_is_bitflip(err)) && retlen == len;
+}
+
+static bool bsp_snor_split_at(struct mtd_info *mtd, u64 offset, u64 size)
+{
+	struct {
+		__be32 magic, hcrc, time, size;
+	} hdr;
+	__le32 squashfs;
+	u64 kernel;
+
+	/* ofpart: size 0 is the rest of the chip */
+	if (offset >= mtd->size)
+		return false;
+	if (!size || size > mtd->size - offset)
+		size = mtd->size - offset;
+	if (size < sizeof(hdr) || !bsp_snor_read(mtd, offset, sizeof(hdr), &hdr) ||
+	    be32_to_cpu(hdr.magic) != 0x27051956)
+		return false;
+	kernel = round_up(64 + (u64)be32_to_cpu(hdr.size), mtd->erasesize);
+	/* The splitter reads within the partition, so must this. */
+	if (kernel + sizeof(squashfs) > size)
+		return false;
+	return bsp_snor_read(mtd, offset + kernel, sizeof(squashfs), &squashfs) &&
+		le32_to_cpu(squashfs) == 0x73717368;	/* "hsqs" */
+}
+
+static bool bsp_snor_split_layout(struct mtd_info *mtd)
+{
+	struct device_node *parts, *pp;
+	bool split = false;
+
+	if (!IS_ENABLED(CONFIG_MTD_SPLIT_FIRMWARE) ||
+	    !IS_ENABLED(CONFIG_MTD_SPLIT_UIMAGE_FW) ||
+	    !IS_ENABLED(CONFIG_MTD_ROOTFS_ROOT_DEV) ||
+	    !IS_ENABLED(CONFIG_MTD_OF_PARTS))
+		return false;
+
+	parts = of_get_child_by_name(mtd_get_of_node(mtd), "partitions");
+	if (!parts)
+		return false;
+	/* ofpart reads only a fixed-partitions node; anything else would leave
+	 * the flash with no partitions at all */
+	if (!of_device_is_compatible(parts, "fixed-partitions")) {
+		of_node_put(parts);
+		return false;
+	}
+	for_each_child_of_node(parts, pp) {
+		const __be32 *reg;
+		const char *label;
+		int len, na, ns;
+
+		if (of_property_read_string(pp, "label", &label) ||
+		    strcmp(label, BSP_SNOR_FW_NAME))
+			continue;
+		reg = of_get_property(pp, "reg", &len);
+		na = of_n_addr_cells(pp);
+		ns = of_n_size_cells(pp);
+		if (reg && len >= (na + ns) * (int)sizeof(*reg))
+			split = bsp_snor_split_at(mtd, of_read_number(reg, na),
+						   of_read_number(reg + na, ns));
+		of_node_put(pp);
+		break;
+	}
+	of_node_put(parts);
+	return split;
+}
+
 /**
  * parse partitions info and register spi flash device as mtd device.
  */
@@ -308,17 +404,34 @@ static int bsp_snor_device_register(struct mtd_info *mtd)
 {
 	int ret;
 	struct mtd_partitions parsed;
+	const char * const *probes = bsp_snor_cmdline_probes;
+
+	if (bsp_snor_split_layout(mtd)) {
+		pr_info("%s: split NOR layout, device tree partitions\n", mtd->name);
+		probes = bsp_snor_split_probes;
+	}
 
 	/*
 	 * We do not add the whole spi flash as a mtdblock device,
 	 * To avoid the number of nand partition +1.
 	 */
 	memset(&parsed, 0, sizeof(parsed));
-	ret = parse_mtd_partitions(mtd, NULL, &parsed, NULL);
+	ret = parse_mtd_partitions(mtd, probes, &parsed, NULL);
 	if (ret)
 		return ret;
+	mtd_part_parser_cleanup(&parsed);
+	if (!parsed.nr_parts && probes != bsp_snor_cmdline_probes) {
+		/* The DT table gave nothing: the command line's, as before */
+		probes = bsp_snor_cmdline_probes;
+		memset(&parsed, 0, sizeof(parsed));
+		ret = parse_mtd_partitions(mtd, probes, &parsed, NULL);
+		if (ret)
+			return ret;
+		mtd_part_parser_cleanup(&parsed);
+	}
 
-	return parsed.nr_parts ? mtd_device_register(mtd, NULL, 0) : parsed.nr_parts;
+	return parsed.nr_parts ?
+		mtd_device_parse_register(mtd, probes, NULL, NULL, 0) : 0;
 }
 
 /**
