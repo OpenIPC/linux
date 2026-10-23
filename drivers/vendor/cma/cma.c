@@ -181,7 +181,8 @@ int cma_dma_remap(struct page *page, size_t size, pgprot_t prot)
 	unsigned long start;
 	int ret;
 
-	if (page == NULL || PageHighMem(page))
+	/* the pte walk steps a page at a time and stops only on the exact end */
+	if (page == NULL || PageHighMem(page) || size == 0 || !PAGE_ALIGNED(size))
 		return -EINVAL;
 
 	start = (unsigned long)page_address(page);
