@@ -154,6 +154,33 @@ struct device *get_cma_device(const char *name)
 }
 EXPORT_SYMBOL(get_cma_device);
 
+#if defined(CONFIG_CMA) && defined(CONFIG_ARM)
+/*
+ * ARM32 short-descriptor page tables: set_pte_ext() has no AArch64
+ * equivalent, and AArch64 keeps its own MMZ mapping path, so this is
+ * compiled for ARM32 (cv6xx) only.
+ */
+static int bsp_cma_update_pte(pte_t *pte, unsigned long addr, void *data)
+{
+	struct page *page = virt_to_page(addr);
+	pgprot_t prot = *(pgprot_t *)data;
+
+	set_pte_ext(pte, mk_pte(page, prot), 0);
+	return 0;
+}
+
+void bsp_cma_dma_remap(struct page *page, size_t size, pgprot_t prot)
+{
+	unsigned long start = (unsigned long)page_address(page);
+	unsigned long end = start + size;
+
+	apply_to_page_range(&init_mm, start, size, bsp_cma_update_pte, &prot);
+	dsb();
+	flush_tlb_kernel_range(start, end);
+}
+EXPORT_SYMBOL_GPL(bsp_cma_dma_remap);
+#endif /* CONFIG_CMA && CONFIG_ARM */
+
 int __init declare_heap_memory(void)
 {
 	u32 i, n;
