@@ -1,0 +1,1 @@
+obj-$(CONFIG_CRYPTO_DEV_AXERA_EIP130) += axera-eip130.o

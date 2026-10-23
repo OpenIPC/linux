@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
+config PINCTRL_AXERA
+	bool "AXERA pinctrl driver"
+	depends on OF && HAS_IOMEM
+	depends on ARCH_AXERA || COMPILE_TEST
+	select PINMUX
+	select PINCONF
+	select GENERIC_PINCONF
+	select GENERIC_PINCTRL_GROUPS
+	select GENERIC_PINMUX_FUNCTIONS
+	select MFD_SYSCON
+	select RESET_CONTROLLER
+	help
+	  This enables the Axera pin controller core.
+
+config PINCTRL_AX620E
+	bool "AX620E pinctrl driver"
+	depends on PINCTRL_AXERA
+	default ARCH_AXERA
+	help
+	  This enables the Axera AX620E / AX630C pin controller.

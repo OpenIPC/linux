@@ -1,0 +1,11 @@
+config CRYPTO_DEV_AXERA_EIP130
+	tristate "Axera AX620E/AX630C EIP-130 AES engine"
+	depends on ARCH_AXERA || COMPILE_TEST
+	depends on OF && HAS_DMA
+	select CRYPTO_ENGINE
+	select CRYPTO_SKCIPHER
+	help
+	  Interrupt driven AES ECB/CBC/CTR using the EIP-130 mailbox engine.
+	  Requires axera/eip130.bin firmware. Standard Crypto API templates
+	  can combine the hardware CTR implementation with software GHASH.
+	  This driver does not expose physical addresses or raw tokens to userspace.

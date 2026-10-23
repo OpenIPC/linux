@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
+config AXERA_VPU
+	bool "Axera VPU clock, reset, and frequency"
+	depends on ARCH_AXERA
+	select PM_OPP
+	default y
+	help
+	  Turn on the AX630C Hantro VENC, JENC, and VDEC clocks and resets
+	  and switch their muxes across the vendor OPP rates.
+	  The vendor command-queue driver is not in the public SDK.

@@ -1,0 +1,902 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+/*
+ * Axera AX620E / AX630C SoC (AArch64)
+ */
+
+#include <dt-bindings/clock/ax620e-clock.h>
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+
+/ {
+	compatible = "axera,ax620e";
+	interrupt-parent = <&gic>;
+	#address-cells = <2>;
+	#size-cells = <2>;
+
+	aliases {
+		ethernet0 = &eth0;
+		serial0 = &uart0;
+		mmc0 = &emmc;
+		mmc1 = &sdio;
+		mmc2 = &sd;
+		i2c0 = &i2c0;
+		i2c7 = &i2c7;
+	};
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		cpu0: cpu@0 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a53";
+			reg = <0x0>;
+			enable-method = "psci";
+			clocks = <&clk_cpu AX620X_CLK_CPU_SEL>;
+			operating-points-v2 = <&cpu_opp_table>;
+		};
+
+		cpu1: cpu@1 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a53";
+			reg = <0x1>;
+			enable-method = "psci";
+			clocks = <&clk_cpu AX620X_CLK_CPU_SEL>;
+			operating-points-v2 = <&cpu_opp_table>;
+		};
+	};
+
+	/*
+	 * clk_cpu_sel parents. 24 MHz is on the mux but stalls an NFS root,
+	 * so it is not an OPP. Both cores share one mux.
+	 */
+	cpu_opp_table: cpu-opp-table {
+		compatible = "operating-points-v2";
+		opp-shared;
+
+		opp-208000000 {
+			opp-hz = /bits/ 64 <208000000>;
+		};
+		opp-500000000 {
+			opp-hz = /bits/ 64 <500000000>;
+		};
+		opp-800000000 {
+			opp-hz = /bits/ 64 <800000000>;
+		};
+		opp-1200000000 {
+			opp-hz = /bits/ 64 <1200000000>;
+		};
+	};
+
+	/*
+	 * VPU mux parents (cpll/epll/npll fixed factors). One table per
+	 * codec: the three muxes are independent, so this must not be
+	 * opp-shared. 533333333 Hz is npll_1600m / 3.
+	 */
+	venc_opp_table: venc-opp-table {
+		compatible = "operating-points-v2";
+
+		opp-208000000 {
+			opp-hz = /bits/ 64 <208000000>;
+		};
+		opp-312000000 {
+			opp-hz = /bits/ 64 <312000000>;
+		};
+		opp-375000000 {
+			opp-hz = /bits/ 64 <375000000>;
+		};
+		opp-416000000 {
+			opp-hz = /bits/ 64 <416000000>;
+		};
+		opp-500000000 {
+			opp-hz = /bits/ 64 <500000000>;
+		};
+		opp-533333333 {
+			opp-hz = /bits/ 64 <533333333>;
+		};
+	};
+
+	jenc_opp_table: jenc-opp-table {
+		compatible = "operating-points-v2";
+
+		opp-208000000 {
+			opp-hz = /bits/ 64 <208000000>;
+		};
+		opp-312000000 {
+			opp-hz = /bits/ 64 <312000000>;
+		};
+		opp-375000000 {
+			opp-hz = /bits/ 64 <375000000>;
+		};
+		opp-416000000 {
+			opp-hz = /bits/ 64 <416000000>;
+		};
+		opp-500000000 {
+			opp-hz = /bits/ 64 <500000000>;
+		};
+		opp-533333333 {
+			opp-hz = /bits/ 64 <533333333>;
+		};
+	};
+
+	vdec_opp_table: vdec-opp-table {
+		compatible = "operating-points-v2";
+
+		opp-208000000 {
+			opp-hz = /bits/ 64 <208000000>;
+		};
+		opp-312000000 {
+			opp-hz = /bits/ 64 <312000000>;
+		};
+		opp-375000000 {
+			opp-hz = /bits/ 64 <375000000>;
+		};
+		opp-416000000 {
+			opp-hz = /bits/ 64 <416000000>;
+		};
+		opp-500000000 {
+			opp-hz = /bits/ 64 <500000000>;
+		};
+		opp-533333333 {
+			opp-hz = /bits/ 64 <533333333>;
+		};
+	};
+
+	/*
+	 * AX630C arm64 firmware (AX630C_fastemmc_arm64_k419.dtsi) boots
+	 * CPU1 with PSCI. 0x23400DC is a common-sys clock register, not a
+	 * spin-table mailbox on this ATF. Writing it corrupts clocks.
+	 */
+	psci {
+		compatible = "arm,psci-1.0";
+		method = "smc";
+	};
+
+	timer {
+		compatible = "arm,armv8-timer";
+		/*
+		 * Vendor 4.19 says LEVEL_HIGH and arm,armv7-timer, but that GIC
+		 * driver ignored PPI trigger flags. 6.18 programs them, and
+		 * this SoC's timer PPIs are active-low. clock-frequency matches
+		 * the vendor 24 MHz CNTFRQ.
+		 */
+		interrupts = <GIC_PPI 13 (GIC_CPU_MASK_SIMPLE(2) | IRQ_TYPE_LEVEL_LOW)>,
+			     <GIC_PPI 14 (GIC_CPU_MASK_SIMPLE(2) | IRQ_TYPE_LEVEL_LOW)>,
+			     <GIC_PPI 11 (GIC_CPU_MASK_SIMPLE(2) | IRQ_TYPE_LEVEL_LOW)>,
+			     <GIC_PPI 10 (GIC_CPU_MASK_SIMPLE(2) | IRQ_TYPE_LEVEL_LOW)>;
+		clock-frequency = <24000000>;
+		arm,cpu-registers-not-fw-configured;
+		always-on;
+	};
+
+	/* GICC includes DIR at +0x1000; VGIC maintenance is PPI 9 (INTID 25). */
+	gic: interrupt-controller@1850000 {
+		compatible = "arm,gic-400";
+		#interrupt-cells = <3>;
+		#address-cells = <2>;
+		#size-cells = <2>;
+		interrupt-controller;
+		reg = <0x0 0x01851000 0x0 0x1000>,
+		      <0x0 0x01852000 0x0 0x2000>,
+		      <0x0 0x01854000 0x0 0x2000>,
+		      <0x0 0x01856000 0x0 0x2000>;
+		interrupts = <GIC_PPI 9 (GIC_CPU_MASK_SIMPLE(2) | IRQ_TYPE_LEVEL_HIGH)>;
+	};
+
+	emmc_core_clk: emmc-core-clk {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <200000000>;
+		clock-output-names = "emmc_core";
+	};
+
+	/* The Axera SDHCI init programs the SD card source to 200 MHz. */
+	sd_core_clk: sd-core-clk {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <200000000>;
+		clock-output-names = "sd_core";
+	};
+
+	thermal-zones {
+		soc-thermal {
+			polling-delay = <1000>;
+			polling-delay-passive = <1000>;
+			thermal-sensors = <&tsensor 0>;
+		};
+	};
+
+	soc {
+		compatible = "simple-bus";
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		tsensor: temperature-sensor@2000000 {
+			compatible = "axera,ax620e-tsensor";
+			reg = <0x0 0x02000000 0x0 0x1000>;
+			axera,common-syscon = <&clk_common>;
+			#thermal-sensor-cells = <1>;
+		};
+
+		clk_cpu: clock-controller@1900000 {
+			compatible = "axera,ax620x-cpu-clk", "syscon";
+			reg = <0x0 0x01900000 0x0 0x10000>;
+			#clock-cells = <1>;
+		};
+
+		clk_pllc: clock-controller@2210000 {
+			compatible = "axera,ax620x-pllc-clk", "syscon";
+			reg = <0x0 0x02210000 0x0 0x10000>;
+			#clock-cells = <1>;
+		};
+
+		clk_common: clock-controller@2340000 {
+			compatible = "axera,ax620x-common-clk", "syscon";
+			reg = <0x0 0x02340000 0x0 0x10000>;
+			#clock-cells = <1>;
+		};
+
+		/*
+		 * Same window as clk_common. The clock provider iomaps it;
+		 * this node is only the 3-cell reset regmap.
+		 */
+		common_reset: reset-controller@2340000 {
+			compatible = "axera,axera_reset_match", "syscon";
+			reg = <0x0 0x02340000 0x0 0x10000>;
+			#reset-cells = <3>;
+		};
+
+		dphytx_syscon: syscon@23f1000 {
+			compatible = "axera,ax620e-dphytx-syscon", "syscon";
+			reg = <0x0 0x023f1000 0x0 0x1000>;
+		};
+
+		dispc_reset_ext: reset-controller@4600000 {
+			compatible = "axera,axera_reset_match", "syscon";
+			reg = <0x0 0x04600000 0x0 0x100>;
+			#reset-cells = <4>;
+		};
+
+		/* ISP clock/reset window. Capture programs it; nothing writes at map time. */
+		isp_syscon: syscon@2500000 {
+			compatible = "axera,ax630c-isp-syscon", "syscon";
+			reg = <0x0 0x02500000 0x0 0x10000>;
+		};
+
+		clk_flash: clock-controller@10030000 {
+			compatible = "axera,ax620x-flash-clk", "syscon";
+			reg = <0x0 0x10030000 0x0 0x10000>;
+			#clock-cells = <1>;
+		};
+
+		clk_periph: clock-controller@4870000 {
+			compatible = "axera,ax620x-periph-clk", "syscon";
+			reg = <0x0 0x04870000 0x0 0x10000>;
+			#clock-cells = <1>;
+		};
+
+		wdt0: watchdog@4840000 {
+			compatible = "axera,ax620e-wdt";
+			reg = <0x0 0x04840000 0x0 0x400>;
+			clocks = <&clk_periph AX620X_CLK_WDT0_EB>,
+				 <&clk_periph AX620X_PCLK_WDT0_EB>;
+			clock-names = "tclk", "pclk";
+			resets = <&periph_reset_ext 1 0xf0 1 0xf4>,
+				 <&periph_reset_ext 0 0xf0 0 0xf4>;
+			reset-names = "timer", "bus";
+			timeout-sec = <60>;
+			status = "disabled";
+		};
+
+		crypto: crypto@4900000 {
+			compatible = "axera,ax630c-eip130";
+			reg = <0x0 0x04900000 0x0 0x40000>;
+			interrupts = <GIC_SPI 110 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&clk_periph AX620X_PCLK_CE_EB>,
+				 <&clk_periph AX620X_ACLK_CE_EB>,
+				 <&clk_periph AX620X_CLK_CE_CNT_EB>;
+			clock-names = "pclk", "core", "cnt";
+			assigned-clocks = <&clk_periph AX620X_CLK_CE_BUS_SEL>;
+			assigned-clock-rates = <312000000>;
+			resets = <&periph_reset_ext 4 0xd8 4 0xdc>,
+				 <&periph_reset_ext 5 0xd8 5 0xdc>,
+				 <&periph_reset_ext 6 0xd8 6 0xdc>,
+				 <&periph_reset_ext 8 0xd8 8 0xdc>,
+				 <&periph_reset_ext 7 0xd8 7 0xdc>;
+			status = "disabled";
+		};
+
+		clk_vpu: clock-controller@4030000 {
+			compatible = "axera,ax620x-vpu-clk", "syscon";
+			reg = <0x0 0x04030000 0x0 0x10000>;
+			#clock-cells = <1>;
+		};
+
+		clk_mm: clock-controller@4430000 {
+			compatible = "axera,ax620x-mm-clk", "syscon";
+			reg = <0x0 0x04430000 0x0 0x10000>;
+			#clock-cells = <1>;
+		};
+
+		mm_reset_async: reset-controller@4430000 {
+			compatible = "axera,axera_reset_match", "syscon";
+			reg = <0x0 0x04430000 0x0 0x10000>;
+			#reset-cells = <10>;
+		};
+
+		tdp: image-processor@4405000 {
+			compatible = "axera,ax630c-tdp";
+			reg = <0x0 0x04405000 0x0 0x1000>;
+			interrupts = <GIC_SPI 99 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&clk_mm AX620X_CLK_TDP_EB>,
+				 <&clk_mm AX620X_PCLK_TDP_EB>;
+			clock-names = "core", "pclk";
+			assigned-clocks = <&clk_mm AX620X_CLK_TDP_SRC_SEL>;
+			assigned-clock-rates = <312000000>;
+			resets = <&mm_reset_async 19 0xc4 19 0xc8 0x8 24 0xb4 24 0xb8 24>,
+				 <&mm_reset_async 20 0xc4 20 0xc8 0x8 11 0xb4 11 0xb8 11>;
+			status = "disabled";
+		};
+
+		cpu_reset_ext: reset-controller@1900000 {
+			compatible = "axera,axera_reset_match", "syscon";
+			reg = <0x0 0x01900000 0x0 0x10000>;
+			#reset-cells = <4>;
+		};
+
+		periph_reset_ext: reset-controller@4870000 {
+			compatible = "axera,axera_reset_match", "syscon";
+			reg = <0x0 0x04870000 0x0 0x10000>;
+			#reset-cells = <4>;
+		};
+
+		flash_reset_ext: reset-controller@10030000 {
+			compatible = "axera,axera_reset_match", "syscon";
+			reg = <0x0 0x10030000 0x0 0x10000>;
+			#reset-cells = <4>;
+		};
+
+		vpu_reset: reset-controller@4030000 {
+			compatible = "axera,axera_reset_match", "syscon";
+			reg = <0x0 0x04030000 0x0 0x10000>;
+			#reset-cells = <3>;
+		};
+
+		/*
+		 * Hantro VC8000 VCMD. The public SDK ships only the 4.19
+		 * ax_venc/ax_jenc/ax_vdec modules. Those probe by resource
+		 * name, then allocate three AX_OSAL CMM pools (command,
+		 * status, registers) before hantrovcmd_init.
+		 */
+		venc: venc@4010000 {
+			compatible = "axera, venc-encoder";
+			reg = <0x0 0x04010000 0x0 0x10000>;
+			reg-names = "ax_venc";
+			interrupts = <GIC_SPI 93 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&clk_vpu AX620X_CLK_VENC_EB>;
+			clock-names = "venc_clk";
+			resets = <&vpu_reset 7 0x0c 1>;
+			reset-names = "venc_rst";
+			operating-points-v2 = <&venc_opp_table>;
+			status = "disabled";
+		};
+
+		jenc: jenc@4000000 {
+			compatible = "axera,jpeg-encoder";
+			reg = <0x0 0x04000000 0x0 0x10000>;
+			reg-names = "ax_jenc";
+			interrupts = <GIC_SPI 91 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&clk_vpu AX620X_CLK_JENC_EB>;
+			clock-names = "jenc_clk";
+			resets = <&vpu_reset 4 0x0c 1>;
+			reset-names = "jenc_rst";
+			operating-points-v2 = <&jenc_opp_table>;
+			status = "disabled";
+		};
+
+		vdec: vdec@4020000 {
+			compatible = "axera,ax630c-vdec";
+			reg = <0x0 0x04020000 0x0 0x10000>;
+			reg-names = "ax_vdec";
+			interrupts = <GIC_SPI 92 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&clk_vpu AX620X_CLK_VDEC_EB>;
+			clock-names = "vdec_clk";
+			resets = <&vpu_reset 6 0x0c 1>;
+			reset-names = "vdec_rst";
+			operating-points-v2 = <&vdec_opp_table>;
+			status = "disabled";
+		};
+
+		/*
+		 * Open VIN path from open-nanokvm-pro. Lane map default in the
+		 * CSI driver is the NanoKVM Pro wiring (data 0,1,3,4 clock 2).
+		 */
+		mipi_rx: csi2-rx@2600000 {
+			compatible = "axera,ax630c-csi2-rx";
+			reg = <0x0 0x02600000 0x0 0x4000>,
+			      <0x0 0x023f0000 0x0 0x1000>;
+			reg-names = "csi", "dphy";
+			interrupts = <GIC_SPI 31 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 33 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "csictrl0", "csictrl1";
+			clocks = <&clk_common AX620X_CLK_DPHYRX_TLB_EB>;
+			clock-names = "dphyrx_tlb";
+			resets = <&common_reset 7 0x54 1>;
+			reset-names = "dphyrx_tlb";
+			axera,isp-syscon = <&isp_syscon>;
+			axera,common-syscon = <&clk_common>;
+			status = "disabled";
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				csi2_port0: port@0 {
+					reg = <0>;
+
+					csi2_in: endpoint {
+						clock-lanes = <2>;
+						data-lanes = <0 1 3 4>;
+					};
+				};
+
+				port@1 {
+					reg = <1>;
+
+					csi2_out: endpoint {
+						remote-endpoint = <&vin_in>;
+					};
+				};
+			};
+		};
+
+		vin: video-capture@2400000 {
+			compatible = "axera,ax630c-vin";
+			reg = <0x0 0x02400000 0x0 0x100000>;
+			interrupts = <GIC_SPI 27 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 28 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&clk_common AX620X_CLK_VI_EB>,
+				 <&clk_common AX620X_CLK_ISP_MM_EB>;
+			clock-names = "vi", "isp_mm";
+			axera,isp-syscon = <&isp_syscon>;
+			status = "disabled";
+
+			port {
+				vin_in: endpoint {
+					remote-endpoint = <&csi2_out>;
+				};
+			};
+		};
+
+		pinctrl: pinctrl@2300000 {
+			compatible = "axera,ax620e-pinctrl";
+			reg = <0x0 0x02300000 0x0 0xb000>,
+			      <0x0 0x104f0000 0x0 0x3000>;
+			axera,dphytx-syscon = <&dphytx_syscon>;
+			resets = <&dispc_reset_ext 6 0xb8 6 0xbc>;
+			reset-names = "dphytx";
+
+			uart0_txd_pins: uart0-txd-pins {
+				pins = "UART0_TXD";
+				function = "UART0_TXD";
+				drive-strength = <3>;
+				bias-pull-up;
+			};
+
+			uart0_rxd_pins: uart0-rxd-pins {
+				pins = "UART0_RXD";
+				function = "UART0_RXD";
+				drive-strength = <3>;
+				bias-pull-up;
+			};
+
+			ephy_rstn_gpio_pins: ephy-rstn-gpio-pins {
+				pins = "EPHY_RSTN";
+				function = "GPIO1_A27";
+				drive-strength = <3>;
+			};
+
+			rgmii_pins: rgmii-pins {
+				pins = "RGMII_MDCK", "RGMII_MDIO",
+				       "RGMII_RXD0", "RGMII_RXD1",
+				       "RGMII_RXD2", "RGMII_RXD3",
+				       "RGMII_RXDV", "RGMII_RXCLK",
+				       "RGMII_TXD0", "RGMII_TXD1",
+				       "RGMII_TXD2", "RGMII_TXD3",
+				       "RGMII_TXCLK", "RGMII_TXEN";
+				function = "RGMII_MDCK";
+			};
+
+			/* Desk panel SPI2. CS/DC/reset stay GPIO; bootloader already muxes them. */
+			spi2_sclk_pins: spi2-sclk-pins {
+				pins = "I2C1_SCL";
+				function = "SPI_M2_SCLK";
+				drive-strength = <3>;
+			};
+
+			spi2_mosi_pins: spi2-mosi-pins {
+				pins = "UART3_TXD";
+				function = "SPI_M2_MOSI";
+				drive-strength = <3>;
+			};
+
+			i2c0_scl_pins: i2c0-scl-pins {
+				pins = "I2C0_SCL";
+				function = "I2C0_SCL";
+				drive-strength = <3>;
+				bias-pull-up;
+			};
+
+			i2c0_sda_pins: i2c0-sda-pins {
+				pins = "I2C0_SDA";
+				function = "I2C0_SDA";
+				drive-strength = <3>;
+				bias-pull-up;
+			};
+
+			i2c7_scl_pins: i2c7-scl-pins {
+				pins = "VI_D8";
+				function = "I2C7_SCL";
+				drive-strength = <3>;
+				bias-pull-up;
+			};
+
+			i2c7_sda_pins: i2c7-sda-pins {
+				pins = "VI_D9";
+				function = "I2C7_SDA";
+				drive-strength = <3>;
+				bias-pull-up;
+			};
+
+			sd_power_pins: sd-power-pins {
+				pins = "SD_PWR_EN";
+				function = "SD_PWR_EN";
+				drive-strength = <3>;
+				bias-pull-down;
+			};
+			sd_voltage_pins: sd-voltage-pins {
+				pins = "SD_PWR_SW";
+				function = "SD_PWR_SW";
+				drive-strength = <3>;
+			};
+			sd_clk_pins: sd-clk-pins {
+				pins = "SD_CLK";
+				function = "SD_CLK";
+			};
+			sd_cmd_pins: sd-cmd-pins {
+				pins = "SD_CMD";
+				function = "SD_CMD";
+				bias-pull-up;
+			};
+			sd_dat0_pins: sd-dat0-pins {
+				pins = "SD_DAT0";
+				function = "SD_DAT0";
+				bias-pull-up;
+			};
+			sd_dat1_pins: sd-dat1-pins {
+				pins = "SD_DAT1";
+				function = "SD_DAT1";
+				bias-pull-up;
+			};
+			sd_dat2_pins: sd-dat2-pins {
+				pins = "SD_DAT2";
+				function = "SD_DAT2";
+				bias-pull-up;
+			};
+			sd_dat3_pins: sd-dat3-pins {
+				pins = "SD_DAT3";
+				function = "SD_DAT3";
+				bias-pull-up;
+			};
+
+			sdio_clk_pins: sdio-clk-pins {
+				pins = "SDIO_CLK";
+				function = "SDIO_CLK";
+			};
+			sdio_cmd_pins: sdio-cmd-pins {
+				pins = "SDIO_CMD";
+				function = "SDIO_CMD";
+				bias-pull-up;
+			};
+			sdio_dat0_pins: sdio-dat0-pins {
+				pins = "SDIO_DAT0";
+				function = "SDIO_DAT0";
+				bias-pull-up;
+			};
+			sdio_dat1_pins: sdio-dat1-pins {
+				pins = "SDIO_DAT1";
+				function = "SDIO_DAT1";
+				bias-pull-up;
+			};
+			sdio_dat2_pins: sdio-dat2-pins {
+				pins = "SDIO_DAT2";
+				function = "SDIO_DAT2";
+				bias-pull-up;
+			};
+			sdio_dat3_pins: sdio-dat3-pins {
+				pins = "SDIO_DAT3";
+				function = "SDIO_DAT3";
+				bias-pull-up;
+			};
+
+			/* Desk knob. Vendor GPIO mux, drive 3, no pull. */
+			knob_a_pins: knob-a-pins {
+				pins = "GPIO3_A1";
+				function = "GPIO3_A1";
+				drive-strength = <3>;
+			};
+
+			knob_b_pins: knob-b-pins {
+				pins = "BOND2";
+				function = "GPIO0_A18";
+				drive-strength = <3>;
+			};
+
+			knob_press_pins: knob-press-pins {
+				pins = "TCK";
+				function = "GPIO0_A22";
+				drive-strength = <3>;
+			};
+
+		};
+
+		uart0: serial@4880000 {
+			compatible = "snps,dw-apb-uart";
+			reg = <0x0 0x04880000 0x0 0x400>;
+			interrupts = <GIC_SPI 118 IRQ_TYPE_LEVEL_HIGH>;
+			clock-frequency = <208000000>;
+			reg-shift = <2>;
+			reg-io-width = <4>;
+			/* U-Boot already muxes UART0; skip pinctrl until after console. */
+			status = "disabled";
+		};
+
+		/*
+		 * I2C0 is the LT6911UXC HDMI receiver. The desk board enables
+		 * it. Not the ATX OLED.
+		 */
+		i2c0: i2c@4850000 {
+			compatible = "snps,designware-i2c";
+			reg = <0x0 0x04850000 0x0 0x400>;
+			interrupts = <GIC_SPI 135 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&clk_periph AX620X_CLK_I2C_MST0_EB>,
+				 <&clk_periph AX620X_PCLK_I2C_MST0_EB>;
+			clock-names = "ref", "pclk";
+			resets = <&periph_reset_ext 18 0xd8 18 0xdc>,
+				 <&periph_reset_ext 19 0xd8 19 0xdc>;
+			reset-names = "prst", "rst";
+			pinctrl-names = "default";
+			pinctrl-0 = <&i2c0_scl_pins>, <&i2c0_sda_pins>;
+			clock-frequency = <400000>;
+			i2c-sda-hold-time-ns = <500>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
+		i2c7: i2c@4857000 {
+			compatible = "snps,designware-i2c";
+			reg = <0x0 0x04857000 0x0 0x400>;
+			interrupts = <GIC_SPI 142 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&clk_periph AX620X_CLK_I2C_MST7_EB>,
+				 <&clk_periph AX620X_PCLK_I2C_MST7_EB>;
+			clock-names = "ref", "pclk";
+			resets = <&periph_reset_ext 0 0xe0 0 0xe4>,
+				 <&periph_reset_ext 1 0xe0 1 0xe4>;
+			reset-names = "prst", "rst";
+			pinctrl-names = "default";
+			pinctrl-0 = <&i2c7_scl_pins>, <&i2c7_sda_pins>;
+			clock-frequency = <400000>;
+			i2c-sda-hold-time-ns = <500>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
+		/*
+		 * SPI2, the Desk JD9853 bus. No DMA: the vendor master swaps
+		 * 32-bit DMA endianness and the panel driver had to undo it.
+		 * Index 0 of clocks is the SSI clock (clk_get NULL). The
+		 * reset name "spi" is the only one spi-dw-mmio deasserts.
+		 */
+		spi2: spi@6072000 {
+			compatible = "snps,dw-apb-ssi";
+			reg = <0x0 0x06072000 0x0 0x400>;
+			interrupts = <GIC_SPI 153 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&clk_periph AX620X_CLK_SPI_M2_EB>,
+				 <&clk_periph AX620X_PCLK_SPI_M2_EB>;
+			clock-names = "ssi_clk", "pclk";
+			resets = <&periph_reset_ext 3 0xe8 3 0xec>;
+			reset-names = "spi";
+			pinctrl-names = "default";
+			pinctrl-0 = <&spi2_sclk_pins>, <&spi2_mosi_pins>;
+			num-cs = <2>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
+		gpio0: gpio@4800000 {
+			compatible = "axera,ax-apb-gpio";
+			reg = <0x0 0x04800000 0x0 0x400>;
+			interrupts = <GIC_SPI 114 IRQ_TYPE_LEVEL_HIGH>;
+			resets = <&periph_reset_ext 10 0xd8 10 0xdc>,
+				 <&periph_reset_ext 11 0xd8 11 0xdc>;
+			reset-names = "gpio_prst", "gpio_rst";
+			gpio-controller;
+			#gpio-cells = <2>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+			ax,ngpios = <32>;
+			ax_clk_id = <0>;
+			gpio-ranges = <&pinctrl 0 0 1>, <&pinctrl 1 1 1>,
+				      <&pinctrl 2 2 1>, <&pinctrl 3 3 1>,
+				      <&pinctrl 4 4 1>, <&pinctrl 5 5 1>,
+				      <&pinctrl 6 6 1>, <&pinctrl 7 7 1>,
+				      <&pinctrl 8 8 1>, <&pinctrl 9 9 1>,
+				      <&pinctrl 10 10 1>, <&pinctrl 11 79 1>,
+				      <&pinctrl 12 80 1>, <&pinctrl 13 81 1>,
+				      <&pinctrl 14 82 1>, <&pinctrl 15 87 1>,
+				      <&pinctrl 16 88 1>, <&pinctrl 17 89 1>,
+				      <&pinctrl 18 90 1>, <&pinctrl 19 62 1>,
+				      <&pinctrl 20 60 1>, <&pinctrl 21 92 1>,
+				      <&pinctrl 22 93 1>, <&pinctrl 23 94 1>,
+				      <&pinctrl 24 11 1>, <&pinctrl 25 12 1>,
+				      <&pinctrl 26 13 1>, <&pinctrl 27 14 1>,
+				      <&pinctrl 28 15 1>, <&pinctrl 29 16 1>,
+				      <&pinctrl 30 17 1>, <&pinctrl 31 18 1>;
+			status = "okay";
+		};
+
+		gpio1: gpio@4801000 {
+			compatible = "axera,ax-apb-gpio";
+			reg = <0x0 0x04801000 0x0 0x400>;
+			interrupts = <GIC_SPI 115 IRQ_TYPE_LEVEL_HIGH>;
+			resets = <&periph_reset_ext 12 0xd8 12 0xdc>,
+				 <&periph_reset_ext 13 0xd8 13 0xdc>;
+			reset-names = "gpio_prst", "gpio_rst";
+			gpio-controller;
+			#gpio-cells = <2>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+			ax,ngpios = <32>;
+			ax_clk_id = <1>;
+			gpio-ranges = <&pinctrl 0 19 1>, <&pinctrl 1 20 1>,
+				      <&pinctrl 2 21 1>, <&pinctrl 3 22 1>,
+				      <&pinctrl 4 95 1>, <&pinctrl 5 96 1>,
+				      <&pinctrl 6 97 1>, <&pinctrl 7 98 1>,
+				      <&pinctrl 8 23 1>, <&pinctrl 9 24 1>,
+				      <&pinctrl 10 25 1>, <&pinctrl 11 26 1>,
+				      <&pinctrl 12 33 1>, <&pinctrl 13 34 1>,
+				      <&pinctrl 14 35 1>, <&pinctrl 15 36 1>,
+				      <&pinctrl 16 37 1>, <&pinctrl 17 38 1>,
+				      <&pinctrl 18 39 1>, <&pinctrl 19 40 1>,
+				      <&pinctrl 20 41 1>, <&pinctrl 21 42 1>,
+				      <&pinctrl 22 43 1>, <&pinctrl 23 44 1>,
+				      <&pinctrl 24 27 1>, <&pinctrl 25 28 1>,
+				      <&pinctrl 26 29 1>, <&pinctrl 27 30 1>,
+				      <&pinctrl 28 31 1>, <&pinctrl 29 32 1>,
+				      <&pinctrl 30 63 1>, <&pinctrl 31 64 1>;
+			status = "okay";
+		};
+
+		gpio2: gpio@6000000 {
+			compatible = "axera,ax-apb-gpio";
+			reg = <0x0 0x06000000 0x0 0x400>;
+			interrupts = <GIC_SPI 116 IRQ_TYPE_LEVEL_HIGH>;
+			resets = <&periph_reset_ext 14 0xd8 14 0xdc>,
+				 <&periph_reset_ext 15 0xd8 15 0xdc>;
+			reset-names = "gpio_prst", "gpio_rst";
+			gpio-controller;
+			#gpio-cells = <2>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+			ax,ngpios = <32>;
+			ax_clk_id = <2>;
+			status = "okay";
+		};
+
+		/* GPIO3 bank: encoder phase A is line 1 (pinctrl pin 84). */
+		gpio3: gpio@6001000 {
+			compatible = "axera,ax-apb-gpio";
+			reg = <0x0 0x06001000 0x0 0x400>;
+			interrupts = <GIC_SPI 117 IRQ_TYPE_LEVEL_HIGH>;
+			resets = <&periph_reset_ext 16 0xd8 16 0xdc>,
+				 <&periph_reset_ext 17 0xd8 17 0xdc>;
+			reset-names = "gpio_prst", "gpio_rst";
+			gpio-controller;
+			#gpio-cells = <2>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+			ax,ngpios = <32>;
+			ax_clk_id = <3>;
+			gpio-ranges = <&pinctrl 1 84 1>, <&pinctrl 2 85 1>,
+				      <&pinctrl 3 86 1>;
+			status = "okay";
+		};
+
+		eth0: ethernet@104c0000 {
+			compatible = "axera,dwmac-4.10a", "snps,dwmac-4.10a";
+			reg = <0x0 0x104c0000 0x0 0x10000>;
+			interrupts = <GIC_SPI 80 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "macirq";
+			clocks = <&clk_flash AX620X_ACLK_EMAC_EB>,
+				 <&clk_flash AX620X_EPHY_CLK_EB>,
+				 <&clk_flash AX620X_CLK_EMAC_RGMII_TX_EB>,
+				 <&clk_flash AX620X_CLK_EMAC_RMII_PHY_EB>,
+				 <&clk_flash AX620X_CLK_EMAC_PTP_REF_EB>;
+			clock-names = "emac_aclk", "ephy_clk", "rgmii_tx_clk",
+				      "rmii_phy_clk", "ptp_clk";
+			resets = <&flash_reset_ext 8 0x4014 8 0x8014>,
+				 <&flash_reset_ext 9 0x4014 9 0x8014>,
+				 <&flash_reset_ext 0 0x4020 0 0x8020>;
+			reset-names = "emac_rst", "ephy_rst", "ephy_shutdown";
+			snps,txpbl = <8>;
+			snps,rxpbl = <8>;
+			rx-fifo-depth = <32768>;
+			tx-fifo-depth = <16384>;
+			status = "disabled";
+		};
+
+		emmc: mmc@1b40000 {
+			compatible = "axera,sdhc", "cdns,sd4hc";
+			reg = <0x0 0x01b40000 0x0 0x10000>;
+			interrupts = <GIC_SPI 9 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&emmc_core_clk>;
+			resets = <&cpu_reset_ext 12 0x1010 12 0x2010>,
+				 <&cpu_reset_ext 12 0x1010 12 0x2010>,
+				 <&cpu_reset_ext 11 0x1010 11 0x2010>;
+			reset-names = "prst", "arst", "cardrst";
+			status = "disabled";
+		};
+
+		sd: mmc@104e0000 {
+			compatible = "axera,sdhc", "cdns,sd4hc";
+			reg = <0x0 0x104e0000 0x0 0x10000>;
+			interrupts = <GIC_SPI 74 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&sd_core_clk>;
+			resets = <&flash_reset_ext 17 0x4014 17 0x8014>,
+				 <&flash_reset_ext 16 0x4014 16 0x8014>,
+				 <&flash_reset_ext 15 0x4014 15 0x8014>;
+			reset-names = "prst", "arst", "cardrst";
+			status = "disabled";
+		};
+
+		sdio: mmc@104d0000 {
+			compatible = "axera,sdhc", "cdns,sd4hc";
+			reg = <0x0 0x104d0000 0x0 0x10000>;
+			interrupts = <GIC_SPI 73 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&clk_flash AX620X_CLK_SDIO_M_CARD_EB>;
+			resets = <&flash_reset_ext 20 0x4014 20 0x8014>,
+				 <&flash_reset_ext 19 0x4014 19 0x8014>,
+				 <&flash_reset_ext 18 0x4014 18 0x8014>;
+			reset-names = "prst", "arst", "cardrst";
+			status = "disabled";
+		};
+
+		usb: usb@8000000 {
+			compatible = "axera,dwc3";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+			status = "disabled";
+
+			usb2: usb@8000000 {
+				compatible = "snps,dwc3";
+				reg = <0x0 0x08000000 0x0 0x100000>;
+				interrupts = <GIC_SPI 76 IRQ_TYPE_LEVEL_HIGH>;
+				dr_mode = "host";
+				maximum-speed = "high-speed";
+				snps,hsphy_interface = "utmi";
+				snps,dis-u2-freeclk-exists-quirk;
+				snps,dis_u2_susphy_quirk;
+				snps,dis_u3_susphy_quirk;
+				snps,dis_enblslpm_quirk;
+				snps,gfladj-refclk-lpm-sel-quirk;
+				/* Vendor GUCTL.REFCLKPER for the 24 MHz USB refclk. */
+				snps,ref-clock-period-ns = <41>;
+			};
+		};
+	};
+};

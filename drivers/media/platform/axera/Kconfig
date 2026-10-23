@@ -1,0 +1,70 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
+comment "Axera media platform drivers"
+
+config VIDEO_AX630C_TDP
+	tristate "Axera AX630C TDP V4L2 scaler and colour converter"
+	depends on V4L_PLATFORM_DRIVERS && VIDEO_DEV && OF && HAS_DMA
+	select DMA_SHARED_BUFFER
+	select V4L2_MEM2MEM_DEV
+	select VIDEOBUF2_DMA_CONTIG
+	help
+	  Standard V4L2 mem2mem YUYV/NV12 to RGB565 conversion and scaling.
+	  Supports reusable MMAP and DMA-BUF queues with crop and colourimetry.
+	  The command engine and main video encoder remain independent.
+
+config VIDEO_AX630C_CSI2RX
+	tristate "Axera AX630C MIPI CSI-2 receiver"
+	depends on V4L_PLATFORM_DRIVERS
+	depends on VIDEO_DEV && OF
+	select MEDIA_CONTROLLER
+	select VIDEO_V4L2_SUBDEV_API
+	select V4L2_FWNODE
+	select MFD_SYSCON
+	help
+	  V4L2 subdev for the MIPI CSI-2 receiver and its D-PHY on the Axera
+	  AX630C. On the Sipeed NanoKVM-Pro it takes four data lanes of
+	  YUV422-8 from an LT6911UXC HDMI-to-MIPI bridge and feeds the VIN
+	  capture block.
+
+	  Open replacement for the vendor ax_mipi_rx blob. To compile this
+	  driver as a module, choose M here: the module will be called
+	  open_vin_csi2.
+
+config VIDEO_AX630C_VIN
+	tristate "Axera AX630C VIN/IFE capture"
+	depends on V4L_PLATFORM_DRIVERS
+	depends on VIDEO_DEV && OF
+	select MEDIA_CONTROLLER
+	select VIDEO_V4L2_SUBDEV_API
+	select V4L2_FWNODE
+	select VIDEOBUF2_CORE
+	select VIDEOBUF2_V4L2
+	select VIDEOBUF2_MEMOPS
+	select DMA_SHARED_BUFFER
+	select MFD_SYSCON
+	help
+	  V4L2 capture video node for the Axera AX630C's VIN front end, in the
+	  IFE-bypass configuration: whole frames of packed YUV422 straight
+	  from the CSI-2 receiver to DDR through the IFE write-DMA, with no
+	  ISP processing. Buffers come from a reserved-memory pool and can be
+	  exported as dma-bufs for a zero-copy hand-off to the encoder.
+
+	  Open replacement for the vendor ax_proton blob. To compile this
+	  driver as a module, choose M here: the module will be called
+	  open_vin_capture.
+
+config VIDEO_AX630C_VC8000E
+	tristate "Axera AX630C VC8000E encoder command engine"
+	depends on V4L_PLATFORM_DRIVERS
+	depends on OF && HAS_DMA
+	select DMA_SHARED_BUFFER
+	help
+	  The VeriSilicon VC8000E command engine (VCMD) as wired on the Axera
+	  AX630C, with the frame-buffer allocator and dma-buf import path the
+	  open encoder userspace uses. This is the Hantro-lineage character
+	  device, not a V4L2 codec driver.
+
+	  Open replacement for the vendor ax_venc blob. To compile this driver
+	  as a module, choose M here: the module will be called
+	  ax630c_venc_vcmd.

@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
+config COMMON_CLK_AXERA
+	bool
+
+config COMMON_CLK_AX620E
+	bool "Clock driver for Axera AX620E"
+	depends on ARCH_AXERA || COMPILE_TEST
+	depends on HAS_IOMEM
+	select COMMON_CLK_AXERA
+	default ARCH_AXERA
+	help
+	  This driver supports Axera AX620E SoC clocks.
