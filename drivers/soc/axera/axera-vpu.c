@@ -148,7 +148,7 @@ static int axera_vpu_runtime_resume(struct device *dev)
 }
 
 static const struct dev_pm_ops axera_vpu_pm_ops = {
-	RUNTIME_PM_OPS(axera_vpu_runtime_suspend, axera_vpu_runtime_resume, NULL)
+	SET_RUNTIME_PM_OPS(axera_vpu_runtime_suspend, axera_vpu_runtime_resume, NULL)
 };
 
 static int axera_vpu_probe(struct platform_device *pdev)
@@ -215,7 +215,7 @@ static int axera_vpu_probe(struct platform_device *pdev)
 	return 0;
 }
 
-static void axera_vpu_remove(struct platform_device *pdev)
+static int axera_vpu_remove(struct platform_device *pdev)
 {
 	struct axera_vpu *vpu = platform_get_drvdata(pdev);
 	int ret;
@@ -230,6 +230,8 @@ static void axera_vpu_remove(struct platform_device *pdev)
 	}
 	pm_runtime_dont_use_autosuspend(&pdev->dev);
 	pm_runtime_set_suspended(&pdev->dev);
+
+	return 0;
 }
 
 static const struct of_device_id axera_vpu_of_match[] = {

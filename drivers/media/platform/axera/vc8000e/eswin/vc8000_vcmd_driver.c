@@ -2600,6 +2600,7 @@ static int hantrovcmd_open(struct inode *inode, struct file *filp)
 	bi_list_node *process_manager_node;
 	unsigned long flags;
 	struct process_manager_obj *process_manager_obj = NULL;
+	u32 core_id;
 	struct filp_priv *fp_priv;
 
 	fp_priv = kzalloc(sizeof(struct filp_priv), GFP_KERNEL);
@@ -2623,7 +2624,7 @@ static int hantrovcmd_open(struct inode *inode, struct file *filp)
 	}
 #endif
 	fp_priv->dev = (void*)dev;
-	for (u32 core_id = 0; core_id < ENC_CORE_NUM; core_id ++) {
+	for (core_id = 0; core_id < ENC_CORE_NUM; core_id ++) {
 		atomic_set(&(fp_priv->core_tasks[core_id]), 0);
 	}
 	filp->private_data = (void *)fp_priv;
@@ -3013,7 +3014,7 @@ static int hantrovcmd_release(struct inode *inode, struct file *filp)
 	spin_unlock_irqrestore(&vcmd_process_manager_lock, flags);
 	free_process_manager_node(process_manager_node);
 
-	for (u32 core_id = 0; core_id < ENC_CORE_NUM; core_id ++) {
+	for (core_id = 0; core_id < ENC_CORE_NUM; core_id ++) {
 		/** clear the tasks for pm*/
 		int n = atomic_xchg(&(fp_priv->core_tasks[core_id]), 0);
 

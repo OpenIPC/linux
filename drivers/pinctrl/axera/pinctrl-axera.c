@@ -87,11 +87,11 @@ static int ax_set_mux(struct pinctrl_dev *pctldev, unsigned int func_selector,
 		return -EINVAL;
 
 	func = pinmux_generic_get_function(pctldev, func_selector);
-	if (!func || !func->func)
+	if (!func)
 		return -EINVAL;
 
 	for (mux = data->muxes; mux->name; mux++) {
-		if (!strcmp(mux->name, func->func->name))
+		if (!strcmp(mux->name, func->name))
 			break;
 	}
 	if (!mux->name)

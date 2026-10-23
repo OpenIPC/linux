@@ -168,7 +168,7 @@ void vcmd_fb_set_dev(struct device *dev)
 
 static void imp_drop(struct fb_import *im)
 {
-	dma_buf_unmap_attachment_unlocked(im->att, im->sgt, DMA_TO_DEVICE);
+	dma_buf_unmap_attachment(im->att, im->sgt, DMA_TO_DEVICE);
 	dma_buf_detach(im->dbuf, im->att);
 	dma_buf_put(im->dbuf);
 	kfree(im);
@@ -202,7 +202,7 @@ int vcmd_dmabuf_import(struct file *filp, int fd, unsigned long *bus,
 		goto err_free;
 	}
 
-	sgt = dma_buf_map_attachment_unlocked(att, DMA_TO_DEVICE);
+	sgt = dma_buf_map_attachment(att, DMA_TO_DEVICE);
 	if (IS_ERR(sgt)) {
 		ret = PTR_ERR(sgt);
 		goto err_detach;
@@ -230,7 +230,7 @@ int vcmd_dmabuf_import(struct file *filp, int fd, unsigned long *bus,
 	return 0;
 
 err_unmap:
-	dma_buf_unmap_attachment_unlocked(att, sgt, DMA_TO_DEVICE);
+	dma_buf_unmap_attachment(att, sgt, DMA_TO_DEVICE);
 err_detach:
 	dma_buf_detach(dbuf, att);
 err_free:

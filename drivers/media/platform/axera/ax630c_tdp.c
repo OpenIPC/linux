@@ -614,7 +614,7 @@ static int tdp_open(struct file *file)
 		kfree(ctx);
 		return ret;
 	}
-	v4l2_fh_add(&ctx->fh, file);
+	v4l2_fh_add(&ctx->fh);
 	mutex_unlock(&tdp->lock);
 	return 0;
 }
@@ -624,7 +624,7 @@ static int tdp_release(struct file *file)
 
 	mutex_lock(&ctx->tdp->lock);
 	v4l2_m2m_ctx_release(ctx->fh.m2m_ctx);
-	v4l2_fh_del(&ctx->fh, file);
+	v4l2_fh_del(&ctx->fh);
 	v4l2_fh_exit(&ctx->fh);
 	mutex_unlock(&ctx->tdp->lock);
 	kfree(ctx);
@@ -661,7 +661,7 @@ static DEVICE_ATTR_RO(stats);
 static struct attribute *tdp_attrs[] = { &dev_attr_stats.attr, NULL };
 ATTRIBUTE_GROUPS(tdp);
 static const struct dev_pm_ops tdp_pm_ops = {
-	RUNTIME_PM_OPS(tdp_runtime_suspend, tdp_runtime_resume, NULL)
+	SET_RUNTIME_PM_OPS(tdp_runtime_suspend, tdp_runtime_resume, NULL)
 };
 static int tdp_probe(struct platform_device *pdev)
 {
@@ -740,7 +740,7 @@ suspend:
 	tdp_runtime_suspend(dev);
 	return ret;
 }
-static void tdp_remove(struct platform_device *pdev)
+static int tdp_remove(struct platform_device *pdev)
 {
 	struct tdp_dev *tdp = platform_get_drvdata(pdev);
 
@@ -757,6 +757,8 @@ static void tdp_remove(struct platform_device *pdev)
 	    !tdp_runtime_suspend(&pdev->dev))
 		pm_runtime_set_suspended(&pdev->dev);
 	pm_runtime_dont_use_autosuspend(&pdev->dev);
+
+	return 0;
 }
 static const struct of_device_id tdp_of_match[] = {
 	{ .compatible = "axera,ax630c-tdp" }, { }

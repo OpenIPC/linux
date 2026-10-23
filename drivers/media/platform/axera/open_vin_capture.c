@@ -55,7 +55,7 @@
 #include <linux/interrupt.h>
 #include <linux/io.h>
 #include <linux/iopoll.h>
-#include <linux/iosys-map.h>
+#include <linux/dma-buf-map.h>
 #include <linux/delay.h>
 #include <linux/dma-mapping.h>
 #include <linux/mfd/syscon.h>
@@ -503,7 +503,7 @@ static int ovc_mem_mmap(void *buf_priv, struct vm_area_struct *vma)
 		return ret;
 	}
 
-	vm_flags_set(vma, VM_DONTEXPAND | VM_DONTDUMP);
+	vma->vm_flags |= VM_DONTEXPAND | VM_DONTDUMP;
 	vma->vm_private_data = &buf->handler;
 	vma->vm_ops = &vb2_common_vm_ops;
 	vma->vm_ops->open(vma);
@@ -584,11 +584,11 @@ static int ovc_dmabuf_mmap(struct dma_buf *dbuf, struct vm_area_struct *vma)
 	return ovc_mem_mmap(dbuf->priv, vma);
 }
 
-static int ovc_dmabuf_vmap(struct dma_buf *dbuf, struct iosys_map *map)
+static int ovc_dmabuf_vmap(struct dma_buf *dbuf, struct dma_buf_map *map)
 {
 	struct ovc_mem_buf *buf = dbuf->priv;
 
-	iosys_map_set_vaddr(map, buf->vaddr);
+	dma_buf_map_set_vaddr(map, buf->vaddr);
 	return 0;
 }
 
@@ -1475,7 +1475,7 @@ static inline struct ovc_dev *notifier_to_ovc(struct v4l2_async_notifier *n)
 
 static int ovc_notifier_bound(struct v4l2_async_notifier *notifier,
 			      struct v4l2_subdev *sd,
-			      struct v4l2_async_connection *asc)
+			      struct v4l2_async_subdev *asd)
 {
 	struct ovc_dev *ovc = notifier_to_ovc(notifier);
 	int ret;
@@ -1504,7 +1504,7 @@ static int ovc_notifier_bound(struct v4l2_async_notifier *notifier,
 
 static void ovc_notifier_unbind(struct v4l2_async_notifier *notifier,
 				struct v4l2_subdev *sd,
-				struct v4l2_async_connection *asc)
+				struct v4l2_async_subdev *asd)
 {
 	struct ovc_dev *ovc = notifier_to_ovc(notifier);
 
@@ -1528,14 +1528,14 @@ static const struct v4l2_async_notifier_operations ovc_notifier_ops = {
 
 /*
  * The graph edge. This node has one port with one endpoint, whose remote is
- * the CSI-2 receiver's source endpoint; v4l2_async_nf_add_fwnode_remote()
+ * the CSI-2 receiver's source endpoint; v4l2_async_notifier_add_fwnode_remote_subdev()
  * resolves that remote and the notifier binds whichever subdev registers for
  * it. Replaces the 4.19 V4L2_ASYNC_MATCH_DEVNAME on "2600000.mipi_rx", which
  * existed only because the vendor DT had no ports at all.
  */
 static int ovc_notifier_init(struct ovc_dev *ovc)
 {
-	struct v4l2_async_connection *asc;
+	struct v4l2_async_subdev *asd;
 	struct fwnode_handle *ep;
 	int ret;
 
@@ -1547,19 +1547,19 @@ static int ovc_notifier_init(struct ovc_dev *ovc)
 		return 0;
 	}
 
-	v4l2_async_nf_init(&ovc->notifier, &ovc->v4l2_dev);
+	v4l2_async_notifier_init(&ovc->notifier);
 	ovc->notifier.ops = &ovc_notifier_ops;
 
-	asc = v4l2_async_nf_add_fwnode_remote(&ovc->notifier, ep,
-					      struct v4l2_async_connection);
+	asd = v4l2_async_notifier_add_fwnode_remote_subdev(&ovc->notifier, ep,
+					      struct v4l2_async_subdev);
 	fwnode_handle_put(ep);
-	if (IS_ERR(asc)) {
-		ret = PTR_ERR(asc);
+	if (IS_ERR(asd)) {
+		ret = PTR_ERR(asd);
 		dev_err(ovc->dev, "async connection add failed: %d\n", ret);
 		goto err_cleanup;
 	}
 
-	ret = v4l2_async_nf_register(&ovc->notifier);
+	ret = v4l2_async_notifier_register(&ovc->v4l2_dev, &ovc->notifier);
 	if (ret) {
 		dev_err(ovc->dev, "async notifier register failed: %d\n", ret);
 		goto err_cleanup;
@@ -1569,7 +1569,7 @@ static int ovc_notifier_init(struct ovc_dev *ovc)
 	return 0;
 
 err_cleanup:
-	v4l2_async_nf_cleanup(&ovc->notifier);
+	v4l2_async_notifier_cleanup(&ovc->notifier);
 	return ret;
 }
 
@@ -1616,7 +1616,7 @@ static int ovc_runtime_resume(struct device *dev)
 }
 
 static const struct dev_pm_ops ovc_pm_ops = {
-	RUNTIME_PM_OPS(ovc_runtime_suspend, ovc_runtime_resume, NULL)
+	SET_RUNTIME_PM_OPS(ovc_runtime_suspend, ovc_runtime_resume, NULL)
 };
 
 static int ovc_probe(struct platform_device *pdev)
@@ -1756,7 +1756,9 @@ static int ovc_probe(struct platform_device *pdev)
 	q->mem_ops = &ovc_mem_ops;
 	q->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC;
 	/* OVC_MIN_BUFFERS is this + 1; ovc_queue_setup depends on the pair. */
-	q->min_queued_buffers = OVC_MIN_BUFFERS - 1;
+	/* This kernel predates min_queued_buffers; min_buffers_needed counts
+	 * allocated buffers directly, with no -1 offset. */
+	q->min_buffers_needed = OVC_MIN_BUFFERS;
 	q->dev = dev;
 	q->lock = &ovc->lock;
 	ret = vb2_queue_init(q);
@@ -1842,7 +1844,7 @@ err_rmem:
 	return ret;
 }
 
-static void ovc_remove(struct platform_device *pdev)
+static int ovc_remove(struct platform_device *pdev)
 {
 	struct ovc_dev *ovc = platform_get_drvdata(pdev);
 	struct device *dev = &pdev->dev;
@@ -1854,8 +1856,8 @@ static void ovc_remove(struct platform_device *pdev)
 	pm_runtime_disable(dev);
 
 	if (ovc->notifier_registered) {
-		v4l2_async_nf_unregister(&ovc->notifier);
-		v4l2_async_nf_cleanup(&ovc->notifier);
+		v4l2_async_notifier_unregister(&ovc->notifier);
+		v4l2_async_notifier_cleanup(&ovc->notifier);
 	}
 	media_device_unregister(&ovc->mdev);
 	video_unregister_device(&ovc->vdev);
@@ -1870,6 +1872,8 @@ static void ovc_remove(struct platform_device *pdev)
 	pm_runtime_dont_use_autosuspend(dev);
 	pm_runtime_set_suspended(dev);
 	of_reserved_mem_device_release(&pdev->dev);
+
+	return 0;
 }
 
 static const struct of_device_id ovc_of_match[] = {

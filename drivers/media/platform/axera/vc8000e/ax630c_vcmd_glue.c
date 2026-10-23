@@ -122,7 +122,7 @@ static int ax630c_vcmd_runtime_resume(struct device *dev)
 }
 
 static const struct dev_pm_ops ax630c_vcmd_pm_ops = {
-	RUNTIME_PM_OPS(ax630c_vcmd_runtime_suspend,
+	SET_RUNTIME_PM_OPS(ax630c_vcmd_runtime_suspend,
 		       ax630c_vcmd_runtime_resume, NULL)
 };
 
@@ -259,7 +259,7 @@ err_rmem:
 	return ret;
 }
 
-static void ax630c_vcmd_remove(struct platform_device *pdev)
+static int ax630c_vcmd_remove(struct platform_device *pdev)
 {
 	struct ax630c_vcmd *vc = platform_get_drvdata(pdev);
 	struct device *dev = &pdev->dev;
@@ -280,6 +280,8 @@ static void ax630c_vcmd_remove(struct platform_device *pdev)
 	pm_runtime_dont_use_autosuspend(dev);
 	pm_runtime_set_suspended(dev);
 	of_reserved_mem_device_release(dev);
+
+	return 0;
 }
 
 static const struct of_device_id ax630c_vcmd_of_match[] = {

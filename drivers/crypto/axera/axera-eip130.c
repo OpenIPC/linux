@@ -30,7 +30,7 @@
 #include <linux/platform_device.h>
 #include <linux/reset.h>
 #include <linux/sizes.h>
-#include <linux/unaligned.h>
+#include <asm/unaligned.h>
 #include <linux/uaccess.h>
 #include <linux/vmalloc.h>
 
@@ -78,6 +78,10 @@ struct ax_dev {
 };
 
 struct ax_ctx {
+	/* This kernel predates skcipher_engine_alg: the engine ops live in
+	 * the per-tfm context, set by ax_cipher_init(), not in the static
+	 * alg descriptor. */
+	struct crypto_engine_ctx enginectx;
 	struct ax_dev *dev;
 	u8 key[AES_MAX_KEY_SIZE];
 	u32 keylen;
@@ -89,7 +93,7 @@ struct ax_req {
 };
 
 struct ax_alg {
-	struct skcipher_engine_alg alg;
+	struct skcipher_alg alg;
 	struct ax_dev *dev;
 	u32 mode;
 };
@@ -376,10 +380,15 @@ static int ax_cipher_init(struct crypto_skcipher *tfm)
 {
 	struct ax_ctx *ctx = crypto_skcipher_ctx(tfm);
 	struct ax_alg *alg = container_of(crypto_skcipher_alg(tfm), struct ax_alg,
-					alg.base);
+					alg);
 
 	ctx->dev = alg->dev;
 	ctx->mode = alg->mode;
+	/* This kernel predates skcipher_engine_alg: wire the engine op here,
+	 * per-tfm, instead of on the static alg descriptor. */
+	ctx->enginectx.op.do_one_request = ax_do_cipher;
+	ctx->enginectx.op.prepare_request = NULL;
+	ctx->enginectx.op.unprepare_request = NULL;
 	crypto_skcipher_set_reqsize(tfm, sizeof(struct ax_req));
 	return 0;
 }
@@ -417,7 +426,7 @@ static int ax_decrypt(struct skcipher_request *req)
 }
 
 #define AX_ALG(_mode, _name, _block, _iv) { \
-	.mode = _mode, .alg = { .base = { \
+	.mode = _mode, .alg = { \
 		.base = { .cra_name = _name "(aes)", \
 			.cra_driver_name = "axera-eip130-" _name, \
 			.cra_priority = 200, .cra_flags = CRYPTO_ALG_ASYNC, \
@@ -426,8 +435,7 @@ static int ax_decrypt(struct skcipher_request *req)
 		.min_keysize = AES_MIN_KEY_SIZE, .max_keysize = AES_MAX_KEY_SIZE, \
 		.ivsize = _iv, .chunksize = AES_BLOCK_SIZE, \
 		.setkey = ax_setkey, .encrypt = ax_encrypt, .decrypt = ax_decrypt, \
-		.init = ax_cipher_init, .exit = ax_cipher_exit }, \
-		.op.do_one_request = ax_do_cipher } }
+		.init = ax_cipher_init, .exit = ax_cipher_exit } }
 
 static struct ax_alg ax_algs[] = {
 	AX_ALG(0, "ecb", AES_BLOCK_SIZE, 0),
@@ -751,7 +759,7 @@ static int ax_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, ce);
 	for (i = 0; i < ARRAY_SIZE(ax_algs); i++) {
 		ax_algs[i].dev = ce;
-		err = crypto_engine_register_skcipher(&ax_algs[i].alg);
+		err = crypto_register_skcipher(&ax_algs[i].alg);
 		if (err)
 			goto unregister;
 	}
@@ -777,7 +785,7 @@ static int ax_probe(struct platform_device *pdev)
 	return 0;
 unregister:
 	while (i--)
-		crypto_engine_unregister_skcipher(&ax_algs[i].alg);
+		crypto_unregister_skcipher(&ax_algs[i].alg);
 	for (i = 0; i < ARRAY_SIZE(ax_algs); i++)
 		ax_algs[i].dev = NULL;
 	crypto_engine_stop(ce->engine);
@@ -792,7 +800,7 @@ clocks:
 	return dev_err_probe(dev, err, "EIP-130 initialization\n");
 }
 
-static void ax_remove(struct platform_device *pdev)
+static int ax_remove(struct platform_device *pdev)
 {
 	struct ax_dev *ce = platform_get_drvdata(pdev);
 	unsigned int i;
@@ -801,13 +809,15 @@ static void ax_remove(struct platform_device *pdev)
 	device_remove_file(&pdev->dev, &dev_attr_stats);
 	device_remove_file(&pdev->dev, &dev_attr_recover);
 	for (i = 0; i < ARRAY_SIZE(ax_algs); i++)
-		crypto_engine_unregister_skcipher(&ax_algs[i].alg);
+		crypto_unregister_skcipher(&ax_algs[i].alg);
 	crypto_engine_stop(ce->engine);
 	crypto_engine_exit(ce->engine);
 	ax_quiesce(ce);
 	clk_bulk_disable_unprepare(ARRAY_SIZE(ce->clocks), ce->clocks);
 	for (i = 0; i < ARRAY_SIZE(ax_algs); i++)
 		ax_algs[i].dev = NULL;
+
+	return 0;
 }
 
 static const struct of_device_id ax_of_match[] = {

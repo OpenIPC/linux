@@ -322,6 +322,8 @@ struct openvin_csi2 {
 	struct v4l2_subdev sd;
 	struct media_pad pads[OPENVIN_NUM_PADS];
 	struct v4l2_ctrl_handler ctrls;
+	/* Active format per pad -- this kernel predates sd->active_state. */
+	struct v4l2_mbus_framefmt format[OPENVIN_NUM_PADS];
 
 	/* Standalone-mode owner of the subdev (M1 bring-up without M2). */
 	struct v4l2_device v4l2_dev;
@@ -794,13 +796,14 @@ static void openvin_default_fmt(struct v4l2_mbus_framefmt *fmt)
 	fmt->colorspace = V4L2_COLORSPACE_SRGB;
 }
 
-static int openvin_csi2_init_state(struct v4l2_subdev *sd,
-				   struct v4l2_subdev_state *state)
+static int openvin_csi2_open(struct v4l2_subdev *sd,
+			     struct v4l2_subdev_fh *fh)
 {
 	unsigned int pad;
 
 	for (pad = 0; pad < OPENVIN_NUM_PADS; pad++)
-		openvin_default_fmt(v4l2_subdev_state_get_format(state, pad));
+		openvin_default_fmt(v4l2_subdev_get_try_format(sd, fh->state,
+								pad));
 
 	return 0;
 }
@@ -819,6 +822,7 @@ static int openvin_csi2_set_fmt(struct v4l2_subdev *sd,
 				struct v4l2_subdev_state *state,
 				struct v4l2_subdev_format *fmt)
 {
+	struct openvin_csi2 *priv = sd_to_openvin(sd);
 	struct v4l2_mbus_framefmt *format;
 	unsigned int pad;
 
@@ -837,9 +841,26 @@ static int openvin_csi2_set_fmt(struct v4l2_subdev *sd,
 
 	/* Sink format propagates to the source pad: nothing in between. */
 	for (pad = 0; pad < OPENVIN_NUM_PADS; pad++) {
-		format = v4l2_subdev_state_get_format(state, pad);
+		if (fmt->which == V4L2_SUBDEV_FORMAT_TRY)
+			format = v4l2_subdev_get_try_format(sd, state, pad);
+		else
+			format = &priv->format[pad];
 		*format = fmt->format;
 	}
+
+	return 0;
+}
+
+static int openvin_csi2_get_fmt(struct v4l2_subdev *sd,
+				struct v4l2_subdev_state *state,
+				struct v4l2_subdev_format *fmt)
+{
+	struct openvin_csi2 *priv = sd_to_openvin(sd);
+
+	if (fmt->which == V4L2_SUBDEV_FORMAT_TRY)
+		fmt->format = *v4l2_subdev_get_try_format(sd, state, fmt->pad);
+	else
+		fmt->format = priv->format[fmt->pad];
 
 	return 0;
 }
@@ -854,7 +875,7 @@ static const struct v4l2_subdev_video_ops openvin_csi2_video_ops = {
 
 static const struct v4l2_subdev_pad_ops openvin_csi2_pad_ops = {
 	.enum_mbus_code = openvin_csi2_enum_mbus_code,
-	.get_fmt = v4l2_subdev_get_fmt,
+	.get_fmt = openvin_csi2_get_fmt,
 	.set_fmt = openvin_csi2_set_fmt,
 };
 
@@ -865,7 +886,7 @@ static const struct v4l2_subdev_ops openvin_csi2_subdev_ops = {
 };
 
 static const struct v4l2_subdev_internal_ops openvin_csi2_internal_ops = {
-	.init_state = openvin_csi2_init_state,
+	.open = openvin_csi2_open,
 };
 
 /* --------------------------------------------------------------------------
@@ -1117,9 +1138,8 @@ static int openvin_csi2_probe(struct platform_device *pdev)
 	}
 	priv->sd.ctrl_handler = &priv->ctrls;
 
-	ret = v4l2_subdev_init_finalize(&priv->sd);
-	if (ret)
-		goto err_ctrls;
+	for (i = 0; i < OPENVIN_NUM_PADS; i++)
+		openvin_default_fmt(&priv->format[i]);
 
 	if (priv->standalone) {
 		/*
@@ -1159,7 +1179,6 @@ static int openvin_csi2_probe(struct platform_device *pdev)
 err_v4l2_dev:
 	v4l2_device_unregister(&priv->v4l2_dev);
 err_subdev:
-	v4l2_subdev_cleanup(&priv->sd);
 err_ctrls:
 	v4l2_ctrl_handler_free(&priv->ctrls);
 err_entity:
@@ -1167,7 +1186,7 @@ err_entity:
 	return ret;
 }
 
-static void openvin_csi2_remove(struct platform_device *pdev)
+static int openvin_csi2_remove(struct platform_device *pdev)
 {
 	struct openvin_csi2 *priv = platform_get_drvdata(pdev);
 
@@ -1179,9 +1198,10 @@ static void openvin_csi2_remove(struct platform_device *pdev)
 	} else {
 		v4l2_async_unregister_subdev(&priv->sd);
 	}
-	v4l2_subdev_cleanup(&priv->sd);
 	v4l2_ctrl_handler_free(&priv->ctrls);
 	media_entity_cleanup(&priv->sd.entity);
+
+	return 0;
 }
 
 static const struct of_device_id openvin_csi2_of_match[] = {

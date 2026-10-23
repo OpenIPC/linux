@@ -7,7 +7,6 @@
 #include <linux/bits.h>
 #include <linux/clk-provider.h>
 #include <linux/clk.h>
-#include <linux/container_of.h>
 #include <linux/kernel.h>
 #include <linux/clkdev.h>
 #include <linux/delay.h>
