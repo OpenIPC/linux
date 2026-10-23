@@ -34,16 +34,20 @@ struct cma_zone {
 #include <linux/pgtable.h>
 
 /*
- * Re-map the kernel linear mapping of a CMA page range with the given
- * cache attributes and flush the corresponding TLB entries. Exported so
+ * Re-map the kernel linear mapping of a CMA page range with the given cache
+ * attributes and flush the corresponding TLB entries. Exported so
  * out-of-tree MMZ allocators (openhisilicon) do not have to reference the
  * non-exported init_mm / flush_tlb_kernel_range symbols directly.
  *
+ * @page must be a lowmem page and @size must be non-zero and page-aligned
+ * (__apply_to_page_range() walks page by page and would otherwise run past
+ * the range). Returns 0 on success, -EINVAL on a bad argument.
+ *
  * ARM32 caches are VIPT, so the linear map and the vmalloc mapping of the
- * same CMA page must carry identical attributes; AArch64 caches are PIPT
- * and its MMZ allocator does not re-map the linear alias at all.
+ * same CMA page must carry identical attributes; AArch64 caches are PIPT and
+ * its MMZ allocator does not re-map the linear alias at all.
  */
-void bsp_cma_dma_remap(struct page *page, size_t size, pgprot_t prot);
+int bsp_cma_dma_remap(struct page *page, size_t size, pgprot_t prot);
 #endif /* CONFIG_ARM */
 
 int is_cma_address(phys_addr_t phys, unsigned long size);

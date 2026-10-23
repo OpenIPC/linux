@@ -12,6 +12,7 @@
 #include <linux/of_fdt.h>
 #include <asm/early_ioremap.h>
 #include <asm/sections.h>
+#include <linux/highmem.h>
 
 static u32 num_zones;
 static struct cma_zone bsp_zone[ZONE_MAX];
@@ -169,14 +170,35 @@ static int bsp_cma_update_pte(pte_t *pte, unsigned long addr, void *data)
 	return 0;
 }
 
-void bsp_cma_dma_remap(struct page *page, size_t size, pgprot_t prot)
+int bsp_cma_dma_remap(struct page *page, size_t size, pgprot_t prot)
 {
-	unsigned long start = (unsigned long)page_address(page);
-	unsigned long end = start + size;
+	unsigned long start, end;
 
+	/*
+	 * __apply_to_page_range() advances the walk one page at a time and stops
+	 * only when the address equals the end, so a non page-aligned size would
+	 * let it rewrite page tables past the requested range. MMZ allocators
+	 * always pass a page-aligned mmb length.
+	 */
+	if (!page || !size || !IS_ALIGNED(size, PAGE_SIZE))
+		return -EINVAL;
+
+	/*
+	 * A highmem page has no permanent linear mapping, so there is nothing to
+	 * re-map (page_address() would return NULL). Callers stay in lowmem.
+	 */
+	if (PageHighMem(page))
+		return -EINVAL;
+
+	start = (unsigned long)page_address(page);
+	if (!start)
+		return -EINVAL;
+
+	end = start + size;
 	apply_to_page_range(&init_mm, start, size, bsp_cma_update_pte, &prot);
 	dsb();
 	flush_tlb_kernel_range(start, end);
+	return 0;
 }
 EXPORT_SYMBOL_GPL(bsp_cma_dma_remap);
 #endif /* CONFIG_CMA && CONFIG_ARM */
