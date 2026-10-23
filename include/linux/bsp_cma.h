@@ -36,6 +36,11 @@ struct cma_zone *get_cma_zone(const char *name);
 struct device *get_cma_device(const char *name);
 int __init declare_heap_memory(void);
 void __init bsp_memory_init(void);
+#ifdef CONFIG_ARM
+/* Modules test this to know cma_dma_remap() exists. */
+#define BSP_CMA_HAS_DMA_REMAP 1
+int cma_dma_remap(struct page *page, size_t size, pgprot_t prot);
+#endif
 #endif /* CONFIG_CMA */
 #endif /* CONFIG_ARCH_BSP */
 
