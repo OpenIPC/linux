@@ -3,6 +3,7 @@
  */
 #include <linux/bsp_cma.h>
 #include <linux/io.h>
+#include <linux/mm.h>
 #include <linux/mmzone.h>
 #include <linux/sizes.h>
 #include <linux/slab.h>
@@ -12,6 +13,7 @@
 #include <linux/of_fdt.h>
 #include <asm/early_ioremap.h>
 #include <asm/sections.h>
+#include <asm/tlbflush.h>
 
 static u32 num_zones;
 static struct cma_zone bsp_zone[ZONE_MAX];
@@ -153,6 +155,42 @@ struct device *get_cma_device(const char *name)
 	return &bsp_zone[i].pdev;
 }
 EXPORT_SYMBOL(get_cma_device);
+
+#ifdef CONFIG_ARM
+/*
+ * Give the linear mapping of CMA pages the attributes of the mapping a
+ * module is about to create for them (open_mmz maps MMBs non-cached), so
+ * the same pages are not mapped cacheable and non-cached at once.  This is
+ * arch/arm/mm/dma-mapping.c's __dma_remap(), which is static; it needs
+ * init_mm and, on SMP, flush_tlb_kernel_range(), neither of which ARM
+ * exports to modules.  dma_contiguous_remap() has already split the zones
+ * that declare_heap_memory() reserved into pages, so there are ptes to
+ * update.
+ */
+static int cma_update_pte(pte_t *pte, unsigned long addr, void *data)
+{
+	struct page *page = virt_to_page(addr);
+	pgprot_t prot = *(pgprot_t *)data;
+
+	set_pte_ext(pte, mk_pte(page, prot), 0);
+	return 0;
+}
+
+int cma_dma_remap(struct page *page, size_t size, pgprot_t prot)
+{
+	unsigned long start;
+	int ret;
+
+	if (page == NULL || PageHighMem(page))
+		return -EINVAL;
+
+	start = (unsigned long)page_address(page);
+	ret = apply_to_page_range(&init_mm, start, size, cma_update_pte, &prot);
+	flush_tlb_kernel_range(start, start + size);
+	return ret;
+}
+EXPORT_SYMBOL_GPL(cma_dma_remap);
+#endif /* CONFIG_ARM */
 
 int __init declare_heap_memory(void)
 {
