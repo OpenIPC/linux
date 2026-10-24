@@ -598,13 +598,16 @@ static bool lotus_snor_split_layout(struct mtd_info *mtd)
 		const char *label;
 		int len, na, ns;
 
-		if (of_property_read_string(pp, "label", &label) ||
-		    strcmp(label, LOTUS_SNOR_FW_NAME))
+		/* named as ofpart names it: the label, else the node name */
+		if (of_property_read_string(pp, "label", &label))
+			label = pp->name;
+		if (strcmp(label, LOTUS_SNOR_FW_NAME))
 			continue;
 		reg = of_get_property(pp, "reg", &len);
 		na = of_n_addr_cells(pp);
 		ns = of_n_size_cells(pp);
-		if (reg && len >= (na + ns) * (int)sizeof(*reg))
+		/* exactly the cells ofpart takes, or it rejects the table */
+		if (reg && len == (na + ns) * (int)sizeof(*reg))
 			split = lotus_snor_split_at(mtd, of_read_number(reg, na),
 						    of_read_number(reg + na, ns));
 		of_node_put(pp);
