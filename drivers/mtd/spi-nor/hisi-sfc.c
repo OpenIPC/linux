@@ -423,10 +423,14 @@ static int hisi_snor_device_register(struct mtd_info *mtd,
 		nr_parts = parse_mtd_partitions(mtd, hisi_snor_split_probes,
 						&parts, &ppdata);
 		if (nr_parts > 0) {
+			/* the first parse's table stands in if the second fails */
+			int ret = mtd_device_parse_register(mtd,
+							    hisi_snor_split_probes,
+							    &ppdata, parts,
+							    nr_parts);
+
 			kfree(parts);
-			return mtd_device_parse_register(mtd,
-							 hisi_snor_split_probes,
-							 &ppdata, NULL, 0);
+			return ret;
 		}
 		pr_warn("%s: device tree partitions: %d, using the command line's\n",
 			mtd->name, nr_parts);
