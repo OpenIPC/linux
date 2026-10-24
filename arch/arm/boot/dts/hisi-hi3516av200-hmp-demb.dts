@@ -202,6 +202,29 @@ root=/dev/mtdblock2 rootfstype=jffs2 mtdparts=hi_sfc:1M(boot),
 		reg = <0>;
 		spi-max-frequency = <160000000>;
 		m25p,fast-read;
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		/*
+		 * The split NOR layout. hisi-sfc takes these over the
+		 * command line only when "firmware" holds a uImage with the
+		 * root squashfs at the next erase block; mtdsplit then
+		 * divides it into kernel, rootfs and rootfs_data.
+		 */
+		partition@0 {
+			label = "boot";
+			reg = <0x0 0x40000>;
+		};
+
+		partition@40000 {
+			label = "env";
+			reg = <0x40000 0x10000>;
+		};
+
+		partition@50000 {
+			label = "firmware";
+			reg = <0x50000 0x0>;	/* to the end of the chip */
+		};
 	};
 };
 
