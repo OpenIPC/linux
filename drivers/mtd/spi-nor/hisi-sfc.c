@@ -431,11 +431,15 @@ static int hisi_snor_device_register(struct mtd_info *mtd)
 	 */
 	memset(&parsed, 0, sizeof(parsed));
 	ret = parse_mtd_partitions(mtd, probes, &parsed, NULL);
-	if (ret)
+	if (ret && probes == hisi_snor_cmdline_probes)
 		return ret;
-	mtd_part_parser_cleanup(&parsed);
-	if (!parsed.nr_parts && probes != hisi_snor_cmdline_probes) {
-		/* The DT table gave nothing: the command line's, as before */
+	if (!ret)
+		mtd_part_parser_cleanup(&parsed);
+	if ((ret || !parsed.nr_parts) && probes != hisi_snor_cmdline_probes) {
+		/* The DT table failed or gave nothing: the command line's, as before */
+		if (ret)
+			pr_warn("%s: device tree partitions: %d, using the command line's\n",
+				mtd->name, ret);
 		probes = hisi_snor_cmdline_probes;
 		memset(&parsed, 0, sizeof(parsed));
 		ret = parse_mtd_partitions(mtd, probes, &parsed, NULL);
