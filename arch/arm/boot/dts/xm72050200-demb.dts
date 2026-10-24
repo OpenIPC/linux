@@ -98,6 +98,34 @@
 		compatible = "jedec,spi-nor";
 		reg = <0>;
 		spi-max-frequency = <160000000>;
+
+		/*
+		 * The OpenIPC NOR layout, whatever the bootloader passes: U-Boot,
+		 * its environment, and one "firmware" partition to the end of the
+		 * chip (size 0), which mtdsplit divides into kernel, rootfs and
+		 * rootfs_data when it holds a uImage and, at the next erase block,
+		 * a squashfs. xmedia-sfc prefers this table to a command line
+		 * mtdparts in that case; on the fixed-slot layout the command line
+		 * still wins.
+		 */
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			u-boot@0 {
+				label = "u-boot";
+				reg = <0x0 0x40000>;
+			};
+			env@40000 {
+				label = "env";
+				reg = <0x40000 0x10000>;
+			};
+			firmware@50000 {
+				label = "firmware";
+				reg = <0x50000 0x0>;
+			};
+		};
 	};
 };
 
