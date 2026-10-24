@@ -1,0 +1,429 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+/*
+ * Axera AX630C, HDMI-capture/virtual-KVM board profile.
+ *
+ * DRAM from live U-Boot bdinfo: bank 0x40001000 / 0x7ffff000 (~2 GiB).
+ * First 4K at 0x40000000 is the vendor DDR retrain window.
+ */
+
+/dts-v1/;
+
+#include "ax620e.dtsi"
+#include <dt-bindings/input/linux-event-codes.h>
+
+/ {
+	model = "Axera AX630C";
+	compatible = "axera,ax630c", "axera,ax620e";
+
+	/* The vendor ATF does not implement PSCI SYSTEM_RESET. */
+	reboot {
+		compatible = "syscon-reboot";
+		regmap = <&common_reset>;
+		offset = <0xa8>;
+		mask = <0x1>;
+		value = <0x1>;
+		priority = <192>;
+	};
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+		bootargs = "earlycon=uart8250,mmio32,0x04880000 console=ttyS0,115200n8";
+	};
+
+	/*
+	 * Real DRAM is 1 GiB at 0x40000000. ATF and OP-TEE are omitted
+	 * from these ranges. 0x6D400000-0x80000000 is the old CMM window:
+	 * the bottom 100 MiB stays a reusable CMA pool, and the top 200 MiB
+	 * is the open capture/encoder carveout. Do not pass mem=724M.
+	 * Load the DTB at 0x47000000; 0x46000000 is inside OP-TEE.
+	 */
+	memory@40001000 {
+		device_type = "memory";
+		reg = <0x0 0x40001000 0x0 0x0003f000>,
+		      <0x0 0x40080000 0x0 0x04180000>,
+		      <0x0 0x46200000 0x0 0x27200000>,
+		      <0x0 0x6d400000 0x0 0x12c00000>;
+	};
+
+	reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		ddr_retrain: ddr-retrain@40000000 {
+			reg = <0x0 0x40000000 0x0 0x1000>;
+			no-map;
+		};
+
+		atf_reserved: atf@40040000 {
+			reg = <0x0 0x40040000 0x0 0x40000>;
+			no-map;
+		};
+
+		optee_reserved: optee@44200000 {
+			reg = <0x0 0x44200000 0x0 0x2000000>;
+			no-map;
+		};
+
+		/*
+		 * Former CMM window, bottom 100 MiB. The top 200 MiB is
+		 * no-map below so the encoder and capture DMA see fixed
+		 * bus addresses. No IOMMU.
+		 */
+		cmm_cma: cmm-cma@6d400000 {
+			compatible = "shared-dma-pool";
+			reusable;
+			reg = <0x0 0x6d400000 0x0 0x06400000>;
+			linux,cma-default;
+		};
+
+		/* Encoder frame buffers. The kernel does not map these. */
+		venc_framebuf: venc-framebuf@73800000 {
+			reg = <0x0 0x73800000 0x0 0x06000000>;
+			no-map;
+		};
+
+		/* Capture buffers. Coherent pool, power-of-two slots. */
+		capture_pool: capture-pool@79800000 {
+			compatible = "shared-dma-pool";
+			reg = <0x0 0x79800000 0x0 0x06000000>;
+			no-map;
+		};
+
+		/* VCMD command, status, and register pools. */
+		venc_cmdbuf: venc-cmdbuf@7f800000 {
+			compatible = "shared-dma-pool";
+			reg = <0x0 0x7f800000 0x0 0x00800000>;
+			no-map;
+		};
+	};
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&tdp {
+	status = "okay";
+};
+
+&wdt0 {
+	status = "okay";
+};
+
+&eth0 {
+	status = "okay";
+	phy-mode = "rgmii";
+	phy-handle = <&rgmii_phy>;
+	phy-reset-gpios = <&gpio1 27 GPIO_ACTIVE_LOW>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&ephy_rstn_gpio_pins>;
+
+	mdio {
+		compatible = "snps,dwmac-mdio";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		rgmii_phy: ethernet-phy@1 {
+			/* JL2xxx 0x937c403x. Do not let RTL8211F claim a bad ID read. */
+			compatible = "ethernet-phy-id937c.4030";
+			reg = <1>;
+		};
+	};
+};
+
+&emmc {
+	max-frequency = <200000000>;
+	bus-width = <8>;
+	no-sdio;
+	no-sd;
+	non-removable;
+	disable-wp;
+	cap-mmc-highspeed;
+	mmc-hs200-1_8v;
+	/* Vendor masks a bogus clock multiplier and timeout-clk bit. */
+	sdhci-caps-mask = <0x2 0x03200000>;
+	cdns,phy-input-delay-sd-highspeed = <2>;
+	cdns,phy-input-delay-legacy = <4>;
+	cdns,phy-input-delay-sd-uhs-sdr12 = <1>;
+	cdns,phy-input-delay-sd-uhs-sdr25 = <2>;
+	cdns,phy-input-delay-sd-uhs-sdr50 = <1>;
+	cdns,phy-input-delay-sd-uhs-ddr50 = <2>;
+	cdns,phy-input-delay-mmc-highspeed = <2>;
+	cdns,phy-input-delay-mmc-ddr = <2>;
+	cdns,phy-dll-delay-sdclk = <45>;
+	cdns,phy-dll-delay-sdclk-hsmmc = <31>;
+	cdns,phy-dll-delay-strobe = <18>;
+	fixed-emmc-driver-type = <4>;
+	status = "okay";
+};
+
+&sd {
+	bus-width = <4>;
+	max-frequency = <200000000>;
+	cap-sd-highspeed;
+	sd-uhs-sdr12;
+	sd-uhs-sdr25;
+	sd-uhs-sdr50;
+	sd-uhs-ddr50;
+	sd-uhs-sdr104;
+	no-sdio;
+	no-mmc;
+	disable-wp;
+	/* GPIO1_A11 is also the status-panel DC line, polled by the DT below. */
+	broken-cd;
+	cdns,phy-input-delay-sd-highspeed = <2>;
+	cdns,phy-input-delay-legacy = <3>;
+	cdns,phy-input-delay-sd-uhs-sdr12 = <3>;
+	cdns,phy-input-delay-sd-uhs-sdr25 = <2>;
+	cdns,phy-input-delay-sd-uhs-sdr50 = <1>;
+	cdns,phy-input-delay-sd-uhs-ddr50 = <1>;
+	cdns,phy-dll-delay-sdclk = <0>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&sd_clk_pins &sd_cmd_pins &sd_dat0_pins
+		     &sd_dat1_pins &sd_dat2_pins &sd_dat3_pins
+		     &sd_power_pins &sd_voltage_pins>;
+	status = "okay";
+};
+
+&sdio {
+	bus-width = <4>;
+	max-frequency = <50000000>;
+	no-1-8-v;
+	no-sd;
+	no-mmc;
+	non-removable;
+	cap-sd-highspeed;
+	pinctrl-names = "default";
+	pinctrl-0 = <&sdio_clk_pins &sdio_cmd_pins &sdio_dat0_pins
+		     &sdio_dat1_pins &sdio_dat2_pins &sdio_dat3_pins>;
+	status = "okay";
+};
+
+&usb {
+	status = "okay";
+};
+
+/*
+ * The PC-facing port is this DWC3. Boot as a gadget so HID and virtual
+ * media enumerate. usb-role-switch plus dual-role lets userspace write
+ * /sys/class/usb_role/<controller>/role (device or host) without a reboot.
+ * The Axera glue sets USB2_VBUSVALID on the device role.
+ */
+&usb2 {
+	dr_mode = "otg";
+	usb-role-switch;
+	role-switch-default-mode = "peripheral";
+};
+
+/*
+ * Status panel, 1.47" JD9853. U-Boot already muxes SPI2 SCLK/MOSI, CS
+ * GPIO0_A27, reset GPIO1_A9, DC GPIO1_A11 and TE GPIO2_A13 on boards that
+ * carry this panel. Do not enable this node on a board variant without it.
+ *
+ * dc is ACTIVE_HIGH: fbtft's logical GPIO API drives data high. reset stays
+ * ACTIVE_LOW. No te-gpios. CS0 is the native select (nothing on that pad);
+ * the panel is CS1.
+ *
+ * Backlight pad EMAC_PTP_PPS0 is GPIO1_A8. The GPIO PWM driver owns this
+ * line and exposes a standard backlight to the screen display service.
+ */
+/ {
+	panel_pwm: panel-pwm {
+		compatible = "pwm-gpio";
+		#pwm-cells = <3>;
+		gpios = <&gpio1 8 GPIO_ACTIVE_HIGH>;
+	};
+
+	panel_backlight: panel-backlight {
+		compatible = "pwm-backlight";
+		pwms = <&panel_pwm 0 1000000 0>;
+		brightness-levels = <0 255>;
+		num-interpolated-steps = <255>;
+		default-brightness-level = <255>;
+	};
+};
+
+&spi2 {
+	status = "okay";
+	cs-gpios = <0>, <&gpio0 27 GPIO_ACTIVE_LOW>;
+
+	panel@1 {
+		compatible = "jadard,jd9853";
+		reg = <1>;
+		spi-max-frequency = <80000000>;
+		spi-cpol;
+		spi-cpha;
+		buswidth = <8>;
+		rotate = <0>;
+		fps = <90>;
+		dc-gpios = <&gpio1 11 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&gpio1 9 GPIO_ACTIVE_LOW>;
+	};
+};
+
+/*
+ * Desk knob: gray encoder on GPIO3_A1 + GPIO0_A18, click on GPIO0_A22.
+ * Active-low. The knob rests every half-period, so use half-period
+ * decoding for one REL_X step per detent. No autorepeat: a hold is one
+ * press the screen treats as back.
+ */
+/ {
+	rotary-encoder {
+		compatible = "rotary-encoder";
+		pinctrl-names = "default";
+		pinctrl-0 = <&knob_a_pins>, <&knob_b_pins>;
+		gpios = <&gpio3 1 GPIO_ACTIVE_LOW>, <&gpio0 18 GPIO_ACTIVE_LOW>;
+		linux,axis = <0>;
+		rotary-encoder,encoding = "gray";
+		rotary-encoder,relative-axis;
+		rotary-encoder,steps-per-period = <2>;
+	};
+
+	gpio-keys {
+		compatible = "gpio-keys";
+		pinctrl-names = "default";
+		pinctrl-0 = <&knob_press_pins>;
+
+		knob {
+			label = "knob";
+			linux,code = <KEY_ENTER>;
+			gpios = <&gpio0 22 GPIO_ACTIVE_LOW>;
+			debounce-interval = <10>;
+		};
+	};
+};
+
+&venc {
+	compatible = "axera,ax630c-vc8000e";
+	status = "okay";
+	memory-region = <&venc_cmdbuf>, <&venc_framebuf>;
+	memory-region-names = "cmdbuf", "framebuf";
+	assigned-clocks = <&clk_vpu AX620X_CLK_VPU_GLB_SEL>;
+	assigned-clock-parents = <&clk_common AX620X_CPLL_312M>;
+};
+
+&jenc {
+	status = "okay";
+};
+
+&vdec {
+	status = "okay";
+};
+
+&mipi_rx {
+	status = "okay";
+};
+
+&vin {
+	status = "okay";
+	memory-region = <&capture_pool>;
+};
+
+/*
+ * LT6911UXC on I2C0. Our pinctrl does not switch the mux when a GPIO is
+ * claimed, so every pad is muxed to its GPIO function here. EPHY_LED0 is
+ * the bridge interrupt (bootloader leaves the EPHY LED function). The other
+ * pads are the bridge rails, loop-out enables, and cable detects.
+ * Do not use function "dphy_rx"; this controller rejects it.
+ */
+&i2c0 {
+	status = "okay";
+	clock-frequency = <100000>;
+	pinctrl-0 = <&i2c0_scl_pins>, <&i2c0_sda_pins>,
+		    <&lt6911_int_pins>, <&lt6911_power_pins>,
+		    <&lt6911_hdmi_power_pins>, <&lt6911_loopout0_pins>,
+		    <&lt6911_loopout1_pins>, <&lt6911_rx_det_pins>,
+		    <&lt6911_tx_det_pins>;
+
+	hdmi-receiver@2b {
+		compatible = "lontium,lt6911uxc";
+		reg = <0x2b>;
+
+		interrupt-gpios = <&gpio1 28 GPIO_ACTIVE_LOW>;
+		power-gpios = <&gpio0 5 GPIO_ACTIVE_HIGH>;
+		hdmi-power-gpios = <&gpio0 6 GPIO_ACTIVE_HIGH>;
+		loopout-gpios = <&gpio0 21 GPIO_ACTIVE_LOW>,
+				<&gpio2 17 GPIO_ACTIVE_LOW>;
+		hdmi-rx-detect-gpios = <&gpio2 18 GPIO_ACTIVE_LOW>;
+		hdmi-tx-detect-gpios = <&gpio2 19 GPIO_ACTIVE_LOW>;
+	};
+};
+
+/* Desk touch panel: vendor CST8xxT firmware targets the CST816D (0xb6). */
+&i2c7 {
+	status = "okay";
+
+	touchscreen@15 {
+		compatible = "hynitron,cst816d";
+		reg = <0x15>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&touch_irq_pins>, <&touch_reset_pins>;
+		interrupt-parent = <&gpio2>;
+		interrupts = <15 IRQ_TYPE_EDGE_FALLING>;
+		reset-gpios = <&gpio2 14 GPIO_ACTIVE_LOW>;
+		touchscreen-size-x = <172>;
+		touchscreen-size-y = <320>;
+	};
+};
+
+&crypto {
+	status = "okay";
+};
+
+&pinctrl {
+	touch_irq_pins: touch-irq-pins {
+		pins = "CDTX_L2P";
+		function = "GPIO2_A15";
+		bias-pull-up;
+	};
+
+	touch_reset_pins: touch-reset-pins {
+		pins = "CDTX_L2N";
+		function = "GPIO2_A14";
+	};
+
+	lt6911_int_pins: lt6911-int-pins {
+		pins = "EPHY_LED0";
+		function = "GPIO1_A28";
+		bias-pull-up;
+		drive-strength = <3>;
+		input-schmitt-disable;
+	};
+
+	lt6911_power_pins: lt6911-power-pins {
+		pins = "VI_D5";
+		function = "GPIO0_A5";
+		drive-strength = <3>;
+	};
+
+	lt6911_hdmi_power_pins: lt6911-hdmi-power-pins {
+		pins = "VI_D6";
+		function = "GPIO0_A6";
+		drive-strength = <3>;
+	};
+
+	lt6911_loopout0_pins: lt6911-loopout0-pins {
+		pins = "TMS";
+		function = "GPIO0_A21";
+		drive-strength = <3>;
+	};
+
+	lt6911_loopout1_pins: lt6911-loopout1-pins {
+		pins = "CDTX_L3P";
+		function = "GPIO2_A17";
+		drive-strength = <3>;
+	};
+
+	lt6911_rx_det_pins: lt6911-rx-det-pins {
+		pins = "CDTX_L4N";
+		function = "GPIO2_A18";
+		drive-strength = <3>;
+	};
+
+	lt6911_tx_det_pins: lt6911-tx-det-pins {
+		pins = "CDTX_L4P";
+		function = "GPIO2_A19";
+		drive-strength = <3>;
+	};
+};
