@@ -1284,6 +1284,130 @@ static void hisfc_probe_spi_size(struct hisfc_host *host)
 	printk(KERN_INFO "chip num: %x\n", host->num_chip);
 }
 
+/*
+ * The split NOR layout: the device tree's "firmware" partition starts with a
+ * uImage and the root squashfs follows it at the next erase block (mtdsplit
+ * divides it at boot). Its partitions are then the device tree's, whatever
+ * the bootloader passed -- an OpenIPC U-Boot's fixed-slot mtdparts, or a
+ * vendor's own -- so any U-Boot that bootm's the
+ * uImage at the start of the partition boots it. The fixed-slot layout also
+ * starts with a uImage, but its squashfs sits at the slot boundary: it keeps
+ * the command line first, as before. Only with the splitters and the flash
+ * root (MTD_ROOTFS_ROOT_DEV) built, or the DT layout would leave a split
+ * image unbootable: the bootloader's root= would name another partition.
+ */
+#ifdef CONFIG_MTD_SPLIT_FIRMWARE_NAME
+#define HISFC350_FW_NAME CONFIG_MTD_SPLIT_FIRMWARE_NAME
+#else
+#define HISFC350_FW_NAME "firmware"
+#endif
+
+static const char * const hisfc350_snor_split_probes[] = { "ofpart", NULL };
+/* Otherwise the command line only, as before the DT had partitions */
+static const char * const hisfc350_snor_cmdline_probes[] = { "cmdlinepart", NULL };
+
+/* mtd_read() succeeded, or returned the data with corrected bitflips */
+static bool hisfc350_snor_read(struct mtd_info *mtd, u64 off, size_t len, void *buf)
+{
+	size_t retlen;
+	int err = mtd_read(mtd, off, len, &retlen, buf);
+
+	return (!err || mtd_is_bitflip(err)) && retlen == len;
+}
+
+static bool hisfc350_snor_split_at(struct mtd_info *mtd, u64 offset, u64 size)
+{
+	struct {
+		__be32 magic, hcrc, time, size;
+	} hdr;
+	__le32 squashfs;
+	u64 kernel;
+
+	/* ofpart: size 0 is the rest of the chip */
+	if (offset >= mtd->size)
+		return false;
+	if (!size || size > mtd->size - offset)
+		size = mtd->size - offset;
+	if (size < sizeof(hdr) || !hisfc350_snor_read(mtd, offset, sizeof(hdr), &hdr) ||
+	    be32_to_cpu(hdr.magic) != 0x27051956)
+		return false;
+	kernel = round_up(64 + (u64)be32_to_cpu(hdr.size), mtd->erasesize);
+	/* The splitter reads within the partition, so must this. */
+	if (kernel + sizeof(squashfs) > size)
+		return false;
+	return hisfc350_snor_read(mtd, offset + kernel, sizeof(squashfs), &squashfs) &&
+		le32_to_cpu(squashfs) == 0x73717368;	/* "hsqs" */
+}
+
+static bool hisfc350_snor_split_layout(struct mtd_info *mtd)
+{
+	struct device_node *parts, *pp;
+	bool split = false;
+
+	if (!IS_ENABLED(CONFIG_MTD_SPLIT_FIRMWARE) ||
+	    !IS_ENABLED(CONFIG_MTD_SPLIT_UIMAGE_FW) ||
+	    !IS_ENABLED(CONFIG_MTD_ROOTFS_ROOT_DEV) ||
+	    !IS_ENABLED(CONFIG_MTD_OF_PARTS))
+		return false;
+
+	parts = of_get_child_by_name(mtd_get_of_node(mtd), "partitions");
+	if (!parts)
+		return false;
+	/* ofpart reads only a fixed-partitions node; anything else would leave
+	 * the flash with no partitions at all */
+	if (!of_device_is_compatible(parts, "fixed-partitions")) {
+		of_node_put(parts);
+		return false;
+	}
+	for_each_child_of_node(parts, pp) {
+		const __be32 *reg;
+		const char *label;
+		int len, na, ns;
+
+		if (of_property_read_string(pp, "label", &label) ||
+		    strcmp(label, HISFC350_FW_NAME))
+			continue;
+		reg = of_get_property(pp, "reg", &len);
+		na = of_n_addr_cells(pp);
+		ns = of_n_size_cells(pp);
+		if (reg && len >= (na + ns) * (int)sizeof(*reg))
+			split = hisfc350_snor_split_at(mtd, of_read_number(reg, na),
+						   of_read_number(reg + na, ns));
+		of_node_put(pp);
+		break;
+	}
+	of_node_put(parts);
+	return split;
+}
+
+/*
+ * Register the flash with the command line's partitions, as before, or the
+ * device tree's for the split layout; with none, the whole flash.
+ */
+static int hisfc350_device_register(struct mtd_info *mtd)
+{
+	struct mtd_partitions parsed;
+	const char * const *probes = hisfc350_snor_cmdline_probes;
+	int ret;
+
+	if (hisfc350_snor_split_layout(mtd)) {
+		pr_info("%s: split NOR layout, device tree partitions\n", mtd->name);
+		probes = hisfc350_snor_split_probes;
+		memset(&parsed, 0, sizeof(parsed));
+		ret = parse_mtd_partitions(mtd, probes, &parsed, NULL);
+		if (ret)
+			pr_warn("%s: device tree partitions: %d, using the command line's\n",
+				mtd->name, ret);
+		else
+			mtd_part_parser_cleanup(&parsed);
+		if (ret || !parsed.nr_parts)
+			/* The DT table failed or gave nothing: the command line's, as before */
+			probes = hisfc350_snor_cmdline_probes;
+	}
+
+	return mtd_device_parse_register(mtd, probes, NULL, NULL, 0);
+}
+
 static int hisfc350_probe(struct hisfc_host *host)
 {
 	struct device *dev = host->dev;
@@ -1302,6 +1426,8 @@ static int hisfc350_probe(struct hisfc_host *host)
 	mtd->flags = MTD_CAP_NORFLASH;
 	mtd->owner = THIS_MODULE;
 	mtd->name = np->name;
+	/* the flash node: its partitions describe the split layout */
+	mtd_set_of_node(mtd, np);
 
 	mtd->_erase = hisfc350_reg_erase;
 #ifdef HISFCV350_SUPPORT_REG_WRITE
@@ -1405,7 +1531,7 @@ static int hisfc350_spi_nor_probe(struct platform_device *pdev)
 		goto fail;
 	}
 
-	result = mtd_device_register(mtd, NULL, 0);
+	result = hisfc350_device_register(mtd);
 	if (result)
 		goto fail;
 

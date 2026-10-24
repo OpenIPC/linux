@@ -40,6 +40,7 @@
 #include <linux/slab.h>
 #include <linux/reboot.h>
 #include <linux/leds.h>
+#include <linux/root_dev.h>
 
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
@@ -103,7 +104,13 @@ static LIST_HEAD(mtd_notifiers);
 static void mtd_release(struct device *dev)
 {
 	struct mtd_info *mtd = dev_get_drvdata(dev);
-	dev_t index = MTD_DEVT(mtd->index);
+	dev_t index;
+
+	/* A device whose registration failed never had a /dev/mtdXro node,
+	 * and its index may already belong to another device. */
+	if (!mtd)
+		return;
+	index = MTD_DEVT(mtd->index);
 
 	/* remove /dev/mtdXro node */
 	device_destroy(&mtd_class, index + 1);
@@ -570,6 +577,15 @@ int add_mtd_device(struct mtd_info *mtd)
 	   of this try_ nonsense, and no bitching about it
 	   either. :) */
 	__module_get(THIS_MODULE);
+
+	if (!strcmp(mtd->name, "rootfs") &&
+	    IS_ENABLED(CONFIG_MTD_ROOTFS_ROOT_DEV) &&
+	    ROOT_DEV == 0) {
+		pr_notice("mtd: device %d (%s) set to be root filesystem\n",
+			  mtd->index, mtd->name);
+		ROOT_DEV = MKDEV(MTD_BLOCK_MAJOR, mtd->index);
+	}
+
 	return 0;
 
 fail_added:
