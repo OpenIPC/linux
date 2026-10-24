@@ -303,5 +303,5 @@ module_platform_driver(ax630c_vcmd_driver);
 
 MODULE_LICENSE("GPL");
 MODULE_IMPORT_NS("DMA_BUF");	/* HANTRO_IOCH_IMPORT_DMABUF, framebuf_alloc.c */
-MODULE_AUTHOR("open-nanokvm-pro");
+MODULE_AUTHOR("OpenIPC contributors");
 MODULE_DESCRIPTION("AX630C platform glue for the VeriSilicon VC8000E VCMD driver");

@@ -23,9 +23,9 @@ config VIDEO_AX630C_CSI2RX
 	select MFD_SYSCON
 	help
 	  V4L2 subdev for the MIPI CSI-2 receiver and its D-PHY on the Axera
-	  AX630C. On the Sipeed NanoKVM-Pro it takes four data lanes of
-	  YUV422-8 from an LT6911UXC HDMI-to-MIPI bridge and feeds the VIN
-	  capture block.
+	  AX630C. The reference wiring takes four data lanes of YUV422-8
+	  from an LT6911UXC HDMI-to-MIPI bridge and feeds the VIN capture
+	  block.
 
 	  Open replacement for the vendor ax_mipi_rx blob. To compile this
 	  driver as a module, choose M here: the module will be called

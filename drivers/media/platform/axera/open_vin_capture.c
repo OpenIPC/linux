@@ -1895,5 +1895,5 @@ module_platform_driver(ovc_driver);
 
 MODULE_LICENSE("GPL v2");
 MODULE_IMPORT_NS("DMA_BUF");	/* VIDIOC_EXPBUF: the zero-copy hand-off to the encoder */
-MODULE_AUTHOR("open-nanokvm-pro contributors");
+MODULE_AUTHOR("OpenIPC contributors");
 MODULE_DESCRIPTION("Open V4L2 VIN/IFE capture node for AX630C (ax_proton bypass replacement, #59/#83)");

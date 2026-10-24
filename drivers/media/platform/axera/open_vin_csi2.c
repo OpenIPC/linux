@@ -1220,6 +1220,6 @@ static struct platform_driver openvin_csi2_driver = {
 };
 module_platform_driver(openvin_csi2_driver);
 
-MODULE_AUTHOR("open-nanokvm-pro contributors");
+MODULE_AUTHOR("OpenIPC contributors");
 MODULE_DESCRIPTION("Open V4L2 CSI-2 receiver subdev for AX630C (ax_mipi_rx replacement, #57/#83)");
 MODULE_LICENSE("GPL v2");
