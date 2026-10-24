@@ -21,6 +21,7 @@
 #include <linux/clk.h>
 #include <linux/dma-mapping.h>
 #include <linux/mtd/mtd.h>
+#include <linux/mtd/partitions.h>
 #include <linux/of_address.h>
 #include <linux/of_platform.h>
 #include <linux/mtd/spi-nor.h>
@@ -309,14 +310,127 @@ static void hisi_spi_nor_write(struct spi_nor *nor, loff_t to,
 	*retlen += len;
 }
 
+/*
+ * The split NOR layout: the device tree's "firmware" partition starts with a
+ * uImage and the root squashfs follows it at the next erase block (mtdsplit
+ * divides it at boot). Its partitions are then the device tree's, whatever
+ * the bootloader passed -- an OpenIPC U-Boot's fixed-slot mtdparts, or a
+ * vendor's own, which uses this same mtd-id -- so any U-Boot that bootm's the
+ * uImage at the start of the partition boots it. The fixed-slot layout also
+ * starts with a uImage, but its squashfs sits at the slot boundary: it keeps
+ * the command line, as before. Only with the splitters and the flash root
+ * (MTD_ROOTFS_ROOT_DEV) built, or the DT layout would leave a split image
+ * unbootable: the bootloader's root= would name another partition.
+ */
+#ifdef CONFIG_MTD_SPLIT_FIRMWARE_NAME
+#define HISI_SNOR_FW_NAME CONFIG_MTD_SPLIT_FIRMWARE_NAME
+#else
+#define HISI_SNOR_FW_NAME "firmware"
+#endif
+
+static const char * const hisi_snor_split_probes[] = { "ofpart", NULL };
+
+/* mtd_read() succeeded, or returned the data with corrected bitflips */
+static bool hisi_snor_read(struct mtd_info *mtd, u64 off, size_t len, void *buf)
+{
+	size_t retlen;
+	int err = mtd_read(mtd, off, len, &retlen, buf);
+
+	return (!err || mtd_is_bitflip(err)) && retlen == len;
+}
+
+static bool hisi_snor_split_at(struct mtd_info *mtd, u64 offset, u64 size)
+{
+	struct {
+		__be32 magic, hcrc, time, size;
+	} hdr;
+	__le32 squashfs;
+	u64 kernel;
+
+	/* ofpart: size 0 is the rest of the chip */
+	if (offset >= mtd->size)
+		return false;
+	if (!size || size > mtd->size - offset)
+		size = mtd->size - offset;
+	if (size < sizeof(hdr) || !hisi_snor_read(mtd, offset, sizeof(hdr), &hdr) ||
+	    be32_to_cpu(hdr.magic) != 0x27051956)
+		return false;
+	kernel = round_up(64 + (u64)be32_to_cpu(hdr.size), mtd->erasesize);
+	/* The splitter reads within the partition, so must this. */
+	if (kernel + sizeof(squashfs) > size)
+		return false;
+	return hisi_snor_read(mtd, offset + kernel, sizeof(squashfs), &squashfs) &&
+		le32_to_cpu(squashfs) == 0x73717368;	/* "hsqs" */
+}
+
+static bool hisi_snor_split_layout(struct mtd_info *mtd, struct device_node *np)
+{
+	struct device_node *pp;
+	bool split = false;
+
+	if (!IS_ENABLED(CONFIG_MTD_SPLIT_FIRMWARE) ||
+	    !IS_ENABLED(CONFIG_MTD_SPLIT_UIMAGE_FW) ||
+	    !IS_ENABLED(CONFIG_MTD_ROOTFS_ROOT_DEV) ||
+	    !IS_ENABLED(CONFIG_MTD_OF_PARTS) || !np)
+		return false;
+
+	/* 3.18 ofpart: the partitions are the flash node's own children. */
+	for_each_child_of_node(np, pp) {
+		const __be32 *reg;
+		const char *label;
+		int len, na, ns;
+
+		if (of_property_read_string(pp, "label", &label) ||
+		    strcmp(label, HISI_SNOR_FW_NAME))
+			continue;
+		reg = of_get_property(pp, "reg", &len);
+		na = of_n_addr_cells(pp);
+		ns = of_n_size_cells(pp);
+		if (reg && len >= (na + ns) * (int)sizeof(*reg))
+			split = hisi_snor_split_at(mtd, of_read_number(reg, na),
+						   of_read_number(reg + na, ns));
+		of_node_put(pp);
+		break;
+	}
+	return split;
+}
+
 /**
  * parse partitions info and register spi flash device as mtd device.
  */
-static int hisi_snor_device_register(struct mtd_info *mtd)
+static int hisi_snor_device_register(struct mtd_info *mtd,
+				     struct device_node *np)
 {
 	int nr_parts = 0;
 	struct mtd_partition *parts = NULL;
 	static const char *part_probes[] = {"cmdlinepart", NULL, };
+	struct mtd_part_parser_data ppdata = { .of_node = np };
+
+	if (hisi_snor_split_layout(mtd, np)) {
+		pr_info("%s: split NOR layout, device tree partitions\n",
+			mtd->name);
+		/*
+		 * mtd_device_register() would parse again with the default
+		 * parsers, the command line first: name the DT's directly.
+		 * A DT table that fails or gives nothing leaves the command
+		 * line's, as before.
+		 */
+		nr_parts = parse_mtd_partitions(mtd, hisi_snor_split_probes,
+						&parts, &ppdata);
+		if (nr_parts > 0) {
+			/* the first parse's table stands in if the second fails */
+			int ret = mtd_device_parse_register(mtd,
+							    hisi_snor_split_probes,
+							    &ppdata, parts,
+							    nr_parts);
+
+			kfree(parts);
+			return ret;
+		}
+		pr_warn("%s: device tree partitions: %d, using the command line's\n",
+			mtd->name, nr_parts);
+		parts = NULL;
+	}
 
 	/* We do not add the whole spi flash as a mtdblock device,
 	 * To avoid the number of nand partition +1.
@@ -397,7 +511,7 @@ static int hisi_spi_nor_register(struct device_node *np,
 
 	mtd = &nor->mtd;
 	mtd->name = np->name;
-	ret = hisi_snor_device_register(mtd);
+	ret = hisi_snor_device_register(mtd, np);
 	if (ret)
 		return ret;
 
