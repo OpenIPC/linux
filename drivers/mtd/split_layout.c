@@ -180,8 +180,11 @@ int mtd_split_layout_register(struct mtd_info *master)
 	err = mtd_device_register(master, parts, n);
 #endif
 	kfree(parts);
-	if (err)
+	if (err) {
+		/* none of the table, not part of it: the caller then fails its probe */
+		mtd_device_unregister(master);
 		return err;
+	}
 	split_set_root(data - rootfs);
 	return 0;
 }

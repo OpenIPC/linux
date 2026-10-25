@@ -1082,9 +1082,13 @@ static int __devinit hisfc350_driver_probe(struct platform_device * plat_dev)
 
 	/* firmware.bin at 0x50000: its own partitions, not the command line's */
 	ret = mtd_split_layout_register(host->mtd);
-	if (ret <= 0) {
+	if (!ret) {
 		host->add_partition = 1;
-		return ret;
+		return 0;
+	}
+	if (ret < 0) {
+		result = ret;
+		goto fail;
 	}
 
 	if (mtd_has_partitions()) {
