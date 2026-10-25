@@ -1118,6 +1118,19 @@ config VIDEO_JXF37
 	  To compile this driver as a module, choose M here: the
 	  module will be called jxf37.
 
+config VIDEO_SP2306
+	tristate "SuperPix SP2306 sensor"
+	depends on ARCH_FULLHAN && OF && I2C && m
+	depends on VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
+	depends on MEDIA_CONTROLLER
+	select V4L2_FWNODE
+	help
+	  Enable the SuperPix SP2306 camera sensor driver.
+	  It supports 1920x1080 RAW10 capture over two CSI-2 data lanes.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called sp2306.
+
 endmenu
 
 menu "Sensors used on soc_camera driver"
