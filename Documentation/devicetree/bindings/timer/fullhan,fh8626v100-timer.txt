@@ -1,0 +1,18 @@
+Fullhan FH8626V100 dual timer
+
+Required properties:
+- compatible: "fullhan,fh8626v100-timer"
+- reg: MMIO resource containing both timer channels
+- interrupts: channel 0 interrupt
+- clocks: the shared tmr0 input clock
+- clock-frequency: requested shared input rate in Hz. The driver does not
+  substitute a rate. It stops both inherited channels before changing the
+  divider and uses the rate returned by the clock provider for all time
+  conversions. The clockevent minimum remains 15 input ticks at any
+  selected rate.
+
+Optional properties:
+- clock-names: "timer"
+
+Channel 0 provides one-shot clockevents. Channel 1 provides the clocksource,
+sched_clock and ARM delay timer.
