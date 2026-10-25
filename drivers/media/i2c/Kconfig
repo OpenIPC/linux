@@ -1131,6 +1131,19 @@ config VIDEO_SP2306
 	  To compile this driver as a module, choose M here: the
 	  module will be called sp2306.
 
+config VIDEO_SP1405
+	tristate "SuperPix SP1405 sensor"
+	depends on ARCH_FULLHAN && OF && I2C && m
+	depends on VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
+	depends on MEDIA_CONTROLLER
+	select V4L2_FWNODE
+	help
+	  Enable the SuperPix SP1405 camera sensor driver.
+	  It supports 1280x720 SBGGR10 capture at 15 frames per second.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called sp1405.
+
 endmenu
 
 menu "Sensors used on soc_camera driver"
