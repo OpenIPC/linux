@@ -136,6 +136,8 @@ focaltech	FocalTech Systems Co.,Ltd
 friendlyarm	Guangzhou FriendlyARM Computer Tech Co., Ltd
 fsl	Freescale Semiconductor
 fujitsu	Fujitsu Ltd.
+fullhan	Fullhan Microelectronics Co., Ltd.
+galaxycore	GalaxyCore Shanghai Ltd.
 gcw Game Consoles Worldwide
 ge	General Electric Company
 geekbuying	GeekBuying
@@ -356,6 +358,7 @@ skyworks	Skyworks Solutions, Inc.
 smsc	Standard Microsystems Corporation
 snps	Synopsys, Inc.
 socionext	Socionext Inc.
+soi	Silicon Optronics, Inc.
 solidrun	SolidRun
 solomon        Solomon Systech Limited
 sony	Sony Corporation
@@ -369,6 +372,7 @@ ste	ST-Ericsson
 stericsson	ST-Ericsson
 summit	Summit microelectronics
 sunchip	Shenzhen Sunchip Technology Co., Ltd
+superpix	SuperPix Micro Technology
 SUNW	Sun Microsystems, Inc
 swir	Sierra Wireless
 syna	Synaptics Inc.
