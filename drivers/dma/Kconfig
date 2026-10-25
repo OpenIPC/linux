@@ -56,6 +56,13 @@ config DMA_OF
 	select DMA_ENGINE
 
 #devices
+config FH8626_DMA
+	bool "Fullhan FH8626 cyclic DMA controller"
+	depends on OF && HAS_IOMEM
+	select DMA_ENGINE
+	help
+	  Hardware linked-list DMA for FH8626 peripheral audio streams.
+
 config ALTERA_MSGDMA
 	tristate "Altera / Intel mSGDMA Engine"
 	depends on HAS_IOMEM
