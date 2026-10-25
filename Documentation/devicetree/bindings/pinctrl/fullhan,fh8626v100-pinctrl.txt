@@ -1,0 +1,17 @@
+Fullhan FH8626V100 pin controller
+
+Required properties:
+- compatible: "fullhan,fh8626v100-pinctrl"
+- reg: pad configuration registers
+
+Pin configuration nodes use the generic groups/function/pins binding.
+The function name selects the mux.
+
+Bias properties:
+- bias-pull-up
+- bias-pull-down
+- bias-disable
+
+Optional properties:
+- fullhan,drive: drive code, an integer from 0 to 7. The hardware has
+  no milliamp encoding, so drive-strength is not accepted.
