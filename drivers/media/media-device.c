@@ -427,7 +427,7 @@ static const struct media_ioctl_info ioctl_info[] = {
 	MEDIA_IOC(G_TOPOLOGY, media_device_get_topology, MEDIA_IOC_FL_GRAPH_MUTEX),
 };
 
-static long media_device_ioctl(struct file *filp, unsigned int cmd,
+long media_device_ioctl(struct file *filp, unsigned int cmd,
 			       unsigned long __arg)
 {
 	struct media_devnode *devnode = media_devnode_data(filp);
@@ -472,6 +472,7 @@ out_free:
 
 	return ret;
 }
+EXPORT_SYMBOL_GPL(media_device_ioctl);
 
 #ifdef CONFIG_COMPAT
 

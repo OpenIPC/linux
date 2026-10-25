@@ -212,6 +212,17 @@ void media_device_init(struct media_device *mdev);
 void media_device_cleanup(struct media_device *mdev);
 
 /**
+ * media_device_ioctl - dispatch standard native media controller ioctls
+ * @filp: file whose private_data is a registered media_devnode
+ * @cmd: standard MEDIA_IOC_* command
+ * @arg: userspace argument address
+ *
+ * The caller must serialize dispatch with media_device_unregister() and
+ * retain the media device for the duration of the call.
+ */
+long media_device_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
+
+/**
  * __media_device_register() - Registers a media device element
  *
  * @mdev:	pointer to struct &media_device
