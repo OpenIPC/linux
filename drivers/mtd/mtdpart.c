@@ -29,6 +29,7 @@
 #include <linux/kmod.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
+#include <linux/mtd/split_layout.h>
 #include <linux/err.h>
 
 #include "mtdcore.h"
@@ -672,6 +673,30 @@ int add_mtd_partitions(struct mtd_info *master,
 
 	return 0;
 }
+
+#ifdef CONFIG_MTD_SPLIT_LAYOUT
+/*
+ * master's partition named name, if add_mtd_device() took it: the split
+ * layout checks its table by this, since add_mtd_partitions() reports
+ * success past a partition it could not add, and takes its root from it
+ * rather than from whichever MTD device a global name lookup finds first.
+ */
+struct mtd_info *mtd_split_part(struct mtd_info *master, const char *name)
+{
+	struct mtd_part *slave;
+	struct mtd_info *found = NULL;
+
+	mutex_lock(&mtd_partitions_mutex);
+	list_for_each_entry(slave, &mtd_partitions, list)
+		if (slave->master == master && !strcmp(slave->mtd.name, name) &&
+		    device_is_registered(&slave->mtd.dev)) {
+			found = &slave->mtd;
+			break;
+		}
+	mutex_unlock(&mtd_partitions_mutex);
+	return found;
+}
+#endif
 
 static DEFINE_SPINLOCK(part_parser_lock);
 static LIST_HEAD(part_parsers);

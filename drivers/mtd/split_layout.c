@@ -22,7 +22,6 @@
 
 #include <linux/kernel.h>
 #include <linux/module.h>
-#include <linux/err.h>
 #include <linux/slab.h>
 #include <linux/version.h>
 #include <linux/root_dev.h>
@@ -113,18 +112,11 @@ static int split_find(struct mtd_info *mtd, u64 *rootfs, u64 *data)
 }
 
 /* The root is the "rootfs" just registered, as MTD_ROOTFS_ROOT_DEV does it. */
-static void split_set_root(u64 size)
+static void split_set_root(struct mtd_info *r)
 {
-	struct mtd_info *r = get_mtd_device_nm("rootfs");
-
-	if (IS_ERR(r))
-		return;
-	if (r->size == size) {
-		ROOT_DEV = MKDEV(MTD_BLOCK_MAJOR, r->index);
-		root_dev_from_flash = true;
-		printk(KERN_NOTICE "split NOR layout: root on mtdblock%d\n", r->index);
-	}
-	put_mtd_device(r);
+	ROOT_DEV = MKDEV(MTD_BLOCK_MAJOR, r->index);
+	root_dev_from_flash = true;
+	printk(KERN_NOTICE "split NOR layout: root on mtdblock%d\n", r->index);
 }
 
 int mtd_split_layout_register(struct mtd_info *master)
@@ -135,7 +127,7 @@ int mtd_split_layout_register(struct mtd_info *master)
 #endif
 	struct mtd_partition *parts;
 	u64 rootfs, data;
-	int n = 0, err;
+	int n = 0, i = 0, err;
 
 	err = split_find(master, &rootfs, &data);
 	if (err == -ENOENT)
@@ -179,13 +171,23 @@ int mtd_split_layout_register(struct mtd_info *master)
 #else
 	err = mtd_device_register(master, parts, n);
 #endif
+	/*
+	 * add_mtd_partitions() goes on past a partition whose device could not
+	 * be added, and still reports success: take the table as registered
+	 * only when every partition of it is there, on this flash.
+	 */
+	while (!err && i < n) {
+		if (!mtd_split_part(master, parts[i].name))
+			err = -ENODEV;
+		i++;
+	}
 	kfree(parts);
 	if (err) {
 		/* none of the table, not part of it: the caller then fails its probe */
 		mtd_device_unregister(master);
 		return err;
 	}
-	split_set_root(data - rootfs);
+	split_set_root(mtd_split_part(master, "rootfs"));
 	return 0;
 }
 EXPORT_SYMBOL_GPL(mtd_split_layout_register);
