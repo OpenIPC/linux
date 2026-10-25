@@ -1,0 +1,36 @@
+GalaxyCore GC2053 camera sensor
+
+Required properties:
+- compatible: "galaxycore,gc2053"
+- reg: I2C address
+- clocks: the 24 MHz sensor clock
+- clock-names: "xvclk"
+- reset-gpios: sensor reset GPIO
+- port: one output port containing an endpoint, as described by
+  Documentation/devicetree/bindings/media/video-interfaces.txt
+- data-lanes: <1 2> in the endpoint
+
+Optional properties:
+- pwdn-gpios: sensor power-down GPIO
+- clock-lanes: <0> in the endpoint; defaults to 0
+- lane-polarities: <0 0 0> in the endpoint; defaults to normal polarity
+- clock-noncontinuous: endpoint flag for a non-continuous CSI-2 clock;
+  the default is a continuous clock
+- bus-type: <0> in the endpoint; defaults to automatic bus detection
+
+Example:
+
+	camera-sensor@1b {
+		compatible = "galaxycore,gc2053";
+		reg = <0x1b>;
+		clocks = <&sensor_clk>;
+		clock-names = "xvclk";
+		reset-gpios = <&gpio0 13 GPIO_ACTIVE_LOW>;
+
+		port {
+			endpoint {
+				clock-lanes = <0>;
+				data-lanes = <1 2>;
+			};
+		};
+	};
