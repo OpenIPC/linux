@@ -1,0 +1,26 @@
+Fullhan FH8626V100 watchdog
+
+The controller follows the Synopsys DesignWare watchdog binding in
+Documentation/devicetree/bindings/watchdog/dw_wdt.txt. The node has
+one clock. There is no second clock and no clock-names property.
+
+Required properties:
+- compatible: "fullhan,fh8626v100-watchdog", "snps,dw-wdt"
+- reg: MMIO window of the watchdog
+- interrupts: timeout warning interrupt
+- clocks: the watchdog clock
+
+Optional properties:
+- assigned-clocks: the watchdog clock
+- assigned-clock-rates: requested rate of that clock
+
+Example:
+
+	watchdog@f0d00000 {
+		compatible = "fullhan,fh8626v100-watchdog", "snps,dw-wdt";
+		reg = <0xf0d00000 0x4000>;
+		interrupts = <2>;
+		clocks = <&clk FH8626_CLK_WDT>;
+		assigned-clocks = <&clk FH8626_CLK_WDT>;
+		assigned-clock-rates = <1000000>;
+	};
