@@ -152,7 +152,46 @@ static void dwc2_set_stm32f7_hsotg_params(struct dwc2_hsotg *hsotg)
 	p->host_perio_tx_fifo_size = 256;
 }
 
+static void dwc2_set_fh8626_params(struct dwc2_hsotg *hsotg)
+{
+	struct dwc2_core_params *p = &hsotg->params;
+	struct dwc2_hw_params *hw = &hsotg->hw_params;
+
+	p->otg_cap = 2;
+	p->phy_type = DWC2_PHY_TYPE_PARAM_UTMI;
+	p->phy_utmi_width = 16;
+	p->phy_ulpi_ext_vbus = false;
+	p->i2c_enable = false;
+	p->ahbcfg = GAHBCFG_HBSTLEN_INCR16 << GAHBCFG_HBSTLEN_SHIFT;
+	p->speed = DWC2_SPEED_PARAM_HIGH;
+	p->host_dma = hw->arch != GHWCFG2_SLAVE_ONLY_ARCH;
+	p->dma_desc_enable = false;
+	p->dma_desc_fs_enable = false;
+	p->host_channels = min_t(u32, 8, hw->host_channels);
+	p->max_transfer_size = min_t(u32, 65535, hw->max_transfer_size);
+	p->max_packet_count = min_t(u32, 511, hw->max_packet_count);
+	p->uframe_sched = false;
+	p->reload_ctl = false;
+	/*
+	 * FIFO depths are in 32-bit words. Keep the hardware defaults if the
+	 * core cannot fit the full 1310-word host partition.
+	 */
+	if (hw->enable_dynamic_fifo && hw->total_fifo_size >= 1310 &&
+	    hw->rx_fifo_size >= 542 && hw->host_nperio_tx_fifo_size >= 256 &&
+	    hw->host_perio_tx_fifo_size >= 512) {
+		p->host_rx_fifo_size = 542;
+		p->host_nperio_tx_fifo_size = 256;
+		p->host_perio_tx_fifo_size = 512;
+	}
+	p->lpm = hw->lpm_mode && hw->snpsid >= DWC2_CORE_REV_2_80a;
+	p->lpm_clock_gating = p->lpm;
+	p->besl = p->lpm && hw->snpsid >= DWC2_CORE_REV_3_00a;
+	p->hird_threshold_en = p->lpm;
+}
+
 const struct of_device_id dwc2_of_match_table[] = {
+	{ .compatible = "fullhan,fh8626v100-usb",
+	  .data = dwc2_set_fh8626_params },
 	{ .compatible = "brcm,bcm2835-usb", .data = dwc2_set_bcm_params },
 	{ .compatible = "hisilicon,hi6220-usb", .data = dwc2_set_his_params  },
 	{ .compatible = "rockchip,rk3066-usb", .data = dwc2_set_rk_params },
