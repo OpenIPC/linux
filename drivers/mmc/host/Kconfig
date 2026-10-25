@@ -716,6 +716,16 @@ config MMC_DW_EXYNOS
 	  Synopsys DesignWare Memory Card Interface driver. Select this option
 	  for platforms based on Exynos4 and Exynos5 SoC's.
 
+config MMC_DW_FH8626V100
+	tristate "Fullhan FH8626V100 DesignWare MCI support"
+	depends on ARCH_FULLHAN && FH_CLK && MMC_DW && OF
+	select MMC_DW_PLTFM
+	help
+	  DesignWare MMC host support for the FH8626V100.
+	  The glue resets the controller and sets the SDC0
+	  drive and sample clock phase. Card bus width and
+	  speed come from the board device tree.
+
 config MMC_DW_HI3798CV200
 	tristate "Hi3798CV200 specific extensions for Synopsys DW Memory Card Interface"
 	depends on MMC_DW
