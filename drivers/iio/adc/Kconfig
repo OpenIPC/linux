@@ -284,6 +284,17 @@ config EXYNOS_ADC
 	  To compile this driver as a module, choose M here: the module will be
 	  called exynos_adc.
 
+config FH8626_SADC
+	tristate "Fullhan FH8626 SAR ADC support"
+	depends on OF && HAS_IOMEM
+	help
+	  Support for the eight-channel, 12-bit successive-approximation
+	  ADC on Fullhan FH8626 SoCs.
+
+	  To compile this driver as a module, choose M here: the module will be
+	  called fh8626-sadc.
+
+
 config MXS_LRADC_ADC
 	tristate "Freescale i.MX23/i.MX28 LRADC ADC"
 	depends on MFD_MXS_LRADC

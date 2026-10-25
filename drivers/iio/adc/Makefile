@@ -29,6 +29,7 @@ obj-$(CONFIG_DLN2_ADC) += dln2-adc.o
 obj-$(CONFIG_ENVELOPE_DETECTOR) += envelope-detector.o
 obj-$(CONFIG_EP93XX_ADC) += ep93xx_adc.o
 obj-$(CONFIG_EXYNOS_ADC) += exynos_adc.o
+obj-$(CONFIG_FH8626_SADC) += fh8626-sadc.o
 obj-$(CONFIG_FSL_MX25_ADC) += fsl-imx25-gcq.o
 obj-$(CONFIG_HI8435) += hi8435.o
 obj-$(CONFIG_HX711) += hx711.o
