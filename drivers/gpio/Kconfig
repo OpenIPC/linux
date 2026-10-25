@@ -182,6 +182,14 @@ config GPIO_DWAPB
 	  Say Y or M here to build support for the Synopsys DesignWare APB
 	  GPIO block.
 
+config GPIO_FH8626
+	tristate "Fullhan FH8626V100 GPIO controller"
+	depends on OF_GPIO && (ARCH_FULLHAN || COMPILE_TEST)
+	select GPIO_GENERIC
+	select GPIOLIB_IRQCHIP
+	help
+	  GPIO and interrupt support for the two FH8626V100 GPIO banks.
+
 config GPIO_EIC_SPRD
 	tristate "Spreadtrum EIC support"
 	depends on ARCH_SPRD || COMPILE_TEST
