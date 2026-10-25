@@ -12,3 +12,19 @@ config VIDEO_FH8626_BGM
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called fh8626-bgm.
+
+
+config VIDEO_FH8626_PAE
+	tristate "Fullhan FH8626 H.264 encoder"
+	depends on ARCH_FULLHAN && OF
+	depends on VIDEO_V4L2 && MEDIA_CONTROLLER
+	depends on HAS_DMA && COMMON_CLK && FH_CLK
+	select VIDEOBUF2_DMA_CONTIG
+	select VIDEOBUF2_VMALLOC
+	select VIDEOBUF2_V4L2
+	select V4L2_MEM2MEM_DEV
+	help
+	  Memory-to-memory V4L2 driver for the FH8626 H.264 encoder.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called fh8626-encoder.
