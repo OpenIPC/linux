@@ -32,6 +32,15 @@ config PWM_SYSFS
 	bool
 	default y if SYSFS
 
+config PWM_FH8626V100
+	tristate "Fullhan FH8626V100 PWM support"
+	depends on OF && HAS_IOMEM && COMMON_CLK
+	help
+	  Support for the fourteen FH8626V100 PWM channels.
+	  A consumer names a channel, period and flags in
+	  its PWM specifier. Phase, pause, repeat and finish
+	  interrupts are not supported.
+
 config PWM_AB8500
 	tristate "AB8500 PWM support"
 	depends on AB8500_CORE && ARCH_U8500
