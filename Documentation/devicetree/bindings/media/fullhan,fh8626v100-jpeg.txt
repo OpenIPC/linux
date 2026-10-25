@@ -1,0 +1,20 @@
+Fullhan FH8626V100 JPEG codec
+
+Required properties:
+- compatible: "fullhan,fh8626v100-jpeg" or
+  "fullhan,fh8626-jpeg"
+- reg: MMIO window of the codec
+- interrupts: codec interrupt
+- clocks: JPEG clock and bus clock, in that order
+- clock-names: "jpeg", "hclk"
+
+Example:
+
+	jpeg@e8300000 {
+		compatible = "fullhan,fh8626v100-jpeg";
+		reg = <0xe8300000 0x600>;
+		interrupts = <8>;
+		clocks = <&clk FH8626_CLK_JPEG>,
+			 <&clk FH8626_CLK_JPEG_HCLK>;
+		clock-names = "jpeg", "hclk";
+	};
