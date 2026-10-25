@@ -29,6 +29,7 @@
 #include <linux/kmod.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
+#include <linux/mtd/split_layout.h>
 #include <linux/err.h>
 
 #include "mtdcore.h"
@@ -646,6 +647,59 @@ int add_mtd_partitions(struct mtd_info *master,
 
 	return 0;
 }
+
+#ifdef CONFIG_MTD_SPLIT_LAYOUT
+/*
+ * master's partition named name, if add_mtd_device() took it: the split
+ * layout checks its table by this, since add_mtd_partitions() reports
+ * success past a partition it could not add, and takes its root from it
+ * rather than from whichever MTD device a global name lookup finds first.
+ */
+struct mtd_info *mtd_split_part(struct mtd_info *master, const char *name)
+{
+	struct mtd_part *slave;
+	struct mtd_info *found = NULL;
+
+	mutex_lock(&mtd_partitions_mutex);
+	list_for_each_entry(slave, &mtd_partitions, list)
+		if (slave->master == master && !strcmp(slave->mtd.name, name) &&
+		    device_is_registered(&slave->mtd.dev)) {
+			found = &slave->mtd;
+			break;
+		}
+	mutex_unlock(&mtd_partitions_mutex);
+	return found;
+}
+
+/*
+ * Remove every partition of master, also one add_mtd_device() never took,
+ * which del_mtd_partitions() would leave on the list pointing at master:
+ * 0 when none is left, else the first error, and master must outlive the
+ * partitions still there.
+ */
+int mtd_split_del_parts(struct mtd_info *master)
+{
+	struct mtd_part *slave, *next;
+	int ret, err = 0;
+
+	mutex_lock(&mtd_partitions_mutex);
+	list_for_each_entry_safe(slave, next, &mtd_partitions, list)
+		if (slave->master == master) {
+			if (device_is_registered(&slave->mtd.dev)) {
+				ret = del_mtd_device(&slave->mtd);
+				if (ret < 0) {
+					if (!err)
+						err = ret;
+					continue;
+				}
+			}
+			list_del(&slave->list);
+			free_partition(slave);
+		}
+	mutex_unlock(&mtd_partitions_mutex);
+	return err;
+}
+#endif
 
 static DEFINE_SPINLOCK(part_parser_lock);
 static LIST_HEAD(part_parsers);
