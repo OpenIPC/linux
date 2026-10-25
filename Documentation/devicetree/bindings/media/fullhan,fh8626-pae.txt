@@ -1,0 +1,25 @@
+Fullhan FH8626V100 video encoder
+
+Required properties:
+- compatible: "fullhan,fh8626-pae", "fullhan,fh8626v100-encoder"
+- reg: three MMIO ranges, in the order of reg-names
+- reg-names: "core", "buffer", "sram"
+- interrupts: encoder interrupt
+- clocks: four clocks, in the order of clock-names
+- clock-names: "pae_clk", "pae_hclk_gate", "multi_pae_clk",
+  "pae_adpt_clk"
+
+The encoder is a child of a simple-bus. DMA addresses are
+DDR-relative in a 512 MiB window at 1 KiB granularity, which is the
+dma-ranges property already on that bus.
+
+Example:
+
+	encoder {
+		compatible = "fullhan,fh8626-pae",
+			     "fullhan,fh8626v100-encoder";
+		reg-names = "core", "buffer", "sram";
+		interrupts = <4>;
+		clock-names = "pae_clk", "pae_hclk_gate",
+			      "multi_pae_clk", "pae_adpt_clk";
+	};
