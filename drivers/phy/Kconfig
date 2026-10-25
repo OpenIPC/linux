@@ -57,4 +57,15 @@ source "drivers/phy/st/Kconfig"
 source "drivers/phy/tegra/Kconfig"
 source "drivers/phy/ti/Kconfig"
 
+config PHY_FH8626_MIPI
+	tristate "Fullhan FH8626V100 MIPI input PHY"
+	depends on ARCH_FULLHAN && OF
+	select GENERIC_PHY
+	help
+	  Enable the MIPI input route and PHY power controls in the FH8626V100
+	  PMU. The CSI receiver uses this provider alongside its bus clocks.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called phy-fh8626-mipi.
+
 endmenu
