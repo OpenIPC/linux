@@ -1,0 +1,17 @@
+Fullhan FH8626 eFuse
+
+Required properties:
+- compatible: "fullhan,fh8626v100-efuse", "fullhan,fh8626-efuse"
+- reg: MMIO window of the controller
+- clocks: the eFuse clock
+- clock-names: "efuse"
+
+Example:
+
+	efuse@f1600000 {
+		compatible = "fullhan,fh8626v100-efuse",
+			     "fullhan,fh8626-efuse";
+		reg = <0xf1600000 0x4000>;
+		clocks = <&clk FH8626_CLK_EFUSE>;
+		clock-names = "efuse";
+	};
