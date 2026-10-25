@@ -1,0 +1,18 @@
+Fullhan FH8626V100 SAR ADC
+
+Required properties:
+- compatible: "fullhan,fh8626v100-adc"
+- reg: MMIO window of the converter
+- interrupts: converter interrupt
+- clocks: the ADC clock
+- clock-names: "sadc"
+
+Example:
+
+	adc@f1200000 {
+		compatible = "fullhan,fh8626v100-adc";
+		reg = <0xf1200000 0x4000>;
+		interrupts = <25>;
+		clocks = <&clk FH8626_CLK_SADC>;
+		clock-names = "sadc";
+	};
