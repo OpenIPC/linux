@@ -2886,6 +2886,9 @@ static int  gk_flash_probe(struct platform_device *dev)
     ret = mtd_split_layout_register(&flash->mtd);
     if (!ret)
         return 0;
+    /* -EBUSY: partitions of flash->mtd are still listed, so flash stays */
+    if (ret == -EBUSY)
+        return ret;
     if (ret < 0) {
         platform_set_drvdata(dev, NULL);
         kfree(flash);
