@@ -1,0 +1,23 @@
+Fullhan FH8626V100 Ethernet MAC
+
+Required properties:
+- compatible: "fullhan,fh8626v100-gmac"
+- reg: MMIO window of the MAC
+- interrupts: MAC interrupt
+- interrupt-names: "macirq"
+- clocks: MAC clock and RMII clock, in that order
+- clock-names: "stmmaceth", "rmii"
+
+The MAC is integrated with the stmmac driver. The board device tree
+describes the PHY connection.
+
+Example:
+
+	ethernet@e0600000 {
+		compatible = "fullhan,fh8626v100-gmac";
+		reg = <0xe0600000 0x4000>;
+		interrupts = <13>;
+		interrupt-names = "macirq";
+		clocks = <&clk FH8626_CLK_ETH>, <&clk FH8626_CLK_ETH_RMII>;
+		clock-names = "stmmaceth", "rmii";
+	};
