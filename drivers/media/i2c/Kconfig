@@ -1079,6 +1079,19 @@ config VIDEO_I2C
 	  To compile this driver as a module, choose M here: the
 	  module will be called video-i2c
 
+config VIDEO_GC1054
+	tristate "GalaxyCore GC1054 sensor"
+	depends on ARCH_FULLHAN && OF && I2C && m
+	depends on VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
+	depends on MEDIA_CONTROLLER
+	select V4L2_FWNODE
+	help
+	  Enable the GalaxyCore GC1054 camera sensor driver.
+	  It supports 1280x720 RAW10 capture over one CSI-2 data lane.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called gc1054.
+
 endmenu
 
 menu "Sensors used on soc_camera driver"
