@@ -1512,6 +1512,8 @@ F:	drivers/media/i2c/gc1054.c
 F:	drivers/media/i2c/gc1054-modes.h
 F:	drivers/media/i2c/gc2053.c
 F:	drivers/media/i2c/gc2053-modes.h
+F:	drivers/media/i2c/jxf37.c
+F:	drivers/media/i2c/jxf37-modes.h
 F:	include/linux/soc/fullhan/
 F:	include/dt-bindings/clock/fh8626v100-clk.h
 F:	Documentation/devicetree/bindings/arm/fullhan.txt
