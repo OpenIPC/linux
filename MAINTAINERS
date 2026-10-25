@@ -1516,6 +1516,7 @@ F:	Documentation/devicetree/bindings/nvmem/fullhan,fh8626-efuse.txt
 F:	Documentation/devicetree/bindings/phy/fullhan,fh8626v100-mipi-phy.txt
 F:	Documentation/devicetree/bindings/pinctrl/fullhan,fh8626v100-pinctrl.txt
 F:	Documentation/devicetree/bindings/pwm/fullhan,fh8626v100-pwm.txt
+F:	Documentation/devicetree/bindings/soc/fullhan,fh8626-arc-isolation.txt
 F:	Documentation/devicetree/bindings/spi/fullhan,fh8626v100-spi.txt
 F:	Documentation/devicetree/bindings/timer/fullhan,fh8626v100-timer.txt
 

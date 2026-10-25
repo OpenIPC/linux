@@ -1,0 +1,19 @@
+Fullhan FH8626 ARC companion isolation
+
+The node holds the companion in reset and gates its clock. It has
+no reg property.
+
+Required properties:
+- compatible: "fullhan,fh8626-arc-isolation",
+  "fullhan,fh8626v100-arc"
+- clocks: the companion clock
+- clock-names: "arc"
+
+Example:
+
+	arc-isolation {
+		compatible = "fullhan,fh8626-arc-isolation",
+			     "fullhan,fh8626v100-arc";
+		clocks = <&clk FH8626_CLK_ARC>;
+		clock-names = "arc";
+	};
