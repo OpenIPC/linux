@@ -696,6 +696,35 @@ struct mtd_info *mtd_split_part(struct mtd_info *master, const char *name)
 	mutex_unlock(&mtd_partitions_mutex);
 	return found;
 }
+
+/*
+ * Remove every partition of master, also one add_mtd_device() never took,
+ * which del_mtd_partitions() would leave on the list pointing at master:
+ * 0 when none is left, else the first error, and master must outlive the
+ * partitions still there.
+ */
+int mtd_split_del_parts(struct mtd_info *master)
+{
+	struct mtd_part *slave, *next;
+	int ret, err = 0;
+
+	mutex_lock(&mtd_partitions_mutex);
+	list_for_each_entry_safe(slave, next, &mtd_partitions, list)
+		if (slave->master == master) {
+			if (device_is_registered(&slave->mtd.dev)) {
+				ret = del_mtd_device(&slave->mtd);
+				if (ret < 0) {
+					if (!err)
+						err = ret;
+					continue;
+				}
+			}
+			list_del(&slave->list);
+			free_partition(slave);
+		}
+	mutex_unlock(&mtd_partitions_mutex);
+	return err;
+}
 #endif
 
 static DEFINE_SPINLOCK(part_parser_lock);
