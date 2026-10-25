@@ -1344,6 +1344,16 @@ config RTC_DRV_EP93XX
 	  This driver can also be built as a module. If so, the module
 	  will be called rtc-ep93xx.
 
+config RTC_DRV_FH8626
+	tristate "Fullhan FH8626"
+	depends on ARCH_FULLHAN
+	help
+	  If you say yes here you get support for the real-time clock
+	  on the Fullhan FH8626 SoC.
+
+	  This driver can also be built as a module. If so, the module
+	  will be called rtc-fh8626.
+
 config RTC_DRV_SA1100
 	tristate "SA11x0/PXA2xx/PXA910"
 	depends on ARCH_SA1100 || ARCH_PXA || ARCH_MMP

@@ -1503,6 +1503,7 @@ F:	drivers/mmc/host/dw_mmc-fh8626v100.c
 F:	drivers/pwm/pwm-fh8626v100.c
 F:	drivers/iio/adc/fh8626-sadc.c
 F:	drivers/nvmem/fh8626-efuse.c
+F:	drivers/rtc/rtc-fh8626.c
 F:	drivers/phy/phy-fh8626-mipi.c
 F:	drivers/crypto/fullhan/
 F:	drivers/soc/fullhan/
