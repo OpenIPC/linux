@@ -1,0 +1,16 @@
+Fullhan FH8626V100 real-time clock
+
+Required properties:
+- compatible: "fullhan,fh8626v100-rtc"
+- reg: MMIO window of the RTC
+- interrupts: RTC interrupt
+
+The node has no clocks property.
+
+Example:
+
+	rtc@f1500000 {
+		compatible = "fullhan,fh8626v100-rtc";
+		reg = <0xf1500000 0x4000>;
+		interrupts = <33>;
+	};
