@@ -1,0 +1,42 @@
+Fullhan FH8626V100 image signal processor
+
+Required properties:
+- compatible: "fullhan,fh8626v100-isp"
+- reg: MMIO window of the ISP
+- interrupts: ISP interrupt
+- clocks: AXI and AHB clocks, in that order
+- clock-names: "aclk", "hclk"
+- ports: graph ports, as described by
+  Documentation/devicetree/bindings/media/video-interfaces.txt
+  - port@0: input from the CSI receiver, reg = <0>
+  - port@1: output to the capture node, reg = <1>
+
+Example:
+
+	isp@e8400000 {
+		compatible = "fullhan,fh8626v100-isp";
+		reg = <0xe8400000 0x4000>;
+		interrupts = <5>;
+		clocks = <&clk FH8626_CLK_ISP_ACLK>,
+			 <&clk FH8626_CLK_ISP_HCLK>;
+		clock-names = "aclk", "hclk";
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+				endpoint {
+					remote-endpoint = <&csi_out>;
+				};
+			};
+
+			port@1 {
+				reg = <1>;
+				endpoint {
+					remote-endpoint = <&camera_in>;
+				};
+			};
+		};
+	};
