@@ -1492,6 +1492,7 @@ F:	arch/arm/mach-fullhan/
 F:	drivers/clk/clk-fh8626v100.c
 F:	drivers/clocksource/dw_apb_timer_fh.c
 F:	drivers/irqchip/irq-fh-intc.c
+F:	drivers/pinctrl/pinctrl-fh8626v100.c
 F:	include/linux/soc/fullhan/
 F:	include/dt-bindings/clock/fh8626v100-clk.h
 F:	Documentation/devicetree/bindings/arm/fullhan.txt
