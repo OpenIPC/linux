@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: GPL-2.0
+config CRYPTO_DEV_FULLHAN_AES
+	tristate "Fullhan FH8626 Hardware AES Accelerator"
+	depends on ARCH_FULLHAN
+	select CRYPTO_AES
+	select CRYPTO_BLKCIPHER
+	help
+	  Support for the Fullhan FH8626 AES/DES/3DES engine. AES supports
+	  ECB, CBC, CTR, OFB and CFB with 128, 192 and 256-bit keys.
+	  DES and 3DES support ECB, CBC, OFB and CFB.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called fh_aes.
