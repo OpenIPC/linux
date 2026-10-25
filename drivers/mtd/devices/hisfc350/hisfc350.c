@@ -1086,6 +1086,9 @@ static int __devinit hisfc350_driver_probe(struct platform_device * plat_dev)
 		host->add_partition = 1;
 		return 0;
 	}
+	/* -EBUSY: partitions of host->mtd are still listed, so host stays */
+	if (ret == -EBUSY)
+		return ret;
 	if (ret < 0) {
 		result = ret;
 		goto fail;
