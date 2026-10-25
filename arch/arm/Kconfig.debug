@@ -335,6 +335,16 @@ choice
 		  Say Y here if you want the debug print routines to direct
 		  their output to the 8250 at PCI COM1.
 
+	config DEBUG_FULLHAN_UART0
+		bool "Kernel low-level debugging on Fullhan UART0"
+		depends on ARCH_FULLHAN
+		select DEBUG_UART_8250
+		help
+		  Say Y here if you want kernel low-level debugging support
+		  on Fullhan FH8626V100 UART0. The UART is the early console
+		  at 115200 8n1. This selects the 8250 debug UART and does
+		  not replace the normal ttyS0 console.
+
 	config DEBUG_GEMINI
 		bool "Kernel low-level debugging messages via Cortina Systems Gemini UART"
 		depends on ARCH_GEMINI
@@ -1654,6 +1664,7 @@ config DEBUG_UART_PHYS
 	default 0xe6ee0000 if DEBUG_RCAR_GEN2_SCIF4
 	default 0xe8008000 if DEBUG_R7S72100_SCIF2
 	default 0xf0000be0 if ARCH_EBSA110
+	default 0xf0700000 if DEBUG_FULLHAN_UART0
 	default 0xf1012000 if DEBUG_MVEBU_UART0_ALTERNATE
 	default 0xf1012100 if DEBUG_MVEBU_UART1_ALTERNATE
 	default 0xf7fc9000 if DEBUG_BERLIN_UART
@@ -1764,6 +1775,7 @@ config DEBUG_UART_VIRT
 	default 0xfe012000 if DEBUG_MVEBU_UART0_ALTERNATE && ARCH_ORION5X
 	default 0xfe017000 if DEBUG_MMP_UART2
 	default 0xfe018000 if DEBUG_MMP_UART3
+	default 0xfe020000 if DEBUG_FULLHAN_UART0
 	default 0xfe100000 if DEBUG_IMX23_UART || DEBUG_IMX28_UART
 	default 0xfe230000 if DEBUG_PICOXCELL_UART
 	default 0xfe300000 if DEBUG_BCM_KONA_UART
@@ -1829,7 +1841,8 @@ config DEBUG_UART_8250_WORD
 		DEBUG_KEYSTONE_UART1 || DEBUG_ALPINE_UART0 || \
 		DEBUG_DAVINCI_DMx_UART0 || DEBUG_DAVINCI_DA8XX_UART1 || \
 		DEBUG_DAVINCI_DA8XX_UART2 || DEBUG_BCM_IPROC_UART3 || \
-		DEBUG_BCM_KONA_UART || DEBUG_RK32_UART2
+		DEBUG_BCM_KONA_UART || DEBUG_RK32_UART2 || \
+		DEBUG_FULLHAN_UART0
 
 config DEBUG_UART_8250_PALMCHIP
 	bool "8250 UART is Palmchip BK-310x"

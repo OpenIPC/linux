@@ -1,0 +1,52 @@
+menuconfig ARCH_FULLHAN
+	bool "Fullhan Microelectronics SoCs"
+	depends on ARCH_MULTI_V6
+	select ARM_AMBA
+	select COMMON_CLK
+	select GENERIC_IRQ_CHIP
+	select GPIOLIB
+	select PINCTRL
+	select SPARSE_IRQ
+	select TIMER_OF
+	select USE_OF
+	help
+	  Support for Fullhan Microelectronics SoC families,
+	  including the FH8626V100. The CPU on that SoC is an
+	  ARM1176JZF-S. This option builds the machine support
+	  used to boot a Fullhan board described by OF.
+
+if ARCH_FULLHAN
+
+config SOC_FH8626V100
+	bool "Fullhan FH8626V100 SoC"
+	default y
+	select FH_INTC
+	select FH_CLK
+	select FH_TIMER
+	help
+	  Enable support for the Fullhan FH8626V100 IP camera
+	  SoC. The option brings in the SoC interrupt
+	  controller, clock tree and timer required to boot.
+	  Other on-chip devices are selected separately.
+
+config FH_INTC
+	bool "Fullhan DW APB root interrupt controller"
+	default y
+	select IRQ_DOMAIN
+	help
+	  Support for the root interrupt controller on Fullhan
+	  SoCs. On-chip devices use it as their interrupt
+	  parent. A consumer names one hardware source with a
+	  single cell in its interrupts property.
+
+config FH_CLK
+	bool "Fullhan FH8626V100 Clock Driver"
+	default y
+	depends on COMMON_CLK
+	help
+	  Support for the common clock tree on the Fullhan
+	  FH8626V100. The provider shares the system
+	  controller register window with the other users of
+	  that block and publishes the on-chip clocks.
+
+endif
