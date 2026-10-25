@@ -1,0 +1,27 @@
+config FH8626_ARC_ISOLATION
+	tristate "Fullhan FH8626 ARC Companion Core Isolation Driver"
+	depends on ARCH_FULLHAN
+	help
+	  Isolates the ARC companion on the FH8626V100 by
+	  holding it in reset and gating its clock, so it
+	  cannot access the system bus. The device node has
+	  no register window of its own.
+
+config SOC_FULLHAN_ARC_ISOLATION
+	bool "Fullhan FH8626 ARC Companion Core Isolation Driver (Alias)"
+	depends on ARCH_FULLHAN
+	help
+	  Synonym for the FH8626 ARC isolation driver. This
+	  option does not select that driver by itself.
+	  Enable the isolation driver when the companion
+	  core must stay off the system bus.
+
+config USB_DWC2_FH8626
+	bool "Fullhan FH8626V100 DWC2 host integration"
+	depends on ARCH_FULLHAN && FH_CLK
+	depends on USB_DWC2_HOST || USB_DWC2_DUAL_ROLE
+	help
+	  Enables the FH8626V100 platform glue in the shared
+	  DWC2 USB host driver. The glue enables the USB bus
+	  clock, brings the PHY and controller out of reset,
+	  and controls the board VBUS supply.
