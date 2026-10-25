@@ -1,0 +1,34 @@
+Fullhan FH8626V100 background model engine
+========================================
+
+The BGM engine performs background modelling and foreground detection on
+luminance frames in memory. It is independent of the CSI/ISP media graph.
+The driver exposes V4L2 memory-to-memory GREY input and GREY foreground-mask
+output, with mask pixels equal to 0 or 255.
+
+Required properties:
+- compatible: must be "fullhan,fh8626v100-bgm".
+- reg: the BGM register window, <0xe8606000 0x120>.
+- interrupts: the BGM interrupt, hardware IRQ 7 on FH8626V100.
+- clocks: two clock specifiers, for the BGM processing and bus clocks.
+- clock-names: must be "bgm", "hclk", in that order.
+
+The processing clock shares its parent selection and divider with the ISP.
+The driver uses the existing clock rate; no assigned-clock-rates or
+assigned-clock-parents properties should change this shared configuration.
+There is no documented PMU reset specifier in this binding.
+
+Frame size is negotiated through V4L2.
+The driver supports widths from 8 to 240 and heights from 8 to 512,
+both in multiples of 8; its default input size is 160 by 96.
+
+Example:
+
+bgm: bgm@e8606000 {
+	compatible = "fullhan,fh8626v100-bgm";
+	reg = <0xe8606000 0x120>;
+	interrupt-parent = <&intc>;
+	interrupts = <7>;
+	clocks = <&clk FH8626_CLK_BGM>, <&clk FH8626_CLK_BGM_HCLK>;
+	clock-names = "bgm", "hclk";
+};
