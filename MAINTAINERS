@@ -1519,6 +1519,7 @@ F:	drivers/media/i2c/sp2306-modes.h
 F:	drivers/media/i2c/sp1405.c
 F:	drivers/media/i2c/sp1405-modes.h
 F:	drivers/misc/fh8626-ptz.c
+F:	sound/soc/fullhan/
 F:	include/linux/soc/fullhan/
 F:	include/dt-bindings/clock/fh8626v100-clk.h
 F:	Documentation/devicetree/bindings/arm/fullhan.txt

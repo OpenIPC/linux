@@ -1,0 +1,13 @@
+config SND_SOC_FH8626
+	tristate "Fullhan FH8626 audio controller and codec"
+	depends on ARCH_FULLHAN && OF
+	depends on SND_SOC && DMA_ENGINE && HAS_DMA
+	depends on COMMON_CLK && FH_CLK && GPIOLIB
+	select SND_DMAENGINE_PCM
+	help
+	  ASoC driver for the FH8626 audio controller and integrated
+	  codec. PCM capture and playback use the DMAengine channels
+	  described in the device tree.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called fh8626-audio.
