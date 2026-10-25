@@ -171,6 +171,8 @@ int mtd_split_layout_register(struct mtd_info *master)
 #else
 	err = mtd_device_register(master, parts, n);
 #endif
+	if (err && mtd_split_del_parts(master))
+		err = -EBUSY;
 	/*
 	 * add_mtd_partitions() goes on past a partition whose device could not
 	 * be added, and still reports success: take the table as registered
@@ -182,11 +184,11 @@ int mtd_split_layout_register(struct mtd_info *master)
 		i++;
 	}
 	kfree(parts);
-	if (err) {
-		/* none of the table, not part of it: the caller then fails its probe */
-		mtd_device_unregister(master);
+	if (err == -ENODEV && mtd_split_del_parts(master))
+		err = -EBUSY;
+	/* none of the table left, or -EBUSY: some of it still on master */
+	if (err)
 		return err;
-	}
 	split_set_root(mtd_split_part(master, "rootfs"));
 	return 0;
 }
