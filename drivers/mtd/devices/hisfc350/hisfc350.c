@@ -11,6 +11,7 @@
 #include <linux/slab.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
+#include <linux/mtd/split_layout.h>
 #include <linux/delay.h>
 #include <linux/sched.h>
 #include <asm/setup.h>
@@ -1078,6 +1079,17 @@ static int __devinit hisfc350_driver_probe(struct platform_device * plat_dev)
 	}
 
 	hisfc_probe_spi_size(host, mtd);
+
+	/* firmware.bin at 0x50000: its own partitions, not the command line's */
+	ret = mtd_split_layout_register(host->mtd);
+	if (!ret) {
+		host->add_partition = 1;
+		return 0;
+	}
+	if (ret < 0) {
+		result = ret;
+		goto fail;
+	}
 
 	if (mtd_has_partitions()) {
 
