@@ -1,0 +1,33 @@
+Fullhan FH8626V100 GPIO controller
+
+Each bank contains 32 GPIO lines and one parent interrupt. GPIO offsets are
+local to the bank; Linux GPIO numbers are allocated dynamically.
+
+Required properties:
+- compatible: "fullhan,fh8626v100-gpio"
+- reg: MMIO window of the bank
+- interrupts: parent interrupt for the bank
+- gpio-controller
+- #gpio-cells: must be <2>; line offset and standard GPIO flags
+- interrupt-controller
+- #interrupt-cells: must be <2>; line offset and standard IRQ type
+- #address-cells: must be <0>
+
+Optional properties:
+- gpio-line-names: names for the lines in bank order
+
+Hardware debounce configuration is not exposed: its clock is shared by
+the bank. Consumers such as gpio-keys can provide software debounce.
+
+Example:
+
+	gpio0: gpio-controller@f0300000 {
+		compatible = "fullhan,fh8626v100-gpio";
+		reg = <0xf0300000 0x4000>;
+		interrupts = <26>;
+		gpio-controller;
+		#gpio-cells = <2>;
+		interrupt-controller;
+		#interrupt-cells = <2>;
+		#address-cells = <0>;
+	};
