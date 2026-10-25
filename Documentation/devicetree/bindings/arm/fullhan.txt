@@ -1,0 +1,13 @@
+Fullhan FH8626V100 board and SoC
+
+The FH8626V100 is an ARM1176JZF-S SoC.
+
+Required root node properties:
+- compatible: "fullhan,fh8626v100", with fallback "fullhan,fh8626"
+
+Example:
+
+/ {
+	model = "Fullhan FH8626V100";
+	compatible = "fullhan,fh8626v100", "fullhan,fh8626";
+};
