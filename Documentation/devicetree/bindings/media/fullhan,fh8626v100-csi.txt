@@ -1,0 +1,55 @@
+Fullhan FH8626V100 CSI receiver
+==============================
+
+Required properties:
+- compatible: "fullhan,fh8626v100-csi"
+- reg: CSI controller and wrapper register ranges, in that order
+- reg-names: "csi", "wrap"
+- clocks: D-PHY, wrapper and CSI controller clock handles
+- clock-names: "dphy", "wrap", "pclk"
+- phys: phandle to the FH8626V100 MIPI input PHY
+- phy-names: "dphy"
+- ports: graph ports as described by video-interfaces.txt
+  - port@0: sensor input, reg = <0>
+  - port@1: ISP output, reg = <1>
+
+The input endpoint requires clock-lanes = <0> and data-lanes = <1>.
+Only single-lane RAW10 1280x720 is implemented;
+lane inversion and alternative lane assignments are not supported.
+
+The PHY establishes the SoC input route. The receiver enables bus clocks,
+initializes its D-PHY test interface, then accepts input from the sensor.
+Stopping a stream shuts down the receiver before releasing the PHY and
+clocks. No pixel clock frequency is inferred from the PHY test code.
+
+Example:
+
+csi@f1100000 {
+	compatible = "fullhan,fh8626v100-csi";
+	reg = <0xf1100000 0x1000>, <0xf1000000 0x100>;
+	reg-names = "csi", "wrap";
+	clocks = <&clk FH8626_CLK_MIPI_DPHY>,
+		 <&clk FH8626_CLK_MIPI_WRAP_PCLK>,
+		 <&clk FH8626_CLK_MIPIC_PCLK>;
+	clock-names = "dphy", "wrap", "pclk";
+	phys = <&mipi_phy>;
+	phy-names = "dphy";
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		port@0 {
+			reg = <0>;
+			endpoint {
+				remote-endpoint = <&sensor_out>;
+				clock-lanes = <0>;
+				data-lanes = <1>;
+			};
+		};
+		port@1 {
+			reg = <1>;
+			endpoint {
+				remote-endpoint = <&isp_in>;
+			};
+		};
+	};
+};
