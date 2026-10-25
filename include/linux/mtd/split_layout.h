@@ -12,6 +12,8 @@ struct mtd_info;
  */
 #ifdef CONFIG_MTD_SPLIT_LAYOUT
 int mtd_split_layout_register(struct mtd_info *master);
+/* master's partition named name, if it was added as an MTD device (mtdpart.c) */
+struct mtd_info *mtd_split_part(struct mtd_info *master, const char *name);
 #else
 static inline int mtd_split_layout_register(struct mtd_info *master)
 {
