@@ -1,0 +1,20 @@
+Fullhan FH8626 Hardware AES Accelerator
+
+Required properties:
+- compatible : Should be "fullhan,fh8626v100-aes"
+- reg : Should contain AES register location and length (e.g. 0xe8200000 0x4000)
+- interrupts : Should contain the AES engine interrupt number (24)
+
+- clocks : Clock specifier for the AES AHB clock gate
+- clock-names : Must be "hclk"
+
+Example:
+
+	aes: aes@e8200000 {
+		compatible = "fullhan,fh8626v100-aes";
+		reg = <0xe8200000 0x4000>;
+		interrupts = <24>;
+		clocks = <&clk FH8626_CLK_AES_HCLK_GATE>;
+		clock-names = "hclk";
+		status = "okay";
+	};
