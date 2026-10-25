@@ -1,0 +1,21 @@
+Fullhan FH8626V100 root interrupt controller
+
+Required properties:
+- compatible: "fullhan,fh8626v100-intc"
+- reg: MMIO window of the controller
+- interrupt-controller: marks the node as an interrupt controller
+- #interrupt-cells: must be <1>
+- fullhan,num-irqs: number of hardware interrupt sources
+
+The single cell is the hardware interrupt number. On-chip devices use
+this node as their interrupt parent.
+
+Example:
+
+	intc: interrupt-controller@e0200000 {
+		compatible = "fullhan,fh8626v100-intc";
+		reg = <0xe0200000 0x4000>;
+		interrupt-controller;
+		#interrupt-cells = <1>;
+		fullhan,num-irqs = <64>;
+	};
