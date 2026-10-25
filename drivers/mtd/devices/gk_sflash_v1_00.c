@@ -31,6 +31,7 @@
 
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
+#include <linux/mtd/split_layout.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 
@@ -2881,6 +2882,16 @@ static int  gk_flash_probe(struct platform_device *dev)
     /* partitions should match sector boundaries; and it may be good to
      * use readonly partitions for writeprotected sectors (BP2..BP0).
      */
+    /* firmware.bin at 0x50000: its own partitions, not the command line's */
+    ret = mtd_split_layout_register(&flash->mtd);
+    if (!ret)
+        return 0;
+    if (ret < 0) {
+        platform_set_drvdata(dev, NULL);
+        kfree(flash);
+        return ret;
+    }
+
     ret = mtd_device_parse_register(&flash->mtd, NULL, &ppdata,
                 data ? data->parts : NULL,
                 data ? data->nr_parts : 0);
