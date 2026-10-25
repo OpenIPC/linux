@@ -1489,6 +1489,8 @@ ARM/FULLHAN FH8626
 M:	Difan Zhang <alex@osqdu.org>
 S:	Maintained
 F:	drivers/clocksource/dw_apb_timer_fh.c
+F:	include/dt-bindings/clock/fh8626v100-clk.h
+F:	Documentation/devicetree/bindings/clock/fullhan,fh8626v100-clk.txt
 F:	Documentation/devicetree/bindings/timer/fullhan,fh8626v100-timer.txt
 
 ARM/GLOMATION GESBC9312SX MACHINE SUPPORT

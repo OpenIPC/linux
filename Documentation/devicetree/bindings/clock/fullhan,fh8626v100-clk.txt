@@ -1,0 +1,29 @@
+Fullhan FH8626V100 clock controller
+
+The clock controller is a child of the "fullhan,fh8626v100-pmu",
+"syscon", "simple-mfd" system controller. The parent supplies the PMU
+register window in its reg property. The clock child has no reg property
+or unit address; its registers are part of the shared PMU window.
+
+Required properties:
+- compatible: "fullhan,fh8626v100-clk"
+- #clock-cells: must be <1>
+- clocks: the oscillator input
+- clock-names: "osc"
+
+Clock index values are defined in
+include/dt-bindings/clock/fh8626v100-clk.h.
+
+Example:
+
+	system-controller@f0000000 {
+		compatible = "fullhan,fh8626v100-pmu", "syscon", "simple-mfd";
+		reg = <0xf0000000 0x4000>;
+
+		clock-controller {
+			compatible = "fullhan,fh8626v100-clk";
+			#clock-cells = <1>;
+			clocks = <&osc>;
+			clock-names = "osc";
+		};
+	};
