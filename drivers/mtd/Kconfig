@@ -83,6 +83,18 @@ config MTD_REDBOOT_PARTS_READONLY
 
 endif # MTD_REDBOOT_PARTS
 
+config MTD_SPLIT_LAYOUT
+	bool "OpenIPC split NOR layout, without a device tree"
+	depends on MTD=y && MTD_BLOCK=y
+	help
+	  When the NOR flash holds a uImage at 0x50000 with the root squashfs
+	  at the next 64 KiB boundary (OpenIPC's firmware.bin), register boot,
+	  env, firmware and, inside it, kernel, rootfs and rootfs_data from the
+	  images themselves, and mount the root from that rootfs whatever
+	  MTD root= the bootloader passes. Any other contents of the flash
+	  keep the driver's usual partitions. Only drivers that call
+	  mtd_split_layout_register() take part.
+
 config MTD_CMDLINE_PARTS
 	bool "Command line partition table parsing"
 	depends on MTD = "y"
