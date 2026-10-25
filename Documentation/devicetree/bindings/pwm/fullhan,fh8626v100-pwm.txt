@@ -1,0 +1,23 @@
+Fullhan FH8626V100 PWM controller
+
+Required properties:
+- compatible: "fullhan,fh8626v100-pwm"
+- reg: MMIO window of the controller
+- interrupts: controller interrupt
+- clocks: the PWM input clock
+- clock-names: "pwm"
+- #pwm-cells: must be <3>
+
+The cells are the channel, the period in nanoseconds and the flags
+from include/dt-bindings/pwm/pwm.h.
+
+Example:
+
+	pwm@f0400000 {
+		compatible = "fullhan,fh8626v100-pwm";
+		reg = <0xf0400000 0x4000>;
+		interrupts = <36>;
+		clocks = <&clk FH8626_CLK_PWM>;
+		clock-names = "pwm";
+		#pwm-cells = <3>;
+	};
