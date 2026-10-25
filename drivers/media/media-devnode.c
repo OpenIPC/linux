@@ -272,6 +272,7 @@ cdev_add_error:
 	put_device(&devnode->dev);
 	return ret;
 }
+EXPORT_SYMBOL_GPL(media_devnode_register);
 
 void media_devnode_unregister_prepare(struct media_devnode *devnode)
 {

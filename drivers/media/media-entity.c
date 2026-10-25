@@ -197,6 +197,7 @@ void media_gobj_destroy(struct media_gobj *gobj)
 
 	gobj->mdev = NULL;
 }
+EXPORT_SYMBOL_GPL(media_gobj_destroy);
 
 /*
  * TODO: Get rid of this.
