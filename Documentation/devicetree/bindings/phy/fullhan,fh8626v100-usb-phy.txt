@@ -1,0 +1,26 @@
+Fullhan FH8626V100 integrated USB2 PHY
+
+This node is a child of the Fullhan PMU. The provider owns the integrated
+UTMI PHY's PMU sequence, USB bus clock and downstream host VBUS regulator.
+It uses the PMU's serialized accessors, without another MMIO mapping.
+
+Required properties:
+- compatible: "fullhan,fh8626v100-usb-phy"
+- #phy-cells: <0>
+- clocks: USB HCLK gate
+- clock-names: "hclk"
+- vbus-supply: real regulator for the board's downstream USB power switch
+
+Only the host configuration with a 16-bit UTMI interface is supported.
+System suspend is rejected while the PHY is powered because the host's
+live context cannot be restored after the PHY reset sequence.
+
+Example (inside the PMU node):
+
+	usb_phy: usb-phy {
+		compatible = "fullhan,fh8626v100-usb-phy";
+		#phy-cells = <0>;
+		clocks = <&clk FH8626_CLK_USB_HCLK>;
+		clock-names = "hclk";
+		vbus-supply = <&usb_vbus>;
+	};

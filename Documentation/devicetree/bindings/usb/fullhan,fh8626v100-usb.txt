@@ -1,0 +1,19 @@
+Fullhan FH8626V100 USB host
+==========================
+
+Synopsys DWC2 with integrated UTMI PHY and Fullhan PMU sequence.
+Required properties:
+- compatible: "fullhan,fh8626v100-usb" (no generic fallback)
+- reg: controller window, 0xe0700000 / 0x4000 on V100
+- interrupts: hardware source 27
+- clocks: USB functional clock
+- clock-names: "otg"
+- phys: phandle to the Fullhan integrated USB2 PHY
+- phy-names: "usb2-phy"
+- dr_mode: "host"
+
+The PHY is described by
+Documentation/devicetree/bindings/phy/fullhan,fh8626v100-usb-phy.txt.
+Its node owns the HCLK gate and board VBUS supply. The controller uses
+the standard DWC2 generic PHY path and the Fullhan parameter table entry.
+
