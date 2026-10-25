@@ -1,0 +1,22 @@
+Fullhan FH8626V100 MMC controller
+
+Required properties:
+- compatible: "fullhan,fh8626v100-mmc"
+- reg: MMIO window of the controller
+- interrupts: controller interrupt
+- clocks: bus interface clock and card clock, in that order
+- clock-names: "biu", "ciu"
+
+The board may add the MMC properties from mmc.txt, including
+bus-width, max-frequency, clock-freq-min-max, cap-sd-highspeed and
+no-1-8-v. Pin configuration uses pinctrl-names and pinctrl-0.
+
+Example:
+
+	mmc@e2000000 {
+		compatible = "fullhan,fh8626v100-mmc";
+		reg = <0xe2000000 0x4000>;
+		interrupts = <14>;
+		clocks = <&clk FH8626_CLK_AHB>, <&clk FH8626_CLK_SDC0>;
+		clock-names = "biu", "ciu";
+	};

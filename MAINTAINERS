@@ -1503,6 +1503,7 @@ F:	Documentation/devicetree/bindings/clock/fullhan,fh8626v100-clk.txt
 F:	Documentation/devicetree/bindings/gpio/fullhan,fh8626v100-gpio.txt
 F:	Documentation/devicetree/bindings/i2c/fullhan,fh8626v100-i2c.txt
 F:	Documentation/devicetree/bindings/interrupt-controller/fullhan,fh8626v100-intc.txt
+F:	Documentation/devicetree/bindings/mmc/fullhan,fh8626v100-mmc.txt
 F:	Documentation/devicetree/bindings/pinctrl/fullhan,fh8626v100-pinctrl.txt
 F:	Documentation/devicetree/bindings/spi/fullhan,fh8626v100-spi.txt
 F:	Documentation/devicetree/bindings/timer/fullhan,fh8626v100-timer.txt
