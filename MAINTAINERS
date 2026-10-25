@@ -1520,6 +1520,7 @@ F:	Documentation/devicetree/bindings/pwm/fullhan,fh8626v100-pwm.txt
 F:	Documentation/devicetree/bindings/soc/fullhan,fh8626-arc-isolation.txt
 F:	Documentation/devicetree/bindings/spi/fullhan,fh8626v100-spi.txt
 F:	Documentation/devicetree/bindings/timer/fullhan,fh8626v100-timer.txt
+F:	Documentation/devicetree/bindings/usb/fullhan,fh8626v100-usb.txt
 
 ARM/GLOMATION GESBC9312SX MACHINE SUPPORT
 M:	Lennert Buytenhek <kernel@wantstofly.org>
