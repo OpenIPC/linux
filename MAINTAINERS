@@ -1551,6 +1551,7 @@ F:	Documentation/devicetree/bindings/sound/fullhan,fh8626-audio.txt
 F:	Documentation/devicetree/bindings/spi/fullhan,fh8626v100-spi.txt
 F:	Documentation/devicetree/bindings/timer/fullhan,fh8626v100-timer.txt
 F:	Documentation/devicetree/bindings/usb/fullhan,fh8626v100-usb.txt
+F:	Documentation/devicetree/bindings/watchdog/fullhan,fh8626v100-watchdog.txt
 
 ARM/GLOMATION GESBC9312SX MACHINE SUPPORT
 M:	Lennert Buytenhek <kernel@wantstofly.org>
