@@ -60,6 +60,17 @@ config DW_APB_TIMER_OF
 	select DW_APB_TIMER
 	select TIMER_OF
 
+config FH_TIMER
+	bool "Fullhan DW APB timer and clocksource driver"
+	default y if ARCH_FULLHAN
+	depends on ARCH_FULLHAN && GENERIC_CLOCKEVENTS
+	select TIMER_OF
+	help
+	  Enables the Fullhan FH8626V100 Synopsys DW APB
+	  dual timer. It provides a clocksource, one-shot
+	  clockevents and a delay timer at the shared input
+	  rate requested by the device tree.
+
 config FTTMR010_TIMER
 	bool "Faraday Technology timer driver" if COMPILE_TEST
 	depends on HAS_IOMEM

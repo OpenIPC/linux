@@ -1488,6 +1488,7 @@ F:	arch/arm64/boot/dts/freescale/qoriq-*
 ARM/FULLHAN FH8626
 M:	Difan Zhang <alex@osqdu.org>
 S:	Maintained
+F:	drivers/clocksource/dw_apb_timer_fh.c
 F:	Documentation/devicetree/bindings/timer/fullhan,fh8626v100-timer.txt
 
 ARM/GLOMATION GESBC9312SX MACHINE SUPPORT
