@@ -245,6 +245,15 @@ config SPI_FALCON
 	  has only been tested with m25p80 type chips. The hardware has no
 	  support for other types of SPI peripherals.
 
+config SPI_FH8626V100
+	tristate "Fullhan FH8626V100 standard-wire SSI controller"
+	depends on ARCH_FULLHAN && OF && GPIOLIB && COMMON_CLK
+	help
+	  Single-bit SPI master for the FH8626V100. Chip
+	  selects are GPIOs. Child nodes are the SPI devices
+	  on the bus. Only standard single-wire transfers
+	  are supported.
+
 config SPI_FSL_LPSPI
 	tristate "Freescale i.MX LPSPI controller"
 	depends on ARCH_MXC || COMPILE_TEST
