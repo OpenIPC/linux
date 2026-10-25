@@ -1,0 +1,27 @@
+Fullhan FH8626 audio controller
+
+Required properties:
+- compatible: "fullhan,fh8626-audio"
+- reg: MMIO window of the controller
+- interrupts: controller interrupt
+- clocks: four clocks, in the order of clock-names
+- clock-names: "ac", "i2s", "mclk", "pclk"
+- dmas: receive and transmit channels, in that order
+- dma-names: "rx", "tx"
+
+Optional properties:
+- spk-gpios: speaker GPIO, supplied by the board
+
+Example:
+
+	audio@f0a00000 {
+		compatible = "fullhan,fh8626-audio";
+		reg = <0xf0a00000 0x1000>;
+		interrupts = <12>;
+		clocks = <&clk FH8626_CLK_AC>, <&clk FH8626_CLK_I2S>,
+			 <&clk FH8626_CLK_ACODEC_MCLK>,
+			 <&clk FH8626_CLK_ACODEC_PCLK>;
+		clock-names = "ac", "i2s", "mclk", "pclk";
+		dmas = <&dma 0 0 0>, <&dma 1 0 0>;
+		dma-names = "rx", "tx";
+	};
