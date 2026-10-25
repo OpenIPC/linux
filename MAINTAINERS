@@ -1510,6 +1510,7 @@ F:	include/dt-bindings/clock/fh8626v100-clk.h
 F:	Documentation/devicetree/bindings/arm/fullhan.txt
 F:	Documentation/devicetree/bindings/clock/fullhan,fh8626v100-clk.txt
 F:	Documentation/devicetree/bindings/crypto/fullhan,fh8626v100-aes.txt
+F:	Documentation/devicetree/bindings/dma/fullhan,fh8626v100-dma.txt
 F:	Documentation/devicetree/bindings/gpio/fullhan,fh8626v100-gpio.txt
 F:	Documentation/devicetree/bindings/i2c/fullhan,fh8626v100-i2c.txt
 F:	Documentation/devicetree/bindings/iio/adc/fullhan,fh8626v100-adc.txt

@@ -1,0 +1,23 @@
+Fullhan FH8626V100 DMA controller
+
+Required properties:
+- compatible: "fullhan,fh8626v100-dma"
+- reg: MMIO window of the controller
+- interrupts: controller interrupt
+- clocks: the bus clock
+- clock-names: "hclk"
+- #dma-cells: must be <3>
+
+The three cells are the DMA request, the memory master and the
+peripheral master. Clients use the format in dma.txt.
+
+Example:
+
+	dma: dma-controller@e0300000 {
+		compatible = "fullhan,fh8626v100-dma";
+		reg = <0xe0300000 0x4000>;
+		interrupts = <21>;
+		clocks = <&clk FH8626_CLK_DMAC0_HCLK_GATE>;
+		clock-names = "hclk";
+		#dma-cells = <3>;
+	};
