@@ -1,0 +1,31 @@
+Fullhan FH8626V100 MIPI input PHY
+================================
+
+This PHY controls the MIPI input enable and pixel route in the FH8626V100
+system controller. The CSI receiver owns its own D-PHY test interface and
+bus clocks. Only the single-lane input configuration is supported.
+
+Required properties:
+- compatible: "fullhan,fh8626v100-mipi-phy"
+- #phy-cells: 0
+
+The PHY must be a child of the "fullhan,fh8626v100-pmu" system controller,
+which also has the "syscon" and "simple-mfd" compatibles. It has no separate
+register range.
+
+While initialized and powered, the provider holds the MIPI route and PHY
+enable. Shutdown restores only those controls. Access is serialized with
+the clock provider. Pixel-clock muxes that share this route are not
+registered as independent clocks.
+
+Example:
+
+system-controller@f0000000 {
+	compatible = "fullhan,fh8626v100-pmu", "syscon", "simple-mfd";
+	reg = <0xf0000000 0x4000>;
+
+	mipi_phy: mipi-phy {
+		compatible = "fullhan,fh8626v100-mipi-phy";
+		#phy-cells = <0>;
+	};
+};
