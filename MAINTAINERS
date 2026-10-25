@@ -1502,6 +1502,7 @@ F:	drivers/iio/adc/fh8626-sadc.c
 F:	drivers/nvmem/fh8626-efuse.c
 F:	drivers/phy/phy-fh8626-mipi.c
 F:	drivers/crypto/fullhan/
+F:	drivers/soc/fullhan/
 F:	include/linux/soc/fullhan/
 F:	include/dt-bindings/clock/fh8626v100-clk.h
 F:	Documentation/devicetree/bindings/arm/fullhan.txt
