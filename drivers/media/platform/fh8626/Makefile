@@ -9,3 +9,5 @@ obj-$(CONFIG_VIDEO_FH8626_PAE) += fh8626-encoder.o
 fh8626-capture-objs := fh8626-camera.o fh8626-video.o \
 	fh8626-csi.o fh8626-isp.o fh8626-vpu.o fh8626-logo.o fh8626-subdev.o
 obj-$(CONFIG_VIDEO_FH8626_CAPTURE) += fh8626-capture.o
+
+obj-$(CONFIG_VIDEO_FH8626_JPEG) += fh8626-jpeg.o
