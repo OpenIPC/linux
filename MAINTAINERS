@@ -1521,6 +1521,7 @@ F:	Documentation/devicetree/bindings/media/fullhan,fh8626-pae.txt
 F:	Documentation/devicetree/bindings/media/fullhan,fh8626v100-bgm.txt
 F:	Documentation/devicetree/bindings/media/fullhan,fh8626v100-camera.txt
 F:	Documentation/devicetree/bindings/media/fullhan,fh8626v100-csi.txt
+F:	Documentation/devicetree/bindings/media/fullhan,fh8626v100-isp.txt
 F:	Documentation/devicetree/bindings/mmc/fullhan,fh8626v100-mmc.txt
 F:	Documentation/devicetree/bindings/net/fullhan,fh8626v100-gmac.txt
 F:	Documentation/devicetree/bindings/nvmem/fullhan,fh8626-efuse.txt
