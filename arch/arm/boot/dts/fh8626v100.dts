@@ -1,0 +1,247 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Copyright (C) 2026 Difan Zhang
+ */
+/dts-v1/;
+#include <dt-bindings/input/input.h>
+#include "fh8626v100.dtsi"
+
+/ {
+	model = "Fullhan FH8626V100";
+	compatible = "fullhan,fh8626v100", "fullhan,fh8626";
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+		bootargs = "console=ttyS0,115200 root=/dev/mtdblock4 rootfstype=squashfs mtdparts=spi0.0:256k(bootstrap),64k(uboot-env),256k(uboot),1984k(Kernel),5632k(rootfs)";
+	};
+
+	memory@a0000000 {
+		device_type = "memory";
+		reg = <0xa0000000 0x04000000>;
+	};
+
+	usb_vbus: regulator-usb-vbus {
+		compatible = "regulator-fixed";
+		regulator-name = "usb-vbus";
+		gpio = <&gpio0 0 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+		startup-delay-us = <1000>;
+	};
+
+	gpio-keys {
+		compatible = "gpio-keys";
+		pinctrl-names = "default";
+		pinctrl-0 = <&reset_btn_pins>;
+
+		button-reset {
+			label = "reset";
+			linux,code = <KEY_RESTART>;
+			gpios = <&gpio0 2 GPIO_ACTIVE_LOW>;
+		};
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		led-ir {
+			label = "fh8626:ir:nightvision";
+			gpios = <&gpio0 7 GPIO_ACTIVE_HIGH>;
+			default-state = "off";
+		};
+
+		led-white {
+			label = "fh8626:white:floodlight";
+			gpios = <&gpio0 25 GPIO_ACTIVE_HIGH>;
+			default-state = "off";
+		};
+
+		led-alarm {
+			label = "fh8626:red:alarm";
+			gpios = <&gpio0 4 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+	};
+
+	ptz: ptz-motors {
+		compatible = "fullhan,fh8626-ptz";
+		/*
+		 * Horizontal motor phases are GPIO 50, 51, 3, 6 and vertical
+		 * motor phases GPIO 61, 5, 24, 19; gpio1 holds GPIO 32..63.
+		 */
+		h-gpios = <&gpio1 18 GPIO_ACTIVE_HIGH>,
+			  <&gpio1 19 GPIO_ACTIVE_HIGH>,
+			  <&gpio0 3 GPIO_ACTIVE_HIGH>,
+			  <&gpio0 6 GPIO_ACTIVE_HIGH>;
+		v-gpios = <&gpio1 29 GPIO_ACTIVE_HIGH>,
+			  <&gpio0 5 GPIO_ACTIVE_HIGH>,
+			  <&gpio0 24 GPIO_ACTIVE_HIGH>,
+			  <&gpio0 19 GPIO_ACTIVE_HIGH>;
+		h-upbound = <496>;
+		v-upbound = <169>;
+		max-pps = <500>;
+		h-invert-dir;
+		sequential-axes;
+	};
+
+	reserved-memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		cma_pool: cma@a2400000 {
+			compatible = "shared-dma-pool";
+			reusable;
+			/*
+			 * 24 MiB, 4 MiB-aligned (MAX_ORDER = 11) for media
+			 * DMA workspaces.
+			 */
+			reg = <0xa2400000 0x01800000>;
+			linux,cma-default;
+		};
+
+		arc_reserved: memory@a3f00000 {
+			reg = <0xa3f00000 0x00100000>;
+			no-map;
+		};
+	};
+};
+
+&timer {
+	clock-frequency = <50000000>;
+};
+
+&spi0 {
+	num-cs = <1>;
+	cs-gpios = <&gpio1 22 GPIO_ACTIVE_LOW>;
+
+	flash@0 {
+		compatible = "jedec,spi-nor";
+		reg = <0>;
+		spi-max-frequency = <10000000>;
+		spi-rx-bus-width = <1>;
+		spi-tx-bus-width = <1>;
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+			partition@0 {
+				label = "bootstrap";
+				reg = <0x000000 0x040000>;
+			};
+			partition@40000 {
+				label = "uboot-env";
+				reg = <0x040000 0x010000>;
+			};
+			partition@50000 {
+				label = "uboot";
+				reg = <0x050000 0x040000>;
+			};
+			partition@90000 {
+				label = "Kernel";
+				reg = <0x090000 0x1f0000>;
+			};
+			partition@280000 {
+				label = "rootfs";
+				reg = <0x280000 0x580000>;
+			};
+		};
+	};
+};
+
+&mmc0 {
+	bus-width = <1>;
+	max-frequency = <50000000>;
+	clock-freq-min-max = <400000 50000000>;
+	cap-sd-highspeed;
+	no-1-8-v;
+	status = "okay";
+};
+
+&gpio0 {
+	/*
+	 * Wi-Fi control line (GPIO23). Held only by the pad pull, the RDA5995
+	 * either never enumerates (pull reads high) or resets once its
+	 * firmware has started (pull reads low). Drive it low before VBUS so
+	 * a load step cannot glitch the line.
+	 */
+	wifi-ctrl-hog {
+		gpio-hog;
+		gpios = <23 GPIO_ACTIVE_HIGH>;
+		output-low;
+		line-name = "wifi-ctrl";
+	};
+};
+
+&usb {
+	status = "okay";
+};
+
+&usb_phy {
+	vbus-supply = <&usb_vbus>;
+	status = "okay";
+};
+
+&dma {
+	status = "okay";
+};
+
+&bgm {
+	status = "okay";
+};
+
+&i2c0 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	gc1054: camera-sensor@21 {
+		compatible = "galaxycore,gc1054";
+		reg = <0x21>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&sensor_pins>;
+		clocks = <&clk FH8626_CLK_CIS_OUT>;
+		clock-names = "xvclk";
+		assigned-clocks = <&clk FH8626_CLK_CIS_OUT>;
+		assigned-clock-parents = <&osc>;
+		reset-gpios = <&gpio0 13 GPIO_ACTIVE_LOW>;
+
+		port {
+			gc1054_out: endpoint {
+				remote-endpoint = <&csi_in>;
+				clock-lanes = <0>;
+				data-lanes = <1>;
+			};
+		};
+	};
+};
+
+&aes {
+	status = "okay";
+};
+
+&jpeg {
+	status = "okay";
+};
+
+&adc {
+	status = "okay";
+};
+
+&watchdog {
+	status = "okay";
+};
+
+&efuse {
+	status = "okay";
+};
+
+&arc {
+	status = "okay";
+};
+
+&audio {
+	status = "okay";
+	spk-gpios = <&gpio0 26 GPIO_ACTIVE_LOW>;
+};
