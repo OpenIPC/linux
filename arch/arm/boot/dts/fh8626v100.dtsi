@@ -1,0 +1,577 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Fullhan FH8626V100 SoC
+ *
+ * Copyright (C) 2026 Difan Zhang
+ */
+
+#include <dt-bindings/clock/fh8626v100-clk.h>
+#include <dt-bindings/gpio/gpio.h>
+
+/ {
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	compatible = "fullhan,fh8626v100";
+
+	/* ARM1176JZF-S r0p7 (MIDR 0x410fb767) with VFP11 (VFPv2). */
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		cpu0: cpu@0 {
+			device_type = "cpu";
+			compatible = "arm,arm1176jzf-s", "arm,arm1176jz-s";
+			reg = <0>;
+		};
+	};
+
+	clocks {
+		osc: osc-clk {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <24000000>;
+			clock-output-names = "osc_clk";
+		};
+	};
+
+	aliases {
+		serial0 = &uart0;
+		serial1 = &uart1;
+		serial2 = &uart2;
+		i2c0 = &i2c0;
+		i2c1 = &i2c1;
+		i2c2 = &i2c2;
+		spi0 = &spi0;
+		spi1 = &spi1;
+		mmc0 = &mmc0;
+	};
+
+	soc {
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+		dma-ranges;
+		interrupt-parent = <&intc>;
+
+		intc: interrupt-controller@e0200000 {
+			compatible = "fullhan,fh8626v100-intc";
+			reg = <0xe0200000 0x4000>;
+			interrupt-controller;
+			#interrupt-cells = <1>;
+			#address-cells = <0>;
+			fullhan,num-irqs = <64>;
+		};
+
+		dma: dma-controller@e0300000 {
+			compatible = "fullhan,fh8626v100-dma";
+			reg = <0xe0300000 0x4000>;
+			interrupts = <21>;
+			clocks = <&clk FH8626_CLK_DMAC0_HCLK_GATE>;
+			clock-names = "hclk";
+			dma-controller;
+			#dma-cells = <3>;
+			status = "disabled";
+		};
+
+		gmac: ethernet@e0600000 {
+			compatible = "fullhan,fh8626v100-gmac";
+			reg = <0xe0600000 0x4000>;
+			interrupts = <13>;
+			interrupt-names = "macirq";
+			clocks = <&clk FH8626_CLK_ETH>,
+				 <&clk FH8626_CLK_ETH_RMII>;
+			clock-names = "stmmaceth", "rmii";
+			status = "disabled";
+		};
+
+		usb: usb@e0700000 {
+			compatible = "fullhan,fh8626v100-usb";
+			reg = <0xe0700000 0x4000>;
+			interrupts = <27>;
+			clocks = <&clk FH8626_CLK_USB>;
+			clock-names = "otg";
+			phys = <&usb_phy>;
+			phy-names = "usb2-phy";
+			dr_mode = "host";
+			status = "disabled";
+		};
+
+		mmc0: mmc@e2000000 {
+			compatible = "fullhan,fh8626v100-mmc";
+			reg = <0xe2000000 0x4000>;
+			interrupts = <14>;
+			clocks = <&clk FH8626_CLK_AHB>, <&clk FH8626_CLK_SDC0>;
+			clock-names = "biu", "ciu";
+			pinctrl-names = "default";
+			pinctrl-0 = <&mmc0_pins>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
+		aes: aes@e8200000 {
+			compatible = "fullhan,fh8626v100-aes";
+			reg = <0xe8200000 0x4000>;
+			interrupts = <24>;
+			clocks = <&clk FH8626_CLK_AES_HCLK_GATE>;
+			clock-names = "hclk";
+			status = "disabled";
+		};
+
+		pmu: system-controller@f0000000 {
+			compatible = "fullhan,fh8626v100-pmu",
+				      "syscon", "simple-mfd";
+			reg = <0xf0000000 0x4000>;
+			fullhan,pinctrl-offset = <0x80>;
+			fullhan,vendor-oscillator-hz = <24000000>;
+
+			clk: clock-controller {
+				compatible = "fullhan,fh8626v100-clk";
+				#clock-cells = <1>;
+				clocks = <&osc>;
+				clock-names = "osc";
+			};
+
+			mipi_phy: mipi-phy {
+				compatible = "fullhan,fh8626v100-mipi-phy";
+				#phy-cells = <0>;
+			};
+
+			usb_phy: usb-phy {
+				compatible = "fullhan,fh8626v100-usb-phy";
+				#phy-cells = <0>;
+				clocks = <&clk FH8626_CLK_USB_HCLK>;
+				clock-names = "hclk";
+				status = "disabled";
+			};
+		};
+
+		i2c2: i2c@f0100000 {
+			compatible = "fullhan,fh8626v100-i2c";
+			reg = <0xf0100000 0x4000>;
+			interrupts = <11>;
+			clocks = <&clk FH8626_CLK_I2C2>;
+			clock-names = "i2c";
+			assigned-clocks = <&clk FH8626_CLK_I2C2>;
+			assigned-clock-rates = <50000000>;
+			clock-frequency = <400000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
+		pinctrl: pinctrl@f0000080 {
+			compatible = "fullhan,fh8626v100-pinctrl";
+			reg = <0xf0000080 0x140>;
+
+			i2c0_pins: i2c0 {
+				groups = "i2c0_grp";
+				function = "i2c0";
+				bias-disable;
+				fullhan,drive = <0>;
+			};
+
+			uart0_pins: uart0 {
+				groups = "uart0_grp";
+				function = "uart0";
+				bias-pull-up;
+				fullhan,drive = <0>;
+			};
+
+			sensor_pins: sensor {
+				groups = "sensor_grp";
+				function = "sensor";
+				bias-pull-up;
+
+				cis-clk {
+					pins = "pad47_cis_clk";
+					fullhan,drive = <4>;
+				};
+
+				gpio13 {
+					pins = "pad48_gpio13";
+					fullhan,drive = <0>;
+				};
+			};
+
+			spi0_pins: spi0 {
+				groups = "spi0_grp";
+				function = "spi0";
+
+				ssi-clk {
+					pins = "pad56_ssi0_clk";
+					bias-disable;
+					fullhan,drive = <4>;
+				};
+
+				ssi-tx {
+					pins = "pad57_ssi0_txd";
+					bias-disable;
+					fullhan,drive = <0>;
+				};
+
+				ssi-rx {
+					pins = "pad60_ssi0_rxd";
+					bias-pull-up;
+					fullhan,drive = <0>;
+				};
+			};
+
+			/* GPIO54 on pad 58, used as the SSI0 chip select. */
+			spi0_cs_pins: spi0-cs {
+				groups = "spi0_cs_grp";
+				function = "gpio";
+				bias-pull-up;
+				fullhan,drive = <0>;
+			};
+
+			/* GPIO2 on pad 37, the reset button input. */
+			reset_btn_pins: reset-btn {
+				groups = "reset_btn_grp";
+				function = "gpio";
+				bias-pull-down;
+				fullhan,drive = <4>;
+			};
+
+			mmc0_pins: mmc0 {
+				groups = "mmc0_grp";
+				function = "mmc0";
+				bias-pull-up;
+
+				sd-d0 {
+					pins = "pad66_sd0_d0";
+					fullhan,drive = <4>;
+				};
+
+				sd-rest {
+					pins = "pad64_sd0_clk", "pad65_sd0_cmd",
+					       "pad67_sd0_d1", "pad68_sd0_d2",
+					       "pad69_sd0_d3";
+					fullhan,drive = <0>;
+				};
+			};
+		};
+
+		i2c0: i2c@f0200000 {
+			compatible = "fullhan,fh8626v100-i2c";
+			reg = <0xf0200000 0x4000>;
+			interrupts = <9>;
+			clocks = <&clk FH8626_CLK_I2C0>;
+			clock-names = "i2c";
+			assigned-clocks = <&clk FH8626_CLK_I2C0>;
+			assigned-clock-rates = <50000000>;
+			clock-frequency = <400000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&i2c0_pins>;
+			status = "disabled";
+		};
+
+		gpio0: gpio-controller@f0300000 {
+			compatible = "fullhan,fh8626v100-gpio";
+			reg = <0xf0300000 0x4000>;
+			gpio-controller;
+			#gpio-cells = <2>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+			#address-cells = <0>;
+			interrupts = <26>;
+		};
+
+		pwm: pwm@f0400000 {
+			compatible = "fullhan,fh8626v100-pwm";
+			reg = <0xf0400000 0x4000>;
+			interrupts = <36>;
+			clocks = <&clk FH8626_CLK_PWM>;
+			clock-names = "pwm";
+			#pwm-cells = <3>;
+			status = "disabled";
+		};
+
+		spi1: spi@f0500000 {
+			compatible = "fullhan,fh8626v100-spi";
+			reg = <0xf0500000 0x4000>;
+			interrupts = <16>;
+			clocks = <&clk FH8626_CLK_SPI1>;
+			clock-names = "spi";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
+		csi: csi@f1100000 {
+			compatible = "fullhan,fh8626v100-csi";
+			reg = <0xf1100000 0x1000>, <0xf1000000 0x100>;
+			reg-names = "csi", "wrap";
+			clocks = <&clk FH8626_CLK_MIPI_DPHY>,
+				 <&clk FH8626_CLK_MIPI_WRAP_PCLK>,
+				 <&clk FH8626_CLK_MIPIC_PCLK>;
+			clock-names = "dphy", "wrap", "pclk";
+			phys = <&mipi_phy>;
+			phy-names = "dphy";
+			status = "okay";
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@0 {
+					reg = <0>;
+					csi_in: endpoint {
+						remote-endpoint = <&gc1054_out>;
+						clock-lanes = <0>;
+						data-lanes = <1>;
+					};
+				};
+
+				port@1 {
+					reg = <1>;
+					csi_out: endpoint {
+						remote-endpoint = <&isp_in>;
+					};
+				};
+			};
+		};
+
+		isp: isp@e8400000 {
+			compatible = "fullhan,fh8626v100-isp";
+			reg = <0xe8400000 0x4000>;
+			interrupts = <5>;
+			clocks = <&clk FH8626_CLK_ISP_ACLK>,
+				 <&clk FH8626_CLK_ISP_HCLK>;
+			clock-names = "aclk", "hclk";
+			status = "okay";
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@0 {
+					reg = <0>;
+					isp_in: endpoint {
+						remote-endpoint = <&csi_out>;
+					};
+				};
+				port@1 {
+					reg = <1>;
+					isp_out: endpoint {
+						remote-endpoint = <&camera_in>;
+					};
+				};
+			};
+		};
+
+		jpeg: jpeg@e8300000 {
+			compatible = "fullhan,fh8626v100-jpeg";
+			reg = <0xe8300000 0x600>;
+			interrupts = <8>;
+			clocks = <&clk FH8626_CLK_JPEG>,
+				 <&clk FH8626_CLK_JPEG_HCLK>;
+			clock-names = "jpeg", "hclk";
+			status = "disabled";
+		};
+
+		bgm: bgm@e8606000 {
+			compatible = "fullhan,fh8626v100-bgm";
+			reg = <0xe8606000 0x120>;
+			interrupts = <7>;
+			clocks = <&clk FH8626_CLK_BGM>,
+				 <&clk FH8626_CLK_BGM_HCLK>;
+			clock-names = "bgm", "hclk";
+			status = "disabled";
+		};
+
+		camera: camera {
+			compatible = "fullhan,fh8626v100-camera";
+			status = "okay";
+			port {
+				camera_in: endpoint {
+					remote-endpoint = <&isp_out>;
+				};
+			};
+		};
+
+		pae-bus {
+			compatible = "simple-bus";
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges;
+			/*
+			 * PAE uses DDR-relative DMA addresses, encoded in 19
+			 * bits at 1 KiB granularity. dma-ranges covers that
+			 * address window.
+			 */
+			dma-ranges = <0x00000000 0xa0000000 0x20000000>;
+
+			encoder: encoder@e7000000 {
+				compatible = "fullhan,fh8626-pae",
+					      "fullhan,fh8626v100-encoder";
+				reg = <0xe7000000 0x4000>,
+				      <0xe7010000 0x20000>,
+				      <0x10000000 0x8000>;
+				reg-names = "core", "buffer", "sram";
+				interrupts = <4>;
+				clocks = <&clk FH8626_CLK_PAE>,
+					 <&clk FH8626_CLK_PAE_HCLK_GATE>,
+					 <&clk FH8626_CLK_MULTI_PAE>,
+					 <&clk FH8626_CLK_PAE_ADPT>;
+				clock-names = "pae_clk", "pae_hclk_gate",
+					      "multi_pae_clk", "pae_adpt_clk";
+				status = "okay";
+			};
+		};
+
+		arc: arc-isolation {
+			compatible = "fullhan,fh8626-arc-isolation",
+				      "fullhan,fh8626v100-arc";
+			clocks = <&clk FH8626_CLK_ARC>;
+			clock-names = "arc";
+			status = "disabled";
+		};
+
+		uart0: serial@f0700000 {
+			compatible = "snps,dw-apb-uart";
+			reg = <0xf0700000 0x4000>;
+			interrupts = <18>;
+			reg-shift = <2>;
+			reg-io-width = <4>;
+			clocks = <&clk FH8626_CLK_UART0>;
+			clock-names = "baudclk";
+			assigned-clocks = <&clk FH8626_CLK_UART0>;
+			assigned-clock-rates = <16666666>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&uart0_pins>;
+			status = "okay";
+		};
+
+		uart1: serial@f0800000 {
+			compatible = "snps,dw-apb-uart";
+			reg = <0xf0800000 0x4000>;
+			interrupts = <19>;
+			reg-shift = <2>;
+			reg-io-width = <4>;
+			clocks = <&clk FH8626_CLK_UART1>;
+			clock-names = "baudclk";
+			assigned-clocks = <&clk FH8626_CLK_UART1>;
+			assigned-clock-rates = <16666666>;
+			status = "disabled";
+		};
+
+		audio: audio@f0a00000 {
+			compatible = "fullhan,fh8626-audio";
+			reg = <0xf0a00000 0x1000>;
+			interrupts = <12>;
+			clocks = <&clk FH8626_CLK_AC>, <&clk FH8626_CLK_I2S>,
+				 <&clk FH8626_CLK_ACODEC_MCLK>,
+				 <&clk FH8626_CLK_ACODEC_PCLK>;
+			clock-names = "ac", "i2s", "mclk", "pclk";
+			/*
+			 * The controller has one AHB master. Cells are request,
+			 * memory master, peripheral master; both masters
+			 * are zero.
+			 */
+			dmas = <&dma 0 0 0>, <&dma 1 0 0>;
+			dma-names = "rx", "tx";
+			status = "disabled";
+		};
+
+		i2c1: i2c@f0b00000 {
+			compatible = "fullhan,fh8626v100-i2c";
+			reg = <0xf0b00000 0x4000>;
+			interrupts = <10>;
+			clocks = <&clk FH8626_CLK_I2C1>;
+			clock-names = "i2c";
+			assigned-clocks = <&clk FH8626_CLK_I2C1>;
+			assigned-clock-rates = <50000000>;
+			clock-frequency = <400000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
+		timer: timer@f0c00000 {
+			compatible = "fullhan,fh8626v100-timer";
+			reg = <0xf0c00000 0x4000>;
+			interrupts = <3>;
+			clocks = <&clk FH8626_CLK_TMR0>;
+			clock-names = "timer";
+			clock-frequency = <1000000>;
+		};
+
+		watchdog: watchdog@f0d00000 {
+			compatible = "fullhan,fh8626v100-watchdog",
+				      "snps,dw-wdt";
+			reg = <0xf0d00000 0x4000>;
+			interrupts = <2>;
+			clocks = <&clk FH8626_CLK_WDT>;
+			assigned-clocks = <&clk FH8626_CLK_WDT>;
+			assigned-clock-rates = <1000000>;
+			status = "disabled";
+		};
+
+		spi0: spi@f0e00000 {
+			compatible = "fullhan,fh8626v100-spi";
+			reg = <0xf0e00000 0x4000>;
+			interrupts = <17>;
+			clocks = <&clk FH8626_CLK_SPI0>;
+			clock-names = "spi";
+			pinctrl-names = "default";
+			pinctrl-0 = <&spi0_pins &spi0_cs_pins>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "okay";
+		};
+
+		adc: adc@f1200000 {
+			compatible = "fullhan,fh8626v100-adc";
+			reg = <0xf1200000 0x4000>;
+			interrupts = <25>;
+			clocks = <&clk FH8626_CLK_SADC>;
+			clock-names = "sadc";
+			status = "disabled";
+		};
+
+		uart2: serial@f1300000 {
+			compatible = "snps,dw-apb-uart";
+			reg = <0xf1300000 0x4000>;
+			interrupts = <20>;
+			reg-shift = <2>;
+			reg-io-width = <4>;
+			clocks = <&clk FH8626_CLK_UART2>;
+			clock-names = "baudclk";
+			assigned-clocks = <&clk FH8626_CLK_UART2>;
+			assigned-clock-rates = <16666666>;
+			status = "disabled";
+		};
+
+		rtc: rtc@f1500000 {
+			compatible = "fullhan,fh8626v100-rtc";
+			reg = <0xf1500000 0x4000>;
+			interrupts = <33>;
+			status = "disabled";
+		};
+
+		efuse: efuse@f1600000 {
+			compatible = "fullhan,fh8626v100-efuse",
+				      "fullhan,fh8626-efuse";
+			reg = <0xf1600000 0x4000>;
+			clocks = <&clk FH8626_CLK_EFUSE>;
+			clock-names = "efuse";
+			status = "disabled";
+		};
+
+		gpio1: gpio-controller@f4000000 {
+			compatible = "fullhan,fh8626v100-gpio";
+			reg = <0xf4000000 0x4000>;
+			gpio-controller;
+			#gpio-cells = <2>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+			#address-cells = <0>;
+			interrupts = <40>;
+		};
+	};
+};
