@@ -192,4 +192,14 @@ config SC27XX_EFUSE
 	  This driver can also be built as a module. If so, the module
 	  will be called nvmem-sc27xx-efuse.
 
+config NVMEM_FH8626
+	tristate "Fullhan FH8626 eFuse / OTP support"
+	depends on HAS_IOMEM
+	help
+	  This is a driver to read values from the OTP eFuse found on
+	  the Fullhan FH8626 SoC.
+
+	  This driver can also be built as a module. If so, the module
+	  will be called nvmem-fh8626-efuse.
+
 endif
