@@ -28,3 +28,22 @@ config VIDEO_FH8626_PAE
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called fh8626-encoder.
+
+
+config VIDEO_FH8626_CAPTURE
+	tristate "Fullhan FH8626 capture pipeline"
+	depends on ARCH_FULLHAN && OF
+	depends on VIDEO_V4L2 && MEDIA_CONTROLLER
+	depends on VIDEO_V4L2_SUBDEV_API
+	depends on HAS_DMA && COMMON_CLK && FH_CLK
+	depends on PHY_FH8626_MIPI
+	select V4L2_FWNODE
+	select VIDEOBUF2_DMA_CONTIG
+	select VIDEOBUF2_VMALLOC
+	select VIDEOBUF2_V4L2
+	help
+	  Driver for the FH8626 capture pipeline: MIPI CSI-2 receiver,
+	  ISP and VPU. Video is exposed through a V4L2 capture node.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called fh8626-capture.

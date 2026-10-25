@@ -5,3 +5,7 @@ obj-$(CONFIG_VIDEO_FH8626_BGM) += fh8626-bgm.o
 fh8626-encoder-objs := fh8626-encoder-v4l2.o fh8626-pae-hw.o \
 	fh8626-pae-params.o fh8626-pae-bitstream.o
 obj-$(CONFIG_VIDEO_FH8626_PAE) += fh8626-encoder.o
+
+fh8626-capture-objs := fh8626-camera.o fh8626-video.o \
+	fh8626-csi.o fh8626-isp.o fh8626-vpu.o fh8626-logo.o fh8626-subdev.o
+obj-$(CONFIG_VIDEO_FH8626_CAPTURE) += fh8626-capture.o

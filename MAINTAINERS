@@ -1507,6 +1507,7 @@ F:	drivers/phy/phy-fh8626-usb.c
 F:	drivers/net/ethernet/stmicro/stmmac/dwmac-fh8626.c
 F:	drivers/dma/fh8626-dma.c
 F:	drivers/media/platform/fh8626/
+F:	include/uapi/linux/fh8626-isp.h
 F:	include/linux/soc/fullhan/
 F:	include/dt-bindings/clock/fh8626v100-clk.h
 F:	Documentation/devicetree/bindings/arm/fullhan.txt
