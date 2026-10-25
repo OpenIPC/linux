@@ -1,0 +1,37 @@
+GalaxyCore GC1054 camera sensor
+
+The sensor is the I2C device at address 0x21.
+
+Required properties:
+- compatible: "galaxycore,gc1054"
+- reg: I2C address
+- clocks: the sensor clock
+- clock-names: "xvclk"
+- reset-gpios: sensor reset GPIO
+- port: one output port, as described by
+  Documentation/devicetree/bindings/media/video-interfaces.txt
+
+The endpoint contains clock-lanes = <0> and data-lanes = <1>.
+
+Optional properties:
+- assigned-clocks: the sensor clock
+- assigned-clock-parents: parent of that clock
+- pinctrl-names and pinctrl-0: pin configuration
+
+Example:
+
+	camera-sensor@21 {
+		compatible = "galaxycore,gc1054";
+		reg = <0x21>;
+		clocks = <&clk FH8626_CLK_CIS_OUT>;
+		clock-names = "xvclk";
+		reset-gpios = <&gpio0 13 GPIO_ACTIVE_LOW>;
+
+		port {
+			endpoint {
+				remote-endpoint = <&csi_in>;
+				clock-lanes = <0>;
+				data-lanes = <1>;
+			};
+		};
+	};
