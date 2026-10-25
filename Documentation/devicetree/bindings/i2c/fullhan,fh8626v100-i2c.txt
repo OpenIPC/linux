@@ -1,0 +1,31 @@
+Fullhan FH8626V100 I2C controller
+
+Required properties:
+- compatible: "fullhan,fh8626v100-i2c"
+- reg: MMIO window of the controller
+- interrupts: controller interrupt
+- clocks: the I2C input clock
+- clock-names: "i2c"
+- clock-frequency: bus frequency in Hz
+- #address-cells: must be <1>
+- #size-cells: must be <0>
+
+The driver also matches "snps,designware-i2c". The compatible for
+this binding is "fullhan,fh8626v100-i2c".
+
+Optional properties:
+- assigned-clocks: the I2C input clock
+- assigned-clock-rates: requested rate of that clock
+
+Example:
+
+	i2c@f0200000 {
+		compatible = "fullhan,fh8626v100-i2c";
+		reg = <0xf0200000 0x4000>;
+		interrupts = <9>;
+		clocks = <&clk FH8626_CLK_I2C0>;
+		clock-names = "i2c";
+		clock-frequency = <400000>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+	};
