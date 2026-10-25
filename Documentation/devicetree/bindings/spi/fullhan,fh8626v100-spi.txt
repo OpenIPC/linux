@@ -1,0 +1,27 @@
+Fullhan FH8626V100 SPI controller
+
+Required properties:
+- compatible: "fullhan,fh8626v100-spi"
+- reg: MMIO window of the controller
+- interrupts: controller interrupt
+- clocks: the SPI input clock
+- clock-names: "spi"
+- #address-cells: must be <1>
+- #size-cells: must be <0>
+
+Optional properties:
+- num-cs: number of chip selects
+- cs-gpios: GPIO specifiers used as chip selects
+- pinctrl-names and pinctrl-0: pin configuration
+
+Example:
+
+	spi@f0e00000 {
+		compatible = "fullhan,fh8626v100-spi";
+		reg = <0xf0e00000 0x4000>;
+		interrupts = <17>;
+		clocks = <&clk FH8626_CLK_SPI0>;
+		clock-names = "spi";
+		#address-cells = <1>;
+		#size-cells = <0>;
+	};
