@@ -513,6 +513,19 @@ config MISC_RTSX
 	tristate
 	default MISC_RTSX_PCI || MISC_RTSX_USB
 
+config FH8626_PTZ
+	tristate "Fullhan FH8626 GPIO pan-tilt controller"
+	depends on ARCH_FULLHAN && OF && GPIOLIB
+	depends on VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
+	depends on MEDIA_CONTROLLER
+	depends on HIGH_RES_TIMERS
+	help
+	  V4L2 subdevice driver for the GPIO phase lines of the pan-tilt
+	  controller.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called fh8626-ptz.
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
