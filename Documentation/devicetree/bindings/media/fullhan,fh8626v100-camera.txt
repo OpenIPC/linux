@@ -1,0 +1,21 @@
+Fullhan FH8626V100 camera capture
+
+The node is a capture device with one video port. It has no reg
+property and no clocks.
+
+Required properties:
+- compatible: "fullhan,fh8626v100-camera"
+- port: the input port, connected as described by
+  Documentation/devicetree/bindings/media/video-interfaces.txt
+
+Example:
+
+	camera {
+		compatible = "fullhan,fh8626v100-camera";
+
+		port {
+			endpoint {
+				remote-endpoint = <&isp_out>;
+			};
+		};
+	};
