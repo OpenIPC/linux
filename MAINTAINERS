@@ -13642,6 +13642,7 @@ F:	drivers/media/i2c/imx274.c
 F:	Documentation/devicetree/bindings/media/i2c/imx274.txt
 F:	Documentation/devicetree/bindings/media/i2c/galaxycore,gc2053.txt
 F:	Documentation/devicetree/bindings/media/i2c/soi,jxf37.txt
+F:	Documentation/devicetree/bindings/media/i2c/superpix,sp2306.txt
 
 SONY MEMORYSTICK CARD SUPPORT
 M:	Alex Dubov <oakad@yahoo.com>
