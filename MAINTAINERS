@@ -1499,6 +1499,7 @@ F:	drivers/i2c/busses/i2c-fh8626.c
 F:	drivers/mmc/host/dw_mmc-fh8626v100.c
 F:	drivers/pwm/pwm-fh8626v100.c
 F:	drivers/iio/adc/fh8626-sadc.c
+F:	drivers/nvmem/fh8626-efuse.c
 F:	include/linux/soc/fullhan/
 F:	include/dt-bindings/clock/fh8626v100-clk.h
 F:	Documentation/devicetree/bindings/arm/fullhan.txt
