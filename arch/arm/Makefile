@@ -322,7 +322,7 @@ $(INSTALL_TARGETS):
 	$(Q)$(MAKE) $(build)=$(boot)/dts MACHINE=$(MACHINE) $(boot)/dts/$@
 	@if [ -e arch/arm/boot/Image ]; then \
 	    echo "  BNDTB $@"; \
-	    python scripts/ms_builtin_dtb_update.py arch/arm/boot/Image arch/arm/boot/dts/$@; \
+	    python3 scripts/ms_builtin_dtb_update.py arch/arm/boot/Image arch/arm/boot/dts/$@; \
 	    echo; \
 	fi;
     
