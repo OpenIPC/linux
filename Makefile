@@ -986,7 +986,7 @@ else
 	@echo '  MVXV'
 	@echo '  changelist ${COMMITNUMBER}'
 	@echo '  BRANCHID   ${BRANCH_ID} '
-	@python scripts/ms_gen_mvxv_h.py drivers/mstar/include/ms_version.h --comp_id KL_LX318 \
+	@python3 scripts/ms_gen_mvxv_h.py drivers/mstar/include/ms_version.h --comp_id KL_LX318 \
         --changelist $(COMMITNUMBER) --chip_id $(MS_PLATFORM_ID) --branch $(BRANCH_ID) $(MS_KERNEL_TYPE)
 endif
 

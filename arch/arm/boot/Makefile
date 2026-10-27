@@ -59,11 +59,11 @@ $(obj)/xipImage: vmlinux FORCE $(MS_BUILTIN_DTB) $(MS_EXTRA_DTBS)
 	@test "${MS_BUILTIN_DTB}" = "" || \
 	if [ -e ${MS_BUILTIN_DTB} ]; then \
 	    echo "  BNDTB ${MS_BUILTIN_DTB}"; \
-	    python scripts/ms_builtin_dtb_update.py $@ ${MS_BUILTIN_DTB}; \
+	    python3 scripts/ms_builtin_dtb_update.py $@ ${MS_BUILTIN_DTB}; \
 	    echo; \
 	fi;
-	@python scripts/ms_bin_option_update_int.py  $@ '#IMG_SZ#' $$(stat -c %s $@)
-	@python scripts/ms_bin_option_update_int.py  $@ '#XIP_PA#' $(CONFIG_XIP_PHYS_ADDR)
+	@python3 scripts/ms_bin_option_update_int.py  $@ '#IMG_SZ#' $$(stat -c %s $@)
+	@python3 scripts/ms_bin_option_update_int.py  $@ '#XIP_PA#' $(CONFIG_XIP_PHYS_ADDR)
 	@echo "  xipImage size: $(shell stat -c %s $@) bytes"
 
 
@@ -85,12 +85,12 @@ $(obj)/Image: vmlinux FORCE $(MS_BUILTIN_DTB) $(MS_EXTRA_DTBS)
 	@test "${MS_BUILTIN_DTB}" = "" || \
 	if [ -e ${MS_BUILTIN_DTB} ]; then \
 	    echo "  BNDTB ${MS_BUILTIN_DTB}"; \
-	    python scripts/ms_builtin_dtb_update.py $@ ${MS_BUILTIN_DTB}; \
+	    python3 scripts/ms_builtin_dtb_update.py $@ ${MS_BUILTIN_DTB}; \
 	    echo; \
 	fi;
 
     #update the image size into Image	
-	@python scripts/ms_bin_option_update_int.py  $@ '#IMG_SZ#' $$(stat -c %s $@)
+	@python3 scripts/ms_bin_option_update_int.py  $@ '#IMG_SZ#' $$(stat -c %s $@)
 
 	#build Image     
 	@LD_ADDR=40008000; \
@@ -128,7 +128,7 @@ ifneq ($(CONFIG_ARCH_INFINITY),)
 	    echo "  IMAGE   $(obj)/Image-fpga"; \
 	    cp -f $(obj)/Image $(obj)/Image-fpga; \
 	    echo "  BNDTB   infinity-fpga.dtb"; \
-	    python scripts/ms_builtin_dtb_update.py $(obj)/Image-fpga "arch/arm/boot/dts/infinity-fpga.dtb"; \
+	    python3 scripts/ms_builtin_dtb_update.py $(obj)/Image-fpga "arch/arm/boot/dts/infinity-fpga.dtb"; \
 	    echo; \
 	fi;
 endif	
