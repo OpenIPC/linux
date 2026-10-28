@@ -15,6 +15,26 @@ config MACH_XM530
 	  This includes specific configurations for the module and
 	  its peripherals.
 
+config XM530_MACHINE_NAME
+	string "Machine name"
+	default "xm530"
+	help
+	  The name /proc/cpuinfo reports as Hardware, which ipctool (and
+	  so ipcinfo and sysupgrade) takes as the chip name. The
+	  XM530V200, XM533 and XM535 boot this machine record, under the
+	  same machine ID, and their builds set their own name, as their
+	  vendor kernels do.
+
+config XM530_SP804_LATCH
+	bool "SP804 clocksource reads a latched count (XM530V200)"
+	default n
+	help
+	  The XM530V200 timers snapshot their count on request: setting
+	  bit 8 of TimerControl copies TimerValue into the register at
+	  +0x1C, and the bit reads back clear once it has. Its vendor
+	  kernel reads the clocksource that way, never TimerValue
+	  directly. XM530, XM533 and XM535 read TimerValue.
+
 config DEFAULT_BUSCLK
 	int "DEFAULT_BUSCLK"
 	default "50000000"

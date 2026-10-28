@@ -255,14 +255,42 @@ static void xm530_clocksource_start(void __iomem *base)
 		IOMEM(base + TIMER_CTRL));
 }
 
+#ifdef CONFIG_XM530_SP804_LATCH
+#define TIMER_CTRL_LATCH	(1 << 8)
+#define TIMER_LATCHED		0x1C
+
+/*
+ * As the XM530V200 vendor kernel does: request a snapshot with the
+ * control bits the clocksource runs with, give the bit six reads to
+ * clear, then read the snapshot.
+ */
+static notrace u32 xm530_clocksource_count(void __iomem *base)
+{
+	int n;
+
+	writel_relaxed(TIMER_CTRL_32BIT | TIMER_CTRL_ENABLE |
+		       TIMER_CTRL_PERIODIC | TIMER_CTRL_LATCH,
+		       base + TIMER_CTRL);
+	for (n = 0; n < 6; n++)
+		if (!(readl_relaxed(base + TIMER_CTRL) & TIMER_CTRL_LATCH))
+			break;
+	return ~readl_relaxed(base + TIMER_LATCHED);
+}
+#else
+static notrace u32 xm530_clocksource_count(void __iomem *base)
+{
+	return ~readl_relaxed(base + TIMER_VALUE);
+}
+#endif
+
 static cycle_t xm530_clocksource_read(struct clocksource *cs)
 {
-	return ~readl_relaxed(to_xm530_clksrc(cs)->base + TIMER_VALUE);
+	return xm530_clocksource_count(to_xm530_clksrc(cs)->base);
 }
 
 static notrace u32 xm530_sched_clock_read(void)
 {
-	return ~readl_relaxed(xm530_clocksource.base + TIMER_VALUE);
+	return xm530_clocksource_count(xm530_clocksource.base);
 }
 
 static void xm530_clocksource_resume(struct clocksource *cs)

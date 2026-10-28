@@ -5,6 +5,7 @@
 obj-$(CONFIG_MMC_ARASAN)	+= arasan.o
 obj-$(CONFIG_MMC_WIFI)		+= sdio1_wifi.o
 obj-$(CONFIG_MMC_SD)		+= sdio0_sd.o
+obj-$(CONFIG_MMC_XM_V200_SD)	+= xm_v200_sd.o
 obj-$(CONFIG_MMC_ARMMMCI)	+= mmci.o
 obj-$(CONFIG_MMC_PXA)		+= pxamci.o
 obj-$(CONFIG_MMC_MXC)		+= mxcmmc.o
