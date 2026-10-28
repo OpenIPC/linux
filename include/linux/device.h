@@ -701,7 +701,8 @@ struct device {
 	/*
 	 * No per-device CMA area (cma_area) even with CONFIG_CMA: the field
 	 * would move every member after it, and vendor modules built without
-	 * CMA embed struct device. Every device takes the global area.
+	 * CMA embed struct device. drivers/base/dma-contiguous.c keeps the
+	 * areas reserved for one device instead.
 	 */
 	/* arch specific additions */
 	struct dev_archdata	archdata;
