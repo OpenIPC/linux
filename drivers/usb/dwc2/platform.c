@@ -279,8 +279,8 @@ static void fh_usb_pwr_on(struct dwc2_hsotg *hsotg)
 	pwren_gpio = usb_get_vbus_pwren_gpio(hsotg->dev);
 
 	if (pwren_gpio == 0xFFFFFFFF) {
-		dev_warn(hsotg->dev,
-			"Can't find usb vbus pwren gpio\n");
+		dev_dbg(hsotg->dev,
+			"No controllable USB VBUS power GPIO\n");
 		return;
 	}
 

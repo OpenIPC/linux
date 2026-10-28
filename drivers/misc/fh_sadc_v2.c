@@ -933,7 +933,8 @@ static int fh_sadc_probe(struct platform_device *pdev)
 			goto fail_no_ioremap;
 		}
 #endif
-	strncpy(fh_sadc_obj.isr_name, "sadc", sizeof("sadc"));
+	strlcpy(fh_sadc_obj.isr_name, "sadc",
+		sizeof(fh_sadc_obj.isr_name));
 	err = request_irq(fh_sadc_obj.irq_no, fh_sadc_isr, IRQF_NO_THREAD,
 		fh_sadc_obj.isr_name, &fh_sadc_obj);
 	if (err) {

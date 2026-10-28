@@ -33,8 +33,6 @@ static void fh_pinctrl_check_duplicate_pin(PinCtrl_Pin *pin, int start_pad)
 
 static int fh_pinctrl_func_select(PinCtrl_Pin *pin, unsigned int flag)
 {
-	unsigned int reg;
-
 	if (!pin)
 	{
 		OS_PRINT("ERROR: pin is null\n\n");
@@ -51,9 +49,8 @@ static int fh_pinctrl_func_select(PinCtrl_Pin *pin, unsigned int flag)
 	}
 	fh_pinctrl_check_duplicate_pin(pin, 0);
 
-	reg = GET_REG(pinctrl_obj.vbase + pin->reg_offset);
-
-	pin->reg = (PinCtrl_Register *)&reg;
+	pin->reg = &pinctrl_obj.registers[pin->pad_id];
+	pin->reg->dw = GET_REG(pinctrl_obj.vbase + pin->reg_offset);
 
 	pin->reg->bit.mfs = pin->func_sel;
 

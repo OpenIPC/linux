@@ -104,11 +104,17 @@ static void GMAC_SetMacAddress(Gmac_Object* pGmac)
 
 int gmac_dev_set_mac_addr(struct net_device *dev, void *p)
 {
-    Gmac_Object *pGmac = netdev_priv(dev);
-    struct sockaddr *addr = p;
-    memcpy(pGmac->local_mac_address, addr->sa_data, ETH_ALEN);
-    GMAC_SetMacAddress(pGmac);
-    return eth_mac_addr(dev, p);
+	Gmac_Object *pGmac = netdev_priv(dev);
+	int ret;
+
+	/* Validate dev_addr before changing driver state or hardware. */
+	ret = eth_mac_addr(dev, p);
+	if (ret)
+		return ret;
+
+	ether_addr_copy(pGmac->local_mac_address, dev->dev_addr);
+	GMAC_SetMacAddress(pGmac);
+	return 0;
 }
 
 static inline void GMAC_EnableMac(Gmac_Object* pGmac)
@@ -944,6 +950,7 @@ static int fh_gmac_probe(struct platform_device *pdev)
 	Gmac_Object *pGmac;
 	struct clk *rmii_clk;
 	struct net_device *ndev;
+	bool mac_from_platform_data = false;
 #ifdef CONFIG_USE_OF
 	struct device_node *np = pdev->dev.of_node;
 #else
@@ -1042,8 +1049,7 @@ static int fh_gmac_probe(struct platform_device *pdev)
 	ndev->netdev_ops = &fh_gmac_netdev_ops;
 	fh_gmac_set_ethtool_ops(ndev);
 
-	ndev->hw_features = NETIF_F_SG | NETIF_F_IP_CSUM |
-			NETIF_F_HW_CSUM | NETIF_F_RXCSUM;
+	ndev->hw_features = NETIF_F_SG | NETIF_F_HW_CSUM | NETIF_F_RXCSUM;
 	ndev->features |= ndev->hw_features | NETIF_F_HIGHDMA;
 	ndev->watchdog_timeo = msecs_to_jiffies(watchdog);
 	pGmac->msg_enable = netif_msg_init(debug, FH_GMAC_DEBUG);
@@ -1051,13 +1057,28 @@ static int fh_gmac_probe(struct platform_device *pdev)
 		pGmac->flow_ctrl = FLOW_AUTO;	/* RX/TX pause on */
 	pGmac->pause = pause;
 	netif_napi_add(ndev, &(pGmac->napi), fh_gmac_poll, NAPI_POLL_WEIGHT);
-	if (!is_valid_ether_addr(pGmac->local_mac_address)) {
+	ret = eth_platform_get_mac_address(&pdev->dev,
+					   pGmac->local_mac_address);
+#ifndef CONFIG_USE_OF
+	if ((ret || !is_valid_ether_addr(pGmac->local_mac_address)) &&
+	    p_plat_data && is_valid_ether_addr(p_plat_data->mac_addr)) {
+		ether_addr_copy(pGmac->local_mac_address,
+				p_plat_data->mac_addr);
+		ret = 0;
+		mac_from_platform_data = true;
+	}
+#endif
+	if (ret || !is_valid_ether_addr(pGmac->local_mac_address)) {
 		/* Use random MAC if none passed */
 		random_ether_addr(pGmac->local_mac_address);
 		pr_warning("\tusing random MAC address: %pM\n",
-		pGmac->local_mac_address);
+			pGmac->local_mac_address);
+	} else {
+		pr_info("\tusing %s MAC address: %pM\n",
+			mac_from_platform_data ? "platform-data" : "platform",
+			pGmac->local_mac_address);
 	}
-	ndev->dev_addr = pGmac->local_mac_address;
+	ether_addr_copy(ndev->dev_addr, pGmac->local_mac_address);
 
 	if (auto_find_phy(pGmac))
 		pr_err("find no phy !!!!!!!");
