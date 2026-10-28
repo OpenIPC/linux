@@ -1056,7 +1056,8 @@ static struct spi_board_info fh_spi_devices[] = {
 		.mode			= SPI_MODE_3,
 		.platform_data	 = &fh_nandflash_platform_data,
 	},
-#endif
+#else
+	/* the NAND and the NOR are alternatives on chip select 0 */
 	{
 		.modalias        = "m25p80",
 		.bus_num         = 0,
@@ -1066,7 +1067,7 @@ static struct spi_board_info fh_spi_devices[] = {
 		.max_speed_hz    = 50000000,
 		.platform_data   = &fh_flash_platform_data,
 	},
-
+#endif
 };
 
 extern void early_print(const char *str, ...);

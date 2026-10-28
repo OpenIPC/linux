@@ -2,10 +2,17 @@
 #define BOARD_CONFIG_H_
 
 /*
+ * The same as the checked-in include/mach/board_config.h, which is what a
+ * build of uImage alone (Buildroot's) uses; boardconfig copies this file
+ * over it only for `make all`.
+ */
+
+/*
  * GPIO0  -> IRCUT_ON
  * GPIO1  -> IRCUT_OFF
  * GPIO2  -> USB_PWREN
- * GPIO11 -> EMAC PHY Reset
+ * GPIO11 -> EMAC PHY Reset (devboard; the FH865x kernels reset an
+ *           external PHY through GPIO29, fh_gmac_data.phy_reset_pin)
  * GPIO12 -> CIS_CLK
  * GPIO13 -> CIS_RSTN
  * GPIO14 -> CIS_PDN
@@ -22,23 +29,23 @@
 
 #define CONFIG_SD_CD_FIXED
 
-#define CONFIG_ISP_CLK_RATE   171000000
-#define CONFIG_JPEG_CLK_RATE  171000000
-#define CONFIG_VEU_CLK_RATE   240000000
+#define CONFIG_ISP_CLK_RATE   200000000
+#define CONFIG_JPEG_CLK_RATE  200000000
+#define CONFIG_VEU_CLK_RATE   300000000
 
 #define USB_VBUS_PWR_GPIO    (47)
+#define ETH_GPIO "ETH", "GPIO48", "GPIO49", "GPIO50", "GPIO51", "GPIO52",\
+				"GPIO53", "GPIO54", "GPIO55", "GPIO56"
 
 #define CONFIG_PINCTRL_SELECT					\
-	"ETH", "I2C0", "PWM2", "PWM3", "PWM4", "PWM5", "PWM6", \
-	"PWM7", "PWM8", "PWM9", "SADC_XAIN0", "SADC_XAIN1", \
-	"SD0_NO_WP", "SENSOR_CLK", "SSI0_4BIT", "UART0", \
-	"UART1", "GPIO4", "GPIO13", "GPIO30", "GPIO31", \
-	"GPIO32", "GPIO43", "GPIO44", "GPIO47", \
+	"I2C0", "PWM2", "PWM3", "PWM4", "PWM5", "PWM6", "PWM7", \
+	"PWM8", "PWM9", "SADC_XAIN0", "SADC_XAIN1", \
+	"SADC_XAIN2", "SADC_XAIN3", "SD0_NO_WP", "SD1_NO_WP", \
+	"SENSOR_CLK", "SSI0_4BIT", "UART0", "UART1", "GPIO4", \
+	"GPIO13", "GPIO14", "GPIO15", ETH_GPIO, \
+	"GPIO30", "GPIO31", "GPIO32", "GPIO43", "GPIO44", \
+	"GPIO47", \
 \
-	"GPIO11", "GPIO14", "GPIO15", "GPIO16", "GPIO24", \
-	"GPIO25", "GPIO45", "GPIO46", "GPIO48", "GPIO49", \
-	"GPIO50", "GPIO51", "GPIO52", "GPIO53", "GPIO54", \
-	"GPIO55", "GPIO56", "GPIO57", "GPIO58", "GPIO59", \
-	"GPIO60", "GPIO61", "GPIO62", "GPIO63"
+	"GPIO11", "GPIO16", "GPIO45", "GPIO46"
 
 #endif /* BOARD_CONFIG_H_ */

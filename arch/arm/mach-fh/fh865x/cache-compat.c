@@ -29,6 +29,8 @@ void v6_flush_kern_dcache_area(void *addr, size_t size)
 }
 EXPORT_SYMBOL(v6_flush_kern_dcache_area);
 
+#ifndef CONFIG_SLOB
+/* SLOB has no kmalloc_caches, and nothing to index */
 static int __init fh865x_kmalloc_compat(void)
 {
 	if (!kmalloc_caches[5])
@@ -38,3 +40,4 @@ static int __init fh865x_kmalloc_compat(void)
 	return 0;
 }
 core_initcall(fh865x_kmalloc_compat);
+#endif
