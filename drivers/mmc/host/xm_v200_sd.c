@@ -120,7 +120,7 @@ module_param(clk_phase, int, S_IRUGO);
 module_param(data_phase, int, S_IRUGO);
 module_param(detect_gpio, int, S_IRUGO);
 module_param(hw_reset, int, S_IRUGO);
-MODULE_PARM_DESC(chip, "xm530v200, xm533 or xm535");
+MODULE_PARM_DESC(chip, "xm530v200, xm533 or xm535d1/d2/w1");
 MODULE_PARM_DESC(pdn, "card power pad, active low; negative: active high; 0: none");
 
 static const struct xm_sd_chip *xm_sd;
@@ -240,7 +240,9 @@ static int __init xm_sd_init(void)
 	int i, ret;
 
 	for (i = 0; i < ARRAY_SIZE(xm_sd_chips); i++)
-		if (!strcmp(chip, xm_sd_chips[i].name))
+		/* xm535 covers the XM535D1, D2 and W1: one pad layout */
+		if (!strncmp(chip, xm_sd_chips[i].name,
+			     strlen(xm_sd_chips[i].name)))
 			xm_sd = &xm_sd_chips[i];
 	if (!xm_sd) {
 		pr_err("xm_v200_sd: no SD slot known for chip %s\n", chip);
