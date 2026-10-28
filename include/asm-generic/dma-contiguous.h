@@ -7,17 +7,16 @@
 #include <linux/device.h>
 #include <linux/dma-contiguous.h>
 
+/* One CMA area for all devices: struct device keeps its non-CMA layout
+ * (see include/linux/device.h) */
 static inline struct cma *dev_get_cma_area(struct device *dev)
 {
-	if (dev && dev->cma_area)
-		return dev->cma_area;
 	return dma_contiguous_default_area;
 }
 
 static inline void dev_set_cma_area(struct device *dev, struct cma *cma)
 {
-	if (dev)
-		dev->cma_area = cma;
+	WARN_ONCE(dev, "CMA: no per-device areas on this kernel\n");
 	if (!dev && !dma_contiguous_default_area)
 		dma_contiguous_default_area = cma;
 }

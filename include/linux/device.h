@@ -698,10 +698,11 @@ struct device {
 
 	struct dma_coherent_mem	*dma_mem; /* internal for coherent mem
 					     override */
-#ifdef CONFIG_CMA
-	struct cma *cma_area;		/* contiguous memory area for dma
-					   allocations */
-#endif
+	/*
+	 * No per-device CMA area (cma_area) even with CONFIG_CMA: the field
+	 * would move every member after it, and vendor modules built without
+	 * CMA embed struct device. Every device takes the global area.
+	 */
 	/* arch specific additions */
 	struct dev_archdata	archdata;
 
