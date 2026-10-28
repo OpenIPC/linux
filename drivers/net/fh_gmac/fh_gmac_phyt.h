@@ -12,6 +12,9 @@
 #define FH_GMAC_PHY_RTL8201	0x001CC816
 #define FH_GMAC_PHY_TI83848	0xFFFFFFFF
 #define FH_GMAC_PHY_JL1101	0x937c4023
+/* JLSemi JL1101, newer stepping (e.g. Asecam PB1 / IF5653-V2 with FH8856).
+   Same RMII setup as 0x937c4023. */
+#define FH_GMAC_PHY_JL1101_B	0x937c4024
 
 enum
 {

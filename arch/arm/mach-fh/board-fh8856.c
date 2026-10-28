@@ -410,6 +410,19 @@ static void fh_set_rmii_speed(int speed)
 
 static void fh_phy_reset(void)
 {
+#ifdef CONFIG_GPIO_EMACPHY_RESET_UNWIRED
+	/*
+	 * The board config declares CONFIG_GPIO_EMACPHY_RESET as not routed to
+	 * the PHY. On FH8856 boards such as the Asecam PB1 (IF5653-V2) that
+	 * GPIO is pad 46, which is PWM7 there; pulsing it while the RXDV strap
+	 * floats leaves the JL1101 unresponsive on MDIO. The vendor firmware
+	 * does not reset the PHY either, and U-Boot has already brought it up.
+	 *
+	 * Boards that do wire the line - FH8852 among them - keep the reset
+	 * sequence below.
+	 */
+	return;
+#else
 	/*
 	 * RXDV must be low during phy reset
 	 */
@@ -428,7 +441,7 @@ static void fh_phy_reset(void)
 	gpio_free(CONFIG_GPIO_EMACPHY_RXDV);
 
 	fh_pmu_set_reg(0xe8, 0x00101030);
-
+#endif
 }
 
 static struct fh_gmac_platform_data fh_gmac_data = {
