@@ -21,6 +21,16 @@ config MMC_SD
 	  This selects the SD-CARD integrated
 	  in the xm platform.
 
+config MMC_XM_V200_SD
+	tristate "SD card slot of the XM530V200, XM533 and XM535"
+	depends on MMC_ARASAN && ARCH_XM530
+	help
+	  Registers the SD card slot of Xiongmai's V200-series
+	  parts (XM530V200, XM533, XM535) with the arasan driver, and
+	  powers it up as their vendor sdio0_sd/sdio1_sd modules do.
+	  Those modules cannot be loaded on this kernel: their platform
+	  data is laid out for their own kernel's arasan driver.
+
 config MMC_ARMMMCI
 	tristate "ARM AMBA Multimedia Card Interface support"
 	depends on ARM_AMBA
