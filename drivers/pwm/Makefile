@@ -48,6 +48,6 @@ obj-$(CONFIG_PWM_TWL_LED)	+= pwm-twl-led.o
 obj-$(CONFIG_PWM_VT8500)	+= pwm-vt8500.o
 obj-$(CONFIG_PWM_FULLHAN)	+= pwm-fullhan-common.o
 obj-$(CONFIG_PWM_FULLHAN_V21)	+= pwmv2.o
-ifeq ($(CONFIG_ARCH_FH885xV200),y)
+ifneq ($(CONFIG_ARCH_FH885xV200)$(CONFIG_ARCH_FH865x),)
     obj-$(CONFIG_PWM_FULLHAN)    += pwmv3.o
 endif
