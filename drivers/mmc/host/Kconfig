@@ -31,6 +31,14 @@ config MMC_XM_V200_SD
 	  Those modules cannot be loaded on this kernel: their platform
 	  data is laid out for their own kernel's arasan driver.
 
+config MMC_XM_V200_SDIO_WIFI
+	tristate "SDIO Wi-Fi slot of the XM533"
+	depends on MMC_ARASAN && ARCH_XM530
+	help
+	  Registers the XM533's SDIO0 controller, where its boards wire
+	  their SDIO Wi-Fi, with the arasan driver, and sets its clock and
+	  powers the chip up as the vendor wifi_pdn.ko does.
+
 config MMC_ARMMMCI
 	tristate "ARM AMBA Multimedia Card Interface support"
 	depends on ARM_AMBA
