@@ -20,6 +20,9 @@
 #include <linux/string.h>
 #include <linux/clk.h>
 #include <linux/mutex.h>
+#include <linux/time.h>
+#include <linux/hrtimer.h>
+#include <linux/sched.h>
 
 #include <asm/clkdev.h>
 #include <linux/io.h>
@@ -239,3 +242,28 @@ void clk_exit(struct clk *c)
 	return;
 }
 EXPORT_SYMBOL(clk_exit);
+
+/*
+ * The XM530V200, XM533 and XM535 vendor kernels export the next two from
+ * their mach clock.c, and their media modules link against them.
+ *
+ * clk_get_pts: isp.ko, vi.ko, vo.ko, vpss.ko, rgn.ko and var.ko stamp
+ * frames with it. It is the monotonic clock in microseconds.
+ */
+void clk_get_pts(u64 *pts)
+{
+	struct timespec ts;
+
+	ktime_get_ts(&ts);
+	*pts = (u64)ts.tv_sec * USEC_PER_SEC + ts.tv_nsec / NSEC_PER_USEC;
+}
+EXPORT_SYMBOL(clk_get_pts);
+
+/* kthread_set_prio: XM535's venc.ko runs its threads SCHED_FIFO. */
+int kthread_set_prio(struct task_struct *p, int prio)
+{
+	struct sched_param param = { .sched_priority = prio };
+
+	return sched_setscheduler(p, SCHED_FIFO, &param);
+}
+EXPORT_SYMBOL(kthread_set_prio);
