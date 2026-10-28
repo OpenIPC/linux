@@ -81,6 +81,17 @@ config ARCH_FH8626V100
 	  non-device-tree platform code; board devices are registered by the
 	  matching machine configuration.
 
+config ARCH_FH865x
+	bool "Fullhan FH865x"
+	depends on !USE_OF
+	select CPU_V7
+	select ARM_GIC
+	select FULLHAN_TIMER
+	help
+	  Support for the Fullhan FH8652, FH8656 and FH8658: the FH885xV200
+	  peripherals around a Cortex-A7, with a GIC-400 in place of the
+	  Fullhan interrupt controller.
+
 config ARCH_FH885xV200
         bool "Fullhan FH885xV200"
         select CPU_V6
@@ -95,6 +106,7 @@ config FH_CHIP_NAME
         string
         prompt "Select chip name, keep default"
         default "fh8626v100" if MACH_FH8626V100
+        default "fh865x" if MACH_FH865X
         default "fh8856v200" if MACH_FH8856V200
         default "fh8852v200" if MACH_FH8852V200
         default "fh8858v200" if MACH_FH8858V200
@@ -136,6 +148,15 @@ config FH8626V100_AJL33PQ0866_MMC
 	  The one-bit profile leaves pad66 available as the active-low GPIO61
 	  reset button. Other FH8626V100 boards must select their own controller
 	  registration and pinmux policy.
+
+config MACH_FH865X
+	bool "FullHan FH8652/FH8656/FH8658 board"
+	default y
+	depends on ARCH_FH865x
+	help
+	  One machine description for the whole FH865x family, as the
+	  vendor kernel has; the package is told apart at runtime by
+	  fh_chipid (PMU CHIP_INFO bits 3:2).
 
 config MACH_FH8856V200
     bool "FullHan FH8856V200 board"
