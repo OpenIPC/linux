@@ -1,4 +1,11 @@
 /*
+ * Builds that skip the top-level boardconfig copy (Buildroot builds uImage
+ * directly) get this file as committed: pick the FH8833 board here.
+ */
+#ifdef CONFIG_MACH_FH8833
+#include <mach/board_config.fh8833.appboard>
+#else
+/*
  * board_config.h
  *
  *  Created on: Jan 9, 2017
@@ -52,3 +59,4 @@
 		"GPIO27", "GPIO28", "GPIO53", "GPIO55"
 
 #endif /* BOARD_CONFIG_H_ */
+#endif /* CONFIG_MACH_FH8833 */

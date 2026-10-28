@@ -44,6 +44,9 @@ config ARCH_FH8810
 config ARCH_FH8833
 	bool "FullHan FH8833 based system"
 	select CPU_FH8833
+	# its clockevent pulses the timer block reset, which would also
+	# reset a timer-0 clocksource; the vendor SDK always uses the PTS
+	select USE_PTS_AS_CLOCKSOURCE
 
 config ARCH_FH8830
 	bool "FullHan FH8830 based system"

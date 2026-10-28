@@ -15,6 +15,10 @@
 #ifndef _CHIP_H_
 #define _CHIP_H_
 
+#if defined(CONFIG_ARCH_FH8833)
+#include <mach/fh8833.h>
+#else
 #include <mach/fh8856.h>
+#endif
 
 #endif

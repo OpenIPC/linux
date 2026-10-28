@@ -43,6 +43,11 @@
 
 #define		VA_RAM_REG_BASE		(FH_VIRT + 0xd0000)
 #define		VA_DDRC_REG_BASE	(FH_VIRT + 0xe0000)
+#ifdef CONFIG_ARCH_FH8833
+#define		VA_PAE_REG_BASE		(FH_VIRT + 0xf0000)
+#define PAE_OFFSET	(VA_PAE_REG_BASE - PAE_REG_BASE)
+#define VPAE(x)		(x + PAE_OFFSET)
+#endif
 
 #ifdef CONFIG_ARCH_FH
 #define VA_CONSOLE_REG_BASE 		VA_UART1_REG_BASE

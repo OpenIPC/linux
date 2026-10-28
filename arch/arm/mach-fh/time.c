@@ -53,6 +53,17 @@ struct clk *timer_clk, *pts_clk;
 static int fh_set_next_event(unsigned long cycles,
 			     struct clock_event_device *evt)
 {
+#ifdef CONFIG_ARCH_FH8833
+	/*
+	 * The FH8833 tree's sequence: load and enable without stopping the
+	 * timer first, then pulse the timer reset (SWRST_MAIN_CTRL bit 18).
+	 */
+	SET_REG(VTIMER(REG_TIMER_LOADCNT(1)), cycles);
+	SET_REG_M(VTIMER(REG_TIMER_CTRL_REG(1)), 0x01, 0x1);
+	fh_pmu_set_reg(REG_PMU_SWRST_MAIN_CTRL, 0xfffbffff);
+	while (fh_pmu_get_reg(REG_PMU_SWRST_MAIN_CTRL) != 0xffffffff)
+		;
+#else
 	int sync_cnt =  0;
 
 	SET_REG_M(VTIMER(REG_TIMER_CTRL_REG(1)), 0x00, 0x1);
@@ -71,6 +82,7 @@ static int fh_set_next_event(unsigned long cycles,
 
 	SET_REG(VTIMER(REG_TIMER_LOADCNT(1)), cycles);
 	SET_REG_M(VTIMER(REG_TIMER_CTRL_REG(1)), 0x01, 0x1);
+#endif
 #ifdef CONFIG_ARCH_FH8810
 	unsigned int curr_val;
 
@@ -96,6 +108,11 @@ static void fh_set_mode(enum clock_event_mode mode,
 	case CLOCK_EVT_MODE_PERIODIC:
 		SET_REG(VTIMER(REG_TIMER_CTRL_REG(1)), 0x3);
 		SET_REG(VTIMER(REG_TIMER_LOADCNT(1)), TIMER_CLK / HZ);
+#ifdef CONFIG_ARCH_FH8833
+		fh_pmu_set_reg(REG_PMU_SWRST_MAIN_CTRL, 0xfffbffff);
+		while (fh_pmu_get_reg(REG_PMU_SWRST_MAIN_CTRL) != 0xffffffff)
+			;
+#endif
 #ifdef CONFIG_ARCH_FH8810
 		fh_pmu_set_reg(REG_PMU_SWRST_MAIN_CTRL, 0xfff7ffff);
 		while (fh_pmu_get_reg(REG_PMU_SWRST_MAIN_CTRL) != 0xffffffff)

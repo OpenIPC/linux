@@ -1,5 +1,10 @@
 #ifndef PINCTRL_H_
 #define PINCTRL_H_
+
+/* FH8833's pads are the older layout: no drive strength, mfs at 27:24 */
+#ifdef CONFIG_ARCH_FH8833
+#include <mach/pinctrl-fh8833.h>
+#else
 #include "pinctrl_osdep.h"
 #include <linux/seq_file.h>
 
@@ -134,4 +139,5 @@ void fh_pinctrl_prt(struct seq_file *sfile);
 int fh_pinctrl_smux(char *devname, char* muxname, int muxsel, unsigned int flag);
 int fh_pinctrl_sdev(char *devname, unsigned int flag);
 void fh_pinctrl_init_devicelist(OS_LIST *list);
+#endif /* CONFIG_ARCH_FH8833 */
 #endif /* PINCTRL_H_ */

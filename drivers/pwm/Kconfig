@@ -64,7 +64,7 @@ config PWM_FULLHAN_V20
 	default y
 endif
 
-if ARCH_FH8830
+if ARCH_FH8830 || ARCH_FH8833
 config FH_PWM_NUM
 	int
 	prompt "Number of PWMs, range: 1~8"
