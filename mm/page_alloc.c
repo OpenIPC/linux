@@ -2620,6 +2620,18 @@ __alloc_pages_nodemask(gfp_t gfp_mask, unsigned int order,
 
 	gfp_mask &= gfp_allowed_mask;
 
+#if defined(CONFIG_CMA) && !defined(CONFIG_NUMA)
+	/*
+	 * A module built without CMA inlines alloc_pages() and finds the
+	 * zonelist at its old offset in contig_page_data -- inside node_zones,
+	 * which CMA's extra migrate types made larger. There is one zonelist
+	 * on a UMA kernel; anything else is that stale pointer.
+	 */
+	if (zonelist < &contig_page_data.node_zonelists[0] ||
+	    zonelist >= &contig_page_data.node_zonelists[MAX_ZONELISTS])
+		zonelist = &contig_page_data.node_zonelists[0];
+#endif
+
 	lockdep_trace_alloc(gfp_mask);
 
 	might_sleep_if(gfp_mask & __GFP_WAIT);
