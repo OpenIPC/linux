@@ -21,12 +21,12 @@
 #endif
 
 static PinCtrl_Object pinctrl_obj;
+/* pin->reg points here, not at a stack copy that dies with the call */
+static PinCtrl_Register pad_regs[PAD_NUM];
 OS_LIST fh_pinctrl_devices = OS_LIST_INIT(fh_pinctrl_devices);
 
 static int fh_pinctrl_func_select(PinCtrl_Pin *pin, unsigned int flag)
 {
-    unsigned int reg;
-
     if(!pin)
     {
         OS_PRINT("ERROR: pin is null\n\n");
@@ -42,9 +42,8 @@ static int fh_pinctrl_func_select(PinCtrl_Pin *pin, unsigned int flag)
         }
     }
 
-    reg = GET_REG(pinctrl_obj.vbase + pin->reg_offset);
-
-    pin->reg = (PinCtrl_Register *)&reg;
+    pin->reg = &pad_regs[pin->pad_id];
+    pin->reg->dw = GET_REG(pinctrl_obj.vbase + pin->reg_offset);
 
     pin->reg->bit.mfs = pin->func_sel;
 
@@ -73,7 +72,7 @@ static int fh_pinctrl_func_select(PinCtrl_Pin *pin, unsigned int flag)
 
 static int fh_pinctrl_mux_switch(PinCtrl_Mux *mux, unsigned int flag)
 {
-    if(mux->cur_pin > MUX_NUM)
+    if(mux->cur_pin < 0 || mux->cur_pin >= MUX_NUM)
     {
         OS_PRINT("ERROR: selected function is not exist, sel_func=%d\n\n", mux->cur_pin);
         return -3;

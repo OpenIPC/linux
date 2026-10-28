@@ -1032,15 +1032,16 @@ struct platform_device s3c_device_usb_otghcd = {
  */
 static struct fh_usb_platform_data fh_usb_plat_data;
 
-static void __init fh8833_usb_init(void)
+static int __init fh8833_usb_init(void)
 {
 	void __iomem *base = ioremap(S3C_PA_OTG, SZ_4K);
 
 	if (!base)
-		return;
+		return -ENOMEM;
 	fh_usb_plat_data.grxfsiz_pwron_val = readl(base + 0x24);
 	fh_usb_plat_data.gnptxfsiz_pwron_val = readl(base + 0x28);
 	iounmap(base);
+	return 0;
 }
 
 static u64 fh_usb_otghcd_dmamask = 0xffffffffUL;
@@ -1080,7 +1081,6 @@ static struct platform_device *fh8833_devices[] __initdata = {
 	&fh_acw_misc_device,
 	&fh_i2s_misc_device,
 	&fh_rtc_device,
-	&fh_device_usb_otghcd,
 	&fh_efuse_device,
 
 };
@@ -1192,7 +1192,8 @@ static struct spi_board_info fh_spi_devices[] = {
 		.mode           = SPI_MODE_3,
 		.platform_data   = &fh_nandflash_platform_data,
 	},
-#endif
+#else
+	/* the NAND and the NOR are alternatives on chip select 0 */
 	{
 		.modalias        = "m25p80",
 		.bus_num         = 0,
@@ -1201,7 +1202,7 @@ static struct spi_board_info fh_spi_devices[] = {
 		.max_speed_hz    = 25000000,
 		.platform_data   = &fh_flash_platform_data,
 	},
-
+#endif
 };
 static void __init fh8833_map_io(void)
 {
@@ -1212,8 +1213,12 @@ static void __init fh8833_map_io(void)
 static __init void fh8833_board_init(void)
 {
 	printk(KERN_INFO "fh8833 board init\n");
-	fh8833_usb_init();
 	platform_add_devices(fh8833_devices, ARRAY_SIZE(fh8833_devices));
+	/* without its FIFO sizes fh_otg would program zeroes */
+	if (fh8833_usb_init() == 0)
+		platform_device_register(&fh_device_usb_otghcd);
+	else
+		pr_err("fh8833: cannot map the USB controller, no USB host\n");
 	i2c_register_board_info(1, fh_i2c_devices, ARRAY_SIZE(fh_i2c_devices));
 	spi_register_board_info(fh_spi_devices, ARRAY_SIZE(fh_spi_devices));
 	fh_clk_procfs_init();
