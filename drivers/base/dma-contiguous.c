@@ -41,6 +41,41 @@ struct cma {
 
 struct cma *dma_contiguous_default_area;
 
+/* The areas reserved for one device (dma_declare_contiguous()), by device:
+ * struct device has no field for them on this kernel */
+static struct {
+	struct device *dev;
+	struct cma *cma;
+} dev_cma_areas[MAX_CMA_AREAS];
+
+struct cma *dev_get_cma_area(struct device *dev)
+{
+	int i;
+
+	for (i = 0; dev && i < ARRAY_SIZE(dev_cma_areas); i++)
+		if (dev_cma_areas[i].dev == dev)
+			return dev_cma_areas[i].cma;
+	return dma_contiguous_default_area;
+}
+
+void dev_set_cma_area(struct device *dev, struct cma *cma)
+{
+	int i;
+
+	if (!dev) {
+		if (!dma_contiguous_default_area)
+			dma_contiguous_default_area = cma;
+		return;
+	}
+	for (i = 0; i < ARRAY_SIZE(dev_cma_areas); i++)
+		if (!dev_cma_areas[i].dev || dev_cma_areas[i].dev == dev) {
+			dev_cma_areas[i].dev = dev;
+			dev_cma_areas[i].cma = cma;
+			return;
+		}
+	WARN(1, "CMA: no room for the area of %s\n", dev_name(dev));
+}
+
 #ifdef CONFIG_CMA_SIZE_MBYTES
 #define CMA_SIZE_MBYTES CONFIG_CMA_SIZE_MBYTES
 #else
