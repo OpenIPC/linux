@@ -236,7 +236,7 @@ asmlinkage void asmprint(void)
 	edb_trace();
 }
 
-MACHINE_START(XM530, "xm530")
+MACHINE_START(XM530, CONFIG_XM530_MACHINE_NAME)
 	.atag_offset  = 0x100,
 	.map_io         = xm530_map_io,
 	.init_early     = xm530_init_early,

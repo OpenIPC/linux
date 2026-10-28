@@ -15,6 +15,16 @@ config MACH_XM530
 	  This includes specific configurations for the module and
 	  its peripherals.
 
+config XM530_MACHINE_NAME
+	string "Machine name"
+	default "xm530"
+	help
+	  The name /proc/cpuinfo reports as Hardware, which ipctool (and
+	  so ipcinfo and sysupgrade) takes as the chip name. The
+	  XM530V200, XM533 and XM535 boot this machine record, under the
+	  same machine ID, and their builds set their own name, as their
+	  vendor kernels do.
+
 config XM530_SP804_LATCH
 	bool "SP804 clocksource reads a latched count (XM530V200)"
 	default n
