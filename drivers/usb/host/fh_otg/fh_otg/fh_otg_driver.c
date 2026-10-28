@@ -655,7 +655,7 @@ static int fh_otg_driver_probe(struct platform_device *dev)
 	struct resource *res;
 	int irq;
 	struct fh_usb_platform_data *fh_usb_data;
-#if !defined(CONFIG_ARCH_FH8856)
+#if !defined(CONFIG_ARCH_FH8856) && !defined(CONFIG_ARCH_FH8833)
 	struct clk *usb_clk;
 #endif
 
@@ -668,7 +668,7 @@ static int fh_otg_driver_probe(struct platform_device *dev)
 		return -ENOMEM;
 	}
 
-#if !defined(CONFIG_ARCH_FH8856)
+#if !defined(CONFIG_ARCH_FH8856) && !defined(CONFIG_ARCH_FH8833)
 	usb_clk = clk_get(NULL, "usb_clk");
 	if (IS_ERR(usb_clk)) {
 		retval = PTR_ERR(usb_clk);
