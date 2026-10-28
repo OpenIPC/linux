@@ -42,6 +42,7 @@
 #define XM_PAD_OUT_HIGH		0xc00		/* GPIO_OUT_EN | GPIO_OUT_HIGH */
 #define XM_PAD_OUT_LOW		0x400		/* GPIO_OUT_EN | GPIO_OUT_LOW */
 #define XM_PAD(n)		((n) * 4)
+#define XM_PADS			1024	/* pad registers in the 4 KiB at GPIO_BASE */
 
 struct xm_sd_chip {
 	const char *name;
@@ -57,7 +58,6 @@ struct xm_sd_chip {
 	unsigned int clk_phase_reg2;	/* also set to the default, or 0 */
 	unsigned int data_phase_reg;	/* four registers from here */
 	u32 data_phase_default;
-	bool cd_unless_detect_gpio;	/* mux CD only without detect_gpio */
 	int pad_2a0;			/* 1: set +0x2a0 to 0x80; 2: if muxed */
 	unsigned int rst_reg;		/* SYS register, 0x5d10xxxx then 1 */
 	u32 rst_val;
@@ -95,7 +95,7 @@ static const struct xm_sd_chip xm_sd_chips[] = {
 		.clk_phase_reg = 0xc30, .clk_phase_default = 8,
 		.clk_phase_reg2 = 0xc38,
 		.data_phase_reg = 0xca0, .data_phase_default = 0,
-		.cd_unless_detect_gpio = true, .pad_2a0 = 2,
+		.pad_2a0 = 2,
 		.rst_reg = 0x108, .rst_val = 0x5d101000,
 	},
 };
@@ -183,7 +183,12 @@ static void xm_sd_powerup(void)
 		writel(data_phase != -1 ? data_phase : c->data_phase_default,
 		       xm_pads + c->data_phase_reg + i * 4);
 
-	if (detect && !(c->cd_unless_detect_gpio && detect_gpio != -1))
+	/*
+	 * XM535's vendor module leaves this pad alone when given detect_gpio,
+	 * because it then polls that GPIO instead. This module does not, so the
+	 * controller's card detect is all there is, and its pad is always muxed.
+	 */
+	if (detect)
 		writel(GPIO_DRIVE_8MA | c->mux, xm_pads + XM_PAD(c->cd_pad));
 
 	if (c->pad_2a0 == 1 ||
@@ -241,10 +246,15 @@ static int __init xm_sd_init(void)
 		pr_err("xm_v200_sd: no SD slot known for chip %s\n", chip);
 		return -ENODEV;
 	}
+	/* pdn is a pad number, and its register must fall inside xm_pads */
+	if (pdn <= -XM_PADS || pdn >= XM_PADS) {
+		pr_err("xm_v200_sd: pdn %d is not a pad\n", pdn);
+		return -EINVAL;
+	}
 	if (detect_gpio != -1)
 		pr_warn("xm_v200_sd: detect_gpio is not supported, using the controller's card detect\n");
 
-	xm_pads = ioremap(GPIO_BASE, 0x1000);
+	xm_pads = ioremap(GPIO_BASE, XM_PAD(XM_PADS));
 	xm_sys = ioremap(SYS_CTRL_BASE, 0x1000);
 	if (!xm_pads || !xm_sys) {
 		ret = -ENOMEM;
@@ -278,6 +288,9 @@ unmap:
 static void __exit xm_sd_exit(void)
 {
 	platform_device_unregister(&xm_sd_device);
+	/* the arasan driver's remove only powers down the controller itself */
+	if (pdn)
+		xm_sd_power(false);
 	iounmap(xm_sys);
 	iounmap(xm_pads);
 }
