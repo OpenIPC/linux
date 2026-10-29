@@ -193,10 +193,10 @@ config MACH_FH8856V210
 config MACH_FH8852V210
     bool "FullHan FH8852V210 board"
     default n
-    depends on ARCH_FH885xV210
+    depends on ARCH_FH885xV200
     help
       Configure this option to specify the whether the board used
-      for development is FH8852V200
+      for development is FH8852V210
 
 config MACH_FH8858V210
     bool "FullHan FH8858V210 board"
