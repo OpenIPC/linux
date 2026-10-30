@@ -389,9 +389,15 @@ static int fh_rtc_get_temp(unsigned int base_addr)
 /* the temp[out] is 10 times of actually temperature */
 int fh_rtc_get_tsensor_data(int *data, int *temp)
 {
-	struct fh_rtc_plat_data *pd = fh_rtc->plat_data;
+	struct fh_rtc_plat_data *pd;
 	int raw_data = -1, t, status, count;
-	int offset = (signed char)pd->lut_offset;
+	int offset;
+
+	/* the T-Sensor is read through the RTC core: no core, no sensor */
+	if (!fh_rtc)
+		return -ENODEV;
+	pd = fh_rtc->plat_data;
+	offset = (signed char)pd->lut_offset;
 
 	fh_rtc_get_temp(fh_rtc->v_addr);
 
@@ -1098,6 +1104,18 @@ static int fh_rtc_probe(struct platform_device *pdev)
 	mdelay(1);
 	rtc_core_status = fh_rtc_get_core(fh_rtc->v_addr,
 		FH_RTC_CMD_INT_STATUS);
+	if (rtc_core_status == -1) {
+		/*
+		 * The core sits in its own domain, clocked by an external
+		 * 32.768 kHz crystal and fed by VDDA_RTC; boards built without
+		 * them never answer the wrapper, and every later access would
+		 * only time out again.
+		 */
+		dev_info(&pdev->dev,
+			 "RTC core does not answer: no 32.768 kHz crystal or VDDA_RTC on this board?\n");
+		err = -ENODEV;
+		goto err_irq;
+	}
 	if (rtc_core_status & FH_RTC_ISR_POWERFAIL_POS) {
 		RTC_PRINT_DBG("rtc powerfailed !\n");
 		fh_rtc_set_core(fh_rtc->v_addr,
@@ -1138,8 +1156,13 @@ static int fh_rtc_probe(struct platform_device *pdev)
 
 	return 0;
 
+err_irq:
+	free_irq(fh_rtc->irq, fh_rtc);
+	if (fh_rtc->clk && !IS_ERR(fh_rtc->clk))
+		clk_disable_unprepare(fh_rtc->clk);
 err_nores:
 	kfree(fh_rtc);
+	fh_rtc = NULL;
 	return err;
 }
 #endif
