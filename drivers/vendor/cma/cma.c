@@ -316,6 +316,27 @@ static phys_addr_t bsp_os_req;
 static struct { char name[NAME_LEN_MAX]; phys_addr_t start, size; } bsp_carved[ZONE_MAX];
 static int bsp_ncarved;
 
+/*
+ * Whether [start, start + size) overlaps a zone already kept: the n CMA ones
+ * in bsp_zone[] or a carve-out. Under hybrid the two kinds would otherwise
+ * share pages -- a carve-out's taken out of memblock and a CMA zone's added
+ * back, both published -- and the two allocators would hand them out twice.
+ */
+static bool __init bsp_zone_overlaps(phys_addr_t start, phys_addr_t size, int n)
+{
+	int i;
+
+	for (i = 0; i < n; i++)
+		if (start < bsp_zone[i].phys_start + bsp_zone[i].nbytes &&
+		    bsp_zone[i].phys_start < start + size)
+			return true;
+	for (i = 0; i < bsp_ncarved; i++)
+		if (start < bsp_carved[i].start + bsp_carved[i].size &&
+		    bsp_carved[i].start < start + size)
+			return true;
+	return false;
+}
+
 static unsigned int dram;
 static unsigned int osmem;
 static char allocator[8];
@@ -660,6 +681,12 @@ void __init bsp_memory_init(void)
 			 * a zone's pages to the page allocator, and only memory
 			 * memblock knows of has them. A carve-out is kept out.
 			 */
+			if (hybrid && bsp_zone_overlaps(bsp_zone[i].phys_start, bsp_zone[i].nbytes, n)) {
+				pr_warn("hisi_mem: mmz zone %s at 0x%llx, %lluM overlaps another zone, left out\n",
+					bsp_zone[i].name, (u64)bsp_zone[i].phys_start,
+					(u64)bsp_zone[i].nbytes >> 20);
+				continue;
+			}
 			lowest = min(lowest, bsp_zone[i].phys_start);
 			if (hybrid && strncmp(bsp_zone[i].name, "cma", 3)) {
 				memblock_remove(bsp_zone[i].phys_start, bsp_zone[i].nbytes);
