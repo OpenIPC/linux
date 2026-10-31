@@ -287,8 +287,17 @@ static const struct {
 	const char *compatible;
 	phys_addr_t ddr, max, os;
 } bsp_mem_parts[] __initconst = {
-	{ "hisilicon,hi3516cv610", 0x40000000, SZ_512M, SZ_32M },
-	{ "hisilicon,hi3516cv608", 0x40000000, SZ_512M, SZ_32M },
+	/*
+	 * 36 MiB, not 32. On a 64 MiB board the media zone is the rest, and a
+	 * 1080p hi3516cv608 at its heaviest (main and sub stream, snapshots and
+	 * motion detection, a snapshot in flight) peaks at 24.3 MiB of it, so
+	 * 28 MiB keeps 3.7 MiB in hand while the OS gets the 4 MiB that a
+	 * 26 MiB system could not spare -- measured on a cv608 with an SP2308,
+	 * the same layout as osmem=36M. A board that needs the larger zone takes
+	 * osmem=32M (set_allocator ot 32M).
+	 */
+	{ "hisilicon,hi3516cv610", 0x40000000, SZ_512M, SZ_32M + SZ_4M },
+	{ "hisilicon,hi3516cv608", 0x40000000, SZ_512M, SZ_32M + SZ_4M },
 	{ "vendor,hi3519dv500", 0x40000000, SZ_2G, SZ_128M },
 	{ "vendor,hi3516dv500", 0x40000000, SZ_2G, SZ_128M },
 };
