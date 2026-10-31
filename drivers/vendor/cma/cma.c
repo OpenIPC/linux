@@ -306,6 +306,37 @@ static phys_addr_t bsp_dram, bsp_os, bsp_ddr, bsp_lo;
 static char bsp_alloc_req[8];
 static phys_addr_t bsp_os_req;
 
+/*
+ * mmz_allocator=hybrid: the zones named cma* are CMA, the rest a carve-out.
+ * The carve-out ones are not the kernel's and not CMA's, so they are kept
+ * here rather than in bsp_zone[], where get_cma_zone() would find them, and
+ * only published: mmz then allocates from the carve-out first and borrows
+ * from the CMA zone when that is full.
+ */
+static struct { char name[NAME_LEN_MAX]; phys_addr_t start, size; } bsp_carved[ZONE_MAX];
+static int bsp_ncarved;
+
+/*
+ * Whether [start, start + size) overlaps a zone already kept: the n CMA ones
+ * in bsp_zone[] or a carve-out. Under hybrid the two kinds would otherwise
+ * share pages -- a carve-out's taken out of memblock and a CMA zone's added
+ * back, both published -- and the two allocators would hand them out twice.
+ */
+static bool __init bsp_zone_overlaps(phys_addr_t start, phys_addr_t size, int n)
+{
+	int i;
+
+	for (i = 0; i < n; i++)
+		if (start < bsp_zone[i].phys_start + bsp_zone[i].nbytes &&
+		    bsp_zone[i].phys_start < start + size)
+			return true;
+	for (i = 0; i < bsp_ncarved; i++)
+		if (start < bsp_carved[i].start + bsp_carved[i].size &&
+		    bsp_carved[i].start < start + size)
+			return true;
+	return false;
+}
+
 static unsigned int dram;
 static unsigned int osmem;
 static char allocator[8];
@@ -317,10 +348,10 @@ module_param_string(mmz, mmz, sizeof(mmz), 0444);
 
 static int __init bsp_alloc_param(char *s)
 {
-	if (s && (!strcmp(s, "ot") || !strcmp(s, "cma")))
+	if (s && (!strcmp(s, "ot") || !strcmp(s, "cma") || !strcmp(s, "hybrid")))
 		strlcpy(bsp_alloc_req, s, sizeof(bsp_alloc_req));
 	else
-		pr_warn("hisi_mem: mmz_allocator=%s ignored, not ot or cma\n", s ? s : "");
+		pr_warn("hisi_mem: mmz_allocator=%s ignored, not ot, cma or hybrid\n", s ? s : "");
 	return 0;
 }
 early_param("mmz_allocator", bsp_alloc_param);
@@ -608,6 +639,8 @@ void __init bsp_memory_init(void)
 	if (use_bootargs) {
 		/* mmz_allocator=ot: the zones are a carve-out, which CMA must not take */
 		bool carve = !strcmp(bsp_alloc_req, "ot");
+		bool hybrid = !strcmp(bsp_alloc_req, "hybrid");
+		phys_addr_t lowest = end;
 
 		/*
 		 * An explicit mmz=: the zone and mem= as the bootloader gave them,
@@ -648,6 +681,22 @@ void __init bsp_memory_init(void)
 			 * a zone's pages to the page allocator, and only memory
 			 * memblock knows of has them. A carve-out is kept out.
 			 */
+			if (hybrid && bsp_zone_overlaps(bsp_zone[i].phys_start, bsp_zone[i].nbytes, n)) {
+				pr_warn("hisi_mem: mmz zone %s at 0x%llx, %lluM overlaps another zone, left out\n",
+					bsp_zone[i].name, (u64)bsp_zone[i].phys_start,
+					(u64)bsp_zone[i].nbytes >> 20);
+				continue;
+			}
+			lowest = min(lowest, bsp_zone[i].phys_start);
+			if (hybrid && strncmp(bsp_zone[i].name, "cma", 3)) {
+				memblock_remove(bsp_zone[i].phys_start, bsp_zone[i].nbytes);
+				bsp_carve_out(bsp_zone[i].phys_start);
+				strlcpy(bsp_carved[bsp_ncarved].name, bsp_zone[i].name, NAME_LEN_MAX);
+				bsp_carved[bsp_ncarved].start = bsp_zone[i].phys_start;
+				bsp_carved[bsp_ncarved].size = bsp_zone[i].nbytes;
+				bsp_ncarved++;
+				continue;
+			}
 			if (!carve)
 				memblock_add(bsp_zone[i].phys_start, bsp_zone[i].nbytes);
 			else {	/* mem= counts from the first usable byte, and may reach in */
@@ -659,6 +708,18 @@ void __init bsp_memory_init(void)
 			n++;
 		}
 		num_zones = n;
+		if (hybrid && (num_zones || bsp_ncarved)) {
+			booted = min(booted, bsp_dram);
+			bsp_os = lowest - bsp_ddr;
+			strlcpy(allocator, "hybrid", sizeof(allocator));
+			pr_info("hisi_mem: DRAM %lluM (probed), hybrid, %d CMA and %d carve-out zones from mmz=\n",
+				(u64)bsp_dram >> 20, num_zones, bsp_ncarved);
+			if (num_zones)
+				bsp_hold_zones();
+			else
+				use_bootargs = 0;
+			return;
+		}
 		if (num_zones) {
 			booted = min(booted, bsp_dram);
 			bsp_os = get_zones_start() - bsp_ddr;
@@ -737,23 +798,25 @@ static int __init bsp_memory_publish(void)
 	 * media's, and a carve-out's "anonymous" range would claim memory that
 	 * is the kernel's or someone else's. Userspace keeps the bootloader's.
 	 */
-	if (!bsp_dram || (bsp_zones_failed && !num_zones)) {
+	if (!bsp_dram || (bsp_zones_failed && !num_zones && !bsp_ncarved)) {
 		allocator[0] = '\0';	/* what load_hisilicon looks at first */
 		return 0;
 	}
 	dram = bsp_dram >> 20;
 	osmem = bsp_os >> 20;
-	if (num_zones) {
+	if (num_zones || bsp_ncarved) {
 		/* the zones as declared, which is what mmz looks up; whole entries only */
-		for (i = 0; i < num_zones; i++) {
+		for (i = 0; i < num_zones + bsp_ncarved; i++) {
 			char entry[NAME_LEN_MAX + 40];
+			int c = i - num_zones;	/* the carve-out ones of a hybrid layout follow */
+			const char *name = c < 0 ? bsp_zone[i].name : bsp_carved[c].name;
 			int n = snprintf(entry, sizeof(entry), "%s%s,0,0x%llx,%lluM",
-					 i ? ":" : "", bsp_zone[i].name, (u64)bsp_zone[i].phys_start,
-					 (u64)bsp_zone[i].nbytes >> 20);
+					 i ? ":" : "", name,
+					 (u64)(c < 0 ? bsp_zone[i].phys_start : bsp_carved[c].start),
+					 (u64)(c < 0 ? bsp_zone[i].nbytes : bsp_carved[c].size) >> 20);
 
 			if (n >= sizeof(entry) || len + n >= sizeof(mmz)) {
-				pr_warn("hisi_mem: mmz zones from %s on not published, too long\n",
-					bsp_zone[i].name);
+				pr_warn("hisi_mem: mmz zones from %s on not published, too long\n", name);
 				break;
 			}
 			memcpy(mmz + len, entry, n + 1);
