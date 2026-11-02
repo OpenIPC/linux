@@ -204,7 +204,8 @@ static void v4l2_device_release(struct device *cd)
 #if defined(CONFIG_MEDIA_CONTROLLER)
 	if (v4l2_dev->mdev && vdev->vfl_dir != VFL_DIR_M2M) {
 		/* Remove interfaces and interface links */
-		media_devnode_remove(vdev->intf_devnode);
+		if (vdev->intf_devnode)
+			media_devnode_remove(vdev->intf_devnode);
 		if (vdev->entity.function != MEDIA_ENT_F_UNKNOWN)
 			media_device_unregister_entity(&vdev->entity);
 	}
@@ -815,6 +816,7 @@ static int video_register_media_controller(struct video_device *vdev)
 					      MEDIA_LNK_FL_IMMUTABLE);
 		if (!link) {
 			media_devnode_remove(vdev->intf_devnode);
+			vdev->intf_devnode = NULL;
 			media_device_unregister_entity(&vdev->entity);
 			return -ENOMEM;
 		}
