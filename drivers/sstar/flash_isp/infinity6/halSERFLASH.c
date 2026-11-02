@@ -198,7 +198,7 @@ MS_U32 BASE_FLASH_OFFSET = 0;
 #define BDMA_SIZE_WARNING (128*1024+BDMA_ALIGN) //print message for unresonable size
 
 //E_QUAD_MODE;//E_FAST_MODE;
-const static SPI_READ_MODE gReadMode = E_QUAD_MODE;
+static SPI_READ_MODE gReadMode = E_QUAD_MODE;
 static MS_U32 u32BdmaSize = 64 * 1024 + BDMA_ALIGN;//default size
 static MSYS_DMEM_INFO mem_info;
 
@@ -1354,7 +1354,11 @@ MS_BOOL HAL_SERFLASH_DetectType(void)
         break;
     case E_QUAD_MODE:
         DEBUG_SER_FLASH(E_SERFLASH_DBGLV_INFO, printk("[FSP] 1-1-4 QUAD_READ MODE\n"));
-        HAL_QUAD_Enable(1);
+        if (!HAL_QUAD_Enable(1))
+        {
+            gReadMode = E_FAST_MODE;
+            printk("[FSP] can't enable quad mode, using 1-1-1 FAST_READ MODE\n");
+        }
         break;
     default:
         break;
@@ -4140,6 +4144,32 @@ MS_BOOL HAL_QUAD_Enable(MS_BOOL bEnable)
         bRet = HAL_FSP_WriteStatus(0x31, 1, &u8data);
         bRet = HAL_FSP_ReadStatus(0x35, 1, u8status);
         DEBUG_SER_FLASH(E_SERFLASH_DBGLV_DEBUG, printk("[FSP] GD status2:0x%x 0x%x 0x%x\n",u8status[0], u8status[1], u8status[2]));
+    }
+    else if(_hal_SERFLASH.u8MID == MID_WB)
+    {
+        /*
+         * Winbond keeps QE in bit 1 of status register 2, and parts ship
+         * with it set or clear. Only ever set it: HAL_FSP_Entry() calls this
+         * with 0 around every erase and write, and toggling a non-volatile
+         * bit that often would wear the status register out; the 1-1-1
+         * commands work with QE set. Change no other bit: SR2 also holds
+         * CMP and the one-time lock bits. Not every part takes the write,
+         * so report whether QE ended up set.
+         */
+        MS_U8 u8sr1 = 0, u8sr2 = 0;
+
+        if (!bEnable)
+            return TRUE;
+        if (!HAL_FSP_ReadStatus(SPI_CMD_RDSR2, 1, &u8sr2))
+            return FALSE;
+        if (u8sr2 & BITS(1:1, 1))
+            return TRUE;
+        HAL_FSP_ReadStatus(SPI_CMD_RDSR, 1, &u8sr1);
+        printk("[FSP] Winbond SR1 0x%02x SR2 0x%02x, setting QE\n", u8sr1, u8sr2);
+        u8sr2 |= BITS(1:1, 1);
+        HAL_FSP_WriteStatus(SPI_CMD_WRSR2, 1, &u8sr2);
+        bRet = HAL_FSP_ReadStatus(SPI_CMD_RDSR2, 1, &u8sr2) && (u8sr2 & BITS(1:1, 1));
+        printk("[FSP] Winbond SR2 now 0x%02x\n", u8sr2);
     }
 
     return bRet;
