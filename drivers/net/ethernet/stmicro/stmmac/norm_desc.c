@@ -217,6 +217,10 @@ static void ndesc_prepare_tx_desc(struct dma_desc *p, int is_fs, int len,
 	else
 		norm_set_tx_desc_len_on_ring(p, len);
 
+	/* Publish every segment before handing the first descriptor to DMA. */
+	if (is_fs && tx_own)
+		dma_wmb();
+
 	if (tx_own)
 		p->des0 |= cpu_to_le32(TDES0_OWN);
 }
