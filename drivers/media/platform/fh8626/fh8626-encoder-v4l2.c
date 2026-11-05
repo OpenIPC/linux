@@ -1588,6 +1588,19 @@ static int fh8626_enc_s_parm(struct file *file, void *priv,
 
 		timeperframe->numerator /= d;
 		timeperframe->denominator /= d;
+		/* VUI time_scale is twice the interval denominator. */
+		if (timeperframe->denominator > U32_MAX / 2) {
+			u32 den = timeperframe->denominator;
+
+			timeperframe->numerator = div_u64(
+				(u64)timeperframe->numerator * (U32_MAX / 2) +
+				den - 1, den);
+			timeperframe->denominator = U32_MAX / 2;
+			d = gcd(timeperframe->numerator,
+				 timeperframe->denominator);
+			timeperframe->numerator /= d;
+			timeperframe->denominator /= d;
+		}
 	}
 
 	ctx->timeperframe = *timeperframe;
