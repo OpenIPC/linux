@@ -16,6 +16,8 @@
 #include <linux/debugfs.h>
 #include <linux/dma-buf.h>
 #include <linux/dma-mapping.h>
+#include <linux/jiffies.h>
+#include <linux/reservation.h>
 #include <linux/seq_file.h>
 #include <linux/slab.h>
 #include <linux/kref.h>
@@ -178,6 +180,7 @@ struct fh8626_enc_ctx {
 	u32				sar_height;
 	bool				force_key_frame;
 	struct v4l2_fract		timeperframe;
+	struct v4l2_rect			crop;
 
 	/* Header settings latched at each IDR so P slices match the PPS. */
 	struct fh8626_pae_deblock	deblock;
@@ -482,8 +485,6 @@ static int fh8626_enc_rc_plan(struct fh8626_enc_ctx *ctx, bool idr, u32 gop,
 	struct fh8626_enc_model *mi = &rc->model[FH8626_RC_I];
 	struct fh8626_enc_model *mp = &rc->model[FH8626_RC_P];
 	struct fh8626_enc_model *m = idr ? mi : mp;
-	const struct fh8626_enc_q_data *raw =
-		&ctx->q_data[FH8626_QUEUE_OUTPUT];
 	u32 num = ctx->timeperframe.numerator;
 	u32 den = ctx->timeperframe.denominator;
 	u32 bitrate = READ_ONCE(ctx->bitrate);
@@ -535,7 +536,7 @@ static int fh8626_enc_rc_plan(struct fh8626_enc_ctx *ctx, bool idr, u32 gop,
 		gop_bits = div_u64((u64)rc->frame_bits * g * 4, g + 3);
 		rc->nominal = min_t(u64, gop_bits, U32_MAX);
 		qp = fh8626_enc_start_qp(min(gop_bits, room * 3 / 4),
-					 raw->width * raw->height);
+					 ctx->crop.width * ctx->crop.height);
 		return clamp(qp, min_qp, max_qp);
 	}
 
@@ -721,28 +722,38 @@ static void fh8626_enc_rc_account(struct fh8626_enc_ctx *ctx, bool idr,
 	rc->can_skip = true;
 }
 
-/*
- * Include padding beyond the declared image plane in an imported dma-buf.
- * The buffer remains queued and mapped until the worker finishes or resets
- * the engine.
- */
-static size_t fh8626_enc_extent(struct vb2_buffer *vb)
-{
-	size_t length = vb2_plane_size(vb, 0);
-
-	if (vb->memory == VB2_MEMORY_DMABUF && vb->planes[0].dbuf)
-		length = max(length, vb->planes[0].dbuf->size);
-	return length;
-}
-
 static bool fh8626_enc_direct(struct fh8626_enc_ctx *ctx,
 			      struct vb2_buffer *vb)
 {
 	const struct fh8626_enc_q_data *raw = &ctx->q_data[FH8626_QUEUE_OUTPUT];
 
-	return fh8626_pae_input_direct(raw->width, raw->height, raw->stride,
+	return fh8626_pae_input_direct(ctx->crop.width, ctx->crop.height,
+				       raw->stride, raw->height,
 				       vb2_dma_contig_plane_dma_addr(vb, 0),
-				       fh8626_enc_extent(vb));
+				       vb2_plane_size(vb, 0));
+}
+
+static int fh8626_enc_wait_input(struct fh8626_enc_ctx *ctx,
+				 struct dma_buf *buffer)
+{
+	unsigned long deadline = jiffies + msecs_to_jiffies(1000);
+	long remaining, ret;
+
+	/* QBUF owns the buffer until completion; no new producer may write it. */
+	for (;;) {
+		if (READ_ONCE(ctx->aborting) || READ_ONCE(ctx->dev->disconnected))
+			return -ECANCELED;
+		remaining = deadline - jiffies;
+		if (remaining <= 0)
+			return -ETIMEDOUT;
+		ret = reservation_object_wait_timeout_rcu(buffer->resv, false,
+				true, min_t(long, remaining, msecs_to_jiffies(20)));
+		if (ret < 0)
+			return ret;
+		if (ret > 0)
+			return READ_ONCE(ctx->aborting) ||
+			       READ_ONCE(ctx->dev->disconnected) ? -ECANCELED : 0;
+	}
 }
 
 static void fh8626_enc_work(struct work_struct *work)
@@ -752,6 +763,7 @@ static void fh8626_enc_work(struct work_struct *work)
 	struct fh8626_enc_dev *dev = ctx->dev;
 	struct vb2_v4l2_buffer *src, *dst;
 	struct fh8626_pae_frame frame;
+	struct dma_buf *cpu_buf = NULL;
 	unsigned long flags;
 	bool last = false;
 	bool is_idr = true;
@@ -778,7 +790,7 @@ static void fh8626_enc_work(struct work_struct *work)
 		if (fh8626_enc_direct(ctx, &src->vb2_buf)) {
 			frame.dma = vb2_dma_contig_plane_dma_addr(&src->vb2_buf,
 								  0);
-			frame.dma_length = fh8626_enc_extent(&src->vb2_buf);
+			frame.dma_length = vb2_plane_size(&src->vb2_buf, 0);
 		} else {
 			frame.nv12 = vb2_plane_vaddr(&src->vb2_buf, 0);
 		}
@@ -794,6 +806,24 @@ static void fh8626_enc_work(struct work_struct *work)
 		if (qp >= 0 && is_idr)
 			fh8626_enc_latch_headers(ctx);
 		frame.deblock = ctx->deblock;
+		if (qp >= 0 && src->vb2_buf.memory == VB2_MEMORY_DMABUF) {
+			ret = fh8626_enc_wait_input(ctx, src->vb2_buf.planes[0].dbuf);
+			if (ret) {
+				ctx->rc.can_skip = false;
+				goto job_done;
+			}
+		}
+		/* Keep the imported image CPU-readable across staging retries. */
+		if (qp >= 0 && frame.nv12 &&
+		    src->vb2_buf.memory == VB2_MEMORY_DMABUF) {
+			cpu_buf = src->vb2_buf.planes[0].dbuf;
+			ret = dma_buf_begin_cpu_access(cpu_buf, DMA_FROM_DEVICE);
+			if (ret) {
+				cpu_buf = NULL;
+				ctx->rc.can_skip = false;
+				goto job_done;
+			}
+		}
 		while (qp >= 0) {
 			frame.qp = qp;
 			frame.idr = is_idr;
@@ -852,6 +882,17 @@ static void fh8626_enc_work(struct work_struct *work)
 							 0xffff;
 				ctx->poc = (ctx->poc + 2) & 0xffff;
 			}
+		}
+	}
+job_done:
+	if (cpu_buf) {
+		int error = dma_buf_end_cpu_access(cpu_buf, DMA_FROM_DEVICE);
+
+		if (error) {
+			ctx->rc.can_skip = false;
+			ctx->idr_pending = true;
+			if (ret > 0)
+				ret = error;
 		}
 	}
 	spin_lock_irqsave(&ctx->state_lock, flags);
@@ -1089,27 +1130,18 @@ static int fh8626_enc_queue_setup(struct vb2_queue *vq,
 	struct fh8626_enc_q_data *q_data = get_q_data(ctx, vq->type);
 	u32 bytes = q_data->sizeimage, limit;
 
-	/*
-	 * Pad MMAP input for direct DMA; imported images without padding
-	 * use the staging copy.
-	 */
-	if (V4L2_TYPE_IS_OUTPUT(vq->type) && vq->memory == VB2_MEMORY_MMAP)
-		bytes = PAGE_ALIGN(max_t(size_t, bytes,
-					 fh8626_pae_direct_size(q_data->width,
-								q_data->height,
-					 q_data->stride)));
 	if (*nplanes) {
 		if (*nplanes != 1 || sizes[0] < bytes)
 			return -EINVAL;
 		bytes = sizes[0];
 	}
-	/* Limit each queue to 3 MiB of local allocations; exclude imports. */
+	/* Keep the 3 MiB local budget, allowing at least one buffer. */
 	if (vq->memory == VB2_MEMORY_DMABUF) {
 		*nplanes = 1;
 		sizes[0] = bytes;
 		return 0;
 	}
-	limit = (3U * 1024 * 1024) / bytes;
+	limit = max_t(u32, 1, (3U * 1024 * 1024) / bytes);
 	if (vq->num_buffers >= limit)
 		return -ENOMEM;
 	*nbuffers = min_t(unsigned int, *nbuffers, limit - vq->num_buffers);
@@ -1178,8 +1210,9 @@ static int fh8626_enc_start_streaming(struct vb2_queue *q, unsigned int count)
 	if (ctx->dev->disconnected) {
 		ret = -ENODEV;
 	} else if (ctx->streaming[index ^ 1]) {
-		ctx->pae = fh8626_pae_ctx_create(ctx->dev->hw, raw->width,
-						 raw->height, raw->stride,
+		ctx->pae = fh8626_pae_ctx_create(ctx->dev->hw, ctx->crop.width,
+						 ctx->crop.height, raw->stride,
+						 raw->height,
 						 ctx->q_data[1].sizeimage);
 		if (IS_ERR(ctx->pae)) {
 			ret = PTR_ERR(ctx->pae);
@@ -1364,7 +1397,6 @@ static int fh8626_enc_vidioc_try_fmt(struct file *file, void *priv,
 				     struct v4l2_format *f)
 {
 	struct fh8626_enc_ctx *ctx = fh_to_ctx(priv);
-	struct fh8626_enc_q_data *raw = &ctx->q_data[FH8626_QUEUE_OUTPUT];
 
 	f->fmt.pix.width = clamp_t(u32, f->fmt.pix.width,
 				   PAE_MIN_WIDTH, PAE_MAX_WIDTH);
@@ -1388,14 +1420,14 @@ static int fh8626_enc_vidioc_try_fmt(struct file *file, void *priv,
 		f->fmt.pix.xfer_func = ctx->xfer_func;
 		f->fmt.pix.ycbcr_enc = ctx->ycbcr_enc;
 		f->fmt.pix.quantization = ctx->quantization;
-		f->fmt.pix.width = raw->width;
-		f->fmt.pix.height = raw->height;
+		f->fmt.pix.width = ctx->crop.width;
+		f->fmt.pix.height = ctx->crop.height;
 		f->fmt.pix.pixelformat = V4L2_PIX_FMT_H264;
 		f->fmt.pix.bytesperline = 0;
 		f->fmt.pix.sizeimage =
 			clamp_t(u32, f->fmt.pix.sizeimage,
-				fh8626_enc_coded_size(raw->width, raw->height),
-				ALIGN(raw->width * raw->height, 4096));
+				fh8626_enc_coded_size(ctx->crop.width, ctx->crop.height),
+				ALIGN(ctx->crop.width * ctx->crop.height, 4096));
 	}
 
 	return 0;
@@ -1426,12 +1458,71 @@ static int fh8626_enc_vidioc_s_fmt(struct file *file, void *priv,
 		ctx->xfer_func = f->fmt.pix.xfer_func;
 		ctx->ycbcr_enc = f->fmt.pix.ycbcr_enc;
 		ctx->quantization = f->fmt.pix.quantization;
+		ctx->crop.left = ctx->crop.top = 0;
+		ctx->crop.width = q_data->width;
+		ctx->crop.height = q_data->height;
 		coded->width = q_data->width;
 		coded->height = q_data->height;
 		coded->sizeimage = fh8626_enc_coded_size(coded->width,
 							 coded->height);
 	}
 
+	return 0;
+}
+
+static int fh8626_enc_g_selection(struct file *file, void *priv,
+				  struct v4l2_selection *s)
+{
+	struct fh8626_enc_ctx *ctx = fh_to_ctx(priv);
+	struct fh8626_enc_q_data *raw = &ctx->q_data[FH8626_QUEUE_OUTPUT];
+
+	if (s->type != V4L2_BUF_TYPE_VIDEO_OUTPUT)
+		return -EINVAL;
+	switch (s->target) {
+	case V4L2_SEL_TGT_CROP:
+		s->r = ctx->crop;
+		break;
+	case V4L2_SEL_TGT_CROP_DEFAULT:
+	case V4L2_SEL_TGT_CROP_BOUNDS:
+		s->r.left = s->r.top = 0;
+		s->r.width = raw->width;
+		s->r.height = raw->height;
+		break;
+	default:
+		return -EINVAL;
+	}
+	return 0;
+}
+
+static int fh8626_enc_s_selection(struct file *file, void *priv,
+				  struct v4l2_selection *s)
+{
+	struct fh8626_enc_ctx *ctx = fh_to_ctx(priv);
+	struct fh8626_enc_q_data *raw = &ctx->q_data[FH8626_QUEUE_OUTPUT];
+	struct fh8626_enc_q_data *coded = &ctx->q_data[FH8626_QUEUE_CAPTURE];
+	struct v4l2_rect crop = s->r;
+
+	if (s->type != V4L2_BUF_TYPE_VIDEO_OUTPUT ||
+	    s->target != V4L2_SEL_TGT_CROP || crop.left || crop.top ||
+	    (s->flags & ~(V4L2_SEL_FLAG_GE | V4L2_SEL_FLAG_LE)))
+		return -EINVAL;
+	if (vb2_is_busy(v4l2_m2m_get_src_vq(ctx->m2m_ctx)) ||
+	    vb2_is_busy(v4l2_m2m_get_dst_vq(ctx->m2m_ctx)))
+		return -EBUSY;
+	crop.width = clamp_t(u32, crop.width, PAE_MIN_WIDTH, raw->width);
+	crop.height = clamp_t(u32, crop.height, PAE_MIN_HEIGHT, raw->height);
+	crop.width = (crop.width + !!(s->flags & V4L2_SEL_FLAG_GE)) & ~1U;
+	crop.height = (crop.height + !!(s->flags & V4L2_SEL_FLAG_GE)) & ~1U;
+	if (((s->flags & V4L2_SEL_FLAG_GE) &&
+	     (crop.width < s->r.width || crop.height < s->r.height)) ||
+	    ((s->flags & V4L2_SEL_FLAG_LE) &&
+	     (crop.width > s->r.width || crop.height > s->r.height)))
+		return -ERANGE;
+	ctx->crop = crop;
+	s->r = crop;
+	coded->width = crop.width;
+	coded->height = crop.height;
+	coded->sizeimage = fh8626_enc_coded_size(crop.width, crop.height);
 	return 0;
 }
 
@@ -1526,7 +1617,8 @@ static int fh8626_enc_enum_frameintervals(struct file *file, void *priv,
 	    fival->pixel_format != V4L2_PIX_FMT_H264)
 		return -EINVAL;
 	if (fival->width < PAE_MIN_WIDTH || fival->width > PAE_MAX_WIDTH ||
-	    fival->height < PAE_MIN_HEIGHT || fival->height > PAE_MAX_HEIGHT)
+	    fival->height < PAE_MIN_HEIGHT || fival->height > PAE_MAX_HEIGHT ||
+	    (fival->width & 1) || (fival->height & 1))
 		return -EINVAL;
 
 	fival->type = V4L2_FRMIVAL_TYPE_STEPWISE;
@@ -1567,6 +1659,8 @@ static int fh8626_enc_s_parm(struct file *file, void *priv,
 	if (a->type != V4L2_BUF_TYPE_VIDEO_CAPTURE &&
 	    a->type != V4L2_BUF_TYPE_VIDEO_OUTPUT)
 		return -EINVAL;
+	if (ctx->streaming[0] || ctx->streaming[1])
+		return -EBUSY;
 
 	timeperframe = V4L2_TYPE_IS_OUTPUT(a->type) ?
 		&a->parm.output.timeperframe :
@@ -1622,6 +1716,8 @@ static const struct v4l2_ioctl_ops fh8626_enc_ioctl_ops = {
 	.vidioc_enum_frameintervals = fh8626_enc_enum_frameintervals,
 	.vidioc_g_parm		= fh8626_enc_g_parm,
 	.vidioc_s_parm		= fh8626_enc_s_parm,
+	.vidioc_g_selection	= fh8626_enc_g_selection,
+	.vidioc_s_selection	= fh8626_enc_s_selection,
 
 	.vidioc_enum_fmt_vid_cap = fh8626_enc_vidioc_enum_fmt,
 	.vidioc_g_fmt_vid_cap	= fh8626_enc_vidioc_g_fmt,
@@ -1684,6 +1780,8 @@ static int fh8626_enc_open(struct file *file)
 	ctx->q_data[FH8626_QUEUE_OUTPUT].stride = PAE_DEF_WIDTH;
 	ctx->q_data[FH8626_QUEUE_OUTPUT].sizeimage =
 		(PAE_DEF_WIDTH * PAE_DEF_HEIGHT * 3) / 2;
+	ctx->crop.width = PAE_DEF_WIDTH;
+	ctx->crop.height = PAE_DEF_HEIGHT;
 
 	ctx->q_data[FH8626_QUEUE_CAPTURE].fmt = &fh8626_enc_formats[1];
 	ctx->q_data[FH8626_QUEUE_CAPTURE].width = PAE_DEF_WIDTH;

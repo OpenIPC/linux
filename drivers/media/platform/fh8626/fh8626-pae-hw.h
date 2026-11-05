@@ -54,21 +54,24 @@ struct fh8626_pae_hw *fh8626_pae_create(struct device *dev, void __iomem *core,
 /*
  * Allocates the reference, motion and stream areas of one coded sequence.
  * Several contexts can share the engine; each frame is programmed in full.
+ * width/height describe the visible picture; chroma starts after storage_height
+ * input rows. The crop origin is always zero.
  */
 struct fh8626_pae_ctx *fh8626_pae_ctx_create(struct fh8626_pae_hw *hw,
 					     u32 width, u32 height, u32 stride,
+					     u32 storage_height,
 					     u32 stream_capacity);
 /*
  * All frames must have completed. A failed reset retains the DMA storage.
  */
 void fh8626_pae_ctx_destroy(struct fh8626_pae_ctx *ctx);
-size_t fh8626_pae_direct_size(u32 width, u32 height, u32 stride);
 /*
  * Whether the engine can read a contiguous NV12 picture of the given
- * geometry, with chroma at stride * height, in place at bus address base.
+ * visible geometry, with chroma at stride * storage_height, in place at bus
+ * address base. Storage must keep chroma beyond the complete coded luma rows.
  */
 bool fh8626_pae_input_direct(u32 width, u32 height, u32 stride,
-			     dma_addr_t base, size_t length);
+			     u32 storage_height, dma_addr_t base, size_t length);
 /*
  * Returns the Annex-B payload length; *idr reports the actual slice type.
  * Encodes an IDR when no prediction reference exists, regardless of frame->idr.

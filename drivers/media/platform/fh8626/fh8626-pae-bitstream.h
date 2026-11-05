@@ -61,6 +61,9 @@ struct fh8626_pae_picture {
 	const struct fh8626_pae_vui *vui;
 };
 
+/* H.264 level_idc for the coded geometry and timing, or a negative error. */
+int fh8626_pae_level(const struct fh8626_pae_picture *picture);
+
 /* Annex-B SPS/PPS, including start codes and emulation prevention bytes. */
 int fh8626_pae_parameter_sets(const struct fh8626_pae_picture *picture,
 			      u8 *destination, size_t capacity);
