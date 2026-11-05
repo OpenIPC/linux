@@ -386,8 +386,11 @@ bool fh8626_pae_input_direct(u32 width, u32 height, u32 stride,
 	size_t need = fh8626_pae_direct_size(width, height, stride);
 	dma_addr_t chroma = base + (dma_addr_t)stride * height;
 
-	/* Plane addresses are programmed in 1 KiB units. */
-	return stride == ALIGN(width, 32) && length >= need &&
+	/*
+	 * Unaligned heights place NV12 chroma inside the coded luma rows.
+	 * Plane addresses are programmed in 1 KiB units.
+	 */
+	return !(height & 15) && stride == ALIGN(width, 32) && length >= need &&
 	       !(base & 1023) && !(chroma & 1023) &&
 	       base <= DMA_BIT_MASK(PAE_DMA_BITS) &&
 	       need - 1 <= DMA_BIT_MASK(PAE_DMA_BITS) - base;
