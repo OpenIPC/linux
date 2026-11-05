@@ -73,6 +73,8 @@ struct fh8626_logo_slot {
 	unsigned int shown;
 	u32 flip_seq;
 	bool flip_live;
+	bool failed;
+	bool off_pending;
 	bool streaming;
 	bool queue_inited;
 	bool registered;
@@ -153,9 +155,10 @@ static int logo_program(struct fh8626_logo_slot *slot,
 	struct fh8626_vpu_dev *vpu = slot->logos->pipe->vpu;
 	int ret;
 
-	ret = fh8626_vpu_logo_program(vpu, slot->index, plane);
-	if (!ret)
-		slot->flip_live = fh8626_vpu_frame_starts(vpu, &slot->flip_seq);
+	if (plane->on && slot->failed)
+		return -EIO;
+	ret = fh8626_vpu_logo_program(vpu, slot->index, plane,
+				     &slot->flip_seq, &slot->flip_live);
 	return ret;
 }
 
@@ -163,13 +166,20 @@ static int logo_program(struct fh8626_logo_slot *slot,
  * Wait up to two frame starts for the bitmap switch. A timeout does not
  * establish that DMA has stopped.
  */
-static void logo_wait_flip(struct fh8626_logo_slot *slot)
+static int logo_wait_flip(struct fh8626_logo_slot *slot)
 {
+	int ret;
+
 	if (!slot->flip_live)
-		return;
-	fh8626_vpu_wait_frame_starts(slot->logos->pipe->vpu, slot->flip_seq,
-				     2);
+		return 0;
+	ret = fh8626_vpu_wait_frame_starts(slot->logos->pipe->vpu,
+					 slot->flip_seq, 2);
+	if (ret) {
+		slot->failed = true;
+		return ret;
+	}
 	slot->flip_live = false;
+	return 0;
 }
 
 static void logo_free_bitmaps(struct fh8626_logo_slot *slot, void *cpu[2],
@@ -183,22 +193,36 @@ static void logo_free_bitmaps(struct fh8626_logo_slot *slot, void *cpu[2],
 					  dma[i]);
 }
 
-static void logo_hw_off(struct fh8626_logo_slot *slot)
+static int logo_hw_off(struct fh8626_logo_slot *slot)
 {
 	struct fh8626_logo_plane plane = { };
 	struct fh8626_logo_dev *logos = slot->logos;
+	int ret;
 
-	if (!logos)
-		return;
-	if (logos->pipe && logos->pipe->vpu) {
-		if (logo_program(slot, &plane))
-			return;
-		logo_wait_flip(slot);
+	if (!slot->cpu[0])
+		return 0;
+	if (!logos || !logos->pipe || !logos->pipe->vpu)
+		return -ENODEV;
+	if (!slot->off_pending) {
+		ret = logo_program(slot, &plane);
+		if (ret)
+			return ret;
+		slot->off_pending = true;
+	}
+	ret = logo_wait_flip(slot);
+	if (ret) {
+		dev_warn_ratelimited(logos->dma_dev,
+			"logo %u disable unconfirmed; retaining bitmaps\n",
+			slot->index);
+		return ret;
 	}
 	logo_free_bitmaps(slot, slot->cpu, slot->dma, slot->dma_size);
 	slot->cpu[0] = slot->cpu[1] = NULL;
 	slot->dma[0] = slot->dma[1] = 0;
 	slot->dma_size = 0;
+	slot->off_pending = false;
+	slot->failed = false;
+	return 0;
 }
 
 static void logo_plane(struct fh8626_logo_slot *slot,
@@ -223,8 +247,8 @@ static int logo_snapshot(struct fh8626_logo_slot *slot,
 	const struct fh8626_logo_fmt *fmt = logo_fmt(slot->pix.pixelformat);
 	struct fh8626_logo_plane plane = { };
 	struct fh8626_logo_dev *logos = slot->logos;
-	void *cpu[2] = { }, *old_cpu[2];
-	dma_addr_t dma[2], old_dma[2];
+	void *cpu[2] = { };
+	dma_addr_t dma[2];
 	unsigned int i, next;
 	size_t size;
 	void *src;
@@ -232,6 +256,8 @@ static int logo_snapshot(struct fh8626_logo_slot *slot,
 
 	if (!fmt || !logos || !logos->pipe || !logos->pipe->vpu)
 		return -ENODEV;
+	if (slot->failed || slot->off_pending)
+		return -EIO;
 	if (slot->compose.left < 0 || slot->compose.top < 0)
 		return -ERANGE;
 	size = slot->pix.sizeimage;
@@ -241,7 +267,9 @@ static int logo_snapshot(struct fh8626_logo_slot *slot,
 
 	if (slot->dma_size == size) {
 		/* The bitmap not on screen is free once the last flip is in */
-		logo_wait_flip(slot);
+		ret = logo_wait_flip(slot);
+		if (ret)
+			return ret;
 		next = slot->shown ^ 1;
 		memcpy(slot->cpu[next], src, size);
 		logo_plane(slot, fmt, slot->dma[next], &plane);
@@ -251,6 +279,10 @@ static int logo_snapshot(struct fh8626_logo_slot *slot,
 		return ret;
 	}
 
+	/* Retire the old allocation before publishing a differently sized one. */
+	ret = logo_hw_off(slot);
+	if (ret)
+		return ret;
 	for (i = 0; i < 2; ++i) {
 		cpu[i] = dma_alloc_coherent(logos->dma_dev, size, &dma[i],
 					    GFP_KERNEL);
@@ -265,13 +297,6 @@ static int logo_snapshot(struct fh8626_logo_slot *slot,
 	if (ret) {
 		logo_free_bitmaps(slot, cpu, dma, size);
 		return ret;
-	}
-	memcpy(old_cpu, slot->cpu, sizeof(old_cpu));
-	memcpy(old_dma, slot->dma, sizeof(old_dma));
-	if (old_cpu[0]) {
-		/* The previous bitmaps may be read until the flip is in */
-		logo_wait_flip(slot);
-		logo_free_bitmaps(slot, old_cpu, old_dma, slot->dma_size);
 	}
 	memcpy(slot->cpu, cpu, sizeof(cpu));
 	memcpy(slot->dma, dma, sizeof(dma));
@@ -326,6 +351,8 @@ static void logo_buf_queue(struct vb2_buffer *vb)
 	if (!slot->streaming)
 		return;
 	ret = logo_snapshot(slot, buf);
+	if (slot->failed)
+		vb2_queue_error(&slot->queue);
 	list_del(&buf->node);
 	vb2_buffer_done(vb, ret ? VB2_BUF_STATE_ERROR : VB2_BUF_STATE_DONE);
 }
@@ -338,6 +365,14 @@ static int logo_start(struct vb2_queue *q, unsigned int count)
 
 	if (!count || list_empty(&slot->pending))
 		return -EINVAL;
+	/* STREAMON retries a failed disable without discarding its DMA owner. */
+	if (slot->failed || slot->off_pending) {
+		ret = logo_hw_off(slot);
+		if (ret) {
+			logo_return(slot, VB2_BUF_STATE_QUEUED);
+			return ret;
+		}
+	}
 	/* The hardware keeps one bitmap; show the last buffer queued */
 	last = list_last_entry(&slot->pending, struct fh8626_logo_buf,
 			       node);
@@ -611,6 +646,14 @@ static void logo_vdev_release(struct video_device *vd)
 		vb2_queue_release(&slot->queue);
 	v4l2_ctrl_handler_free(&slot->ctrls);
 	mutex_destroy(&slot->lock);
+	if (slot->cpu[0]) {
+		/* No reset/idle proof: keep DMA memory and its owner permanently. */
+		dev_err(logos->dma_dev,
+			"logo %u removed with unconfirmed DMA; retaining bitmaps and owner\n",
+			index);
+		get_device(logos->dma_dev);
+		return;
+	}
 	logos->slot[index] = NULL;
 	kfree(slot);
 	kref_put(&logos->ref, logo_dev_free);
@@ -782,5 +825,6 @@ void fh8626_logo_unregister(struct fh8626_pipeline *pipe)
 		mutex_unlock(&slot->lock);
 		put_device(&slot->vdev.dev);
 	}
+	logos->pipe = NULL;
 	kref_put(&logos->ref, logo_dev_free);
 }
