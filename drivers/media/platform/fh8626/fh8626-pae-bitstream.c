@@ -145,26 +145,61 @@ static void write_vui(struct pae_bits *writer, const struct fh8626_pae_vui *v)
 	write_ue(writer, 1); /* max_dec_frame_buffering */
 }
 
+int fh8626_pae_level(const struct fh8626_pae_picture *p)
+{
+	/* enc.ko MaxFS/MaxMVPS/LevelIdc; keep 3.2 for the 20 Mbit/s API limit. */
+	static const struct {
+		u8 idc;
+		u32 max_fs;
+		u32 max_mbps;
+	} levels[] = {
+		{ 32, 5120, 216000 },
+		{ 41, 8192, 245760 },
+		{ 42, 8704, 522240 },
+		{ 50, 22080, 589824 },
+		{ 51, 36864, 983040 },
+	};
+	u32 mbs;
+	u64 rate_num = 60, rate_den = 1;
+	unsigned int i;
+
+	if (!p || !p->width || !p->height || (p->width & 1) ||
+	    (p->height & 1) || p->coded_width < p->width ||
+	    p->coded_height < p->height || (p->coded_width & 15) ||
+	    (p->coded_height & 15))
+		return -EINVAL;
+	mbs = (p->coded_width >> 4) * (p->coded_height >> 4);
+	/* Missing timing uses the highest frame rate accepted by S_PARM. */
+	if (p->vui && p->vui->timing_present) {
+		if (!p->vui->time_scale || !p->vui->num_units_in_tick)
+			return -EINVAL;
+		rate_num = p->vui->time_scale;
+		rate_den = 2ULL * p->vui->num_units_in_tick;
+	}
+	for (i = 0; i < ARRAY_SIZE(levels); i++)
+		if (mbs <= levels[i].max_fs &&
+		    mbs * rate_num <= levels[i].max_mbps * rate_den)
+			return levels[i].idc;
+	return -EINVAL;
+}
+
 int fh8626_pae_parameter_sets(const struct fh8626_pae_picture *p,
 			      u8 *dst, size_t capacity)
 {
 	u8 rbsp[128];
 	struct pae_bits writer = { .data = rbsp, .capacity = sizeof(rbsp) };
 	bool crop;
-	int sps, pps;
+	int sps, pps, level;
 
-	if (!p->width || !p->height || (p->width & 1) || (p->height & 1) ||
-	    p->coded_width < p->width || p->coded_height < p->height ||
-	    (p->coded_width & 15) || (p->coded_height & 15) ||
-	    !deblock_valid(&p->deblock))
+	if (!deblock_valid(&p->deblock))
 		return -EINVAL;
-	if (p->vui && p->vui->timing_present &&
-	    (!p->vui->num_units_in_tick || !p->vui->time_scale))
-		return -EINVAL;
+	level = fh8626_pae_level(p);
+	if (level < 0)
+		return level;
 	crop = p->width != p->coded_width || p->height != p->coded_height;
 	write_bits(&writer, 77, 8); /* Main profile */
 	write_bits(&writer, 0, 8);
-	write_bits(&writer, 32, 8); /* Level 3.2 */
+	write_bits(&writer, level, 8);
 	write_ue(&writer, 0);
 	write_ue(&writer, 12); /* log2_max_frame_num_minus4 */
 	write_ue(&writer, 0); /* pic_order_cnt_type */

@@ -26,6 +26,7 @@
 #include <linux/spinlock.h>
 #include <linux/soc/fullhan/fh8626-pmu.h>
 #include <asm/unaligned.h>
+#include "fh8626-encoder-regs.h"
 #include "fh8626-pae-hw.h"
 #include "fh8626-pae-params.h"
 #include "fh8626-pae-bitstream.h"
@@ -63,6 +64,7 @@ struct fh8626_pae_ctx {
 	struct list_head retained;
 	struct fh8626_pae_hw *hw;
 	u32 width, height, stride, coded_width, coded_height;
+	u32 storage_height;
 	/* No usable prediction reference, including after a failed job. */
 	bool need_idr;
 	/*
@@ -268,6 +270,7 @@ static void ctx_free(struct fh8626_pae_ctx *ctx)
 
 struct fh8626_pae_ctx *fh8626_pae_ctx_create(struct fh8626_pae_hw *hw,
 					     u32 width, u32 height, u32 stride,
+					     u32 storage_height,
 					     u32 stream_capacity)
 {
 	u32 w = ALIGN(width, 32), h = ALIGN(height, 16);
@@ -285,8 +288,11 @@ struct fh8626_pae_ctx *fh8626_pae_ctx_create(struct fh8626_pae_hw *hw,
 
 	if (READ_ONCE(hw->poisoned))
 		return ERR_PTR(-EIO);
-	if (width < 64 || width > 1280 || height < 64 || height > 720 ||
-	    (width & 1) || (height & 1) || stride < width || !stream_capacity)
+	if (width < PAE_MIN_WIDTH || width > PAE_MAX_WIDTH ||
+	    height < PAE_MIN_HEIGHT || height > PAE_MAX_HEIGHT ||
+	    (width & 1) || (height & 1) || (storage_height & 1) ||
+	    storage_height < height || storage_height > PAE_MAX_HEIGHT ||
+	    stride < width || !stream_capacity)
 		return ERR_PTR(-EINVAL);
 	ctx = kzalloc(sizeof(*ctx), GFP_KERNEL);
 	if (!ctx)
@@ -307,7 +313,6 @@ struct fh8626_pae_ctx *fh8626_pae_ctx_create(struct fh8626_pae_hw *hw,
 	areas[3] = &ctx->mb[0];
 	areas[4] = &ctx->mb[1];
 	areas[5] = &ctx->stream;
-	/* Separate allocations avoid one large contiguous 720p workspace. */
 	for (i = 0; i < ARRAY_SIZE(areas); i++) {
 		ret = area_alloc(ctx, areas[i], lengths[i]);
 		if (ret) {
@@ -319,6 +324,7 @@ struct fh8626_pae_ctx *fh8626_pae_ctx_create(struct fh8626_pae_hw *hw,
 	ctx->width = width;
 	ctx->height = height;
 	ctx->stride = stride;
+	ctx->storage_height = storage_height;
 	ctx->coded_width = w;
 	ctx->coded_height = h;
 	mutex_lock(&hw->engine_lock);
@@ -373,24 +379,20 @@ static void frame_addr(u8 *p, u32 field, const struct pae_area *area)
 
 /*
  * DMA reads ALIGN(height, 16) luma rows and half as many chroma rows, with
- * ALIGN(width, 32) stride. Direct buffers must include the extra rows.
+ * ALIGN(width, 32) stride. Chroma follows storage_height input rows.
  */
-size_t fh8626_pae_direct_size(u32 width, u32 height, u32 stride)
-{
-	return (size_t)stride * (height + ALIGN(height, 16) / 2);
-}
-
 bool fh8626_pae_input_direct(u32 width, u32 height, u32 stride,
-			     dma_addr_t base, size_t length)
+			     u32 storage_height, dma_addr_t base, size_t length)
 {
-	size_t need = fh8626_pae_direct_size(width, height, stride);
-	dma_addr_t chroma = base + (dma_addr_t)stride * height;
+	size_t need = (size_t)stride * (storage_height + ALIGN(height, 16) / 2);
+	dma_addr_t chroma = base + (dma_addr_t)stride * storage_height;
 
 	/*
-	 * Unaligned heights place NV12 chroma inside the coded luma rows.
+	 * The visible picture can be shorter than its padded input storage.
 	 * Plane addresses are programmed in 1 KiB units.
 	 */
-	return !(height & 15) && stride == ALIGN(width, 32) && length >= need &&
+	return !(storage_height & 1) && storage_height >= ALIGN(height, 16) &&
+	       stride == ALIGN(width, 32) && length >= need &&
 	       !(base & 1023) && !(chroma & 1023) &&
 	       base <= DMA_BIT_MASK(PAE_DMA_BITS) &&
 	       need - 1 <= DMA_BIT_MASK(PAE_DMA_BITS) - base;
@@ -439,8 +441,18 @@ static void write_coefficients(struct fh8626_pae_hw *hw, u32 coded_width)
 static void copy_input(struct fh8626_pae_ctx *ctx, const u8 *nv12)
 {
 	u8 *y = ctx->y.cpu, *uv = ctx->uv.cpu;
-	const u8 *chroma = nv12 + ctx->stride * ctx->height;
+	const u8 *chroma = nv12 + ctx->stride * ctx->storage_height;
 	u32 row, x, w = ctx->coded_width;
+
+	if (ctx->width == w && ctx->stride == w) {
+		memcpy(y, nv12, w * ctx->height);
+		for (row = ctx->height; row < ctx->coded_height; row++)
+			memcpy(y + row * w, y + (ctx->height - 1) * w, w);
+		memcpy(uv, chroma, w * (ctx->height / 2));
+		for (row = ctx->height / 2; row < ctx->coded_height / 2; row++)
+			memcpy(uv + row * w, uv + (ctx->height / 2 - 1) * w, w);
+		return;
+	}
 
 	for (row = 0; row < ctx->coded_height; row++) {
 		const u8 *source = nv12 +
@@ -466,7 +478,7 @@ static void copy_input(struct fh8626_pae_ctx *ctx, const u8 *nv12)
  * Restore geometry, DMA addresses, QP and CABAC state on every context switch.
  */
 static void program_frame(struct fh8626_pae_hw *hw, struct fh8626_pae_ctx *ctx,
-			  const struct fh8626_pae_frame *frame, bool is_idr,
+			  const struct fh8626_pae_frame *frame, bool is_idr, u8 level,
 			  dma_addr_t y, dma_addr_t uv,
 			  unsigned int ref_pos, unsigned int rec_pos,
 			  const u8 *header, unsigned int header_bits)
@@ -478,6 +490,7 @@ static void program_frame(struct fh8626_pae_hw *hw, struct fh8626_pae_ctx *ctx,
 	unsigned int i, bits;
 
 	fh8626_pae_params_init(&hw->params);
+	p[1] = level;
 	put_unaligned_le16(ctx->coded_width, p + 4);
 	put_unaligned_le16(ctx->coded_height, p + 6);
 	if (is_idr) {
@@ -651,12 +664,13 @@ int fh8626_pae_encode_frame(struct fh8626_pae_ctx *ctx,
 	u32 bytes;
 	u64 busy, job;
 	unsigned int ref_pos = 0, rec_pos = 0;
-	int prefix = 0, header_bits, ret;
+	int prefix = 0, header_bits, level, ret;
 
 	if (!stream || frame->qp > 51)
 		return -EINVAL;
 	if (!nv12 && !fh8626_pae_input_direct(ctx->width, ctx->height,
-					      ctx->stride, frame->dma,
+					      ctx->stride, ctx->storage_height,
+					      frame->dma,
 					      frame->dma_length))
 		return -EINVAL;
 	if (READ_ONCE(hw->poisoned))
@@ -684,6 +698,9 @@ int fh8626_pae_encode_frame(struct fh8626_pae_ctx *ctx,
 	picture.deblock = frame->deblock;
 	picture.vui = frame->vui;
 
+	level = fh8626_pae_level(&picture);
+	if (level < 0)
+		return level;
 	if (is_idr) {
 		prefix = fh8626_pae_parameter_sets(&picture, stream, capacity);
 		if (prefix < 0)
@@ -704,7 +721,7 @@ int fh8626_pae_encode_frame(struct fh8626_pae_ctx *ctx,
 		uv = ctx->uv.dma;
 	} else {
 		y = frame->dma;
-		uv = y + (dma_addr_t)ctx->stride * ctx->height;
+		uv = y + (dma_addr_t)ctx->stride * ctx->storage_height;
 	}
 	memset(ctx->mv.cpu, 0, ctx->mv.bytes);
 
@@ -713,7 +730,7 @@ int fh8626_pae_encode_frame(struct fh8626_pae_ctx *ctx,
 		mutex_unlock(&hw->engine_lock);
 		return -EIO;
 	}
-	program_frame(hw, ctx, frame, is_idr, y, uv, ref_pos, rec_pos, header,
+	program_frame(hw, ctx, frame, is_idr, level, y, uv, ref_pos, rec_pos, header,
 		      header_bits);
 	reinit_completion(&hw->completion);
 	spin_lock_irqsave(&hw->lock, flags);

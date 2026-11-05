@@ -17,7 +17,6 @@ void fh8626_pae_params_init(struct fh8626_pae_params *params)
 
 	memset(params, 0, sizeof(*params));
 	p[0] = 77; /* Main profile */
-	p[1] = 32; /* Level 3.2 */
 	p[2] = p[3] = p[9] = 1; /* 4:2:0, one reference, CABAC */
 	p[0x0b] = 10;
 	p[0x0c] = p[0x0d] = 28;
