@@ -251,6 +251,12 @@ struct fh8626_vpu_dev {
 	u32 *list_cpu;
 	dma_addr_t list_dma;
 	unsigned int mask_list;
+	/* The previous bitmap/list remain owned until their switch is confirmed. */
+	void *mask_retired_cpu;
+	dma_addr_t mask_retired_dma;
+	size_t mask_retired_bytes;
+	u32 mask_flip_seq;
+	bool mask_flip_live;
 	struct mutex mask_lock;
 };
 
@@ -627,8 +633,24 @@ static void fh8626_vpu_logo_apply(struct fh8626_vpu_dev *vpu)
 	spin_unlock_irqrestore(&vpu->lock, flags);
 }
 
+/* A stopped producer can leave a frame which resumes at its old address. */
+static bool vpu_overlay_live_locked(const struct fh8626_vpu_dev *vpu)
+{
+	unsigned int c;
+
+	if (vpu->running)
+		return true;
+	for (c = 0; c < FH8626_VPU_CHANNELS; ++c)
+		if (vpu->chan[c].dirty ||
+		    (vpu->chan[c].streaming && !vpu->chan[c].drained &&
+		     (vpu->chan[c].started || vpu->chan[c].opened_live)))
+			return true;
+	return false;
+}
+
 int fh8626_vpu_logo_program(struct fh8626_vpu_dev *vpu, unsigned int slot,
-			    const struct fh8626_logo_plane *plane)
+			    const struct fh8626_logo_plane *plane,
+			    u32 *seq, bool *live)
 {
 	unsigned long flags;
 
@@ -655,6 +677,9 @@ int fh8626_vpu_logo_program(struct fh8626_vpu_dev *vpu, unsigned int slot,
 	}
 	vpu->logo[slot] = *plane;
 	logo_write(vpu, slot);
+	/* Sample under the register lock, including interrupted capture DMA. */
+	*seq = vpu->starts;
+	*live = vpu_overlay_live_locked(vpu);
 	spin_unlock_irqrestore(&vpu->lock, flags);
 	return 0;
 }
@@ -663,7 +688,7 @@ static bool vpu_frame_starts_locked(const struct fh8626_vpu_dev *vpu,
 				    u32 *count)
 {
 	*count = vpu->starts;
-	return vpu->running;
+	return vpu_overlay_live_locked(vpu);
 }
 
 static void mask_render(u8 *bitmap, u32 stride, u32 x0, u32 y0, u32 h,
@@ -685,6 +710,25 @@ static void mask_render(u8 *bitmap, u32 stride, u32 x0, u32 y0, u32 h,
 	}
 }
 
+/* mask_lock held; never reuse a list or free a bitmap on an uncertain flip. */
+static int mask_wait_flip(struct fh8626_vpu_dev *vpu)
+{
+	int ret;
+
+	if (vpu->mask_flip_live) {
+		ret = fh8626_vpu_wait_frame_starts(vpu, vpu->mask_flip_seq, 2);
+		if (ret)
+			return ret;
+		vpu->mask_flip_live = false;
+	}
+	if (vpu->mask_retired_cpu) {
+		dma_free_coherent(vpu->dev, vpu->mask_retired_bytes,
+				  vpu->mask_retired_cpu, vpu->mask_retired_dma);
+		vpu->mask_retired_cpu = NULL;
+	}
+	return 0;
+}
+
 /*
  * Draw @masks, FH8626_PRIVACY_MASKS entries in input frame coordinates,
  * into the group 0 window. The window is unavailable to logos while any
@@ -696,13 +740,13 @@ int fh8626_vpu_set_privacy_masks(struct fh8626_vpu_dev *vpu,
 {
 	struct fh8626_logo_plane plane = { };
 	u32 x0 = U32_MAX, y0 = U32_MAX, x1 = 0, y1 = 0, *list;
-	void *cpu = NULL, *old_cpu;
-	dma_addr_t dma = 0, old_dma;
-	size_t bytes = 0, old_bytes;
+	void *cpu = NULL;
+	dma_addr_t dma = 0;
+	size_t bytes = 0;
 	unsigned long flags;
 	unsigned int i, next;
-	bool live, was_on;
-	u32 seq;
+	bool was_on;
+	int ret;
 
 	if (!vpu)
 		return -ENODEV;
@@ -738,6 +782,13 @@ int fh8626_vpu_set_privacy_masks(struct fh8626_vpu_dev *vpu,
 	}
 
 	mutex_lock(&vpu->mask_lock);
+	ret = mask_wait_flip(vpu);
+	if (ret) {
+		mutex_unlock(&vpu->mask_lock);
+		if (cpu)
+			dma_free_coherent(vpu->dev, bytes, cpu, dma);
+		return ret;
+	}
 	/* The list not in use; the hardware may be reading the other one */
 	next = vpu->mask_list ^ 1;
 	list = vpu->list_cpu + next * VPU_MASK_LIST_WORDS;
@@ -758,9 +809,9 @@ int fh8626_vpu_set_privacy_masks(struct fh8626_vpu_dev *vpu,
 		return -EBUSY;
 	}
 	was_on = vpu->mask_on;
-	old_cpu = vpu->mask_cpu;
-	old_dma = vpu->mask_dma;
-	old_bytes = vpu->mask_bytes;
+	vpu->mask_retired_cpu = vpu->mask_cpu;
+	vpu->mask_retired_dma = vpu->mask_dma;
+	vpu->mask_retired_bytes = vpu->mask_bytes;
 	vpu->mask = plane;
 	vpu->mask_on = plane.on;
 	vpu->mask_cpu = cpu;
@@ -768,16 +819,18 @@ int fh8626_vpu_set_privacy_masks(struct fh8626_vpu_dev *vpu,
 	vpu->mask_bytes = bytes;
 	vpu->mask_list = next;
 	logo_write(vpu, 0);
-	live = vpu_frame_starts_locked(vpu, &seq);
+	vpu->mask_flip_live = vpu_frame_starts_locked(vpu,
+						     &vpu->mask_flip_seq) &&
+				(was_on || plane.on);
 	spin_unlock_irqrestore(&vpu->lock, flags);
 
 	/* The previous bitmap and list stay in use until the switch is in */
-	if (live && (was_on || plane.on))
-		fh8626_vpu_wait_frame_starts(vpu, seq, 2);
-	if (old_cpu)
-		dma_free_coherent(vpu->dev, old_bytes, old_cpu, old_dma);
+	ret = mask_wait_flip(vpu);
+	if (ret)
+		dev_warn_ratelimited(vpu->dev,
+			"privacy mask switch unconfirmed; retaining bitmap and list\n");
 	mutex_unlock(&vpu->mask_lock);
-	return 0;
+	return ret;
 }
 
 struct device *fh8626_vpu_device(struct fh8626_vpu_dev *vpu)
@@ -993,6 +1046,11 @@ void fh8626_vpu_chan_stop(struct fh8626_vpu_dev *vpu, unsigned int chan,
 	ch->streaming = false;
 	drained = ch->drained;
 	latched = ch->started || ch->opened_live;
+	/* Publish the interrupted-frame hazard before waking overlay waiters. */
+	if (was_streaming && drained)
+		ch->dirty = false;
+	else if (was_streaming && latched)
+		ch->dirty = true;
 	held[0] = ch->busy ? ch->cur : NULL;
 	held[1] = ch->next;
 	ch->cur = NULL;
@@ -1008,14 +1066,12 @@ void fh8626_vpu_chan_stop(struct fh8626_vpu_dev *vpu, unsigned int chan,
 	wake_up_all(&vpu->start_wq);
 
 	if (was_streaming && drained) {
-		ch->dirty = false;
 		vpu_chan_unpin(ch);
 	} else if (was_streaming && latched) {
 		/* The frame in flight, or the next one, may yet be written */
 		dev_warn(vpu->dev,
 			 "channel %u stopped inside a frame; keeping its memory\n",
 			 chan);
-		ch->dirty = true;
 		for (i = 0; i < ARRAY_SIZE(held); ++i)
 			if (held[i])
 				vpu_chan_pin(ch, i, held[i]);
@@ -1112,8 +1168,8 @@ void fh8626_vpu_irq(struct fh8626_vpu_dev *vpu, u32 status, u64 timestamp)
 }
 
 /*
- * Report whether the VPU is running and, if so, how many frames it has
- * started. Register writes made now take effect at a later frame start.
+ * Report whether an overlay may still be read, including a stopped,
+ * interrupted frame. Register writes take effect at a later frame start.
  */
 bool fh8626_vpu_frame_starts(struct fh8626_vpu_dev *vpu, u32 *count)
 {
@@ -1130,7 +1186,8 @@ bool fh8626_vpu_frame_starts(struct fh8626_vpu_dev *vpu, u32 *count)
 
 /*
  * Sleep until the VPU has started @n frames after the count @since, or
- * until it stops. Returns -ETIMEDOUT if the frames do not arrive.
+ * until it stops without an interrupted frame. Returns -ETIMEDOUT if
+ * neither condition is established; stopping the producer alone is unsafe.
  */
 int fh8626_vpu_wait_frame_starts(struct fh8626_vpu_dev *vpu, u32 since,
 				 unsigned int n)
@@ -1220,6 +1277,9 @@ void fh8626_vpu_destroy(struct fh8626_vpu_dev *vpu)
 	if (vpu->mask_cpu)
 		dma_free_coherent(vpu->dev, vpu->mask_bytes, vpu->mask_cpu,
 				  vpu->mask_dma);
+	if (vpu->mask_retired_cpu)
+		dma_free_coherent(vpu->dev, vpu->mask_retired_bytes,
+				  vpu->mask_retired_cpu, vpu->mask_retired_dma);
 	dma_free_coherent(vpu->dev, VPU_MASK_LIST_BYTES, vpu->list_cpu,
 			  vpu->list_dma);
 	dma_free_coherent(vpu->dev, BLKMEAN_BYTES, vpu->blkmean_cpu,

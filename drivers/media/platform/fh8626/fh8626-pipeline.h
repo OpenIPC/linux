@@ -121,7 +121,8 @@ int fh8626_vpu_chan_drain(struct fh8626_vpu_dev *vpu, unsigned int chan);
 void fh8626_vpu_chan_stop(struct fh8626_vpu_dev *vpu, unsigned int chan,
 			  enum vb2_buffer_state state);
 int fh8626_vpu_logo_program(struct fh8626_vpu_dev *vpu, unsigned int slot,
-			    const struct fh8626_logo_plane *plane);
+			    const struct fh8626_logo_plane *plane,
+			    u32 *seq, bool *live);
 int fh8626_vpu_set_privacy_masks(struct fh8626_vpu_dev *vpu,
 				 const struct fh8626_mask_rect *masks);
 struct device *fh8626_vpu_device(struct fh8626_vpu_dev *vpu);
