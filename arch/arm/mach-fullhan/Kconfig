@@ -3,6 +3,7 @@ menuconfig ARCH_FULLHAN
 	depends on ARCH_MULTI_V6
 	select ARM_AMBA
 	select COMMON_CLK
+	select FH_CLK
 	select GENERIC_IRQ_CHIP
 	select GPIOLIB
 	select PINCTRL
@@ -21,7 +22,6 @@ config SOC_FH8626V100
 	bool "Fullhan FH8626V100 SoC"
 	default y
 	select FH_INTC
-	select FH_CLK
 	select FH_TIMER
 	help
 	  Enable support for the Fullhan FH8626V100 IP camera
