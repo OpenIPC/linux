@@ -24,6 +24,8 @@
 
 	usb_vbus: regulator-usb-vbus {
 		compatible = "regulator-fixed";
+		pinctrl-names = "default";
+		pinctrl-0 = <&usb_vbus_pins>;
 		regulator-name = "usb-vbus";
 		gpio = <&gpio0 0 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
@@ -160,13 +162,27 @@
 	status = "okay";
 };
 
+&pinctrl {
+	usb_vbus_pins: usb-vbus {
+		groups = "gpio0_grp";
+		function = "gpio";
+		bias-pull-down;
+	};
+
+	wifi_ctrl_pins: wifi-ctrl {
+		groups = "gpio23_grp";
+		function = "gpio";
+		bias-pull-up;
+		fullhan,drive = <0>;
+	};
+};
+
 &gpio0 {
-	/*
-	 * Wi-Fi control line (GPIO23). Held only by the pad pull, the RDA5995
-	 * either never enumerates (pull reads high) or resets once its
-	 * firmware has started (pull reads low). Drive it low before VBUS so
-	 * a load step cannot glitch the line.
-	 */
+	/* Select GPIO23 on pad 70 before the GPIO controller probes its hog. */
+	pinctrl-names = "default";
+	pinctrl-0 = <&wifi_ctrl_pins>;
+
+	/* Drive Wi-Fi control low before VBUS to prevent reset glitches. */
 	wifi-ctrl-hog {
 		gpio-hog;
 		gpios = <23 GPIO_ACTIVE_HIGH>;
