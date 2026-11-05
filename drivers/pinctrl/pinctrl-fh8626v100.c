@@ -119,7 +119,9 @@ static const unsigned int i2c0_pins[] = { 52, 53 };
 static const unsigned int uart0_pins[] = { 50, 51 };
 static const unsigned int sensor_pins[] = { 47, 48 };
 static const unsigned int cis_clk_pins[] = { 47 };
+static const unsigned int gpio0_pins[] = { 35 };
 static const unsigned int gpio13_pins[] = { 48 };
+static const unsigned int gpio23_pins[] = { 70 };
 /* SSI0 CLK, TXD and RXD; chip select is GPIO54 on pad 58. */
 static const unsigned int spi0_pins[] = { 56, 57, 60 };
 static const unsigned int spi0_cs_pins[] = { 58 };
@@ -138,7 +140,9 @@ static const struct fh_pinctrl_group fh_groups[] = {
 	{ "uart0_grp", uart0_pins, ARRAY_SIZE(uart0_pins) },
 	{ "sensor_grp", sensor_pins, ARRAY_SIZE(sensor_pins) },
 	{ "cis_clk_grp", cis_clk_pins, ARRAY_SIZE(cis_clk_pins) },
+	{ "gpio0_grp", gpio0_pins, ARRAY_SIZE(gpio0_pins) },
 	{ "gpio13_grp", gpio13_pins, ARRAY_SIZE(gpio13_pins) },
+	{ "gpio23_grp", gpio23_pins, ARRAY_SIZE(gpio23_pins) },
 	{ "spi0_grp", spi0_pins, ARRAY_SIZE(spi0_pins) },
 	{ "spi0_cs_grp", spi0_cs_pins, ARRAY_SIZE(spi0_cs_pins) },
 	{ "reset_btn_grp", reset_btn_pins, ARRAY_SIZE(reset_btn_pins) },
@@ -155,7 +159,8 @@ static const char * const spi0_funcs[] = { "spi0_grp" };
 static const char * const mmc0_funcs[] = { "mmc0_grp" };
 static const char * const gpio_funcs[] = {
 	"i2c0_grp", "uart0_grp", "sensor_grp", "cis_clk_grp", "gpio13_grp",
-	"spi0_grp", "spi0_cs_grp", "reset_btn_grp", "mmc0_grp"
+	"gpio0_grp", "gpio23_grp", "spi0_grp", "spi0_cs_grp", "reset_btn_grp",
+	"mmc0_grp"
 };
 
 struct fh_pmx_func {

@@ -17,8 +17,6 @@
 #include <asm/mach/map.h>
 #include <asm/system_misc.h>
 
-#include "pads.h"
-
 #define FH8626_INTC_PHYS_BASE		0xe0200000
 #define FH8626_TIMER_PHYS_BASE		0xf0c00000
 #define FH8626_PMU_PHYS_BASE		0xf0000000
@@ -122,7 +120,6 @@ static void __init fullhan_init_machine(void)
 	writel_relaxed(val & ~FH8626_PMU_WDT_PAUSE,
 		       pmu_base + FH8626_PMU_WDT_CTRL_REG);
 
-	fh8626_init_pads();
 	of_platform_default_populate(NULL, NULL, NULL);
 }
 
