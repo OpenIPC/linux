@@ -830,7 +830,7 @@ int fh8626_vpu_set_privacy_masks(struct fh8626_vpu_dev *vpu,
 		dev_warn_ratelimited(vpu->dev,
 			"privacy mask switch unconfirmed; retaining bitmap and list\n");
 	mutex_unlock(&vpu->mask_lock);
-	return ret;
+	return 0;
 }
 
 struct device *fh8626_vpu_device(struct fh8626_vpu_dev *vpu)
