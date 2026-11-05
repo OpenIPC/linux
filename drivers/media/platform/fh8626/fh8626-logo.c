@@ -478,7 +478,7 @@ static int logo_s_fmt(struct file *file, void *priv, struct v4l2_format *f)
 	struct fh8626_logo_slot *slot = video_drvdata(file);
 	u32 lim_w, lim_h;
 
-	if (slot->streaming)
+	if (vb2_is_busy(&slot->queue))
 		return -EBUSY;
 	logo_try_pix(slot, &f->fmt.pix);
 	slot->pix = f->fmt.pix;
@@ -552,7 +552,7 @@ static int logo_s_selection(struct file *file, void *priv,
 		return -EINVAL;
 	if (sel->r.width != slot->pix.width ||
 	    sel->r.height != slot->pix.height)
-		return slot->streaming ? -EBUSY : -EINVAL;
+		return vb2_is_streaming(&slot->queue) ? -EBUSY : -EINVAL;
 	if (sel->r.left < 0 || sel->r.top < 0)
 		return -ERANGE;
 	logo_frame(slot, &lim_w, &lim_h);
