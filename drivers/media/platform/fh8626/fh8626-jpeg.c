@@ -286,7 +286,7 @@ static u32 fh8626_jpeg_patch_length(void *vaddr, u32 hw_len, u32 capacity)
 			return hw_len + i + 2;
 	}
 
-	return hw_len;
+	return 0;
 }
 
 /*
