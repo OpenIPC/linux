@@ -308,15 +308,26 @@ next_request:
 		 */
 		switch (ctrl & FH_AES_CTRL_MODE_MASK) {
 		case FH_AES_CTRL_MODE_CBC:
-		case FH_AES_CTRL_MODE_CFB:
 			memcpy(iv, ((ctrl & FH_AES_CTRL_DEC) ? dev->in_buf :
 				    dev->out_buf) + dma_len - block, block);
+			break;
+		case FH_AES_CTRL_MODE_CFB:
+			/*
+			 * Like crypto/cfb.c, a partial final block consumes the
+			 * keystream without updating the caller's IV. The padded
+			 * DMA block has no complete ciphertext to chain from.
+			 */
+			if (chunk_len >= block)
+				memcpy(iv, ((ctrl & FH_AES_CTRL_DEC) ? dev->in_buf :
+					    dev->out_buf) +
+				       round_down(chunk_len, block) - block, block);
 			break;
 		case FH_AES_CTRL_MODE_CTR:
 			for (i = 0; i < dma_len / AES_BLOCK_SIZE; i++)
 				crypto_inc(iv, AES_BLOCK_SIZE);
 			break;
 		case FH_AES_CTRL_MODE_OFB:
+			/* Recover the full keystream, including a padded tail. */
 			for (i = 0; i < block; i++)
 				iv[i] =
 				    ((u8 *)dev->in_buf)[dma_len - block + i] ^
@@ -356,6 +367,10 @@ static int fh_aes_crypt(struct ablkcipher_request *req, u32 mode)
 	struct fh_aes_reqctx *rctx = ablkcipher_request_ctx(req);
 	struct fh_aes_dev *dev;
 	unsigned long flags;
+	bool needs_full_blocks = (mode & FH_AES_CTRL_MODE_MASK) ==
+				FH_AES_CTRL_MODE_ECB ||
+				(mode & FH_AES_CTRL_MODE_MASK) ==
+				FH_AES_CTRL_MODE_CBC;
 	int err;
 
 	/*
@@ -364,13 +379,13 @@ static int fh_aes_crypt(struct ablkcipher_request *req, u32 mode)
 	 */
 	if (ctx->keylen == DES_KEY_SIZE &&
 	    (mode & FH_AES_CTRL_ALG_MASK) == FH_AES_CTRL_ALG_DES) {
-		if ((mode & FH_AES_CTRL_MODE_MASK) != FH_AES_CTRL_MODE_CTR &&
+		if (needs_full_blocks &&
 		    !IS_ALIGNED(req->nbytes, DES_BLOCK_SIZE))
 			return -EINVAL;
 	} else if ((mode & FH_AES_CTRL_ALG_MASK) == FH_AES_CTRL_ALG_3DES) {
 		if (ctx->keylen != DES3_EDE_KEY_SIZE)
 			return -EINVAL;
-		if ((mode & FH_AES_CTRL_MODE_MASK) != FH_AES_CTRL_MODE_CTR &&
+		if (needs_full_blocks &&
 		    !IS_ALIGNED(req->nbytes, DES_BLOCK_SIZE))
 			return -EINVAL;
 	} else if (mode & FH_AES_CTRL_ALG_MASK) {
@@ -395,7 +410,7 @@ static int fh_aes_crypt(struct ablkcipher_request *req, u32 mode)
 		default:
 			return -EINVAL;
 		}
-		if ((mode & FH_AES_CTRL_MODE_MASK) != FH_AES_CTRL_MODE_CTR &&
+		if (needs_full_blocks &&
 		    !IS_ALIGNED(req->nbytes, AES_BLOCK_SIZE))
 			return -EINVAL;
 	}
@@ -812,7 +827,7 @@ static struct crypto_alg fh_aes_algs[] = {
 		.cra_priority		= 300,
 		.cra_flags		= CRYPTO_ALG_TYPE_ABLKCIPHER |
 					  CRYPTO_ALG_ASYNC,
-		.cra_blocksize		= AES_BLOCK_SIZE,
+		.cra_blocksize		= 1,
 		.cra_ctxsize		= sizeof(struct fh_aes_ctx),
 		.cra_alignmask		= 0,
 		.cra_type		= &crypto_ablkcipher_type,
@@ -834,7 +849,7 @@ static struct crypto_alg fh_aes_algs[] = {
 		.cra_priority		= 300,
 		.cra_flags		= CRYPTO_ALG_TYPE_ABLKCIPHER |
 					  CRYPTO_ALG_ASYNC,
-		.cra_blocksize		= AES_BLOCK_SIZE,
+		.cra_blocksize		= 1,
 		.cra_ctxsize		= sizeof(struct fh_aes_ctx),
 		.cra_alignmask		= 0,
 		.cra_type		= &crypto_ablkcipher_type,
@@ -899,7 +914,7 @@ static struct crypto_alg fh_aes_algs[] = {
 		.cra_priority		= 300,
 		.cra_flags		= CRYPTO_ALG_TYPE_ABLKCIPHER |
 					  CRYPTO_ALG_ASYNC,
-		.cra_blocksize		= DES_BLOCK_SIZE,
+		.cra_blocksize		= 1,
 		.cra_ctxsize		= sizeof(struct fh_aes_ctx),
 		.cra_alignmask		= 0,
 		.cra_type		= &crypto_ablkcipher_type,
@@ -921,7 +936,7 @@ static struct crypto_alg fh_aes_algs[] = {
 		.cra_priority		= 300,
 		.cra_flags		= CRYPTO_ALG_TYPE_ABLKCIPHER |
 					  CRYPTO_ALG_ASYNC,
-		.cra_blocksize		= DES_BLOCK_SIZE,
+		.cra_blocksize		= 1,
 		.cra_ctxsize		= sizeof(struct fh_aes_ctx),
 		.cra_alignmask		= 0,
 		.cra_type		= &crypto_ablkcipher_type,
@@ -986,7 +1001,7 @@ static struct crypto_alg fh_aes_algs[] = {
 		.cra_priority		= 300,
 		.cra_flags		= CRYPTO_ALG_TYPE_ABLKCIPHER |
 					  CRYPTO_ALG_ASYNC,
-		.cra_blocksize		= DES3_EDE_BLOCK_SIZE,
+		.cra_blocksize		= 1,
 		.cra_ctxsize		= sizeof(struct fh_aes_ctx),
 		.cra_alignmask		= 0,
 		.cra_type		= &crypto_ablkcipher_type,
@@ -1008,7 +1023,7 @@ static struct crypto_alg fh_aes_algs[] = {
 		.cra_priority		= 300,
 		.cra_flags		= CRYPTO_ALG_TYPE_ABLKCIPHER |
 					  CRYPTO_ALG_ASYNC,
-		.cra_blocksize		= DES3_EDE_BLOCK_SIZE,
+		.cra_blocksize		= 1,
 		.cra_ctxsize		= sizeof(struct fh_aes_ctx),
 		.cra_alignmask		= 0,
 		.cra_type		= &crypto_ablkcipher_type,
