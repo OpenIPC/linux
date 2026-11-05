@@ -11,6 +11,7 @@ Branch | Devices
 [allwinner-v83x](https://github.com/OpenIPC/linux/tree/allwinner-v83x) | v83x
 [ambarella-s3l](https://github.com/OpenIPC/linux/tree/ambarella-s3l) | s2l22m, s2l33m, s3l
 [anyka-ak3918ev300](https://github.com/OpenIPC/linux/tree/anyka-ak3918ev300) | ak3916ev300, ak3918ev300
+[fullhan-fh8626](https://github.com/OpenIPC/linux/tree/fullhan-fh8626) | fh8626v100
 [fullhan-fh8833v100](https://github.com/OpenIPC/linux/tree/fullhan-fh8833v100) | fh8833v100
 [fullhan-fh8852v100](https://github.com/OpenIPC/linux/tree/fullhan-fh8852v100) | fh8852v100, fh8856v100
 [fullhan-fh8852v200](https://github.com/OpenIPC/linux/tree/fullhan-fh8852v200) | fh8852v200, fh8852v210, fh8856v200, fh8856v210, fh8858v200, fh8858v210
