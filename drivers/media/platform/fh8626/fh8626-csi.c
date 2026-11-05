@@ -143,10 +143,10 @@ static int fh8626_csi_s_stream(struct v4l2_subdev *sd, int enable)
 		goto out;
 	if (enable) {
 		/*
-		 * A failed stop leaves the PHY initialized; refuse to start
+		 * A failed stop can leave PHY references held; refuse to start
 		 * again until it has been unwound.
 		 */
-		if (csi->phy_initialized) {
+		if (csi->phy_initialized || csi->phy_powered) {
 			ret = -EIO;
 			goto out;
 		}
@@ -182,9 +182,8 @@ static int fh8626_csi_s_stream(struct v4l2_subdev *sd, int enable)
 		}
 		if (csi->phy_powered) {
 			ret = phy_power_off(csi->dphy);
-			if (ret)
-				goto out;
-			csi->phy_powered = false;
+			if (!ret)
+				csi->phy_powered = false;
 		}
 		if (csi->clocks_enabled)
 			goto disable_pclk;
