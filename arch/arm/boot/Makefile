@@ -15,6 +15,13 @@ ifneq ($(MACHINE),)
 include $(srctree)/$(MACHINE)/Makefile.boot
 endif
 
+# OpenIPC: the uImage carries the one DTB the machine's Makefile.boot names in
+# dtb-openipc-y, appended to the zImage (CONFIG_ARM_APPENDED_DTB), for boot
+# loaders that pass ATAGs. Without one, the uImage is the plain zImage.
+DTB_OBJS ?= $(dtb-openipc-y)
+DTB_OBJS_FULL := $(addprefix $(obj)/dts/,$(DTB_OBJS))
+UIMAGE_SOURCE := $(if $(DTB_OBJS),zImage-dtb,zImage)
+
 # Note: the following conditions must always be true:
 #   ZRELADDR == virt_to_phys(PAGE_OFFSET + TEXT_OFFSET)
 #   PARAMS_PHYS must be within 4MB of ZRELADDR
@@ -25,7 +32,7 @@ INITRD_PHYS := $(initrd_phys-y)
 
 export ZRELADDR INITRD_PHYS PARAMS_PHYS
 
-targets := Image zImage xipImage bootpImage uImage
+targets := Image zImage xipImage bootpImage uImage zImage-dtb
 
 ifeq ($(CONFIG_XIP_KERNEL),y)
 
@@ -55,6 +62,10 @@ $(obj)/zImage:	$(obj)/compressed/vmlinux FORCE
 	$(call if_changed,objcopy)
 	@$(kecho) '  Kernel: $@ is ready'
 
+$(obj)/zImage-dtb:	$(obj)/zImage $(DTB_OBJS_FULL) FORCE
+	@cat $(obj)/zImage $(DTB_OBJS_FULL) > $@
+	@$(kecho) '  Kernel: $@ is ready'
+
 endif
 
 ifneq ($(LOADADDR),)
@@ -75,7 +86,7 @@ if [ $(words $(UIMAGE_LOADADDR)) -ne 1 ]; then \
 	false; \
 fi
 
-$(obj)/uImage:	$(obj)/zImage FORCE
+$(obj)/uImage:	$(obj)/$(UIMAGE_SOURCE) FORCE
 	@$(check_for_multiple_loadaddr)
 	$(call if_changed,uimage)
 	@$(kecho) '  Image $@ is ready'

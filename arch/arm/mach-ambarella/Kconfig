@@ -63,6 +63,15 @@ config PLAT_AMBARELLA
 if PLAT_AMBARELLA
 comment "Ambarella Platform"
 
+config AMBARELLA_OPENIPC_DTB
+	string "Device tree appended to the uImage"
+	default ""
+	help
+	  Name, without .dtb, of the blob arch/arm/boot/Makefile appends to
+	  the zImage to make the uImage (CONFIG_ARM_APPENDED_DTB), for boot
+	  loaders that pass ATAGs instead of a device tree. Empty keeps the
+	  uImage a plain zImage.
+
 config PLAT_AMBARELLA_SUPPORT_VIC
 	bool
 	default n
