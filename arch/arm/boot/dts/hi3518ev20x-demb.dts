@@ -55,7 +55,7 @@
 };
 
 &uart1 {
-	status = "disabled";
+	status = "okay";
 };
 
 &dual_timer0 {
