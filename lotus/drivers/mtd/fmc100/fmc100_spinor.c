@@ -306,6 +306,24 @@ static u32 lotus_fmc100_spinor_op_iftype(u32 op)
 	return 0;
 }
 
+/* The chip table names quad opcodes; OpenIPC runs without quad anywhere. */
+static u8 lotus_fmc100_spinor_no_quad(u8 cmd)
+{
+	switch (cmd) {
+	case SPINOR_OP_READ_QUAD:
+	case SPINOR_OP_READ_QUAD_ADDR:
+		return SPINOR_OP_READ_DUAL;
+	case SPINOR_OP_READ_QUAD_4B:
+		return SPINOR_OP_READ_DUAL_4B;
+	case SPINOR_OP_PP_QUAD:
+		return SPINOR_OP_PP;
+	case SPINOR_OP_PP_QUAD_4B:
+		return SPINOR_OP_PP_4B;
+	default:
+		return cmd;
+	}
+}
+
 static void lotus_fmc100_spinor_setup(struct lotus_fmc_spinor *spinor,
 				  struct spinor_chip_xfer *chip_xfer)
 {
@@ -326,31 +344,31 @@ static void lotus_fmc100_spinor_setup(struct lotus_fmc_spinor *spinor,
 	reg = &spinor->xfer.read;
 
 	reg->clock = xfer->clock * 2000000;
-	reg->cmd = xfer->cmd;
+	reg->cmd = lotus_fmc100_spinor_no_quad(xfer->cmd);
 	reg->dummy = xfer->dummy;
 
 	reg->op_cfg = LOTUS_FMC100_OP_CFG_ADDR_NUM(spinor->addr_cycle) |
 		LOTUS_FMC100_OP_CFG_DUMMY_NUM(reg->dummy) |
-		lotus_fmc100_spinor_op_iftype(xfer->cmd);
+		lotus_fmc100_spinor_op_iftype(reg->cmd);
 
 	reg->op_ctrl = LOTUS_FMC100_OP_CTRL_DMA_OP_READY |
-		LOTUS_FMC100_OP_CTRL_RD_OPCODE(xfer->cmd);
+		LOTUS_FMC100_OP_CTRL_RD_OPCODE(reg->cmd);
 
 	/* setup write config */
 	xfer = chip_xfer->write;
 	reg = &spinor->xfer.write;
 
 	reg->clock = xfer->clock * 2000000;
-	reg->cmd = xfer->cmd;
+	reg->cmd = lotus_fmc100_spinor_no_quad(xfer->cmd);
 	reg->dummy = xfer->dummy;
 
 	reg->op_cfg = LOTUS_FMC100_OP_CFG_ADDR_NUM(spinor->addr_cycle) |
 		LOTUS_FMC100_OP_CFG_DUMMY_NUM(reg->dummy) |
-		lotus_fmc100_spinor_op_iftype(xfer->cmd);
+		lotus_fmc100_spinor_op_iftype(reg->cmd);
 
 	reg->op_ctrl = LOTUS_FMC100_OP_CTRL_DMA_OP_READY |
 		LOTUS_FMC100_OP_CTRL_RW_OP_WRITE |
-		LOTUS_FMC100_OP_CTRL_WR_OPCODE(xfer->cmd);
+		LOTUS_FMC100_OP_CTRL_WR_OPCODE(reg->cmd);
 }
 
 static int lotus_fmc100_spinor_probe_device(struct lotus_fmc_spinor *spinor)
@@ -436,9 +454,6 @@ static void lotus_fmc100_spinor_chip_init(struct lotus_fmc_spinor *spinor)
 
 	for (nrchip = 0; nrchip < spinor->nr_chips; nrchip++) {
 		lotus_fmc100_spinor_select_chip(spinor, nrchip);
-
-		if (spinor->drv->quad_enable(spinor->regop))
-			pr_warn("quad enable fail!\n");
 
 		if (spinor->addr_cycle >= 4)
 			spinor->drv->entry_4addr(spinor->regop);
