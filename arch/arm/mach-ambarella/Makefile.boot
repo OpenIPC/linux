@@ -25,3 +25,6 @@ zreladdr-y		:= $(CONFIG_AMBARELLA_ZRELADDR)
 params_phys-y		:= $(CONFIG_AMBARELLA_PARAMS_PHYS)
 initrd_phys-y		:= $(CONFIG_AMBARELLA_INITRD_PHYS)
 
+# The DTB the uImage carries, if any (arch/arm/boot/Makefile, DTB_OBJS).
+ambarella-openipc-dtb	:= $(patsubst "%",%,$(CONFIG_AMBARELLA_OPENIPC_DTB))
+dtb-openipc-y		:= $(if $(ambarella-openipc-dtb),$(ambarella-openipc-dtb).dtb)
