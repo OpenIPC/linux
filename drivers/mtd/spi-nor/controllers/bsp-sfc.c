@@ -619,13 +619,6 @@ static int bsp_spi_nor_register(struct device_node *np,
 	nor->priv = priv;
 	nor->controller_ops = &bsp_controller_ops;
 
-#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
-	hwcaps.mask |= SNOR_HWCAPS_READ_1_1_4 |
-		       SNOR_HWCAPS_READ_1_4_4 |
-		       SNOR_HWCAPS_PP_1_1_4 |
-		       SNOR_HWCAPS_PP_1_4_4;
-#endif
-
 	ret = spi_nor_scan(nor, NULL, &hwcaps);
 	if (ret)
 		return ret;

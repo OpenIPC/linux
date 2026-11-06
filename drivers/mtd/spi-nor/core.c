@@ -3424,13 +3424,6 @@ int bsp_spi_nor_resume(struct spi_nor *nor)
 #endif
 			SNOR_HWCAPS_PP,
 	};
-#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
-	hwcaps.mask |= SNOR_HWCAPS_READ_1_1_4 |
-		SNOR_HWCAPS_READ_1_4_4 |
-		SNOR_HWCAPS_PP_1_1_4 |
-		SNOR_HWCAPS_PP_1_4_4;
-#endif
-
 	if (!info)
 		info = spi_nor_read_id(nor);
 
