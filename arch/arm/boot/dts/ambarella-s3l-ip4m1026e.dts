@@ -1,0 +1,110 @@
+/*
+ * Amcrest IP4M-1026E (Dahua IPC-HFW1430SN)
+ * Ambarella S3L, OmniVision OV4689 (MIPI), 512 MiB DDR3, 32 MiB W25Q256JV SPI-NOR,
+ * RTL8201F PHY (RMII). No audio codec, and no SD slot on this HWID (tools/iav/s3l/BOARD-IO.md).
+ *
+ * The Dahua U-Boot 2010.06 on this board boots with ATAGs, so the kernel is built with this
+ * DTB appended. Flash partitions and the root device come from the kernel command line.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ */
+/dts-v1/;
+
+/include/ "ambarella-s3l.dtsi"
+
+/ {
+	model = "Amcrest IP4M-1026E (Ambarella S3L)";
+	compatible = "amcrest,ip4m-1026e", "ambarella,s3l";
+
+	/*
+	 * 512 MiB DRAM, split as the stock firmware does: Linux gets 118 MiB above the boot area
+	 * (the dtsi's 126 MiB default would overlap the DSP), and the DSP everything above.
+	 */
+	memory {
+		device_type = "memory";
+		reg = <0x00200000 0x07600000>;
+	};
+
+	/* The DSP microcode and its queues sit at the top of this region. */
+	iavmem {
+		device_type = "iavmem";
+		reg = <0x07800000 0x18800000>;
+	};
+
+	apb@e8000000 {
+		i2c0: i2c@e8003000 {
+			status = "okay";
+
+			/*
+			 * VIN sensor placeholder. Sensor modules call ambpriv_i2c_update_addr(), which
+			 * renames this client to the sensor (e.g. "ov4689" at 0x36) so the i2c driver
+			 * binds; without it no VIN source registers.
+			 */
+			ambvin0@01 {
+				compatible = "ambarella,ambvin";
+				reg = <0x01>;
+			};
+		};
+
+		i2c1: i2c@e8001000 {
+			status = "okay";
+		};
+
+		i2c2: i2c@e8007000 {
+			status = "okay";
+		};
+
+		/* No IR remote receiver: its pin, GPIO 34, is the reset button (active low). */
+		ir@e8006000 {
+			status = "disabled";
+		};
+	};
+
+	ahb@e0000000 {
+		/* NAND pins overlap the SPI-NOR pins; this board has no NAND. */
+		nand@e0001000 {
+			status = "disabled";
+		};
+
+		spinor@e0031000 {
+			status = "okay";
+		};
+
+		/* No codec (HWID audioin 0): the I2S pins (GPIO 42-46) stay free. */
+		i2s@e001a000 {
+			status = "disabled";
+		};
+
+		/* No SD slot on this HWID; the stock firmware drives its card-detect pin, GPIO 60, as a status LED. */
+		sdmmc0@e0002000 {
+			status = "disabled";
+		};
+
+		ethernet@e000e000 {
+			pinctrl-names = "default";
+			pinctrl-0 = <&rmii_pins &mdio_gpio_pins>;
+
+			phy@0 {
+				reg = <0>;
+			};
+		};
+	};
+
+	iav {
+		vinc0 {
+			/*
+			 * OV4689 XSHUTDN is GPIO 107, active low: the sensor answers on I2C (chip ID 0x4688
+			 * at 0x36) only while it is driven high. The flag is the level that asserts reset
+			 * (vin_hw_poweron writes it, waits, then writes its inverse), so 0 = active low.
+			 */
+			vinrst-gpios = <&gpio 107 0>;
+		};
+	};
+
+	/* GPIO-bitbang MDIO on GPIO 26/27 would fight the MAC for the same pins. */
+	mdio {
+		status = "disabled";
+	};
+};
