@@ -65,6 +65,7 @@ comment "Ambarella Platform"
 
 config AMBARELLA_OPENIPC_DTB
 	string "Device tree appended to the uImage"
+	depends on ARM_APPENDED_DTB
 	default ""
 	help
 	  Name, without .dtb, of the blob arch/arm/boot/Makefile appends to

@@ -4,7 +4,8 @@
  * RTL8201F PHY (RMII). No audio codec, and no SD slot on this HWID (tools/iav/s3l/BOARD-IO.md).
  *
  * The Dahua U-Boot 2010.06 on this board boots with ATAGs, so the kernel is built with this
- * DTB appended. Flash partitions and the root device come from the kernel command line.
+ * DTB appended. Flash partitions and the root device come from the built-in command line
+ * (CONFIG_CMDLINE): the one U-Boot passes is the stock firmware's, so it is not used.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
