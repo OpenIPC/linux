@@ -3402,7 +3402,7 @@ static int spi_nor_init_params(struct spi_nor *nor)
 	spi_nor_manufacturer_init_params(nor);
 
 #ifdef CONFIG_ARCH_XMEDIA
-	if (nor->info->fixups->post_bfpt) {
+	if (nor->info->fixups && nor->info->fixups->post_bfpt) {
 		nor->info->fixups->post_bfpt(nor, NULL, NULL, nor->params);
 	} else
 #endif
