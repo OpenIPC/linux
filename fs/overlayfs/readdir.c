@@ -38,11 +38,13 @@ struct ovl_readdir_data {
 
 struct ovl_dir_file {
 	bool is_real;
+	bool is_upper;
 	bool is_cached;
 	struct list_head cursor;
 	u64 cache_version;
 	struct list_head cache;
 	struct file *realfile;
+	struct file *upperfile;
 };
 
 static struct ovl_cache_entry *ovl_cache_entry_from_node(struct rb_node *n)
@@ -163,7 +165,13 @@ static int ovl_fill_upper(void *buf, const char *name, int namelen,
 	struct ovl_readdir_data *rdd = buf;
 
 	rdd->count++;
-	return ovl_cache_entry_add_rb(rdd, name, namelen, ino, d_type);
+	/*
+	 * Filesystems end their readdir with 0 when the filler stops them, so
+	 * rdd->err is the only way ovl_dir_read() hears of this.  Without it, it
+	 * calls readdir again at the same position for as long as kmalloc fails.
+	 */
+	rdd->err = ovl_cache_entry_add_rb(rdd, name, namelen, ino, d_type);
+	return rdd->err;
 }
 
 static inline int ovl_dir_read(struct path *realpath,
@@ -185,7 +193,11 @@ static inline int ovl_dir_read(struct path *realpath,
 	} while (!err && rdd->count);
 	fput(realfile);
 
-	return 0;
+	/*
+	 * A partial list must not look complete: ovl_check_empty_dir() would find
+	 * a non-empty directory empty, and rmdir would hide it behind a whiteout.
+	 */
+	return err;
 }
 
 static void ovl_dir_reset(struct file *file)
@@ -393,18 +405,34 @@ static int ovl_dir_fsync(struct file *file, loff_t start, loff_t end,
 			 int datasync)
 {
 	struct ovl_dir_file *od = file->private_data;
+	struct dentry *dentry = file->f_path.dentry;
+	struct file *realfile = od->realfile;
 
-	/* May need to reopen directory if it got copied up */
-	if (!od->realfile) {
-		struct path upperpath;
+	/*
+	 * A directory opened on the lower layer and copied up since: the changes
+	 * are in the upper one.  This is separate from od->realfile, which readdir
+	 * is still iterating until the next ovl_dir_reset().
+	 */
+	if (!od->is_upper && ovl_path_type(dentry) != OVL_PATH_LOWER) {
+		struct inode *inode = file_inode(file);
 
-		ovl_path_upper(file->f_path.dentry, &upperpath);
-		od->realfile = ovl_path_open(&upperpath, O_RDONLY);
-		if (IS_ERR(od->realfile))
-			return PTR_ERR(od->realfile);
+		mutex_lock(&inode->i_mutex);
+		if (!od->upperfile) {
+			struct path upperpath;
+
+			ovl_path_upper(dentry, &upperpath);
+			realfile = ovl_path_open(&upperpath, O_RDONLY);
+			if (IS_ERR(realfile)) {
+				mutex_unlock(&inode->i_mutex);
+				return PTR_ERR(realfile);
+			}
+			od->upperfile = realfile;
+		}
+		realfile = od->upperfile;
+		mutex_unlock(&inode->i_mutex);
 	}
 
-	return vfs_fsync_range(od->realfile, start, end, datasync);
+	return vfs_fsync_range(realfile, start, end, datasync);
 }
 
 static int ovl_dir_release(struct inode *inode, struct file *file)
@@ -415,6 +443,8 @@ static int ovl_dir_release(struct inode *inode, struct file *file)
 	ovl_cache_free(&od->cache);
 	if (od->realfile)
 		fput(od->realfile);
+	if (od->upperfile)
+		fput(od->upperfile);
 	kfree(od);
 
 	return 0;
@@ -442,6 +472,7 @@ static int ovl_dir_open(struct inode *inode, struct file *file)
 	od->is_cached = false;
 	od->realfile = realfile;
 	od->is_real = (type != OVL_PATH_MERGE);
+	od->is_upper = (type != OVL_PATH_LOWER);
 	file->private_data = od;
 
 	return 0;
