@@ -1,0 +1,26 @@
+Fullhan FH8626V100 ARC coprocessor
+
+The ARC coprocessor runs firmware from system memory at the same
+addresses as the ARM. The node has no reg property; the boot and
+doorbell registers are part of the PMU window.
+
+Required properties:
+- compatible: "fullhan,fh8626v100-arc"
+- interrupts: the ARC to ARM doorbell interrupt
+- clocks: the ARC clock
+- resets: the ARC reset
+- memory-region: two no-map reserved-memory regions, in order:
+  - the memory the firmware is loaded into and runs from
+  - a "shared-dma-pool" for the virtio rings and buffers. It must hold
+    the vrings of the firmware's resource table and the rpmsg buffers
+    for them; 256 KiB holds two vrings of up to 128 entries.
+
+Example:
+
+	remoteproc {
+		compatible = "fullhan,fh8626v100-arc";
+		interrupts = <32>;
+		clocks = <&clk FH8626_CLK_ARC>;
+		resets = <&clk FH8626_RST_ARC>;
+		memory-region = <&arc_memory>, <&arc_dma>;
+	};
