@@ -13,6 +13,18 @@ config REMOTEPROC
 
 if REMOTEPROC
 
+config FH8626_REMOTEPROC
+	tristate "Fullhan FH8626V100 ARC remoteproc support"
+	depends on ARCH_FULLHAN
+	help
+	  Say y or m here to support the ARC coprocessor on the Fullhan
+	  FH8626V100 via the remote processor framework. The driver loads
+	  the coprocessor firmware, provides its virtio transport and holds
+	  the coprocessor in reset while no firmware runs.
+
+	  Without this driver the coprocessor stays as the bootloader left
+	  it, including its access to system memory.
+
 config IMX_REMOTEPROC
 	tristate "IMX6/7 remoteproc support"
 	depends on SOC_IMX6SX || SOC_IMX7D
