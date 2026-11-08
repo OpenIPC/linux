@@ -1550,6 +1550,7 @@ F:	Documentation/devicetree/bindings/phy/fullhan,fh8626v100-mipi-phy.txt
 F:	Documentation/devicetree/bindings/phy/fullhan,fh8626v100-usb-phy.txt
 F:	Documentation/devicetree/bindings/pinctrl/fullhan,fh8626v100-pinctrl.txt
 F:	Documentation/devicetree/bindings/pwm/fullhan,fh8626v100-pwm.txt
+F:	Documentation/devicetree/bindings/remoteproc/fullhan,fh8626v100-arc.txt
 F:	Documentation/devicetree/bindings/rtc/fullhan,fh8626v100-rtc.txt
 F:	Documentation/devicetree/bindings/soc/fullhan,fh8626-arc-isolation.txt
 F:	Documentation/devicetree/bindings/sound/fullhan,fh8626-audio.txt
