@@ -312,4 +312,4 @@ static AK_ISP_SENSOR_CB gc1024_callback = {
 	.sensor_set_standby_out_func		= gc1024_set_standby_out,
 };
 
-AK_SENSOR_MODULE_NAMED(gc1024_callback, gc1024)
+AK_SENSOR_MODULE_NAMED(gc1024_callback, gc1004)

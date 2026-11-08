@@ -166,7 +166,8 @@ config SENSOR_GC1024
 	help
 	  GalaxyCore GC1024 (DVP, 1280x720) on the ISP2 sensor framework,
 	  ported from the vendor AK3918EV200 module. Detected at run time
-	  by chip ID 0x1004; the ISP loads /etc/sensor/gc1024.conf.
+	  by chip ID 0x1004, which ipctool reports as GC1004; the ISP loads
+	  /etc/sensor/gc1004.conf.
 
 	  If unsure, say N.
 
@@ -206,7 +207,8 @@ config SENSOR_H62
 	help
 	  SOI JX-H62 (DVP, 1280x720) on the ISP2 sensor framework, from the
 	  AnyCloud39EV300 SDK and the vendor AK3918EV200 module. Detected
-	  at run time by chip ID 0xa062; the ISP loads /etc/sensor/h62.conf.
+	  at run time by chip ID 0xa062 (ipctool: JXH62); the ISP loads
+	  /etc/sensor/jxh62.conf.
 
 	  If unsure, say N.
 
@@ -218,6 +220,8 @@ config SENSOR_H63
 	  (drivers/media/video/plat-anyka/). Detected at run time against
 	  the other selected sensors by ID.
 
+	  Registered as jxh63, as ipctool names it.
+
 	  If unsure, say N.
 
 config SENSOR_H65
@@ -227,6 +231,8 @@ config SENSOR_H65
 	  SOI JX-H65 on the ISP2 sensor framework, from the Cloud39EV300 SDK
 	  (drivers/media/video/plat-anyka/). Detected at run time against
 	  the other selected sensors by ID.
+
+	  Registered as jxh65, as ipctool names it.
 
 	  If unsure, say N.
 
@@ -290,6 +296,9 @@ config SENSOR_SC1245
 	  (drivers/media/video/plat-anyka/). Detected at run time against
 	  the other selected sensors by ID.
 
+	  Registered as sc2145h, the name ipctool reports for ID 0x1245;
+	  the ISP loads /etc/sensor/sc2145h.conf.
+
 	  If unsure, say N.
 
 config SENSOR_SC1345
@@ -308,8 +317,9 @@ config SENSOR_SC2232
 	help
 	  SmartSens SC2232 (chip ID 0x2232; DVP, 1920x1080 at 15 fps) on
 	  the ISP2 sensor framework, ported from the vendor AK3918EV200
-	  module. Not the SC2232H, which SENSOR_SC2232H_SC2135E covers. The
-	  ISP loads /etc/sensor/sc2232.conf.
+	  module, which calls it SC2232; ipctool reports this ID as SC2235P.
+	  Not the SC2232H, which SENSOR_SC2232H_SC2135E covers. The ISP loads
+	  /etc/sensor/sc2235p.conf.
 
 	  If unsure, say N.
 

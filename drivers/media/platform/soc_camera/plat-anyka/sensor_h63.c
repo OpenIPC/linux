@@ -397,7 +397,7 @@ static AK_ISP_SENSOR_CB h63_callback =
 	.sensor_set_standby_out_func	= h63_set_standby_out
 };
 
-AK_SENSOR_MODULE_NAMED(h63_callback, h63)
+AK_SENSOR_MODULE_NAMED(h63_callback, jxh63)
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 
