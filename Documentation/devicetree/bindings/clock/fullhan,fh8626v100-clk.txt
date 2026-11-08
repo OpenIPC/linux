@@ -8,11 +8,13 @@ or unit address; its registers are part of the shared PMU window.
 Required properties:
 - compatible: "fullhan,fh8626v100-clk"
 - #clock-cells: must be <1>
+- #reset-cells: must be <1>
 - clocks: the oscillator input
 - clock-names: "osc"
 
 Clock index values are defined in
-include/dt-bindings/clock/fh8626v100-clk.h.
+include/dt-bindings/clock/fh8626v100-clk.h, reset index values in
+include/dt-bindings/reset/fh8626v100-reset.h.
 
 Example:
 
@@ -23,6 +25,7 @@ Example:
 		clock-controller {
 			compatible = "fullhan,fh8626v100-clk";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 			clocks = <&osc>;
 			clock-names = "osc";
 		};
