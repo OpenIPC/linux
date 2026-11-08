@@ -240,6 +240,16 @@ config SENSOR_SC1245
 
 	  If unsure, say N.
 
+config SENSOR_SC1345
+	bool "SmartSens SC1345 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  SmartSens SC1345 (DVP, 1280x720) on the ISP2 sensor framework,
+	  ported from the vendor AK3918EV200 module. Detected at run time
+	  against the other selected sensors by ID.
+
+	  If unsure, say N.
+
 config SENSOR_SC2232H_SC2135E
 	bool "SmartSens SC2232H/SC2135E sensor support"
 	depends on AK_ISP_CHAR

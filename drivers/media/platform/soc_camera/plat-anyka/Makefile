@@ -27,6 +27,7 @@ obj-$(CONFIG_SENSOR_IMX307)	+= sensor_imx307.o
 obj-$(CONFIG_SENSOR_PS5260)	+= sensor_ps5260.o
 obj-$(CONFIG_SENSOR_SC1235)	+= sensor_sc1235.o
 obj-$(CONFIG_SENSOR_SC1245)	+= sensor_sc1245.o
+obj-$(CONFIG_SENSOR_SC1345)	+= sensor_sc1345.o
 obj-$(CONFIG_SENSOR_SC2232H_SC2135E)	+= sensor_sc2232h_sc2135e.o
 obj-$(CONFIG_SENSOR_SC2235)	+= sensor_sc2235.o
 obj-$(CONFIG_SENSOR_SC2239_SC2332_SC2335)	+= sensor_sc2239_sc2332_sc2335.o
