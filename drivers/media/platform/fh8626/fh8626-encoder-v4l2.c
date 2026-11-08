@@ -604,6 +604,7 @@ static int fh8626_enc_rc_plan(struct fh8626_enc_ctx *ctx, bool idr, u32 gop,
  * it, another QP to code an IDR frame again, or -1 to drop the frame. The
  * engine has already overwritten its reference with a dropped frame, so the
  * caller sends a skipped frame in its place and codes an IDR frame next.
+ * An oversized P frame is therefore sent when that IDR frame would cost more.
  */
 static int fh8626_enc_rc_check(struct fh8626_enc_ctx *ctx, bool idr, int qp,
 			       u64 bits, bool overrun)
@@ -637,8 +638,22 @@ static int fh8626_enc_rc_check(struct fh8626_enc_ctx *ctx, bool idr, int qp,
 		rc->retries++;
 		return q;
 	}
-	if (!idr && rc->can_skip)
-		return -1;
+	if (!idr && rc->can_skip) {
+		const struct fh8626_enc_model *mi = &rc->model[FH8626_RC_I];
+		int ci = mi->valid ? mi->avg :
+			 rc->model[FH8626_RC_P].avg + 2 * 256;
+		int qp_i = max(qp - FH8626_RC_I_OFFSET, min_qp);
+
+		/*
+		 * Dropping a P frame costs the IDR frame that must follow it.
+		 * Send one that fits the output buffer unless it is at least
+		 * as large as that IDR frame; the plan then skips frames until
+		 * the buffer drains, keeping the reference.
+		 */
+		if (overrun || bits >= fh8626_enc_model_bits(ci, qp_i))
+			return -1;
+		return 0;
+	}
 	if (idr && rc->retries < FH8626_RC_RETRIES && qp < max_qp) {
 		/* QP steps per halving, from the previous attempt if any. */
 		d = fh8626_enc_log2(rc->try_bits) - fh8626_enc_log2(bits);
