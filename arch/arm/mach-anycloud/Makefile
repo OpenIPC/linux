@@ -7,6 +7,7 @@
 # Core support for all Anyka SoCs
 
 # Machin support
+obj-$(CONFIG_AK_RMEM)		   += ak_rmem.o
 obj-$(CONFIG_MACH_AK39EV330)	   += mach-ak39ev330.o
 obj-$(CONFIG_MACH_AK39EV330)	   += ak_l2.o
 

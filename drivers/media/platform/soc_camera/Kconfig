@@ -160,6 +160,27 @@ config SENSOR_F22_F23_F28_F35_F37
 
 	  If unsure, say N.
 
+config SENSOR_GC1024
+	bool "GalaxyCore GC1024 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  GalaxyCore GC1024 (DVP, 1280x720) on the ISP2 sensor framework,
+	  ported from the vendor AK3918EV200 module. Detected at run time
+	  by chip ID 0x1004, which ipctool reports as GC1004; the ISP loads
+	  /etc/sensor/gc1004.conf.
+
+	  If unsure, say N.
+
+config SENSOR_GC1034
+	bool "GalaxyCore GC1034 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  GalaxyCore GC1034 (DVP, 1280x720) on the ISP2 sensor framework,
+	  ported from the vendor AK3918EV200 module. Detected at run time
+	  by chip ID 0x1034; the ISP loads /etc/sensor/gc1034.conf.
+
+	  If unsure, say N.
+
 config SENSOR_GC1054
 	bool "GalaxyCore GC1054 sensor support"
 	depends on AK_ISP_CHAR
@@ -180,6 +201,17 @@ config SENSOR_GC2053
 
 	  If unsure, say N.
 
+config SENSOR_H62
+	bool "SOI JX-H62 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  SOI JX-H62 (DVP, 1280x720) on the ISP2 sensor framework, from the
+	  AnyCloud39EV300 SDK and the vendor AK3918EV200 module. Detected
+	  at run time by chip ID 0xa062 (ipctool: JXH62); the ISP loads
+	  /etc/sensor/jxh62.conf.
+
+	  If unsure, say N.
+
 config SENSOR_H63
 	bool "SOI JX-H63 sensor support"
 	depends on AK_ISP_CHAR
@@ -187,6 +219,8 @@ config SENSOR_H63
 	  SOI JX-H63 on the ISP2 sensor framework, from the Cloud39EV300 SDK
 	  (drivers/media/video/plat-anyka/). Detected at run time against
 	  the other selected sensors by ID.
+
+	  Registered as jxh63, as ipctool names it.
 
 	  If unsure, say N.
 
@@ -197,6 +231,8 @@ config SENSOR_H65
 	  SOI JX-H65 on the ISP2 sensor framework, from the Cloud39EV300 SDK
 	  (drivers/media/video/plat-anyka/). Detected at run time against
 	  the other selected sensors by ID.
+
+	  Registered as jxh65, as ipctool names it.
 
 	  If unsure, say N.
 
@@ -220,6 +256,28 @@ config SENSOR_PS5260
 
 	  If unsure, say N.
 
+config SENSOR_SC1135
+	bool "SmartSens SC1135 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  SmartSens SC1135 (DVP, 1280x960) on the ISP2 sensor framework,
+	  from the AnyCloud39EV300 SDK and the vendor AK3918EV200 module.
+	  Its ID check is weak (registers that read zero), so it is probed
+	  after every other sensor. The ISP loads /etc/sensor/sc1135.conf.
+
+	  If unsure, say N.
+
+config SENSOR_SC1145
+	bool "SmartSens SC1145 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  SmartSens SC1145 (DVP, 1280x720) on the ISP2 sensor framework,
+	  from the AnyCloud39EV300 SDK and the vendor AK3918EV200 module.
+	  Detected at run time by chip ID 0x1145; the ISP loads
+	  /etc/sensor/sc1145.conf.
+
+	  If unsure, say N.
+
 config SENSOR_SC1235
 	bool "SmartSens SC1235 sensor support"
 	depends on AK_ISP_CHAR
@@ -237,6 +295,31 @@ config SENSOR_SC1245
 	  SmartSens SC1245 on the ISP2 sensor framework, from the Cloud39EV300 SDK
 	  (drivers/media/video/plat-anyka/). Detected at run time against
 	  the other selected sensors by ID.
+
+	  Registered as sc2145h, the name ipctool reports for ID 0x1245;
+	  the ISP loads /etc/sensor/sc2145h.conf.
+
+	  If unsure, say N.
+
+config SENSOR_SC1345
+	bool "SmartSens SC1345 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  SmartSens SC1345 (DVP, 1280x720) on the ISP2 sensor framework,
+	  ported from the vendor AK3918EV200 module. Detected at run time
+	  against the other selected sensors by ID.
+
+	  If unsure, say N.
+
+config SENSOR_SC2232
+	bool "SmartSens SC2232 sensor support"
+	depends on AK_ISP_CHAR
+	help
+	  SmartSens SC2232 (chip ID 0x2232; DVP, 1920x1080 at 15 fps) on
+	  the ISP2 sensor framework, ported from the vendor AK3918EV200
+	  module, which calls it SC2232; ipctool reports this ID as SC2235P.
+	  Not the SC2232H, which SENSOR_SC2232H_SC2135E covers. The ISP loads
+	  /etc/sensor/sc2235p.conf.
 
 	  If unsure, say N.
 

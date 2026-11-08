@@ -279,7 +279,7 @@ static AK_ISP_SENSOR_CB ar0130_callback =
 	.sensor_set_standby_out_func	= ar0130_set_standby_out
 };
 
-AK_SENSOR_MODULE(ar0130_callback, ar0130)
+AK_SENSOR_MODULE_NAMED(ar0130_callback, ar0130)
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 

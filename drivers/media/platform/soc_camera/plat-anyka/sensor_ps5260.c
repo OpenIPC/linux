@@ -332,7 +332,7 @@ static AK_ISP_SENSOR_CB ps5260_callback =
 	.sensor_set_standby_out_func	= ps5260_set_standby_out
 };
 
-AK_SENSOR_MODULE(ps5260_callback, ps5260)
+AK_SENSOR_MODULE_NAMED(ps5260_callback, ps5260)
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 

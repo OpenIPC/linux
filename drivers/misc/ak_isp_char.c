@@ -26,6 +26,7 @@
 #include <plat-anyka/ak_sensor.h>
 #include <plat-anyka/ak_camera.h>
 #include <plat-anyka/ak_isp_lifecycle.h>
+#include <mach-anyka/ispdrv_interface.h>
 #include "ak_isp_char.h"
 #include "ak_isp_tuning.h"
 
@@ -57,9 +58,13 @@ struct akisp_char_pirv {
 
 static struct akisp_char_pirv *priv = NULL;
 
+static char *sensor_dir = "/etc/sensor";
+module_param(sensor_dir, charp, 0444);
+MODULE_PARM_DESC(sensor_dir, "Directory with <sensor name>.conf ISP tuning files");
+
 static char *tuning_firmware = "anyka/isp.conf";
 module_param(tuning_firmware, charp, 0444);
-MODULE_PARM_DESC(tuning_firmware, "Sensor tuning firmware relative to /lib/firmware");
+MODULE_PARM_DESC(tuning_firmware, "Tuning firmware (relative to /lib/firmware) for a sensor without a name or a file in sensor_dir");
 MODULE_FIRMWARE("anyka/isp.conf");
 
 /*
@@ -3265,8 +3270,11 @@ int ak_isp_prepare(struct device *dev)
 		ret = -ENODEV;
 		goto out;
 	}
-	if (!priv->tuning.firmware) {
-		ret = ak_isp_tuning_load(dev, tuning_firmware, sensor_id, &priv->tuning);
+	if (!priv->tuning.data) {
+		ret = ak_isp_tuning_load(dev, sensor_dir,
+					 ispdrv_get_sensor_name(priv->sensor_cb),
+					 tuning_firmware, sensor_id,
+					 &priv->tuning);
 		if (ret)
 			goto out;
 	}

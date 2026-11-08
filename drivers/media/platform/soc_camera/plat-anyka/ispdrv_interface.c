@@ -123,6 +123,37 @@ int ispdrv_register_sensor(void *sensor_info)
 }
 EXPORT_SYMBOL(ispdrv_register_sensor);
 
+static struct {
+	void *sensor_info;
+	const char *name;
+} sensor_names[32];
+
+int ispdrv_register_sensor_name(void *sensor_info, const char *name)
+{
+	unsigned int i;
+
+	for (i = 0; i < ARRAY_SIZE(sensor_names); i++) {
+		if (!sensor_names[i].sensor_info) {
+			sensor_names[i].sensor_info = sensor_info;
+			sensor_names[i].name = name;
+			return 0;
+		}
+	}
+	return -ENOSPC;
+}
+EXPORT_SYMBOL(ispdrv_register_sensor_name);
+
+const char *ispdrv_get_sensor_name(void *sensor_info)
+{
+	unsigned int i;
+
+	for (i = 0; sensor_info && i < ARRAY_SIZE(sensor_names); i++)
+		if (sensor_names[i].sensor_info == sensor_info)
+			return sensor_names[i].name;
+	return NULL;
+}
+EXPORT_SYMBOL(ispdrv_get_sensor_name);
+
 void *ispdrv_get_sensor(int *index)
 {
 	return ak_isp_get_sensor(index);

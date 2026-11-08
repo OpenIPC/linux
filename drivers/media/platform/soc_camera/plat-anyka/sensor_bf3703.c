@@ -501,7 +501,7 @@ static AK_ISP_SENSOR_CB bf3703_callback =
 	.sensor_set_standby_out_func	= bf3703_set_standby_out
 };
 
-AK_SENSOR_MODULE(bf3703_callback, bf3703)
+AK_SENSOR_MODULE_NAMED(bf3703_callback, bf3703)
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 

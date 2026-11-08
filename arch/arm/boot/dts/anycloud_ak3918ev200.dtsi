@@ -1,9 +1,6 @@
 
 #include "anycloud_ak39ev330_common.dtsi"
 
-#define VIDEO_POOL_BASE       0x82800000
-#define VIDEO_POOL_SIZE       0x01800000
-
 #define LINUX_MEMORY_BASE     0x80000000
 #define LINUX_MEMORY_SIZE     0x04000000
 
@@ -38,19 +35,6 @@
 	    reg = <LINUX_MEMORY_BASE LINUX_MEMORY_SIZE>;
 	};
 
-    reserved-memory {
-        #address-cells = <1>;
-        #size-cells = <1>;
-        ranges;
-
-        video_pool: video_pool@82800000 {
-            compatible = "shared-dma-pool";
-            size = <VIDEO_POOL_SIZE>;
-            reg = <VIDEO_POOL_BASE VIDEO_POOL_SIZE>;
-            reusable;
-            status = "okay";
-        };
-    };
 
 };
 
