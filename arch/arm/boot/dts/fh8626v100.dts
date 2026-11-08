@@ -103,8 +103,14 @@
 			linux,cma-default;
 		};
 
-		arc_reserved: memory@a3f00000 {
-			reg = <0xa3f00000 0x00100000>;
+		arc_memory: memory@a3f00000 {
+			reg = <0xa3f00000 0x000c0000>;
+			no-map;
+		};
+
+		arc_dma: dma-pool@a3fc0000 {
+			compatible = "shared-dma-pool";
+			reg = <0xa3fc0000 0x00040000>;
 			no-map;
 		};
 	};
@@ -254,6 +260,7 @@
 };
 
 &arc {
+	memory-region = <&arc_memory>, <&arc_dma>;
 	status = "okay";
 };
 

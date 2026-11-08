@@ -7,6 +7,7 @@
 
 #include <dt-bindings/clock/fh8626v100-clk.h>
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/reset/fh8626v100-reset.h>
 
 / {
 	#address-cells = <1>;
@@ -130,6 +131,7 @@
 			clk: clock-controller {
 				compatible = "fullhan,fh8626v100-clk";
 				#clock-cells = <1>;
+				#reset-cells = <1>;
 				clocks = <&osc>;
 				clock-names = "osc";
 			};
@@ -424,11 +426,11 @@
 			};
 		};
 
-		arc: arc-isolation {
-			compatible = "fullhan,fh8626-arc-isolation",
-				      "fullhan,fh8626v100-arc";
+		arc: remoteproc {
+			compatible = "fullhan,fh8626v100-arc";
+			interrupts = <32>;
 			clocks = <&clk FH8626_CLK_ARC>;
-			clock-names = "arc";
+			resets = <&clk FH8626_RST_ARC>;
 			status = "disabled";
 		};
 
