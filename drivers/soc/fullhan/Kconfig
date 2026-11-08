@@ -1,9 +1,0 @@
-config FH8626_ARC_ISOLATION
-	tristate "Fullhan FH8626 ARC Companion Core Isolation Driver"
-	depends on ARCH_FULLHAN
-	help
-	  Isolates the ARC companion on the FH8626V100 by
-	  holding it in reset and gating its clock, so it
-	  cannot access the system bus. The device node has
-	  no register window of its own.
-

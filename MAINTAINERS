@@ -1507,7 +1507,6 @@ F:	drivers/nvmem/fh8626-efuse.c
 F:	drivers/rtc/rtc-fh8626.c
 F:	drivers/phy/phy-fh8626-mipi.c
 F:	drivers/crypto/fullhan/
-F:	drivers/soc/fullhan/
 F:	drivers/phy/phy-fh8626-usb.c
 F:	drivers/net/ethernet/stmicro/stmmac/dwmac-fh8626.c
 F:	drivers/dma/fh8626-dma.c
