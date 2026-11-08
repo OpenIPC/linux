@@ -358,7 +358,7 @@ static AK_ISP_SENSOR_CB sp2305_callback =
 	.sensor_set_standby_out_func	= sp2305_set_standby_out
 };
 
-AK_SENSOR_MODULE(sp2305_callback, sp2305)
+AK_SENSOR_MODULE_NAMED(sp2305_callback, sp2305)
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 

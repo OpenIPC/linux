@@ -305,7 +305,7 @@ static AK_ISP_SENSOR_CB imx307_callback =
 	.sensor_set_standby_out_func	    = imx307_set_standby_out
 };
 
-AK_SENSOR_MODULE(imx307_callback, imx307)
+AK_SENSOR_MODULE_NAMED(imx307_callback, imx307)
 
 
 static int imx307_cmos_updata_d_gain(const unsigned int d_gain)

@@ -282,7 +282,7 @@ static AK_ISP_SENSOR_CB sc1235_callback =
 	.sensor_set_standby_out_func	= sc1235_set_standby_out
 };
 
-AK_SENSOR_MODULE(sc1235_callback, sc1235)
+AK_SENSOR_MODULE_NAMED(sc1235_callback, sc1235)
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 

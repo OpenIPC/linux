@@ -352,7 +352,7 @@ static AK_ISP_SENSOR_CB gc2053_callback =
 	.sensor_set_standby_out_func	= gc2053_set_standby_out
 };
 
-AK_SENSOR_MODULE(gc2053_callback, gc2053)
+AK_SENSOR_MODULE_NAMED(gc2053_callback, gc2053)
 	
 u8 regValTable[29][4] = {  
 	                            {0x00, 0x00,0x01,0x00},
