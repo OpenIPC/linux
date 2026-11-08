@@ -286,6 +286,8 @@ static void rproc_virtio_dev_release(struct device *dev)
 	struct rproc_vdev *rvdev = vdev_to_rvdev(vdev);
 	struct rproc *rproc = vdev_to_rproc(vdev);
 
+	kfree(container_of(vdev, struct rproc_virtio_device, vdev));
+
 	kref_put(&rvdev->refcount, rproc_vdev_release);
 
 	put_device(&rproc->dev);
@@ -304,9 +306,16 @@ int rproc_add_virtio_dev(struct rproc_vdev *rvdev, int id)
 {
 	struct rproc *rproc = rvdev->rproc;
 	struct device *dev = &rproc->dev;
-	struct virtio_device *vdev = &rvdev->vdev;
+	struct rproc_virtio_device *rpvdev;
+	struct virtio_device *vdev;
 	int ret;
 
+	rpvdev = kzalloc(sizeof(*rpvdev), GFP_KERNEL);
+	if (!rpvdev)
+		return -ENOMEM;
+
+	rpvdev->rvdev = rvdev;
+	vdev = &rpvdev->vdev;
 	vdev->id.device	= id,
 	vdev->config = &rproc_virtio_config_ops,
 	vdev->dev.parent = dev;
@@ -332,6 +341,8 @@ int rproc_add_virtio_dev(struct rproc_vdev *rvdev, int id)
 		goto out;
 	}
 
+	rvdev->vdev = vdev;
+
 	dev_info(dev, "registered %s (type %d)\n", dev_name(&vdev->dev), id);
 
 out:
@@ -346,5 +357,5 @@ out:
  */
 void rproc_remove_virtio_dev(struct rproc_vdev *rvdev)
 {
-	unregister_virtio_device(&rvdev->vdev);
+	unregister_virtio_device(rvdev->vdev);
 }

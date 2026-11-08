@@ -527,7 +527,7 @@ struct rproc_vring {
  * @id: virtio device id (as in virtio_ids.h)
  * @node: list node
  * @rproc: the rproc handle
- * @vdev: the virio device
+ * @vdev: the registered virtio device
  * @vring: the vrings for this vdev
  * @rsc_offset: offset of the vdev's resource entry
  */
@@ -539,9 +539,19 @@ struct rproc_vdev {
 	unsigned int id;
 	struct list_head node;
 	struct rproc *rproc;
-	struct virtio_device vdev;
+	struct virtio_device *vdev;
 	struct rproc_vring vring[RVDEV_NUM_VRINGS];
 	u32 rsc_offset;
+};
+
+/**
+ * struct rproc_virtio_device - virtio device allocated for each registration
+ * @vdev: the virtio device
+ * @rvdev: the remote vdev
+ */
+struct rproc_virtio_device {
+	struct virtio_device vdev;
+	struct rproc_vdev *rvdev;
 };
 
 struct rproc *rproc_get_by_phandle(phandle phandle);
@@ -562,7 +572,7 @@ int rproc_coredump_add_segment(struct rproc *rproc, dma_addr_t da, size_t size);
 
 static inline struct rproc_vdev *vdev_to_rvdev(struct virtio_device *vdev)
 {
-	return container_of(vdev, struct rproc_vdev, vdev);
+	return container_of(vdev, struct rproc_virtio_device, vdev)->rvdev;
 }
 
 static inline struct rproc *vdev_to_rproc(struct virtio_device *vdev)
