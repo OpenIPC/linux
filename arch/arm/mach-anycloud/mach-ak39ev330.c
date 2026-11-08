@@ -29,6 +29,7 @@
 
 #include <linux/input.h>
 #include <linux/irqchip.h>
+#include <mach-anyka/ak_rmem.h>
 
 #define AK_CPU_ID			(AK_VA_SYSCTRL + 0x00)
 
@@ -142,7 +143,7 @@ DT_MACHINE_START(AK39xxEV330, "AK39EV330")
 	.init_time = NULL,
 	.init_machine = ak39ev330_init,
 	.init_early = NULL,
-	.reserve = NULL,
+	.reserve = ak_rmem_reserve,
     .restart = ak39ev330_restart,
 MACHINE_END
 #endif /* !CONFIG_MACH_AK3918EV300 */
@@ -170,7 +171,7 @@ DT_MACHINE_START(AK3918EV300, "CLOUD39EV3_AK3918EV300_MNBD")
 	.init_time = NULL,
 	.init_machine = ak39ev330_init,
 	.init_early = NULL,
-	.reserve = NULL,
+	.reserve = ak_rmem_reserve,
 	.restart = ak39ev330_restart,
 MACHINE_END
 #endif /* CONFIG_MACH_AK3918EV300 */
@@ -182,8 +183,14 @@ MACHINE_END
 #ifndef CONFIG_PHYS_OFFSET
 #error "AK3918/AK3918EV200 need a fixed CONFIG_PHYS_OFFSET; ARM_PATCH_PHYS_VIRT cannot align it"
 #endif
-#if CONFIG_PHYS_OFFSET != AK3918EV200_DRAM_BASE + CONFIG_VIDEO_RESERVED_MEM_SIZE
-#error "CONFIG_PHYS_OFFSET must equal 0x80000000 + CONFIG_VIDEO_RESERVED_MEM_SIZE"
+/*
+ * Either the kernel starts at the bottom of DRAM and rmem= places the video
+ * memory, or it keeps the vendor layout with the video pool in the
+ * CONFIG_VIDEO_RESERVED_MEM_SIZE below it.
+ */
+#if CONFIG_PHYS_OFFSET != AK3918EV200_DRAM_BASE && \
+	CONFIG_PHYS_OFFSET != AK3918EV200_DRAM_BASE + CONFIG_VIDEO_RESERVED_MEM_SIZE
+#error "CONFIG_PHYS_OFFSET must be 0x80000000, or 0x80000000 + CONFIG_VIDEO_RESERVED_MEM_SIZE"
 #endif
 #endif
 
@@ -210,7 +217,7 @@ DT_MACHINE_START(AK3918, "Aimer39_AK3918_MB_V1.0.0")
 	.init_time = NULL,
 	.init_machine = ak39ev330_init,
 	.init_early = NULL,
-	.reserve = NULL,
+	.reserve = ak_rmem_reserve,
 	.restart = ak39ev330_restart,
 MACHINE_END
 #endif /* CONFIG_MACH_AK3918 */
@@ -233,7 +240,7 @@ DT_MACHINE_START(AK3918EV200, "Cloud39EV2_AK3918E80PIN_MNBD")
 	.init_time = NULL,
 	.init_machine = ak39ev330_init,
 	.init_early = NULL,
-	.reserve = NULL,
+	.reserve = ak_rmem_reserve,
 	.restart = ak39ev330_restart,
 MACHINE_END
 #endif /* CONFIG_MACH_AK3918EV200 */

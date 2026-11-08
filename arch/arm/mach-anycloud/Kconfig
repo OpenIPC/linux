@@ -54,6 +54,14 @@ config AK39_SYSCTRL_5TIMERS
 	  AnyCloud39EV300 parts. EV330 adds timers 6-10 and five more
 	  sub-interrupts.
 
+config AK_RMEM
+	bool
+	default y if MACH_AK39EV330 || AK3918_FAMILY
+	help
+	  rmem=SIZE[@BASE] on the kernel command line: the video memory the
+	  ISP and the encoder share, taken out of Linux memory and handed to
+	  them as one DMA pool (arch/arm/mach-anycloud/ak_rmem.c).
+
 config AK3918_FAMILY
 	bool
 	default y if MACH_AK3918EV200 || MACH_AK3918

@@ -22,6 +22,7 @@
 #include <linux/of.h>
 #include <linux/of_address.h>
 #include <linux/of_reserved_mem.h>
+#include <mach-anyka/ak_rmem.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 #include <linux/string.h>
@@ -1720,7 +1721,20 @@ static int ak_venc_claim_pool(struct platform_device *pdev)
 {
 	struct device_node *np;
 	struct resource res;
+	phys_addr_t base;
+	size_t size;
 	int ret;
+
+	ret = ak_rmem_device_init(&pdev->dev, &base, &size);
+	if (!ret) {
+		dev_info(&pdev->dev, "encoder pool at %pa, %u KiB (rmem)\n",
+			 &base, (unsigned int)(size / 1024));
+		return 0;
+	}
+	if (ret != -ENODEV) {
+		dev_err(&pdev->dev, "cannot claim the rmem pool: %d\n", ret);
+		return ret;
+	}
 
 	np = of_parse_phandle(pdev->dev.of_node, "memory-region", 0);
 	if (!np) {
@@ -1864,6 +1878,7 @@ err_unmap:
 	if (dev->clk)
 		clk_disable_unprepare(dev->clk);
 err_free:
+	ak_rmem_device_release(&pdev->dev);
 	of_reserved_mem_device_release(&pdev->dev);
 	kfree(dev);
 	return ret;
@@ -1880,6 +1895,7 @@ static int ak_venc_remove(struct platform_device *pdev)
 	v4l2_device_unregister(&dev->v4l2_dev);
 	if (dev->clk)
 		clk_disable_unprepare(dev->clk);
+	ak_rmem_device_release(&pdev->dev);
 	of_reserved_mem_device_release(&pdev->dev);
 	kfree(dev);
 	return 0;

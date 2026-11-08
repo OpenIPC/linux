@@ -775,12 +775,14 @@ static int __init early_mem(char *p)
 		start = memparse(endp + 1, NULL);
 
 /*
- * Only AK3918 and EV200 keep their video pool below PHYS_OFFSET
- * (mach-ak39ev330.c); the EV300/EV330 boards carve theirs out of the middle
- * of RAM in the device tree, and taking it off the top as well would lose
- * it twice.
+ * AK3918 and EV200 kernels built for the vendor layout keep their video pool
+ * below PHYS_OFFSET (mach-ak39ev330.c), and their mem= counts it. A kernel
+ * at the bottom of DRAM takes mem= as it is and gets its video memory from
+ * rmem=; the EV300/EV330 boards carve theirs out of the middle of RAM in
+ * the device tree, and taking it off the top as well would lose it twice.
  */
-#if defined(CONFIG_AK3918_FAMILY) && defined(CONFIG_VIDEO_RESERVED_MEM_SIZE)
+#if defined(CONFIG_AK3918_FAMILY) && defined(CONFIG_VIDEO_RESERVED_MEM_SIZE) && \
+	CONFIG_PHYS_OFFSET != 0x80000000
 	if (first && start == PHYS_OFFSET &&
 	    size > (u64)CONFIG_VIDEO_RESERVED_MEM_SIZE)
 		size -= CONFIG_VIDEO_RESERVED_MEM_SIZE;

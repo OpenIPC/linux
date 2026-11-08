@@ -21,6 +21,7 @@
 #include <linux/of.h>
 #include <linux/of_address.h>
 #include <linux/of_reserved_mem.h>
+#include <mach-anyka/ak_rmem.h>
 #include <linux/pinctrl/consumer.h>
 #include <linux/delay.h>
 #include <linux/mutex.h>
@@ -2174,7 +2175,19 @@ static int ak_camera_claim_pool(struct platform_device *pdev, size_t *bytes)
 {
 	struct device_node *np;
 	struct resource res;
+	phys_addr_t base;
 	int err;
+
+	err = ak_rmem_device_init(&pdev->dev, &base, bytes);
+	if (!err) {
+		dev_info(&pdev->dev, "capture pool at %pa, %zu KiB (rmem)\n",
+			 &base, *bytes / 1024);
+		return 0;
+	}
+	if (err != -ENODEV) {
+		dev_err(&pdev->dev, "cannot claim the rmem pool: %d\n", err);
+		return err;
+	}
 
 	np = of_parse_phandle(pdev->dev.of_node, "memory-region", 0);
 	if (!np) {
@@ -2364,6 +2377,7 @@ exit_isp_fini:
 exit_put_clk:
 	clk_put(clk);
 exit_release_pool:
+	ak_rmem_device_release(&pdev->dev);
 	of_reserved_mem_device_release(&pdev->dev);
 exit:
 	return err;
@@ -2395,6 +2409,7 @@ static int ak_camera_remove(struct platform_device *pdev)
 
 	kfree(pcdev);
 
+	ak_rmem_device_release(&pdev->dev);
 	of_reserved_mem_device_release(&pdev->dev);
 
 	dev_info(&pdev->dev, "AK Camera driver unloaded\n");

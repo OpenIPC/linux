@@ -218,7 +218,6 @@
 };
 
 &venc {
-	memory-region = <&video_pool>;
 	status = "okay";
 };
 
@@ -233,7 +232,6 @@
 	clocks = <&gclk_asic 17>;
 	clock-names = "camera";
 	mclk-mhz = <27>;
-	memory-region = <&video_pool>;
 	status = "okay";
 
 	port {
