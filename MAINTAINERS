@@ -1526,6 +1526,7 @@ F:	drivers/misc/fh8626-ptz.c
 F:	sound/soc/fullhan/
 F:	include/linux/soc/fullhan/
 F:	include/dt-bindings/clock/fh8626v100-clk.h
+F:	include/dt-bindings/reset/fh8626v100-reset.h
 F:	Documentation/devicetree/bindings/arm/fullhan.txt
 F:	Documentation/devicetree/bindings/clock/fullhan,fh8626v100-clk.txt
 F:	Documentation/devicetree/bindings/crypto/fullhan,fh8626v100-aes.txt
