@@ -23,15 +23,19 @@
 #include <linux/mutex.h>
 #include <linux/of.h>
 #include <linux/of_address.h>
+#include <linux/reset-controller.h>
 #include <linux/slab.h>
 #include <linux/spinlock.h>
 #include <linux/soc/fullhan/fh8626-pmu.h>
 #include <asm/div64.h>
 #include <dt-bindings/clock/fh8626v100-clk.h>
+#include <dt-bindings/reset/fh8626v100-reset.h>
 
 #define FH_PMU_REG_SWRST	0x54
 #define FH_PMU_SWRST_GMAC_BIT	10
 #define FH_PMU_SWRST_SDC0_BIT	12
+#define FH_PMU_REG_ARC_RST	0x1c4
+#define FH_PMU_ARC_RST_BIT	18
 
 static DEFINE_SPINLOCK(fh_clk_lock);
 static DEFINE_MUTEX(fh_reset_lock);
@@ -121,6 +125,58 @@ out:
 	return ret;
 }
 EXPORT_SYMBOL_GPL(fh8626_pmu_reset);
+
+/* Level resets, active low */
+static const struct {
+	u16 reg;
+	u8 bit;
+} fh_resets[] = {
+	[FH8626_RST_ARC] = { FH_PMU_REG_ARC_RST, FH_PMU_ARC_RST_BIT },
+};
+
+static int fh_reset_update(unsigned long id, bool assert)
+{
+	u32 mask = BIT(fh_resets[id].bit);
+
+	return fh8626_pmu_update_bits(fh_resets[id].reg, mask,
+				      assert ? 0 : mask);
+}
+
+static int fh_reset_assert(struct reset_controller_dev *rcdev,
+			   unsigned long id)
+{
+	return fh_reset_update(id, true);
+}
+
+static int fh_reset_deassert(struct reset_controller_dev *rcdev,
+			     unsigned long id)
+{
+	return fh_reset_update(id, false);
+}
+
+static int fh_reset_status(struct reset_controller_dev *rcdev,
+			   unsigned long id)
+{
+	u32 value;
+	int ret;
+
+	ret = fh8626_pmu_read(fh_resets[id].reg, &value);
+	if (ret)
+		return ret;
+	return !(value & BIT(fh_resets[id].bit));
+}
+
+static const struct reset_control_ops fh_reset_ops = {
+	.assert = fh_reset_assert,
+	.deassert = fh_reset_deassert,
+	.status = fh_reset_status,
+};
+
+static struct reset_controller_dev fh_reset_dev = {
+	.ops = &fh_reset_ops,
+	.owner = THIS_MODULE,
+	.nr_resets = ARRAY_SIZE(fh_resets),
+};
 
 struct clk_fh_pll {
 	struct clk_hw	hw;
@@ -687,6 +743,11 @@ free_components:
 	ret = of_clk_add_provider(np, of_clk_src_onecell_get, &clk_data);
 	if (ret)
 		pr_err("failed to register clock provider: %d\n", ret);
+
+	fh_reset_dev.of_node = np;
+	ret = reset_controller_register(&fh_reset_dev);
+	if (ret)
+		pr_err("failed to register reset controller: %d\n", ret);
 	return;
 
 put_osc:

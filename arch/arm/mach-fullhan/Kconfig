@@ -43,10 +43,12 @@ config FH_CLK
 	bool "Fullhan FH8626V100 Clock Driver"
 	default y
 	depends on COMMON_CLK
+	select RESET_CONTROLLER
 	help
 	  Support for the common clock tree on the Fullhan
 	  FH8626V100. The provider shares the system
 	  controller register window with the other users of
-	  that block and publishes the on-chip clocks.
+	  that block and publishes the on-chip clocks and
+	  resets.
 
 endif
