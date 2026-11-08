@@ -14,7 +14,7 @@
 
 	chosen {
 		stdout-path = "serial0:115200n8";
-		bootargs = "console=ttyS0,115200 root=/dev/mtdblock4 rootfstype=squashfs mtdparts=spi0.0:256k(bootstrap),64k(uboot-env),256k(uboot),1984k(Kernel),5632k(rootfs)";
+		bootargs = "console=ttyS0,115200 root=/dev/mtdblock4 rootfstype=squashfs mtdparts=spi0.0:256k(bootstrap),64k(uboot-env),256k(uboot),1984k(Kernel),5120k(rootfs),512k(rootfs_data)";
 	};
 
 	memory@a0000000 {
@@ -153,7 +153,11 @@
 			};
 			partition@280000 {
 				label = "rootfs";
-				reg = <0x280000 0x580000>;
+				reg = <0x280000 0x500000>;
+			};
+			partition@780000 {
+				label = "rootfs_data";
+				reg = <0x780000 0x080000>;
 			};
 		};
 	};
