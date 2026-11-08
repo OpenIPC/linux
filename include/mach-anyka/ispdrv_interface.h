@@ -63,6 +63,14 @@ int ispdrv_vi_stop_capturing(void);
 int ispdrv_is_continuous(void);
 
 int ispdrv_register_sensor(void *sensor_info);
+/*
+ * The name a sensor goes by in OpenIPC -- what ipctool reports, and the
+ * basename of its ISP tuning file in /etc/sensor -- kept beside the vendor
+ * sensor table rather than in AK_ISP_SENSOR_CB, whose layout prebuilt
+ * vendor sensor modules depend on.
+ */
+int ispdrv_register_sensor_name(void *sensor_info, const char *name);
+const char *ispdrv_get_sensor_name(void *sensor_info);
 
 void *ispdrv_get_sensor(int *index);
 

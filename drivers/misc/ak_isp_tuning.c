@@ -1,5 +1,8 @@
 #include <linux/errno.h>
 #include <linux/device.h>
+#include <linux/file.h>
+#include <linux/fs.h>
+#include <linux/vmalloc.h>
 #include <linux/kernel.h>
 #include <linux/slab.h>
 #include <linux/string.h>
@@ -131,40 +134,108 @@ static int validate_style(const u8 *data, unsigned int size,
 	return 0;
 }
 
-int ak_isp_tuning_load(struct device *dev, const char *name,
-		      unsigned int sensor_id, struct ak_isp_tuning *tuning)
+/* Read a whole tuning file from the root filesystem into vmalloc memory. */
+static int read_tuning_file(const char *path, void **buf, size_t *len)
 {
-	const struct firmware *firmware;
-	unsigned int count, size, style;
+	struct file *file;
+	loff_t size;
 	int ret;
 
-	BUILD_BUG_ON(sizeof(AK_ISP_SENSOR_REG_INFO) != 4);
-	ret = request_firmware(&firmware, name, dev);
-	if (ret)
-		return ret;
-	if (firmware->size < STYLE_HEADER_SIZE || firmware->size > MAX_TUNING_SIZE) {
+	file = filp_open(path, O_RDONLY, 0);
+	if (IS_ERR(file))
+		return PTR_ERR(file);
+	size = i_size_read(file_inode(file));
+	if (size < STYLE_HEADER_SIZE || size > MAX_TUNING_SIZE) {
 		ret = -EINVAL;
-		goto fail;
+		goto out;
 	}
-	count = get_unaligned_le32(firmware->data);
-	size = get_unaligned_le32(firmware->data + 0x24);
-	if (!count || size < STYLE_HEADER_SIZE || size > firmware->size ||
-	    count != firmware->size / size || firmware->size % size) {
+	*buf = vmalloc(size);
+	if (!*buf) {
+		ret = -ENOMEM;
+		goto out;
+	}
+	ret = kernel_read(file, 0, *buf, size);
+	if (ret != size) {
+		vfree(*buf);
+		*buf = NULL;
+		ret = ret < 0 ? ret : -EIO;
+		goto out;
+	}
+	*len = size;
+	ret = 0;
+out:
+	fput(file);
+	return ret;
+}
+
+/*
+ * The tuning comes from <dir>/<sensor name>.conf when the sensor driver
+ * registered a name -- /etc/sensor/sc1345.conf, as the other OpenIPC SoCs
+ * keep theirs -- and otherwise from the @fallback firmware file.
+ */
+int ak_isp_tuning_load(struct device *dev, const char *dir,
+		      const char *sensor_name, const char *fallback,
+		      unsigned int sensor_id, struct ak_isp_tuning *tuning)
+{
+	const struct firmware *firmware = NULL;
+	unsigned int count, size, style;
+	const char *name = fallback;
+	char path[64];
+	void *buf = NULL;
+	const u8 *data;
+	size_t len;
+	int ret = -ENOENT;
+
+	BUILD_BUG_ON(sizeof(AK_ISP_SENSOR_REG_INFO) != 4);
+	if (sensor_name && dir && *dir) {
+		snprintf(path, sizeof(path), "%s/%s.conf", dir, sensor_name);
+		ret = read_tuning_file(path, &buf, &len);
+		if (!ret) {
+			name = path;
+			data = buf;
+		} else if (ret != -ENOENT) {
+			dev_err(dev, "cannot read %s: %d\n", path, ret);
+			return ret;
+		}
+	}
+	if (ret == -ENOENT) {
+		ret = request_firmware(&firmware, fallback, dev);
+		if (ret) {
+			if (sensor_name)
+				dev_err(dev, "no ISP tuning: neither %s nor %s\n",
+					path, fallback);
+			return ret;
+		}
+		data = firmware->data;
+		len = firmware->size;
+		if (len < STYLE_HEADER_SIZE || len > MAX_TUNING_SIZE) {
+			ret = -EINVAL;
+			goto fail;
+		}
+	}
+	count = get_unaligned_le32(data);
+	size = get_unaligned_le32(data + 0x24);
+	if (!count || size < STYLE_HEADER_SIZE || size > len ||
+	    count != len / size || len % size) {
 		ret = -EINVAL;
 		goto fail;
 	}
 	for (style = 0; style < count; style++) {
-		ret = validate_style(firmware->data + style * size, size, sensor_id, count);
+		ret = validate_style(data + style * size, size, sensor_id, count);
 		if (ret)
 			goto fail;
 	}
 	tuning->firmware = firmware;
+	tuning->buf = buf;
+	tuning->data = data;
 	tuning->style_size = size;
 	tuning->style_count = count;
+	dev_info(dev, "ISP tuning %s, %u styles\n", name, count);
 	return 0;
 fail:
 	dev_err(dev, "invalid ISP tuning %s for sensor 0x%x\n", name, sensor_id);
 	release_firmware(firmware);
+	vfree(buf);
 	return ret;
 }
 
@@ -178,14 +249,14 @@ int ak_isp_tuning_apply(const struct ak_isp_tuning *tuning, unsigned int style,
 	void *scratch;
 	int ret = 0, fps = 0;
 
-	if (!tuning->firmware || style >= tuning->style_count)
+	if (!tuning->data || style >= tuning->style_count)
 		return -EINVAL;
 	if (!sensor || !sensor->sensor_init_func || !sensor->sensor_set_fps_func)
 		return -ENODEV;
 	scratch = kmalloc(scratch_size, GFP_KERNEL);
 	if (!scratch)
 		return -ENOMEM;
-	data = tuning->firmware->data + style * tuning->style_size;
+	data = tuning->data + style * tuning->style_size;
 	for (i = 0; i < ARRAY_SIZE(modules); i++) {
 		for (w = 0; w < ARRAY_SIZE(modules[i].writes); w++) {
 			const struct tuning_write *write = &modules[i].writes[w];
@@ -224,5 +295,6 @@ out:
 void ak_isp_tuning_free(struct ak_isp_tuning *tuning)
 {
 	release_firmware(tuning->firmware);
+	vfree(tuning->buf);
 	memset(tuning, 0, sizeof(*tuning));
 }

@@ -49,4 +49,21 @@ MODULE_LICENSE("GPL"); \
 MODULE_AUTHOR("ye_guohong <ye_guohong@anyka.oa>"); \
 MODULE_DESCRIPTION("Driver for Sensor Interface");
 
+/*
+ * As AK_SENSOR_MODULE(), and registers @name ("sc1345") as the sensor's
+ * OpenIPC name: the ISP driver loads /etc/sensor/<name>.conf for it.
+ */
+#define AK_SENSOR_MODULE_NAMED(callback, name) \
+static int name##_module_init(void) \
+{ \
+	int ret = ispdrv_register_sensor_name(&callback, #name); \
+	return ret ? ret : ispdrv_register_sensor(&callback); \
+} \
+static void name##_module_exit(void) \
+{ \
+} \
+module_init(name##_module_init); \
+module_exit(name##_module_exit); \
+MODULE_LICENSE("GPL");
+
 #endif
