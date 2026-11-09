@@ -70,6 +70,8 @@ struct fh_wdt_drv {
 	unsigned long		next_heartbeat;
 	struct timer_list	timer;
 	int					expect_close;
+	/* MODE_DISCRETE: the last timeout userspace asked for, in seconds */
+	unsigned int		timeout;
 };
 
 struct fh_wdt_drv fh_wdt;
@@ -126,6 +128,14 @@ static void fh_wdt_keepalive(void)
 
 static void fh_wdt_ping(unsigned long data)
 {
+	/*
+	 * In MODE_DISCRETE an open device belongs to userspace alone. open()
+	 * sets in_use before it cancels this timer and refreshes
+	 * next_heartbeat, so a run that races it must not feed or re-arm.
+	 */
+	if (fh_wdt.mode == MODE_DISCRETE && test_bit(0, &fh_wdt.in_use))
+		return;
+
 	if (time_before(jiffies, fh_wdt.next_heartbeat) ||
 		(!nowayout && !fh_wdt.in_use)) {
 		fh_wdt_keepalive();
@@ -146,7 +156,18 @@ static int fh_wdt_open(struct inode *inode, struct file *filp)
 
 	fh_pmu_wdt_resume();
 
-	fh_wdt_set_top(WDT_HW_TIMEOUT);
+	/*
+	 * MODE_CONTINUOUS keeps the hardware on a 2 s fuse and pets it from
+	 * the timer. MODE_DISCRETE hands the counter itself to userspace, so
+	 * it gets the timeout userspace last chose, not a 2 s one: a second
+	 * opener that does not set its own -- a keeper picking up a dog its
+	 * owner left running -- would otherwise be reset before its first
+	 * ping lands.
+	 */
+	if (fh_wdt.mode == MODE_DISCRETE)
+		fh_wdt_set_top(fh_wdt.timeout);
+	else
+		fh_wdt_set_top(WDT_HW_TIMEOUT);
 	if (!fh_wdt_is_enabled()) {
 /*
  * The watchdog is not currently enabled. Set the timeout to
@@ -159,13 +180,15 @@ static int fh_wdt_open(struct inode *inode, struct file *filp)
 		value |= WDOG_CONTROL_REG_RMOD_MASK;
 #endif
 		writel(value, fh_wdt.regs + WDOG_CONTROL_REG_OFFSET);
-		fh_wdt_keepalive();
 	}
-
-	if (fh_wdt.mode == MODE_DISCRETE)
-		del_timer(&fh_wdt.timer);
+	/* A new TOP takes effect on the next restart. */
+	fh_wdt_keepalive();
 
 	spin_unlock(&fh_wdt.lock);
+
+	/* A magic close re-armed it; wait out a run already under way. */
+	if (fh_wdt.mode == MODE_DISCRETE)
+		del_timer_sync(&fh_wdt.timer);
 
 	return nonseekable_open(inode, filp);
 }
@@ -244,6 +267,7 @@ static long fh_wdt_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			fh_wdt_set_next_heartbeat();
 			fh_wdt_keepalive();
 		} else {
+			fh_wdt.timeout = val;
 			fh_wdt_set_top(val);
 			fh_wdt_keepalive();
 		}
@@ -289,10 +313,29 @@ static irqreturn_t fh_wdt_interrupt(int this_irq, void *dev_id)
 
 static int fh_wdt_release(struct inode *inode, struct file *filp)
 {
+	spin_lock(&fh_wdt.lock);
+
+	/* Before the timer is re-armed, or its first run would stand down. */
 	clear_bit(0, &fh_wdt.in_use);
 
-	if (!fh_wdt.expect_close && (fh_wdt.mode == MODE_CONTINUOUS)) {
-		del_timer(&fh_wdt.timer);
+	if (fh_wdt.expect_close && !nowayout) {
+		/*
+		 * The DesignWare enable bit cannot be cleared, so a magic close
+		 * cannot stop the counter; it can only give it back to the
+		 * timer, which pets it while nobody holds the device. In
+		 * MODE_DISCRETE open() took the timer away and nothing gave it
+		 * back, so the dog bit one timeout after a clean close:
+		 * firmware#2805, an FH8852V200 reset mid-flash once majestic
+		 * had stopped and closed it properly. MODE_CONTINUOUS never
+		 * stopped the timer and needs nothing here.
+		 */
+		if (fh_wdt.mode == MODE_DISCRETE) {
+			fh_wdt_keepalive();
+			mod_timer(&fh_wdt.timer, jiffies + WDT_TIMEOUT);
+		}
+	} else {
+		if (fh_wdt.mode == MODE_CONTINUOUS)
+			del_timer(&fh_wdt.timer);
 		if (!nowayout)
 			pr_crit("unexpected close, system will reboot soon\n");
 		else
@@ -300,6 +343,8 @@ static int fh_wdt_release(struct inode *inode, struct file *filp)
 	}
 
 	fh_wdt.expect_close = 0;
+
+	spin_unlock(&fh_wdt.lock);
 
 	return 0;
 }
@@ -442,6 +487,7 @@ static int fh_wdt_drv_probe(struct platform_device *pdev)
 		goto out_put_clk;
 
 	spin_lock_init(&fh_wdt.lock);
+	fh_wdt.timeout = WDT_HEARTBEAT;
 	ret = misc_register(&fh_wdt_miscdev);
 	if (ret)
 		goto out_disable_clk;
@@ -469,6 +515,7 @@ release_region:
 static int fh_wdt_drv_remove(struct platform_device *pdev)
 {
 	misc_deregister(&fh_wdt_miscdev);
+	del_timer_sync(&fh_wdt.timer);
 
 	clk_disable(fh_wdt.clk);
 	clk_put(fh_wdt.clk);
