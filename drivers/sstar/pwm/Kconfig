@@ -1,5 +1,6 @@
 config MS_PWM
     tristate "SSTAR_PWM"
+    depends on MS_GPIO
     select PWM
     help
        Say Y here to enable the driver for the PWM.
