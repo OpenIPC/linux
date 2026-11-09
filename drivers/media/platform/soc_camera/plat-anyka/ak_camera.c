@@ -2475,6 +2475,8 @@ static int ak_camera_remove(struct platform_device *pdev)
 	/* free clk */
 	clk_put(pcdev->clk);
 
+	/* An /dev/isp_char style switch may still be running our callback. */
+	ak_isp_sync_style();
 	kfree(pcdev);
 
 	ak_rmem_device_release(&pdev->dev);

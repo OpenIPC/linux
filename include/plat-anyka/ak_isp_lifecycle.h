@@ -7,6 +7,8 @@ int ak_isp_acquire(int (*set_style)(void *context, unsigned int style),
 		   void *context);
 int ak_isp_prepare(struct device *dev);
 void ak_isp_release(void);
+/* Wait out style switches still running a callback; see ak_isp_char.c. */
+void ak_isp_sync_style(void);
 /* Caller holds capture mutex and quiesces IRQ/3A; failure requires reopen. */
 int ak_isp_apply_tuning_style(unsigned int style);
 int ak_isp_get_awb_auto(int *enabled);
