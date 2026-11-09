@@ -1319,7 +1319,13 @@ static int mipi_ip_initiation(struct ak_camera_dev *pcdev,
 	sensor_cb->sensor_get_parameter_func(GET_MIPI_LANE, &mipi_lane);
 
 	thssettle = mipi_mhz_to_thssettle(mipi_mhz);
-	if (thssettle >= 0)
+	/*
+	 * The stock EV300 host programs the table's THS-SETTLE as it is: 0x89
+	 * for the JX-F23's 768 Mbps, where the window below would move it to
+	 * 0x8a. 0x89 is what its D-PHY reads while streaming and what gave
+	 * frames on the TC100 (OpenIPC/firmware#2639).
+	 */
+	if (thssettle >= 0 && !of_machine_is_compatible("anyka,ak3918ev300"))
 		thssettle = mipi_thssettle_init(thssettle, mipi_mhz);
 	if (thssettle < 0) {
 		pr_err("%s: no THS-SETTLE for %d MHz\n", __func__, mipi_mhz);
@@ -1393,6 +1399,9 @@ static int set_sensor_interface(struct ak_camera_dev *pcdev,
 				ret);
 			return ret;
 		}
+	} else if (sensor_interface == MIPI_INTERFACE) {
+		/* EV300's MIPI pads have no mux; its DT has no MIPI states. */
+		dev_dbg(dev, "no MIPI pinctrl state, pads stay as they are\n");
 	} else {
 		dev_warn(dev, "no pinctrl state for interface %d; assuming pads pre-muxed\n",
 			 sensor_interface);

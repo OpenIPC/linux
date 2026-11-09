@@ -29,3 +29,17 @@
 &mmc0 {
 	bus-width = <1>;
 };
+
+/*
+ * The MIPI pads need no mux on EV300. The EV330 groups this board inherits
+ * (pins 70-75, functions 3 and 2) write 0x01F80000 into SHAREPIN_CON1
+ * (sysctrl 0x78), and with those bits set the ISP never sees a frame. The
+ * stock EV300 kernel's MIPI pin group writes nothing, and 0x78 reads 0 while
+ * it streams (OpenIPC/firmware#2639, TECKIN TC100 with a JX-F23). So EV300
+ * keeps the DVP pads as they are and only the D-PHY is switched to MIPI.
+ */
+&isp {
+	pinctrl-names = "default";
+	/delete-property/ pinctrl-1;
+	/delete-property/ pinctrl-2;
+};
