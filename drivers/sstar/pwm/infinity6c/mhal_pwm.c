@@ -17,6 +17,7 @@
 #include "mhal_pwm.h"
 #include "gpio.h"
 #include "padmux.h"
+#include "mdrv_gpio.h"
 #include <linux/of_irq.h>
 #include <linux/jiffies.h>
 
@@ -676,10 +677,8 @@ void MHal_PWMEnableGet(struct sstar_pwm_chip *sstar_chip, U8 u8Id, U8 *pu8Val)
     *pu8Val = _pwmEnSatus[u8Id];
 }
 
-/* pinmux HAL (drivers/sstar/gpio/infinity6c/mhal_pinmux.c) */
-extern S32  HalPadSetVal(U32 u32PadID, U32 u32Mode);
-extern U32 *HalPadModeToPadIndex(U32 u32Mode);
-extern S32  HalPadModeFieldIsSet(U32 u32Mode);
+/* exported by the GPIO driver (MS_PWM depends on MS_GPIO) */
+extern S32 HalPadModeFieldIsSet(U32 u32Mode);
 
 /* first and last pinmux mode of each PWM channel; all modes of one channel
  * share a single register field */
@@ -719,12 +718,12 @@ void MHal_PWMPadSet(U8 u8Id, U8 u8Val)
 
     for (u32Mode = _pwmPadModes[u8Id][0]; u32Mode <= _pwmPadModes[u8Id][1]; u32Mode++)
     {
-        pu32Pads = HalPadModeToPadIndex(u32Mode);
+        pu32Pads = MDrv_GPIO_PadModeToPadIndex(u32Mode);
         for (i = 0; PAD_UNKNOWN != pu32Pads[i]; i++)
         {
             if (pu32Pads[i] == u8Val)
             {
-                HalPadSetVal(u8Val, u32Mode);
+                MDrv_GPIO_PadVal_Set(u8Val, u32Mode);
                 return;
             }
         }

@@ -15,6 +15,7 @@
  *
  */
 #include <linux/mm.h>
+#include <linux/export.h>
 #include "ms_platform.h"
 #include "mdrv_types.h"
 #include "mhal_gpio.h"
@@ -2056,6 +2057,7 @@ S32 HalPadModeFieldIsSet(U32 u32Mode)
     }
     return _GPIO_R_WORD_MASK(m_stPadModeInfoTbl[u32Mode].u32ModeRIU, m_stPadModeInfoTbl[u32Mode].u16ModeMask) != 0;
 }
+EXPORT_SYMBOL(HalPadModeFieldIsSet);
 
 S32 _HalPadCheckEnablePadMux(U32 u32PadModeID)
 {
