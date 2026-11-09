@@ -28,5 +28,6 @@ extern void* HalPadCheckInfoGet(U8 u8Index);
 extern U8    HalPadModeToVal(U8* pu8Mode, U8* u8Index);
 extern void  HalGPIOSetVol(U32 u32Group, U32 u32Mode);
 extern U32*  HalPadModeToPadIndex(U32 u32Mode);
+extern S32   HalPadModeFieldIsSet(U32 u32Mode);
 
 #endif // __MHAL_PINMUX_H__

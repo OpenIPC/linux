@@ -2042,6 +2042,21 @@ S32 _HalPadCheckDisablePadMux(U32 u32PadModeID)
     return 0;
 }
 
+//------------------------------------------------------------------------------
+//  Function    : HalPadModeFieldIsSet
+//  Description : non-zero if the register field that selects u32Mode holds any
+//                value, i.e. some mode sharing that field (for example any pad
+//                of one PWM channel) is currently selected. Read-only.
+//------------------------------------------------------------------------------
+S32 HalPadModeFieldIsSet(U32 u32Mode)
+{
+    if (u32Mode >= (sizeof(m_stPadModeInfoTbl) / sizeof(m_stPadModeInfoTbl[0])))
+    {
+        return 0;
+    }
+    return _GPIO_R_WORD_MASK(m_stPadModeInfoTbl[u32Mode].u32ModeRIU, m_stPadModeInfoTbl[u32Mode].u16ModeMask) != 0;
+}
+
 S32 _HalPadCheckEnablePadMux(U32 u32PadModeID)
 {
     U16 u16RegVal = 0;

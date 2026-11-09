@@ -16,6 +16,7 @@
  */
 #include "mhal_pwm.h"
 #include "gpio.h"
+#include "padmux.h"
 #include <linux/of_irq.h>
 #include <linux/jiffies.h>
 
@@ -675,13 +676,61 @@ void MHal_PWMEnableGet(struct sstar_pwm_chip *sstar_chip, U8 u8Id, U8 *pu8Val)
     *pu8Val = _pwmEnSatus[u8Id];
 }
 
+/* pinmux HAL (drivers/sstar/gpio/infinity6c/mhal_pinmux.c) */
+extern S32  HalPadSetVal(U32 u32PadID, U32 u32Mode);
+extern U32 *HalPadModeToPadIndex(U32 u32Mode);
+extern S32  HalPadModeFieldIsSet(U32 u32Mode);
+
+/* first and last pinmux mode of each PWM channel; all modes of one channel
+ * share a single register field */
+static const U32 _pwmPadModes[PWM_NUM][2] = {
+    {PINMUX_FOR_PWM0_MODE_1, PINMUX_FOR_PWM0_MODE_4},   {PINMUX_FOR_PWM1_MODE_1, PINMUX_FOR_PWM1_MODE_4},
+    {PINMUX_FOR_PWM2_MODE_1, PINMUX_FOR_PWM2_MODE_4},   {PINMUX_FOR_PWM3_MODE_1, PINMUX_FOR_PWM3_MODE_4},
+    {PINMUX_FOR_PWM4_MODE_1, PINMUX_FOR_PWM4_MODE_3},   {PINMUX_FOR_PWM5_MODE_1, PINMUX_FOR_PWM5_MODE_3},
+    {PINMUX_FOR_PWM6_MODE_1, PINMUX_FOR_PWM6_MODE_3},   {PINMUX_FOR_PWM7_MODE_1, PINMUX_FOR_PWM7_MODE_3},
+    {PINMUX_FOR_PWM8_MODE_1, PINMUX_FOR_PWM8_MODE_3},   {PINMUX_FOR_PWM9_MODE_1, PINMUX_FOR_PWM9_MODE_4},
+    {PINMUX_FOR_PWM10_MODE_1, PINMUX_FOR_PWM10_MODE_4},
+};
+
 /**
- * MHal_PWMPadSet - set PWM enable status
+ * MHal_PWMPadSet - route the devicetree default pad (pad-ctrl) to a channel
+ * @u8Id: PWM channel
+ * @u8Val: pad number, (U8)PAD_UNKNOWN for "no default"
+ *
+ * Called on every disabled->enabled transition. A pad that is already
+ * selected for the channel, by the bootloader, the padmux node or from
+ * userspace, is kept. Otherwise the default pad is switched to this
+ * channel's PWM mode; the pinmux HAL clears any other function that
+ * pad had, e.g. I2C0 on PAD_PWM0/PAD_PWM1.
  *
  * Returns None
  */
+void MHal_PWMPadSet(U8 u8Id, U8 u8Val)
+{
+    U32  u32Mode;
+    U32 *pu32Pads;
+    int  i;
 
-void MHal_PWMPadSet(U8 u8Id, U8 u8Val) {}
+    if (PWM_NUM <= u8Id || (U8)PAD_UNKNOWN == u8Val)
+        return;
+
+    if (HalPadModeFieldIsSet(_pwmPadModes[u8Id][0]))
+        return;
+
+    for (u32Mode = _pwmPadModes[u8Id][0]; u32Mode <= _pwmPadModes[u8Id][1]; u32Mode++)
+    {
+        pu32Pads = HalPadModeToPadIndex(u32Mode);
+        for (i = 0; PAD_UNKNOWN != pu32Pads[i]; i++)
+        {
+            if (pu32Pads[i] == u8Val)
+            {
+                HalPadSetVal(u8Val, u32Mode);
+                return;
+            }
+        }
+    }
+    printk(KERN_WARNING "[PWM] pad %u has no PWM%u function\n", u8Val, u8Id);
+}
 
 /**
  * MHal_PWMPadSet - judge this chip is support motor interface or not
