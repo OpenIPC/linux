@@ -755,6 +755,10 @@
             npwm = <11>;
             clocks = <&CLK_pwm>;
             clk-select = <5>;
+            /* default pad per channel, routed on enable only if the
+             * channel has no pad selected yet */
+            pad-ctrl = <PAD_PWM0 PAD_PWM1 PAD_UNKNOWN PAD_UNKNOWN PAD_UNKNOWN PAD_UNKNOWN
+                        PAD_UNKNOWN PAD_UNKNOWN PAD_UNKNOWN PAD_UNKNOWN PAD_UNKNOWN>;
             interrupts=<GIC_SPI INT_IRQ_PWM IRQ_TYPE_EDGE_RISING>;
             status = "ok";
         };
