@@ -522,6 +522,13 @@ static int geth_power_on(struct geth_priv *priv)
 				continue;
 			if (regulator_enable(priv->gmac_power[i]) != 0) {
 				pr_err("gmac-power%d enable error\n", i);
+				/* Leave no channel on that a later power_off
+				 * would not know about.
+				 */
+				while (--i >= 0) {
+					if (!IS_ERR_OR_NULL(priv->gmac_power[i]))
+						regulator_disable(priv->gmac_power[i]);
+				}
 				return -EINVAL;
 			}
 		}
@@ -632,6 +639,75 @@ static void geth_adjust_link(struct net_device *ndev)
 	spin_unlock_irqrestore(&priv->lock, flags);
 }
 
+/* If config gpio to reset the phy device, we should reset it */
+static void geth_phy_reset(struct geth_priv *priv)
+{
+	if (gpio_is_valid(priv->phyrst)) {
+		gpio_direction_output(priv->phyrst, priv->rst_active_low);
+		msleep(50);
+		gpio_direction_output(priv->phyrst, !priv->rst_active_low);
+		msleep(50);
+	}
+}
+
+static int geth_clk_enable(struct geth_priv *priv);
+static void geth_clk_disable(struct geth_priv *priv);
+
+/*
+ * Whether a PHY answers on the MDIO bus, scanned the way geth_phy_init() does
+ * at open. A board that wires no PHY to the MAC otherwise still gets an eth0
+ * that every open fails with "No PHY found!", and userspace (udhcpc, ifup)
+ * keeps retrying it. When the check cannot run, assume a PHY is there.
+ */
+static bool geth_phy_present(struct net_device *ndev)
+{
+	struct geth_priv *priv = netdev_priv(ndev);
+	struct mii_bus *bus;
+	bool found = true;
+	int addr;
+
+	if (geth_power_on(priv))
+		return true;
+	if (geth_clk_enable(priv)) {
+		geth_power_off(priv);
+		return true;
+	}
+	if (priv->phy_ext == EXT_PHY)
+		geth_phy_reset(priv);
+
+	bus = mdiobus_alloc();
+	if (!bus)
+		goto out;
+
+	bus->name = dev_name(priv->dev);
+	bus->read = &geth_mdio_read;
+	bus->write = &geth_mdio_write;
+	bus->reset = &geth_mdio_reset;
+	snprintf(bus->id, MII_BUS_ID_SIZE, "%s-%x", bus->name, 0);
+	bus->parent = priv->dev;
+	bus->priv = ndev;
+
+	if (mdiobus_register(bus))
+		goto free;
+
+	found = false;
+	for (addr = 0; addr < PHY_MAX_ADDR; addr++) {
+		struct phy_device *phydev = mdiobus_get_phy(bus, addr);
+
+		if (phydev && phydev->phy_id != 0x00)
+			found = true;
+	}
+
+	mdiobus_unregister(bus);
+free:
+	mdiobus_free(bus);
+out:
+	geth_clk_disable(priv);
+	geth_power_off(priv);
+
+	return found;
+}
+
 static int geth_phy_init(struct net_device *ndev)
 {
 	int value;
@@ -643,19 +719,10 @@ static int geth_phy_init(struct net_device *ndev)
 		goto resume;
 
 	/* Fixup the phy interface type */
-	if (priv->phy_ext == INT_PHY) {
+	if (priv->phy_ext == INT_PHY)
 		priv->phy_interface = PHY_INTERFACE_MODE_MII;
-	} else {
-		/* If config gpio to reset the phy device, we should reset it */
-		if (gpio_is_valid(priv->phyrst)) {
-			gpio_direction_output(priv->phyrst,
-					priv->rst_active_low);
-			msleep(50);
-			gpio_direction_output(priv->phyrst,
-					!priv->rst_active_low);
-			msleep(50);
-		}
-	}
+	else
+		geth_phy_reset(priv);
 
 	new_bus = mdiobus_alloc();
 	if (!new_bus) {
@@ -1106,19 +1173,25 @@ static void geth_check_addr(struct net_device *ndev, unsigned char *mac)
 	}
 }
 
-static void geth_clk_enable(struct geth_priv *priv)
+/* On failure no clock is left enabled, so geth_clk_disable() must not follow. */
+static int geth_clk_enable(struct geth_priv *priv)
 {
 	int phy_interface = 0;
 	u32 clk_value;
 	u32 efuse_value;
 
-	if (clk_prepare_enable(priv->geth_clk))
+	if (clk_prepare_enable(priv->geth_clk)) {
 		pr_err("try to enable geth_clk failed!\n");
+		return -EINVAL;
+	}
 
 	if (((priv->phy_ext == INT_PHY) || g_use_ephy_clk)
 			&& !IS_ERR_OR_NULL(priv->ephy_clk)) {
-		if (clk_prepare_enable(priv->ephy_clk))
+		if (clk_prepare_enable(priv->ephy_clk)) {
 			pr_err("try to enable ephy_clk failed!\n");
+			clk_disable_unprepare(priv->geth_clk);
+			return -EINVAL;
+		}
 	}
 
 	phy_interface = priv->phy_interface;
@@ -1154,6 +1227,8 @@ static void geth_clk_enable(struct geth_priv *priv)
 	clk_value |= ((rx_delay & 0x1F) << 5);
 
 	writel(clk_value, priv->base_phy);
+
+	return 0;
 }
 
 static void geth_clk_disable(struct geth_priv *priv)
@@ -1224,9 +1299,12 @@ static int geth_open(struct net_device *ndev)
 	if (ret) {
 		netdev_err(ndev, "Power on is failed\n");
 		ret = -EINVAL;
+		goto power_err;
 	}
 
-	geth_clk_enable(priv);
+	ret = geth_clk_enable(priv);
+	if (ret)
+		goto clk_err;
 
 	netif_carrier_off(ndev);
 
@@ -1286,10 +1364,11 @@ desc_err:
 	geth_phy_release(ndev);
 err:
 	geth_clk_disable(priv);
+clk_err:
+	geth_power_off(priv);
+power_err:
 	if (priv->is_suspend)
 		napi_enable(&priv->napi);
-
-	geth_power_off(priv);
 
 	return ret;
 }
@@ -2092,6 +2171,13 @@ static int geth_probe(struct platform_device *pdev)
 
 	/* The last val is mdc clock ratio */
 	sunxi_geth_register((void *)ndev->base_addr, HW_VERSION, 0x03);
+
+	if (!geth_phy_present(ndev)) {
+		dev_info(&pdev->dev, "no PHY on the MDIO bus, no Ethernet interface\n");
+		netif_napi_del(&priv->napi);
+		ret = -ENODEV;
+		goto reg_err;
+	}
 
 	ret = register_netdev(ndev);
 	if (ret) {
