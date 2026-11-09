@@ -92,6 +92,12 @@
 		#size-cells = <1>;
 		ranges;
 
+		/* U-Boot's boot counter, cleared once a boot succeeds */
+		bootcount@a1c20000 {
+			reg = <0xa1c20000 0x1000>;
+			no-map;
+		};
+
 		cma_pool: cma@a2400000 {
 			compatible = "shared-dma-pool";
 			reusable;
