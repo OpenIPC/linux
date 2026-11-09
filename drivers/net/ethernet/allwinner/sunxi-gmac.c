@@ -522,6 +522,13 @@ static int geth_power_on(struct geth_priv *priv)
 				continue;
 			if (regulator_enable(priv->gmac_power[i]) != 0) {
 				pr_err("gmac-power%d enable error\n", i);
+				/* Leave no channel on that a later power_off
+				 * would not know about.
+				 */
+				while (--i >= 0) {
+					if (!IS_ERR_OR_NULL(priv->gmac_power[i]))
+						regulator_disable(priv->gmac_power[i]);
+				}
 				return -EINVAL;
 			}
 		}
@@ -643,7 +650,7 @@ static void geth_phy_reset(struct geth_priv *priv)
 	}
 }
 
-static void geth_clk_enable(struct geth_priv *priv);
+static int geth_clk_enable(struct geth_priv *priv);
 static void geth_clk_disable(struct geth_priv *priv);
 
 /*
@@ -661,7 +668,10 @@ static bool geth_phy_present(struct net_device *ndev)
 
 	if (geth_power_on(priv))
 		return true;
-	geth_clk_enable(priv);
+	if (geth_clk_enable(priv)) {
+		geth_power_off(priv);
+		return true;
+	}
 	if (priv->phy_ext == EXT_PHY)
 		geth_phy_reset(priv);
 
@@ -1163,19 +1173,25 @@ static void geth_check_addr(struct net_device *ndev, unsigned char *mac)
 	}
 }
 
-static void geth_clk_enable(struct geth_priv *priv)
+/* On failure no clock is left enabled, so geth_clk_disable() must not follow. */
+static int geth_clk_enable(struct geth_priv *priv)
 {
 	int phy_interface = 0;
 	u32 clk_value;
 	u32 efuse_value;
 
-	if (clk_prepare_enable(priv->geth_clk))
+	if (clk_prepare_enable(priv->geth_clk)) {
 		pr_err("try to enable geth_clk failed!\n");
+		return -EINVAL;
+	}
 
 	if (((priv->phy_ext == INT_PHY) || g_use_ephy_clk)
 			&& !IS_ERR_OR_NULL(priv->ephy_clk)) {
-		if (clk_prepare_enable(priv->ephy_clk))
+		if (clk_prepare_enable(priv->ephy_clk)) {
 			pr_err("try to enable ephy_clk failed!\n");
+			clk_disable_unprepare(priv->geth_clk);
+			return -EINVAL;
+		}
 	}
 
 	phy_interface = priv->phy_interface;
@@ -1211,6 +1227,8 @@ static void geth_clk_enable(struct geth_priv *priv)
 	clk_value |= ((rx_delay & 0x1F) << 5);
 
 	writel(clk_value, priv->base_phy);
+
+	return 0;
 }
 
 static void geth_clk_disable(struct geth_priv *priv)
@@ -1281,9 +1299,12 @@ static int geth_open(struct net_device *ndev)
 	if (ret) {
 		netdev_err(ndev, "Power on is failed\n");
 		ret = -EINVAL;
+		goto power_err;
 	}
 
-	geth_clk_enable(priv);
+	ret = geth_clk_enable(priv);
+	if (ret)
+		goto clk_err;
 
 	netif_carrier_off(ndev);
 
@@ -1343,10 +1364,11 @@ desc_err:
 	geth_phy_release(ndev);
 err:
 	geth_clk_disable(priv);
+clk_err:
+	geth_power_off(priv);
+power_err:
 	if (priv->is_suspend)
 		napi_enable(&priv->napi);
-
-	geth_power_off(priv);
 
 	return ret;
 }
