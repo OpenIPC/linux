@@ -128,6 +128,14 @@ static void fh_wdt_keepalive(void)
 
 static void fh_wdt_ping(unsigned long data)
 {
+	/*
+	 * In MODE_DISCRETE an open device belongs to userspace alone. open()
+	 * sets in_use before it cancels this timer and refreshes
+	 * next_heartbeat, so a run that races it must not feed or re-arm.
+	 */
+	if (fh_wdt.mode == MODE_DISCRETE && test_bit(0, &fh_wdt.in_use))
+		return;
+
 	if (time_before(jiffies, fh_wdt.next_heartbeat) ||
 		(!nowayout && !fh_wdt.in_use)) {
 		fh_wdt_keepalive();
@@ -176,10 +184,11 @@ static int fh_wdt_open(struct inode *inode, struct file *filp)
 	/* A new TOP takes effect on the next restart. */
 	fh_wdt_keepalive();
 
-	if (fh_wdt.mode == MODE_DISCRETE)
-		del_timer(&fh_wdt.timer);
-
 	spin_unlock(&fh_wdt.lock);
+
+	/* A magic close re-armed it; wait out a run already under way. */
+	if (fh_wdt.mode == MODE_DISCRETE)
+		del_timer_sync(&fh_wdt.timer);
 
 	return nonseekable_open(inode, filp);
 }
@@ -306,6 +315,9 @@ static int fh_wdt_release(struct inode *inode, struct file *filp)
 {
 	spin_lock(&fh_wdt.lock);
 
+	/* Before the timer is re-armed, or its first run would stand down. */
+	clear_bit(0, &fh_wdt.in_use);
+
 	if (fh_wdt.expect_close && !nowayout) {
 		/*
 		 * The DesignWare enable bit cannot be cleared, so a magic close
@@ -331,7 +343,6 @@ static int fh_wdt_release(struct inode *inode, struct file *filp)
 	}
 
 	fh_wdt.expect_close = 0;
-	clear_bit(0, &fh_wdt.in_use);
 
 	spin_unlock(&fh_wdt.lock);
 
@@ -504,6 +515,7 @@ release_region:
 static int fh_wdt_drv_remove(struct platform_device *pdev)
 {
 	misc_deregister(&fh_wdt_miscdev);
+	del_timer_sync(&fh_wdt.timer);
 
 	clk_disable(fh_wdt.clk);
 	clk_put(fh_wdt.clk);
