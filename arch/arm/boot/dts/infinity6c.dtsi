@@ -694,7 +694,7 @@
             vif_sr2_mclk_37p125 = <1>;
             //vif_sr_gpio_puse_0 = <MDRV_PUSE_PWM1>; /* MDRV_PUSE_NA */
             vif_ds_rt_snr_pad         = <0 2>;   // <0 1> sensor pad 0 and sensor pad 1 for dual sensor real time mode
-            vif_ds_rt_pwm_sync        = <1>;     // <1> PWM frame sync on, <0> off
+            vif_ds_rt_pwm_sync        = <0>;     // <1> PWM frame sync on, <0> off
             vif_ds_rt_pwm_pin         = <0>;     // <0> pwm0, <1> pwm1, <2> pwm2, …etc
             vif_ds_rt_pwm_sr0_pol     = <0>;     // 1st sensor duty polarity <0> low duty, <1> high duty
             vif_ds_rt_pwm_sr1_pol     = <1>;     // 2nd sensor duty polarity <0> low duty, <1> high duty
