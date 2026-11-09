@@ -39,6 +39,7 @@
 
 #include <plat-anyka/ak_camera.h>
 #include <plat-anyka/ak_sensor.h>
+#include <plat-anyka/ak_isp_lifecycle.h>
 #include <mach-anyka/ispdrv_interface.h>
 
 //#define CAMIF_DEBUG
@@ -136,6 +137,9 @@ struct ak_camera_dev {
 	int stream_ctrl_off;
 	int stream_active;
 	int cur_buf_id;
+
+	/* This open holds the ISP core (ak_isp_acquire), see ak_camera_isp_up */
+	bool isp_held;
 
 	u32 buf_paddr[AK_CAM_VO_BUFFERS];
 	void *buf_vaddr[AK_CAM_VO_BUFFERS];
@@ -1315,7 +1319,13 @@ static int mipi_ip_initiation(struct ak_camera_dev *pcdev,
 	sensor_cb->sensor_get_parameter_func(GET_MIPI_LANE, &mipi_lane);
 
 	thssettle = mipi_mhz_to_thssettle(mipi_mhz);
-	if (thssettle >= 0)
+	/*
+	 * The stock EV300 host programs the table's THS-SETTLE as it is: 0x89
+	 * for the JX-F23's 768 Mbps, where the window below would move it to
+	 * 0x8a. 0x89 is what its D-PHY reads while streaming and what gave
+	 * frames on the TC100 (OpenIPC/firmware#2639).
+	 */
+	if (thssettle >= 0 && !of_machine_is_compatible("anyka,ak3918ev300"))
 		thssettle = mipi_thssettle_init(thssettle, mipi_mhz);
 	if (thssettle < 0) {
 		pr_err("%s: no THS-SETTLE for %d MHz\n", __func__, mipi_mhz);
@@ -1389,6 +1399,9 @@ static int set_sensor_interface(struct ak_camera_dev *pcdev,
 				ret);
 			return ret;
 		}
+	} else if (sensor_interface == MIPI_INTERFACE) {
+		/* EV300's MIPI pads have no mux; its DT has no MIPI states. */
+		dev_dbg(dev, "no MIPI pinctrl state, pads stay as they are\n");
 	} else {
 		dev_warn(dev, "no pinctrl state for interface %d; assuming pads pre-muxed\n",
 			 sensor_interface);
@@ -1611,6 +1624,17 @@ static void ak_camera_remove_device(struct soc_camera_device *icd)
 
 	mdelay(500);
 
+	/*
+	 * The sensor was just reset to its defaults, so the next open has to
+	 * load the tuning's register list into it again. Holding the core
+	 * across closes left it "prepared", and every session after the first
+	 * captured nothing (OpenIPC/firmware#2639).
+	 */
+	if (pcdev->isp_held) {
+		ak_isp_release();
+		pcdev->isp_held = false;
+	}
+
 	/* disable the clock of isp module */
 	clk_disable_unprepare(pcdev->clk);
 
@@ -1797,6 +1821,55 @@ static int ak_camera_try_fmt(struct soc_camera_device *icd,
 	return 0;
 }
 
+/* /dev/isp_char's day/night style switch; refused while frames are flowing. */
+static int ak_camera_set_tuning_style(void *context, unsigned int style)
+{
+	struct ak_camera_dev *pcdev = context;
+	unsigned long flags;
+	int active, ret;
+
+	mutex_lock(&pcdev->stream_lock);
+	spin_lock_irqsave(&pcdev->lock, flags);
+	active = pcdev->stream_active;
+	spin_unlock_irqrestore(&pcdev->lock, flags);
+	/* ak_isp_apply_tuning_style() wants the IRQ and 3A quiet. */
+	ret = active ? -EBUSY : ak_isp_apply_tuning_style(style);
+	mutex_unlock(&pcdev->stream_lock);
+	return ret;
+}
+
+/*
+ * Bring the ISP core up for this open, the way the EV200's ak-cam bridge
+ * does. Nothing else on this path did: /dev/isp_char refuses to open until
+ * a capture user holds the core, and this driver refused S_FMT until
+ * /dev/isp_char had brought it up, so /dev/video0 could never be opened
+ * (OpenIPC/firmware#2639).
+ *
+ * It is done here and not in add_device because soc_camera also calls
+ * add_device to probe the sensor at boot, before the root filesystem that
+ * holds the tuning is mounted.
+ */
+static int ak_camera_isp_up(struct soc_camera_device *icd)
+{
+	struct soc_camera_host *ici = to_soc_camera_host(icd->parent);
+	struct ak_camera_dev *pcdev = ici->priv;
+	int ret;
+
+	if (pcdev->isp_held)
+		return 0;
+	ret = ak_isp_acquire(ak_camera_set_tuning_style, pcdev);
+	if (ret)
+		return ret;
+	ret = ak_isp_prepare(icd->parent);
+	if (ret) {
+		ak_isp_release();
+		dev_err(icd->parent, "ISP core did not come up: %d\n", ret);
+		return ret;
+	}
+	pcdev->isp_held = true;
+	return 0;
+}
+
 /**
  * @brief: setting image format information
  *
@@ -1821,18 +1894,13 @@ static int ak_camera_set_fmt(struct soc_camera_device *icd,
 	isp_dbg("entry %s\n", __func__);
 
 	/*
-	 * This programs the ISP, and the ISP core only exists once
-	 * /dev/isp_char has been opened. soc_camera_open calls straight in
-	 * here, so opening the two devices in the wrong order is a NULL
-	 * dereference in ak_isp_vo_set_main_channel_scale - and it happens
-	 * with the soc-camera mutex held, so every later open then hangs in
-	 * v4l2_open until reboot. Probe does not come this way, so the sensor
-	 * is still probed at boot.
+	 * This programs the ISP, so the core has to be up: without it
+	 * ak_isp_vo_set_main_channel_scale dereferences NULL with the
+	 * soc-camera mutex held, and every later open hangs in v4l2_open.
 	 */
-	if (!ispdrv_is_ready()) {
-		dev_err(icd->parent, "ISP core is down - open /dev/isp_char first\n");
-		return -ENODEV;
-	}
+	ret = ak_camera_isp_up(icd);
+	if (ret)
+		return ret;
 
 	xlate = soc_camera_xlate_by_fourcc(icd, pix->pixelformat);
 	if (!xlate) {
@@ -2407,6 +2475,8 @@ static int ak_camera_remove(struct platform_device *pdev)
 	/* free clk */
 	clk_put(pcdev->clk);
 
+	/* An /dev/isp_char style switch may still be running our callback. */
+	ak_isp_sync_style();
 	kfree(pcdev);
 
 	ak_rmem_device_release(&pdev->dev);

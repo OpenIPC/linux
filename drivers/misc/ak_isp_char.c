@@ -17,6 +17,7 @@
 #include <asm/io.h>
 #include <linux/dma-mapping.h>
 #include <linux/delay.h>
+#include <linux/wait.h>
 
 /*#include "../media/video/plat-anyka/ak39_isp2.h"
 #include "../media/video/plat-anyka/ak39_isp2_3a.h"
@@ -52,6 +53,9 @@ struct akisp_char_pirv {
 	struct ak_isp_tuning tuning;
 	int (*set_style)(void *context, unsigned int style);
 	void *capture_context;
+	/* AK_ISP_SET_TUNING_STYLE calls running outside the lock */
+	unsigned int style_calls;
+	wait_queue_head_t style_wq;
 	struct mutex lock;
 	AK_ISP_SENSOR_CB *sensor_cb;
 };
@@ -1315,9 +1319,15 @@ static long akisp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		}
 		set_style = priv->set_style;
 		context = priv->capture_context;
+		priv->style_calls++;
 		mutex_unlock(&priv->lock);
 		/* The capture mutex must precede the ISP control mutex. */
-		return set_style(context, style);
+		ret = set_style(context, style);
+		mutex_lock(&priv->lock);
+		if (!--priv->style_calls)
+			wake_up_all(&priv->style_wq);
+		mutex_unlock(&priv->lock);
+		return ret;
 	}
 
 	mutex_lock(&priv->lock);
@@ -3393,6 +3403,21 @@ void ak_isp_release(void)
 }
 EXPORT_SYMBOL_GPL(ak_isp_release);
 
+/*
+ * A style switch runs the capture driver's callback after dropping the
+ * lock, so it can still be inside it when the capture user releases the
+ * core. That is harmless while the driver exists: the callback finds the
+ * core gone and returns -ENODEV. Before freeing the context it registered,
+ * a capture driver calls this to wait those calls out. It is not done in
+ * ak_isp_release(), which ak-cam calls holding the mutex its callback takes.
+ */
+void ak_isp_sync_style(void)
+{
+	if (priv)
+		wait_event(priv->style_wq, !READ_ONCE(priv->style_calls));
+}
+EXPORT_SYMBOL_GPL(ak_isp_sync_style);
+
 static int akisp_open(struct inode *node, struct file *file)
 {
 	int ret = 0;
@@ -3437,6 +3462,7 @@ int __init akisp_init(void)
 	}
 
 	mutex_init(&priv->lock);
+	init_waitqueue_head(&priv->style_wq);
 
 	/* Install a callback that was registered before priv existed. */
 	if (pending_sensor_cb) {
