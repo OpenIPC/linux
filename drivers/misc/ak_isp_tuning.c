@@ -68,6 +68,15 @@ static int tune_sharp(void *data)
 
 #define W(name, type, offset) { offset, sizeof(type), tune_##name }
 
+/*
+ * Two modules follow the platform's structs. The EV200's ISP takes the
+ * vendor's "3.05_032401" files, where the 3D-NR and misc modules are 1088
+ * and 30 bytes; EV300 and EV330 take "4.003" files, where the same structs
+ * have grown to 1124 and 34 bytes (ak_isp_drv.h), so the modules are 1128
+ * and 38. Every other module is the same size in both (OpenIPC/firmware#2639).
+ */
+#define MODULE_SIZE(type) (4 + sizeof(type))
+
 static const struct tuning_module {
 	u16 size;
 	struct tuning_write writes[6];
@@ -76,7 +85,7 @@ static const struct tuning_module {
 	{ 192, { W(lsc, AK_ISP_LSC_ATTR, 4) } },
 	{ 876, { W(raw_lut, AK_ISP_RAW_LUT_ATTR, 4) } },
 	{ 2268, { W(nr1, AK_ISP_NR1_ATTR, 4), W(nr2, AK_ISP_NR2_ATTR, 0x6fa) } },
-	{ 1088, { W(nr3d, AK_ISP_3D_NR_ATTR, 4) } },
+	{ MODULE_SIZE(AK_ISP_3D_NR_ATTR), { W(nr3d, AK_ISP_3D_NR_ATTR, 4) } },
 	{ 86, { W(gb, AK_ISP_GB_ATTR, 4) } },
 	{ 22, { W(demo, AK_ISP_DEMO_ATTR, 4) } },
 	{ 876, { W(rgb_gamma, AK_ISP_RGB_GAMMA_ATTR, 4) } },
@@ -96,10 +105,16 @@ static const struct tuning_module {
 	{ 240, { W(raw_hist, AK_ISP_RAW_HIST_ATTR, 4), W(rgb_hist, AK_ISP_RGB_HIST_ATTR, 6),
 		 W(y_hist, AK_ISP_YUV_HIST_ATTR, 8), W(exposure, AK_ISP_EXP_TYPE, 0xa),
 		 W(frame_rate, AK_ISP_FRAME_RATE_ATTR, 0xc), W(ae, AK_ISP_AE_ATTR, 0x24) } },
-	{ 30, { W(misc, AK_ISP_MISC_ATTR, 4) } },
+	{ MODULE_SIZE(AK_ISP_MISC_ATTR), { W(misc, AK_ISP_MISC_ATTR, 4) } },
 	{ 306, { W(y_gamma, AK_ISP_Y_GAMMA_ATTR, 4) } },
 	{ 996, { W(hue, AK_ISP_HUE_ATTR, 4) } },
 };
+
+static bool known_version(const u8 *data)
+{
+	return !memcmp(data + 4, "3.05_032401", sizeof("3.05_032401")) ||
+	       !memcmp(data + 4, "4.003", sizeof("4.003") - 1);
+}
 
 static int validate_style(const u8 *data, unsigned int size,
 			  unsigned int sensor_id, unsigned int count)
@@ -107,10 +122,10 @@ static int validate_style(const u8 *data, unsigned int size,
 	unsigned int offset = STYLE_HEADER_SIZE;
 	unsigned int i, w, payload;
 
-	if (get_unaligned_le32(data) != count ||
+	if (get_unaligned_le32(data) < count ||
 	    get_unaligned_le32(data + 0x14) != sensor_id ||
 	    get_unaligned_le32(data + 0x24) != size ||
-	    memcmp(data + 4, "3.05_032401", sizeof("3.05_032401")))
+	    !known_version(data))
 		return -EINVAL;
 	for (i = 0; i < ARRAY_SIZE(modules); i++) {
 		if (size - offset < modules[i].size ||
@@ -213,10 +228,17 @@ int ak_isp_tuning_load(struct device *dev, const char *dir,
 			goto fail;
 		}
 	}
-	count = get_unaligned_le32(data);
+	/*
+	 * The styles are counted from the file's length. The header's count
+	 * may be larger: the vendor's EV300 files say 4 and carry 2 (#2639).
+	 */
 	size = get_unaligned_le32(data + 0x24);
-	if (!count || size < STYLE_HEADER_SIZE || size > len ||
-	    count != len / size || len % size) {
+	if (size < STYLE_HEADER_SIZE || size > len || len % size) {
+		ret = -EINVAL;
+		goto fail;
+	}
+	count = len / size;
+	if (get_unaligned_le32(data) < count) {
 		ret = -EINVAL;
 		goto fail;
 	}
