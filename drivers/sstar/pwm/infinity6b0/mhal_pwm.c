@@ -916,6 +916,39 @@ void DrvPWMPad_dump(void)
 }
 */
 
+/*
+ * Return true if any pad is currently routed to PWM channel u8Id.
+ * The PAD_UNKNOWN terminator row of each table covers every mode
+ * field of that channel (CHIPTOP and PM), so a non-zero value in any
+ * of them means a pad was already selected, e.g. by the bootloader
+ * or by userspace through the padmux registers.
+ */
+static bool _DrvPWMPadIsSet(U8 u8Id)
+{
+    pwmPadTbl_t* pTbl = padTbl[u8Id];
+    int i;
+
+    while (PAD_UNKNOWN != pTbl->u32PadId)
+        pTbl++;
+
+    for (i = 0; i < ARRAY_SIZE(pTbl->regSet); i++)
+    {
+        regSet_t* pRegSet = &pTbl->regSet[i];
+        if (BASE_REG_NULL != pRegSet->u32Adr &&
+            (INREG16(pRegSet->u32Adr) & pRegSet->u32Msk))
+            return true;
+    }
+    return false;
+}
+
+/*
+ * Route the devicetree default pad (u8Val) to PWM channel u8Id.
+ * Called on every disabled->enabled transition, so it must not
+ * override a pad that is already selected: boards that use a
+ * non-default PWM pad (e.g. PWM0 on PAD_FUART_RX) set it from
+ * userspace and would otherwise lose it on each enable.
+ * PAD_UNKNOWN (truncated to 0xFF by the caller) means "no default".
+ */
 void DrvPWMPadSet(U8 u8Id, U8 u8Val)
 {
     pwmPadTbl_t* pTbl = NULL;
@@ -924,6 +957,10 @@ void DrvPWMPadSet(U8 u8Id, U8 u8Val)
         // printk(KERN_ERR "[%s][%d] void DrvPWMEnable error!!!! (%x, %x)\r\n", __FUNCTION__, __LINE__, u8Id, u8Val);
         return;
     }
+    if ((U8)PAD_UNKNOWN == u8Val)
+        return;
+    if (_DrvPWMPadIsSet(u8Id))
+        return;
     // printk("[%s][%d] (pwmId, padId) = (%d, %d)\n", __FUNCTION__, __LINE__, u8Id, u8Val);
     pTbl = padTbl[u8Id];
     while (1)
