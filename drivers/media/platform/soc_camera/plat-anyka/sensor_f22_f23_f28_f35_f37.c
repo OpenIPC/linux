@@ -46,7 +46,12 @@ static  u32 SENSOR_ID =         0;
 static struct ak_sensor_parameter sensor_parameter[] = 
 {
     {0x0f22, 0x0f22, 24, MIPI_INTERFACE, 192, 2, 43200000},
-    {0x0f23, 0x0f23, 24, MIPI_INTERFACE, 192, 1, 43200000},
+    /*
+     * 768 Mbps is what the stock sensor_f23_mipi.ko reports, and two lanes
+     * is what the vendor's isp_f23_mipi2lane tuning sets the sensor up for;
+     * 192 and one lane gave no frames on a TC100 (OpenIPC/firmware#2639).
+     */
+    {0x0f23, 0x0f23, 24, MIPI_INTERFACE, 768, 2, 43200000},
     {0X0f28, 0X0f28, 24, MIPI_INTERFACE, 192, 1, 43200000},
     {0x0f35, 0x0f35, 24, MIPI_INTERFACE, 192, 2, 43200000},
     {0X0f37, 0x0f37, 24, MIPI_INTERFACE, 720, 1, 43200000},
@@ -98,10 +103,19 @@ static int f22_init(const AK_ISP_SENSOR_INIT_PARA *para)
 	for (i = 0; i < para->num; i++) {
 //value=f22_sensor_read_register(preg_info->reg_addr);
 //ak_sensor_print("before w reg:0x%.x, val:0x%.x, to write:0x%.x\n", preg_info->reg_addr, value, preg_info->value);
-		if (preg_info->reg_addr == 0xffff)
+		if (preg_info->reg_addr == 0xffff) {
 			ak_sensor_mdelay(preg_info->value);
-		else
+		} else {
 			f22_sensor_write_register(preg_info->reg_addr, preg_info->value);
+			/*
+			 * 0x12 holds the soft reset, and the sensor does not ACK
+			 * for a moment after it: the tunings write the rest of the
+			 * list back to back, and most of it was silently lost
+			 * (OpenIPC/firmware#2639).
+			 */
+			if (preg_info->reg_addr == 0x12)
+				ak_sensor_mdelay(10);
+		}
 //value=f22_sensor_read_register(preg_info->reg_addr);
 //ak_sensor_print("after w reg:0x%.x, val:0x%.x\n", preg_info->reg_addr, value);
 		preg_info++;
