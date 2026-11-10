@@ -49,6 +49,7 @@
 #include <linux/version.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
+#include <linux/mtd/split_layout.h>
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,39)
 #include <linux/slab.h>
 #endif
@@ -601,6 +602,23 @@ static int serflash_probe(struct platform_device *pdev)
                    flash->mtd.eraseregions[i].erasesize / 1024,
                    (unsigned int)flash->mtd.eraseregions[i].numblocks);
 
+
+    /* firmware.bin at 0x50000: its own partitions, not the command line's */
+    {
+        int split = mtd_split_layout_register(&flash->mtd);
+
+        if (!split)
+        {
+            flash->partitioned = 1;
+            return 0;
+        }
+        /* -EBUSY: partitions of flash->mtd are still listed, so flash stays */
+        if (split == -EBUSY)
+            return split;
+        if (split < 0)
+            printk(KERN_WARNING "split NOR layout not registered (%d), "
+                   "taking the command line's partitions\n", split);
+    }
 
     /* partitions should match sector boundaries; and it may be good to
      * use readonly partitions for writeprotected sectors (BP2..BP0).
