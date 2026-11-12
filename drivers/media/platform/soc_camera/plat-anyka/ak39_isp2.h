@@ -109,6 +109,14 @@ typedef struct isp2_struct {
     int cut_width;
     int cut_height;
 
+    /*
+     * Rows of 3D-NR motion statistics the ISP writes, 16 or 24, as
+     * set_crop programmed it. The AF and AWB statistics follow the
+     * motion block in the DMA statistics area, so their offsets move
+     * with it.
+     */
+    int tnr_height_block_num;
+
     /* master channel output size*/
     int ch1_width;
     int ch1_height;

@@ -1182,17 +1182,20 @@ int ak_isp_vi_set_crop(int sx, int sy, int width, int height)
 	 * field.
 	 */
 	height_block_size = height/16;
+	isp->tnr_height_block_num = 16;
 	isp_info("ISP: EV200 tnr block %d (h=%d, /16)\n", height_block_size, height);
 #else
 	if(height%24 == 0)
 		{
 			height_block_num_flg = TNR_HEIGHT_BLOCKSIZE_24;
 			height_block_size = height/24;
+			isp->tnr_height_block_num = 24;
 		}
 	else
 		{
 			height_block_num_flg = TNR_HEIGHT_BLOCKSIZE_16;
 			height_block_size = height/16;
+			isp->tnr_height_block_num = 16;
 		}
 	cmd  = 0;
 	cmd = isp->reg_blkaddr3[20];
@@ -4640,6 +4643,7 @@ int  isp2_module_init(AK_ISP_FUNC_CB *cb, AK_ISP_SENSOR_CB *sensor_cb, void *reg
     cb->cb_memcpy(&(isp->sensor_cb), sensor_cb, sizeof(AK_ISP_SENSOR_CB));
 
     isp->base = reg_base;
+    isp->tnr_height_block_num = 16;
     //register table total size is (32 * 4 * 6) = 768byte. here is more than real size.
     isp->bytes = STATIC_DEAD_PIXELS_SIZE 
     	+ DMA_CONFIG_REG_SIZE + DMA_STAT_DATA_SIZE;  
