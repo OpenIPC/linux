@@ -1522,6 +1522,11 @@ F:	drivers/media/i2c/sp2306.c
 F:	drivers/media/i2c/sp2306-modes.h
 F:	drivers/media/i2c/sp1405.c
 F:	drivers/media/i2c/sp1405-modes.h
+F:	drivers/media/i2c/smartsens.c
+F:	drivers/media/i2c/smartsens.h
+F:	drivers/media/i2c/sc1345.c
+F:	drivers/media/i2c/sc2336.c
+F:	Documentation/devicetree/bindings/media/i2c/smartsens,sc2336.txt
 F:	drivers/misc/fh8626-ptz.c
 F:	sound/soc/fullhan/
 F:	include/linux/soc/fullhan/

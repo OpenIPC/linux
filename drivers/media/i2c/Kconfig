@@ -1144,6 +1144,36 @@ config VIDEO_SP1405
 	  To compile this driver as a module, choose M here: the
 	  module will be called sp1405.
 
+config VIDEO_SMARTSENS
+	tristate
+	select V4L2_FWNODE
+
+config VIDEO_SC1345
+	tristate "SmartSens SC1345 sensor"
+	depends on ARCH_FULLHAN && OF && I2C && m
+	depends on VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
+	depends on MEDIA_CONTROLLER
+	select VIDEO_SMARTSENS
+	help
+	  Enable the SmartSens SC1345 camera sensor driver. It supports
+	  1280x720 RAW10 capture over one CSI-2 data lane.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called sc1345.
+
+config VIDEO_SC2336
+	tristate "SmartSens SC2336 sensor"
+	depends on ARCH_FULLHAN && OF && I2C && m
+	depends on VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
+	depends on MEDIA_CONTROLLER
+	select VIDEO_SMARTSENS
+	help
+	  Enable the SmartSens SC2336 camera sensor driver. It supports
+	  1920x1080 RAW10 capture over two CSI-2 data lanes.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called sc2336.
+
 endmenu
 
 menu "Sensors used on soc_camera driver"
