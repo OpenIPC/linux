@@ -249,6 +249,12 @@
 	};
 };
 
+&csi_in {
+	remote-endpoint = <&gc1054_out>;
+	clock-lanes = <0>;
+	data-lanes = <1>;
+};
+
 &aes {
 	status = "okay";
 };
