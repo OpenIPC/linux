@@ -1,0 +1,39 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Copyright (C) 2026 Difan Zhang
+ */
+#include "ato3fh1fin.dtsi"
+
+/ {
+	model = "ATO3FH1FIN with SmartSens SC2336";
+	compatible = "fullhan,fh8626v100", "fullhan,fh8626";
+};
+
+&i2c0 {
+	sc2336: camera-sensor@30 {
+		compatible = "smartsens,sc2336";
+		reg = <0x30>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&sensor_pins>;
+		clocks = <&clk FH8626_CLK_CIS_OUT>;
+		clock-names = "xvclk";
+		assigned-clocks = <&clk FH8626_CLK_CIS_OUT>;
+		assigned-clock-parents = <&osc>;
+		reset-gpios = <&gpio0 13 GPIO_ACTIVE_LOW>;
+
+		port {
+			sc2336_out: endpoint {
+				remote-endpoint = <&csi_in>;
+				clock-lanes = <0>;
+				data-lanes = <1 2>;
+			};
+		};
+	};
+};
+
+&csi_in {
+	remote-endpoint = <&sc2336_out>;
+	clock-lanes = <0>;
+	data-lanes = <1 2>;
+	fullhan,frq-range = <25>;
+};
