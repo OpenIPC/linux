@@ -1,0 +1,40 @@
+SmartSens SC1345 and SC2336 camera sensors
+
+The SC1345 is a 1280x720 sensor at I2C address 0x30 with one CSI-2 data
+lane. The SC2336 is a 1920x1080 sensor at I2C address 0x30 or 0x32,
+selected by its ID pin, with two CSI-2 data lanes.
+
+Required properties:
+- compatible: "smartsens,sc1345" or "smartsens,sc2336"
+- reg: I2C address
+- clocks: the 24 MHz sensor clock
+- clock-names: "xvclk"
+- reset-gpios: sensor reset GPIO
+- port: one output port containing an endpoint, as described by
+  Documentation/devicetree/bindings/media/video-interfaces.txt
+- data-lanes: <1> in the endpoint for the SC1345, <1 2> for the SC2336
+
+Optional properties:
+- pwdn-gpios: sensor power-down GPIO
+- clock-lanes: <0> in the endpoint; defaults to 0
+- assigned-clocks: the sensor clock
+- assigned-clock-parents: parent of that clock
+- pinctrl-names and pinctrl-0: pin configuration
+
+Example:
+
+	camera-sensor@30 {
+		compatible = "smartsens,sc2336";
+		reg = <0x30>;
+		clocks = <&clk FH8626_CLK_CIS_OUT>;
+		clock-names = "xvclk";
+		reset-gpios = <&gpio0 13 GPIO_ACTIVE_LOW>;
+
+		port {
+			endpoint {
+				remote-endpoint = <&csi_in>;
+				clock-lanes = <0>;
+				data-lanes = <1 2>;
+			};
+		};
+	};
