@@ -1,0 +1,261 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Copyright (C) 2026 Difan Zhang
+ *
+ * ATO3FH1FIN camera board: FH8626V100, 8 MiB SPI NOR, 4-bit microSD slot,
+ * USB Wi-Fi and a SmartSens MIPI sensor on I2C0. The sensor is fitted per
+ * variant; see the ato3fh1fin-*.dts files.
+ */
+/dts-v1/;
+#include <dt-bindings/input/input.h>
+#include "fh8626v100.dtsi"
+
+/ {
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+		bootargs = "console=ttyS0,115200 root=/dev/mtdblock4 rootfstype=squashfs mtdparts=spi0.0:256k(bootstrap),64k(uboot-env),256k(uboot),1984k(Kernel),5120k(rootfs),512k(rootfs_data)";
+	};
+
+	memory@a0000000 {
+		device_type = "memory";
+		reg = <0xa0000000 0x04000000>;
+	};
+
+	usb_vbus: regulator-usb-vbus {
+		compatible = "regulator-fixed";
+		pinctrl-names = "default";
+		pinctrl-0 = <&usb_vbus_pins>;
+		regulator-name = "usb-vbus";
+		gpio = <&gpio0 6 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+		startup-delay-us = <1000>;
+	};
+
+	gpio-keys {
+		compatible = "gpio-keys";
+		pinctrl-names = "default";
+		pinctrl-0 = <&reset_key_pins>;
+
+		button-reset {
+			label = "reset";
+			linux,code = <KEY_RESTART>;
+			gpios = <&gpio0 3 GPIO_ACTIVE_LOW>;
+		};
+	};
+
+	leds {
+		compatible = "gpio-leds";
+		pinctrl-names = "default";
+		pinctrl-0 = <&ir_led_pins>;
+
+		led-ir {
+			label = "fh8626:ir:nightvision";
+			gpios = <&gpio0 5 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+	};
+
+	reserved-memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		/* U-Boot's boot counter, cleared once a boot succeeds */
+		bootcount@a1c20000 {
+			reg = <0xa1c20000 0x1000>;
+			no-map;
+		};
+
+		cma_pool: cma@a2400000 {
+			compatible = "shared-dma-pool";
+			reusable;
+			/*
+			 * 24 MiB, 4 MiB-aligned (MAX_ORDER = 11) for media
+			 * DMA workspaces.
+			 */
+			reg = <0xa2400000 0x01800000>;
+			linux,cma-default;
+		};
+
+		arc_memory: memory@a3f00000 {
+			reg = <0xa3f00000 0x000c0000>;
+			no-map;
+		};
+
+		arc_dma: dma-pool@a3fc0000 {
+			compatible = "shared-dma-pool";
+			reg = <0xa3fc0000 0x00040000>;
+			no-map;
+		};
+	};
+};
+
+&timer {
+	clock-frequency = <50000000>;
+};
+
+&spi0 {
+	num-cs = <1>;
+	cs-gpios = <&gpio1 22 GPIO_ACTIVE_LOW>;
+
+	flash@0 {
+		compatible = "jedec,spi-nor";
+		reg = <0>;
+		spi-max-frequency = <10000000>;
+		spi-rx-bus-width = <1>;
+		spi-tx-bus-width = <1>;
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+			partition@0 {
+				label = "bootstrap";
+				reg = <0x000000 0x040000>;
+			};
+			partition@40000 {
+				label = "uboot-env";
+				reg = <0x040000 0x010000>;
+			};
+			partition@50000 {
+				label = "uboot";
+				reg = <0x050000 0x040000>;
+			};
+			partition@90000 {
+				label = "Kernel";
+				reg = <0x090000 0x1f0000>;
+			};
+			partition@280000 {
+				label = "rootfs";
+				reg = <0x280000 0x500000>;
+			};
+			partition@780000 {
+				label = "rootfs_data";
+				reg = <0x780000 0x080000>;
+			};
+		};
+	};
+};
+
+&mmc0 {
+	pinctrl-0 = <&sd0_4bit_pins>;
+	bus-width = <4>;
+	max-frequency = <50000000>;
+	clock-freq-min-max = <400000 50000000>;
+	cap-sd-highspeed;
+	no-1-8-v;
+	status = "okay";
+};
+
+&pinctrl {
+	sd0_4bit_pins: sd0-4bit {
+		sd0-clk {
+			groups = "sd0_clk_grp";
+			function = "mmc0";
+			bias-disable;
+			fullhan,drive = <4>;
+		};
+
+		sd0-cmd-dat {
+			groups = "sd0_cmd_dat_grp";
+			function = "mmc0";
+			bias-pull-up;
+			fullhan,drive = <0>;
+		};
+	};
+
+	usb_vbus_pins: usb-vbus {
+		groups = "gpio6_grp";
+		function = "gpio";
+	};
+
+	wifi_en_pins: wifi-en {
+		groups = "gpio7_grp";
+		function = "gpio";
+	};
+
+	reset_key_pins: reset-key {
+		groups = "gpio3_grp";
+		function = "gpio";
+	};
+
+	ir_led_pins: ir-led {
+		groups = "gpio5_grp";
+		function = "gpio";
+	};
+
+	spk_en_pins: spk-en {
+		groups = "gpio1_grp";
+		function = "gpio";
+	};
+};
+
+&gpio0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&wifi_en_pins>;
+
+	/* The USB Wi-Fi module is held in reset while this line is low. */
+	wifi-en-hog {
+		gpio-hog;
+		gpios = <7 GPIO_ACTIVE_HIGH>;
+		output-high;
+		line-name = "wifi-en";
+	};
+};
+
+&usb {
+	status = "okay";
+};
+
+&usb_phy {
+	vbus-supply = <&usb_vbus>;
+	status = "okay";
+};
+
+&dma {
+	status = "okay";
+};
+
+&bgm {
+	status = "okay";
+};
+
+&i2c0 {
+	status = "okay";
+	clock-frequency = <400000>;
+};
+
+&aes {
+	status = "okay";
+};
+
+&jpeg {
+	status = "okay";
+};
+
+&adc {
+	status = "okay";
+};
+
+&watchdog {
+	status = "okay";
+};
+
+&efuse {
+	status = "okay";
+};
+
+&arc {
+	memory-region = <&arc_memory>, <&arc_dma>;
+	status = "okay";
+};
+
+&audio {
+	pinctrl-names = "default";
+	pinctrl-0 = <&spk_en_pins>;
+	spk-gpios = <&gpio0 1 GPIO_ACTIVE_LOW>;
+	status = "okay";
+};

@@ -201,6 +201,8 @@ dtb-$(CONFIG_ARCH_EXYNOS5) += \
 	exynos5422-odroidxu4.dtb \
 	exynos5800-peach-pi.dtb
 dtb-$(CONFIG_ARCH_FULLHAN) += \
+	ato3fh1fin-sc1345.dtb \
+	ato3fh1fin-sc2336.dtb \
 	fh8626v100.dtb
 dtb-$(CONFIG_ARCH_GEMINI) += \
 	gemini-dlink-dir-685.dtb \

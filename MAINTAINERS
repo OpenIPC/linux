@@ -1489,6 +1489,7 @@ ARM/FULLHAN FH8626
 M:	Difan Zhang <alex@osqdu.org>
 S:	Maintained
 F:	arch/arm/mach-fullhan/
+F:	arch/arm/boot/dts/ato3fh1fin*
 F:	arch/arm/boot/dts/fh8626v100.dts
 F:	arch/arm/boot/dts/fh8626v100.dtsi
 F:	arch/arm/configs/fh8626_defconfig
