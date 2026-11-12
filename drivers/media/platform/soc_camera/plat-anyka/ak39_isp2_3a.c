@@ -928,6 +928,28 @@ int  ak_isp_vp_get_zone_weight( AK_ISP_WEIGHT_ATTR *p_weight)
     return 0;
 }
 
+/*
+ * The DMA statistics area, in 32-bit words: raw, RGB and Y histograms
+ * (257 each), then the 3D-NR motion block of 16 words per row, then 5
+ * AF words, then 10 AWB zones of 4 words. The motion block has 16 or 24
+ * rows depending on how set_crop split the frame (EV300/EV330 pick 24
+ * whenever the height divides by 24: 1080, 720, 360), so everything
+ * after it moves. With 24 rows the whole area is 1200 words, exactly
+ * DMA_STAT_DATA_SIZE.
+ */
+#define STAT_MD_OFFSET		(257 + 257 + 257)
+#define STAT_MD_ROW_WORDS	16
+
+static int _md_rows(void)
+{
+	return isp->tnr_height_block_num == 24 ? 24 : 16;
+}
+
+static int _af_stat_offset(void)
+{
+	return STAT_MD_OFFSET + _md_rows() * STAT_MD_ROW_WORDS;
+}
+
 /**************************************AWB************************************************/
 //get wb stat
 //calc target awb gain
@@ -956,7 +978,7 @@ int _get_awb_stat_result(void)
         break;
     }
 
-	stat_addr = stat_addr +257+257 +257+256+5;
+	stat_addr = stat_addr + _af_stat_offset() + 5;
 
 	for(i=0;i<10;i++)
     {
@@ -1545,7 +1567,7 @@ int _get_af_stat(void)
         break;
         }
 
-	stat_addr = stat_addr + 257+257+257+256;
+	stat_addr = stat_addr + _af_stat_offset();
 
     for(i = 0; i < 5;i++)
 		isp->af_stat_para.af_statics[i]= stat_addr[i];
@@ -1578,9 +1600,9 @@ int _get_3dnr_stat(void)
         break;
   	}
   	
-    stat_addr = stat_addr + 257+257+257;
+    stat_addr = stat_addr + STAT_MD_OFFSET;
 
-	height_block_num = 16;
+	height_block_num = _md_rows();
 
     for(i=0; i<height_block_num; i++)
     {
@@ -2688,7 +2710,7 @@ int _isp_3dnr_work(enum  envi_flag envi_flag)
 	AK_ISP_3D_NR_STAT_INFO	    *tnr_stat;
 	int height_block_num;
 
-	height_block_num = 16;
+	height_block_num = _md_rows();
 		
 	
 	nr1_still = &isp->nr1_para.linkage_nr1[8];
@@ -2715,6 +2737,12 @@ int _isp_3dnr_work(enum  envi_flag envi_flag)
 				if(tnr_stat->MD_stat[i][j]>_3d_nr_move->t_y_mf_th2)
 					md_cnt++;
 			}
+		/*
+		 * md_th in the tunings counts moving cells out of 16 rows of
+		 * 32. Scale a 24-row count to that, so the same share of the
+		 * frame in motion gives the same MD_level in either mode.
+		 */
+		md_cnt = md_cnt * 16 / height_block_num;
 		md_cnt_th1 = _3d_nr_move->md_th;
 		md_cnt_th2 = (_3d_nr_move->md_th+_3d_nr_still->md_th);
 		if(md_cnt>md_cnt_th1)
