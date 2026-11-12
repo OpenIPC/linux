@@ -2737,6 +2737,12 @@ int _isp_3dnr_work(enum  envi_flag envi_flag)
 				if(tnr_stat->MD_stat[i][j]>_3d_nr_move->t_y_mf_th2)
 					md_cnt++;
 			}
+		/*
+		 * md_th in the tunings counts moving cells out of 16 rows of
+		 * 32. Scale a 24-row count to that, so the same share of the
+		 * frame in motion gives the same MD_level in either mode.
+		 */
+		md_cnt = md_cnt * 16 / height_block_num;
 		md_cnt_th1 = _3d_nr_move->md_th;
 		md_cnt_th2 = (_3d_nr_move->md_th+_3d_nr_still->md_th);
 		if(md_cnt>md_cnt_th1)
