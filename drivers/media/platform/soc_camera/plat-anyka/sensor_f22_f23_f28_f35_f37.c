@@ -54,7 +54,13 @@ static struct ak_sensor_parameter sensor_parameter[] =
     {0x0f23, 0x0f23, 24, MIPI_INTERFACE, 768, 2, 43200000},
     {0X0f28, 0X0f28, 24, MIPI_INTERFACE, 192, 1, 43200000},
     {0x0f35, 0x0f35, 24, MIPI_INTERFACE, 192, 2, 43200000},
-    {0X0f37, 0x0f37, 24, MIPI_INTERFACE, 720, 1, 43200000},
+    /*
+     * 768 Mbps is what the stock sensor_f37.ko reports, with the PLL
+     * (0x0e-0x11 = 11 14 3c 80) that the vendor's isp_f37_mipi_1lane
+     * tuning sets; one lane, as both say (OpenIPC/builder#234). On EV300
+     * 720 and 768 give the same THS-SETTLE, 0x89.
+     */
+    {0X0f37, 0x0f37, 24, MIPI_INTERFACE, 768, 1, 43200000},
 };
 
 static int f22_cmos_updata_d_gain(const unsigned int d_gain);
