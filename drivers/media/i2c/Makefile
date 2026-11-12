@@ -116,3 +116,6 @@ obj-$(CONFIG_VIDEO_GC2053) += gc2053.o
 obj-$(CONFIG_VIDEO_JXF37) += jxf37.o
 obj-$(CONFIG_VIDEO_SP2306) += sp2306.o
 obj-$(CONFIG_VIDEO_SP1405) += sp1405.o
+obj-$(CONFIG_VIDEO_SMARTSENS) += smartsens.o
+obj-$(CONFIG_VIDEO_SC1345) += sc1345.o
+obj-$(CONFIG_VIDEO_SC2336) += sc2336.o
