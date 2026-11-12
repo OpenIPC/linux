@@ -252,15 +252,37 @@ static int __init goke_osmem_param(char *s)
 early_param("osmem", goke_osmem_param);
 
 /*
+ * Patterns for lo and hi, one pair per try. Each try writes both words and
+ * reads them back; any try that sees a wrap decides it.
+ */
+static const u32 goke_probe_pat[][2] __initconst = {
+	{ 0x5a5aa5a5, 0xa5a55a5a },
+	{ 0x3c3cc3c3, 0xc3c33c3c },
+	{ 0x0f0ff0f0, 0xf0f00f0f },
+	{ 0x69699696, 0x96966969 },
+};
+
+/*
  * Whether size is past the end of DRAM, seen from the probe page p: the
  * address p + size either wraps back onto p or holds no memory at all.
  * 1 if so, 0 if not, -1 if the pages could not be mapped.
+ *
+ * The mapping is Device memory, and Device accesses are ordered only within
+ * one peripheral. lo and hi are 64 MiB or more apart, so nothing orders the
+ * write to hi before the read of lo: if the read gets to DRAM first it
+ * misses the wrap, and the probe goes on to report twice the DRAM there is.
+ * That is the likely way a GK7205V300 with 128 MiB booted once in 20 as
+ * "DRAM 256M (probed)", with a 224 MiB CMA zone whose upper half lay on the
+ * kernel's own pages (OpenIPC/firmware#2828). Hence the barriers, hi read
+ * back before lo, and
+ * more than one try: a missed wrap can only make DRAM look larger, never
+ * smaller, so one try that sees it is enough.
  */
 static int __init goke_dram_ends_at(phys_addr_t p, phys_addr_t size)
 {
 	void __iomem *lo, *hi;
 	u32 save_lo, save_hi;
-	int end;
+	int end = 0, i;
 
 	lo = early_ioremap(p, PAGE_SIZE);
 	hi = early_ioremap(p + size, PAGE_SIZE);
@@ -273,9 +295,14 @@ static int __init goke_dram_ends_at(phys_addr_t p, phys_addr_t size)
 	}
 	save_lo = readl(lo);
 	save_hi = readl(hi);
-	writel(0x5a5aa5a5, lo);
-	writel(0xa5a55a5a, hi);
-	end = readl(lo) != 0x5a5aa5a5 || readl(hi) != 0xa5a55a5a;
+	for (i = 0; i < ARRAY_SIZE(goke_probe_pat) && !end; i++) {
+		writel(goke_probe_pat[i][0], lo);
+		writel(goke_probe_pat[i][1], hi);
+		mb();
+		end = readl(hi) != goke_probe_pat[i][1];
+		mb();
+		end |= readl(lo) != goke_probe_pat[i][0];
+	}
 	/* hi first: when the two alias, lo's value is the one to keep */
 	writel(save_hi, hi);
 	writel(save_lo, lo);
