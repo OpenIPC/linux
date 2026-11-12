@@ -13,9 +13,13 @@ Required properties:
   - port@0: sensor input, reg = <0>
   - port@1: ISP output, reg = <1>
 
-The input endpoint requires clock-lanes = <0> and data-lanes = <1>.
-Only single-lane RAW10 1280x720 is implemented;
-lane inversion and alternative lane assignments are not supported.
+The input endpoint requires clock-lanes = <0> and data-lanes = <1> or
+<1 2>. RAW10 at 1280x720 and 1920x1080 is implemented; lane inversion and
+alternative lane assignments are not supported.
+
+Optional input endpoint property:
+- fullhan,frq-range: D-PHY HS frequency range code matching the sensor's
+  lane rate; defaults to 5 with one data lane and 6 with two.
 
 The PHY establishes the SoC input route. The receiver enables bus clocks,
 initializes its D-PHY test interface, then accepts input from the sensor.
