@@ -128,6 +128,14 @@ static const unsigned int spi0_cs_pins[] = { 58 };
 /* GPIO2, the reset button input. */
 static const unsigned int reset_btn_pins[] = { 37 };
 static const unsigned int mmc0_pins[] = { 64, 65, 66, 67, 68, 69 };
+/* SD0 on pads 63..68: the clock, then CMD and DAT0..DAT3. */
+static const unsigned int sd0_clk_pins[] = { 63 };
+static const unsigned int sd0_cmd_dat_pins[] = { 64, 65, 66, 67, 68 };
+static const unsigned int gpio1_pins[] = { 36 };
+static const unsigned int gpio3_pins[] = { 38 };
+static const unsigned int gpio5_pins[] = { 8 };
+static const unsigned int gpio6_pins[] = { 41 };
+static const unsigned int gpio7_pins[] = { 42 };
 
 struct fh_pinctrl_group {
 	const char		*name;
@@ -147,6 +155,13 @@ static const struct fh_pinctrl_group fh_groups[] = {
 	{ "spi0_cs_grp", spi0_cs_pins, ARRAY_SIZE(spi0_cs_pins) },
 	{ "reset_btn_grp", reset_btn_pins, ARRAY_SIZE(reset_btn_pins) },
 	{ "mmc0_grp", mmc0_pins, ARRAY_SIZE(mmc0_pins) },
+	{ "sd0_clk_grp", sd0_clk_pins, ARRAY_SIZE(sd0_clk_pins) },
+	{ "sd0_cmd_dat_grp", sd0_cmd_dat_pins, ARRAY_SIZE(sd0_cmd_dat_pins) },
+	{ "gpio1_grp", gpio1_pins, ARRAY_SIZE(gpio1_pins) },
+	{ "gpio3_grp", gpio3_pins, ARRAY_SIZE(gpio3_pins) },
+	{ "gpio5_grp", gpio5_pins, ARRAY_SIZE(gpio5_pins) },
+	{ "gpio6_grp", gpio6_pins, ARRAY_SIZE(gpio6_pins) },
+	{ "gpio7_grp", gpio7_pins, ARRAY_SIZE(gpio7_pins) },
 };
 
 static const char * const i2c0_funcs[] = { "i2c0_grp" };
@@ -156,11 +171,14 @@ static const char * const sensor_funcs[] = {
 };
 
 static const char * const spi0_funcs[] = { "spi0_grp" };
-static const char * const mmc0_funcs[] = { "mmc0_grp" };
+static const char * const mmc0_funcs[] = {
+	"mmc0_grp", "sd0_clk_grp", "sd0_cmd_dat_grp"
+};
 static const char * const gpio_funcs[] = {
 	"i2c0_grp", "uart0_grp", "sensor_grp", "cis_clk_grp", "gpio13_grp",
 	"gpio0_grp", "gpio23_grp", "spi0_grp", "spi0_cs_grp", "reset_btn_grp",
-	"mmc0_grp"
+	"mmc0_grp", "gpio1_grp", "gpio3_grp", "gpio5_grp", "gpio6_grp",
+	"gpio7_grp"
 };
 
 struct fh_pmx_func {
