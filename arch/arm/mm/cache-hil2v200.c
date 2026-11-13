@@ -213,7 +213,9 @@ int __init hil2v200_of_init(void)
 		return -ENODEV;
 	}
 
-	np = of_find_compatible_node(NULL, NULL, "hisilicon,hi3520dv200-l2cache");
+	np = of_find_compatible_node(NULL, NULL, "hisilicon,hi3520dv100-l2cache");
+	if (!np)
+		np = of_find_compatible_node(NULL, NULL, "hisilicon,hi3520dv200-l2cache");
 	if (!np || !of_device_is_available(np)) {
 		of_node_put(np);
 		return -ENODEV;
