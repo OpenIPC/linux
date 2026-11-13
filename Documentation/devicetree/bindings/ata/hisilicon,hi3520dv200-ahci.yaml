@@ -10,13 +10,17 @@ maintainers:
   - Bjorn Stout <bjorn.stout@hotmail.com>
 
 description:
-  The Hi3520DV200's two-port AHCI controller. Its PHYs are clocked, taken
+  The two-port AHCI controller of the Hi3520D V100 and V200 (driven by the
+  same glue; each revision has its own compatible, the V100 one is not a
+  fallback of the V200 one). Its PHYs are clocked, taken
   out of reset and programmed by the driver through the SoC's SATA
   clock/reset register (PERI_CRG45) before the AHCI core is started.
 
 properties:
   compatible:
-    const: hisilicon,hi3520dv200-ahci
+    enum:
+      - hisilicon,hi3520dv100-ahci
+      - hisilicon,hi3520dv200-ahci
 
   reg:
     items:
@@ -25,6 +29,16 @@ properties:
 
   interrupts:
     maxItems: 1
+
+  clocks:
+    description:
+      The three SATA block clock gates of PERI_CRG45. All of them have to be
+      listed, because the driver sets all three bits and an unlisted gate
+      would be switched off as unused after the probe.
+    items:
+      - description: Bus and PHY clock gate
+      - description: Port 0 clock gate
+      - description: Port 1 clock gate
 
   hisilicon,phy-config:
     $ref: /schemas/types.yaml#/definitions/uint32
@@ -44,11 +58,14 @@ additionalProperties: false
 
 examples:
   - |
+    #include <dt-bindings/clock/hi3520dv100-clock.h>
     #include <dt-bindings/interrupt-controller/arm-gic.h>
 
     sata@10080000 {
-        compatible = "hisilicon,hi3520dv200-ahci";
+        compatible = "hisilicon,hi3520dv100-ahci";
         reg = <0x10080000 0x10000>, <0x200300b4 0x4>;
         interrupts = <GIC_SPI 20 IRQ_TYPE_LEVEL_HIGH>;
+        clocks = <&crg HI3520DV100_SATA_CLK>, <&crg HI3520DV100_SATA0_CLK>,
+                 <&crg HI3520DV100_SATA1_CLK>;
         hisilicon,phy-config = <0x0e262709>;
     };
