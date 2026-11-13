@@ -1,0 +1,77 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Juan NVR0408 4-channel NVR board (PCB HI3520D_V318P3_NVR0408), sold as the
+ * Night Owl WNVR-20B-4: Hi3520D V100 (SC_SYSID 0x3520D100), 256 MiB DDR2 and
+ * 16 MiB SPI NOR on chip select 1.
+ */
+
+/dts-v1/;
+#include "hi3520dv100.dtsi"
+
+/ {
+	model = "Juan NVR0408 (Night Owl WNVR-20B-4, Hi3520D V100)";
+	compatible = "juan,nvr0408", "hisilicon,hi3520dv100";
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+
+	memory@80000000 {
+		device_type = "memory";
+		reg = <0x80000000 0x10000000>;
+	};
+};
+
+&uart0 {
+	status = "okay";
+};
+
+/*
+ * 16 MiB flash on CS1, nothing on CS0. It takes the label the bootloader
+ * names in mtdparts=, and no fixed partitions are given: the bootloader's
+ * command line is the layout.
+ */
+&sfc {
+	status = "okay";
+
+	flash@1 {
+		compatible = "jedec,spi-nor";
+		reg = <1>;
+		label = "hi_sfc";
+		spi-max-frequency = <50000000>;
+	};
+};
+
+/*
+ * The RJ45 is on the up port through the SoC's internal PHY, in MII. The
+ * PHY's address is not strapped: the MDIO driver writes this one into its
+ * control register.
+ */
+&mdio {
+	status = "okay";
+
+	phy_up: ethernet-phy@3 {
+		reg = <3>;
+	};
+};
+
+&eth_up {
+	phy-handle = <&phy_up>;
+	phy-mode = "mii";
+	status = "okay";
+};
+
+/*
+ * The PHY value XiongMai's firmware writes (the Hi3520D reference value
+ * leaves the link resetting on this board's SSD).
+ */
+&sata {
+	hisilicon,phy-config = <0x0e262709>;
+	status = "okay";
+};
+
+/*
+ * SMSC USB2514 hub and RTL8188EUS behind the EHCI, OHCI is the companion.
+ * Both hosts stay disabled: the USB PHY needs its own driver, which comes
+ * with a separate series that enables them.
+ */
