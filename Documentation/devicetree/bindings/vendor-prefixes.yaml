@@ -855,6 +855,8 @@ patternProperties:
     description: JOZ BV
   "^jty,.*":
     description: JTY
+  "^juan,.*":
+    description: Guangdong Juan Intelligent Technology Joint Stock Co., Ltd.
   "^jutouch,.*":
     description: JuTouch Technology Co., Ltd.
   "^kam,.*":
