@@ -1,4 +1,17 @@
 # SPDX-License-Identifier: GPL-2.0-only
+config COMMON_CLK_HI3520DV100
+	bool "Hi3520D V100 Clock and Reset Driver"
+	depends on ARCH_HISI || ARCH_HISI_BVT || COMPILE_TEST
+	select RESET_HISI
+	default ARCH_HI3520DV200
+	help
+	  Build the clock and reset driver for the CRG and the system
+	  controller clocks of the HiSilicon Hi3520D V100 (and the Hi3515A and
+	  Hi3515C of the same data sheet). It provides the bus clock, the
+	  peripheral clock gates and selects, the SP804 and SP805 count clock
+	  selects and the peripheral soft resets. The SP804 timers need it,
+	  so it is built in. It is not used by Hi3520D V200 device trees.
+
 config COMMON_CLK_HI3516CV300
 	tristate "HI3516CV300 Clock Driver"
 	depends on ARCH_HISI || ARCH_HISI_BVT || COMPILE_TEST
