@@ -179,6 +179,7 @@ config ARCH_HI3520DV200
 	select ARM_GIC
 	select HAVE_ARM_SCU
 	select ARM_TIMER_SP804
+	select COMMON_CLK_HI3520D
 	help
 		Support for the Hisilicon Hi3520DV200, a single Cortex-A9 SoC
 		used in NVR and DVR boards. It has a GIC, SP804 timers, an
