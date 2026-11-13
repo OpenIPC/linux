@@ -1,0 +1,102 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/clock/hisilicon,hi3520dv100-crg.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: HiSilicon Hi3520DV100 Clock and Reset Generator (CRG) and system controller
+
+maintainers:
+  - Dylan Corrales <deathcamel58@gmail.com>
+
+description: |
+  The CRG of the Hi3520D V100 silicon (system ID 0x3520D100; the data sheet
+  also covers Hi3515A and Hi3515C) provides the PLLs, bus clock
+  selection, peripheral clock gates and peripheral soft resets. The SP804
+  timer and watchdog count clock selects live in the system controller, which
+  is described by its own compatible and provides those clocks.
+
+  Reset specifiers have two cells: the register offset from the CRG base and
+  the bit number. A set bit holds the peripheral in reset.
+
+  This binding was written and tested on Hi3520D V100 only. Hi3520D V200 is
+  a different silicon revision with its own data sheet and is not covered.
+
+  See include/dt-bindings/clock/hi3520dv100-clock.h for the clock identifiers.
+
+properties:
+  compatible:
+    items:
+      - enum:
+          - hisilicon,hi3520dv100-crg
+          - hisilicon,hi3520dv100-sysctrl
+      - const: syscon
+        description:
+          Valid for hisilicon,hi3520dv100-sysctrl (USB PHY control) and for
+          hisilicon,hi3520dv100-crg (the audio interface programs its master clock
+          dividers through the register window).
+      - const: simple-mfd
+        description: Only valid for hisilicon,hi3520dv100-sysctrl (child devices, for example the USB PHY).
+    minItems: 1
+
+  reg:
+    maxItems: 1
+
+  '#clock-cells':
+    const: 1
+
+  '#reset-cells':
+    const: 2
+
+  '#address-cells':
+    const: 1
+
+  '#size-cells':
+    const: 1
+
+patternProperties:
+  '^phy(@[0-9a-f]+)?$':
+    type: object
+    description:
+      Child device of the system controller (only with simple-mfd), for example
+      the USB PHY.
+
+required:
+  - compatible
+  - reg
+  - '#clock-cells'
+
+allOf:
+  - if:
+      properties:
+        compatible:
+          contains:
+            const: hisilicon,hi3520dv100-crg
+    then:
+      properties:
+        compatible:
+          maxItems: 2
+      patternProperties:
+        '^phy(@[0-9a-f]+)?$': false
+      required:
+        - '#reset-cells'
+    else:
+      properties:
+        '#reset-cells': false
+
+additionalProperties: false
+
+examples:
+  - |
+    clock-controller@20030000 {
+        compatible = "hisilicon,hi3520dv100-crg", "syscon";
+        reg = <0x20030000 0x10000>;
+        #clock-cells = <1>;
+        #reset-cells = <2>;
+    };
+
+    clock-controller@20050000 {
+        compatible = "hisilicon,hi3520dv100-sysctrl", "syscon", "simple-mfd";
+        reg = <0x20050000 0x1000>;
+        #clock-cells = <1>;
+    };
