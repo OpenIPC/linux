@@ -179,12 +179,14 @@ config ARCH_HI3520DV200
 	select ARM_GIC
 	select HAVE_ARM_SCU
 	select ARM_TIMER_SP804
+	select COMMON_CLK_HI3520DV100
 	help
 		Support for the Hisilicon Hi3520DV200, a single Cortex-A9 SoC
 		used in NVR and DVR boards. It has a GIC, SP804 timers, an
 		SP805 watchdog, HiSilicon's own L2 cache controller, a SATA
 		controller, USB 2.0, a switch-fabric Ethernet MAC and an
-		SFC v350 SPI-NOR controller.
+		SFC v350 SPI-NOR controller. Hi3520D V100 boards (the hi3520dv100-*
+		device trees) are built with this option too.
 
 config ARCH_HI3536DV100
 	bool "Hisilicon Hi3536DV100 Cortex-A7(Single) family"
