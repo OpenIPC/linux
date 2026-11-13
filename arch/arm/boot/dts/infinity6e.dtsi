@@ -453,7 +453,7 @@
              *         4 -> PAD_PM_I2CM_SCL, PAD_PM_I2CM_SDA
              *         5 -> PAD_PM_GPIO0, PAD_PM_GPIO1
             */
-            i2c-padmux = <1>;
+            i2c-padmux = <4>;
             interrupts=<GIC_SPI INT_IRQ_MIIC_2 IRQ_TYPE_LEVEL_HIGH>;
             status = "ok";
         };
