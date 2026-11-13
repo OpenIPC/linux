@@ -2045,6 +2045,56 @@ static const struct file_operations mdio_cmd_fops ={
 	.write = mdio_cmd_set,
 };
 
+/*
+ * Wake every PHY on the MDIO bus from BMCR power-down, as
+ * ingenic_mac_open() does for its own PHY before resetting the MAC.
+ *
+ * The DMA soft reset (synopGMAC_reset) only completes with the PHY's
+ * clocks running, and ingenic_mac_close() -- every ifdown, so every
+ * reboot -- powers the PHY down. A warm reset does not power-cycle the
+ * PHY, and the probe's hardware reset reaches it only where the board
+ * wires the DT's ingenic,rst-gpio, so on other boards the next kernel's
+ * probe timed out and eth0 was gone until a power cycle
+ * (OpenIPC/firmware#2839). The MDIO bus is not registered yet here, so
+ * this goes through the MAC's own MII registers.
+ */
+static void ingenic_mac_phy_wake(struct device *dev, synopGMACdevice *gmacdev)
+{
+	u16 bmcr;
+	u32 addr;
+	bool woke = false;
+
+	/* MDC within the PHY's limit, as ingenic_mac_open() sets it */
+	synopGMAC_set_mdc_clk_div(gmacdev, GmiiCsrClk4);
+	gmacdev->ClockDivMdc = synopGMAC_get_mdc_clk_div(gmacdev);
+
+	for (addr = 0; addr < PHY_MAX_ADDR; addr++) {
+		/*
+		 * A read that times out is the MDIO controller, not an empty
+		 * address (those read 0xffff): every other address would time
+		 * out too, each with its own log lines, so stop here and let
+		 * the reset below say whether it mattered.
+		 */
+		if (synopGMAC_read_phy_reg(gmacdev, addr, MII_BMCR, &bmcr)) {
+			dev_warn(dev, "MDIO read failed at PHY %u; not waking PHYs\n",
+				 addr);
+			break;
+		}
+		if (bmcr == 0xffff || !(bmcr & BMCR_PDOWN))
+			continue;
+		if (synopGMAC_write_phy_reg(gmacdev, addr, MII_BMCR,
+					    bmcr & ~BMCR_PDOWN)) {
+			dev_warn(dev, "PHY %u: could not clear power-down\n", addr);
+			continue;
+		}
+		dev_info(dev, "PHY %u was powered down; woke it\n", addr);
+		woke = true;
+	}
+	/* the PHY's clocks are back well within this */
+	if (woke)
+		mdelay(10);
+}
+
 static int ingenic_mac_probe(struct platform_device *pdev)
 {
 	synopGMACdevice *gmacdev;
@@ -2150,6 +2200,8 @@ static int ingenic_mac_probe(struct platform_device *pdev)
 		rc = -ENODEV;
 		goto err_out_clk_cgu_disable;
 	}
+
+	ingenic_mac_phy_wake(&pdev->dev, gmacdev);
 
 	if (synopGMAC_reset(gmacdev)) {
 		dev_err(&pdev->dev, "PROB:synopGMAC_reset timeout...\n");
@@ -2313,6 +2365,36 @@ static int  ingenic_mac_remove(struct platform_device *pdev)
 	return 0;
 }
 
+/*
+ * Leave the PHY awake for whatever boots next: ingenic_mac_close() powered
+ * it down, and U-Boot's networking or another kernel may not wake it
+ * before resetting the MAC (OpenIPC/firmware#2839).
+ */
+static void ingenic_mac_shutdown(struct platform_device *pdev)
+{
+	struct net_device *ndev = platform_get_drvdata(pdev);
+	struct ingenic_mac_local *lp;
+	u16 bmcr;
+
+	if (!ndev)
+		return;
+	lp = netdev_priv(ndev);
+	if (!lp->phydev)
+		return;
+	/*
+	 * Not phy_read(): this driver's MDIO read hands back 0 when the bus
+	 * fails, and writing that back would clear every other BMCR bit.
+	 */
+	if (synopGMAC_read_phy_reg(lp->gmacdev, lp->phydev->addr, MII_BMCR, &bmcr)) {
+		dev_warn(&pdev->dev, "shutdown: MDIO read failed; PHY left as is\n");
+		return;
+	}
+	if ((bmcr & BMCR_PDOWN) &&
+	    synopGMAC_write_phy_reg(lp->gmacdev, lp->phydev->addr, MII_BMCR,
+				    bmcr & ~BMCR_PDOWN))
+		dev_warn(&pdev->dev, "shutdown: could not clear PHY power-down\n");
+}
+
 #ifdef CONFIG_PM
 static int ingenic_mac_suspend(struct platform_device *pdev, pm_message_t mesg)
 {
@@ -2365,6 +2447,7 @@ static struct platform_driver ingenic_mac_driver = {
 	},
 	.probe = ingenic_mac_probe,
 	.remove = ingenic_mac_remove,
+	.shutdown = ingenic_mac_shutdown,
 	.resume = ingenic_mac_resume,
 	.suspend = ingenic_mac_suspend,
 };
