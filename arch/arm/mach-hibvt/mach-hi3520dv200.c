@@ -11,6 +11,7 @@
 #include <asm/mach/arch.h>
 
 static const char *const hi3520dv200_compat[] __initconst = {
+	"hisilicon,hi3520dv100",
 	"hisilicon,hi3520dv200",
 	NULL,
 };
