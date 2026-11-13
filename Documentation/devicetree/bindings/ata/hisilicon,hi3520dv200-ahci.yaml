@@ -26,6 +26,18 @@ properties:
   interrupts:
     maxItems: 1
 
+  clocks:
+    description:
+      The three SATA block clock gates of PERI_CRG45. All of them have to be
+      listed, because the driver sets all three bits and an unlisted gate
+      would be switched off as unused after the probe.
+      The driver also sets the same bits itself while bringing the PHYs up;
+      listing the clocks keeps the gates from being switched off as unused.
+    items:
+      - description: Bus and PHY clock gate
+      - description: Port 0 clock gate
+      - description: Port 1 clock gate
+
   hisilicon,phy-config:
     $ref: /schemas/types.yaml#/definitions/uint32
     description:
@@ -44,11 +56,14 @@ additionalProperties: false
 
 examples:
   - |
+    #include <dt-bindings/clock/hi3520d-clock.h>
     #include <dt-bindings/interrupt-controller/arm-gic.h>
 
     sata@10080000 {
         compatible = "hisilicon,hi3520dv200-ahci";
         reg = <0x10080000 0x10000>, <0x200300b4 0x4>;
         interrupts = <GIC_SPI 20 IRQ_TYPE_LEVEL_HIGH>;
+        clocks = <&crg HI3520D_SATA_CLK>, <&crg HI3520D_SATA0_CLK>,
+                 <&crg HI3520D_SATA1_CLK>;
         hisilicon,phy-config = <0x0e262709>;
     };
