@@ -546,6 +546,7 @@ MODULE_DEVICE_TABLE(acpi, hisi_sfc_v3xx_acpi_ids);
  * 0x300-0x30c, a 16-word data buffer at 0x400).
  */
 static const struct of_device_id hisi_sfc_v3xx_of_ids[] = {
+	{ .compatible = "hisilicon,hi3520dv100-sfc" },
 	{ .compatible = "hisilicon,hi3520dv200-sfc" },
 	{}
 };
