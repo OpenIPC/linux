@@ -487,6 +487,7 @@ static void hisi_femac_mdio_remove(struct platform_device *pdev)
 }
 
 static const struct of_device_id hisi_femac_mdio_dt_ids[] = {
+	{ .compatible = "hisilicon,hi3520dv100-femac-mdio", .data = (void *)true },
 	{ .compatible = "hisilicon,hi3520dv200-femac-mdio", .data = (void *)true },
 	{ .compatible = "hisilicon,hisi-femac-mdio" },
 	{ }
