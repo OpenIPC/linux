@@ -19,7 +19,9 @@ allOf:
 
 properties:
   compatible:
-    const: hisilicon,hi3520dv200-l2cache
+    enum:
+      - hisilicon,hi3520dv100-l2cache
+      - hisilicon,hi3520dv200-l2cache
 
   reg:
     maxItems: 1

@@ -19,7 +19,9 @@ allOf:
 
 properties:
   compatible:
-    const: hisilicon,hi3520dv200-sfc
+    enum:
+      - hisilicon,hi3520dv100-sfc
+      - hisilicon,hi3520dv200-sfc
 
   reg:
     maxItems: 1
