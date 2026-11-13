@@ -4,15 +4,11 @@
  */
 
 /dts-v1/;
-#include "hi3520dv200.dtsi"
+#include "hi3520dv200-generic.dts"
 
 / {
 	model = "XiongMai NBD6808T-PL (Hi3520DV200)";
 	compatible = "xiongmai,nbd6808t-pl", "hisilicon,hi3520dv200";
-
-	chosen {
-		stdout-path = "serial0:115200n8";
-	};
 
 	/*
 	 * 256 MB of DDR. The vendor firmware gave Linux the first 128 MB and
@@ -53,40 +49,18 @@
 	};
 };
 
-&uart0 {
-	status = "okay";
-};
-
-/* The RJ45 is on the up port, through the SoC's internal PHY at address 3. */
-&mdio {
-	status = "okay";
-
-	phy_up: ethernet-phy@3 {
-		reg = <3>;
-	};
-};
-
-&eth_up {
-	phy-handle = <&phy_up>;
-	phy-mode = "mii";
-	status = "okay";
-};
-
 /*
  * 8 MB MX25L6406E on CS1. The partitions below are the stock firmware's
  * layout, read-only; they only apply when the bootloader passes no
  * "mtdparts=hi_sfc:..." of its own.
  */
 &sfc {
-	status = "okay";
+	/* nothing is fitted on CS0 */
+	flash@0 {
+		status = "disabled";
+	};
 
 	flash@1 {
-		compatible = "jedec,spi-nor";
-		reg = <1>;
-		/* the name both the vendor and OpenIPC bootloaders use in mtdparts= */
-		label = "hi_sfc";
-		spi-max-frequency = <50000000>;
-
 		partitions {
 			compatible = "fixed-partitions";
 			#address-cells = <1>;
@@ -130,21 +104,4 @@
 			};
 		};
 	};
-};
-
-/*
- * The vendor firmware's PHY value; with the Hi3520D reference one this
- * board's link keeps resetting.
- */
-&sata {
-	hisilicon,phy-config = <0x0e262709>;
-	status = "okay";
-};
-
-&ohci {
-	status = "okay";
-};
-
-&ehci {
-	status = "okay";
 };

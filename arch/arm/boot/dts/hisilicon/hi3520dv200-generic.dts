@@ -1,0 +1,100 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Any Hi3520DV200 board: what one kernel image can assume about a board it
+ * has never seen. OpenIPC's neo firmware appends this DT for the whole SoC,
+ * so it describes nothing that is wiring of a single board.
+ *
+ * Boards with a DT of their own (hi3520dv200-nbd6808t.dts) include this
+ * and add what they have.
+ */
+
+/dts-v1/;
+#include "hi3520dv200.dtsi"
+
+/ {
+	model = "HiSilicon Hi3520DV200";
+	compatible = "hisilicon,hi3520dv200";
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+
+	/*
+	 * The smallest DDR fitted to these boards. The bootloader's ATAG_MEM
+	 * replaces this node (ARM_ATAG_DTB_COMPAT), so a 256 MB board still
+	 * gets all of it; this is only the fallback. There is no carve-out:
+	 * without the vendor MPP nothing else claims memory.
+	 */
+	memory@80000000 {
+		device_type = "memory";
+		reg = <0x80000000 0x8000000>;
+	};
+};
+
+&uart0 {
+	status = "okay";
+};
+
+/*
+ * The RJ45 is on the up port through the SoC's internal PHY, in MII. The
+ * PHY's address is not strapped: the MDIO driver writes this one into its
+ * control register.
+ */
+&mdio {
+	status = "okay";
+
+	phy_up: ethernet-phy@3 {
+		reg = <3>;
+	};
+};
+
+&eth_up {
+	phy-handle = <&phy_up>;
+	phy-mode = "mii";
+	status = "okay";
+};
+
+/*
+ * The SFC has two chip selects and boards differ in which one carries the
+ * NOR, so both are described. The empty one fails its JEDEC probe and is
+ * left alone. Both take the label the bootloaders name in mtdparts=, and no
+ * fixed partitions are given: the bootloader's command line is the layout.
+ * A board with both selects fitted would partition both chips under that
+ * one name, so it needs a DT of its own that disables the other.
+ */
+&sfc {
+	status = "okay";
+
+	flash@0 {
+		compatible = "jedec,spi-nor";
+		reg = <0>;
+		label = "hi_sfc";
+		spi-max-frequency = <50000000>;
+	};
+
+	flash@1 {
+		compatible = "jedec,spi-nor";
+		reg = <1>;
+		label = "hi_sfc";
+		spi-max-frequency = <50000000>;
+	};
+};
+
+/*
+ * The value XiongMai's firmware writes, which is what these boards are
+ * built around and the only one tested on hardware (NBD6808T-PL: the
+ * Hi3520D reference value leaves its link resetting). A board that needs
+ * the reference value overrides this.
+ */
+&sata {
+	hisilicon,phy-config = <0x0e262709>;
+	status = "okay";
+};
+
+&ohci {
+	status = "okay";
+};
+
+&ehci {
+	status = "okay";
+};
