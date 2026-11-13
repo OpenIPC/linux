@@ -90,8 +90,9 @@ static const struct reset_control_ops hisi_reset_ops = {
 struct hisi_reset_controller *hisi_reset_init(struct platform_device *pdev)
 {
 	struct hisi_reset_controller *rstc;
+	int ret;
 
-	rstc = devm_kmalloc(&pdev->dev, sizeof(*rstc), GFP_KERNEL);
+	rstc = devm_kzalloc(&pdev->dev, sizeof(*rstc), GFP_KERNEL);
 	if (!rstc)
 		return NULL;
 
@@ -105,7 +106,11 @@ struct hisi_reset_controller *hisi_reset_init(struct platform_device *pdev)
 	rstc->rcdev.of_node = pdev->dev.of_node;
 	rstc->rcdev.of_reset_n_cells = 2;
 	rstc->rcdev.of_xlate = hisi_reset_of_xlate;
-	reset_controller_register(&rstc->rcdev);
+	ret = reset_controller_register(&rstc->rcdev);
+	if (ret) {
+		dev_err(&pdev->dev, "failed to register the reset controller: %d\n", ret);
+		return NULL;
+	}
 
 	return rstc;
 }
