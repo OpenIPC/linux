@@ -25,6 +25,11 @@ properties:
           - const: hisilicon,hi3670-hikey970
           - const: hisilicon,hi3670
 
+      - description: Hi3520D V100 based boards.
+        items:
+          - const: juan,nvr0408
+          - const: hisilicon,hi3520dv100
+
       - description: Hi3798cv200 based boards.
         items:
           - const: hisilicon,hi3798cv200-poplar
