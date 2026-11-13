@@ -128,10 +128,21 @@ static struct {
 	const char *name;
 } sensor_names[32];
 
+/*
+ * Give @sensor_info its OpenIPC name, or a new one: a driver that covers
+ * several parts (the SOI F2x) names the part it detected when it probes,
+ * and may probe more than once.
+ */
 int ispdrv_register_sensor_name(void *sensor_info, const char *name)
 {
 	unsigned int i;
 
+	for (i = 0; i < ARRAY_SIZE(sensor_names); i++) {
+		if (sensor_names[i].sensor_info == sensor_info) {
+			sensor_names[i].name = name;
+			return 0;
+		}
+	}
 	for (i = 0; i < ARRAY_SIZE(sensor_names); i++) {
 		if (!sensor_names[i].sensor_info) {
 			sensor_names[i].sensor_info = sensor_info;
