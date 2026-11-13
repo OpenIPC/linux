@@ -1,0 +1,41 @@
+/*
+ * HeimVision PE3020-W (PCB AK3919EV300_V601_F37): AK3918EV300, 64 MiB,
+ * JX-F37 on MIPI, RTL8188FU on USB, 8 MiB SPI NOR, Ethernet. The generic
+ * EV300 board with the three places this camera's wiring differs from the
+ * EVB it inherits, as the stock firmware's board data and the camera
+ * itself show them (OpenIPC/builder#234).
+ */
+
+#include "ak3918ev300-demb.dts"
+
+/ {
+	model = "HeimVision PE3020-W (AK3918EV300)";
+	compatible = "heimvision,pe3020w", "anyka,ak3918ev300";
+};
+
+/*
+ * The sensor's reset is GPIO 79, active low, not the EVB's 49; there is no
+ * PWDN line. With 49 the F37's ID reads 0xff/0xff once the ISP starts.
+ */
+&sensor0 {
+	reset-gpio = <&gpio 79 1>;
+};
+
+/*
+ * The EVB drives its speaker amplifier from GPIO 79, which is the sensor
+ * reset here. The stock firmware names GPIO 34 for the speaker, but no
+ * speaker or microphone has been seen working on this camera, so the codec
+ * stays off rather than guess.
+ */
+&adc_dac {
+	status = "disabled";
+};
+
+/*
+ * No SD slot and no SDIO Wi-Fi: the Wi-Fi is USB. The EVB's MCI1 pads
+ * include GPIOs 41 and 42, which drive this camera's IR-cut filter
+ * (42 night, 41 day).
+ */
+&mmc1 {
+	status = "disabled";
+};
