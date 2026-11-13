@@ -1,0 +1,403 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * HiSilicon Hi3520D V100 NVR/DVR SoC (system ID register SC_SYSID =
+ * 0x3520D100; the data sheet also covers Hi3515A and Hi3515C): a single
+ * Cortex-A9 with GIC, SP804 timers and a HiSilicon (not PL310) L2 cache
+ * controller. This is NOT the Hi3520D V200 (hi3520dv200.dtsi), a different
+ * silicon revision that this file does not describe.
+ *
+ * Addresses and interrupt numbers follow the Hi3520D V100 data sheet
+ * (interrupt table 3-16: GIC SPI n = interrupt bit 32 + n). The clocks and
+ * resets come from the CRG and the system controller, whose rates are read
+ * back from the hardware, so no boot loader state is assumed.
+ *
+ * Blocks without a driver in this tree (RTC, I2C, IR, PWM, DDR controller,
+ * pinctrl, the media blocks, the USB PHY and the SATA PHY) are not
+ * described yet. The IP blocks that generic drivers handle (SP804, SP805,
+ * PL011, PL022, PL061) are listed as disabled reference nodes.
+ */
+
+#include <dt-bindings/clock/hi3520dv100-clock.h>
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+
+/ {
+	#address-cells = <1>;
+	#size-cells = <1>;
+	interrupt-parent = <&gic>;
+
+	aliases {
+		serial0 = &uart0;
+		serial1 = &uart1;
+		serial2 = &uart2;
+		serial3 = &uart3;
+	};
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		cpu@0 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a9";
+			reg = <0>;
+			clocks = <&crg HI3520DV100_APLL_CLK>;
+			next-level-cache = <&l2>;
+		};
+	};
+
+	soc {
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		scu@20300000 {
+			compatible = "arm,cortex-a9-scu";
+			reg = <0x20300000 0x100>;
+		};
+
+		gic: interrupt-controller@20301000 {
+			compatible = "arm,cortex-a9-gic";
+			#interrupt-cells = <3>;
+			#address-cells = <0>;
+			interrupt-controller;
+			reg = <0x20301000 0x1000>, <0x20300100 0x100>;
+		};
+
+		/*
+		 * HiSilicon's own L2 controller ("hil2v200"), not a PL310: its
+		 * ID register reads 0. 128 KB, 8 ways, 32-byte lines.
+		 */
+		l2: cache-controller@20700000 {
+			compatible = "hisilicon,hi3520dv100-l2cache";
+			reg = <0x20700000 0x10000>;
+			interrupts = <GIC_SPI 29 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 30 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 31 IRQ_TYPE_LEVEL_HIGH>;
+			cache-unified;
+			cache-level = <2>;
+		};
+
+		/* SP804 dual timers; SC_CTRL selects the count clock (3 MHz or APB) */
+		timer0: timer@20000000 {
+			compatible = "arm,sp804", "arm,primecell";
+			reg = <0x20000000 0x1000>;
+			interrupts = <GIC_SPI 3 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&sysctrl HI3520DV100_TIMER0_CLK>,
+				 <&sysctrl HI3520DV100_TIMER1_CLK>,
+				 <&crg HI3520DV100_APB_CLK>;
+			clock-names = "timer0clk", "timer1clk", "apb_pclk";
+		};
+
+		timer1: timer@20010000 {
+			compatible = "arm,sp804", "arm,primecell";
+			reg = <0x20010000 0x1000>;
+			interrupts = <GIC_SPI 4 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&sysctrl HI3520DV100_TIMER2_CLK>,
+				 <&sysctrl HI3520DV100_TIMER3_CLK>,
+				 <&crg HI3520DV100_APB_CLK>;
+			clock-names = "timer0clk", "timer1clk", "apb_pclk";
+			status = "disabled";
+		};
+
+		/* Timer4-7: the data sheet gives no IRQ names, one SPI per module is assumed */
+		timer2: timer@20130000 {
+			compatible = "arm,sp804", "arm,primecell";
+			reg = <0x20130000 0x1000>;
+			interrupts = <GIC_SPI 5 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&sysctrl HI3520DV100_TIMER4_CLK>,
+				 <&sysctrl HI3520DV100_TIMER5_CLK>,
+				 <&crg HI3520DV100_APB_CLK>;
+			clock-names = "timer0clk", "timer1clk", "apb_pclk";
+			status = "disabled";
+		};
+
+		timer3: timer@20140000 {
+			compatible = "arm,sp804", "arm,primecell";
+			reg = <0x20140000 0x1000>;
+			interrupts = <GIC_SPI 6 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&sysctrl HI3520DV100_TIMER6_CLK>,
+				 <&sysctrl HI3520DV100_TIMER7_CLK>,
+				 <&crg HI3520DV100_APB_CLK>;
+			clock-names = "timer0clk", "timer1clk", "apb_pclk";
+			status = "disabled";
+		};
+
+		/* PERI_CRG0..: PLLs, bus clocks, peripheral clock gates and soft resets */
+		crg: clock-controller@20030000 {
+			compatible = "hisilicon,hi3520dv100-crg";
+			reg = <0x20030000 0x10000>;
+			#clock-cells = <1>;
+			#reset-cells = <2>;
+		};
+
+		watchdog@20040000 {
+			compatible = "arm,sp805", "arm,primecell";
+			reg = <0x20040000 0x1000>;
+			interrupts = <GIC_SPI 2 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&sysctrl HI3520DV100_WDT_CLK>, <&crg HI3520DV100_APB_CLK>;
+			clock-names = "wdog_clk", "apb_pclk";
+		};
+
+		/*
+		 * SC_CTRL: the SP804 and SP805 count clock selects. The USB 2.0 PHY
+		 * control is in this window too (PERI_USB at 0x20050080); a USB PHY
+		 * node goes here as a child once a driver exists.
+		 */
+		sysctrl: system-controller@20050000 {
+			compatible = "hisilicon,hi3520dv100-sysctrl", "syscon", "simple-mfd";
+			reg = <0x20050000 0x1000>;
+			#clock-cells = <1>;
+		};
+
+		/* SFC v350: the register layout of the v3xx SPI-NOR controller. */
+		sfc: spi@10010000 {
+			compatible = "hisilicon,hi3520dv100-sfc";
+			reg = <0x10010000 0x1000>;
+			num-cs = <2>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
+		/*
+		 * reg 1 is PERI_CRG45, the SATA clock/reset register: the glue
+		 * sets the resets and the PHY bring-up order itself, the three
+		 * clock gates are also held by the clocks below.
+		 */
+		sata: sata@10080000 {
+			compatible = "hisilicon,hi3520dv100-ahci";
+			reg = <0x10080000 0x10000>, <0x200300b4 0x4>;
+			interrupts = <GIC_SPI 20 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&crg HI3520DV100_SATA_CLK>,
+				 <&crg HI3520DV100_SATA0_CLK>,
+				 <&crg HI3520DV100_SATA1_CLK>;
+			status = "disabled";
+		};
+
+		/*
+		 * USB 2.0 host: clock gate and AHB reset in PERI_CRG46. The PHY
+		 * (PERI_USB 0x20050080 and the PHY resets in PERI_CRG46) has no
+		 * driver in this tree: the root hub starts, but ports only work
+		 * when the boot loader has set the PHY up.
+		 */
+		ohci: usb@100a0000 {
+			compatible = "generic-ohci";
+			reg = <0x100a0000 0x10000>;
+			interrupts = <GIC_SPI 22 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&crg HI3520DV100_USB_CLK>;
+			resets = <&crg 0xb8 0>;
+			status = "disabled";
+		};
+
+		ehci: usb@100b0000 {
+			compatible = "generic-ehci";
+			reg = <0x100b0000 0x10000>;
+			interrupts = <GIC_SPI 21 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&crg HI3520DV100_USB_CLK>;
+			resets = <&crg 0xb8 0>;
+			status = "disabled";
+		};
+
+		/*
+		 * The "hieth-sf" switch-fabric MAC: two ports, up (0x0000) and
+		 * down (+0x2000), sharing global registers at +0x1300 and an
+		 * MDIO controller at +0x1100. The up port's registers and bits
+		 * are those of hisi-femac, which drives it with the global block
+		 * passed as its second region.
+		 */
+		mdio: mdio@10091100 {
+			compatible = "hisilicon,hi3520dv100-femac-mdio",
+				     "hisilicon,hisi-femac-mdio";
+			/* MDIO, then the internal PHY control (SYS_CTRL PERI24) */
+			reg = <0x10091100 0x10>, <0x20050094 0x4>;
+			clocks = <&crg HI3520DV100_ETH_CLK>;
+			clock-names = "mdio";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
+		eth_up: ethernet@10090000 {
+			compatible = "hisilicon,hi3520dv100-femac",
+				     "hisilicon,hisi-femac-v1";
+			reg = <0x10090000 0x1000>, <0x10091300 0x200>;
+			interrupts = <GIC_SPI 24 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&crg HI3520DV100_ETH_CLK>;
+			resets = <&crg 0xcc 0>;
+			reset-names = "mac";
+			status = "disabled";
+		};
+
+		uart0: serial@20080000 {
+			compatible = "arm,pl011", "arm,primecell";
+			reg = <0x20080000 0x1000>;
+			interrupts = <GIC_SPI 8 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&crg HI3520DV100_UART0_CLK>, <&crg HI3520DV100_APB_CLK>;
+			clock-names = "uartclk", "apb_pclk";
+			status = "disabled";
+		};
+
+		uart1: serial@20090000 {
+			compatible = "arm,pl011", "arm,primecell";
+			reg = <0x20090000 0x1000>;
+			interrupts = <GIC_SPI 9 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&crg HI3520DV100_UART1_CLK>, <&crg HI3520DV100_APB_CLK>;
+			clock-names = "uartclk", "apb_pclk";
+			status = "disabled";
+		};
+
+		uart2: serial@200a0000 {
+			compatible = "arm,pl011", "arm,primecell";
+			reg = <0x200a0000 0x1000>;
+			interrupts = <GIC_SPI 10 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&crg HI3520DV100_UART2_CLK>, <&crg HI3520DV100_APB_CLK>;
+			clock-names = "uartclk", "apb_pclk";
+			status = "disabled";
+		};
+
+		uart3: serial@200b0000 {
+			compatible = "arm,pl011", "arm,primecell";
+			reg = <0x200b0000 0x1000>;
+			interrupts = <GIC_SPI 11 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&crg HI3520DV100_UART3_CLK>, <&crg HI3520DV100_APB_CLK>;
+			clock-names = "uartclk", "apb_pclk";
+			status = "disabled";
+		};
+
+		/*
+		 * SSP/SPI master (one group, two chip selects), ARM PL022 register
+		 * file. Reference clock is the APB clock. No DMA on this SoC.
+		 */
+		spi: spi@200c0000 {
+			compatible = "arm,pl022", "arm,primecell";
+			reg = <0x200c0000 0x1000>;
+			interrupts = <GIC_SPI 12 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&crg HI3520DV100_SSP_CLK>, <&crg HI3520DV100_APB_CLK>;
+			clock-names = "sspclk", "apb_pclk";
+			arm,primecell-periphid = <0x00041022>;
+			num-cs = <2>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
+		gpio0: gpio@20150000 {
+			compatible = "arm,pl061", "arm,primecell";
+			reg = <0x20150000 0x1000>;
+			interrupts = <GIC_SPI 47 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&crg HI3520DV100_APB_CLK>;
+			clock-names = "apb_pclk";
+			gpio-controller;
+			#gpio-cells = <2>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+			status = "disabled";
+		};
+
+		gpio1: gpio@20160000 {
+			compatible = "arm,pl061", "arm,primecell";
+			reg = <0x20160000 0x1000>;
+			interrupts = <GIC_SPI 48 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&crg HI3520DV100_APB_CLK>;
+			clock-names = "apb_pclk";
+			gpio-controller;
+			#gpio-cells = <2>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+			status = "disabled";
+		};
+
+		gpio2: gpio@20170000 {
+			compatible = "arm,pl061", "arm,primecell";
+			reg = <0x20170000 0x1000>;
+			interrupts = <GIC_SPI 49 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&crg HI3520DV100_APB_CLK>;
+			clock-names = "apb_pclk";
+			gpio-controller;
+			#gpio-cells = <2>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+			status = "disabled";
+		};
+
+		gpio3: gpio@20180000 {
+			compatible = "arm,pl061", "arm,primecell";
+			reg = <0x20180000 0x1000>;
+			interrupts = <GIC_SPI 50 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&crg HI3520DV100_APB_CLK>;
+			clock-names = "apb_pclk";
+			gpio-controller;
+			#gpio-cells = <2>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+			status = "disabled";
+		};
+
+		gpio4: gpio@20190000 {
+			compatible = "arm,pl061", "arm,primecell";
+			reg = <0x20190000 0x1000>;
+			interrupts = <GIC_SPI 51 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&crg HI3520DV100_APB_CLK>;
+			clock-names = "apb_pclk";
+			gpio-controller;
+			#gpio-cells = <2>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+			status = "disabled";
+		};
+
+		gpio5: gpio@201a0000 {
+			compatible = "arm,pl061", "arm,primecell";
+			reg = <0x201a0000 0x1000>;
+			interrupts = <GIC_SPI 52 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&crg HI3520DV100_APB_CLK>;
+			clock-names = "apb_pclk";
+			gpio-controller;
+			#gpio-cells = <2>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+			status = "disabled";
+		};
+
+		gpio6: gpio@201b0000 {
+			compatible = "arm,pl061", "arm,primecell";
+			reg = <0x201b0000 0x1000>;
+			interrupts = <GIC_SPI 53 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&crg HI3520DV100_APB_CLK>;
+			clock-names = "apb_pclk";
+			gpio-controller;
+			#gpio-cells = <2>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+			status = "disabled";
+		};
+
+		gpio7: gpio@201c0000 {
+			compatible = "arm,pl061", "arm,primecell";
+			reg = <0x201c0000 0x1000>;
+			interrupts = <GIC_SPI 54 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&crg HI3520DV100_APB_CLK>;
+			clock-names = "apb_pclk";
+			gpio-controller;
+			#gpio-cells = <2>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+			status = "disabled";
+		};
+
+		gpio8: gpio@201d0000 {
+			compatible = "arm,pl061", "arm,primecell";
+			reg = <0x201d0000 0x1000>;
+			interrupts = <GIC_SPI 55 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&crg HI3520DV100_APB_CLK>;
+			clock-names = "apb_pclk";
+			gpio-controller;
+			#gpio-cells = <2>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+			status = "disabled";
+		};
+	};
+};
