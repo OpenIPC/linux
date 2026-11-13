@@ -140,15 +140,24 @@ static int ahci_hi3520dv200_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	struct hi3520dv200_sata *priv;
 	struct ahci_host_priv *hpriv;
+	struct resource *res;
 	int ret;
 
 	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
 	if (!priv)
 		return -ENOMEM;
 
-	priv->crg = devm_platform_ioremap_resource(pdev, 1);
-	if (IS_ERR(priv->crg))
-		return PTR_ERR(priv->crg);
+	/*
+	 * PERI_CRG45 lies inside the register window of the CRG, which has its
+	 * own driver: map it without requesting the region.
+	 */
+	res = platform_get_resource(pdev, IORESOURCE_MEM, 1);
+	if (!res)
+		return -EINVAL;
+
+	priv->crg = devm_ioremap(dev, res->start, resource_size(res));
+	if (!priv->crg)
+		return -ENOMEM;
 
 	if (of_property_read_u32(dev->of_node, "hisilicon,phy-config",
 				 &priv->phy_config))
@@ -177,6 +186,7 @@ static int ahci_hi3520dv200_probe(struct platform_device *pdev)
 }
 
 static const struct of_device_id ahci_hi3520dv200_of_match[] = {
+	{ .compatible = "hisilicon,hi3520dv100-ahci" },
 	{ .compatible = "hisilicon,hi3520dv200-ahci" },
 	{}
 };
