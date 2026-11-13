@@ -1,0 +1,84 @@
+/* SPDX-License-Identifier: GPL-2.0-only OR BSD-2-Clause */
+/*
+ * Clock identifiers for the HiSilicon Hi3520D family CRG and system controller.
+ */
+
+#ifndef __DT_BINDINGS_CLOCK_HI3520D_H
+#define __DT_BINDINGS_CLOCK_HI3520D_H
+
+/* hisilicon,hi3520d-crg */
+#define HI3520D_FIXED_3M		0
+#define HI3520D_FIXED_2M		1
+#define HI3520D_FIXED_24M		2
+#define HI3520D_FIXED_50M		3
+#define HI3520D_FIXED_75M		4
+#define HI3520D_FIXED_112P5M		5
+#define HI3520D_APLL_CLK		6
+#define HI3520D_AXI_CLK			7
+#define HI3520D_APB_CLK			8
+#define HI3520D_UART_MUX		9
+#define HI3520D_SFC_MUX			10
+#define HI3520D_PWM_MUX			11
+
+#define HI3520D_UART0_CLK		16
+#define HI3520D_UART1_CLK		17
+#define HI3520D_UART2_CLK		18
+#define HI3520D_UART3_CLK		19
+#define HI3520D_SSP_CLK			20
+#define HI3520D_IR_CLK			21
+#define HI3520D_SFC_CLK			22
+#define HI3520D_ETH_CLK			23
+#define HI3520D_USB_CLK			24
+#define HI3520D_SATA_CLK			25
+#define HI3520D_SATA0_CLK		26
+#define HI3520D_SATA1_CLK		27
+#define HI3520D_PWM_CLK			28
+#define HI3520D_SCD_CLK			29
+#define HI3520D_EFUSE_CLK		30
+#define HI3520D_DDRTEST_CLK		31
+#define HI3520D_CIPHER_CLK		32
+#define HI3520D_VOU_H_CLK		33
+#define HI3520D_VOU_HD_CLK		34
+#define HI3520D_VOU_SD0_CLK		35
+#define HI3520D_VOU_SD1_CLK		36
+#define HI3520D_HDDAC_CLK		37
+#define HI3520D_SDDAC_CLK		38
+#define HI3520D_HDMI_H_CLK		39
+#define HI3520D_HDMI_ID_CLK		40
+#define HI3520D_VEDU0_CLK		41
+#define HI3520D_SED_CLK			42
+#define HI3520D_VPSS_CLK		43
+#define HI3520D_TDE_CLK			44
+#define HI3520D_JPGE_CLK		45
+#define HI3520D_JPGD_CLK		46
+#define HI3520D_MDU_CLK			47
+#define HI3520D_VAPU_CLK		48
+#define HI3520D_VOIE_CLK		49
+#define HI3520D_VCMP_CLK		50
+#define HI3520D_AIO_H_CLK		51
+#define HI3520D_AIP_CLK			52
+#define HI3520D_AOP0_CLK		53
+#define HI3520D_AOP1_CLK		54
+#define HI3520D_VICAP_H_CLK		55
+#define HI3520D_VICAP_CH0_CLK		56
+#define HI3520D_VICAP_CH1_CLK		57
+#define HI3520D_VICAP_CH2_CLK		58
+#define HI3520D_VICAP_CH3_CLK		59
+#define HI3520D_VICAP_CH4_CLK		60
+#define HI3520D_VICAP_CH5_CLK		61
+#define HI3520D_VICAP_CH6_CLK		62
+#define HI3520D_VICAP_CH7_CLK		63
+#define HI3520D_VICAP_TEST_CLK		64
+
+/* hisilicon,hi3520d-sysctrl: SP804 count clocks and the watchdog clock */
+#define HI3520D_TIMER0_CLK		0
+#define HI3520D_TIMER1_CLK		1
+#define HI3520D_TIMER2_CLK		2
+#define HI3520D_TIMER3_CLK		3
+#define HI3520D_TIMER4_CLK		4
+#define HI3520D_TIMER5_CLK		5
+#define HI3520D_TIMER6_CLK		6
+#define HI3520D_TIMER7_CLK		7
+#define HI3520D_WDT_CLK			8
+
+#endif /* __DT_BINDINGS_CLOCK_HI3520D_H */
