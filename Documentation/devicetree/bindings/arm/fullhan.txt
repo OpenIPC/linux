@@ -11,3 +11,8 @@ Example:
 	model = "Fullhan FH8626V100";
 	compatible = "fullhan,fh8626v100", "fullhan,fh8626";
 };
+
+Boards:
+
+- Tenda CP3 V2.2 pan/tilt camera
+  compatible = "tenda,cp3-v22", "fullhan,fh8626v100", "fullhan,fh8626";
