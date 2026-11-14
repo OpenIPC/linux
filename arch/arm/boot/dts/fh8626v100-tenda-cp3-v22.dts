@@ -1,0 +1,246 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Tenda CP3 V2.2 pan/tilt camera
+ *
+ * FH8626V100 with its 64 MiB of in-package DDR, an 8 MiB EON EN25QH64
+ * SPI NOR, a GalaxyCore GC2083 sensor on I2C0 and a Realtek RTL8188FU
+ * Wi-Fi adapter (0bda:f179) on the USB port.
+ *
+ * The camera keeps Tenda's U-Boot 2010.06. It boots a legacy uImage with
+ * ATAGs; the kernel carries this device tree appended and must not take
+ * the memory size or partitions from them (stock U-Boot passes mem=43M
+ * and spi_flash: partitions), so the chosen bootargs below are complete.
+ *
+ * Only what the stock firmware shows is described. The status LEDs,
+ * the reset button, the IR cut filter, the speaker amplifier and the
+ * pan/tilt motors are left out until their polarity and timing have
+ * been measured on a camera.
+ */
+/dts-v1/;
+#include "fh8626v100.dtsi"
+
+/ {
+	model = "Tenda CP3 V2.2";
+	compatible = "tenda,cp3-v22", "fullhan,fh8626v100", "fullhan,fh8626";
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+		/* The squashfs root is the "rootfs" partition, mtdblock6 */
+		bootargs = "console=ttyS0,115200 root=/dev/mtdblock6 rootfstype=squashfs";
+	};
+
+	memory@a0000000 {
+		device_type = "memory";
+		reg = <0xa0000000 0x04000000>;
+	};
+
+	/*
+	 * The Wi-Fi adapter sits permanently on the port. Its VBUS switch,
+	 * if there is one, is not known, so this supply has no control.
+	 */
+	usb_vbus: regulator-usb-vbus {
+		compatible = "regulator-fixed";
+		regulator-name = "usb-vbus";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+	};
+
+	reserved-memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		cma_pool: cma@a2000000 {
+			compatible = "shared-dma-pool";
+			reusable;
+			/*
+			 * 28 MiB, 4 MiB-aligned (MAX_ORDER = 11) for media
+			 * DMA workspaces. At 1920x1080 three NV12 capture
+			 * buffers, the VPU frame scratch, the ISP 3DNR history,
+			 * an H.264 context and the JPEG staging and output
+			 * buffers take about 24 MiB; with the 1 MiB placement
+			 * alignment of large allocations 24 MiB does not hold
+			 * them.
+			 */
+			reg = <0xa2000000 0x01c00000>;
+			linux,cma-default;
+		};
+
+		arc_memory: memory@a3f00000 {
+			reg = <0xa3f00000 0x000c0000>;
+			no-map;
+		};
+
+		arc_dma: dma-pool@a3fc0000 {
+			compatible = "shared-dma-pool";
+			reg = <0xa3fc0000 0x00040000>;
+			no-map;
+		};
+	};
+};
+
+&timer {
+	clock-frequency = <50000000>;
+};
+
+&spi0 {
+	num-cs = <1>;
+	cs-gpios = <&gpio1 22 GPIO_ACTIVE_LOW>;
+
+	flash@0 {
+		compatible = "jedec,spi-nor";
+		reg = <0>;
+		spi-max-frequency = <10000000>;
+		spi-rx-bus-width = <1>;
+		spi-tx-bus-width = <1>;
+
+		/*
+		 * Tenda's layout, which its U-Boot also uses: bootstrap,
+		 * uboot-env and uboot at the same offsets, a 3 MiB kernel
+		 * slot, a 512 KiB data and a 4288 KiB app partition, here
+		 * named for OpenIPC's overlay and root.
+		 */
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			partition@0 {
+				label = "bootstrap";
+				reg = <0x000000 0x010000>;
+				read-only;
+			};
+			partition@10000 {
+				label = "uboot-env";
+				reg = <0x010000 0x010000>;
+			};
+			partition@20000 {
+				label = "uboot";
+				reg = <0x020000 0x030000>;
+				read-only;
+			};
+			/*
+			 * U-Boot's kload copies the kernel slot less its last
+			 * 128 KiB, 0x2e0000 bytes, so that is the uImage limit.
+			 */
+			partition@50000 {
+				label = "kernel";
+				reg = <0x050000 0x2e0000>;
+			};
+			/*
+			 * Before booting, U-Boot compares the 8 bytes 64 KiB
+			 * from the end of the kernel slot with the image header
+			 * at the start of the flash, and on a mismatch starts
+			 * its SD card and TFTP flash updater. Never written.
+			 */
+			partition@330000 {
+				label = "kernel-stamp";
+				reg = <0x330000 0x020000>;
+				read-only;
+			};
+			partition@350000 {
+				label = "rootfs_data";
+				reg = <0x350000 0x080000>;
+			};
+			partition@3d0000 {
+				label = "rootfs";
+				reg = <0x3d0000 0x430000>;
+			};
+		};
+	};
+};
+
+&mmc0 {
+	bus-width = <1>;
+	max-frequency = <50000000>;
+	clock-freq-min-max = <400000 50000000>;
+	cap-sd-highspeed;
+	no-1-8-v;
+	status = "okay";
+};
+
+&usb {
+	status = "okay";
+};
+
+&usb_phy {
+	vbus-supply = <&usb_vbus>;
+	status = "okay";
+};
+
+&dma {
+	status = "okay";
+};
+
+&bgm {
+	status = "okay";
+};
+
+&i2c0 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	gc2083: camera-sensor@37 {
+		compatible = "galaxycore,gc2083";
+		reg = <0x37>;
+		/* The CIS clock pad and GPIO13, the sensor reset */
+		pinctrl-names = "default";
+		pinctrl-0 = <&sensor_pins>;
+		/* The stock streamer sets the CIS clock to 24 MHz */
+		clocks = <&clk FH8626_CLK_CIS_OUT>;
+		clock-names = "xvclk";
+		assigned-clocks = <&clk FH8626_CLK_CIS_OUT>;
+		assigned-clock-parents = <&osc>;
+		/*
+		 * GPIO13 per the stock board configuration. It is also the
+		 * boot ROM's SPI NOR strap (high: boot from NOR); the machine
+		 * code hands it back to the bootloader state on restart.
+		 */
+		reset-gpios = <&gpio0 13 GPIO_ACTIVE_LOW>;
+
+		port {
+			gc2083_out: endpoint {
+				remote-endpoint = <&csi_in>;
+				clock-lanes = <0>;
+				data-lanes = <1 2>;
+				link-frequencies = /bits/ 64 <250000000>;
+			};
+		};
+	};
+};
+
+&csi_in {
+	remote-endpoint = <&gc2083_out>;
+	clock-lanes = <0>;
+	data-lanes = <1 2>;
+	/* The code the stock MIPI setup uses for the GC2083 */
+	fullhan,frq-range = <8>;
+};
+
+&aes {
+	status = "okay";
+};
+
+&jpeg {
+	status = "okay";
+};
+
+&adc {
+	status = "okay";
+};
+
+/* U-Boot leaves the watchdog disabled; it starts when it is opened */
+&watchdog {
+	status = "okay";
+};
+
+&efuse {
+	status = "okay";
+};
+
+&arc {
+	memory-region = <&arc_memory>, <&arc_dma>;
+	status = "okay";
+};
