@@ -23,6 +23,16 @@
 
 static DEFINE_SPINLOCK(hisi_clk_lock);
 
+/*
+ * Reset controllers on the same register block take this lock too, so that
+ * clock gates and reset bits of one register do not overwrite each other.
+ */
+spinlock_t *hisi_clk_get_lock(void)
+{
+	return &hisi_clk_lock;
+}
+EXPORT_SYMBOL_GPL(hisi_clk_get_lock);
+
 struct hisi_clock_data *hisi_clk_alloc(struct platform_device *pdev,
 						int nr_clks)
 {

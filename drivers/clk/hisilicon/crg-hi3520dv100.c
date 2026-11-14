@@ -331,10 +331,8 @@ CLK_OF_DECLARE_DRIVER(hi3520dv100_sysctrl, "hisilicon,hi3520dv100-sysctrl",
 
 static int hi3520dv100_crg_probe(struct platform_device *pdev)
 {
-	if (!hisi_reset_init(pdev))
-		return -ENOMEM;
-
-	return 0;
+	/* the gates in this register block share it with the reset bits */
+	return PTR_ERR_OR_ZERO(hisi_reset_init_shared(pdev, hisi_clk_get_lock()));
 }
 
 static const struct of_device_id hi3520dv100_crg_match_table[] = {

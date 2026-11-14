@@ -18,7 +18,8 @@
 #define	HISI_RESET_OFFSET_MASK	0xffff00
 
 struct hisi_reset_controller {
-	spinlock_t	lock;
+	spinlock_t	own_lock;	/* used when the caller passes no lock */
+	spinlock_t	*lock;		/* protects the reset register updates */
 	void __iomem	*membase;
 	struct reset_controller_dev	rcdev;
 };
@@ -51,12 +52,12 @@ static int hisi_reset_assert(struct reset_controller_dev *rcdev,
 	offset = (id & HISI_RESET_OFFSET_MASK) >> HISI_RESET_OFFSET_SHIFT;
 	bit = id & HISI_RESET_BIT_MASK;
 
-	spin_lock_irqsave(&rstc->lock, flags);
+	spin_lock_irqsave(rstc->lock, flags);
 
 	reg = readl(rstc->membase + offset);
 	writel(reg | BIT(bit), rstc->membase + offset);
 
-	spin_unlock_irqrestore(&rstc->lock, flags);
+	spin_unlock_irqrestore(rstc->lock, flags);
 
 	return 0;
 }
@@ -72,12 +73,12 @@ static int hisi_reset_deassert(struct reset_controller_dev *rcdev,
 	offset = (id & HISI_RESET_OFFSET_MASK) >> HISI_RESET_OFFSET_SHIFT;
 	bit = id & HISI_RESET_BIT_MASK;
 
-	spin_lock_irqsave(&rstc->lock, flags);
+	spin_lock_irqsave(rstc->lock, flags);
 
 	reg = readl(rstc->membase + offset);
 	writel(reg & ~BIT(bit), rstc->membase + offset);
 
-	spin_unlock_irqrestore(&rstc->lock, flags);
+	spin_unlock_irqrestore(rstc->lock, flags);
 
 	return 0;
 }
@@ -87,20 +88,36 @@ static const struct reset_control_ops hisi_reset_ops = {
 	.deassert	= hisi_reset_deassert,
 };
 
-struct hisi_reset_controller *hisi_reset_init(struct platform_device *pdev)
+/**
+ * hisi_reset_init_shared - register a reset controller on the CRG of @pdev
+ * @pdev: platform device of the CRG
+ * @lock: lock that also protects the other users of the same registers (the
+ *	  gate and mux clocks), or NULL to use a private one
+ *
+ * Reset bits share registers with clock gates, so both must update them under
+ * the same lock.
+ *
+ * Return: the controller, or an ERR_PTR() with the reason of the failure.
+ */
+struct hisi_reset_controller *hisi_reset_init_shared(struct platform_device *pdev,
+						     spinlock_t *lock)
 {
 	struct hisi_reset_controller *rstc;
 	int ret;
 
 	rstc = devm_kzalloc(&pdev->dev, sizeof(*rstc), GFP_KERNEL);
 	if (!rstc)
-		return NULL;
+		return ERR_PTR(-ENOMEM);
 
 	rstc->membase = devm_platform_ioremap_resource(pdev, 0);
 	if (IS_ERR(rstc->membase))
-		return NULL;
+		return ERR_CAST(rstc->membase);
 
-	spin_lock_init(&rstc->lock);
+	if (!lock) {
+		spin_lock_init(&rstc->own_lock);
+		lock = &rstc->own_lock;
+	}
+	rstc->lock = lock;
 	rstc->rcdev.owner = THIS_MODULE;
 	rstc->rcdev.ops = &hisi_reset_ops;
 	rstc->rcdev.of_node = pdev->dev.of_node;
@@ -109,10 +126,18 @@ struct hisi_reset_controller *hisi_reset_init(struct platform_device *pdev)
 	ret = reset_controller_register(&rstc->rcdev);
 	if (ret) {
 		dev_err(&pdev->dev, "failed to register the reset controller: %d\n", ret);
-		return NULL;
+		return ERR_PTR(ret);
 	}
 
 	return rstc;
+}
+EXPORT_SYMBOL_GPL(hisi_reset_init_shared);
+
+struct hisi_reset_controller *hisi_reset_init(struct platform_device *pdev)
+{
+	struct hisi_reset_controller *rstc = hisi_reset_init_shared(pdev, NULL);
+
+	return IS_ERR(rstc) ? NULL : rstc;
 }
 EXPORT_SYMBOL_GPL(hisi_reset_init);
 
@@ -146,7 +171,8 @@ int __init hibvt_reset_init(struct device_node *np, int nr_rsts)
 		return -EINVAL;
 	}
 
-	spin_lock_init(&rstc->lock);
+	spin_lock_init(&rstc->own_lock);
+	rstc->lock = &rstc->own_lock;
 
 	return reset_controller_register(&rstc->rcdev);
 }
