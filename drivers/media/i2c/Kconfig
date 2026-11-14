@@ -1105,6 +1105,20 @@ config VIDEO_GC2053
 	  To compile this driver as a module, choose M here: the
 	  module will be called gc2053.
 
+config VIDEO_GC2083
+	tristate "GalaxyCore GC2083 sensor"
+	depends on ARCH_FULLHAN && OF && I2C && m
+	depends on VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
+	depends on MEDIA_CONTROLLER
+	select V4L2_FWNODE
+	help
+	  Enable the GalaxyCore GC2083 camera sensor driver.
+	  It supports 1920x1080 RAW10 capture over two MIPI CSI-2 lanes
+	  at up to 30 frames per second.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called gc2083.
+
 config VIDEO_JXF37
 	tristate "SOI JXF37 sensor"
 	depends on ARCH_FULLHAN && OF && I2C && m
