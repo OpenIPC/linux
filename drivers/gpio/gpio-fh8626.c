@@ -176,7 +176,13 @@ static int fh8626_gpio_probe(struct platform_device *pdev)
 			 gpio->base + FH_GPIO_DIRECTION, NULL, 0);
 	if (ret)
 		return ret;
-	gpio->gc.base = -1;
+	/*
+	 * Number the ports as the SoC does, GPIO0-31 and GPIO32-63, from the
+	 * gpioN alias, so the GPIO numbers user space knows from board
+	 * documentation hold; without an alias the core picks a base.
+	 */
+	ret = of_alias_get_id(dev->of_node, "gpio");
+	gpio->gc.base = ret >= 0 ? ret * 32 : -1;
 	gpio->gc.label = dev_name(dev);
 	gpio->gc.parent = dev;
 	gpio->gc.owner = THIS_MODULE;
