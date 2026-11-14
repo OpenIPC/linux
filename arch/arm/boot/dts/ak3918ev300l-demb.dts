@@ -1,0 +1,88 @@
+/*
+ * The AK3918EV300L (and AK3918EV300W) as OpenIPC boots it: the AnyCloud39AV100
+ * SDK's EVB_CBDM_AK3918EV300L board with the wiring of the one EV300L camera
+ * OpenIPC has run on, a GZhongshi HVT3610S3 (SC1346, ATBM603x Wi-Fi on USB,
+ * Ethernet), as its own device tree has it (stock U-Boot 2019.10.0-V4.0.25,
+ * kernel 4.4.282), where that differs from the EVB:
+ *
+ * - two sensor candidates, 0x30 with its reset on GPIO 19 and 0x32 with its
+ *   reset on GPIO 18, both active low and neither with a power-down line
+ *   (the EVB: one sensor at 0x30, GPIO 18 its power-down);
+ * - the TF card's power switch on GPIO 98 (pad 98 muxed from SYS_RSTN_OUT),
+ *   active low, and its card detect on GPIO 37 (the EVB: 50 and 9; both
+ *   wirings occur among the SDK's boards);
+ * - the PHY reset on GPIO 71, with pad 23 a GPIO (the EVB: 24).
+ *
+ * A camera wired otherwise sets its pins from user space
+ * (/usr/share/openipc/muxes.sh, per device in OpenIPC/builder).
+ *
+ * The bootargs are the defaults for OpenIPC's NOR layout, used whenever
+ * U-Boot passes no command line of its own; U-Boot's bootargs, when present,
+ * still replace them. The NOR sits on SPI0 under ak_spiflash, so mtdparts=
+ * names spi0.0. The SoC dtsi's ION reservation stays: the ISP and encoder
+ * modules allocate from it.
+ */
+
+#include "EVB_CBDM_AK3918EV300L_V1.0.0.dts"
+
+/ {
+	chosen {
+		bootargs = "console=ttySAK0,115200n8 root=/dev/mtdblock3 rootfstype=squashfs init=/init mem=64M memsize=64M mtdparts=spi0.0:256k(boot),64k(env),2048k(kernel),5120k(rootfs),-(rootfs_data)";
+	};
+};
+
+&sensor0 {
+	reset-gpio = <&gpio XGPIO_019 1>;
+	pwdn-gpio = <&gpio 0xffff 1>;
+};
+
+&i2c0 {
+	sensor1: camera@0x32 {
+		compatible = "anyka,sensor0";
+		reg = <0x32>;
+		reset-gpio = <&gpio XGPIO_018 1>;
+		pwdn-gpio = <&gpio 0xffff 1>;
+
+		port {
+			sensor1_0: endpoint@1 {
+				remote-endpoint = <&vi_0_1>;
+			};
+		};
+	};
+};
+
+&vi0 {
+	port@0 {
+		vi_0_1: endpoint@1 {
+			reg = <1>;
+			remote-endpoint = <&sensor1_0>;
+		};
+	};
+};
+
+&tf_en_pins {
+	anyka,pins = <XGPIO_098>;
+	anyka,function = <XGPIO_098_FUNC_GPIO98>;
+	anyka,pull = <0x1010010>;
+};
+
+&tf_det_pins {
+	anyka,pins = <XGPIO_037>;
+	anyka,function = <XGPIO_037_FUNC_GPIO37>;
+	anyka,pull = <0x1010010>;
+};
+
+&mmc1 {
+	detect-gpio = <&gpio XGPIO_037 1>;
+	power-pins = <&gpio XGPIO_098 1>;
+};
+
+&ethernet_rst_pins {
+	anyka,pins = <XGPIO_023>;
+	anyka,function = <XGPIO_023_FUNC_GPIO23>;
+	anyka,pull = <0x10010>;
+};
+
+&ethernet {
+	reset-gpios = <&gpio XGPIO_071 1>;
+};

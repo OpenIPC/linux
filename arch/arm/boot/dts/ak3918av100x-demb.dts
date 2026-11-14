@@ -1,0 +1,18 @@
+/*
+ * The AnyCloud39AV100 SDK's EVB_CBDM_AK3918AV100X board: the 128 MB AK3918AV100X/XP
+ * and KM01D, as OpenIPC boots it.
+ *
+ * The bootargs are the defaults for OpenIPC's NOR layout, used whenever
+ * U-Boot passes no command line of its own; U-Boot's bootargs, when present,
+ * still replace them. The NOR sits on SPI0 under ak_spiflash, so mtdparts=
+ * names spi0.0. The SoC dtsi's ION reservation stays: the SDK's ISP and
+ * encoder modules allocate from it.
+ */
+
+#include "EVB_CBDM_AK3918AV100X_V1.0.0.dts"
+
+/ {
+	chosen {
+		bootargs = "console=ttySAK0,115200n8 root=/dev/mtdblock3 rootfstype=squashfs init=/init mem=128M memsize=128M mtdparts=spi0.0:256k(boot),64k(env),2048k(kernel),5120k(rootfs),-(rootfs_data)";
+	};
+};
