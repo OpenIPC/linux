@@ -175,6 +175,7 @@
 			reg = <0x10010000 0x10000>, <0x58000000 0x4000000>;
 			reg-names = "regs", "mem";
 			num-cs = <2>;
+			interrupts = <GIC_SPI 18 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&crg HI3520DV100_SFC_CLK>;
 			resets = <&crg 0xc0 0>;
 			assigned-clocks = <&crg HI3520DV100_SFC_MUX>;
