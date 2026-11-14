@@ -1,0 +1,191 @@
+/*
+ * AK3918EV300L
+ *
+ * Copyright (C) 2020 Anyka(Guangzhou) Microelectronics Technology Co., Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+/*
+* NOTE:
+* This is the common configuration about pinctrl with those customers no need to care about.
+* Like the mmc/eth, customers will less to modify them.
+* IF your pins are strongly relate on the specifically board.
+* Please move them to the board related file.
+*/
+
+#include <dt-bindings/pinctrl/ak3918ev300l_pinctrl.h>
+
+&gpio {
+    /*
+    * "anyka,function": func index, please refer to dt-bindings/pinctrl/ak3918ev300l_pinctrl.h
+    * "anyka,pull": configuration of the pins
+    * bit[7:0]: pull up/down configuration
+    *     bit[0]: pull up or pull down selection, 1 means select pull down, 0 means select pull up
+    *     bit[4]: pull up or pull down enable, 1 means enable pull up&down function, 0 means disable fuction
+    * !!! Notice that not all pin support pull up and pull down. Please refer to the programer's guide.
+    * bit[11:8]: driver strength configuration.
+    *     bit[9:8] drive strength.
+    * bit[12:15] gpio direction
+    *     bit[12]: direction. 0 is output, 1 is input
+    *     bit[15]: enable direction. 1 is enable
+    * bit[19:16]: input enable configuration
+    *     bit[16]: 1 means enable input, 0 means disable input.
+    * bit[20-23]: gpio output level
+    *     bit[20]: 0 is low level, 1 is high level
+    *     bit[23]: enable gpio output level. 1 is enable
+    * bit[31:24]: pin slew rate configuration
+    *     bit[24]: 1 means fast slew rate, 0 means slow slew rate.
+    * !!! Notice OTHER bits which not mentioned please set to 0.
+    */
+
+    uart0_pins: uart0_pins {
+        anyka,pins = <XGPIO_052 XGPIO_051>;
+        anyka,function = <XGPIO_052_FUNC_UART0_RXD XGPIO_051_FUNC_UART0_TXD>;
+        anyka,pull = <0x00010010>;
+    };
+
+    uart0_pins_sleep: uart0_pins_sleep {
+        anyka,pins = <XGPIO_052 XGPIO_051>;
+        anyka,function = <XGPIO_052_FUNC_GPIO52 XGPIO_051_FUNC_GPIO51>;
+        anyka,pull = <0x00000000>;
+    };
+
+    ethernet_rmii_pins: ethernet_rmii_pins {
+        anyka,pins = <  XGPIO_003
+                        XGPIO_005
+                        XGPIO_001
+                        XGPIO_002
+                        XGPIO_011
+                        XGPIO_006
+                        XGPIO_000
+                        XGPIO_007
+                        XGPIO_008
+                        XGPIO_004>;
+        anyka,function = <  XGPIO_003_FUNC_RMII_MDIO
+                            XGPIO_005_FUNC_RMII_MDC
+                            XGPIO_001_FUNC_RMII_RXER
+                            XGPIO_002_FUNC_RMII_RXDV
+                            XGPIO_011_FUNC_RMII_RXD0
+                            XGPIO_006_FUNC_RMII_RXD1
+                            XGPIO_000_FUNC_OPCLK1
+                            XGPIO_007_FUNC_RMII_TXD0
+                            XGPIO_008_FUNC_RMII_TXD1
+                            XGPIO_004_FUNC_RMII_TXEN
+                            >;
+      anyka,pull = < 0x00010010 /* XGPIO_003_FUNC_RMII_MDIO, input enable, driver 2mA, slow slew rate, pull up enable*/
+                     0x00010011 /* XGPIO_005_FUNC_RMII_MDC,  input enable, driver 2mA, slow slew rate, pull down enable*/
+                     0x00010011 /* XGPIO_001_FUNC_RMII_RXER, input enable, driver 2mA, slow slew rate, pull down enable*/
+                     0x00010011 /* XGPIO_002_FUNC_RMII_RXDV, input enable, driver 2mA, slow slew rate, pull down enable*/
+                     0x00010011 /* XGPIO_011_FUNC_RMII_RXD0, input enable, driver 2mA, slow slew rate, pull down enable*/
+                     0x00010011 /* XGPIO_006_FUNC_RMII_RXD1, input enable, driver 2mA, slow slew rate, pull down enable*/ 
+                     0x00010200 /* XGPIO_000_FUNC_OPCLK1,    input enable, driver 4mA, slow slew rate, pull up disable and pull down disable*/ 
+                     0x01010011 /* XGPIO_007_FUNC_RMII_TXD0, input enable, driver 2mA, fast slew rate, pull down enable*/ 
+                     0x01010011 /* XGPIO_008_FUNC_RMII_TXD1, input enable, driver 2mA, fast slew rate, pull down enable*/ 
+                     0x00010011 /* XGPIO_004_FUNC_RMII_TXEN, input enable, driver 2mA, slow slew rate, pull down enable*/ 
+                    >;
+    };
+
+	ethernet_rmii_pins_sleep: ethernet_rmii_pins_sleep {
+        anyka,pins = <XGPIO_003
+                        XGPIO_005
+                        XGPIO_001
+                        XGPIO_002
+                        XGPIO_011
+                        XGPIO_006
+                        XGPIO_000
+                        XGPIO_007
+                        XGPIO_008
+                        XGPIO_004>;
+        anyka,function = <XGPIO_003_FUNC_GPIO3
+                            XGPIO_005_FUNC_GPIO5
+                            XGPIO_001_FUNC_GPIO1
+                            XGPIO_002_FUNC_GPIO2
+                            XGPIO_011_FUNC_GPIO11
+                            XGPIO_006_FUNC_GPIO6
+                            XGPIO_000_FUNC_GPIO0
+                            XGPIO_007_FUNC_GPIO7
+                            XGPIO_008_FUNC_GPIO8
+                            XGPIO_004_FUNC_GPIO4
+                            >;
+        anyka,pull = <0x00000000>;
+    };
+
+    ethernet_rst_pins: ethernet_rst_pins {
+        anyka,pins = <XGPIO_024>;
+        anyka,function = <XGPIO_024_FUNC_GPIO24>;
+        anyka,pull = <0x00010010>;
+    };
+
+    ethernet_rst_pins_sleep: ethernet_rst_pins_sleep {
+        anyka,pins = <XGPIO_049>;
+        anyka,function = <XGPIO_049_FUNC_GPIO49>;
+        anyka,pull = <0x00000000>;
+    };
+
+    spiflash_pins: spiflash_pins {
+        anyka,pins = <XGPIO_047
+                        XGPIO_042
+                        XGPIO_046
+                        XGPIO_043
+                        XGPIO_045
+                        XGPIO_044>;
+        anyka,function = <XGPIO_047_FUNC_SPI0_DOUT
+                            XGPIO_042_FUNC_SPI0_WP
+                            XGPIO_046_FUNC_SPI0_CLK
+                            XGPIO_043_FUNC_SPI0_DIN
+                            XGPIO_045_FUNC_SPI0_HOLD
+                            XGPIO_044_FUNC_SPI0_CS>;
+        anyka,pull = <0x00010000>;
+    };
+
+    spiflash_pins_sleep: spiflash_pins_sleep {
+        anyka,pins = <XGPIO_047
+                        XGPIO_042
+                        XGPIO_046
+                        XGPIO_043
+                        XGPIO_045
+                        XGPIO_044
+                        >;
+        anyka,function = <XGPIO_047_FUNC_GPIO47
+                            XGPIO_042_FUNC_GPIO42
+                            XGPIO_046_FUNC_GPIO46
+                            XGPIO_043_FUNC_GPIO43
+                            XGPIO_045_FUNC_GPIO45
+                            XGPIO_044_FUNC_GPIO44
+                    >;
+        anyka,pull = <0x00000000>;
+    };
+
+    spi_nand_flash_cs_pins: spi_nand_flash_cs_pins {
+        anyka,pins = <XGPIO_002>;
+        anyka,function = <XGPIO_002_FUNC_GPIO2>;
+        anyka,pull = <0x00000010>;
+    };
+
+    spi_nand_flash_cs_pins_sleep: spi_nand_flash_cs_pins_sleep {
+        anyka,pins = <XGPIO_002>;
+        anyka,function = <XGPIO_002_FUNC_GPIO2>;
+        anyka,pull = <0x00000000>;
+    };
+
+    emmc_reset_pin: emmc_reset_pin {
+        anyka,pins = <XGPIO_098>;
+        anyka,function = <XGPIO_098_FUNC_GPIO98>;
+        anyka,pull = <0x00010010>;
+    };
+
+    emmc_reset_pin_sleep: emmc_reset_pin_sleep {
+        anyka,pins = <XGPIO_098>;
+        anyka,function = <XGPIO_098_FUNC_GPIO98>;
+        anyka,pull = <0x00000000>;
+    };
+};

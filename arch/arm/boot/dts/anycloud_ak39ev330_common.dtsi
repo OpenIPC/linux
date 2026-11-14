@@ -1,0 +1,577 @@
+﻿/*
+ * AK39EV330 SoC
+ *
+ * Copyright (C) 2018 Anyka(Guangzhou) Microelectronics Technology Co., Ltd.
+ *
+ * Author: Feilong Dong <dong_feilong@anyka.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+#include <dt-bindings/gpio/gpio.h>
+
+/*
+* snd-dev:
+*   SND_CARD_DAC_PLAYBACK = 0
+*   SND_CARD_ADC_CAPTURE = 1
+*   SND_CARD_DAC_LOOPBACK = 2
+*   SND_CARD_I2S0_SEND = 3
+*   SND_CARD_I2S0_RECV = 4
+*   SND_CARD_I2S0_LOOPBACK = 5
+*   SND_CARD_I2S1_RECV = 6
+*   SND_CARD_PDM_RECV = 7
+* snd-type:
+*   AK_PCM_DEV_PLAYBACK = 0
+*   AK_PCM_DEV_CAPTURE = 1
+*   AK_PCM_DEV_LOOPBACK = 2
+* snd-idx:
+*   for the sample snd-type, make diff idx to re-name them
+* !!!Please notice this configration as same as the ak_pcm_def.h!!!
+*/
+#define SND_CARD_DAC_PLAYBACK   0
+#define SND_CARD_ADC_CAPTURE    1
+#define SND_CARD_DAC_LOOPBACK   2
+#define SND_CARD_I2S0_SEND      3
+#define SND_CARD_I2S0_RECV      4
+#define SND_CARD_I2S0_LOOPBACK  5
+#define SND_CARD_I2S1_RECV      6
+#define SND_CARD_PDM_RECV       7
+
+#define AK_PCM_DEV_PLAYBACK     0
+#define AK_PCM_DEV_CAPTURE      1
+#define AK_PCM_DEV_LOOPBACK     2
+
+/ {
+    #address-cells = <1>;
+    #size-cells = <1>;
+
+    interrupt-parent = <&intc>;
+
+	aliases {
+		intc = &intc;
+		watchdog = &watchdog;
+		rtc = &rtc;
+		pwm0 = &pwm0;
+		pwm1 = &pwm1;
+		pwm2 = &pwm2;
+		pwm3 = &pwm3;
+		pwm4 = &pwm4;
+		gpio = &gpio;
+		uart0 = &uart0;
+		uart1 = &uart1;
+		spi0 = &spi0;
+		spi1 = &spi1;
+		mmc0 = &mmc0;
+		mmc1 = &mmc1;
+		i2c0 = &i2c0;
+		i2c1 = &i2c1;
+		i2c2 = &i2c2;
+		motor0 = &motor0;
+		motor1 = &motor1;
+		mipicsi0 = &mipicsi0;
+		usb = &usb;
+		leds = &leds;
+		adkeys = &adkeys;
+		gpiokeys = &gpiokeys;
+		ethernet0 = &ethernet;
+	};
+
+    intc: interrupt-controller {
+        compatible = "anyka,ak39ev330-ic";
+        interrupt-controller;
+        #interrupt-cells = <2>;
+		bank_irqs = <23 16>;
+    };
+
+    system_intc: system-control-ic {
+        compatible = "anyka,ak39ev330-system-ic";
+        interrupt-controller;
+	    interrupts = <3 0>;
+    };
+
+    rtc: rtc {
+        compatible = "anyka,ak39ev330-rtc";
+        status = "disable";
+    };
+
+    crc: crc {
+        compatible = "anyka,ak39ev330-crc";
+        status = "disable";
+    };
+
+    timer{
+        compatible = "anyka,ak39ev330-system-timer";
+        interrupts = <6 1>,
+                     <5 1>,
+                     <4 1>,
+                     <3 1>,
+                     <2 1>,
+                     <16 1>,
+                     <15 1>,
+                     <14 1>,
+                     <13 1>,
+                     <12 1>;
+        clock-frequency = <12000000>;
+        status = "okay";
+    };
+
+    watchdog: watchdog {
+        compatible = "anyka,ak39ev330-wdt";
+        status = "disable";
+    };
+
+	soc: soc {
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+        isp: isp@20000000 {
+            compatible = "anyka,ak39ev330-isp";
+            reg = <0x20000000 0xffff>;
+            interrupts = <1 0>;
+            status = "disable";
+        };
+
+        vencoder: video-encoder@20020000 {
+            compatible = "anyka,ak39ev330-uio-vencoder";
+            reg = <0x20020000 0x10000>;
+            interrupts = <2 0>;
+            clocks = <&gclk_asic 18>;
+            status = "disable";
+        };
+
+		mmc0: mmc0@20100000 {
+            compatible = "anyka,ak39ev330-mmc0";
+            reg = <0x20100000 0x7fff>;
+            interrupts = <4 0>,<22 0>;
+			clocks = <&gclk_asic 0>;
+            status = "disable";
+        };
+
+        mmc1: mmc1@20108000 {
+            compatible = "anyka,ak39ev330-mmc1";
+            reg = <0x20108000 0x7fff>;
+            interrupts = <5 0>, <22 0>;
+			clocks = <&gclk_asic 1>;
+            status = "disable";
+        };
+
+
+        adc_dac: adc_dac@20110000 {
+            compatible = "anyka,ak39ev330-adc-dac";
+            reg = <0x08000000 0xffff>,
+                <0x20110000 0x7fff>;
+            interrupts = <6 0>,<7 0>;
+            clocks =
+            <&gclk_asic 2>,         //sdadc_gclk
+            <&clk_sdadc_sddac 0>,   //sdadc_clk
+            <&clk_asic 0>,          //sdadchs_clk
+            <&gclk_asic 3>,         //sddac_gclk
+            <&clk_sdadc_sddac 1>,   //sddac_clk
+            <&clk_asic 1>;          //sddachs_clk
+
+            clock-names =
+            "sdadc_gclk",
+            "sdadc_clk",
+            "sdadchs_clk",
+            "sddac_gclk",
+            "sddac_clk",
+            "sddachs_clk";
+            status = "disable";
+        };
+
+        saradc: saradc@08000000 {
+            compatible = "anyka,ak39ev330-sar-adc";
+            reg = <0x08000000 0x100>;
+            interrupts = <1 1>;
+	        clocks = <&clk_saradc 0>;
+            status = "disable";
+        };
+
+        spi0: spi0@20120000 {
+            compatible = "anyka,ak39ev330-spi0";
+            reg = <0x20120000 0x7fff>;
+            interrupts = <8 0>;
+            clocks = <&gclk_asic 4>;
+            clock-names = "spi0";
+
+            #address-cells = <1>;
+            #size-cells = <0>;
+            status = "disable";
+
+			spif0:spi-flash@0 {
+			    compatible = "anyka,ak-spiflash";
+				reg = <0>; /* Chip select 0 */
+				spi-max-frequency = <30000000>;
+				status = "disable";
+				#address-cells = <1>;
+                #size-cells = <0>;
+			};
+
+			spif1:spi-flash@1 {
+			   compatible = "anyka,ak-spinand";
+			   reg = <1>; /* Chip select 1 */
+			   spi-max-frequency = <30000000>;
+			   status = "disable";
+			};
+        };
+
+        spi1: spi1@20128000 {
+            compatible = "anyka,ak39ev330-spi1";
+            reg = <0x20128000 0x7fff>;
+            interrupts = <9 0>;
+            clocks = <&gclk_asic 5>;
+
+            #address-cells = <1>;
+            #size-cells = <0>;
+            status = "disable";
+        };
+
+        uart0: uart0@20130000 {
+            compatible = "anyka,ak39ev330-uart0";
+            reg = <0x20130000 0x7fff>;
+            current-speed = <115200>;
+            interrupts = <10 0>;
+            fifosize = <64>;
+            clocks = <&gclk_asic 6>;
+            status = "disable";
+        };
+
+        uart1: uart1@20138000 {
+            compatible = "anyka,ak39ev330-uart1";
+            reg = <0x20138000 0x7fff>;
+            current-speed = <115200>;
+            interrupts = <11 0>;
+            fifosize = <64>;
+            clocks = <&gclk_asic 7>;
+            status = "disable";
+        };
+
+        l2buffer: l2-buffer@20140000 {
+            compatible = "anyka,ak39ev330-l2-dma";
+            reg = <0x20140000 0xffff>;
+            interrupts = <12 0>;
+            clocks = <&gclk_asic 8>;
+            status = "disable";
+        };
+
+        i2c0: i2c0@20150000 {
+            compatible = "anyka,ak39ev330-i2c0";
+            reg = <0x20150000 0xffff>;
+            interrupts = <13 0>;
+            clocks = <&gclk_asic 9>;
+
+            status = "disable";
+        };
+
+        irda: irda@20160000 {
+            compatible = "anyka,ak39ev330-irda";
+            reg = <0x20160000 0xffff>;
+            interrupts = <14 0>;
+            status = "disable";
+        };
+
+        gpio: gpio@20170000 {
+            compatible = "anyka,ak39ev330-gpio";
+            reg = <0x20170000 0xffff>,
+            <0x20400000 0x1000>,	/* mipi0 */
+            <0x20480000 0x1000>;	/* mipi1 */
+
+            interrupt-controller;
+            #interrupt-cells = <2>;
+            interrupts = <15 0>;
+            clocks = <&gclk_asic 11>;
+
+            gpio-controller;
+            #gpio-cells = <2>;
+            status = "okay";
+        };
+
+        encrypt: encrypt@20180000 {
+            compatible = "anyka,ak39ev330-encrypt";
+            reg = <0x20180000 0xffff>;
+            interrupts = <17 0>;
+            clocks = <&gclk_asic 13>;
+            status = "disable";
+        };
+
+        i2c1: i2c1@20190000 {
+            compatible = "anyka,ak39ev330-i2c1";
+            reg = <0x20190000 0xffff>;
+            interrupts = <20 0>;
+            clocks = <&gclk_asic 16>;
+
+            status = "disable";
+        };
+
+        i2c2: i2c2@201a0000 {
+            compatible = "anyka,ak39ev330-i2c2";
+            reg = <0x201a0000 0xffff>;
+            interrupts = <21 0>;
+            clocks = <&gclk_asic 19>;
+
+            #address-cells = <1>;
+	        #size-cells = <0>;
+            status = "disable";
+        };
+
+        usb: usb@20200000 {
+            compatible = "anyka,ak39ev330-usb";
+            reg = <0x20200000 0xffff>;
+            interrupts = <18 0
+                          19 0>;
+            clocks = <&gclk_asic 14>;
+            status = "disable";
+        };
+
+        ethernet: ethernet@20300000 {
+            compatible = "anyka,ak39ev330-ethernet";
+            reg = <0x20300000 0x1fff>;
+            interrupts = <16 0>;
+            clock-names = "ethernet", "opclk";
+            clocks = <&gclk_asic 12>, <&clk_peri 3>;
+            mac-address = [00 00 00 00 00 00];
+            status = "disable";
+        };
+
+        mipicsi0: mipicsi0@20400000 {
+            compatible = "anyka,ak39ev330-mipi-csi0";
+            reg = <0x20400000 0x7ffff>;
+            status = "disable";
+        };
+
+        dramctrl:dram-controller@21000000 {
+            compatible = "anyka,ak39ev330-dram-controller";
+            reg = <0x21000000 0xffffff>;
+            status = "disable";
+        };
+
+        vi0: vi0@20000000 {
+            compatible = "anyka,ak39ev330-vi";
+            reg = <0x20000000 0x1fff>,	/*isp*/
+                  <0x20400000 0xfff>;	/*mipicsi0*/
+            interrupts = <1 0>;
+            clocks = <&gclk_asic 17>, <&gclk_asic 15>, <&clk_peri 0>;
+            clock-names = "isp_clk", "mipi_csi_clk", "csi_sclk";
+            clock-frequency_isp_clk = <24000000>;
+			/*
+				interface: 0-dvp, 1-mipi1lane
+			*/
+			interface = <0>;
+
+		    status = "disable";
+        };
+
+		efuse: efuse@08000000 {
+		   compatible = "anyka,ak39ev330-efuse";
+		   reg = <0x08000000 0x100>;
+		   interrupts = <1 1>;
+		   status = "okay";
+	   };
+	};
+
+    ramdisk:ramdisk{
+        compatible = "anyka,ak39ev330-ramdisk";
+        memory-region = <&dma_reserved>;
+        status = "okay";
+    };
+
+	ircut: ircut {
+		compatible = "anyka,ak39ev330-ircut";
+		status = "disable";
+	};
+
+	photosensitive: photosensitive {
+		compatible = "anyka,ak39ev330-photosensitive";
+		status = "disable";
+	};
+
+	leds: leds {
+		compatible = "anyka,ak39ev330-leds";
+		status = "disable";
+	};
+
+	adkeys: adkeys {
+		compatible = "anyka,ak39ev330-adckeys";
+		status = "disable";
+	};
+
+	gpiokeys: gpiokeys {
+		compatible = "anyka,ak39ev330-gpiokeys";
+		status = "disable";
+	};
+
+	motor0: motor0 {
+		compatible = "anyka,ak39ev330-motor0";
+		status = "disable";
+	};
+
+	motor1: motor1 {
+		compatible = "anyka,ak39ev330-motor1";
+		status = "disable";
+	};
+
+	pwm0: pwm0 {
+		compatible = "anyka,ak39ev330-pwm0";
+		status = "disable";
+	};
+
+	pwm1: pwm1 {
+		compatible = "anyka,ak39ev330-pwm1";
+		status = "disable";
+	};
+
+	pwm2: pwm2 {
+		compatible = "anyka,ak39ev330-pwm2";
+		status = "disable";
+	};
+
+	pwm3: pwm3 {
+		compatible = "anyka,ak39ev330-pwm3";
+		status = "disable";
+	};
+
+    pwm4: pwm4 {
+		compatible = "anyka,ak39ev330-pwm4";
+		status = "disable";
+	};
+
+    clocks {
+        osc24M: osc24M {
+            compatible = "fixed-clock";
+            #clock-cells = <0>;
+            clock-output-names = "osc24M";
+            clock-frequency = <24000000>;
+        };
+
+        osc12M: osc12M {
+            compatible = "fixed-clock";
+            #clock-cells = <0>;
+            clock-output-names = "osc12M";
+            clock-frequency = <12000000>;
+            clocks = <&osc24M>;
+        };
+
+        osc32K {
+            compatible = "fixed-clock";
+            #clock-cells = <0>;
+            clock-output-names = "osc32K";
+            clock-frequency = <32768>;
+        };
+
+        /* this clocks are configed in boot setting, can't be configed in kernel */
+        /* this node is only for get cpu and mem clk in kernel */
+        cpu_pll {
+            compatible = "anyka,ak39ev330-fixed-clk";
+            #clock-cells = <1>;
+            clock-id = <0>, <1>, <2>;
+            clock-output-names = "jclk", "hclk", "dphy";
+            clocks = <&osc24M>;
+        };
+
+        core_pll: core_pll {
+            compatible = "anyka,ak39ev330-fixed-clk";
+            #clock-cells = <0>;
+            clock-div-od = <0>;
+            clock-div-n = <3>;
+            clock-id = <3>;
+            clock-frequency = <640000000>;
+            clock-output-names = "core_pll";
+            clocks = <&osc24M>;
+        };
+
+        /*config this clock in uboot*/
+        peri_pll: peri_pll {
+            compatible = "anyka,ak39ev330-fixed-clk";
+            #clock-cells = <0>;
+            clock-div-od = <1>;
+            clock-div-n = <2>;
+            clock-id = <4>;
+            clock-frequency = <600000000>;
+            clock-output-names = "peri_pll";
+            clocks = <&osc24M>;
+        };
+
+        gclk_asic:gclk_asic {
+            compatible = "anyka,ak39ev330-gate-clk";
+            #clock-cells = <1>;
+            clock-ctrlbit = <1>, <2>, <3>,
+                            <4>, <5>, <6>,
+                            <7>, <8>, <9>,
+                            <10>, <11>, <12>,
+                            <13>, <14>, <15>,
+                            <16>, <17>, <19>,
+                            <20>, <31>;
+            clock-output-names = "mmc0", "mmc1", "adc",             /*<1>, <2>, <3>,*/
+                                 "dac", "spi0", "spi1",             /*<4>, <5>, <6>,*/
+                                 "uart0", "uart1", "l2buffer",      /*<7>, <8>, <9>,*/
+                                 "i2c0", "irda", "gpio",            /*<10>, <11>, <12>,*/
+                                 "ethernet", "encrypt", "usb-otg",  /*<13>, <14>, <15>,*/
+                                 "mipi","i2c1", "isp",              /*<16>, <17>, <19>,*/
+                                 "vencoder","i2c2";                 /*<20>, <31>;*/
+            clocks = <&core_pll>;
+        };
+
+        clk_asic: clk_asic {
+            compatible = "anyka,ak39ev330-factor-clk";
+            #clock-cells = <1>;
+            clock-id = <0>, <1>;
+            clock-output-names = "adchs", "dachs";
+            clocks = <&core_pll>;
+        };
+
+        clk_peri: clk_peri {
+            compatible = "anyka,ak39ev330-factor-clk";
+            #clock-cells = <1>;
+            clock-id = <2>, <3>, <4>, <5>, <6>;
+            clock-output-names = "csi_sclk","csi_pclk", "dsi_pclk", "opclk", "usb_phy";
+            clocks = <&peri_pll>;
+        };
+
+        clk_sdadc_sddac: clk_sdadc_sddac{
+            compatible = "anyka,ak39ev330-factor-clk";
+            #clock-cells = <1>;
+            clock-id = <7>, <8>;
+            clock-output-names = "clk_sdadc", "clk_sddac";
+            clocks = <&core_pll>;
+        };
+
+        clk_saradc: clk_saradc {
+            compatible = "anyka,ak39ev330-factor-clk";
+            #clock-cells = <1>;
+            clock-id = <9>;
+            clock-output-names = "saradc";
+            clocks = <&osc12M>;
+        };
+
+        uv_det_pd:uv_det_pd {
+            compatible = "anyka,ak39ev330-uv_det_pd";
+            /*
+            under_voltage_detection
+
+            enable:
+            0: disable under voltage detection
+            1: enable under voltage detection
+
+            threshold:
+            0: reset when VDDIO drops below 2.48V,
+                and the reset will be deasserted when VDDIO reaches 2.68V
+            1: reset when VDDIO drops below 2.65V,
+                and the reset will be deasserted when VDDIO reaches 2.86V
+            2: reset when VDDIO drops below 2.72V,
+                and the reset will be deasserted when VDDIO reaches 2.93V
+            */
+            enable = <1>;
+            threshold = <2>;
+            status = "okay";
+        };
+    };
+};

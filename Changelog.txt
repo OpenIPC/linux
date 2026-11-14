@@ -1,0 +1,30 @@
+V1.0.04-1(37dPDKV1.03-1)
+【flash】【新增功能】新增支持几款SPI Nand Flas，FM25S01A、FM25S02A、GD5F2GQ5UEYIG、GD5F1GQ5UEY1G。
+【dts】【新增功能】更新内核dts，支持KH和FM Micro方案SPI Nor Flash，xm25qh64a、xm25qh128a、w25q64、w25q128、kh25l64、kh25l128、fm25q64、fm25q128。
+【dts】【新增功能】由于触控异常问题，删除ADI10107BM40-14型号的10.1寸 Oncell屏支持。
+【dts】【功能优化】更新AK3761D内核dts，使ion与cma_reserved内存大小一致。
+
+37D_V1.0.04
+【uart】
+	【bug修复】修正大量数据输入可能会导致UART卡死的问题。
+	【bug修复】支持应用层修改UART波特率。
+【squashfs】
+	【bug修复】解决高低温煲机出现squashfs error的问题。
+【dts】
+	【新增器件】dsi屏统一使用视安通的sat101at40i28y03，其他dsi屏的配置已经屏蔽。
+	【新增功能】新增dts支持双目。
+	【代码优化】dtsi中的RESERVED_MEMORY的base和size用宏来表示，方便维护。
+	【内存优化】ION驱动不再使用cma区域的heap。cma区域只用于内核通过dma api申请。
+	【新增功能】支持新架构的pcm驱动。
+【spinor】
+	【新增器件】xt25f64b。
+【spinand】
+	【新增器件】增加：T26G02E、W25N02KV、XT26G01A、XT26G02A、FS35ND01G、FS35ND02G。
+	【代码优化】nand flash修正建立坏表的过程不做ECC校验。
+【ion】
+	【代码优化】【多个客户需求】去掉ion清零的操作，以便用于存放开机LOGO的数据等。
+【L2】【性能优化】去掉l2_dma capture中的invalidate和clean cache的操作。
+【clk】
+	【修复bug】修复vclk驱动代码错误：逻辑与&&错误写作位与&，hash：c13839a3。
+	【新增功能】修复gclk不准的问题，因为读错寄存器，hash：172bd491。
+【defconfig】【功能优化】完善配置文件，mini_defconfig等配置文件默认支持编译生成U盘所需ko，scsi_mod.ko、sd_mod.ko、sg.ko、usb-storage.ko。

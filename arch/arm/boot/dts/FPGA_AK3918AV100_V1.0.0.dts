@@ -1,0 +1,291 @@
+*
+ * FPGA AK3918AV100 board dts
+ *
+ * Copyright (C) 2020 Anyka(Guangzhou) Microelectronics Technology Co., Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+ /dts-v1/;
+#include "anycloud_ak3918av100x.dtsi"
+#include "anycloud_norflash.dtsi"
+#include "anycloud_nandflash.dtsi"
+
+/ {
+    compatible = "anyka,ak3918av100";
+    model = "### FPGA AK3918AV100 board";
+    version = "V1.0.00";
+};
+
+&ethernet {
+/*
+    pinctrl-names = "default";
+    pinctrl-0 = <&ethernet_pins_rmii &phy_reset_pins>;
+    reset-gpios = <&gpio 0 1>;
+*/
+    status = "okay";
+};
+
+
+&encrypt{
+   /*
+    * encrypt-mode
+    * 0 = CRYPTO_SINGLE_GROUP_MODE ; 1 = CRYPTO_MULTI_GROUP_MODE
+    */
+    encrypt-mode = <1>;
+    status = "okay";
+};
+
+
+&mmc0 {
+    bus-width = <0x4>;
+    max-frequency = <50000000>;
+    /*
+     *  detect mode:
+     *  (1) non-removable;
+     *  (2) detect-gpio/detect-gpios: card detect using gpio
+     *      for example:
+     *      detect-gpio = <&gpio 76 1>;  or detect-gpios = <&gpio 76 1>;
+     *  (3) cd_clk: card detect using MCLK
+     */
+    cd_clk;
+    /* if support highspeed, using cap-sd-highspeed */
+    cap-sd-highspeed;
+    //pinctrl-names = "default","idle";
+    //pinctrl-0 = <&mci0_pins>,<&tf_en_pins>;
+    /*pinctrl-0 = <&mci0_pins>,<&tf_en_pins>,<&tf_det_pins>;*/
+    //pinctrl-1 = <&mci0_idle_pins>;
+    /* 
+     * support tf card circuit enable function 
+     */
+    //power-pins = <&gpio 12 1>;      //power-pins is which tf_en_pins describes
+    //power-inverted;
+
+    status = "okay";
+};
+&spi0 {
+    /*  
+    pinctrl-names = "default";
+    pinctrl-0 = <&spiflash_pins>;
+    cs-gpios = <&gpio 25 1>;
+    */
+    status = "okay";
+};
+
+&spif0 {
+	/* spi flash data bus width:
+	** 1 means 1 wire mode.
+	** 2 means 2 wire mode
+	** 4 means 4 wire mode.
+	** default: 4 wire mode.
+	**/
+	bus-width = <4>;
+	status = "okay";
+};
+
+&xm25qh64a{
+    status = "okay";
+};
+
+&xm25qh128a{
+    status = "okay"; 
+};
+
+&w25q64{
+    status = "okay"; 
+};
+
+&w25q128{
+    status = "okay";
+};
+
+&gd25q64{
+    status = "okay";
+};
+
+&gd25q128{
+    status = "okay";
+};
+
+&gd25q256{
+    status = "okay";
+};
+
+&kh25l64{
+    status = "okay";
+};
+
+&kh25l128{
+    status = "okay";
+};
+
+&fm25q64{
+    status = "okay";
+};
+
+&fm25q128{
+    status = "okay";
+};
+
+&zb25vq64{
+    status = "okay";
+};
+
+&zb25vq128{
+    status = "okay";
+};
+
+&by25q64a{
+    status = "okay";
+};
+
+&by25q128a{
+    status = "okay";
+};
+
+&pn26f64b{
+    status = "okay";
+};
+
+&xt25f64b{
+    status = "okay";
+};
+
+&xt25f128b{
+    status = "okay";
+};
+
+&xm25qh64c{
+    status = "okay";
+};
+
+&xm25qh128c{
+    status = "okay";
+};
+
+&GM25Q64A{
+    status = "okay";
+};
+
+&GM25Q128A{
+    status = "okay";
+};
+
+&mx25l3205d{
+    status = "okay";
+};
+
+&P25Q64H{
+    status = "okay";
+};
+
+&PY25Q64HA{
+  status = "okay";
+};
+
+&NM25Q64EVB{
+    status = "okay";
+};
+
+&NM25Q128EVB{
+    status = "okay";
+};
+
+&ME25L64E{
+    status = "okay";
+};
+
+&ME25L128C{
+    status = "okay";
+};
+
+&XM25QH256C{
+    status = "okay";
+};
+
+&uart0 {
+    /*
+    pinctrl-names = "default";
+	pinctrl-0 = <&uart0_pins>;
+    */
+    status = "okay";
+};
+
+&i2c0 {
+	/*
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c0_pins>;
+	*/
+	compatible = "i2c-gpio";//TODO FPGA is soft-i2c
+	gpios = <&gpio 2 GPIO_ACTIVE_HIGH
+		&gpio 3 GPIO_ACTIVE_HIGH
+		>;
+
+	clock-frequency = <100000>;//TODO FPGA is soft-i2c so not too high
+	i2c-gpio,delay-us = <1>;
+	sda-delay = <100>;
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	sensor0: camera@0x30{
+		compatible = "anyka,sensor0";
+		reg = <0x30>;
+
+		/*0xffff means the gpio is invalid*/
+		reset-gpio = <&gpio 0 1>;
+		pwdn-gpio = <&gpio 1 1>;
+
+		port {
+			sensor0_0: endpoint@0 {
+				remote-endpoint = <&vi_0_0>;
+			};
+		};
+	};
+};
+
+&vi0{
+	/*
+	pinctrl-names = "dvp0_12bits", "dvp0_10bits", "dvp0_8bits",
+		"mipi0_2lane", "mipi0_1lane",
+		"csi0_sclk", "csi1_sclk";
+    pinctrl-0 = <&dvp0_12bits_pins>;
+    pinctrl-1 = <&dvp0_10bits_pins>;
+    pinctrl-2 = <&dvp0_8bits_pins>;
+    pinctrl-3 = <&mipi0_2lane_pins>;
+    pinctrl-4 = <&mipi0_1lane_pins>;
+    pinctrl-5 = <&csi0_sclk_pin>;
+    pinctrl-6 = <&csi1_sclk_pin>;
+	*/
+    status = "okay";
+
+	port@0 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		vi_0_0: endpoint@0 {
+			reg = <0>;
+			remote-endpoint = <&sensor0_0>;
+		};
+	};
+};
+
+&venc_bridge{
+     status = "okay";
+};
+
+&cnn{
+     status = "okay";
+};
+
+&venc{
+     status = "okay";
+};

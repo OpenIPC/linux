@@ -1,0 +1,11 @@
+#
+# Broadcom pinctrl drivers
+#
+config PINCTRL_AK
+	bool "AK GPIO (with PINCONF) driver"
+	depends on OF_GPIO && ARCH_AK
+	select GPIOLIB_IRQCHIP
+	select PINCONF
+	select PINMUX
+	help
+	  The Anyka GPIO driver.

@@ -1,0 +1,88 @@
+/*
+ * AK39EV330 chip dts
+ *
+ * Copyright (C) 2020 Anyka(Guangzhou) Microelectronics Technology Co., Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+#include "anycloud_ak39ev330_common.dtsi"
+
+#define RESERVED_MEMORY_BASE  0x81400000
+#define RESERVED_MEMORY_SIZE  0x2000000
+
+/ {
+    model = "anyka,ak39ev330";
+    compatible = "anyka,ak39ev330";
+
+	chosen {
+		/* No padding required - the uboot can do that. */
+		bootargs = "console=ttySAK0,115200n8 root=/dev/mtdblock5 rootfstype=squashfs init=/sbin/init mem=64M memsize=64M";
+	};
+
+	cpus {
+	    #address-cells = <1>;
+	    #size-cells = <0>;
+
+	    cpu@0 {
+	        compatible = "arm, arm926ej-s";
+	        device_type = "cpu";
+	        reg = <0>;
+	        d-cache-line-size = <32>;  // 32 bytes
+	        i-cache-line-size = <32>;  // 32 bytes
+	        d-cache-size = <0x8000>;
+	        i-cache-size = <0x8000>;
+	        timebase-frequency = <0>;
+	        bus-frequency = <0>;
+	        clock-frequency = <0>;
+	    };
+	};
+
+    memory {
+	    device_type = "memory";
+	    reg = <0x80000000 0x04000000>;
+	};
+
+    reserved-memory {
+        #address-cells = <1>;
+        #size-cells = <1>;
+        ranges;
+
+        dma_reserved: dma_reserved@RESERVED_MEMORY_BASE {
+            /*compatible = "shared-dma-pool";*/
+            /*linux,cma-default;*/
+            /*reusable;*/
+            size = <RESERVED_MEMORY_SIZE>;
+            reg = <RESERVED_MEMORY_BASE RESERVED_MEMORY_SIZE>;
+            status = "okay";
+        };
+    };
+
+    ion {
+        compatible = "anyka,ak39ev330-ion-reserve";
+        memory-region = <&dma_reserved>;
+        #address-cells = <1>;
+        #size-cells = <1>;
+        heaps-nr = <1>;
+        ranges;
+
+        dma_reserved_heap: dma_reserved_heap {
+            compatible = "anyka,dma-reserve";
+            ion-id = <1>;
+            /* ion-type: 0 = cma ; 1 = prereserved memory which kernel do not  aware of */
+            ion-type = <1>;
+            base-address = <RESERVED_MEMORY_BASE>;
+            size = <RESERVED_MEMORY_SIZE>;
+            align = <0x4>;
+            status = "okay";
+        };
+    };
+};

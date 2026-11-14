@@ -1,0 +1,46 @@
+# linux/arch/arm/mach-anycloud/Kconfig
+#
+# Copyright 2018 Anyka Microelectronics
+#
+# Licensed under GPLv2
+
+# Machine support
+
+config MACH_AK37D
+	bool "anycloudv500 ak37d support"
+	depends on ARCH_AK
+	help
+	  Support for ak37d
+
+config MACH_AK39EV330
+	bool "anycloudv500 ak39ev330 support"
+	depends on ARCH_AK
+	help
+	  Support for ak39ev330
+
+config MACH_AK37E
+	bool "anycloudv500 ak37e support"
+	depends on ARCH_AK
+	help
+		Support for ak37e
+
+
+config MACH_AK3918AV100
+	bool "anycloudv500 AK3918AV100 support"
+	depends on ARCH_AK
+	select MULTI_IRQ_HANDLER
+	help
+		Support for AK3918AV100
+
+config MACH_AK3918AV100_FPGA
+	bool "anycloudv500 AK3918AV100 fpga support"
+	depends on MACH_AK3918AV100
+	help
+		Support for AK3918AV100 fpga
+
+config MACH_AK3918EV300L
+	bool "anycloud AK3918EV300L support"
+	depends on ARCH_AK
+	select MULTI_IRQ_HANDLER
+	help
+		Support for AK3918EV300L

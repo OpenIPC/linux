@@ -1,0 +1,1004 @@
+/*
+ * Anycloud37e dev board dts
+ *
+ * Copyright (C) 2020 Anyka(Guangzhou) Microelectronics Technology Co., Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+/dts-v1/;
+#include "anycloud_ak37e1.dtsi"
+#include "anycloud_nandflash.dtsi"
+#include "anycloud_lcd.dtsi"
+
+/ {
+    compatible = "anyka,ak3761e";
+    model = "EVB_CBDR_AK3761E_V1.0.0 spinand camera board";
+    version = "V1.0.00";
+};
+
+&gpio {
+    /*
+    * "anyka,function": func index, please refer to dt-bindings/pinctrl/ak_37e_pinctrl.h
+    * "anyka,pull": configuration of the pins
+    * bit[7:0]: pull up/down configuration
+    *     bit[0]: pull up or pull down selection, 1 means select pull down, 0 means select pull up
+    *     bit[4]: pull up or pull down enable, 1 means enable pull up&down function, 0 means disable fuction
+    * !!! Notice that not all pin support pull up and pull down. Please refer to the programer's guide.
+    * bit[15:8]: driver strength configuration.
+    *     bit[9:8] drive strength.
+    * bit[23:16]: input enable configuration
+    *     bit[16]: 1 means enable input, 0 means disable input.
+    * bit[31:24]: pin slew rate configuration
+    *     bit[24]: 1 means enable slew rate, 0 means disable slew rate.
+    * !!! Notice OTHER bits which not mentioned please set to 0.
+    */
+
+    /* LCD Panel backlight pin. */
+    pwm5_pins: pwm5_pins {
+        anyka,pins = <XGPIO_027>;
+        anyka,function = <XGPIO_027_FUNC_PWM5>;
+        anyka,pull = <0x1000190>;
+    };
+
+    pwm5_pins_sleep: pwm5_pins_sleep {
+        anyka,pins = <XGPIO_027>;
+        anyka,function = <XGPIO_027_FUNC_GPIO27>;
+        anyka,pull = <0x00000000>;
+    };
+
+    pwm5_pins_idle: pwm5_pins_idle {
+        anyka,pins = <XGPIO_027>;
+        anyka,function = <XGPIO_027_FUNC_GPIO27>;
+        anyka,pull = <0x00000000>;
+    };
+
+    /*7 inch Touch Screen  */
+    icn85xx_pins: icn85xx_pins {
+        anyka,pins = <XGPIO_068 XGPIO_069>;
+        anyka,function = <XGPIO_068_FUNC_GPIO68 XGPIO_069_FUNC_GPIO69>;
+        anyka,pull = <0x00000010 0x00010010>;
+    };
+
+    /*10 inch Touch Screen  */
+    gslX680_pins: gslX680_pins {
+        anyka,pins = <XGPIO_044 XGPIO_045>;
+        anyka,function = <XGPIO_044_FUNC_GPIO44 XGPIO_045_FUNC_GPIO45>;
+        anyka,pull = <0x00000010 0x00010010>;
+    };
+
+    i2c0_pins: i2c0_pins {
+        anyka,pins = <XGPIO_030 XGPIO_031>;
+        anyka,function = <XGPIO_030_FUNC_TWI0_SCL XGPIO_031_FUNC_TWI0_SDA>;
+        anyka,pull = <0x1010010>;
+    };
+
+    /* i2c0_sleep_pins means: pull up or pull down disable; ie disable */
+    i2c0_sleep_pins: i2c0_sleep_pins {
+        anyka,pins = <XGPIO_030 XGPIO_031>;
+        anyka,function = <XGPIO_030_FUNC_GPIO30 XGPIO_031_FUNC_GPIO31>;
+        anyka,pull = <0x0000000>;
+    };
+
+    i2c2_pins: i2c2_pins {
+        anyka,pins = <XGPIO_084 XGPIO_083>;
+        anyka,function = <XGPIO_084_FUNC_TWI2_SDA XGPIO_083_FUNC_TWI2_SCL>;
+        anyka,pull = <0x1010010>;
+    };
+
+    /* i2c2_sleep_pins means: pull up or pull down disable; ie disable */
+    i2c2_sleep_pins: i2c2_sleep_pins {
+        anyka,pins = <XGPIO_084 XGPIO_083>;
+        anyka,function = <XGPIO_084_FUNC_GPIO84 XGPIO_083_FUNC_GPIO83>;
+        anyka,pull = <0x0000000>;
+    };
+
+    lcd_reset_pins: lcd_reset_pins {
+        anyka,pins = <XGPIO_026>;
+        anyka,function = <XGPIO_026_FUNC_GPIO26>;
+        anyka,pull = <0x01000010>;
+    };
+
+    lcd_rgb_pins: lcd_rgb_pins {
+        anyka,pins = <XGPIO_074
+                        XGPIO_075
+                        XGPIO_025
+                        XGPIO_024
+                        XGPIO_028
+                        XGPIO_029
+                        XGPIO_055
+                        XGPIO_054
+                        XGPIO_053
+                        XGPIO_052
+                        XGPIO_051
+                        XGPIO_050
+                        XGPIO_049
+                        XGPIO_048
+                        XGPIO_047
+                        XGPIO_046
+                        XGPIO_045
+                        XGPIO_044
+                        XGPIO_043
+                        XGPIO_042
+                        XGPIO_041
+                        XGPIO_040
+                        XGPIO_039
+                        XGPIO_038
+                        XGPIO_037
+                        XGPIO_036
+                        XGPIO_035
+                        XGPIO_034>;
+        anyka,function = <XGPIO_074_FUNC_RGB_D23
+                            XGPIO_075_FUNC_RGB_D22
+                            XGPIO_025_FUNC_RGB_D21
+                            XGPIO_024_FUNC_RGB_D20
+                            XGPIO_028_FUNC_RGB_D19
+                            XGPIO_029_FUNC_RGB_D18
+                            XGPIO_055_FUNC_RGB_D17
+                            XGPIO_054_FUNC_RGB_D16
+                            XGPIO_053_FUNC_RGB_D15
+                            XGPIO_052_FUNC_RGB_D14
+                            XGPIO_051_FUNC_RGB_D13
+                            XGPIO_050_FUNC_RGB_D12
+                            XGPIO_049_FUNC_RGB_D11
+                            XGPIO_048_FUNC_RGB_D10
+                            XGPIO_047_FUNC_RGB_D9
+                            XGPIO_046_FUNC_RGB_D8
+                            XGPIO_045_FUNC_RGB_D7
+                            XGPIO_044_FUNC_RGB_D6
+                            XGPIO_043_FUNC_RGB_D5
+                            XGPIO_042_FUNC_RGB_D4
+                            XGPIO_041_FUNC_RGB_D3
+                            XGPIO_040_FUNC_RGB_D2
+                            XGPIO_039_FUNC_RGB_D1
+                            XGPIO_038_FUNC_RGB_D0
+                            XGPIO_037_FUNC_RGB_VOPCLK
+                            XGPIO_036_FUNC_RGB_VOHSYNC
+                            XGPIO_035_FUNC_RGB_VOVSYNC
+                            XGPIO_034_FUNC_RGB_VOGATE
+                            >;
+        anyka,pull = <0x00000010
+                        0x00000010
+                        0x00000010
+                        0x00000010
+                        0x00000010
+                        0x00000010
+                        0x00000010
+                        0x00000010
+                        0x00000010
+                        0x00000010
+                        0x00000010
+                        0x00000010
+                        0x00000010
+                        0x00000010
+                        0x00000010
+                        0x00000010
+                        0x00000010
+                        0x00000010
+                        0x00000010
+                        0x00000010
+                        0x00000010
+                        0x00000010
+                        0x00000010
+                        0x00000010
+                        0x00000010
+                        0x00000010
+                        0x00000010
+                        0x00000010>;
+    };
+
+    lcd_rgb_pins_sleep: lcd_rgb_pins_sleep {
+        anyka,pins = <XGPIO_074
+                        XGPIO_075
+                        XGPIO_025
+                        XGPIO_024
+                        XGPIO_028
+                        XGPIO_029
+                        XGPIO_055
+                        XGPIO_054
+                        XGPIO_053
+                        XGPIO_052
+                        XGPIO_051
+                        XGPIO_050
+                        XGPIO_049
+                        XGPIO_048
+                        XGPIO_047
+                        XGPIO_046
+                        XGPIO_045
+                        XGPIO_044
+                        XGPIO_043
+                        XGPIO_042
+                        XGPIO_041
+                        XGPIO_040
+                        XGPIO_039
+                        XGPIO_038
+                        XGPIO_037
+                        XGPIO_036
+                        XGPIO_035
+                        XGPIO_034>;
+        anyka,function = <XGPIO_074_FUNC_GPIO74
+                            XGPIO_075_FUNC_GPIO75
+                            XGPIO_025_FUNC_GPIO25
+                            XGPIO_024_FUNC_GPIO24
+                            XGPIO_028_FUNC_GPIO28
+                            XGPIO_029_FUNC_GPIO29
+                            XGPIO_055_FUNC_GPIO55
+                            XGPIO_054_FUNC_GPIO54
+                            XGPIO_053_FUNC_GPIO53
+                            XGPIO_052_FUNC_GPIO52
+                            XGPIO_051_FUNC_GPIO51
+                            XGPIO_050_FUNC_GPIO50
+                            XGPIO_049_FUNC_GPIO49
+                            XGPIO_048_FUNC_GPIO48
+                            XGPIO_047_FUNC_GPIO47
+                            XGPIO_046_FUNC_GPIO46
+                            XGPIO_045_FUNC_GPIO45
+                            XGPIO_044_FUNC_GPIO44
+                            XGPIO_043_FUNC_GPIO43
+                            XGPIO_042_FUNC_GPIO42
+                            XGPIO_041_FUNC_GPIO41
+                            XGPIO_040_FUNC_GPIO40
+                            XGPIO_039_FUNC_GPIO39
+                            XGPIO_038_FUNC_GPIO38
+                            XGPIO_037_FUNC_GPIO37
+                            XGPIO_036_FUNC_GPIO36
+                            XGPIO_035_FUNC_GPIO35
+                            XGPIO_034_FUNC_GPIO34
+                            >;
+        anyka,pull = <0x00000000>;
+    };
+
+    lcd_power_pins: lcd_power_pins {
+        anyka,pins = <XGPIO_073>;
+        anyka,function = <XGPIO_073_FUNC_GPIO73>;
+        anyka,pull = <0x00000010>;
+    };
+
+    mci2_pins: mci2_pins {
+        anyka,pins = <XGPIO_058 XGPIO_059 XGPIO_060 XGPIO_061 XGPIO_062 XGPIO_063>;
+        anyka,function = <  XGPIO_058_FUNC_SD2_D1
+                            XGPIO_059_FUNC_SD2_D0
+                            XGPIO_060_FUNC_SD2_MCLK
+                            XGPIO_061_FUNC_SD2_CMD
+                            XGPIO_062_FUNC_SD2_D3
+                            XGPIO_063_FUNC_SD2_D2>;
+        anyka,pull = <0x1010310>;
+    };
+
+    /* mci2_idle_pins  means: pull up or pull down disable; ie disable */
+    mci2_idle_pins: mci2_idle_pins {
+        anyka,pins = <XGPIO_058 XGPIO_059 XGPIO_060 XGPIO_061 XGPIO_062 XGPIO_063>;
+        anyka,function = <  XGPIO_058_FUNC_GPIO58
+                            XGPIO_059_FUNC_GPIO59
+                            XGPIO_060_FUNC_GPIO60
+                            XGPIO_061_FUNC_GPIO61
+                            XGPIO_062_FUNC_GPIO62
+                            XGPIO_063_FUNC_GPIO63>;
+        anyka,pull = <0x00000000>;
+    };
+
+    wifi_en_pins: wifi_en_pins {
+        anyka,pins = <XGPIO_077>;
+        anyka,function = <XGPIO_077_FUNC_GPIO77>;
+        anyka,pull = <0x1010310>;
+    };
+
+    wifi_rst_pins: wifi_rst_pins {
+        anyka,pins = <XGPIO_071>;
+        anyka,function = <XGPIO_071_FUNC_GPIO71>;
+        anyka,pull = <0x1010310>;
+    };
+
+    mci1_pins: mci1_pins {
+        anyka,pins = <XGPIO_016 XGPIO_017 XGPIO_018 XGPIO_019 XGPIO_020 XGPIO_021>;
+        anyka,function = <XGPIO_016_FUNC_SD1_D1
+                            XGPIO_017_FUNC_SD1_D0
+                            XGPIO_018_FUNC_SD1_MCLK
+                            XGPIO_019_FUNC_SD1_CMD
+                            XGPIO_020_FUNC_SD1_D3
+                            XGPIO_021_FUNC_SD1_D2>;
+        anyka,pull = <0x00010010 0x00010010 0x00010001 0x00010010 0x00010010 0x00010010>;
+    };
+
+    /* mci1_idle_pins  means: pull up or pull down disable; ie disable */
+    mci1_idle_pins: mci1_idle_pins {
+        anyka,pins = <XGPIO_016 XGPIO_017 XGPIO_018 XGPIO_019 XGPIO_020 XGPIO_021>;
+        anyka,function = <XGPIO_016_FUNC_GPIO16
+                            XGPIO_017_FUNC_GPIO17
+                            XGPIO_018_FUNC_GPIO18
+                            XGPIO_019_FUNC_GPIO19
+                            XGPIO_020_FUNC_GPIO20
+                            XGPIO_021_FUNC_GPIO21>;
+        anyka,pull = <0x00000000>;
+    };
+
+    tf_det_pins: tf_det_pins{
+        anyka,pins = <XGPIO_076>;
+        anyka,function = <XGPIO_076_FUNC_GPIO76>;
+        anyka,pull = <0x1010310>;
+    };
+
+    tf_en_pins: tf_en_pins {
+        anyka,pins = <XGPIO_079>;
+        anyka,function = <XGPIO_079_FUNC_GPIO79>;
+        anyka,pull = <0x1010310>;
+    };
+
+    led_pins:led_pins {
+        anyka,pins = <XGPIO_078>;
+        anyka,function = <XGPIO_078_FUNC_GPIO78>;
+        anyka,pull = <0x00000010>;
+    };
+
+    led_pins_sleep:led_pins_sleep {
+        anyka,pins = <XGPIO_078>;
+        anyka,function = <XGPIO_078_FUNC_GPIO78>;
+        anyka,pull = <0x00000000>;
+    };
+
+    speak_pins: speak_pins {
+        anyka,pins = <XGPIO_072>;
+        anyka,function = <XGPIO_072_FUNC_GPIO72>;
+        anyka,pull = <0x00000010>;
+    };
+
+    speak_pins_sleep: speak_pins_sleep {
+        anyka,pins = <XGPIO_072>;
+        anyka,function = <XGPIO_072_FUNC_GPIO72>;
+        anyka,pull = <0x00000000>;
+    };
+
+    dvp0_8bits_pins: dvp0_8bits_pins {
+        anyka,pins = <XGPIO_060
+                        XGPIO_061
+                        XGPIO_062
+                        XGPIO_063
+                        XGPIO_064
+                        XGPIO_065
+                        XGPIO_066
+                        XGPIO_067>;
+        anyka,function = <XGPIO_060_FUNC_CSI0_D0
+                        XGPIO_061_FUNC_CSI0_D1
+                        XGPIO_062_FUNC_CSI0_D2
+                        XGPIO_063_FUNC_CSI0_D3
+                        XGPIO_064_FUNC_CSI0_D4
+                        XGPIO_065_FUNC_CSI0_D5
+                        XGPIO_066_FUNC_CSI0_D6
+                        XGPIO_067_FUNC_CSI0_D7>;
+        anyka,pull = <0x01010310>;
+    };
+
+    dvp0_8bits_pins_sleep: dvp0_8bits_pins_sleep {
+        anyka,pins = <XGPIO_060
+                        XGPIO_061
+                        XGPIO_062
+                        XGPIO_063
+                        XGPIO_064
+                        XGPIO_065
+                        XGPIO_066
+                        XGPIO_067>;
+        anyka,function = <XGPIO_060_FUNC_GPIO60
+                        XGPIO_061_FUNC_GPIO61
+                        XGPIO_062_FUNC_GPIO62
+                        XGPIO_063_FUNC_GPIO63
+                        XGPIO_064_FUNC_GPIO64
+                        XGPIO_065_FUNC_GPIO65
+                        XGPIO_066_FUNC_GPIO66
+                        XGPIO_067_FUNC_GPIO67>;
+        anyka,pull = <0x00000000>;
+    };
+
+    csi0_sclk_pin: csi0_sclk_pin {
+        anyka,pins = <XGPIO_056
+                        XGPIO_057
+                        XGPIO_058
+                        XGPIO_059>;
+        anyka,function = <XGPIO_056_FUNC_CSI0_SCLK
+                        XGPIO_057_FUNC_CSI0_PCLK
+                        XGPIO_058_FUNC_CSI0_HSYNC
+                        XGPIO_059_FUNC_CSI0_VSYNC>;
+        anyka,pull = <0x01010310>;
+    };
+
+    csi0_sclk_pin_sleep: csi0_sclk_pin_sleep {
+        anyka,pins = <XGPIO_056
+                        XGPIO_057
+                        XGPIO_058
+                        XGPIO_059>;
+        anyka,function = <XGPIO_056_FUNC_GPIO56
+                        XGPIO_057_FUNC_GPIO57
+                        XGPIO_058_FUNC_GPIO58
+                        XGPIO_059_FUNC_GPIO59>;
+        anyka,pull = <0x00000000>;
+    };
+
+    sensor0_reset_pins: sensor0_reset_pins {
+        anyka,pins = <XGPIO_032>;
+        anyka,function = <XGPIO_032_FUNC_GPIO32>;
+        anyka,pull = <0x01000110>;
+    };
+
+    sensor0_pwdn_pins: sensor0_pwdn_pins {
+        anyka,pins = <XGPIO_071>;
+        anyka,function = <XGPIO_071_FUNC_GPIO71>;
+        anyka,pull = <0x01000110>;
+    };
+
+    pm_wakeup_pins: pm_wakeup_pins {
+        anyka,pins = <XGPIO_031>;
+        anyka,function = <XGPIO_031_FUNC_GPIO31>;
+        anyka,pull = <0x01010210>;
+    };
+};
+
+&pm_standby {
+    pinctrl-names = "default";
+    pinctrl-0 = <&pm_wakeup_pins>;
+    /* linux kernel standby wakeup mode
+    * wakeup mode:0x0:no_src, 0x1:GPIO, 0x2:rtc alarm, 0x3:ain0, 0x4:rtc timer
+    */
+    wakeup-mode = <0x1>;
+    wakeup-gpio = <&gpio XGPIO_031 1>;
+    /*
+    * wakeup gpio trigger: 0x0:rising-edge,0x1:falling-edge, 
+    */
+    wakeup-gpio-edge = <0x1>;
+
+    /*
+    * wakeup ain0 trigger: 0x0:falling-edge, 0x1:rising-edge
+    */
+    wakeup-ain0-edge = <0x0>;
+
+    status = "disable";
+};
+
+&uart0 {
+    pinctrl-names = "default";
+    pinctrl-0 = <&uart0_pins>;
+    status = "okay";
+};
+
+&watchdog {
+    /*max feed dog time = 357s, default setting time = 10s. */
+    def_heartbeat = <10>;
+    status = "okay";
+};
+
+&rtc {
+    /*
+     * rtc osc_source_select, 1 means INTERNAL RC OSC, 0 means EXTERNAL XTAL
+     * if internal RC OSC is used to generate 32KH,time adjustment should be setting.(basic unit: ms)
+     */
+    osc-select = <1>;
+    adjust-time = <1000>;
+    adjust-based-on-timer;
+    status = "okay";
+};
+
+&i2c2 {
+    pinctrl-names = "default","sleep";
+    pinctrl-0 = <&i2c2_pins>;
+    pinctrl-1 = <&i2c2_sleep_pins>;
+
+    clock-frequency = <400000>;
+    sda-delay = <100>;
+    status = "okay";
+    #address-cells = <1>;
+    #size-cells = <0>;
+
+    touch-screen@40 {
+        compatible = "anyka,ak37e-i2c-touchscreen-gslX680";
+        reg = <0x40>;
+
+        /* 10 inch MIPI touch-pane irq and reset gpio setting */
+        pinctrl-names = "default";
+        pinctrl-0 = <&gslX680_pins>;
+        irq-gpio = <&gpio 45 1>;
+        reset-gpio = <&gpio 44 1>;
+        TP_MAX_X = <1280>;
+        TP_MAX_Y = <800>;
+        status = "disable";
+      };
+
+      touch-screen@48 {
+        compatible = "anyka,ak37e-i2c-touchscreen-icn85xx";
+        reg = <0x48>;
+
+        /* 7 inch RGB touch-pane irq and reset gpio setting */
+        pinctrl-names = "default";
+        pinctrl-0 = <&icn85xx_pins>;
+        irq-gpio = <&gpio 69 1>;
+        reset-gpio = <&gpio 68 1>;
+        TP_MAX_X = <1024>;
+        TP_MAX_Y = <600>;
+        status = "okay";
+      };
+};
+
+/* RGB panel*/
+&lcdc {
+    pinctrl-names = "default","sleep";
+    pinctrl-0 = <&lcd_rgb_pins &lcd_reset_pins &lcd_power_pins>;
+    pinctrl-1 = <&lcd_rgb_pins_sleep &lcd_reset_pins &lcd_power_pins>;
+    reset-pins = <&gpio 26 GPIO_ACTIVE_LOW>;
+    pwr-gpio = <&gpio 73 GPIO_ACTIVE_LOW>;
+    backlight-gpio = <&gpio 27 GPIO_ACTIVE_HIGH>;
+
+    lcd-logo-width = <600>;
+    lcd-logo-height = <165>;
+    //[fmt1:fmt0] 00 16bits input(RGB565 or BGR565)
+    //[fmt1:fmt0] 01 24bits input(RGB888 or BGR888)
+    //[fmt1:fmt0] 10 or 11 32bits input(ARGB888 ABGR888 RGBA888 BGRA888)
+    lcd-logo-fmt0 = <1>;
+    lcd-logo-fmt1 = <0>;
+    lcd-logo-rgb-seq = <1>; //0 for BGR, 1 for RGB
+
+    lcd-fb-type = <1>; //0:single buffer; 1:double buffer
+    status = "okay";
+};
+
+/* 7 inch rgb */
+&adt07016BR50 {
+    panel-pclk-div = <9>;
+    status = "okay";
+};
+
+&saradc{
+    /* SAR ADC VREF selection
+    * 0:To select AVCC 3.3V as VREF for SAR ADC.
+    * 1:To select 3.0V generated from BGR as VREF for SAR ADC.
+    */
+    vref-select = <0>;
+    /*
+    * 0:To disable BAT voltage divider.
+    * 1:To enable BAT voltage divider divided by 2.
+    */
+    battery-divider = <1>;
+    /*
+    * Sampling number
+    * Read the sampling data for N times and then calculate the average value.
+    * N ranges from 1 to 7.
+    */
+    sampling-num = <3>;
+    status = "okay";
+};
+
+&usb {
+    status = "okay";
+};
+
+&spi0 {
+    pinctrl-names = "default","sleep";
+    pinctrl-0 = <&spiflash_pins>;
+    pinctrl-1 = <&spiflash_pins_sleep>;
+    spi-bus-frequency = <80000000>;
+    /*
+     * cap-spi-highspeed;
+     * if defined, means high speed controller(Maximum 80M/s);
+     * if not, means normal speed controller(below 60M/s)
+     */
+    cap-spi-highspeed;
+    status = "okay";
+};
+
+&spif1 {
+    /* spi flash data bus width:
+    ** 1 means 1 wire mode.
+    ** 2 means 2 wire mode
+    ** 4 means 4 wire mode.
+    ** default: 4 wire mode.
+    **/
+    bus-width = <4>;
+    /*
+    * Notice:
+    * AK37XXE will start with CS0.
+    * So when we use the single Nand, need to the NAND as the Chip select 0
+    */
+    reg = <0>;
+    status = "okay";
+};
+
+&GD5F1GQ5UEY1G{
+    status = "okay";
+};
+
+&GD5F2GQ5UEYIG{
+    status = "okay";
+};
+
+&FM25S02A{
+    status = "okay";
+};
+
+&W25N02KV{
+    status = "okay";
+};
+
+&FS35ND01G{
+    status = "okay";
+};
+
+&FS35ND02G{
+    status = "okay";
+};
+
+&MX35LF1GE4AB{
+    status = "okay";
+};
+
+&XT26G01C{
+    status = "okay";
+};
+
+&MX35LF2GE4AD{
+    status = "okay";
+};
+
+&XT26G02E{
+    status = "okay";
+};
+
+&adc_dac {
+    pinctrl-names = "default", "sleep";
+    pinctrl-0 = <&speak_pins>;
+    pinctrl-1 = <&speak_pins_sleep>;
+    speak-gpios = <&gpio XGPIO_072 1>;
+    /*
+    * The level of speak-gpios votage for power on audio: 0=low, 1=high
+    */
+    speak-gpios-en = <1>;
+    status = "okay";
+
+    dev0 {
+        snd-dev = <SND_CARD_DAC_PLAYBACK>;
+        snd-type = <AK_PCM_DEV_PLAYBACK>;
+    };
+
+    dev1 {
+        snd-dev = <SND_CARD_ADC_CAPTURE>;
+        snd-type = <AK_PCM_DEV_CAPTURE>;
+    };
+
+    dev2 {
+        snd-dev = <SND_CARD_DAC_LOOPBACK>;
+        snd-type = <AK_PCM_DEV_LOOPBACK>;
+    };
+};
+
+&pwm0 {
+    //pinctrl-names = "default", "idle";
+    //pinctrl-0 = <&pwm0_pins>;
+    //pinctrl-1 = <&pwm0_pins_idle>;
+    /*
+    * frequency of PWM ranges from 92/256Hz(0.36Hz) to 6MHz.
+    * duty of PWM ranges from 1 to 65535.
+    * Minimum duty cycle:1/65536
+    * Maximum duty cyscle:65535/65536.
+    * period-ns: period of the PWM signal (in nanoseconds)
+    * duty-ns: duty cycle of the PWM signal (in nanoseconds)
+    * pwm-enable = 0 means disable pwm function.
+    * pwm-enable = 1 means enable pwm function.
+    */
+    period-ns = <1000000>;
+    duty-ns = <500000>;
+    pwm-enable = <1>;
+    status = "disable";
+};
+
+&pwm1 {
+    //pinctrl-names = "default", "idle";
+    //pinctrl-0 = <&pwm1_pins>;
+    //pinctrl-1 = <&pwm1_pins_idle>;
+    /*
+    * frequency of PWM ranges from 92/256Hz(0.36Hz) to 6MHz.
+    * duty of PWM ranges from 1 to 65535.
+    * Minimum duty cycle:1/65536
+    * Maximum duty cyscle:65535/65536.
+    * period-ns: period of the PWM signal (in nanoseconds)
+    * duty-ns: duty cycle of the PWM signal (in nanoseconds)
+    * pwm-enable = 0 means disable pwm function.
+    * pwm-enable = 1 means enable pwm function.
+    */
+    period-ns = <1000000>;
+    duty-ns = <500000>;
+    pwm-enable = <1>;
+    status = "disable";
+};
+
+&pwm2 {
+    //pinctrl-names = "default", "idle";
+    //pinctrl-0 = <&pwm2_pins>;
+    //pinctrl-1 = <&pwm2_pins_idle>;
+    /*
+    * frequency of PWM ranges from 92/256Hz(0.36Hz) to 6MHz.
+    * duty of PWM ranges from 1 to 65535.
+    * Minimum duty cycle:1/65536
+    * Maximum duty cyscle:65535/65536.
+    * period-ns: period of the PWM signal (in nanoseconds)
+    * duty-ns: duty cycle of the PWM signal (in nanoseconds)
+    * pwm-enable = 0 means disable pwm function.
+    * pwm-enable = 1 means enable pwm function.
+    */
+    period-ns = <1000000>;
+    duty-ns = <500000>;
+    pwm-enable = <1>;
+    status = "disable";
+};
+
+&pwm3 {
+    //pinctrl-names = "default", "idle";
+    //pinctrl-0 = <&pwm3_pins>;
+    //pinctrl-1 = <&pwm3_pins_idle>;
+    /*
+    * frequency of PWM ranges from 92/256Hz(0.36Hz) to 6MHz.
+    * duty of PWM ranges from 1 to 65535.
+    * Minimum duty cycle:1/65536
+    * Maximum duty cyscle:65535/65536.
+    * period-ns: period of the PWM signal (in nanoseconds)
+    * duty-ns: duty cycle of the PWM signal (in nanoseconds)
+    * pwm-enable = 0 means disable pwm function.
+    * pwm-enable = 1 means enable pwm function.
+    */
+    period-ns = <1000000>;
+    duty-ns = <500000>;
+    pwm-enable = <1>;
+    status = "disable";
+};
+
+&pwm4 {
+    //pinctrl-names = "default", "idle";
+    //pinctrl-0 = <&pwm4_pins>;
+    //pinctrl-1 = <&pwm4_pins_idle>;
+    /*
+    * frequency of PWM ranges from 92/256Hz(0.36Hz) to 6MHz.
+    * duty of PWM ranges from 1 to 65535.
+    * Minimum duty cycle:1/65536
+    * Maximum duty cyscle:65535/65536.
+    * period-ns: period of the PWM signal (in nanoseconds)
+    * duty-ns: duty cycle of the PWM signal (in nanoseconds)
+    * pwm-enable = 0 means disable pwm function.
+    * pwm-enable = 1 means enable pwm function.
+    */
+    period-ns = <1000000>;
+    duty-ns = <500000>;
+    pwm-enable = <1>;
+    status = "disable";
+};
+
+&pwm5 {
+    pinctrl-names = "default", "sleep", "idle";
+    pinctrl-0 = <&pwm5_pins>;
+    pinctrl-1 = <&pwm5_pins_sleep>;
+    pinctrl-2 = <&pwm5_pins_idle>;
+    /*
+    * frequency of PWM ranges from 92/256Hz(0.36Hz) to 6MHz.
+    * duty of PWM ranges from 1 to 65535.
+    * Minimum duty cycle:1/65536
+    * Maximum duty cyscle:65535/65536.
+    * period-ns: period of the PWM signal (in nanoseconds)
+    * duty-ns: duty cycle of the PWM signal (in nanoseconds)
+    * pwm-enable = 0 means disable pwm function.
+    * pwm-enable = 1 means enable pwm function.
+    */
+    period-ns = <1000000>;
+    duty-ns = <500000>;
+    pwm-enable = <1>;
+    status = "okay";
+};
+
+&ethernet {
+    pinctrl-names = "default", "sleep";
+    pinctrl-0 = <&ethernet_rmii0_pins &ethernet_rmii0_rst_pins>;
+    pinctrl-1 = <&ethernet_rmii0_pins_sleep &ethernet_rmii0_rst_pins_sleep>;
+    reset-gpios = <&gpio 85 1>;
+    phy-address = <1>;
+    status = "okay";
+};
+
+&ethernet1 {
+    pinctrl-names = "default", "sleep";
+    pinctrl-0 = <&ethernet_rmii1_pins &ethernet_rmii1_rst_pins>;
+    pinctrl-1 = <&ethernet_rmii1_pins_sleep &ethernet_rmii1_rst_pins_sleep>;
+    reset-gpios = <&gpio 86 1>;
+    phy-address = <1>;
+    status = "disable";
+};
+
+&gui{
+    status = "okay";
+};
+
+&mmc2 {
+    bus-width = <0x4>;
+    max-frequency = <50000000>;
+    /*
+     *  detect mode:
+     *  (1) non-removable;
+     *  (2) detect-gpio/detect-gpios: card detect using gpio
+     *      for example:
+     *      detect-gpio = <&gpio 76 1>;  or detect-gpios = <&gpio 76 1>;
+     *  (3) cd_clk: card detect using MCLK
+     */
+    non-removable;
+    /* if support highspeed, using cap-sd-highspeed */
+    cap-sd-highspeed;
+    /* if support sdio, using cap-sdio-irq*/
+    cap-sdio-irq;
+    pinctrl-names = "default","idle";
+
+    /*
+    * support sdio wifi circuit enable function
+    */
+    pinctrl-0 = <&mci2_pins>,<&wifi_en_pins>,<&wifi_rst_pins>;
+    pinctrl-1 = <&mci2_idle_pins>;
+    power-pins = <&gpio 77 1>;  //power-pins is which wifi_en_pins describes
+    rst-pins =   <&gpio 71 1>;  //power-pins is which wifi_rst_pins describes
+    status = "disable";
+};
+
+&mmc1 {
+    bus-width = <0x4>;
+    max-frequency = <50000000>;
+    /*
+     *  detect mode:
+     *  (1) non-removable;
+     *  (2) detect-gpio/detect-gpios: card detect using gpio
+     *      for example:
+     *      detect-gpio = <&gpio 76 1>;  or detect-gpios = <&gpio 76 1>;
+     *  (3) cd_clk: card detect using MCLK
+     */
+    detect-gpio = <&gpio 76 1>;
+    /* if support highspeed, using cap-sd-highspeed */
+    cap-sd-highspeed;
+    pinctrl-names = "default","idle";
+    /*pinctrl-0 = <&mci1_pins>,<&tf_en_pins>;*/
+    pinctrl-0 = <&mci1_pins>,<&tf_en_pins>,<&tf_det_pins>;
+    pinctrl-1 = <&mci1_idle_pins>;
+    /*
+    * support tf card circuit enable function
+    */
+    power-pins = <&gpio 79 1>;      //power-pins is which tf_en_pins describes
+    power-inverted;
+    status = "okay";
+};
+
+&vencoder {
+    status = "okay";
+};
+
+&vdecoder{
+    status = "okay";
+};
+
+&adkeys {
+    /*
+    * poll interval: ms
+    * debounce interval: ms
+    */
+    interval = <120>;
+    debounce_interval = <20>;
+    /*
+    * if pressed-input = 0, input 0 when key is pressed, else input 1.
+    */
+    pressed-input = <0>;
+    status = "okay";
+
+    addet0 {
+        unpress_min = <0>;
+        unpress_max = <3200>;
+        adc_index = <1>;
+        adc_channel = <0>;
+
+        key1 {
+            linux,code = <102>; /*HOME*/
+            min = <0>;
+            max = <50>;
+        };
+
+        key2 {
+            linux,code = <103>; /*UP*/
+            min = <478>;
+            max = <708>;
+        };
+
+        key3 {
+            linux,code = <108>; /*DOWN*/
+            min = <1020>;
+            max = <1320>;
+        };
+
+        key4 {
+            linux,code = <105>; /*LEFT*/
+            min = <1510>;
+            max = <1810>;
+        };
+
+        key5 {
+            linux,code = <106>; /*RIGHT*/
+            min = <1980>;
+            max = <2280>;
+        };
+
+        key6 {
+            linux,code = <28>; /*OK*/
+            min = <2460>;
+            max = <2760>;
+        };
+
+        key7 {
+            linux,code = <158>; /*RETURN*/
+            min = <2850>;
+            max = <3100>;
+        };
+    };
+};
+
+&leds {
+    pinctrl-names = "default", "sleep";
+    pinctrl-0 = <&led_pins>;
+    pinctrl-1 = <&led_pins_sleep>;
+    status = "okay";
+
+    state_led {
+        label = "state_led";
+        gpios = <&gpio XGPIO_078 GPIO_ACTIVE_HIGH>;
+        default-state = "off";
+    };
+};
+
+&i2c0 {
+    pinctrl-names = "default","sleep";
+    pinctrl-0 = <&i2c0_pins>;
+    pinctrl-1 = <&i2c0_sleep_pins>;
+
+    clock-frequency = <400000>;
+    sda-delay = <100>;
+    status = "okay";
+    #address-cells = <1>;
+    #size-cells = <0>;
+
+    sensor0: camera@0x42{
+        compatible = "anyka,sensor0";
+        reg = <0x42>;
+        pinctrl-names = "default";
+        pinctrl-0 = <&sensor0_reset_pins &sensor0_pwdn_pins>;
+        /*
+        * 0xFFFF means the gpio is invalid
+        */
+        reset-gpio = <&gpio XGPIO_032 1>;
+        pwdn-gpio = <&gpio XGPIO_071 1>;
+
+        port {
+            sensor0_0: endpoint@0 {
+                remote-endpoint = <&vi_0_0>;
+            };
+        };
+    };
+};
+
+&vi0 {
+    pinctrl-names = "default", "sleep", "dvp0_8bits", "csi0_sclk";
+    pinctrl-0 = <&dvp0_8bits_pins &csi0_sclk_pin>;
+    pinctrl-1 = <&dvp0_8bits_pins_sleep &csi0_sclk_pin_sleep>;
+    pinctrl-2 = <&dvp0_8bits_pins>;
+    pinctrl-3 = <&csi0_sclk_pin>;
+    status = "okay";
+
+    port@0 {
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        vi_0_0: endpoint@0 {
+            reg = <0>;
+            remote-endpoint = <&sensor0_0>;
+        };
+    };
+};

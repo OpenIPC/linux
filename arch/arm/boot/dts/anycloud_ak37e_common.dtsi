@@ -1,0 +1,675 @@
+﻿/*
+ * AK37E SoC
+ *
+ * Copyright (C) 2018 Anyka(Guangzhou) Microelectronics Technology Co., Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/clock/ak37e-clock.h>
+
+/*
+* snd-dev:
+*   SND_CARD_DAC_PLAYBACK = 0
+*   SND_CARD_ADC_CAPTURE = 1
+*   SND_CARD_DAC_LOOPBACK = 2
+*   SND_CARD_I2S0_SEND = 3
+*   SND_CARD_I2S0_RECV = 4
+*   SND_CARD_I2S0_LOOPBACK = 5
+*   SND_CARD_I2S1_RECV = 6
+*   SND_CARD_PDM_RECV = 7
+* snd-type:
+*   AK_PCM_DEV_PLAYBACK = 0
+*   AK_PCM_DEV_CAPTURE = 1
+*   AK_PCM_DEV_LOOPBACK = 2
+* snd-idx:
+*   for the sample snd-type, make diff idx to re-name them
+* !!!Please notice this configration as same as the ak_pcm_def.h!!!
+*/
+#define SND_CARD_DAC_PLAYBACK   0
+#define SND_CARD_ADC_CAPTURE    1
+#define SND_CARD_DAC_LOOPBACK   2
+#define SND_CARD_I2S0_SEND      3
+#define SND_CARD_I2S0_RECV      4
+#define SND_CARD_I2S0_LOOPBACK  5
+#define SND_CARD_I2S1_RECV      6
+#define SND_CARD_PDM_RECV       7
+
+#define AK_PCM_DEV_PLAYBACK     0
+#define AK_PCM_DEV_CAPTURE      1
+#define AK_PCM_DEV_LOOPBACK     2
+
+/ {
+    #address-cells = <1>;
+    #size-cells = <1>;
+
+    interrupt-parent = <&intc>;
+
+    aliases {
+        intc = &intc;
+        watchdog = &watchdog;
+        rtc = &rtc;
+        pwm0 = &pwm0;
+        pwm1 = &pwm1;
+        pwm2 = &pwm2;
+        pwm3 = &pwm3;
+        pwm4 = &pwm4;
+        pwm5 = &pwm5;
+        gpio = &gpio;
+        uart0 = &uart0;
+        uart1 = &uart1;
+        uart2 = &uart2;
+        uart3 = &uart3;
+        spi0 = &spi0;
+        spi1 = &spi1;
+        spi2 = &spi2;
+        mmc0 = &mmc0;
+        mmc1 = &mmc1;
+        mmc2 = &mmc2;
+        i2c0 = &i2c0;
+        i2c1 = &i2c1;
+        i2c2 = &i2c2;
+        i2c3 = &i2c3;
+        motor0 = &motor0;
+        motor1 = &motor1;
+        usb = &usb;
+        leds = &leds;
+        adkeys = &adkeys;
+        gpiokeys = &gpiokeys;
+        ethernet0 = &ethernet;
+        ethernet1 = &ethernet1;
+        pm_standby = &pm_standby;
+    };
+
+    intc: interrupt-controller {
+        compatible = "anyka,ak37e-ic";
+        interrupt-controller;
+        #interrupt-cells = <2>;
+        bank_irqs = <32 23>;
+    };
+
+    system_intc: system-control-ic {
+        compatible = "anyka,ak37e-system-ic";
+        interrupt-controller;
+        interrupts = <3 0>;
+    };
+
+    rtc: rtc {
+        compatible = "anyka,ak37e-rtc";
+        status = "disable";
+    };
+
+    timer {
+        compatible = "anyka,ak37e-system-timer";
+        interrupts = <6 1>,  /* timer0, TOP_INT Interrupt Mask (Address: 0x0800,002C) bit5*/
+                     <5 1>,  /* timer1, TOP_INT Interrupt Mask (Address: 0x0800,002C) bit4*/
+                     <4 1>,  /* timer2, TOP_INT Interrupt Mask (Address: 0x0800,002C) bit3*/
+                     <3 1>,  /* timer3, TOP_INT Interrupt Mask (Address: 0x0800,002C) bit2*/
+                     <2 1>,  /* timer4, TOP_INT Interrupt Mask (Address: 0x0800,002C) bit1*/
+                     <20 1>, /* timer5, TOP_INT Interrupt Mask (Address: 0x0800,002C) bit19*/
+                     <19 1>, /* timer6, TOP_INT Interrupt Mask (Address: 0x0800,002C) bit18*/
+                     <21 1>, /* timer7, TOP_INT Interrupt Mask (Address: 0x0800,002C) bit20*/
+                     <22 1>, /* timer8, TOP_INT Interrupt Mask (Address: 0x0800,002C) bit21*/
+                     <23 1>; /* timer9, TOP_INT Interrupt Mask (Address: 0x0800,002C) bit22*/
+        clock-frequency = <12000000>;
+        status = "okay";
+    };
+
+    watchdog: watchdog {
+        compatible = "anyka,ak37e-wdt";
+        status = "disable";
+    };
+
+    soc: soc {
+        compatible = "simple-bus";
+        #address-cells = <1>;
+        #size-cells = <1>;
+        ranges;
+
+        lcdc: lcdc@20010000 {
+            compatible = "anyka,ak37e-lcd-ctrl";
+            reg = <0x20010000 0x7fff>, /* lcd ctrl */
+                  <0x20600000 0xffff>; /* dsi ctrl */
+            interrupts = <25 0>;
+            clocks =
+                <&gclk_asic ASIC_GCLK_LCD_CONTROLLER>,
+                <&gclk_asic ASIC_GCLK_DSI>;
+            clock-names = "lcdc", "mipi_dsi";
+            status = "disable";
+        };
+
+        gui: gui@20040000 {
+            compatible = "anyka,ak37e-gui-controller";
+            reg = <0x20040000 0x10000>;
+            interrupts = <24 0>;
+            clocks = <&gclk_asic ASIC_GCLK_GUI>;
+            status = "disable";
+        };
+
+        vencoder: video-encoder@20018000 {
+            compatible = "anyka,ak37e-uio-vencoder";
+            reg = <0x20018000 0x8000>;
+            interrupts = <26 0>;
+            clocks = <&gclk_asic ASIC_GCLK_JPEG_CODEC>;
+            status = "disable";
+        };
+
+        vdecoder: video-decoder@20030000 {
+            compatible = "anyka,ak37e-uio-vdecoder";
+            reg = <0x20030000 0x10000>;
+            interrupts = <23 0>;
+            clocks = <&gclk_asic ASIC_GCLK_VIDEO_DECODER>;
+            status = "disable";
+        };
+
+        mmc0: mmc0@20100000 {
+            compatible = "anyka,ak37e-mmc0";
+            reg = <0x20100000 0x7fff>;
+            interrupts = <4 0>,<28 0>;
+            clocks = <&gclk_asic ASIC_GCLK_MMC_0>;
+            status = "disable";
+        };
+
+        mmc1: mmc1@20108000 {
+            compatible = "anyka,ak37e-mmc1";
+            reg = <0x20108000 0x7fff>;
+            interrupts = <5 0>, <28 0>;
+            clocks = <&gclk_asic ASIC_GCLK_MMC_1>;
+            status = "disable";
+        };
+
+        mmc2: mmc2@201B0000 {
+            compatible = "anyka,ak37e-mmc2";
+            reg = <0x201B0000 0x7fff>;
+            interrupts = <27 0>,<28 0>;
+            clocks = <&gclk_asic ASIC_GCLK_MMC_2>;
+            status = "disable";
+        };
+
+        adc_dac: adc_dac@20110000 {
+            compatible = "anyka,ak37e-adc-dac";
+            reg = <0x08000000 0xffff>,
+                <0x20110000 0x7fff>,
+                <0x201E0000 0xf>;
+            interrupts = <6 0>,<7 0>;
+            clocks =
+                <&gclk_asic ASIC_GCLK_SD_ADC>,          //sdadc_gclk
+                <&factor_audio_clk AUDIO_FACTOR_SDADC_CLK>,   //sdadc_clk
+                <&factor_audio_clk AUDIO_FACTOR_SDADC_HSCLK>,   //sdadchs_clk
+                <&gclk_asic ASIC_GCLK_SD_DAC>,          //sddac_gclk
+                <&factor_audio_clk AUDIO_FACTOR_SDDAC_CLK>,   //sddac_clk
+                <&factor_audio_clk AUDIO_FACTOR_SDDAC_HSCLK>,   //sddachs_clk
+                <&gclk_asic ASIC_GCLK_PDM>,  //pdm_gclk
+                <&factor_audio_clk AUDIO_FACTOR_PDM_I2SM_CLK>,   //pdm_i2sm
+                <&factor_audio_clk AUDIO_FACTOR_PDM_HSCLK>;   //pdm_hsclk
+
+            clock-names =
+                "sdadc_gclk",
+                "sdadc_clk",
+                "sdadchs_clk",
+                "sddac_gclk",
+                "sddac_clk",
+                "sddachs_clk",
+                "pdm_gclk",
+                "pdm_i2sm",
+                "pdm_hsclk";
+            status = "disable";
+        };
+
+        saradc: saradc@08000000 {
+            compatible = "anyka,ak37e-sar-adc";
+            reg = <0x08000000 0x100>;
+            interrupts = <1 1>;
+            clocks = <&sar_adc_clk SAR_FACTOR_ADC_CLK>;
+            status = "disable";
+        };
+
+        spi0: spi0@20120000 {
+            compatible = "anyka,ak37e-spi0";
+            reg = <0x20120000 0x7fff>;
+            interrupts = <8 0>;
+            clocks = <&gclk_asic ASIC_GCLK_SPI0>, <&factor_asic_clk ASIC_FACTOR_SPI0_CLK>;
+            clock-names = "spi0", "spi0_bus";
+
+            #address-cells = <1>;
+            #size-cells = <0>;
+            status = "disable";
+
+            spif0:spi-flash@0 {
+                compatible = "anyka,ak-spiflash";
+                reg = <0>; /* Chip select 0 */
+                spi-max-frequency = <80000000>;
+                status = "disable";
+                #address-cells = <1>;
+                #size-cells = <0>;
+            };
+
+            spif1:spi-flash@1 {
+                compatible = "anyka,ak-spinand";
+                reg = <1>; /* Chip select 1 */
+                spi-max-frequency = <80000000>;
+                ///status = "okay";
+                status = "disable";
+            };
+        };
+
+        spi1: spi1@20128000 {
+            compatible = "anyka,ak37e-spi1";
+            reg = <0x20128000 0x7fff>;
+            interrupts = <9 0>;
+            clocks = <&gclk_asic ASIC_GCLK_SPI1>;
+
+            #address-cells = <1>;
+            #size-cells = <0>;
+            status = "disable";
+        };
+
+        spi2: spi2@20160000 {
+            compatible = "anyka,ak37e-spi2";
+            reg = <0x20160000 0x7fff>;
+            interrupts = <14 0>;
+            clocks = <&gclk_asic ASIC_GCLK_SPI2>;
+
+            #address-cells = <1>;
+            #size-cells = <0>;
+            status = "disable";
+        };
+
+        uart0: uart0@20130000 {
+            compatible = "anyka,ak37e-uart0";
+            reg = <0x20130000 0x7fff>;
+            current-speed = <115200>;
+            interrupts = <10 0>;
+            fifosize = <64>;
+            clocks = <&gclk_asic ASIC_GCLK_UART0>;
+            status = "disable";
+        };
+
+        uart1: uart1@20138000 {
+            compatible = "anyka,ak37e-uart1";
+            reg = <0x20138000 0x7fff>;
+            current-speed = <115200>;
+            interrupts = <11 0>;
+            fifosize = <64>;
+            clocks = <&gclk_asic ASIC_GCLK_UART1>;
+            status = "disable";
+        };
+
+        uart2: uart2@201A0000 {
+            compatible = "anyka,ak37e-uart2";
+            reg = <0x201A0000 0x7fff>;
+            current-speed = <115200>;
+            interrupts = <21 0>;
+            fifosize = <64>;
+            clocks = <&gclk_asic ASIC_GCLK_UART2>;
+            status = "disable";
+        };
+
+        uart3: uart3@201A8000 {
+            compatible = "anyka,ak37e-uart3";
+            reg = <0x201A8000 0x7fff>;
+            current-speed = <115200>;
+            interrupts = <22 0>;
+            fifosize = <64>;
+            clocks = <&gclk_asic ASIC_GCLK_UART3>;
+            status = "disable";
+        };
+
+        l2buffer: l2-buffer@20140000 {
+            compatible = "anyka,ak37e-l2-dma";
+            reg = <0x20140000 0xffff>;
+            interrupts = <12 0>;
+            status = "disable";
+        };
+
+        gpio: gpio@20170000 {
+            compatible = "anyka,ak37e-gpio";
+            reg = <0x20170000 0xffff>,
+            <0x20400000 0x1000>,    /* mipi0 */
+            <0x20480000 0x1000>;    /* mipi1 */
+
+            interrupt-controller;
+            #interrupt-cells = <2>;
+            interrupts = <15 0>;
+            clocks = <&gclk_asic ASIC_GCLK_GPIO>;
+
+            gpio-controller;
+            #gpio-cells = <2>;
+            status = "okay";
+        };
+
+        i2c0: i2c0@20150000 {
+            compatible = "anyka,ak37e-i2c0";
+            reg = <0x20150000 0xffff>;
+            interrupts = <13 0>;
+            clocks = <&gclk_asic ASIC_GCLK_TWI0>;
+
+            status = "disable";
+        };
+
+        i2c1: i2c1@20190000 {
+            compatible = "anyka,ak37e-i2c1";
+            reg = <0x20190000 0xffff>;
+            interrupts = <20 0>;
+            clocks = <&gclk_asic ASIC_GCLK_TWI1>;
+
+            status = "disable";
+        };
+
+        i2c2: i2c2@201c0000 {
+            compatible = "anyka,ak37e-i2c2";
+            reg = <0x201c0000 0xffff>;
+            interrupts = <29 0>;
+            clocks = <&gclk_asic ASIC_GCLK_TWI2>;
+
+            #address-cells = <1>;
+            #size-cells = <0>;
+            status = "disable";
+        };
+
+        i2c3: i2c3@201D0000 {
+            compatible = "anyka,ak37e-i2c3";
+            reg = <0x201d0000 0xffff>;
+            interrupts = <30 0>;
+            clocks = <&gclk_asic ASIC_GCLK_TWI3>;
+
+            #address-cells = <1>;
+            #size-cells = <0>;
+            status = "disable";
+        };
+
+        i2c4: i2c4@4 {
+            compatible = "i2c-gpio";
+            /*i2c-gpio,sda-open-drain;*/
+            /*i2c-gpio,scl-open-drain;*/
+
+            #address-cells = <1>;
+            #size-cells = <0>;
+            status = "disable";
+        };
+
+        usb: usb@20200000 {
+            compatible = "anyka,ak37e-usb";
+            reg = <0x20200000 0xffff>;
+            interrupts = <18 0
+                          19 0>;
+            clocks = <&gclk_asic ASIC_GCLK_USB>;
+            status = "disable";
+        };
+
+        ethernet: ethernet@20300000 {
+            compatible = "anyka,ak37e-ethernet";
+            reg = <0x20300000 0x1fff>;
+            interrupts = <16 0>;
+            clock-names = "mac0", "mac0_opclk";
+            clocks = <&gclk_asic ASIC_GCLK_MAC0>, <&factor_asic_clk ASIC_FACTOR_MAC0_OPCLK>;
+            mac-address = [00 00 00 00 00 00];
+            status = "disable";
+        };
+
+        ethernet1: ethernet1@20500000 {
+            compatible = "anyka,ak37e-ethernet1";
+            reg = <0x20500000 0x1fff>;
+            interrupts = <31 0>;
+            clock-names = "mac1", "mac1_opclk";
+            clocks = <&gclk_asic ASIC_GCLK_MAC1>, <&factor_asic_clk ASIC_FACTOR_MAC1_OPCLK>;
+            status = "disable";
+        };
+
+        dramctrl:dram-controller@21000000 {
+            compatible = "anyka,ak37e-dram-controller";
+            reg = <0x21000000 0xffffff>;
+            status = "disable";
+        };
+
+        vi0: vi0@20000000 {
+            compatible = "anyka,ak37e-vi";
+            reg = <0x20000000 0x1fff>;	/*image capreture controller*/
+            interrupts = <1 0>;
+            clocks = <&gclk_asic ASIC_GCLK_IMAGE_CAPTURE>, <&factor_asic_clk ASIC_FACTOR_CSI0_SCLK>;
+            clock-names = "image_capture_clk", "csi0_clk";
+            /*
+            * interface: 0-dvp, 1-mipi1lane, 2-mipi2lane
+            */
+            interface = <0>;
+            status = "disable";
+        };
+
+        efuse: efuse@08000000 {
+            compatible = "anyka,ak37e-efuse";
+            reg = <0x08000000 0x100>;
+            interrupts = <1 1>;
+            status = "okay";
+        };
+    };
+
+    pm_standby: pm_standby {
+        compatible = "anyka,ak37e-pm";
+        /* linux kernel standby wakeup mode
+        * wakeup mode:0x0:no_src, 0x1:GPIO, 0x2:rtc, 0x3:ain0, 0x4:usb_dm, 0x5:usb_dp
+        */
+        status = "disable";
+    };
+
+    ramdisk:ramdisk{
+        compatible = "anyka,ak37e-ramdisk";
+        memory-region = <&dma_reserved>;
+        status = "okay";
+    };
+
+    leds: leds {
+        compatible = "anyka,ak37e-leds";
+        status = "disable";
+    };
+
+    adkeys: adkeys {
+        compatible = "anyka,ak37e-adckeys";
+        status = "disable";
+    };
+
+    gpiokeys: gpiokeys {
+        compatible = "anyka,ak37e-gpiokeys";
+        status = "disable";
+    };
+
+    motor0: motor0 {
+        compatible = "anyka,ak37e-motor0";
+        status = "disable";
+    };
+
+    motor1: motor1 {
+        compatible = "anyka,ak37e-motor1";
+        status = "disable";
+    };
+
+    pwm0: pwm0 {
+        compatible = "anyka,ak37e-pwm0";
+        #pwm-cells = <2>;
+        status = "disable";
+    };
+
+    pwm1: pwm1 {
+        compatible = "anyka,ak37e-pwm1";
+        #pwm-cells = <2>;
+        status = "disable";
+    };
+
+    pwm2: pwm2 {
+        compatible = "anyka,ak37e-pwm2";
+        #pwm-cells = <2>;
+        status = "disable";
+    };
+
+    pwm3: pwm3 {
+        compatible = "anyka,ak37e-pwm3";
+        #pwm-cells = <2>;
+        status = "disable";
+    };
+
+    pwm4: pwm4 {
+        compatible = "anyka,ak37e-pwm4";
+        #pwm-cells = <2>;
+        status = "disable";
+    };
+
+    pwm5: pwm5 {
+        compatible = "anyka,ak37e-pwm5";
+        #pwm-cells = <2>;
+        status = "disable";
+    };
+
+    clocks {
+        osc24M: osc24M {
+            compatible = "fixed-clock";
+            #clock-cells = <0>;
+            clock-output-names = "osc24M";
+            clock-frequency = <24000000>;
+        };
+
+        osc32K: osc32K {
+            compatible = "fixed-clock";
+            #clock-cells = <0>;
+            clock-output-names = "osc32K";
+            clock-frequency = <32768>;
+        };
+
+        /*
+         * this clocks are configed in boot setting
+         * CANNOT be configed in kernel
+         * here ONLY for get cpu and mem clk in kernel
+         * dclk is as same as the hclk and for memory controller
+         */
+        cpu_pll: cpu_pll {
+            compatible = "anyka,ak37e-fixed-clk";
+            #clock-cells = <1>;
+            clock-id = <CPU_PLL_JCLK>, <CPU_PLL_HCLK>, <CPU_PLL_DPHYCLK>;
+            clock-output-names = "jclk", "hclk", "dphy";
+            clocks = <&osc24M>;
+        };
+
+        /*
+        * ASIC PLL
+        */
+        asic_pll: asic_pll {
+            compatible = "anyka,ak37e-fixed-clk";
+            #clock-cells = <0>;
+            clock-div-od = <1>;
+            clock-div-n = <3>;
+            clock-id = <ASIC_PLL_CLK>;
+            /*clock-frequency = <480000000>;*/
+            clock-frequency = <500000000>;
+            clock-output-names = "asic_pll";
+            clocks = <&osc24M>;
+        };
+
+        /*
+        * Config this clock in uboot
+        */
+        audio_pll: audio_pll {
+            compatible = "anyka,ak37e-fixed-clk";
+            #clock-cells = <0>;
+            clock-div-od = <1>;
+            clock-div-n = <2>;
+            clock-id = <AUDIO_PLL_CLK>;
+            clock-frequency = <600000000>;
+            clock-output-names = "audio_pll";
+            clocks = <&osc24M>;
+        };
+
+        factor_asic_clk: factor_asic_clk {
+            compatible = "anyka,ak37e-factor-asic-clk";
+            #clock-cells = <1>;
+            clock-id = <ASIC_FACTOR_CSI0_SCLK>, <ASIC_FACTOR_CSI1_SCLK>,
+                        <ASIC_FACTOR_MAC0_OPCLK>, <ASIC_FACTOR_MAC1_OPCLK>,
+                        <ASIC_FACTOR_LCD_PCLK>, <ASIC_FACTOR_SPI0_CLK>;
+            clock-output-names = "csi0_sclk", "csi1_sclk", "mac0_opclk", "mac1_opclk", "lcd_pclk", "spi0_clk";
+            clocks = <&asic_pll>;
+        };
+
+        gclk_asic: gclk_asic {
+            compatible = "anyka,ak37e-gate-clk";
+            #clock-cells = <1>;
+            /*
+            * ASIC_GCLK_BRIDGE_MODULE software cannot config it.
+            */
+            clock-id =  <ASIC_GCLK_BRIDGE_MODULE>, <ASIC_GCLK_MMC_0>, <ASIC_GCLK_MMC_1>,
+                        <ASIC_GCLK_SD_ADC>, <ASIC_GCLK_SD_DAC>, <ASIC_GCLK_SPI0>,
+                        <ASIC_GCLK_SPI1>, <ASIC_GCLK_UART0>, <ASIC_GCLK_UART1>,
+                        <ASIC_GCLK_L2BUF0>, <ASIC_GCLK_TWI0>, <ASIC_GCLK_L2BUF1>,
+                        <ASIC_GCLK_GPIO>, <ASIC_GCLK_MAC0>, <ASIC_GCLK_PDM>,
+                        <ASIC_GCLK_USB>, <ASIC_GCLK_MAC1>, <ASIC_GCLK_TWI1>,
+                        <ASIC_GCLK_UART2>, <ASIC_GCLK_UART3>, <ASIC_GCLK_SPI2>,
+                        <ASIC_GCLK_MMC_2>, <ASIC_GCLK_TWI2>, <ASIC_GCLK_TWI3>,
+                        <ASIC_GCLK_IMAGE_CAPTURE>, <ASIC_GCLK_JPEG_CODEC>, <ASIC_GCLK_VIDEO_DECODER>,
+                        <ASIC_GCLK_LCD_CONTROLLER>, <ASIC_GCLK_GUI>, <ASIC_GCLK_DSI>;
+            clock-ctrlbit = <0>, <1>, <2>,
+                            <3>, <4>, <5>,
+                            <6>, <7>, <8>,
+                            <9>, <10>, <11>,
+                            <12>, <13>, <14>,
+                            <15>, <16>, <17>,
+                            <32>, <33>, <34>,
+                            <35>, <36>, <37>,
+                            <19>, <20>, <21>,
+                            <22>, <23>, <31>;
+            clock-output-names = "bridge", "mmc0", "mmc1",
+                                 "sd-adc", "sd-dac", "spi0",
+                                 "spi1", "uart0", "uart1",
+                                 "l2buf0", "i2c0", "l2buf1",
+                                 "gpio", "mac0", "pdm",
+                                 "usb", "mac1", "i2c1",
+                                 "uart2","uart3","spi2",
+                                 "mmc2","i2c2", "i2c3",
+                                 "image_capture", "jpeg_codec", "video_decoder",
+                                 "lcd_controller", "gui_clk", "dsi_clk";
+            clocks = <&asic_pll>;
+        };
+
+        factor_audio_clk: factor_audio_clk {
+            compatible = "anyka,ak37e-factor-audio-clk";
+            #clock-cells = <1>;
+            clock-id = <AUDIO_FACTOR_SDADC_HSCLK>, <AUDIO_FACTOR_SDDAC_HSCLK>, <AUDIO_FACTOR_SDADC_CLK>,
+                        <AUDIO_FACTOR_SDDAC_CLK>, <AUDIO_FACTOR_PDM_HSCLK>, <AUDIO_FACTOR_PDM_I2SM_CLK>,
+                        <AUDIO_FACTOR_I2S0_MCLK>, <AUDIO_FACTOR_I2S0_B_LR_CLK>;
+            clock-output-names = "sdadchs", "sddachs", "sdadc", "sddac", "pdm_hsclk", "pdm_i2sm", "i2s0_mclk", "i2s0_b_lr_clk";
+            clocks = <&audio_pll>;
+        };
+
+        sar_adc_clk: sar_adc_clk {
+            compatible = "anyka,ak37e-factor-sar-adc-clk";
+            #clock-cells = <1>;
+            clock-id = <SAR_FACTOR_ADC_CLK>;
+            clock-output-names = "sar_adc";
+            clocks = <&osc24M>;
+        };
+
+        uv_det_pd:uv_det_pd {
+             compatible = "anyka,ak37e-uv_det_pd";
+             /*
+             * under_voltage_detection
+             * enable:
+             * 0: disable under voltage detection
+             * 1: enable under voltage detection
+             *
+             * threshold:
+             * 0: reset when VDDIO drops below 2.48V,
+             *     and the reset will be deasserted when VDDIO reaches 2.68V
+             * 1: reset when VDDIO drops below 2.65V,
+             *     and the reset will be deasserted when VDDIO reaches 2.86V
+             * 2: reset when VDDIO drops below 2.72V,
+             *     and the reset will be deasserted when VDDIO reaches 2.93V
+             */
+             enable = <1>;
+             threshold = <2>;
+             status = "okay";
+         };
+    };
+};

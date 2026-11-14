@@ -1,0 +1,199 @@
+/*
+ * AK3918AV100 dev board dts
+ *
+ * Copyright (C) 2020 Anyka(Guangzhou) Microelectronics Technology Co., Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+/dts-v1/;
+#include "anycloud_ak3918av100x.dtsi"
+#include "EVB_CBDM_AK3918AV100XP_V1.0.0.dtsi"
+
+/ {
+    compatible = "anyka,ak3918av100";
+    model = "EVB_CBDM_AK3918AV100X_V1.0.0 board";
+    version = "V1.0.00";
+};
+
+
+&gpio {
+    spi1_pins: spi1_pins {
+        anyka,pins = <XGPIO_018 XGPIO_019 XGPIO_017>;
+        anyka,function = <XGPIO_018_FUNC_SPI1_CLK XGPIO_019_FUNC_SPI1_DOUT XGPIO_017_FUNC_SPI1_CS>;
+        anyka,pull = <0x00010000>;
+    };
+
+    spi1_reset_pins: spi1_reset_pins {
+        anyka,pins = <XGPIO_006>;
+        anyka,function = <XGPIO_006_FUNC_GPIO6>;
+        anyka,pull = <0x00010010>;
+    };
+
+    spi1_dc_pins: spi1_dc_pins {
+        anyka,pins = <XGPIO_023>;
+        anyka,function = <XGPIO_023_FUNC_GPIO23>;
+        anyka,pull = <0x00010010>;
+    };
+    
+};
+
+&spi1 {
+    pinctrl-names = "default";
+    pinctrl-0 = <&spi1_pins>;
+
+    spi-bus-frequency = <50000000>;
+    /*
+     * cap-spi-highspeed;
+     * if defined, means high speed controller(Maximum 100M/s);
+     * if not, means normal speed controller(below 50M/s)
+     */
+    /* cap-spi-highspeed; */
+    status =  "disable";
+#if 0
+    ili9341@0{
+        pinctrl-names = "default";
+        /* pinctrl-0 = <&spi1_reset_pins &spi1_dc_pins &spi1_led_pins>; */
+        pinctrl-0 = <&spi1_reset_pins &spi1_dc_pins>;
+        compatible = "ilitek,ili9341";
+        spi-max-frequency = <50000000>;
+        reg = <0>;
+        status = "okay";
+
+        dc-gpios = <&gpio 23 GPIO_ACTIVE_HIGH>;
+        reset-gpios = <&gpio 6 GPIO_ACTIVE_LOW>;
+        /* led-gpios = <&gpio 98 GPIO_ACTIVE_HIGH>; */
+
+        spi-cpol;
+        spi-cpha;
+
+        width = <240>;
+        height = <320>;
+        bgr;
+        buswidth = <8>;
+        regwidth = <8>;
+        rotate = <0>;
+        fps = <30>;
+        debug = <0>;
+    };
+
+#elif 0
+ st7789@0{
+        pinctrl-names = "default";
+        /* pinctrl-0 = <&spi1_reset_pins &spi1_dc_pins &spi1_led_pins>; */
+         pinctrl-0 = <&spi1_reset_pins &spi1_dc_pins>;
+        compatible = "sitronix,st7789";
+        spi-max-frequency = <50000000>;
+        reg = <0>;
+        status = "okay";
+
+        dc-gpios = <&gpio 23 GPIO_ACTIVE_HIGH>;
+        reset-gpios = <&gpio 6 GPIO_ACTIVE_LOW>;
+    
+        //spi-cpol;
+        //spi-cpha;
+
+        width = <240>;
+        height = <320>;
+        /* height = <240>; */
+
+        /* bgr = <1>; */
+        bpp = <16>;
+        buswidth = <8>;
+        regwidth = <8>;
+        rotate = <0>;
+        fps = <30>;
+        debug = <0>;
+    };
+    
+#elif 0
+    jd9853@0{
+        pinctrl-names = "default";
+        /* pinctrl-0 = <&spi1_reset_pins &spi1_dc_pins &spi1_led_pins>; */
+        pinctrl-0 = <&spi1_reset_pins &spi1_dc_pins>;
+        compatible = "jadard,jd9853";
+        spi-max-frequency = <50000000>;
+        reg = <0>;
+        status = "okay";
+
+        dc-gpios = <&gpio 23 GPIO_ACTIVE_HIGH>;
+        reset-gpios = <&gpio 6 GPIO_ACTIVE_LOW>;
+        te-gpios=<&gpio 7 GPIO_ACTIVE_LOW>;
+        //spi-cpol;
+        //spi-cpha;
+
+        width = <240>;
+        height = <320>;
+        
+        /* height = <240>; */
+
+        /* bgr = <1>; */
+        bpp = <16>;
+        buswidth = <8>;
+        regwidth = <8>;
+        rotate = <0>;
+        fps = <30>;
+        debug = <0>;
+    };
+    
+#elif 0
+    ili9340@0{
+        pinctrl-names = "default";
+        /* pinctrl-0 = <&spi1_reset_pins &spi1_dc_pins &spi1_led_pins>; */
+        pinctrl-0 = <&spi1_reset_pins &spi1_dc_pins>;
+        compatible = "ilitek,ili9340";
+        spi-max-frequency = <50000000>;
+        reg = <0>;
+        status = "okay";
+
+        dc-gpios = <&gpio 23 GPIO_ACTIVE_HIGH>;
+        reset-gpios = <&gpio 6 GPIO_ACTIVE_LOW>;
+
+        width = <240>;
+        height = <320>;
+        /* bgr; */
+        buswidth = <8>;
+        regwidth = <8>;
+        rotate = <0>;
+        fps = <30>;
+        debug = <0>;
+    };
+
+#endif 
+
+    
+};
+
+
+
+
+// using detect-gpio or detect-gpios
+&mmc1 {
+    power-inverted;
+};
+
+// cd_clk
+/*
+&mmc1 {
+    power-inverted;
+};
+*/
+
+// cd_d3
+/*
+&mmc1 {
+    power-inverted;
+};
+*/
+
+&venc {
+    clock-frequency = <215000000>;
+};

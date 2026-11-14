@@ -1,0 +1,1035 @@
+/*
+ * AK3918EV300L dev board dts
+ *
+ * Copyright (C) 2020 Anyka(Guangzhou) Microelectronics Technology Co., Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+/dts-v1/;
+#include "anycloud_ak3918ev300l.dtsi"
+#include "anycloud_norflash.dtsi"
+#include "anycloud_nandflash.dtsi"
+
+/ {
+    compatible = "anyka,ak3918ev300l";
+    model = "EVB_CBDM_AK3918EV300L_V1.0.2 board & EVB_CAM_SC1346_SWITCHCIS_V1.0.1";
+    version = "V1.0.01";
+};
+
+&gpio {
+    /*
+    * "anyka,function": func index, please refer to dt-bindings/pinctrl/ak3918ev300l_pinctrl.h
+    * "anyka,pull": configuration of the pins
+    * bit[7:0]: pull up/down configuration
+    *     bit[0]: pull up or pull down selection, 1 means select pull down, 0 means select pull up
+    *     bit[4]: pull up or pull down enable, 1 means enable pull up&down function, 0 means disable fuction
+    * !!! Notice that not all pin support pull up and pull down. Please refer to the programer's guide.
+    * bit[11:8]: driver strength configuration.
+    *     bit[9:8] drive strength.
+    * bit[12:15] gpio direction
+    *     bit[12]: direction. 0 is output, 1 is input
+    *     bit[15]: enable direction. 1 is enable
+    * bit[19:16]: input enable configuration
+    *     bit[16]: 1 means enable input, 0 means disable input.
+    * bit[20-23]: gpio output level
+    *     bit[20]: 0 is low level, 1 is high level
+    *     bit[23]: enable gpio output level. 1 is enable
+    * bit[31:24]: pin slew rate configuration
+    *     bit[24]: 1 means enable slew rate, 0 means disable slew rate.
+    * !!! Notice OTHER bits which not mentioned please set to 0.
+    */
+
+    dvp0_12bits_pins: dvp0_12bits_pins {
+        anyka,pins = <XGPIO_022
+                         XGPIO_100
+                         XGPIO_009
+                         XGPIO_010
+                         XGPIO_017
+                         XGPIO_018
+                         XGPIO_019
+                         XGPIO_020
+                         XGPIO_023
+                         XGPIO_021
+                         XGPIO_022
+                         XGPIO_099
+                         XGPIO_102
+                         XGPIO_101
+                         XGPIO_103
+                         XGPIO_104>;
+        anyka,function = <XGPIO_022_FUNC_CSI0_SCLK
+                            XGPIO_100_FUNC_CSI_CLK
+                            XGPIO_009_FUNC_CSI_HSYNC
+                            XGPIO_010_FUNC_CSI_VSYNC
+                            XGPIO_017_FUNC_CSI_D0
+                            XGPIO_018_FUNC_CSI_D1
+                            XGPIO_019_FUNC_CSI_D2
+                            XGPIO_020_FUNC_CSI_D3
+                            XGPIO_023_FUNC_CSI_D4
+                            XGPIO_021_FUNC_CSI_D5
+                            XGPIO_022_FUNC_CSI_D6
+                            XGPIO_099_FUNC_CSI_D7
+                            XGPIO_102_FUNC_CSI_D8
+                            XGPIO_101_FUNC_CSI_D9
+                            XGPIO_103_FUNC_CSI_D10
+                            XGPIO_104_FUNC_CSI_D11>;
+        anyka,pull = <0x00010010>;
+    };
+
+    dvp0_10bits_pins: dvp0_10bits_pins {
+        anyka,pins = <XGPIO_100		//pclk
+                         XGPIO_009	//hsync
+                         XGPIO_010	//vsync
+                         XGPIO_019	//d2
+                         XGPIO_020	//d3
+                         XGPIO_023	//d4
+                         XGPIO_021	//d5
+                         XGPIO_022	//d6
+                         XGPIO_099	//d7
+                         XGPIO_102	//d8
+                         XGPIO_101	//d9
+                         XGPIO_103	//d10
+                         XGPIO_104>;//d11
+        anyka,function = <XGPIO_100_FUNC_CSI_CLK
+                            XGPIO_009_FUNC_CSI_HSYNC
+                            XGPIO_010_FUNC_CSI_VSYNC
+                            XGPIO_019_FUNC_CSI_D2
+                            XGPIO_020_FUNC_CSI_D3
+                            XGPIO_023_FUNC_CSI_D4
+                            XGPIO_021_FUNC_CSI_D5
+                            XGPIO_022_FUNC_CSI_D6
+                            XGPIO_099_FUNC_CSI_D7
+                            XGPIO_102_FUNC_CSI_D8
+                            XGPIO_101_FUNC_CSI_D9
+                            XGPIO_103_FUNC_CSI_D10
+                            XGPIO_104_FUNC_CSI_D11>;
+        anyka,pull = <0x00010010>;
+    };
+
+    dvp0_8bits_pins: dvp0_8bits_pins {
+        anyka,pins = <XGPIO_022
+                         XGPIO_100
+                         XGPIO_009
+                         XGPIO_010
+                         XGPIO_017
+                         XGPIO_018
+                         XGPIO_019
+                         XGPIO_020
+                         XGPIO_023
+                         XGPIO_021
+                         XGPIO_022
+                         XGPIO_099>;
+        anyka,function = <XGPIO_022_FUNC_CSI0_SCLK
+                            XGPIO_100_FUNC_CSI_CLK
+                            XGPIO_009_FUNC_CSI_HSYNC
+                            XGPIO_010_FUNC_CSI_VSYNC
+                            XGPIO_017_FUNC_CSI_D0
+                            XGPIO_018_FUNC_CSI_D1
+                            XGPIO_019_FUNC_CSI_D2
+                            XGPIO_020_FUNC_CSI_D3
+                            XGPIO_023_FUNC_CSI_D4
+                            XGPIO_021_FUNC_CSI_D5
+                            XGPIO_022_FUNC_CSI_D6
+                            XGPIO_099_FUNC_CSI_D7>;
+        anyka,pull = <0x00010010>;
+    };
+
+    mipi0_3lane_pins: mipi0_3lane_pins {
+        anyka,pins = <XGPIO_099
+                        XGPIO_100
+                        XGPIO_101
+                        XGPIO_102
+                        XGPIO_103
+                        XGPIO_104>;
+        anyka,function = <XGPIO_099_FUNC_MIPI_RX_L0P
+                            XGPIO_100_FUNC_MIPI_RX_L0N
+                            XGPIO_101_FUNC_MIPI_RX_L1P
+                            XGPIO_102_FUNC_MIPI_RX_L1N
+                            XGPIO_103_FUNC_MIPI_RX_L2P
+                            XGPIO_104_FUNC_MIPI_RX_L2N>;
+        anyka,pull = <0x00010010>;
+    };
+
+    csi0_sclk_pin: csi0_sclk_pin {
+        anyka,pins = <XGPIO_022>;
+        anyka,function = <XGPIO_022_FUNC_CSI0_SCLK>;
+        anyka,pull = <0x00010010>;
+    };
+
+    i2c0_pins: i2c0_pins {
+        anyka,pins = <XGPIO_020 XGPIO_021>;
+        anyka,function = <XGPIO_020_FUNC_TWI0_SDA XGPIO_021_FUNC_TWI0_SCL>;
+        anyka,pull = <0x10010>;
+    };
+
+    infrared_led_pins: infrared_led_pins {
+        anyka,pins = <XGPIO_010>;
+        anyka,function = <XGPIO_010_FUNC_GPIO10>;
+        anyka,pull = <0x10>;
+    };
+
+    state_led_pin: state_led_pin {
+        anyka,pins = <XGPIO_025>;
+        anyka,function = <XGPIO_025_FUNC_GPIO25>;
+        anyka,pull = <0x10>;
+    };
+
+    mci1_pins: mci1_pins {
+        anyka,pins = <XGPIO_036
+                        XGPIO_035
+                        XGPIO_034
+                        XGPIO_033
+                        XGPIO_032
+                        XGPIO_031>;
+        anyka,function = <XGPIO_036_FUNC_SDIO0_DATA1
+                            XGPIO_035_FUNC_SDIO0_DATA0
+                            XGPIO_034_FUNC_SDIO0_MCLK
+                            XGPIO_033_FUNC_SDIO0_CMD
+                            XGPIO_032_FUNC_SDIO0_DATA3
+                            XGPIO_031_FUNC_SDIO0_DATA2>;
+        anyka,pull = <0x10010>;
+    };
+
+    /*
+       when not use tf card, set to idle state,
+       to protect tf card and extend it's life.
+    */
+    mci1_idle_pins: mci1_idle_pins {
+        anyka,pins = <XGPIO_036
+                        XGPIO_035
+                        XGPIO_034
+                        XGPIO_033
+                        XGPIO_032
+                        XGPIO_031>;
+        anyka,function = <XGPIO_036_FUNC_GPIO36
+                            XGPIO_035_FUNC_GPIO35
+                            XGPIO_034_FUNC_GPIO34
+                            XGPIO_033_FUNC_GPIO33
+                            XGPIO_032_FUNC_GPIO32
+                            XGPIO_031_FUNC_GPIO31>;
+        anyka,pull = <0x11>;
+    };
+
+    /* 
+     *  When using DATA3 as plugin and plugoff detect:
+     *  1. Set XGPIO_032_FUNC_SDIO0_DATA3 pull up disable and pull down disable
+     *  2. Using PULLDOWN RESISTANCE on PCB, for example, 510   KΩ.
+     */
+    mci1_pins_d3_detect_mode: mci1_pins_d3_detect_mode {
+        anyka,pins = <XGPIO_036
+                        XGPIO_035
+                        XGPIO_034
+                        XGPIO_033
+                        XGPIO_032
+                        XGPIO_031>;
+        anyka,function = <XGPIO_036_FUNC_SDIO0_DATA1
+                            XGPIO_035_FUNC_SDIO0_DATA0
+                            XGPIO_034_FUNC_SDIO0_MCLK
+                            XGPIO_033_FUNC_SDIO0_CMD
+                            XGPIO_032_FUNC_SDIO0_DATA3
+                            XGPIO_031_FUNC_SDIO0_DATA2>;
+        anyka,pull = <  0x10010 
+                        0x10010
+                        0x10010
+                        0x10010
+                        0x10001  /* disable pull down and pull up */
+                        0x10010 >;
+    };
+
+    /*
+       when not use tf card, set to idle state, the pin set to gpio function except dat3 pin.
+       to protect tf card, extend it's life.
+    */
+    mci1_idle_pins_d3: mci1_idle_pins_d3 {
+        anyka,pins = <XGPIO_036
+                        XGPIO_035
+                        XGPIO_034
+                        XGPIO_033
+                        XGPIO_032
+                        XGPIO_031>;
+        anyka,function = <XGPIO_036_FUNC_GPIO36
+                            XGPIO_035_FUNC_GPIO35
+                            XGPIO_034_FUNC_GPIO34
+                            XGPIO_033_FUNC_GPIO33
+                            XGPIO_032_FUNC_SDIO0_DATA3
+                            XGPIO_031_FUNC_GPIO31>;
+        anyka,pull = <  0x11
+                        0x11
+                        0x11
+                        0x11
+                        0x10001  /* disable pull down and pull up */
+                        0x11 >;
+    };
+
+    /*
+       when not use tf card, set to idle state, the pin set to gpio function except mclk pin.
+       to protect tf card, extend it's life.
+    */
+    mci1_idle_pins_clk: mci1_idle_pins_clk {
+        anyka,pins = <XGPIO_036
+                        XGPIO_035
+                        XGPIO_034
+                        XGPIO_033
+                        XGPIO_032
+                        XGPIO_031>;
+        anyka,function = <XGPIO_036_FUNC_GPIO36
+                            XGPIO_035_FUNC_GPIO35
+                            XGPIO_034_FUNC_SDIO0_MCLK
+                            XGPIO_033_FUNC_GPIO33
+                            XGPIO_032_FUNC_GPIO32
+                            XGPIO_031_FUNC_GPIO31>;
+        anyka,pull = <  0x11
+                        0x11
+                        0x10010 /* clk */
+                        0x11
+                        0x11
+                        0x11 >;
+    };
+
+    mci2_pins: mci2_pins {
+        anyka,pins = <XGPIO_058
+                     XGPIO_065
+                     XGPIO_066
+                     XGPIO_067
+                     XGPIO_068
+                     XGPIO_069>;
+        anyka,function = <  XGPIO_058_FUNC_SDIO1_CMD
+                        XGPIO_065_FUNC_SDIO1_MCLK
+                        XGPIO_066_FUNC_SDIO1_DATA2
+                        XGPIO_067_FUNC_SDIO1_DATA3
+                        XGPIO_068_FUNC_SDIO1_DATA0
+                        XGPIO_069_FUNC_SDIO1_DATA1>;
+        anyka,pull = <0x10010>;
+    };
+
+    mci2_idle_pins: mci2_idle_pins {
+        anyka,pins = <  XGPIO_058
+                        XGPIO_065
+                        XGPIO_066
+                        XGPIO_067
+                        XGPIO_068
+                        XGPIO_069>;
+        anyka,function = <  XGPIO_058_FUNC_GPIO58
+                            XGPIO_065_FUNC_GPIO65
+                            XGPIO_066_FUNC_GPIO66
+                            XGPIO_067_FUNC_GPIO67
+                            XGPIO_068_FUNC_GPIO68
+                            XGPIO_069_FUNC_GPIO69>;
+        anyka,pull = <0x0>;
+
+    };
+
+    tf_det_pins: tf_det_pins {
+        anyka,pins = <XGPIO_009>;
+        anyka,function = <XGPIO_009_FUNC_GPIO9>;
+        anyka,pull = <0x10010>;
+    };
+
+    tf_en_pins: tf_en_pins {
+        anyka,pins = <XGPIO_050>;
+        anyka,function = <XGPIO_050_FUNC_GPIO50>;
+        anyka,pull = <0x10010>;
+    };
+
+    wifi_en_pins: wifi_en_pins {
+        anyka,pins = <XGPIO_098>;
+        anyka,function = <XGPIO_098_FUNC_GPIO98>;
+        anyka,pull = <0x10010>;
+    };
+
+    wifi_rst_pins: wifi_rst_pins {
+        anyka,pins = <XGPIO_026>;
+        anyka,function = <XGPIO_026_FUNC_GPIO26>;
+        anyka,pull = <0x10010>;
+    };
+
+    speaker_en_pins: speaker_en_pins {
+        anyka,pins = <XGPIO_037>;
+        anyka,function = <XGPIO_037_FUNC_GPIO37>;
+        anyka,pull = <0x00808000>;
+    };
+
+    i2c1_pins: i2c1_pins {
+        anyka,pins = <XGPIO_048 XGPIO_049>;
+        anyka,function = <XGPIO_048_FUNC_TWI1_SCL XGPIO_049_FUNC_TWI1_SDA>;
+        anyka,pull = <0x10010>;
+    };
+
+    pwm0_pins: pwm0_pins {
+        anyka,pins = <XGPIO_016>;
+        anyka,function = <XGPIO_016_FUNC_PWM0>;
+        anyka,pull = <0x10>;
+    };
+
+    pwm0_pins_idle: pwm0_pins_idle {
+        anyka,pins = <XGPIO_016>;
+        anyka,function = <XGPIO_016_FUNC_GPIO16>;
+        anyka,pull = <0x10>;
+    };
+
+    pwm1_pins: pwm1_pins {
+        anyka,pins = <XGPIO_049>;
+        anyka,function = <XGPIO_049_FUNC_PWM1>;
+        anyka,pull = <0x10>;
+    };
+
+    saradc_pins: saradc_pins {
+        anyka,pins = <XGPIO_070 XGPIO_071>;
+        anyka,function = <XGPIO_070_FUNC_AIN1 XGPIO_071_FUNC_AIN0>;
+        anyka,pull = <0x0000000>;
+    };
+
+    uart2_pins: uart2_pins {
+        /* uart1 without flow control */
+        anyka,pins = <XGPIO_055 XGPIO_056>;
+        anyka,function = <XGPIO_055_FUNC_UART2_RXD XGPIO_056_FUNC_UART2_TXD>;
+        anyka,pull = <0x00010010 0x00010010>;
+    };
+
+    uart2_pins_sleep: uart2_pins_sleep {
+        /* uart1 without flow control */
+        anyka,pins = <XGPIO_055 XGPIO_056>;
+        anyka,function = <XGPIO_055_FUNC_GPIO55 XGPIO_056_FUNC_GPIO56>;
+        anyka,pull = <0x00000000>;
+    };
+
+    /* function: 0 means gpio */
+    motor0_pins: motor0_pins {
+        anyka,pins = <XGPIO_048 XGPIO_049 XGPIO_003 XGPIO_002>;
+        anyka,function = <0>;
+        anyka,pull = <0x00000010>;
+    };
+
+    motor1_pins: motor1_pins {
+        anyka,pins = <XGPIO_001 XGPIO_000 XGPIO_055 XGPIO_056>;
+        anyka,function = <0>;
+        anyka,pull = <0x00000010>;
+    };
+};
+
+&uart0 {
+    pinctrl-names = "default";
+    pinctrl-0 = <&uart0_pins>;
+    status = "okay";
+};
+
+&uart2 {
+    pinctrl-names = "default";
+    pinctrl-0 = <&uart2_pins>;
+    status = "okay";
+};
+
+&watchdog {
+    status = "okay";
+};
+
+&vi0{
+    pinctrl-names = "dvp0_12bits", "dvp0_10bits", "dvp0_8bits",
+	/*
+        "mipi0_2lane", "mipi0_1lane",
+		*/
+        "csi0_sclk";
+    pinctrl-0 = <&dvp0_12bits_pins>;
+    pinctrl-1 = <&dvp0_10bits_pins>;
+    pinctrl-2 = <&dvp0_8bits_pins>;
+    pinctrl-3 = <&csi0_sclk_pin>;
+
+	/*
+    pinctrl-4 = <&mipi0_2lane_pins>;
+    pinctrl-5 = <&mipi0_1lane_pins>;
+	*/
+    status = "okay";
+
+    /* MIPI_switch_chip SELECT pin corresponds 
+     * to the level of  video0 
+     *  */
+    cis0-switch-sel-gpio = <&gpio XGPIO_017 1>;
+
+
+	csi_mipi_lane_swap = <
+		SENSOR_D1	//L0
+		SENSOR_D0	//L1
+		SENSOR_C0	//L2
+		>;//MIPI_RX_L0~2.
+	csi_mipi_dndp_swap = <
+		MIPI_DNDP_NOSWAP	//L0
+		MIPI_DNDP_NOSWAP	//L1
+		MIPI_DNDP_NOSWAP	//L2
+	>;//MIPI_RX_L0~2. 0: noswap; others: swap
+
+	port@0 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		vi_0_0: endpoint@0 {
+			reg = <0>;
+			remote-endpoint = <&sensor0_0>;
+		};
+
+		vi_1_0: endpoint@1 {
+			reg = <1>;
+			remote-endpoint = <&sensor1_0>;
+		};
+	};
+
+    gen-pwm-sel {
+        pwm-names = "general_pwm0";
+        pwms = <&pwm0 0 4166666>;
+    };
+
+};
+
+&i2c0 {
+    pinctrl-names = "default";
+    pinctrl-0 = <&i2c0_pins>;
+
+    clock-frequency = <312000>;
+    status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	sensor0: camera@0x30{
+		compatible = "anyka,sensor0";
+		reg = <0x30>;
+
+		/*0xffff means the gpio is invalid*/
+		reset-gpio = <&gpio 0xffff 1>;
+		pwdn-gpio = <&gpio XGPIO_019 1>;
+
+		port {
+			sensor0_0: endpoint@0 {
+				remote-endpoint = <&vi_0_0>;
+			};
+		};
+	};
+
+#if 1//dual->sensor1
+	sensor1: camera@0x32{
+		compatible = "anyka,sensor0";
+		reg = <0x32>;
+
+		/*0xffff means the gpio is invalid*/
+		reset-gpio = <&gpio 0xffff 1>;
+		pwdn-gpio = <&gpio  XGPIO_018 1>;
+
+		port {
+			sensor1_0: endpoint@1 {
+				remote-endpoint = <&vi_1_0>;
+			};
+		};
+	};
+#endif
+};
+
+#ifdef AK_PWR_CONSUMPTION_TEST
+&i2c1 {
+    pinctrl-names = "default";
+    pinctrl-0 = <&i2c1_pins>;
+    clock-frequency = <312000>;
+    status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	ina2xx_0: ina220@0x42{
+		compatible = "anyka,sensor0_ina2xx";
+		reg = <0x42>;
+	};
+
+	ina2xx_1: ina220@0x4a{
+		compatible = "anyka,sensor1_ina2xx";
+		reg = <0x4a>;
+	};
+
+	ina2xx_2: ina220@0x40{
+		compatible = "anyka,sensor2_ina2xx";
+		reg = <0x40>;
+	};
+
+	ina2xx_3: ina220@0x48{
+		compatible = "anyka,sensor3_ina2xx";
+		reg = <0x48>;
+	};
+};
+#else
+&i2c1 {
+    pinctrl-names = "default";
+    pinctrl-0 = <&i2c1_pins>;
+    clock-frequency = <312000>;
+    status = "disable";
+	#address-cells = <1>;
+	#size-cells = <0>;
+};
+#endif
+
+&leds {
+    pinctrl-names = "default";
+    pinctrl-0 = <&infrared_led_pins>,<&state_led_pin>;
+    status = "okay";
+
+    ir_led {
+        label = "irled";
+        gpios = <&gpio XGPIO_010 GPIO_ACTIVE_HIGH>;
+    };
+
+    state_led {
+        label = "state_led";
+        gpios = <&gpio XGPIO_025 GPIO_ACTIVE_HIGH>;
+        default-state = "off";
+    };
+};
+
+/* mmc1 card detect using detect-gpio or detect-gpios */
+&mmc1 {
+    bus-width = <0x4>;
+    max-frequency = <25000000>;
+    detect-gpio = <&gpio XGPIO_009 1>; 
+    cap-sd-highspeed;
+    pinctrl-names = "default","idle";
+    pinctrl-0 = <&mci1_pins>,<&tf_en_pins>,<&tf_det_pins>;
+    pinctrl-1 = <&mci1_idle_pins>; 
+    power-pins = <&gpio XGPIO_050 1>; 
+    power-inverted;
+    status = "okay"; 
+};
+
+/* mmc1 card detect using cd_clk */
+/*
+&mmc1 {
+    bus-width = <0x4>;
+    max-frequency = <25000000>;
+    cd_clk;
+    cap-sd-highspeed;
+    pinctrl-names = "default","idle";
+    pinctrl-0 = <&mci1_pins>,<&tf_en_pins>;
+    pinctrl-1 = <&mci1_idle_pins_clk>;
+    power-pins = <&gpio XGPIO_050 1>;
+    power-inverted;
+    status = "okay"; 
+};
+*/
+
+/* mmc1 card detect using cd_d3 */
+/*
+&mmc1 {
+    bus-width = <0x4>;
+    max-frequency = <25000000>;
+    cd_d3;
+    cap-sd-highspeed;
+    pinctrl-names = "default","idle";
+    pinctrl-0 = <&mci1_pins_d3_detect_mode>,<&tf_en_pins>;
+    pinctrl-1 = <&mci1_idle_pins_d3>; 
+    power-pins = <&gpio XGPIO_050 1>; 
+    power-inverted;
+    status = "okay"; 
+};
+*/
+&mmc2 {
+    bus-width = <0x4>;
+    max-frequency = <25000000>;
+    non-removable;
+    cap-sd-highspeed;
+    /* if support sdio, using cap-sdio-irq*/
+    cap-sdio-irq;
+    pinctrl-names = "default","idle";
+    pinctrl-0 = <&mci2_pins>,<&wifi_en_pins>,<&wifi_rst_pins>;
+    pinctrl-1 = <&mci2_idle_pins>;
+    power-pins = <&gpio XGPIO_098 1>;   //power-pins is which wifi_en_pins describes
+    rst-pins =   <&gpio XGPIO_026 1>;    //rst-pins is which wifi_rst_pins describes
+    status = "okay"; 
+};
+
+&ethernet {
+    pinctrl-names = "default";
+    pinctrl-0 = <&ethernet_rmii_pins &ethernet_rst_pins>;
+    reset-gpios = <&gpio XGPIO_024 1>;
+	phy-address = <1>;
+    status = "okay";
+};
+
+&usb {
+    status = "okay";
+};
+
+&spi0 {
+    pinctrl-names = "default";
+    pinctrl-0 = <&spiflash_pins>;
+    spi-bus-frequency = <66000000>;
+    /*
+     * cap-spi-highspeed;
+     * if defined, means high speed controller(Maximum 100M/s);
+     * if not, means normal speed controller(below 50M/s)
+     */
+    cap-spi-highspeed;
+    status = "okay";
+};
+
+&spif0 {
+    /* spi flash data bus width:
+    ** 1 means 1 wire mode.
+    ** 2 means 2 wire mode
+    ** 4 means 4 wire mode.
+    ** default: 4 wire mode.
+    **/
+    bus-width = <4>;
+    status = "okay";
+};
+
+&py25q128ha{
+    status = "okay";
+};
+
+&xm25qh64a{
+    status = "okay";
+};
+
+&xm25qh128a{
+    status = "okay";
+};
+
+&w25q64{
+    status = "okay";
+};
+
+&w25q128{
+    status = "okay";
+};
+
+&gd25q64{
+    status = "okay";
+};
+
+&gd25q128{
+    status = "okay";
+};
+
+&gd25q256{
+    status = "okay";
+};
+
+&kh25l64{
+    status = "okay";
+};
+
+&kh25l128{
+    status = "okay";
+};
+
+&fm25q64{
+    status = "okay";
+};
+
+&fm25q128{
+    status = "okay";
+};
+
+&by25q64a{
+    status = "okay";
+};
+
+&by25q128a{
+    status = "okay";
+};
+
+&pn26f64b{
+    status = "okay";
+};
+
+&xt25f64b{
+    status = "okay";
+};
+
+&xt25f128b{
+    status = "okay";
+};
+
+&zb25vq64{
+    status = "okay";
+};
+
+&zb25vq128{
+    status = "okay";
+};
+
+&xm25qh64c{
+    status = "okay";
+};
+
+&xm25qh128c{
+    status = "okay";
+};
+
+&GD5F1GQ5UEY1G{
+    status = "okay";
+};
+
+&GD5F2GQ5UEYIG{
+    status = "okay";
+};
+
+&FM25S02A{
+    status = "okay";
+};
+
+&W25N02KV{
+    status = "okay";
+};
+
+&FS35ND01G{
+    status = "okay";
+};
+
+&FS35ND02G{
+    status = "okay";
+};
+
+&MX35LF1GE4AB{
+    status = "okay";
+};
+
+&XT26G01C{
+    status = "okay";
+};
+
+&MX35LF2GE4AD{
+    status = "okay";
+};
+
+&XT26G02E{
+    status = "okay";
+};
+
+&GM25Q64A{
+    status = "okay";
+};
+
+&GM25Q128A{
+    status = "okay";
+};
+
+&mx25l3205d{
+    status = "okay";
+};
+
+&P25Q64H{
+    status = "okay";
+};
+
+&PY25Q64HA{
+  status = "okay";
+};
+
+&NM25Q64EVB{
+    status = "okay";
+};
+
+&NM25Q128EVB{
+    status = "okay";
+};
+
+&ME25L64E{
+    status = "okay";
+};
+
+&ME25L128C{
+    status = "okay";
+};
+
+&XM25QH256C{
+  status = "okay";
+};
+
+&UC25IQ128A{
+  status = "okay";
+};
+
+&TH25Q64HA{
+    status = "okay";
+};
+
+&TH25Q128HA{
+    status = "okay";
+};
+
+&BW25Q64A{
+    status = "okay";
+};
+
+&BW25Q128A{
+    status = "okay";
+};
+
+&adc_dac {
+    pinctrl-names = "default";
+    pinctrl-0 = <&speaker_en_pins>;
+    speak-gpios = <&gpio XGPIO_037 1>;
+    pd-hpvcm = <1>;
+    /*
+    * The level of speak-gpios votage for power on audio: 0=low, 1=high
+    */
+    speak-gpios-en = <1>;
+    status = "okay";
+
+    dev0 {
+        snd-dev = <SND_CARD_DAC_PLAYBACK>;
+        snd-type = <AK_PCM_DEV_PLAYBACK>;
+    };
+
+    dev1 {
+        snd-dev = <SND_CARD_ADC_CAPTURE>;
+        snd-type = <AK_PCM_DEV_CAPTURE>;
+    };
+
+    dev2 {
+        snd-dev = <SND_CARD_DAC_LOOPBACK>;
+        snd-type = <AK_PCM_DEV_LOOPBACK>;
+    };
+};
+
+&venc {
+    status = "okay";
+};
+
+&venc_bridge{
+     status = "okay";
+};
+
+&adkeys {
+    /*
+    * poll interval: ms
+    * debounce interval: ms
+    */
+    interval = <120>;
+    debounce_interval = <20>;
+    /*
+    * if pressed-input = 0, input 0 when key is pressed, else input 1.
+    */
+    pressed-input = <0>;
+    status = "okay";
+
+    addet0 {
+        unpress_min = <0>;
+        unpress_max = <3200>;
+        adc_index = <1>;
+        adc_channel = <0>;
+
+        key1 {
+            linux,code = <102>; 
+            min = <0>;
+            max = <50>;
+        };
+    };
+};
+
+&saradc {
+    pinctrl-names = "default";
+    pinctrl-0 = <&saradc_pins>;
+
+    /*
+	 * SAR ADC VREF selection
+     * 	0:To select HPVDD 3.3V as VREF for SAR ADC.
+     * 	1:To select 3.0V generated from DDR as VREF for SAR ADC.
+     */
+    vref-select = <0>;
+
+    /*
+     * Sampling number
+     * 	Read the sampling data for N times and then calculate the average value.
+     * 	N ranges from 1 to 7.
+     */
+    sampling-num = <3>;
+    status = "okay";
+};
+
+&encrypt{
+    status = "okay"; 
+};
+
+&pwm0 {
+	pinctrl-names = "default", "idle";
+	pinctrl-0 = <&pwm0_pins>;
+	pinctrl-1 = <&pwm0_pins_idle>;
+	period-ns = <500>;
+	duty-ns = <100>;
+	pwm-enable = <1>;
+	status = "okay";
+};
+
+&pwm1 {
+	pinctrl-names = "default";
+    pinctrl-0 = <&pwm1_pins>;
+	period-ns = <500>;
+	duty-ns = <250>;
+	pwm-enable = <1>;
+	status = "disable";
+};
+
+&motor0 {
+	/*
+	 * part-number: part name
+	 * pwm-tbl-cw: pwm table int clkwise
+	 * pwm-pins: gpio list to motor
+	 * steps-one-circle: total steps one circle (360degree)
+	 *
+	 * total-steps:	total steps the motor can run
+	 * boundary-steps: reserve some step for each boudary
+	 * attach-timer: timer for the motor
+	 *					NOTE: different motor attach different timer
+	 *
+	 * speed-step: speed in step
+	 */
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&motor0_pins>;
+
+	part-number = "HZF-24BYJ48";
+	pwm-tbl-cw = <0x09 0x01 0x03 0x02 0x06 0x04 0x0c 0x08>;
+	pwm-pins = <XGPIO_048 XGPIO_049 XGPIO_003 XGPIO_002>;
+	steps-one-circle = <4096>;
+	total-steps = <2500>;
+	boundary-steps = <50>;
+	attach-timer = <2>;
+
+	speed-step = <200>;
+
+	status = "disable";
+};
+
+&motor1 {
+	/*
+	 * part-number: part name
+	 * pwm-tbl-cw: pwm table int clkwise
+	 * pwm-pins: gpio list to motor
+	 * steps-one-circle: total steps one circle (360degree)
+	 *
+	 * total-steps:	total steps the motor can run
+	 * boundary-steps: reserve some step for each boudary
+	 * attach-timer: timer for the motor
+	 *					NOTE: different motor attach different timer
+	 *
+	 * speed-step: speed in step
+	 */
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&motor1_pins>;
+
+	part-number = "HZF-24BYJ48";
+	pwm-tbl-cw = <0x09 0x01 0x03 0x02 0x06 0x04 0x0c 0x08>;
+	pwm-pins = <XGPIO_001 XGPIO_000 XGPIO_055 XGPIO_056>;
+	steps-one-circle = <4096>;
+
+	total-steps = <600>;
+	boundary-steps = <50>;
+	attach-timer = <3>;
+
+	speed-step = <200>;
+
+	status = "disable";
+};

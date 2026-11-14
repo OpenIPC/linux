@@ -1,0 +1,650 @@
+/*
+ * cloud39ev3 ak39ev330 dev board dts
+ *
+ * Copyright (C) 2020 Anyka(Guangzhou) Microelectronics Technology Co., Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+/dts-v1/;
+#include "anycloud_ak39ev331.dtsi"
+#include "anycloud_ak39ev330_norflash.dtsi"
+
+/ {
+    compatible = "anyka,ak3918ev331";
+    model = "cloud39ev3 ak3918ev331 dev board";
+	version = "V1.0.00";
+};
+/*
+&core_pll {
+    clock-div-od = <0>;
+    clock-div-n = <3>;
+    clock-frequency = <640000000>;
+};
+*/
+
+&gpio {
+    /* anyka,function sharepin func index according to table 2-1 sharepin-list */
+    /* index: 0: FUNCTION0, 1: FUNCTION1, 2: FUNCTION2, 3: FUNCTION3, 4: FUNCTION4 */
+    /* anyka,pull config value bit[7:0]--pupd config */
+    /* bit[7:0]--pupd config, bit[7]:reserved, bit[6:4] 1:enable/ 0:disable, bit[3:0] 0:select PU /1:select PD */
+
+    ircut_pins: ircut_pins {
+        anyka,pins = <0>;
+        anyka,function = <0>;
+        anyka,pull = <0x00000010>;
+    };
+
+    dvp0_12bits_pins: dvp0_12bits_pins {
+        anyka,pins = <6 7 8 9 64 65 66 67 68 69 70 71 72 73 74 75>;
+        anyka,function = <0>;
+        anyka,pull = <0x00000001>;
+    };
+
+    dvp0_10bits_pins: dvp0_10bits_pins {
+        anyka,pins = <8 9 64 65 66 67 68 69 70 71 72 73 74 75>;
+        anyka,function = <0>;
+        anyka,pull = <0x00000001>;
+    };
+
+    dvp0_8bits_pins: dvp0_8bits_pins {
+        anyka,pins = <64 65 66 67 68 69 70 71 72 73 74 75>;
+        anyka,function = <0>;
+        anyka,pull = <0x00000001>;
+    };
+
+    mipi0_2lane_pins: mipi0_2lane_pins {
+        anyka,pins = <70 71 72 73 74 75>;
+        anyka,function = <3 3 3 2 2 2>;
+        anyka,pull = <0x00000010>;
+    };
+
+    mipi0_1lane_pins: mipi0_1lane_pins {
+		/*H3B 1lane时不支持lane1用作其他用途，所以这里按照2lane配置*/
+        anyka,pins = <70 71 72 73 74 75>;
+        anyka,function = <3 3 3 2 2 2>;
+        anyka,pull = <0x00000010>;
+    };
+
+    csi0_sclk_pin: csi0_sclk_pin {
+        anyka,pins = <64>;
+        anyka,function = <0>;
+        anyka,pull = <0x00000001>;
+    };
+
+    csi1_sclk_pin: csi1_sclk_pin {
+        anyka,pins = <3>;
+        anyka,function = <2>;
+        anyka,pull = <0x00000001>;
+    };
+
+    i2c0_pins: i2c0_pins {
+        anyka,pins = <27 28>;
+        anyka,function = <1>;
+        anyka,pull = <0x00000010>;
+        //anyka,pull = <0x01011110>;
+    };
+
+    mci0_pins: mci0_pins {
+        /* 4 line */
+        /*
+        anyka,pins = <31 32 33 34 35 36>;
+        anyka,function = <1>;
+        anyka,pull = <0x00000010>;*/
+
+        /* 1 line */
+        anyka,pins = <31 32 33>;
+        anyka,function = <1>;
+        anyka,pull = <0x00000010>;
+    };
+
+    tf_det_pins:tf_det_pins{
+        anyka,pins = <41>;
+        anyka,function = <0>;
+        anyka,pull = <0x00000010>;
+    };
+
+    mci1_pins: mci1_pins {
+        anyka,pins = <41 42 24 23 20 19>;
+        anyka,function = <1>;
+        anyka,pull = <0x00000010>; /* 4 line */
+
+        /* 1 line */
+        /*
+        anyka,pins = <41 42 43 24>;
+        anyka,function = <1>;
+        anyka,pull = <0x00000010>; */
+
+        /* 1 line */
+        /*
+        anyka,pins = <41 42 43 44>;
+        anyka,function = <1>;
+        anyka,pull = <0x00000010>; */
+
+        /* 4 line */
+        /*
+        anyka,pins = <41 42 43 44 45 46>;
+        anyka,function = <1>;
+        anyka,pull = <0x00000010>; */
+    };
+
+    spiflash_pins: spiflash_pins {
+        anyka,pins = <25 26 35 36 34 79>; /* 4 LINE mode */
+        anyka,function = <1 1 2 2 2 1>;
+        anyka,pull = <0x00000010>;
+    };
+
+	/*gpiokey_pins:gpiokey_pins {
+			anyka,pins = <>;
+			anyka,function = <0>;
+			anyka,pull = <0x00000010>;
+	};*/
+
+    /*speak_en and linein_detect gpio setting */
+    speak_pins: speak_pins {
+        anyka,pins = <42>;
+        anyka,function = <0>;
+        anyka,pull = <0x00000001>;
+    };
+
+    uart0_pins: uart0_pins {
+        anyka,pins = <1 2>;
+        anyka,function = <1>;
+        anyka,pull = <0x00000010>;
+    };
+    uart1_pins: uart1_pins {
+        anyka,pins = <0 5>;
+        anyka,function = <2>;
+        anyka,pull = <0x00000010>;
+    };
+
+	phy_reset_pins: phy_reset_pins {
+		anyka,pins = <81>;
+	    anyka,function = <0>;
+        anyka,pull = <0x00000010>;
+    };
+
+	/*
+	* RMII_MDC(GPIO[10]),RMII_MDIO(GPIO[11]),RMII_TXEN(GPIO[13]),RMII_TXD[0](GPIO[14]), RMII_TXD[1](GPIO15)
+	* RMII_RXD[0](GPIO[19]), RMII_RXD[1](GPIO[20]), RMII_RXER(GPIO[23]), RMII_RXDV(GPIO[24]), RMII_50M(OPCLK, GPIO[47])
+	*/
+    ethernet_pins_rmii: ethernet_pins_rmii {
+		anyka,pins 		= <10 11 13 14 15 19 20 23 24 47>;
+        anyka,function 	= <1>;
+        anyka,pull = <0x00000011 0x00000010 0x00000011 0x00000011 0x00000011 0x00000011 0x00000011 0x00000011 0x00000011 0x00000001>;
+    };
+
+    motor0_pins: motor0_pins {
+        anyka,pins = <68 9 8 7>;
+        anyka,function = <1>;
+        anyka,pull = <0x00000010>;
+    };
+
+    motor1_pins: motor1_pins {
+        anyka,pins = <6 67 66 65>;
+        anyka,function = <1>;
+        anyka,pull = <0x00000010>;
+    };
+};
+
+&rtc {
+	 /*
+	  * rtc osc_source_select, 1 means INTERNAL RC OSC, 0 means EXTERNAL XTAL
+	  * if internal RC OSC is used to generate 32KH,time adjustment should be setting.(basic unit: ms)
+	  */
+	 osc-select = <1>;
+	 adjust-time = <120000>;
+   status = "okay";
+};
+
+&watchdog {
+	/*max feed dog time = 357s, default setting time = 10s. */
+    def_heartbeat = <10>;
+    status = "okay";
+};
+
+&vencoder {
+    status = "okay";
+};
+
+&usb {
+    status = "okay";
+};
+
+&mmc0 {
+    bus-width = <0x1>;
+    max-frequency = <50000000>;
+    /*
+     *  detect mode:
+     *  (1) non-removable;
+     *  (2) detect-gpio/detect-gpios: card detect using gpio
+     *      for example:
+     *      detect-gpio = <&gpio 77 1>;  or detect-gpios = <&gpio 77 1>;
+     *  (3) cd_clk: card detect using MCLK
+     *  default is non-removable
+     */
+    /*mci1_pins D1 复用 GPIO41*/
+    detect-gpio = <&gpio 41 1>;
+    /* if support highspeed, using cap-sd-highspeed */
+    cap-sd-highspeed;
+    pinctrl-names = "default";
+    pinctrl-0 = <&mci0_pins>, <&tf_det_pins>;
+    status = "okay";
+};
+
+&mmc1 {
+    bus-width = <0x4>;
+    max-frequency = <50000000>;
+    /*
+     *  detect mode:
+     *  (1) non-removable;
+     *  (2) detect-gpio/detect-gpios: card detect using gpio
+     *      for example:
+     *      detect-gpio = <&gpio 77 1>;  or detect-gpios = <&gpio 77 1>;
+     *  (3) cd_clk: card detect using MCLK
+     *  default is non-removable
+     */
+    non-removable;
+    /* if support highspeed, using cap-sd-highspeed */
+    cap-sd-highspeed;
+    /* if support sdio, using cap-sdio-irq*/
+    cap-sdio-irq;
+    pinctrl-names = "default";
+    pinctrl-0 = <&mci1_pins>;
+    status = "disable";
+};
+
+
+&adc_dac {
+    pinctrl-names = "default";
+    pinctrl-0 = <&speak_pins>;
+    speak-gpios = <&gpio 42 1>;
+    /*the level of speak-gpios votage for power on audio: 0=low, 1=high*/
+    speak-gpios-en = <1>;
+    status = "okay";
+
+    dev0 {
+        snd-dev = <SND_CARD_DAC_PLAYBACK>;
+        snd-type = <AK_PCM_DEV_PLAYBACK>;
+        snd-idx = <0>;
+    };
+
+    dev1 {
+        snd-dev = <SND_CARD_ADC_CAPTURE>;
+        snd-type = <AK_PCM_DEV_CAPTURE>;
+        snd-idx = <0>;
+    };
+
+    dev2 {
+        snd-dev = <SND_CARD_DAC_LOOPBACK>;
+        snd-type = <AK_PCM_DEV_LOOPBACK>;
+        snd-idx = <0>;
+    };
+};
+
+&saradc{
+    /* SAR ADC VREF selection
+    * 0:To select AVCC 3.3V as VREF for SAR ADC.
+    * 1:To select 3.0V generated from BGR as VREF for SAR ADC.
+    */
+    vref-select = <1>;
+    /*
+    * 0:To disable BAT voltage divider.
+    * 1:To enable BAT voltage divider divided by 2.
+    */
+    battery-divider = <1>;
+    /*
+    * Sampling number
+    * Read the sampling data for N times and then calculate the average value.
+    * N ranges from 1 to 7.
+    */
+     sampling-num = <3>;
+     status = "okay";
+};
+
+&spi0 {
+    pinctrl-names = "default";
+    pinctrl-0 = <&spiflash_pins>;
+    cs-gpios = <&gpio 25 1>;
+    status = "okay";
+};
+
+&spif0 {
+	/* spi flash data bus width:
+	** 1 means 1 wire mode.
+	** 2 means 2 wire mode
+	** 4 means 4 wire mode.
+	** default: 4 wire mode.
+	**/
+	bus-width = <1>;
+	status = "okay";
+};
+
+
+&gd25q64{
+    status = "okay";
+};
+
+&gd25q128{
+    status = "okay";
+};
+
+
+&uart0 {
+    pinctrl-names = "default";
+	pinctrl-0 = <&uart0_pins>;
+    status = "okay";
+};
+
+&uart1 {
+    pinctrl-names = "default";
+	pinctrl-0 = <&uart1_pins>;
+    status = "disable";
+};
+
+&i2c0 {
+    pinctrl-names = "default";
+    pinctrl-0 = <&i2c0_pins>;
+
+    clock-frequency = <312000>;
+    sda-delay = <100>;
+    status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	sensor0: camera@0x30{
+		compatible = "anyka,sensor0";
+		reg = <0x30>;
+
+		/*0xffff means the gpio is invalid*/
+		reset-gpio = <&gpio 49 1>;
+		pwdn-gpio = <&gpio 0xffff 1>;
+
+		port {
+			sensor0_0: endpoint@0 {
+				remote-endpoint = <&vi_0_0>;
+			};
+		};
+	};
+};
+
+&i2c1 {
+    pinctrl-names = "default";
+    //pinctrl-0 = <&i2c1_pins>;
+
+    clock-frequency = <312000>;
+    sda-delay = <100>;
+    status = "disable";
+};
+
+&i2c2 {
+    pinctrl-names = "default";
+    //pinctrl-0 = <&i2c2_pins>;
+
+    clock-frequency = <312000>;
+    sda-delay = <100>;
+    status = "disable";
+};
+
+&encrypt{
+   /*
+    * encrypt-mode
+    * 0 = CRYPTO_SINGLE_GROUP_MODE ; 1 = CRYPTO_MULTI_GROUP_MODE
+    */
+    encrypt-mode = <1>;
+    status = "okay";
+};
+
+&ethernet {
+    pinctrl-names = "default";
+    pinctrl-0 = <&ethernet_pins_rmii &phy_reset_pins>;
+    reset-gpios = <&gpio 81 1>;
+	phy-address = <1>;
+    status = "okay";
+};
+
+&ircut {
+    pinctrl-names = "default";
+    pinctrl-0 = <&ircut_pins>;
+
+	ircut-a = "0";
+	/*set the level for day mode. range: 0, 1*/
+	ircut-a-day-level = "0";
+	status = "okay";
+};
+
+&photosensitive {
+    //pinctrl-names = "default";
+    //pinctrl-0 = <&photosensitive_pins>;
+
+	/*range: saradc~1, gpio number*/
+	photosensitive-port = "saradc0";
+	/*the level for day mode, range: low, high*/
+	photosensitive-day-level = "high";
+    photosensitive-higher-level = "900";
+    photosensitive-lower-level = "400";
+	status = "okay";
+};
+
+&leds {
+	pinctrl-names = "default";
+	//pinctrl-0 = <&led_pins>;
+	led-gpios = <&gpio 82 1>;
+	status = "okay";
+};
+
+&adkeys {
+	status = "okay";
+};
+
+/*&gpiokeys {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		pinctrl-0 = <&gpiokey_pins>;
+		pinctrl-names = "default";
+		status = "okay";
+
+	key_detect {
+        label = "key_detect";
+        gpios = <&gpio 74 GPIO_ACTIVE_HIGH>;
+        linux,code = <116>;
+        debounce-interval = <100>;
+        wakeup-source;
+	};
+};*/
+
+
+&motor0 {
+	/*
+	 * part-number: part name
+	 * pwm-tbl-cw: pwm table int clkwise
+	 * pwm-pins: gpio list to motor
+	 * steps-one-circle: total steps one circle (360degree)
+	 *
+	 * total-steps:	total steps the motor can run
+	 * boundary-steps: reserve some step for each boudary
+	 * attach-timer: timer for the motor
+	 *					NOTE: different motor attach different timer
+	 *
+	 * speed-step: speed in step
+	 */
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&motor0_pins>;
+
+	part-number = "HZF-24BYJ48";
+	pwm-tbl-cw = <0x09 0x01 0x03 0x02 0x06 0x04 0x0c 0x08>;
+	pwm-pins = <68 9 8 7>;
+	steps-one-circle = <4096>;
+	total-steps = <2500>;
+	boundary-steps = <50>;
+	attach-timer = <2>;
+
+	speed-step = <200>;
+
+	status = "disable";
+};
+
+&motor1 {
+	/*
+	 * part-number: part name
+	 * pwm-tbl-cw: pwm table int clkwise
+	 * pwm-pins: gpio list to motor
+	 * steps-one-circle: total steps one circle (360degree)
+	 *
+	 * total-steps:	total steps the motor can run
+	 * boundary-steps: reserve some step for each boudary
+	 * attach-timer: timer for the motor
+	 *					NOTE: different motor attach different timer
+	 *
+	 * speed-step: speed in step
+	 */
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&motor1_pins>;
+
+	part-number = "HZF-24BYJ48";
+	pwm-tbl-cw = <0x09 0x01 0x03 0x02 0x06 0x04 0x0c 0x08>;
+	pwm-pins = <6 67 66 65>;
+	steps-one-circle = <4096>;
+
+	total-steps = <600>;
+	boundary-steps = <50>;
+	attach-timer = <3>;
+
+	speed-step = <200>;
+
+	status = "disable";
+};
+
+&pwm0 {
+	pinctrl-names = "default";
+
+	//pinctrl-0 = <&pwm0_pins>;
+	/*
+	**frequency of PWM ranges from 92/256Hz(0.36Hz) to 6MHz.
+	**duty of PWM ranges from 1 to 65535.
+	**Minimum duty cycle:1/65536
+	**Maximum duty cyscle:65535/65536.
+	**period-ns: period of the PWM signal (in nanoseconds)
+        **duty-ns: duty cycle of the PWM signal (in nanoseconds)
+	**pwm-enable = 0 means disable pwm function.
+	**pwm-enable = 1 means enable pwm function.
+	*/
+	period-ns = <1000000>;
+	duty-ns = <500000>;
+	pwm-enable = <1>;
+	status = "disable";
+};
+
+&pwm1 {
+	pinctrl-names = "default";
+
+	//pinctrl-0 = <&pwm1_pins>;
+	/*
+	**frequency of PWM ranges from 92/256Hz(0.36Hz) to 6MHz.
+	**duty of PWM ranges from 1 to 65535.
+	**Minimum duty cycle:1/65536
+	**Maximum duty cyscle:65535/65536.
+	**period-ns: period of the PWM signal (in nanoseconds)
+        **duty-ns: duty cycle of the PWM signal (in nanoseconds)
+	**pwm-enable = 0 means disable pwm function.
+	**pwm-enable = 1 means enable pwm function.
+	*/
+	period-ns = <1000000>;
+	duty-ns = <500000>;
+	pwm-enable = <1>;
+	status = "disable";
+};
+
+&pwm2 {
+	pinctrl-names = "default";
+
+	//pinctrl-0 = <&pwm2_pins>;
+	/*
+	**frequency of PWM ranges from 92/256Hz(0.36Hz) to 6MHz.
+	**duty of PWM ranges from 1 to 65535.
+	**Minimum duty cycle:1/65536
+	**Maximum duty cyscle:65535/65536.
+	**period-ns: period of the PWM signal (in nanoseconds)
+        **duty-ns: duty cycle of the PWM signal (in nanoseconds)
+	**pwm-enable = 0 means disable pwm function.
+	**pwm-enable = 1 means enable pwm function.
+	*/
+	period-ns = <1000000>;
+	duty-ns = <500000>;
+	pwm-enable = <1>;
+	status = "disable";
+};
+
+&pwm3 {
+	pinctrl-names = "default";
+
+	//pinctrl-0 = <&pwm3_pins>;
+	/*
+	**frequency of PWM ranges from 92/256Hz(0.36Hz) to 6MHz.
+	**duty of PWM ranges from 1 to 65535.
+	**Minimum duty cycle:1/65536
+	**Maximum duty cyscle:65535/65536.
+	**period-ns: period of the PWM signal (in nanoseconds)
+        **duty-ns: duty cycle of the PWM signal (in nanoseconds)
+	**pwm-enable = 0 means disable pwm function.
+	**pwm-enable = 1 means enable pwm function.
+	*/
+	period-ns = <1000000>;
+	duty-ns = <500000>;
+	pwm-enable = <1>;
+	status = "disable";
+};
+
+&pwm4 {
+	pinctrl-names = "default";
+	//pinctrl-0 = <&pwm4_pins>;
+	/*
+	**frequency of PWM ranges from 92/256Hz(0.36Hz) to 6MHz.
+	**duty of PWM ranges from 1 to 65535.
+	**Minimum duty cycle:1/65536
+	**Maximum duty cyscle:65535/65536.
+	**period-ns: period of the PWM signal (in nanoseconds)
+        **duty-ns: duty cycle of the PWM signal (in nanoseconds)
+	**pwm-enable = 0 means disable pwm function.
+	**pwm-enable = 1 means enable pwm function.
+	*/
+	period-ns = <1000000>;
+	duty-ns = <500000>;
+	pwm-enable = <1>;
+	status = "disable";
+};
+
+
+&vi0{
+	pinctrl-names = "dvp0_12bits", "dvp0_10bits", "dvp0_8bits",
+		"mipi0_2lane", "mipi0_1lane",
+		"csi0_sclk", "csi1_sclk";
+    pinctrl-0 = <&dvp0_12bits_pins>;
+    pinctrl-1 = <&dvp0_10bits_pins>;
+    pinctrl-2 = <&dvp0_8bits_pins>;
+    pinctrl-3 = <&mipi0_2lane_pins>;
+    pinctrl-4 = <&mipi0_1lane_pins>;
+    pinctrl-5 = <&csi0_sclk_pin>;
+    pinctrl-6 = <&csi1_sclk_pin>;
+    status = "okay";
+
+	port@0 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		vi_0_0: endpoint@0 {
+			reg = <0>;
+			remote-endpoint = <&sensor0_0>;
+		};
+	};
+};

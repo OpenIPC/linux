@@ -1,0 +1,1047 @@
+/*
+ * Copyright (C) 2020 Anyka(Guangzhou) Microelectronics Technology Co., Ltd.
+ *
+ * Author: Zhang_zhipeng <zhang_zhipeng@anyka.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+/**
+ *  norflash-flags:chip character bits:
+ *  bit 0: under_protect flag;             SFLAG_UNDER_PROTECT
+ *  bit 1: fast read flag;                 SFLAG_FAST_READ
+ *  bit 2: AAI flag;                       SFLAG_AAAI
+ *  bit 3: support status2;                SFLAG_COM_STATUS2
+ *  bit 4: support dual io read;           SFLAG_DUAL_IO_READ
+ *  bit 5: support dual read               SFLAG_DUAL_READ
+ *  bit 6: support quad io read;           SFLAG_QUAD_IO_READ
+ *  bit 7: support quad read;              SFLAG_QUAD_READ
+ *  bit 8: support dual io write;          SFLAG_DUAL_IO_WRITE
+ *  bit 9: support dual write;             SFLAG_DUAL_WRITE
+ *  bit 10: support quad io write          SFLAG_QUAD_IO_WRITE
+ *  bit 11: support quad write;            SFLAG_QUAD_WRITE
+ *  bit 12: support 4k erase sector;       SFLAG_SECT_4K
+ *  bit 13: support status3;               SFLAG_COM_STATUS3
+ *  bit 14: support no QE ;                SFLAG_QUAD_NO_QE
+ *  bit 15: write status mode              SFLAG_WR_STAT_MODE
+ *  bit 16: 4 Bytes Address Mode           SFLAG_ADDR_4B
+ *  bit 17: FREQ selector 50M              SFLAG_FREQ_SEL_50M
+ *
+ *  wr_mode:
+ *  0x0: means one write status cmd can wirte all status regs; 
+ *  0x1: means one write status cmd can only wirte one status reg
+ *  0x3: no wr status reg
+ *  0x10: write status reg then wait wip to be zero
+ *  0x20: write status reg use volatile write enable
+ *  norflash-wr_flags: write wr startus regs count 
+ */
+
+&spif1 {
+	GD5F1GQ5UEY1G: spi-nandflash@0 {
+		compatible = "GD,GD5F1GQ5UEY1G";
+		nandflash-name = "GD5F1GQ5UEY1G";
+
+		/* spiflash GD5F1GQ5UEY1G */
+		nandflash-jedec-id = <0xc851c851>;
+		nandflash-ext-id = <0>;
+		nandflash-planecnt = <1>;
+		nandflash-page_size = <2048>;
+		nandflash-page_per_block = <64>;
+		nandflash-block_size = <0x20000>;
+		nandflash-n_blocks = <1024>;
+		nandflash-oob_size = <64>;
+		nandflash-oob_up_skiplen = <0>;
+		nandflash-oob_seglen = <12>;
+		nandflash-oob_down_skiplen = <4>;
+		nandflash-oob_seg_perpage = <4>;
+		nandflash-oob_vail_data_offset = <4>;
+
+		/*
+		* flags = SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_QUAD_WRITE
+		* = 0x8A0
+		*/
+		nandflash-flags = <0x8A0>;
+
+		nandflash-b_wip = <0>;
+
+		nandflash-b_qe = <8>;
+
+		/* bad block flag ops */
+		nandflash-badflag_offs = <0>;
+		nandflash-badflag_len = <1>;
+
+		/*
+		 * 0x00000000:scan first one page
+		 * 0x00008000:scan first two page
+		 * 0x00010000:scan last  one page
+		 * 0x00018000:scan last  two page
+		 * 0x01000000:scan first and last page
+		 */
+		nandflash-badflag_option = <0x01000000>;
+
+		status = "disable";
+	};
+
+	GD5F2GQ5UEYIG: spi-nandflash@1 {
+		compatible = "GD,GD5F2GQ5UEYIG";
+		nandflash-name = "GD5F2GQ5UEYIG";
+
+		/* spiflash GD5F2GQ5UEYIG */
+		nandflash-jedec-id = <0xc852c852>;
+		nandflash-ext-id = <0>;
+		nandflash-planecnt = <1>;
+		nandflash-page_size = <2048>;
+		nandflash-page_per_block = <64>;
+		nandflash-block_size = <0x20000>;
+		nandflash-n_blocks = <2048>;
+		nandflash-oob_size = <64>;
+		nandflash-oob_up_skiplen = <0>;
+		nandflash-oob_seglen = <12>;
+		nandflash-oob_down_skiplen = <4>;
+		nandflash-oob_seg_perpage = <4>;
+		nandflash-oob_vail_data_offset = <4>;
+
+		/*
+		* flags = SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_QUAD_WRITE
+		* = 0x8A0
+		*/
+		nandflash-flags = <0x8A0>;
+
+		/* status reg bit map */
+		nandflash-b_wip = <0>;
+
+		nandflash-b_qe = <8>;
+
+		/* bad block flag ops */
+		nandflash-badflag_offs = <0>;
+		nandflash-badflag_len = <1>;
+
+		/*
+		 * 0x00000000:scan first one page
+		 * 0x00008000:scan first two page
+		 * 0x00010000:scan last  one page
+		 * 0x00018000:scan last  two page
+		 * 0x01000000:scan first and last page
+		 */
+		nandflash-badflag_option = <0x01000000>;
+
+		status = "disable";
+	};
+
+	FM25S02A: spi-nandflash@2 {
+		compatible = "FM,FM25S02A";
+		nandflash-name = "FM25S02A";
+
+		/* spiflash FM25S02A */
+		nandflash-jedec-id = <0xa1e5a1e5>;
+		nandflash-ext-id = <0>;
+		nandflash-planecnt = <1>;
+		nandflash-page_size = <2048>;
+		nandflash-page_per_block = <64>;
+		nandflash-block_size = <0x20000>;
+		nandflash-n_blocks = <2048>;
+		nandflash-oob_size = <64>;
+		nandflash-oob_up_skiplen = <0>;
+		nandflash-oob_seglen = <12>;
+		nandflash-oob_down_skiplen = <4>;
+		nandflash-oob_seg_perpage = <4>;
+		nandflash-oob_vail_data_offset = <4>;
+
+		/*
+		* flags = SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_QUAD_WRITE
+		* = 0x8A0
+		*/
+		nandflash-flags = <0x8A0>;
+
+		/* status reg bit map */
+		nandflash-b_wip = <0>;
+
+		nandflash-b_qe = <8>;
+
+		/* bad block flag ops */
+		nandflash-badflag_offs = <0>;
+		nandflash-badflag_len = <1>;
+
+		/*
+		 * 0x00000000:scan first one page
+		 * 0x00008000:scan first two page
+		 * 0x00010000:scan last  one page
+		 * 0x00018000:scan last  two page
+		 * 0x01000000:scan first and last page
+		 */
+		nandflash-badflag_option = <0x01000000>;
+
+		status = "disable";
+	};
+
+	W25N02KV: spi-nandflash@3 {
+		compatible = "WINBOND,W25N02KV";
+		nandflash-name = "W25N02KV";
+
+		/* spiflash W25N02KV */
+		nandflash-jedec-id = <0xefaa2200>;
+		nandflash-ext-id = <0>;
+		nandflash-planecnt = <1>;
+		nandflash-page_size = <2048>;
+		nandflash-page_per_block = <64>;
+		nandflash-block_size = <0x20000>;
+		nandflash-n_blocks = <2048>;
+		nandflash-oob_size = <64>;
+		nandflash-oob_up_skiplen = <0>;
+		nandflash-oob_seglen = <12>;
+		nandflash-oob_down_skiplen = <4>;
+		nandflash-oob_seg_perpage = <4>;
+		nandflash-oob_vail_data_offset = <4>;
+
+		/*
+		* flags = SFLAG_QUAD_NO_QE|SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_QUAD_WRITE
+		* = 0x48A0
+		*/
+		nandflash-flags = <0x48A0>;
+
+		/* status reg bit map */
+		nandflash-b_wip = <0>;
+
+		nandflash-b_qe = <8>;
+
+		/* bad block flag ops */
+		nandflash-badflag_offs = <0>;
+		nandflash-badflag_len = <1>;
+
+		/*
+		 * 0x00000000:scan first one page
+		 * 0x00008000:scan first two page
+		 * 0x00010000:scan last  one page
+		 * 0x00018000:scan last  two page
+		 * 0x01000000:scan first and last page
+		 */
+		nandflash-badflag_option = <0x01000000>;
+
+		status = "disable";
+	};
+
+	FS35ND01G: spi-nandflash@4 {
+		compatible = "FS,FS35ND01G";
+		nandflash-name = "FS35ND01G";
+
+		/* spiflash FS35ND01G */
+		nandflash-jedec-id = <0xcdea11cd>;
+		nandflash-ext-id = <0>;
+		nandflash-planecnt = <1>;
+		nandflash-page_size = <2048>;
+		nandflash-page_per_block = <64>;
+		nandflash-block_size = <0x20000>;
+		nandflash-n_blocks = <1024>;
+		nandflash-oob_size = <64>;
+		nandflash-oob_up_skiplen = <0>;
+		nandflash-oob_seglen = <12>;
+		nandflash-oob_down_skiplen = <4>;
+		nandflash-oob_seg_perpage = <4>;
+		nandflash-oob_vail_data_offset = <4>;
+
+		/*
+		* flags = SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_QUAD_WRITE
+		* = 0x8A0
+		*/
+		nandflash-flags = <0x8A0>;
+
+		/* status reg bit map */
+		nandflash-b_wip = <0>;
+
+		nandflash-b_qe = <8>;
+
+		/* bad block flag ops */
+		nandflash-badflag_offs = <0>;
+		nandflash-badflag_len = <1>;
+
+		/*
+		 * 0x00000000:scan first one page
+		 * 0x00008000:scan first two page
+		 * 0x00010000:scan last  one page
+		 * 0x00018000:scan last  two page
+		 * 0x01000000:scan first and last page
+		 */
+		nandflash-badflag_option = <0x01000000>;
+
+		status = "disable";
+	};
+
+	FS35ND02G: spi-nandflash@5 {
+		compatible = "FM,FS35ND02G";
+		nandflash-name = "FS35ND02G";
+
+		/* spiflash FS35ND02G */
+		nandflash-jedec-id = <0xcdeb11cd>;
+		nandflash-ext-id = <0>;
+		nandflash-planecnt = <1>;
+		nandflash-page_size = <2048>;
+		nandflash-page_per_block = <64>;
+		nandflash-block_size = <0x20000>;
+		nandflash-n_blocks = <2048>;
+		nandflash-oob_size = <64>;
+		nandflash-oob_up_skiplen = <0>;
+		nandflash-oob_seglen = <12>;
+		nandflash-oob_down_skiplen = <4>;
+		nandflash-oob_seg_perpage = <4>;
+		nandflash-oob_vail_data_offset = <4>;
+
+		/*
+		* flags = SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_QUAD_WRITE
+		* = 0x8A0
+		*/
+		nandflash-flags = <0x8A0>;
+
+		/* status reg bit map */
+		nandflash-b_wip = <0>;
+
+		nandflash-b_qe = <8>;
+
+		/* bad block flag ops */
+		nandflash-badflag_offs = <0>;
+		nandflash-badflag_len = <1>;
+
+		/*
+		 * 0x00000000:scan first one page
+		 * 0x00008000:scan first two page
+		 * 0x00010000:scan last  one page
+		 * 0x00018000:scan last  two page
+		 * 0x01000000:scan first and last page
+		 */
+		nandflash-badflag_option = <0x01000000>;
+
+		status = "disable";
+	};
+
+	MX35LF1GE4AB: spi-nandflash@6 {
+		compatible = "MX,MX35LF1GE4AB";
+		nandflash-name = "MX35LF1GE4AB";
+
+		/* spiflash MX35LF1GE4AB*/
+		nandflash-jedec-id = <0xc212c212>;
+		nandflash-ext-id = <0>;
+		nandflash-planecnt = <1>;
+		nandflash-page_size = <2048>;
+		nandflash-page_per_block = <64>;
+		nandflash-block_size = <0x20000>;
+		nandflash-n_blocks = <1024>;
+		nandflash-oob_size = <64>;
+		nandflash-oob_up_skiplen = <0>;
+		nandflash-oob_seglen = <12>;
+		nandflash-oob_down_skiplen = <4>;
+		nandflash-oob_seg_perpage = <4>;
+		nandflash-oob_vail_data_offset = <4>;
+
+		/*
+		* flags = SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_QUAD_WRITE
+		* = 0x8A0
+		*/
+		nandflash-flags = <0x8A0>;
+
+		/* status reg bit map */
+		nandflash-b_wip = <0>;
+
+		nandflash-b_qe = <8>;
+
+		/* bad block flag ops */
+		nandflash-badflag_offs = <0>;
+		nandflash-badflag_len = <1>;
+
+		/*
+		 * 0x00000000:scan first one page
+		 * 0x00008000:scan first two page
+		 * 0x00010000:scan last  one page
+		 * 0x00018000:scan last  two page
+		 * 0x01000000:scan first and last page
+		 */
+		nandflash-badflag_option = <0x00008000>;
+
+		status = "disable";
+	};
+
+    XT26G01C: spi-nandflash@7 {
+		compatible = "XT,XT26G01C";
+		nandflash-name = "XT26G01C";
+
+		/* spiflash XT26G01C */
+		nandflash-jedec-id = <0x0b110011>;
+		nandflash-ext-id = <0>;
+		nandflash-planecnt = <1>;
+		nandflash-page_size = <2048>;
+		nandflash-page_per_block = <64>;
+		nandflash-block_size = <0x20000>;
+		nandflash-n_blocks = <1024>;
+		nandflash-oob_size = <64>;
+		nandflash-oob_up_skiplen = <0>;
+		nandflash-oob_seglen = <16>;
+		nandflash-oob_down_skiplen = <0>;
+		nandflash-oob_seg_perpage = <4>;
+		nandflash-oob_vail_data_offset = <4>;
+
+		/*
+		* flags = SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_QUAD_WRITE
+		* = 0x8A0
+		*/
+		nandflash-flags = <0x8A0>;
+
+		/* status reg bit map */
+		nandflash-b_wip = <0>;
+
+		nandflash-b_qe = <8>;
+
+		/* bad block flag ops */
+		nandflash-badflag_offs = <0>;
+		nandflash-badflag_len = <1>;
+
+		/*
+		 * 0x00000000:scan first one page
+		 * 0x00008000:scan first two page
+		 * 0x00010000:scan last  one page
+		 * 0x00018000:scan last  two page
+		 * 0x01000000:scan first and last page
+		 */
+		nandflash-badflag_option = <0x00000000>;
+
+		status = "disable";
+    };
+
+    MX35LF2GE4AD: spi-nandflash@8 {
+		compatible = "MX,MX35LF2GE4AD";
+		nandflash-name = "MX35LF2GE4AD";
+
+		/* spiflash MX35LF2GE4AD */
+		nandflash-jedec-id = <0xc2260300>;
+		nandflash-ext-id = <0>;
+		nandflash-planecnt = <1>;
+		nandflash-page_size = <2048>;
+		nandflash-page_per_block = <64>;
+		nandflash-block_size = <0x20000>;
+		nandflash-n_blocks = <2048>;
+		nandflash-oob_size = <64>;
+		nandflash-oob_up_skiplen = <0>;
+		nandflash-oob_seglen = <12>;
+		nandflash-oob_down_skiplen = <4>;
+		nandflash-oob_seg_perpage = <4>;
+		nandflash-oob_vail_data_offset = <4>;
+
+		/*
+		* flags = SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_QUAD_WRITE
+		* = 0x8A0
+		*/
+		nandflash-flags = <0x8A0>;
+
+		/* status reg bit map */
+		nandflash-b_wip = <0>;
+		nandflash-b_qe = <8>;
+
+		/* bad block flag ops */
+		nandflash-badflag_offs = <0>;
+		nandflash-badflag_len = <1>;
+
+		/*
+		 * 0x00000000:scan first one page
+		 * 0x00008000:scan first two page
+		 * 0x00010000:scan last  one page
+		 * 0x00018000:scan last  two page
+		 * 0x01000000:scan first and last page
+		 */
+		nandflash-badflag_option = <0x00008000>;
+
+		status = "disable";
+    };
+
+	XT26G02E: spi-nandflash@9 { 
+		compatible = "XT,XT26G02E";
+		nandflash-name = "XT26G02E";
+		
+		/* spiflash XT26G02E */
+		nandflash-jedec-id = <0x2c242c24>; 
+		nandflash-ext-id = <0>;
+		nandflash-planecnt = <2>;
+		nandflash-page_size = <2048>;
+		nandflash-page_per_block = <64>;
+		nandflash-block_size = <0x20000>;
+		nandflash-n_blocks = <2048>;
+		nandflash-oob_size = <64>;		  
+		nandflash-oob_up_skiplen = <0>;
+		nandflash-oob_seglen = <16>;
+		nandflash-oob_down_skiplen = <0>;	
+		nandflash-oob_seg_perpage = <4>;
+		nandflash-oob_vail_data_offset = <32>;
+
+		/*
+		* flags = SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_QUAD_WRITE|SFLAG_QUAD_NO_QE
+		* = 0x48A0
+		*/
+		nandflash-flags = <0x48A0>;
+
+		nandflash-b_wip = <0>;		
+
+		nandflash-b_qe = <8>; 	
+
+		/* bad block flag ops */
+		nandflash-badflag_offs = <0>;
+		nandflash-badflag_len = <1>;
+
+		/*
+		 * 0x00000000:scan first one page
+		 * 0x00008000:scan first two page
+		 * 0x00010000:scan last  one page
+		 * 0x00018000:scan last  two page
+		 * 0x01000000:scan first and last page
+		 */
+		nandflash-badflag_option = <0x00000000>;	
+		
+		status = "disable";
+	};
+
+	GD5F1GM7UE: spi-nandflash@10 {
+		compatible = "GD,GD5F1GM7UE";
+		nandflash-name = "GD5F1GM7UE";
+
+		/* spiflash GD5F1GM7UE */
+		nandflash-jedec-id = <0xc891c891>;
+		nandflash-ext-id = <0>;
+		nandflash-planecnt = <1>;
+		nandflash-page_size = <2048>;
+		nandflash-page_per_block = <64>;
+		nandflash-block_size = <0x20000>;
+		nandflash-n_blocks = <1024>;
+		nandflash-oob_size = <64>;
+		nandflash-oob_up_skiplen = <0>;
+		nandflash-oob_seglen = <16>;
+		nandflash-oob_down_skiplen = <0>;
+		nandflash-oob_seg_perpage = <4>;
+		nandflash-oob_vail_data_offset = <4>;
+
+		/*
+		* flags = SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_QUAD_WRITE
+		* = 0x8A0
+		*/
+		nandflash-flags = <0x8A0>;
+
+		/* status reg bit map */
+		nandflash-b_wip = <0>;
+
+		nandflash-b_qe = <8>;
+
+		/* bad block flag ops */
+		nandflash-badflag_offs = <0>;
+		nandflash-badflag_len = <1>;
+
+		/*
+		 * 0x00000000:scan first one page
+		 * 0x00008000:scan first two page
+		 * 0x00010000:scan last  one page
+		 * 0x00018000:scan last  two page
+		 * 0x01000000:scan first and last page
+		 */
+		nandflash-badflag_option = <0x00000000>;
+
+		status = "disable";
+	};
+
+	GD5F2GM7UE: spi-nandflash@11 {
+		compatible = "GD,GD5F2GM7UE";
+		nandflash-name = "GD5F2GM7UE";
+
+		/* spiflash GD5F2GM7UE */
+		nandflash-jedec-id = <0xc892c892>;
+		nandflash-ext-id = <0>;
+		nandflash-planecnt = <1>;
+		nandflash-page_size = <2048>;
+		nandflash-page_per_block = <64>;
+		nandflash-block_size = <0x20000>;
+		nandflash-n_blocks = <2048>;
+		nandflash-oob_size = <64>;
+		nandflash-oob_up_skiplen = <0>;
+		nandflash-oob_seglen = <16>;
+		nandflash-oob_down_skiplen = <0>;
+		nandflash-oob_seg_perpage = <4>;
+		nandflash-oob_vail_data_offset = <4>;
+
+		/*
+		* flags = SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_QUAD_WRITE
+		* = 0x8A0
+		*/
+		nandflash-flags = <0x8A0>;
+
+		/* status reg bit map */
+		nandflash-b_wip = <0>;
+
+		nandflash-b_qe = <8>;
+
+		/* bad block flag ops */
+		nandflash-badflag_offs = <0>;
+		nandflash-badflag_len = <1>;
+
+		/*
+		 * 0x00000000:scan first one page
+		 * 0x00008000:scan first two page
+		 * 0x00010000:scan last  one page
+		 * 0x00018000:scan last  two page
+		 * 0x01000000:scan first and last page
+		 */
+		nandflash-badflag_option = <0x00000000>;
+
+		status = "disable";
+	};
+
+	FM25S01BI3: spi-nandflash@12 {
+		compatible = "FM,FM25S01BI3";
+		nandflash-name = "FM25S01BI3";
+
+		/* spiflash FM25S01BI3 */
+		nandflash-jedec-id = <0xa1d4a1d4>;
+		nandflash-ext-id = <0>;
+		nandflash-planecnt = <1>;
+		nandflash-page_size = <2048>;
+		nandflash-page_per_block = <64>;
+		nandflash-block_size = <0x20000>;
+		nandflash-n_blocks = <1024>;
+		nandflash-oob_size = <64>;
+		nandflash-oob_up_skiplen = <0>;
+		nandflash-oob_seglen = <12>;
+		nandflash-oob_down_skiplen = <4>;
+		nandflash-oob_seg_perpage = <4>;
+		nandflash-oob_vail_data_offset = <4>;
+
+		/*
+		* flags = SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_QUAD_WRITE
+		* = 0x8A0
+		*/
+		nandflash-flags = <0x8A0>;
+
+		/* status reg bit map */
+		nandflash-b_wip = <0>;
+
+		nandflash-b_qe = <8>;
+
+		/* bad block flag ops */
+		nandflash-badflag_offs = <0>;
+		nandflash-badflag_len = <1>;
+
+		/*
+		 * 0x00000000:scan first one page
+		 * 0x00008000:scan first two page
+		 * 0x00010000:scan last  one page
+		 * 0x00018000:scan last  two page
+		 * 0x01000000:scan first and last page
+		 */
+		nandflash-badflag_option = <0x00000000>;
+
+		status = "disable";
+	};
+
+	XT26G02C: spi-nandflash@13 {
+		compatible = "XTX,XT26G02C";
+		nandflash-name = "XT26G02C";
+
+		/* spiflash XT26G02C */
+		nandflash-jedec-id = <0x0b120012>;
+		nandflash-ext-id = <0>;
+		nandflash-planecnt = <1>;
+		nandflash-page_size = <2048>;
+		nandflash-page_per_block = <64>;
+		nandflash-block_size = <0x20000>;
+		nandflash-n_blocks = <2048>;
+		nandflash-oob_size = <64>;
+		nandflash-oob_up_skiplen = <0>;
+		nandflash-oob_seglen = <16>;
+		nandflash-oob_down_skiplen = <0>;
+		nandflash-oob_seg_perpage = <4>;
+		nandflash-oob_vail_data_offset = <4>;
+
+		/*
+		* flags = SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_QUAD_WRITE
+		* = 0x8A0
+		*/
+		nandflash-flags = <0x8A0>;
+
+		/* status reg bit map */
+		nandflash-b_wip = <0>;
+
+		nandflash-b_qe = <8>;
+
+		/* bad block flag ops */
+		nandflash-badflag_offs = <0>;
+		nandflash-badflag_len = <1>;
+
+		/*
+		 * 0x00000000:scan first one page
+		 * 0x00008000:scan first two page
+		 * 0x00010000:scan last  one page
+		 * 0x00018000:scan last  two page
+		 * 0x01000000:scan first and last page
+		 */
+		nandflash-badflag_option = <0x00000000>;
+
+		status = "disable";
+	};
+
+	W25N01KV: spi-nandflash@14 {
+		compatible = "WINBOND,W25N01KV";
+		nandflash-name = "W25N01KV";
+
+		/* spiflash W25N01KV */
+		nandflash-jedec-id = <0xefae2100>;
+		nandflash-ext-id = <0>;
+		nandflash-planecnt = <1>;
+		nandflash-page_size = <2048>;
+		nandflash-page_per_block = <64>;
+		nandflash-block_size = <0x20000>;
+		nandflash-n_blocks = <1024>;
+		nandflash-oob_size = <64>;
+		nandflash-oob_up_skiplen = <0>;
+		nandflash-oob_seglen = <12>;
+		nandflash-oob_down_skiplen = <4>;
+		nandflash-oob_seg_perpage = <4>;
+		nandflash-oob_vail_data_offset = <4>;
+
+		/*
+		* flags = SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_QUAD_WRITE | SFLAG_QUAD_NO_QE
+		* = 0x48A0
+		*/
+		nandflash-flags = <0x48A0>;
+
+		/* status reg bit map */
+		nandflash-b_wip = <0>;
+
+		/* bad block flag ops */
+		nandflash-badflag_offs = <0>;
+		nandflash-badflag_len = <1>;
+
+		/*
+		 * 0x00000000:scan first one page
+		 * 0x00008000:scan first two page
+		 * 0x00010000:scan last  one page
+		 * 0x00018000:scan last  two page
+		 * 0x01000000:scan first and last page
+		 */
+		nandflash-badflag_option = <0x00000000>;
+
+		status = "disable";
+	};
+
+	HYF1GQ4UDACAE: spi-nandflash@15 { 
+		compatible = "HYT,HYF1GQ4UDACAE";
+		nandflash-name = "HYF1GQ4UDACAE";
+		
+		/* spiflash HYF1GQ4UDACAE */
+		nandflash-jedec-id = <0xc921c921>; 
+		nandflash-ext-id = <0>;
+		nandflash-planecnt = <1>;
+		nandflash-page_size = <2048>;
+		nandflash-page_per_block = <64>;
+		nandflash-block_size = <0x20000>;
+		nandflash-n_blocks = <1024>;
+		nandflash-oob_size = <64>;		  
+		nandflash-oob_up_skiplen = <0>;
+		nandflash-oob_seglen = <8>;
+		nandflash-oob_down_skiplen = <8>;	
+		nandflash-oob_seg_perpage = <4>;
+		nandflash-oob_vail_data_offset = <4>;
+
+		/*
+		* flags = SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_QUAD_WRITE
+		* = 0x8A0
+		*/
+		nandflash-flags = <0x8A0>;
+
+		nandflash-b_wip = <0>;		
+
+		nandflash-b_qe = <8>; 	
+
+		/* bad block flag ops */
+		nandflash-badflag_offs = <0>;
+		nandflash-badflag_len = <1>;
+
+		/*
+		 * 0x00000000:scan first one page
+		 * 0x00008000:scan first two page
+		 * 0x00010000:scan last  one page
+		 * 0x00018000:scan last  two page
+		 * 0x01000000:scan first and last page
+		 */
+		nandflash-badflag_option = <0x00000000>;	
+		
+		status = "disable";
+	};
+
+	HYF2GQ4UAACAE: spi-nandflash@16 { 
+		compatible = "HYT,HYF2GQ4UAACAE";
+		nandflash-name = "HYF2GQ4UAACAE";
+		
+		/* spiflash HYF2GQ4UAACAE */
+		nandflash-jedec-id = <0xc952c952>; 
+		nandflash-ext-id = <0>;
+		nandflash-planecnt = <2>;
+		nandflash-page_size = <2048>;
+		nandflash-page_per_block = <64>;
+		nandflash-block_size = <0x20000>;
+		nandflash-n_blocks = <2048>;
+		nandflash-oob_size = <128>;		  
+		nandflash-oob_up_skiplen = <0>;
+		nandflash-oob_seglen = <8>;
+		nandflash-oob_down_skiplen = <24>;	
+		nandflash-oob_seg_perpage = <4>;
+		nandflash-oob_vail_data_offset = <4>;
+
+		/*
+		* flags = SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_QUAD_WRITE
+		* = 0x8A0
+		*/
+		nandflash-flags = <0x8A0>;
+
+		nandflash-b_wip = <0>;		
+
+		nandflash-b_qe = <8>; 	
+
+		/* bad block flag ops */
+		nandflash-badflag_offs = <0>;
+		nandflash-badflag_len = <1>;
+
+		/*
+		 * 0x00000000:scan first one page
+		 * 0x00008000:scan first two page
+		 * 0x00010000:scan last  one page
+		 * 0x00018000:scan last  two page
+		 * 0x01000000:scan first and last page
+		 */
+		nandflash-badflag_option = <0x00000000>;	
+		
+		status = "disable";
+	};
+
+	HYF4GQ4UAACAE: spi-nandflash@17 { 
+		compatible = "HYT,HYF4GQ4UAACAE";
+		nandflash-name = "HYF4GQ4UAACAE";
+		
+		/* spiflash HYF4GQ4UAACAE */
+		nandflash-jedec-id = <0xc954c954>; 
+		nandflash-ext-id = <0>;
+		nandflash-planecnt = <1>;
+		nandflash-page_size = <2048>;
+		nandflash-page_per_block = <64>;
+		nandflash-block_size = <0x20000>;
+		nandflash-n_blocks = <4096>;
+		nandflash-oob_size = <128>;		  
+		nandflash-oob_up_skiplen = <0>;
+		nandflash-oob_seglen = <8>;
+		nandflash-oob_down_skiplen = <24>;	
+		nandflash-oob_seg_perpage = <4>;
+		nandflash-oob_vail_data_offset = <4>;
+
+		/*
+		* flags = SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_QUAD_WRITE
+		* = 0x8A0
+		*/
+		nandflash-flags = <0x8A0>;
+
+		nandflash-b_wip = <0>;		
+
+		nandflash-b_qe = <8>; 	
+
+		/* bad block flag ops */
+		nandflash-badflag_offs = <0>;
+		nandflash-badflag_len = <1>;
+
+		/*
+		 * 0x00000000:scan first one page
+		 * 0x00008000:scan first two page
+		 * 0x00010000:scan last  one page
+		 * 0x00018000:scan last  two page
+		 * 0x01000000:scan first and last page
+		 */
+		nandflash-badflag_option = <0x00000000>;	
+		
+		status = "disable";
+	};
+
+	F35SQA001G: spi-nandflash@18 {
+		compatible = "FORESEE,F35SQA001G";
+		nandflash-name = "F35SQA001G";
+
+		/* spiflash F35SQA001G */
+		nandflash-jedec-id = <0xcd7171cd>;
+		nandflash-ext-id = <0>;
+		nandflash-planecnt = <1>;
+		nandflash-page_size = <2048>;
+		nandflash-page_per_block = <64>;
+		nandflash-block_size = <0x20000>;
+		nandflash-n_blocks = <1024>;
+		nandflash-oob_size = <64>;
+		nandflash-oob_up_skiplen = <0>;
+		nandflash-oob_seglen = <12>;
+		nandflash-oob_down_skiplen = <4>;
+		nandflash-oob_seg_perpage = <4>;
+		nandflash-oob_vail_data_offset = <4>;
+
+		/*
+		* flags = SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_QUAD_WRITE | SFLAG_QUAD_NO_QE
+		* = 0x48A0
+		*/
+		nandflash-flags = <0x8A0>;
+		nandflash-b_qe = <8>; 
+
+		/* status reg bit map */
+		nandflash-b_wip = <0>;
+
+		/* bad block flag ops */
+		nandflash-badflag_offs = <0>;
+		nandflash-badflag_len = <1>;
+
+		/*
+		 * 0x00000000:scan first one page
+		 * 0x00008000:scan first two page
+		 * 0x00010000:scan last  one page
+		 * 0x00018000:scan last  two page
+		 * 0x01000000:scan first and last page
+		 */
+		nandflash-badflag_option = <0x00000000>;
+
+		status = "disable";
+	};
+
+	GSS01GSAM0: spi-nandflash@19 {
+		compatible = "GSTO,GSS01GSAM0";
+		nandflash-name = "GSS01GSAM0";
+
+		/* spiflash GSS01GSAM0 */
+		nandflash-jedec-id = <0x1150115>;
+		nandflash-ext-id = <0>;
+		nandflash-planecnt = <1>;
+		nandflash-page_size = <2048>;
+		nandflash-page_per_block = <64>;
+		nandflash-block_size = <0x20000>;
+		nandflash-n_blocks = <1024>;
+		nandflash-oob_size = <64>;
+		nandflash-oob_up_skiplen = <0>;
+		nandflash-oob_seglen = <12>;
+		nandflash-oob_down_skiplen = <4>;
+		nandflash-oob_seg_perpage = <4>;
+		nandflash-oob_vail_data_offset = <4>;
+
+		/*
+		* flags = SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_QUAD_WRITE | SFLAG_QUAD_NO_QE
+		* = 0x48A0
+		*/
+		nandflash-flags = <0x8A0>;
+		nandflash-b_qe = <8>; 
+
+		/* status reg bit map */
+		nandflash-b_wip = <0>;
+
+		/* bad block flag ops */
+		nandflash-badflag_offs = <0>;
+		nandflash-badflag_len = <1>;
+
+		/*
+		 * 0x00000000:scan first one page
+		 * 0x00008000:scan first two page
+		 * 0x00010000:scan last  one page
+		 * 0x00018000:scan last  two page
+		 * 0x01000000:scan first and last page
+		 */
+		nandflash-badflag_option = <0x00000000>;
+
+		status = "disable";
+	};
+
+    DS35Q1GB: spi-nandflash@20 {
+		compatible = "DS,DS35Q1GB";
+		nandflash-name = "DS35Q1GB";
+
+		/* spiflash DS35Q1GB */
+		nandflash-jedec-id = <0xe5f1e5f1>;
+		nandflash-ext-id = <0>;
+		nandflash-planecnt = <1>;
+		nandflash-page_size = <2048>;
+		nandflash-page_per_block = <64>;
+		nandflash-block_size = <0x20000>;
+		nandflash-n_blocks = <1024>;
+		nandflash-oob_size = <64>;
+		nandflash-oob_up_skiplen = <0>;
+		nandflash-oob_seglen = <12>;
+		nandflash-oob_down_skiplen = <4>;
+		nandflash-oob_seg_perpage = <4>;
+		nandflash-oob_vail_data_offset = <4>;
+
+		/*
+		* flags = SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_QUAD_WRITE
+		* = 0x48A0
+		*/
+		nandflash-flags = <0x8A0>;
+
+		/* status reg bit map */
+		nandflash-b_wip = <0>;
+
+		nandflash-b_qe = <8>;
+
+		/* bad block flag ops */
+		nandflash-badflag_offs = <0>;
+		nandflash-badflag_len = <1>;
+
+		/*
+		 * 0x00000000:scan first one page
+		 * 0x00008000:scan first two page
+		 * 0x00010000:scan last  one page
+		 * 0x00018000:scan last  two page
+		 * 0x01000000:scan first and last page
+		 */
+		nandflash-badflag_option = <0x00000000>;
+
+		status = "disable";
+	};
+
+    F35SQA002G: spi-nandflash@21 {
+		compatible = "FORESEE,F35SQA002G";
+		nandflash-name = "F35SQA002G";
+
+		/* spiflash F35SQA002G */
+		nandflash-jedec-id = <0xcd7272cd>;
+		nandflash-ext-id = <0>;
+		nandflash-planecnt = <1>;
+		nandflash-page_size = <2048>;
+		nandflash-page_per_block = <64>;
+		nandflash-block_size = <0x20000>;
+		nandflash-n_blocks = <2048>;
+		nandflash-oob_size = <64>;
+		nandflash-oob_up_skiplen = <0>;
+		nandflash-oob_seglen = <12>;
+		nandflash-oob_down_skiplen = <4>;
+		nandflash-oob_seg_perpage = <4>;
+		nandflash-oob_vail_data_offset = <4>;
+
+
+		nandflash-flags = <0x8A0>;
+		nandflash-b_qe = <8>; 
+
+		/* status reg bit map */
+		nandflash-b_wip = <0>;
+
+		/* bad block flag ops */
+		nandflash-badflag_offs = <0>;
+		nandflash-badflag_len = <1>;
+
+		/*
+		 * 0x00000000:scan first one page
+		 * 0x00008000:scan first two page
+		 * 0x00010000:scan last  one page
+		 * 0x00018000:scan last  two page
+		 * 0x01000000:scan first and last page
+		 */
+		nandflash-badflag_option = <0x00000000>;
+
+		status = "disable";
+	};
+};
+
+

@@ -1,0 +1,2784 @@
+/*
+ * AK37D spi norflash dts
+ *
+ * Copyright (C) 2018 Anyka(Guangzhou) Microelectronics Technology Co., Ltd.
+ *
+ * Author: Cao_Donghua <cao_donghua@anyka.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+&spif0 {
+    
+    at25fs010: spi-norflash@0 { 
+        compatible = "atmel,at25fs010";
+        norflash-name = "at25fs010";
+		reg = <0>;
+		
+		/* spiflash at25fs010 */
+        norflash-jedec-id = <0x1f6601>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x8000>;
+        norflash-n-sectors = <4>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K
+		*  wr_mode:
+		*  0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x1000>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp3 = <5>; 
+        norflash-b-bp4 = <6>;
+
+		/* as follow is wpen */
+		norflash-b-cmp = <7>; 
+			
+        status = "disable";
+    };
+
+    at25fs040: spi-norflash@1 { 
+        compatible = "atmel,at25fs040";
+        norflash-name = "at25fs040";
+		reg = <1>;
+		
+		/* spiflash at25fs040 */
+        norflash-jedec-id = <0x1f6604>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <8>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x1000>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-bp3 = <5>; 
+        norflash-b-bp4 = <6>; 
+
+		/* as follow is wpen */
+		norflash-b-cmp = <7>; 
+
+        status = "disable";
+    };
+
+    at25df041a: spi-norflash@2 { 
+        compatible = "atmel,at25df041a";
+        norflash-name = "at25df041a";
+		reg = <2>;
+		
+		/* spiflash at25df041a */
+        norflash-jedec-id = <0x1f4401>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <8>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x1000>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+
+        status = "disable";
+    };
+
+    at25df641: spi-norflash@3 { 
+        compatible = "atmel,at25df641";
+        norflash-name = "at25df641";
+		reg = <3>;
+		
+		/* spiflash at25df641 */
+        norflash-jedec-id = <0x1f4800>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <128>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x1000>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>, <0x31>;
+		wr_mode = <1>;
+		norflash-wr_flags = <2>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+
+        status = "disable";
+    };
+
+    at26f004: spi-norflash@4 { 
+        compatible = "atmel,at26f004";
+        norflash-name = "at26f004";
+		reg = <4>;
+		
+		/* spiflash at26f004 */
+        norflash-jedec-id = <0x1f0400>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <8>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x1000>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+
+        status = "disable";
+    };
+
+    at26df081a: spi-norflash@5 { 
+        compatible = "atmel,at26df081a";
+        norflash-name = "at26df081a";
+		reg = <5>;
+		
+		/* spiflash at26df081a */
+        norflash-jedec-id = <0x1f4501>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <16>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x1000>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>, <0x31>;
+		wr_mode = <1>;
+		norflash-wr_flags = <2>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+
+        status = "disable";
+    };
+
+    at26df161a: spi-norflash@6 { 
+        compatible = "atmel,at26df161a";
+        norflash-name = "at26df161a";
+		reg = <6>;
+		
+		/* spiflash atmel */
+        norflash-jedec-id = <0x1f4601>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <32>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*  no datasheet
+		*/
+        norflash-flags = <0x1000>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+
+        status = "disable";
+    };
+
+    at26df321: spi-norflash@7 { 
+        compatible = "atmel,at26df321";
+        norflash-name = "at26df321";
+		reg = <7>;
+		
+		/* spiflash at26df321 */
+        norflash-jedec-id = <0x1f4701>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <64>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x1000>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+
+        status = "disable";
+    };
+
+    mx25l3205d: spi-norflash@8 {  
+        compatible = "macronix,mx25l3205d";
+        norflash-name = "mx25l3205d";
+		reg = <8>;
+		
+		/* spiflash mx25l3205d */
+        norflash-jedec-id = <0xc22016>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <64>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K|SFLAG_DUAL_READ
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x1020>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-bp3 = <5>; 
+		norflash-b-cmp = <6>; 
+
+        status = "disable";
+    };
+
+    mx25l6405d: spi-norflash@9 { 
+        compatible = "macronix,mx25l6405d";
+        norflash-name = "mx25l6405d";
+		reg = <9>;
+		
+		/* spiflash mx25l6405d */
+        norflash-jedec-id = <0xc22017>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <128>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K|SFLAG_DUAL_READ
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x1020>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-bp3 = <5>; 
+		norflash-b-cmp = <6>; 
+
+        status = "disable";
+    };
+
+    mx25l12805d: spi-norflash@10 { 
+        compatible = "macronix,mx25l12805d";
+        norflash-name = "mx25l12805d";
+		reg = <10>;
+		
+		/* spiflash mx25l12805d */
+        norflash-jedec-id = <0xc22018>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <256>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K | SFLAG_DUAL_IO_READ | SFLAG_QUAD_IO_READ | SFLAG_QUAD_IO_WRITE*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x1450>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-bp3 = <5>; 
+
+        status = "disable";
+    };
+
+    mx25l12855e: spi-norflash@11 { 
+        compatible = "macronix,mx25l12855e";
+        norflash-name = "mx25l12855e";
+		reg = <11>;
+		
+		/* spiflash mx25l12855e */
+        norflash-jedec-id = <0xc22018>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <256>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K | SFLAG_DUAL_READ
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x1020>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-bp3 = <5>; 
+        norflash-b-qe = <6>; 
+
+        status = "disable";
+    };
+
+    s25fl129p0: spi-norflash@12 { 
+        compatible = "spansion,s25fl129p0";
+        norflash-name = "s25fl129p0";
+		reg = <12>;
+		
+		/* spiflash s25fl129p0 */
+        norflash-jedec-id = <0x012018>; 
+        norflash-ext-id = <0x4d00>;
+        norflash-sector-size = <0x40000>;
+        norflash-n-sectors = <64>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = 0
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+
+        status = "disable";
+    };
+
+    s25fl129p1: spi-norflash@13 { 
+        compatible = "spansion,s25fl129p1";
+        norflash-name = "s25fl129p1";
+		reg = <13>;
+		
+		/* spiflash s25fl129p1 */
+        norflash-jedec-id = <0x012018>; 
+        norflash-ext-id = <0x4d01>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <256>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = 0
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+
+        status = "disable";
+    };
+
+    sst25vf040b: spi-norflash@14 { 
+        compatible = "sst,sst25vf040b";
+        norflash-name = "sst25vf040b";
+		reg = <14>;
+		
+		/* spiflash sst25vf040b */
+        norflash-jedec-id = <0xbf258d>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <8>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x1000>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-bp3 = <5>; 
+
+        status = "disable";
+    };
+
+    sst25vf080b: spi-norflash@15 { 
+        compatible = "sst,sst25vf080b";
+        norflash-name = "sst25vf080b";
+		reg = <15>;
+		
+		/* spiflash sst25vf080b */
+        norflash-jedec-id = <0xbf258e>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <16>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x1000>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-bp3 = <5>; 
+
+        status = "disable";
+    };
+
+    sst25vf016b: spi-norflash@16 { 
+        compatible = "sst,sst25vf016b";
+        norflash-name = "sst25vf016b";
+		reg = <16>;
+		
+		/* spiflash sst25vf016b */
+        norflash-jedec-id = <0xbf2541>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <32>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K|SFLAG_COM_STATUS2|
+		*  SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_DUAL_IO_READ|SFLAG_QUAD_IO_READ|SFLAG_QUAD_WRITE
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x1000>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-bp3 = <5>; 
+
+        status = "disable";
+    };
+
+    sst25vf032b: spi-norflash@17 { 
+        compatible = "sst,sst25vf032b";
+        norflash-name = "sst25vf032b";
+		reg = <17>;
+		
+		/* spiflash sst25vf032b */
+        norflash-jedec-id = <0xbf254a>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <64>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x1000>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-bp3 = <5>; 
+
+        status = "disable";
+    };
+
+    sst25wf512: spi-norflash@18 { 
+        compatible = "sst,sst25wf512";
+        norflash-name = "sst25wf512";
+		reg = <18>;
+		
+		/* spiflash sst25wf512 */
+        norflash-jedec-id = <0xbf2501>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <1>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x1000>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+		norflash-b-bp2 = <4>;
+
+        status = "disable";
+    };
+
+    sst25wf010: spi-norflash@19 { 
+        compatible = "sst,sst25wf010";
+        norflash-name = "sst25wf010";
+		reg = <19>;
+		
+		/* spiflash sst25wf010 */
+        norflash-jedec-id = <0xbf2502>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <2>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K|SFLAG_COM_STATUS2|
+		*  SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_DUAL_IO_READ|SFLAG_QUAD_IO_READ|SFLAG_QUAD_WRITE
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x1000>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+
+        status = "disable";
+    };
+
+    sst25wf020: spi-norflash@20 { 
+        compatible = "sst,sst25wf020";
+        norflash-name = "sst25wf020";
+		reg = <20>;
+		
+		/* spiflash sst25wf020 */
+        norflash-jedec-id = <0xbf2503>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <4>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K|SFLAG_COM_STATUS2|
+		*  SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_DUAL_IO_READ|SFLAG_QUAD_IO_READ|SFLAG_QUAD_WRITE
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x1000>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+
+        status = "disable";
+    };
+
+    sst25wf040: spi-norflash@21 { 
+        compatible = "sst,sst25wf040";
+        norflash-name = "sst25wf040";
+		reg = <21>;
+		
+		/* spiflash sst25wf040 */
+        norflash-jedec-id = <0xbf2504>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <8>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K|SFLAG_COM_STATUS2|
+		*  SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_DUAL_IO_READ|SFLAG_QUAD_IO_READ|SFLAG_QUAD_WRITE
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x1000>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+		norflash-b-bp2 = <4>;
+
+        status = "disable";
+    };
+
+    m25p05: spi-norflash@22 { 
+        compatible = "st,m25p05";
+        norflash-name = "m25p05";
+		reg = <22>;
+		
+		/* spiflash m25p05 */
+        norflash-jedec-id = <0x202010>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x8000>;
+        norflash-n-sectors = <2>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = 0
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+
+        status = "disable";
+    };
+
+    m25p10: spi-norflash@23 { 
+        compatible = "st,m25p10";
+        norflash-name = "m25p10";
+		reg = <23>;
+		
+		/* spiflash m25p10 */
+        norflash-jedec-id = <0x202011>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x8000>;
+        norflash-n-sectors = <4>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = 0
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*  sector size:32kB
+		*/
+        norflash-flags = <0>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+
+        status = "disable";
+    };
+
+    m25p20: spi-norflash@24 { 
+        compatible = "st,m25p20";
+        norflash-name = "m25p20";
+		reg = <24>;
+		
+		/* spiflash m25p20 */
+        norflash-jedec-id = <0x202012>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <4>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = 0
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+		norflash-b-bp2 = <4>;
+
+        status = "disable";
+    };
+
+    m25p40: spi-norflash@25 { 
+        compatible = "st,m25p40";
+        norflash-name = "m25p40";
+		reg = <25>;
+		
+		/* spiflash m25p40 */
+        norflash-jedec-id = <0x202013>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <8>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = 0
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+		norflash-b-bp2 = <4>;
+
+        status = "disable";
+    };
+
+    m25p80: spi-norflash@26 { 
+        compatible = "st,m25p80";
+        norflash-name = "m25p80";
+		reg = <26>;
+		
+		/* spiflash m25p80 */
+        norflash-jedec-id = <0x202014>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <16>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = 0
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+		norflash-b-bp2 = <4>;
+
+        status = "disable";
+    };
+
+    m25p16: spi-norflash@27 { 
+        compatible = "st,m25p16";
+        norflash-name = "m25p16";
+		reg = <27>;
+		
+		/* spiflash m25p16 */
+        norflash-jedec-id = <0x202015>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <32>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = 0
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+		norflash-b-bp2 = <4>;
+
+        status = "disable";
+    };
+
+    m25p32: spi-norflash@28 { 
+        compatible = "st,m25p32";
+        norflash-name = "m25p32";
+		reg = <28>;
+		
+		/* spiflash m25p32 */
+        norflash-jedec-id = <0x202016>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <64>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = 0
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+		norflash-b-bp2 = <4>;
+		
+        status = "disable";
+    };
+
+    m25p64: spi-norflash@29 { 
+        compatible = "st,m25p64";
+        norflash-name = "m25p64";
+		reg = <29>;
+		
+		/* spiflash m25p64 */
+        norflash-jedec-id = <0x202017>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <128>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = 0
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+		norflash-b-bp2 = <4>;
+		
+        status = "disable";
+    };
+
+    m25p128: spi-norflash@30 { 
+        compatible = "st,m25p128";
+        norflash-name = "m25p128";
+		reg = <30>;
+		
+		/* spiflash m25p128 */
+        norflash-jedec-id = <0x202018>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x40000>;
+        norflash-n-sectors = <64>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = 0
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+		norflash-b-bp2 = <4>;
+
+        status = "disable";
+    };
+
+    m45pe10: spi-norflash@31 { 
+        compatible = "st,m45pe10";
+        norflash-name = "m45pe10";
+		reg = <31>;
+		
+		/* spiflash m45pe10 */
+        norflash-jedec-id = <0x204011>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <2>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = 0
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0>;
+		rd_status_cmd = <0x05>;
+		//wr_status_cmd = <0x01>;
+		wr_mode = <3>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+
+        status = "disable";
+    };
+
+    m45pe80: spi-norflash@32 { 
+        compatible = "st,m45pe80";
+        norflash-name = "m45pe80";
+		reg = <32>;
+		
+		/* spiflash m45pe80 */
+        norflash-jedec-id = <0x204014>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <16>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = 0
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0>;
+		rd_status_cmd = <0x05>;
+		//wr_status_cmd = <0x01>;
+		wr_mode = <3>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+
+        status = "disable";
+    };
+
+    m45pe16: spi-norflash@33 { 
+        compatible = "st,m45pe16";
+        norflash-name = "m45pe16";
+		reg = <33>;
+		
+		/* spiflash m45pe16 */
+        norflash-jedec-id = <0x204015>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <32>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = 0
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*   3:no wr status reg
+		*  norflash-wr_flags: write wr startus regs count , 
+		*  no wr status reg cmd, sector 64kB
+		*/
+        norflash-flags = <0>;
+		rd_status_cmd = <0x05>;
+		//wr_status_cmd = <0x01>;
+		wr_mode = <3>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+
+        status = "disable";
+    };
+
+    m25pe80: spi-norflash@34 { 
+        compatible = "st,m25pe80";
+        norflash-name = "m25pe80";
+		reg = <34>;
+		
+		/* spiflash m25pe80 */
+        norflash-jedec-id = <0x208014>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <16>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = 0
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-srp0 = <7>;
+
+        status = "disable";
+    };
+
+    m25pe16: spi-norflash@35 { 
+        compatible = "st,m25pe16";
+        norflash-name = "m25pe16";
+		reg = <35>;
+		
+		/* spiflash m25pe16 */
+        norflash-jedec-id = <0x208015>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <32>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x1000>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+
+        status = "disable";
+    };
+
+    w25x10: spi-norflash@36 { 
+        compatible = "winbond,w25x10";
+        norflash-name = "w25x10";
+		reg = <36>;
+		
+		/* spiflash w25x10 */
+        norflash-jedec-id = <0xef3011>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <2>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x1000>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-srp0 = <7>;
+
+        status = "disable";
+    };
+
+    w25x20: spi-norflash@37 { 
+        compatible = "winbond,w25x20";
+        norflash-name = "w25x20";
+		reg = <37>;
+		
+		/* spiflash w25x20 */
+        norflash-jedec-id = <0xef3012>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <4>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x1000>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-srp0 = <7>;
+
+        status = "disable";
+    };
+
+    w25x40: spi-norflash@38 { 
+        compatible = "winbond,w25x40";
+        norflash-name = "w25x40";
+		reg = <38>;
+		
+		/* spiflash w25x40 */
+        norflash-jedec-id = <0xef3013>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <8>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x1000>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-srp0 = <7>;
+
+        status = "disable";
+    };
+
+    w25x80: spi-norflash@39 { 
+        compatible = "winbond,w25x80";
+        norflash-name = "w25x80";
+		reg = <39>;
+		
+		/* spiflash w25x80 */
+        norflash-jedec-id = <0xef3014>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <16>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x1000>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-srp0 = <7>;
+
+        status = "disable";
+    };
+
+    w25x16: spi-norflash@40 { 
+        compatible = "winbond,w25x16";
+        norflash-name = "w25x16";
+		reg = <40>;
+		
+		/* spiflash w25x16 */
+        norflash-jedec-id = <0xef3015>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <32>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x1000>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-srp0 = <7>;
+
+        status = "disable";
+    };
+
+    w25x32: spi-norflash@41 { 
+        compatible = "winbond,w25x32";
+        norflash-name = "w25x32";
+		reg = <41>;
+		
+		/* spiflash w25x32 */
+        norflash-jedec-id = <0xef3016>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <64>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x1000>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-srp0 = <7>;
+
+        status = "disable";
+    };
+
+    w25x64: spi-norflash@42 { 
+        compatible = "winbond,w25x64";
+        norflash-name = "w25x64";
+		reg = <42>;
+		
+		/* spiflash w25x64 */
+        norflash-jedec-id = <0xef3017>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <128>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x1000>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-srp0 = <7>;
+
+        status = "disable";
+    };
+
+    w25q32: spi-norflash@43 { 
+        compatible = "winbond,w25q32";
+        norflash-name = "w25q32";
+		reg = <43>;
+		
+		/* spiflash w25q32 */
+        norflash-jedec-id = <0xef4016>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x8000>;
+        norflash-n-sectors = <128>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K|SFLAG_COM_STATUS2|SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_QUAD_WRITE
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x18A8>;
+		rd_status_cmd = <0x05>, <0x35>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0x20>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-srp0 = <7>;
+        norflash-b-srp1 = <8>;
+        norflash-b-qe = <9>; 
+
+        status = "disable";
+    };
+
+    w25q64: spi-norflash@44 { 
+        compatible = "winbond,w25q64";
+        norflash-name = "w25q64";
+		reg = <44>;
+		
+		/* spiflash w25q64 */
+        norflash-jedec-id = <0xef4017>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <128>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K|SFLAG_COM_STATUS2|SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_QUAD_WRITE
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x18A8>;
+		rd_status_cmd = <0x05>, <0x35>,<0x15>;
+		wr_status_cmd = <0x01>, <0x31>,<0x11>;
+		wr_mode = <0x20>;
+		norflash-wr_flags = <2>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-srp1 = <8>;
+        norflash-b-qe = <9>; 
+		norflash-b-cmp = <14>; 
+        norflash-b-sus = <15>; 
+
+        status = "disable";
+    };
+
+    w25q128: spi-norflash@45 { 
+        compatible = "winbond,w25q128";
+        norflash-name = "w25q128";
+		reg = <45>;
+		
+		/* spiflash w25q128 */
+        norflash-jedec-id = <0xef4018>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <256>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K|SFLAG_COM_STATUS2|SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_QUAD_WRITE
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x18A8>;
+		rd_status_cmd = <0x05>, <0x35>, <0x15>;
+		wr_status_cmd = <0x01>, <0x31>, <0x11>;
+		wr_mode = <0x21>;
+		norflash-wr_flags = <2>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-srp0 = <7>;
+        norflash-b-srp1 = <8>;
+        norflash-b-qe = <9>;  
+		norflash-b-cmp = <14>; 
+        norflash-b-sus = <15>; 
+
+        status = "disable";
+    };
+
+    gd25q64: spi-norflash@46 { 
+        compatible = "gd,gd25q64";
+		#clock-cells = <1>;
+        norflash-name = "gd25q64";
+		reg = <46>;
+		
+		/* spiflash gd25q64&gd25q64c */
+        norflash-jedec-id = <0xc84017>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <128>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K|SFLAG_COM_STATUS2|
+		*  SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_DUAL_IO_READ|SFLAG_QUAD_IO_READ|SFLAG_QUAD_WRITE
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x18F8>;
+		rd_status_cmd = <0x05>, <0x35>, <0x15>;
+		wr_status_cmd = <0x01>, <0x31>;
+		wr_mode = <1>;
+		norflash-wr_flags = <2>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-bp3 = <5>; 
+        norflash-b-bp4 = <6>;
+        norflash-b-srp0 = <7>;
+        norflash-b-srp1 = <8>;
+        norflash-b-qe = <9>; 
+		norflash-b-cmp = <14>; 
+        norflash-b-sus = <15>; 
+
+        status = "disable";
+    };
+
+    gd25q128: spi-norflash@47 { 
+        compatible = "gd,gd25q128";
+        norflash-name = "gd25q128";
+		reg = <47>;
+		
+		/* spiflash gd25q128 */
+        norflash-jedec-id = <0xc84018>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <256>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K|SFLAG_COM_STATUS2|
+		*  SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_DUAL_IO_READ|SFLAG_QUAD_IO_READ|SFLAG_QUAD_WRITE
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x18F8>;
+		rd_status_cmd = <0x05>, <0x35>, <0x15>;
+		wr_status_cmd = <0x01>, <0x31>, <0x11>;
+		wr_mode = <1>;
+		norflash-wr_flags = <2>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-bp3 = <5>; 
+        norflash-b-bp4 = <6>;
+        norflash-b-srp0 = <7>;
+        norflash-b-srp1 = <8>;
+        norflash-b-qe = <9>; 
+		norflash-b-cmp = <14>; 
+        norflash-b-sus = <15>; 
+
+        status = "disable";
+    };
+
+    xm25qh64a: spi-norflash@48 { 
+        compatible = "xmc,xm25qh64a";
+        norflash-name = "xm25qh64a";
+		reg = <48>;
+		
+		/* spiflash xm25qh64a */
+        norflash-jedec-id = <0x207017>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <128>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K|SFLAG_COM_STATUS2|
+		*  SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_DUAL_IO_READ|SFLAG_QUAD_IO_READ|SFLAG_QUAD_WRITE
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x58F8>;
+		rd_status_cmd = <0x05>, <0x09>, <0x95>;
+		wr_status_cmd = <0x01>, <0xc0>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-bp3 = <5>; 
+        norflash-b-srp0 = <7>;
+        norflash-b-qe = <8>;   /*not used.this bit does not exist in datasheet*/
+
+        status = "disable";
+    };
+
+    xm25qh128a: spi-norflash@49 { 
+        compatible = "xmc,xm25qh128a";
+        norflash-name = "xm25qh128a";
+		reg = <49>;
+		
+		/* spiflash xm25qh128a */
+        norflash-jedec-id = <0x207018>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <256>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_QUAD_NO_QE|SFLAG_SECT_4K|SFLAG_COM_STATUS2|
+		*  SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_DUAL_IO_READ|SFLAG_QUAD_IO_READ|SFLAG_QUAD_WRITE
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x58F8>;
+		rd_status_cmd = <0x05>, <0x09>, <0x95>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-bp3 = <5>; 
+        norflash-b-srp0 = <7>;
+        norflash-b-qe = <8>;   /*not used.this bit does not exist in datasheet*/
+
+        status = "disable";
+    };
+
+    pn26f64b: spi-norflash@50 { 
+        compatible = "pn,pn26f64b";
+        norflash-name = "pn26f64b";
+		reg = <50>;
+		
+		/* spiflash pn26f64b */
+        norflash-jedec-id = <0x1c7017>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <128>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_QUAD_NO_QE|SFLAG_SECT_4K|SFLAG_COM_STATUS2|
+		*  SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_DUAL_IO_READ|SFLAG_QUAD_IO_READ|SFLAG_QUAD_WRITE
+		*  = 0x58F8
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x58F8>;
+		rd_status_cmd = <0x05>, <0x09>, <0x95>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-bp3 = <5>; 
+        norflash-b-srp0 = <7>;
+
+        status = "disable";
+    };
+
+    by25q64a: spi-norflash@51 { 
+        compatible = "by,by25q64a";
+        norflash-name = "by25q64a";
+		reg = <51>;
+		
+		/* spiflash by25q64a */
+        norflash-jedec-id = <0x684017>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <128>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K|SFLAG_COM_STATUS2|
+		*  SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_DUAL_IO_READ|SFLAG_QUAD_IO_READ|SFLAG_QUAD_WRITE
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x18F8>;
+		rd_status_cmd = <0x05>, <0x35>, <0x15>;
+		wr_status_cmd = <0x01>, <0x31>, <0x11>;
+		wr_mode = <1>;
+		norflash-wr_flags = <2>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-bp3 = <5>; 
+        norflash-b-bp4 = <6>;
+        norflash-b-srp0 = <7>;
+        norflash-b-srp1 = <8>;
+        norflash-b-qe = <9>; 
+        norflash-b-lb = <10>; 
+		norflash-b-cmp = <14>; 
+        norflash-b-sus = <15>; 
+
+        status = "disable";
+    };
+
+    by25q128a: spi-norflash@52 { 
+        compatible = "by,by25q128a";
+        norflash-name = "by25q128a";
+		reg = <52>;
+		
+		/* spiflash by25q128a */
+        norflash-jedec-id = <0x684018>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <256>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K|SFLAG_COM_STATUS2|
+		*  SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_DUAL_IO_READ|SFLAG_QUAD_IO_READ|SFLAG_QUAD_WRITE
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x18F8>;
+		rd_status_cmd = <0x05>, <0x35>, <0x15>;
+		wr_status_cmd = <0x01>, <0x31>, <0x11>;
+		wr_mode = <1>;
+		norflash-wr_flags = <2>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-bp3 = <5>; 
+        norflash-b-bp4 = <6>;
+        norflash-b-srp0 = <7>;
+        norflash-b-srp1 = <8>;
+        norflash-b-qe = <9>; 
+        norflash-b-lb = <10>; 
+		norflash-b-cmp = <14>; 
+        norflash-b-sus = <15>; 
+
+        status = "disable";
+    };
+
+    fm25q64: spi-norflash@53 { 
+        compatible = "fm,fm25q64";
+        norflash-name = "fm25q64";
+		reg = <53>;
+		
+		/* spiflash fm25q64 */
+        norflash-jedec-id = <0xa14017>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <128>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K|SFLAG_COM_STATUS2|
+		*  SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_DUAL_IO_READ|SFLAG_QUAD_IO_READ|SFLAG_QUAD_WRITE
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x18F8>;
+		rd_status_cmd = <0x05>, <0x35>, <0x15>;
+		wr_status_cmd = <0x01>, <0x31>, <0x11>;
+		wr_mode = <1>;
+		norflash-wr_flags = <2>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-srp0 = <7>;
+        norflash-b-srp1 = <8>;
+        norflash-b-qe = <9>; 
+        norflash-b-lb = <10>; 
+		norflash-b-cmp = <14>; 
+        norflash-b-sus = <15>; 
+
+        status = "disable";
+    };
+
+    fm25q128: spi-norflash@54 { 
+        compatible = "fm,fm25q128";
+        norflash-name = "fm25q128";
+		reg = <54>;
+		
+		/* spiflash fm25q128 */
+        norflash-jedec-id = <0xa14018>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <256>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K|SFLAG_COM_STATUS2|
+		*  SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_DUAL_IO_READ|SFLAG_QUAD_IO_READ|SFLAG_QUAD_WRITE
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x18F8>;
+		rd_status_cmd = <0x05>, <0x35>, <0x15>;
+		wr_status_cmd = <0x01>, <0x31>, <0x11>;
+		wr_mode = <1>;
+		norflash-wr_flags = <2>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+		norflash-b-cmp = <6>; 
+        norflash-b-srp0 = <7>;
+        norflash-b-qe = <9>; 
+
+        status = "disable";
+    };
+
+    zb25vq32: spi-norflash@55 { 
+        compatible = "zb,zb25vq32";
+        norflash-name = "zb25vq32";
+		reg = <55>;
+		
+		/* spiflash zb25vq32 */
+        norflash-jedec-id = <0x5e4016>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x8000>;
+        norflash-n-sectors = <128>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K|SFLAG_COM_STATUS2|
+		*  SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_DUAL_IO_READ|SFLAG_QUAD_IO_READ|SFLAG_QUAD_WRITE
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x18F8>;
+		rd_status_cmd = <0x05>, <0x35>, <0x15>;
+		wr_status_cmd = <0x01>, <0x31>, <0x11>;
+		wr_mode = <1>;
+		norflash-wr_flags = <2>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-srp0 = <7>;
+        norflash-b-srp1 = <8>;
+        norflash-b-qe = <9>; 
+        norflash-b-lb = <10>; 
+		norflash-b-cmp = <14>; 
+        norflash-b-sus = <15>; 
+
+        status = "disable";
+    };
+
+    zd25q64a: spi-norflash@56 { 
+        compatible = "zd,zd25q64a";
+        norflash-name = "zd25q64a";
+		reg = <56>;
+		
+		/* spiflash zd25q64a */
+        norflash-jedec-id = <0xba4017>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <128>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K|SFLAG_COM_STATUS2|
+		*  SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_DUAL_IO_READ|SFLAG_QUAD_IO_READ|SFLAG_QUAD_WRITE
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x18F8>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-bp3 = <6>; 
+        norflash-b-srp0 = <7>;
+
+        status = "disable";
+    };
+
+    zb25vq64: spi-norflash@57 { 
+        compatible = "zb,zb25vq64";
+        norflash-name = "zb25vq64";
+		reg = <57>;
+		
+		/* spiflash zb25vq64 */
+        norflash-jedec-id = <0x5e4017>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <128>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K|SFLAG_COM_STATUS2|
+		*  SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_DUAL_IO_READ|SFLAG_QUAD_IO_READ|SFLAG_QUAD_WRITE
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x18F8>;
+		rd_status_cmd = <0x05>, <0x35>, <0x15>;
+		wr_status_cmd = <0x01>, <0x31>, <0x11>;
+		wr_mode = <1>;
+		norflash-wr_flags = <2>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-srp0 = <7>;
+        norflash-b-srp1 = <8>;
+        norflash-b-qe = <9>; 
+        norflash-b-lb = <10>; 
+		norflash-b-cmp = <14>; 
+        norflash-b-sus = <15>; 
+
+        status = "disable";
+    };
+
+    zb25vq128: spi-norflash@58 { 
+        compatible = "zb,zb25vq128";
+        norflash-name = "zb25vq128";
+		reg = <58>;
+		
+		/* spiflash zb25vq128 */
+        norflash-jedec-id = <0x5e4018>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <256>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K|SFLAG_COM_STATUS2|
+		*  SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_DUAL_IO_READ|SFLAG_QUAD_IO_READ|SFLAG_QUAD_WRITE
+		*  = 0x18F8
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x18F8>;
+		rd_status_cmd = <0x05>, <0x35>, <0x15>;
+		wr_status_cmd = <0x01>, <0x31>, <0x11>;
+		wr_mode = <1>;
+		norflash-wr_flags = <2>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-srp0 = <7>;
+        norflash-b-srp1 = <8>;
+        norflash-b-qe = <9>; 
+        norflash-b-lb = <10>; 
+		norflash-b-cmp = <14>; 
+        norflash-b-sus = <15>; 
+
+        status = "disable";
+    };
+
+    kh25l64: spi-norflash@59 { 
+		compatible = "kh,kh25l64";
+		norflash-name = "kh25l64";
+		reg = <59>;
+	
+		/* spiflash kh25l64 */
+		norflash-jedec-id = <0xC22017>; 
+		norflash-ext-id = <0>;
+		norflash-sector-size = <0x10000>;
+		norflash-n-sectors = <128>; 
+
+		/*
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; 
+		*  bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support  dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*  
+		*  set belowed flag:
+		*  FLAG_SECT_4K|SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_DUAL_IO_READ|SFLAG_QUAD_IO_READ|SFLAG_QUAD_WRITE 
+		*/
+		/* 
+		*  wr_mode:
+		*  0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+		norflash-flags = <0x18F0>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+		norflash-b-wip = <0>;
+		norflash-b-wel = <1>;
+		norflash-b-bp0 = <2>;
+		norflash-b-bp1 = <3>;
+		norflash-b-bp2 = <4>; 
+		norflash-b-bp3 = <5>;
+		norflash-b-qe = <6>; 
+		
+		status = "disable";
+};
+
+	kh25l128: spi-norflash@60 { 
+		compatible = "kh,kh25l128";
+		norflash-name = "kh25l128";
+		reg = <60>;
+		
+		/* spiflash kh25l128 */
+		norflash-jedec-id = <0xC22018>; 
+		norflash-ext-id = <0>;
+		norflash-sector-size = <0x10000>;
+		norflash-n-sectors = <256>; 
+
+		/*
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; 
+		*  bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support  dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*  
+		*  set belowed flag:
+		*  FLAG_SECT_4K|SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_DUAL_IO_READ|SFLAG_QUAD_IO_READ|SFLAG_QUAD_WRITE 
+		*/
+		/* 
+		*  wr_mode:
+		*  0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+		norflash-flags = <0x18F0>;
+		rd_status_cmd = <0x05>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+		norflash-b-wip = <0>;
+		norflash-b-wel = <1>;
+		norflash-b-bp0 = <2>;
+		norflash-b-bp1 = <3>;
+		norflash-b-bp2 = <4>; 
+		norflash-b-bp3 = <5>;
+		norflash-b-qe = <6>; 
+		
+		status = "disable";
+};
+
+    xt25f64b: spi-norflash@61 { 
+        compatible = "xt,xt25f64b";
+        norflash-name = "xt25f64b";
+		reg = <61>;
+		
+		/* spiflash xt25f64b */
+        norflash-jedec-id = <0x0b4017>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <128>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K|SFLAG_COM_STATUS2|
+		*  SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_DUAL_IO_READ|SFLAG_QUAD_IO_READ|SFLAG_QUAD_WRITE
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x18F8>;
+		rd_status_cmd = <0x05>, <0x35>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-srp0 = <7>;
+        norflash-b-srp1 = <8>;
+        norflash-b-qe = <9>; 
+        norflash-b-lb = <10>; 
+		norflash-b-cmp = <14>;  
+
+        status = "disable";
+    };
+
+    xt25f128b: spi-norflash@62 { 
+        compatible = "xt,xt25f128b";
+        norflash-name = "xt25f128b";
+		reg = <62>;
+		
+		/* spiflash xt25f128b */
+        norflash-jedec-id = <0x0b4018>; 
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <256>; 
+
+		/**
+		*  flags:chip character bits:
+		*  bit 0: under_protect flag; bit 1: fast read flag; bit 2: AAI flag; bit 3: support status2; bit 4: support dual io read; bit 5: support dual read
+		*  bit 6: support quad io read; bit 7: support quad read; bit 8: support dual io write; bit 9: support dual write; bit 10: support quad io write
+		*  bit 11: support quad write; bit 12: support 4k erase sector; bit 13: support status3; bit 14: support no QE ; bit 15:write status mode 
+		*/
+
+		/* 
+		*  flags = SFLAG_SECT_4K|SFLAG_COM_STATUS2|
+		*  SFLAG_DUAL_READ|SFLAG_QUAD_READ|SFLAG_DUAL_IO_READ|SFLAG_QUAD_IO_READ|SFLAG_QUAD_WRITE
+		*  = 0x18F8
+		*  wr_mode:
+		*	0:means one write status cmd can wirte all status regs; 1:means one write status cmd can only wirte one status reg
+		*  norflash-wr_flags: write wr startus regs count 
+		*/
+        norflash-flags = <0x18F8>;
+		rd_status_cmd = <0x05>, <0x35>;
+		wr_status_cmd = <0x01>;
+		wr_mode = <0>;
+		norflash-wr_flags = <1>;
+
+		/* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-srp0 = <7>;
+        norflash-b-srp1 = <8>;
+        norflash-b-qe = <9>; 
+        norflash-b-lb = <10>; 
+		norflash-b-cmp = <14>; 
+
+        status = "disable";
+    };
+
+    xm25qh64c: spi-norflash@63 {
+        compatible = "xmc,xm25qh64c";
+        norflash-name = "xm25qh64c";
+        reg = <63>;
+
+        /* spiflash xm25qh64c */
+        norflash-jedec-id = <0x204017>;
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <128>;
+
+        norflash-flags = <0x18F8>;
+        rd_status_cmd = <0x05>, <0x35>, <0x15>;
+        wr_status_cmd = <0x01>, <0x31>, <0x11>;
+        wr_mode = <0>;
+        norflash-wr_flags = <1>;
+
+        /* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-srp0 = <7>;
+        norflash-b-srp1 = <8>;
+        norflash-b-qe = <9>;
+        norflash-b-cmp = <14>;
+
+        status = "disable";
+    };
+    
+    xm25qh128c: spi-norflash@64 {
+        compatible = "xmc,xm25qh128c";
+        norflash-name = "xm25qh128c";
+        reg = <64>;
+
+        /* spiflash xm25qh128c */
+        norflash-jedec-id = <0x204018>;
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <256>;
+
+        norflash-flags = <0x18F8>;
+        rd_status_cmd = <0x05>, <0x35>, <0x15>;
+        wr_status_cmd = <0x01>, <0x31>, <0x11>;
+        wr_mode = <0>;
+        norflash-wr_flags = <1>;
+
+        /* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-srp0 = <7>;
+        norflash-b-srp1 = <8>;
+        norflash-b-qe = <9>;
+        norflash-b-cmp = <14>;
+
+        status = "disable";
+    }; 
+
+    NM25Q64EVB: spi-norflash@65 {
+        compatible = "NM,NM25Q64EVB";
+        norflash-name = "NM25Q64EVB";
+        reg = <65>;
+
+        norflash-jedec-id = <0x522217>;
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <128>;
+
+        norflash-flags = <0x18F8>;
+        rd_status_cmd = <0x05>, <0x35>, <0x15>;
+        wr_status_cmd = <0x01>, <0x31>, <0x11>;
+        wr_mode = <0>;
+        norflash-wr_flags = <1>;
+
+        /* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-srp0 = <7>;
+        norflash-b-srp1 = <8>;
+        norflash-b-qe = <9>;
+        norflash-b-cmp = <14>;
+
+        status = "disable";
+    };
+    
+    NM25Q128EVB: spi-norflash@66 {
+        compatible = "NM,NM25Q128EVB";
+        norflash-name = "NM25Q128EVB";
+        reg = <66>;
+
+        norflash-jedec-id = <0x522118>;
+        norflash-ext-id = <0>;
+        norflash-sector-size = <0x10000>;
+        norflash-n-sectors = <256>;
+
+        norflash-flags = <0x18F8>;
+        rd_status_cmd = <0x05>, <0x35>, <0x15>;
+        wr_status_cmd = <0x01>, <0x31>, <0x11>;
+        wr_mode = <0>;
+        norflash-wr_flags = <1>;
+
+        /* status reg bit map */
+        norflash-b-wip = <0>;
+        norflash-b-wel = <1>;
+        norflash-b-bp0 = <2>;
+        norflash-b-bp1 = <3>;
+        norflash-b-bp2 = <4>;
+        norflash-b-srp0 = <7>;
+        norflash-b-srp1 = <8>;
+        norflash-b-qe = <9>;
+        norflash-b-cmp = <14>;
+
+        status = "disable";
+    };      
+};
+

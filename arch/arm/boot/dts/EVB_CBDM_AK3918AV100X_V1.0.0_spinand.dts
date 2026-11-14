@@ -1,0 +1,45 @@
+/*
+ * AK3918AV100 dev board dts
+ *
+ * Copyright (C) 2020 Anyka(Guangzhou) Microelectronics Technology Co., Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+/dts-v1/;
+#include "anycloud_ak3918av100x.dtsi"
+#include "EVB_CBDM_AK3918AV100XP_V1.0.0_spinand.dtsi"
+
+/ {
+    compatible = "anyka,ak3918av100";
+    model = "EVB_CBDM_AK3918AV100X_V1.0.0 spinand board";
+    version = "V1.0.00";
+};
+
+// using detect-gpio or detect-gpios
+&mmc1 {
+    power-inverted;
+};
+
+// cd_clk
+/*
+&mmc1 {
+    power-inverted;
+};
+*/
+
+// cd_d3
+/*
+&mmc1 {
+    power-inverted;
+};
+*/
+
