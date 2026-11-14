@@ -1,0 +1,156 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/spi/hisilicon,hisfc350.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: HiSilicon HISFC350 SPI flash controller
+
+maintainers:
+  - Dylan Corrales <deathcamel58@gmail.com>
+
+description: |
+  SPI NOR flash controller (HISFC350 in the HiSilicon SDK) of the Hi3520D V100.
+  The data sheets of the Hi3516A/D, Hi3516C V100, Hi3518 and Hi3518E V100 show
+  the same controller; no compatible exists for them until someone has run one.
+  Flashes are attached to chip select 0 or 1, the chip select is the reg value
+  of the flash node. The register layout is the one of the v3xx controller of
+  the hi16xx server SoCs, which is handled by drivers/spi/spi-hisi-sfc-v3xx.c.
+
+  The VERSION register (offset 0x1f8) reads 0x350 on every SoC listed here, so
+  it cannot tell the SoCs apart. The SoC-specific compatible documents the
+  SoC, "hisilicon,hisfc350" is the IP level fallback.
+
+  The controller has a window on the AHB bus (0x58000000-0x5bffffff on these
+  SoCs) in which each flash is mapped, and a bus DMA engine that raises the
+  controller interrupt when it is done. The SPI clock is the controller clock
+  divided by two, there is no other divider, so spi-max-frequency of a flash
+  node does not change it. Flash reads with two or four address lines (1-2-2,
+  1-4-4) need spi-tx-bus-width next to spi-rx-bus-width, because the SPI core
+  counts the address phase as a transmit phase; the controller writes data on
+  one line only.
+
+  The Hi3520D V100 has two chip selects (num-cs = <2>); the boot flash is on
+  chip select 1.
+
+  The Hi3516 V100 ("hisfc300", every register at another offset), the Hi3516A/D
+  SPI NAND controller and the FMC (HiFMC100) flash controller of the Hi3518E
+  V200, Hi3516C V200/V300, Hi3516E V200/V300, Hi3516A V200/V300, Hi3516D V300
+  and Hi3519 (see hisilicon,fmc-spi-nor) are different IP blocks.
+
+  A node that lists only "hisilicon,hi3520dv100-sfc" is the earlier
+  description of the Hi3520D V100 controller, with the command registers only
+  (one reg entry, no clock or reset). This standalone form is deprecated. The
+  Hi3520D V200 has no other description yet: its node lists only
+  "hisilicon,hi3520dv200-sfc" with the command registers.
+
+allOf:
+  - $ref: spi-controller.yaml#
+  - if:
+      properties:
+        compatible:
+          maxItems: 1
+    then:
+      properties:
+        reg:
+          maxItems: 1
+        reg-names: false
+        clocks: false
+        resets: false
+      patternProperties:
+        "^.*@[0-9a-f]+$":
+          properties:
+            reg:
+              items:
+                - maximum: 1
+    else:
+      required:
+        - clocks
+  - if:
+      properties:
+        compatible:
+          contains:
+            const: hisilicon,hi3520dv100-sfc
+          minItems: 2
+    then:
+      properties:
+        num-cs:
+          const: 2
+      patternProperties:
+        "^.*@[0-9a-f]+$":
+          properties:
+            reg:
+              items:
+                - maximum: 1
+properties:
+  compatible:
+    oneOf:
+      - items:
+          - enum:
+              - hisilicon,hi3520dv100-sfc
+          - const: hisilicon,hisfc350
+      - description: Command registers only, the earlier description of the
+          Hi3520D V100, replaced by the form above
+        deprecated: true
+        const: hisilicon,hi3520dv100-sfc
+      - description: Command registers only, the Hi3520D V200 (the window,
+          clock and reset of its controller are not described yet)
+        const: hisilicon,hi3520dv200-sfc
+
+  reg:
+    minItems: 1
+    items:
+      - description: Controller registers
+      - description: Flash bus window (0x58000000-0x5bffffff on these SoCs)
+
+  reg-names:
+    minItems: 1
+    items:
+      - const: regs
+      - const: mem
+
+  clocks:
+    maxItems: 1
+    description: Controller clock (the SFC gate of the CRG)
+
+  resets:
+    maxItems: 1
+    description: Controller soft reset
+
+  num-cs:
+    enum: [1, 2]
+
+  interrupts:
+    maxItems: 1
+    description: Command and bus DMA completion interrupt
+
+required:
+  - compatible
+  - reg
+
+unevaluatedProperties: false
+
+examples:
+  - |
+    #include <dt-bindings/clock/hi3520dv100-clock.h>
+    #include <dt-bindings/interrupt-controller/arm-gic.h>
+
+    spi@10010000 {
+        compatible = "hisilicon,hi3520dv100-sfc", "hisilicon,hisfc350";
+        reg = <0x10010000 0x10000>, <0x58000000 0x4000000>;
+        reg-names = "regs", "mem";
+        num-cs = <2>;
+        interrupts = <GIC_SPI 18 IRQ_TYPE_LEVEL_HIGH>;
+        clocks = <&crg HI3520DV100_SFC_CLK>;
+        assigned-clocks = <&crg HI3520DV100_SFC_MUX>;
+        assigned-clock-parents = <&crg HI3520DV100_FIXED_75M>;
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        flash@1 {
+            compatible = "jedec,spi-nor";
+            reg = <1>;
+            spi-rx-bus-width = <2>;
+            spi-tx-bus-width = <2>;
+        };
+    };
