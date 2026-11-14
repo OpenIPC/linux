@@ -1,11 +1,15 @@
 /*
  * GZhongshi HVT3610S3 (QQ-WiFi V2.0): AK3918EV300L, 64 MiB, SmartSens
- * SC1346 at 0x32, ATBM603x Wi-Fi on USB, 8 MiB SPI NOR, no Ethernet. The
- * generic EV300L board with the sensor wiring of the camera's own device
- * tree (vendor U-Boot 2019.10.0-V4.0.25, kernel 4.4.282): two sensor
- * candidates, 0x30 with its reset on GPIO 19 and 0x32 with its reset on
- * GPIO 18, both active low and neither with a power-down line, where the
- * EVB has one sensor at 0x30 with GPIO 18 as its power-down.
+ * SC1346 at 0x32, ATBM603x Wi-Fi on USB, Ethernet, 8 MiB SPI NOR. The
+ * generic EV300L board with the wiring of the camera's own device tree
+ * (vendor U-Boot 2019.10.0-V4.0.25, kernel 4.4.282), where it differs:
+ *
+ * - two sensor candidates, 0x30 with its reset on GPIO 19 and 0x32 with
+ *   its reset on GPIO 18, both active low and neither with a power-down
+ *   line (the EVB: one sensor at 0x30, GPIO 18 its power-down);
+ * - the TF card's power switch on GPIO 98 (pad 98 muxed from SYS_RSTN_OUT),
+ *   active low, and its card detect on GPIO 37 (the EVB: 50 and 9);
+ * - the PHY reset on GPIO 71, with pad 23 a GPIO (the EVB: 24).
  */
 
 #include "ak3918ev300l-demb.dts"
@@ -42,4 +46,31 @@
 			remote-endpoint = <&sensor1_0>;
 		};
 	};
+};
+
+&tf_en_pins {
+	anyka,pins = <XGPIO_098>;
+	anyka,function = <XGPIO_098_FUNC_GPIO98>;
+	anyka,pull = <0x1010010>;
+};
+
+&tf_det_pins {
+	anyka,pins = <XGPIO_037>;
+	anyka,function = <XGPIO_037_FUNC_GPIO37>;
+	anyka,pull = <0x1010010>;
+};
+
+&mmc1 {
+	detect-gpio = <&gpio XGPIO_037 1>;
+	power-pins = <&gpio XGPIO_098 1>;
+};
+
+&ethernet_rst_pins {
+	anyka,pins = <XGPIO_023>;
+	anyka,function = <XGPIO_023_FUNC_GPIO23>;
+	anyka,pull = <0x10010>;
+};
+
+&ethernet {
+	reset-gpios = <&gpio XGPIO_071 1>;
 };
