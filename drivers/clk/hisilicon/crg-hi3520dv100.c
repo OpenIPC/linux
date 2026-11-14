@@ -21,6 +21,7 @@
 
 #include <dt-bindings/clock/hi3520dv100-clock.h>
 #include <linux/bitfield.h>
+#include <linux/clk.h>
 #include <linux/clk-provider.h>
 #include <linux/io.h>
 #include <linux/module.h>
@@ -231,10 +232,12 @@ static const struct hisi_gate_clock hi3520dv100_gate_clks[] = {
 	{ HI3520DV100_SSP_CLK, "clk_ssp", "apb", 0, 0xe4, 13, 0, },
 	{ HI3520DV100_IR_CLK, "clk_ir", "apb", 0, 0xe4, 12, 0, },
 	/*
-	 * The boot flash holds the root file system and the SFC driver does
-	 * not claim this clock yet, so the unused-clock cleanup must not stop it.
+	 * A driver that claims this clock can gate it. The flag only keeps the
+	 * cleanup of unused clocks from stopping a gate that is on; a device
+	 * tree whose SFC node has no clock property gets its gate turned on in
+	 * hi3520dv100_sfc_legacy_gate().
 	 */
-	{ HI3520DV100_SFC_CLK, "clk_sfc", "sfc_mux", CLK_IS_CRITICAL, 0xc0, 1, 0, },
+	{ HI3520DV100_SFC_CLK, "clk_sfc", "sfc_mux", CLK_IGNORE_UNUSED, 0xc0, 1, 0, },
 	{ HI3520DV100_ETH_CLK, "clk_eth", NULL, 0, 0xcc, 1, 0, },
 	{ HI3520DV100_USB_CLK, "clk_usb", "24m", 0, 0xb8, 7, 0, },
 	/* sata_cken: PHY and bus clock of the SATA block, selected by sata_mux */
@@ -292,6 +295,35 @@ static const struct hisi_gate_clock hi3520dv100_gate_clks[] = {
 	{ HI3520DV100_VICAP_TEST_CLK, "clk_vicap_test", "24m", 0, 0x2c, 22, 0, },
 };
 
+/*
+ * The earlier device tree of the SFC (a node that lists only
+ * hisilicon,hi3520dv100-sfc) has no clock property, so no driver claims the
+ * gate and nothing but this provider can turn it on. The gate used to be
+ * CLK_IS_CRITICAL, which enabled it when it was registered; keep that for
+ * such a node only, so that it does not depend on what the boot loader left
+ * in PERI_CRG48, and leave the gate to the driver for a node with the clock.
+ */
+static void __init hi3520dv100_sfc_legacy_gate(struct hisi_clock_data *clk_data)
+{
+	struct clk *clk = clk_data->clk_data.clks[HI3520DV100_SFC_CLK];
+	struct device_node *sfc;
+
+	if (IS_ERR_OR_NULL(clk))
+		return;
+
+	for_each_compatible_node(sfc, NULL, "hisilicon,hi3520dv100-sfc") {
+		if (!of_device_is_available(sfc) || of_property_present(sfc, "clocks"))
+			continue;
+
+		pr_warn("%pOF has no \"clocks\" property, enabling the SFC gate here; add clocks = <&crg HI3520DV100_SFC_CLK>\n",
+			sfc);
+		if (clk_prepare_enable(clk))
+			pr_err("%s: cannot enable the SFC gate\n", __func__);
+		of_node_put(sfc);
+		break;
+	}
+}
+
 static void __init hi3520dv100_crg_clk_init(struct device_node *np)
 {
 	struct hisi_clock_data *clk_data;
@@ -314,6 +346,8 @@ static void __init hi3520dv100_crg_clk_init(struct device_node *np)
 			      ARRAY_SIZE(hi3520dv100_mux_clks), clk_data);
 	hisi_clk_register_gate(hi3520dv100_gate_clks,
 			       ARRAY_SIZE(hi3520dv100_gate_clks), clk_data);
+
+	hi3520dv100_sfc_legacy_gate(clk_data);
 }
 
 CLK_OF_DECLARE_DRIVER(hi3520dv100_crg, "hisilicon,hi3520dv100-crg", hi3520dv100_crg_clk_init);

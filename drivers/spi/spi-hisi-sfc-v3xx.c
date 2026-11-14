@@ -1328,7 +1328,7 @@ static int hisi_sfc_v3xx_probe(struct platform_device *pdev)
 			ret = reset_control_deassert(rstc);
 			if (ret)
 				return dev_err_probe(dev, ret, "cannot deassert reset\n");
-			/* The controller is left running on unbind: it may be the boot flash */
+			/* The reset is left deasserted on unbind: it may be the boot flash */
 			usleep_range(10, 20);
 		}
 	}
