@@ -70,8 +70,15 @@
 	status = "okay";
 };
 
-/*
- * SMSC USB2514 hub and RTL8188EUS behind the EHCI, OHCI is the companion.
- * Both hosts stay disabled: the USB PHY needs its own driver, which comes
- * with a separate series that enables them.
- */
+/* SMSC USB2514 hub and RTL8188EUS behind the EHCI, OHCI is the companion */
+&ehci {
+	status = "okay";
+};
+
+&ohci {
+	status = "okay";
+};
+
+&usb_phy {
+	status = "okay";
+};

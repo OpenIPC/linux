@@ -12,7 +12,7 @@
  * back from the hardware, so no boot loader state is assumed.
  *
  * Blocks without a driver in this tree (RTC, I2C, IR, PWM, DDR controller,
- * pinctrl, the media blocks, the USB PHY and the SATA PHY) are not
+ * pinctrl, the media blocks and the SATA PHY) are not
  * described yet. The IP blocks that generic drivers handle (SP804, SP805,
  * PL011, PL022, PL061) are listed as disabled reference nodes.
  */
@@ -142,13 +142,25 @@
 
 		/*
 		 * SC_CTRL: the SP804 and SP805 count clock selects. The USB 2.0 PHY
-		 * control is in this window too (PERI_USB at 0x20050080); a USB PHY
-		 * node goes here as a child once a driver exists.
+		 * control word is in this window too (PERI_USB at 0x20050080), so
+		 * the PHY is a child node using this node's regmap.
 		 */
 		sysctrl: system-controller@20050000 {
 			compatible = "hisilicon,hi3520dv100-sysctrl", "syscon", "simple-mfd";
 			reg = <0x20050000 0x1000>;
 			#clock-cells = <1>;
+
+			usb_phy: usb-phy {
+				compatible = "hisilicon,hi3520dv100-usb2-phy";
+				#phy-cells = <0>;
+				clocks = <&crg HI3520DV100_USB_CLK>;
+				/* PERI_CRG46: PHY REQ, port TREQs, UTMI0/1, hub */
+				resets = <&crg 0xb8 1>, <&crg 0xb8 2>, <&crg 0xb8 3>,
+					 <&crg 0xb8 5>, <&crg 0xb8 6>, <&crg 0xb8 4>;
+				reset-names = "phy", "port0-treq", "port1-treq",
+					      "utmi0", "utmi1", "hub";
+				status = "disabled";
+			};
 		};
 
 		/* SFC v350: the register layout of the v3xx SPI-NOR controller. */
@@ -178,9 +190,7 @@
 
 		/*
 		 * USB 2.0 host: clock gate and AHB reset in PERI_CRG46. The PHY
-		 * (PERI_USB 0x20050080 and the PHY resets in PERI_CRG46) has no
-		 * driver in this tree: the root hub starts, but ports only work
-		 * when the boot loader has set the PHY up.
+		 * is the usb-phy child of the system controller.
 		 */
 		ohci: usb@100a0000 {
 			compatible = "generic-ohci";
@@ -188,6 +198,8 @@
 			interrupts = <GIC_SPI 22 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&crg HI3520DV100_USB_CLK>;
 			resets = <&crg 0xb8 0>;
+			phys = <&usb_phy>;
+			phy-names = "usb";
 			status = "disabled";
 		};
 
@@ -197,6 +209,8 @@
 			interrupts = <GIC_SPI 21 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&crg HI3520DV100_USB_CLK>;
 			resets = <&crg 0xb8 0>;
+			phys = <&usb_phy>;
+			phy-names = "usb";
 			status = "disabled";
 		};
 
