@@ -27,6 +27,7 @@
 	interrupt-parent = <&gic>;
 
 	aliases {
+		ethernet0 = &eth_up;
 		serial0 = &uart0;
 		serial1 = &uart1;
 		serial2 = &uart2;
