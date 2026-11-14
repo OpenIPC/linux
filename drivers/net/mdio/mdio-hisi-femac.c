@@ -82,6 +82,7 @@ struct hisi_femac_mdio_data {
 	struct mii_bus *bus;
 	u32 phy_addr;
 	bool fephy_addr_only;
+	bool fephy_clk_on;
 };
 
 static int hisi_femac_mdio_wait_ready(struct hisi_femac_mdio_data *data)
@@ -201,7 +202,8 @@ static void hisi_femac_fephy_reset(struct hisi_femac_mdio_data *data)
 	val |= data->phy_addr;
 	writel(val, data->fephy_iobase);
 
-	clk_prepare_enable(data->fephy_clk);
+	if (!clk_prepare_enable(data->fephy_clk))
+		data->fephy_clk_on = true;
 	udelay(10);
 
 	reset_control_assert(data->fephy_rst);
@@ -408,19 +410,25 @@ static int hisi_femac_mdio_probe(struct platform_device *pdev)
 		goto err_out_free_mdiobus;
 	}
 
-	data->fephy_clk = devm_clk_get(&pdev->dev, "phy");
-	if (IS_ERR(data->fephy_clk))
-		data->fephy_clk = NULL;
+	data->fephy_clk = devm_clk_get_optional(&pdev->dev, "phy");
+	if (IS_ERR(data->fephy_clk)) {
+		ret = dev_err_probe(&pdev->dev, PTR_ERR(data->fephy_clk),
+				    "failed to get the PHY clock\n");
+		goto err_out_free_mdiobus;
+	}
 
 	ret = clk_prepare_enable(data->clk);
 	if (ret)
 		goto err_out_free_mdiobus;
 
-	data->phy_rst = devm_reset_control_get(&pdev->dev, "external-phy");
+	data->phy_rst = devm_reset_control_get_optional_exclusive(&pdev->dev,
+								  "external-phy");
 	if (IS_ERR(data->phy_rst)) {
-		data->phy_rst = NULL;
-		dev_info(&pdev->dev, "no external-phy reset\n");
-	} else {
+		ret = dev_err_probe(&pdev->dev, PTR_ERR(data->phy_rst),
+				    "failed to get the external PHY reset\n");
+		goto err_out_disable_clk;
+	}
+	if (data->phy_rst) {
 		ret = of_property_read_u32_array(np,
 						 PHY_RESET_DELAYS_PROPERTY,
 						 data->phy_reset_delays,
@@ -433,12 +441,12 @@ static int hisi_femac_mdio_probe(struct platform_device *pdev)
 		hisi_femac_phy_reset(data);
 	}
 
-	data->fephy_rst = devm_reset_control_get(&pdev->dev, "internal-phy");
+	data->fephy_rst = devm_reset_control_get_optional_exclusive(&pdev->dev,
+								    "internal-phy");
 	if (IS_ERR(data->fephy_rst)) {
-		data->fephy_rst = NULL;
-		dev_info(&pdev->dev, "no internal-phy reset control\n");
-	} else {
-		dev_info(&pdev->dev, "got internal-phy reset control\n");
+		ret = dev_err_probe(&pdev->dev, PTR_ERR(data->fephy_rst),
+				    "failed to get the internal PHY reset\n");
+		goto err_out_disable_clk;
 	}
 
 	hisi_femac_get_phy_addr(data, np);
@@ -467,7 +475,8 @@ static int hisi_femac_mdio_probe(struct platform_device *pdev)
 	return 0;
 
 err_out_disable_clk:
-	clk_disable_unprepare(data->fephy_clk);
+	if (data->fephy_clk_on)
+		clk_disable_unprepare(data->fephy_clk);
 	clk_disable_unprepare(data->clk);
 err_out_free_mdiobus:
 	mdiobus_free(bus);
@@ -480,6 +489,8 @@ static void hisi_femac_mdio_remove(struct platform_device *pdev)
 	struct hisi_femac_mdio_data *data = bus->priv;
 
 	mdiobus_unregister(bus);
+	if (data->fephy_clk_on)
+		clk_disable_unprepare(data->fephy_clk);
 	clk_disable_unprepare(data->clk);
 	mdiobus_free(bus);
 
