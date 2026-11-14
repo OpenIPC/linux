@@ -1,0 +1,83 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/phy/hisilicon,hi3520dv100-usb2-phy.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: HiSilicon Hi3520D V100 USB 2.0 PHY
+
+maintainers:
+  - Dylan Corrales <deathcamel58@gmail.com>
+
+description: |
+  The two-port USB 2.0 PHY of the Hi3520D V100 (and the Hi3515A and Hi3515C
+  of the same data sheet) has no registers of its own. It is released from
+  reset by bits in the clock and reset generator (PERI_CRG46) and set up
+  through the USB control word PERIPHCTRL20 (PERI_USB) of the system
+  controller. The PHY node must be a child of the system controller node
+  (hisilicon,hi3520dv100-sysctrl), whose regmap holds that word.
+
+  The compatible carries the silicon revision and has no generic fallback:
+  later SoCs get their own compatible, as their control word and reset
+  sequences differ.
+
+  The EHCI and OHCI controllers use the PHY through the generic "phys"
+  property.
+
+properties:
+  compatible:
+    const: hisilicon,hi3520dv100-usb2-phy
+
+  '#phy-cells':
+    const: 0
+
+  clocks:
+    items:
+      - description: USB clock gate (PERI_CRG46 bit 7)
+
+  resets:
+    items:
+      - description: PHY request reset
+      - description: Port 0 PHY TREQ reset
+      - description: Port 1 PHY TREQ reset
+      - description: UTMI port 0 reset
+      - description: UTMI port 1 reset
+      - description: Hub reset
+
+  reset-names:
+    items:
+      - const: phy
+      - const: port0-treq
+      - const: port1-treq
+      - const: utmi0
+      - const: utmi1
+      - const: hub
+
+required:
+  - compatible
+  - '#phy-cells'
+  - clocks
+  - resets
+  - reset-names
+
+additionalProperties: false
+
+examples:
+  - |
+    #include <dt-bindings/clock/hi3520dv100-clock.h>
+
+    system-controller@20050000 {
+        compatible = "hisilicon,hi3520dv100-sysctrl", "syscon", "simple-mfd";
+        reg = <0x20050000 0x1000>;
+        #clock-cells = <1>;
+
+        usb-phy {
+            compatible = "hisilicon,hi3520dv100-usb2-phy";
+            #phy-cells = <0>;
+            clocks = <&crg HI3520DV100_USB_CLK>;
+            resets = <&crg 0xb8 1>, <&crg 0xb8 2>, <&crg 0xb8 3>,
+                     <&crg 0xb8 5>, <&crg 0xb8 6>, <&crg 0xb8 4>;
+            reset-names = "phy", "port0-treq", "port1-treq",
+                          "utmi0", "utmi1", "hub";
+        };
+    };

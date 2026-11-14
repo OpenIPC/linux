@@ -54,12 +54,10 @@ properties:
   '#size-cells':
     const: 1
 
-patternProperties:
-  '^phy(@[0-9a-f]+)?$':
-    type: object
+  usb-phy:
+    $ref: /schemas/phy/hisilicon,hi3520dv100-usb2-phy.yaml#
     description:
-      Child device of the system controller (only with simple-mfd), for example
-      the USB PHY.
+      The USB 2.0 PHY, a child of the system controller (only with simple-mfd).
 
 required:
   - compatible
@@ -76,8 +74,7 @@ allOf:
       properties:
         compatible:
           maxItems: 2
-      patternProperties:
-        '^phy(@[0-9a-f]+)?$': false
+        usb-phy: false
       required:
         - '#reset-cells'
     else:
