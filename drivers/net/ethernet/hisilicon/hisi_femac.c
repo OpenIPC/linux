@@ -928,6 +928,7 @@ static int hisi_femac_drv_probe(struct platform_device *pdev)
 	struct hisi_femac_priv *priv;
 	struct phy_device *phy;
 	struct device_node *phy_node;
+	int mac_ret;
 	int ret;
 
 	ndev = alloc_etherdev(sizeof(*priv));
@@ -941,6 +942,22 @@ static int hisi_femac_drv_probe(struct platform_device *pdev)
 	priv->dev = dev;
 	priv->ndev = ndev;
 	spin_lock_init(&priv->irq_lock);
+
+	/*
+	 * Standard sources only: "mac-address", "local-mac-address" or
+	 * "address" (set by the bootloader), or an NVMEM cell named
+	 * "mac-address". An NVMEM provider that is not there yet defers the
+	 * probe instead of leaving the board with a random address. The
+	 * lookup needs neither the clock nor a reset, so a deferral has
+	 * nothing to unwind. The random address is chosen below, once the
+	 * PHY no longer defers the probe.
+	 */
+	mac_ret = of_get_ethdev_address(node, ndev);
+	if (mac_ret == -EPROBE_DEFER) {
+		ret = dev_err_probe(dev, mac_ret,
+				    "the MAC address is not available yet\n");
+		goto out_free_netdev;
+	}
 
 	priv->port_base = devm_platform_ioremap_resource(pdev, 0);
 	if (IS_ERR(priv->port_base)) {
@@ -1019,8 +1036,7 @@ static int hisi_femac_drv_probe(struct platform_device *pdev)
 			   (unsigned long)phy->phy_id,
 			   phy_modes(phy->interface));
 
-	ret = of_get_ethdev_address(node, ndev);
-	if (ret) {
+	if (mac_ret) {
 		eth_hw_addr_random(ndev);
 		dev_warn(dev, "using random MAC address %pM\n",
 			 ndev->dev_addr);
