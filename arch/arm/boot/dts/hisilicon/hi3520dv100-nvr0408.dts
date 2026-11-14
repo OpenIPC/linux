@@ -45,6 +45,7 @@
 		reg = <1>;
 		label = "hi_sfc";
 		spi-max-frequency = <50000000>;
+		spi-rx-bus-width = <2>;
 	};
 };
 
