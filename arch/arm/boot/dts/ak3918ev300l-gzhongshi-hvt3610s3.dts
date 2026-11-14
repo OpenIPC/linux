@@ -1,0 +1,45 @@
+/*
+ * GZhongshi HVT3610S3 (QQ-WiFi V2.0): AK3918EV300L, 64 MiB, SmartSens
+ * SC1346 at 0x32, ATBM603x Wi-Fi on USB, 8 MiB SPI NOR, no Ethernet. The
+ * generic EV300L board with the sensor wiring of the camera's own device
+ * tree (vendor U-Boot 2019.10.0-V4.0.25, kernel 4.4.282): two sensor
+ * candidates, 0x30 with its reset on GPIO 19 and 0x32 with its reset on
+ * GPIO 18, both active low and neither with a power-down line, where the
+ * EVB has one sensor at 0x30 with GPIO 18 as its power-down.
+ */
+
+#include "ak3918ev300l-demb.dts"
+
+/ {
+	model = "GZhongshi HVT3610S3 (AK3918EV300L)";
+	compatible = "gzhongshi,hvt3610s3", "anyka,ak3918ev300l";
+};
+
+&sensor0 {
+	reset-gpio = <&gpio XGPIO_019 1>;
+	pwdn-gpio = <&gpio 0xffff 1>;
+};
+
+&i2c0 {
+	sensor1: camera@0x32 {
+		compatible = "anyka,sensor0";
+		reg = <0x32>;
+		reset-gpio = <&gpio XGPIO_018 1>;
+		pwdn-gpio = <&gpio 0xffff 1>;
+
+		port {
+			sensor1_0: endpoint@1 {
+				remote-endpoint = <&vi_0_1>;
+			};
+		};
+	};
+};
+
+&vi0 {
+	port@0 {
+		vi_0_1: endpoint@1 {
+			reg = <1>;
+			remote-endpoint = <&sensor1_0>;
+		};
+	};
+};
