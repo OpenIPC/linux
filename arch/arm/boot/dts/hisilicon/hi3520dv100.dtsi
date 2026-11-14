@@ -163,11 +163,22 @@
 			};
 		};
 
-		/* SFC v350: the register layout of the v3xx SPI-NOR controller. */
+		/*
+		 * SFC v350 (HISFC350). The second reg entry is the flash bus
+		 * window. The SPI clock is the SFC clock divided by two. The
+		 * clock source is selected here and not left to the boot
+		 * loader, which may have selected the 24 MHz or the 112.5 MHz
+		 * source. The soft reset is bit 0 of PERI_CRG48 (0xc0).
+		 */
 		sfc: spi@10010000 {
-			compatible = "hisilicon,hi3520dv100-sfc";
-			reg = <0x10010000 0x1000>;
+			compatible = "hisilicon,hi3520dv100-sfc", "hisilicon,hisfc350";
+			reg = <0x10010000 0x10000>, <0x58000000 0x4000000>;
+			reg-names = "regs", "mem";
 			num-cs = <2>;
+			clocks = <&crg HI3520DV100_SFC_CLK>;
+			resets = <&crg 0xc0 0>;
+			assigned-clocks = <&crg HI3520DV100_SFC_MUX>;
+			assigned-clock-parents = <&crg HI3520DV100_FIXED_75M>;
 			#address-cells = <1>;
 			#size-cells = <0>;
 			status = "disabled";
