@@ -203,7 +203,8 @@ dtb-$(CONFIG_ARCH_EXYNOS5) += \
 dtb-$(CONFIG_ARCH_FULLHAN) += \
 	ato3fh1fin-sc1345.dtb \
 	ato3fh1fin-sc2336.dtb \
-	fh8626v100.dtb
+	fh8626v100.dtb \
+	fh8626v100-tenda-cp3-v22.dtb
 dtb-$(CONFIG_ARCH_GEMINI) += \
 	gemini-dlink-dir-685.dtb \
 	gemini-dlink-dns-313.dtb \
