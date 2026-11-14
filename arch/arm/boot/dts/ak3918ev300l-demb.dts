@@ -86,3 +86,27 @@
 &ethernet {
 	reset-gpios = <&gpio XGPIO_071 1>;
 };
+
+/*
+ * Speaker amplifier enable on GPIO 69 (function 2), active high. The EVB's
+ * GPIO 37 is this camera's card detect, which mmc1 claims first, leaving
+ * the audio driver without its pin.
+ */
+&speaker_en_pins {
+	anyka,pins = <XGPIO_069>;
+	anyka,function = <XGPIO_069_FUNC_GPIO69>;
+	anyka,pull = <0x00808000>;
+};
+
+&adc_dac {
+	speak-gpios = <&gpio XGPIO_069 1>;
+};
+
+/*
+ * No SDIO Wi-Fi: this camera's Wi-Fi is on USB, and its own device tree
+ * disables mmc2. The EVB's mmc2 powers its module from GPIO 98, this
+ * camera's TF power pin, which it would otherwise contend for with mmc1.
+ */
+&mmc2 {
+	status = "disabled";
+};
