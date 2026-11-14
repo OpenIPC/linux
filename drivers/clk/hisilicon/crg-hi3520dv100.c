@@ -31,7 +31,11 @@
 
 #define HI3520DV100_CRG_NR_CLKS		80
 
-/* internal clock IDs (not in the binding): VICAP channel clock dividers */
+/*
+ * Internal clock IDs, not part of the binding: VICAP channel clock dividers.
+ * They share the index space of the public IDs in hi3520dv100-clock.h, so
+ * public IDs must stay below 70.
+ */
 #define HI3520DV100_VICAP_DIV0_CLK		70
 #define HI3520DV100_VICAP_DIV1_CLK		71
 #define HI3520DV100_VICAP_DIV4_CLK		72
@@ -169,20 +173,20 @@ static const struct hisi_fixed_factor_clock hi3520dv100_fixed_factor_clks[] = {
  */
 static const char *const uart_mux_p[] = { "apb", "2m" };
 /*
- * SFC2X source, PERI_CRG48[3:2]: 0b00 = 24 MHz, 0b01 = 75 MHz, 0b10 = 24 MHz
- * (alias). 0b11 is reserved in the data sheet; the boot code leaves it
- * selected (observed after boot, flash works), rate unverified, modelled as
- * 112.5 MHz.
+ * SFC2X source, PERI_CRG48[3:2]: 0b00 and 0b10 = 24 MHz, 0b01 = 75 MHz,
+ * 0b11 = 112.5 MHz (EPLL VCO / 12 at the EPLL reset settings). The 0b11 row is
+ * only in the original Chinese data sheet, the boot code leaves it selected
+ * and the flash runs from it. The selector value equals the parent index, so
+ * the mux needs no table.
  */
 static const char *const sfc_mux_p[] = { "24m", "75m", "24m", "112.5m" };
-static u32 sfc_mux_table[] = { 0, 1, 2, 3 };
 static const char *const pwm_mux_p[] = { "3m", "24m" };
 
 static const struct hisi_mux_clock hi3520dv100_mux_clks[] = {
 	{ HI3520DV100_UART_MUX, "uart_mux", uart_mux_p, ARRAY_SIZE(uart_mux_p),
 		0, 0xe4, 14, 1, 0, NULL, },
 	{ HI3520DV100_SFC_MUX, "sfc_mux", sfc_mux_p, ARRAY_SIZE(sfc_mux_p),
-		0, 0xc0, 2, 2, 0, sfc_mux_table, },
+		0, 0xc0, 2, 2, 0, NULL, },
 	{ HI3520DV100_PWM_MUX, "pwm_mux", pwm_mux_p, ARRAY_SIZE(pwm_mux_p),
 		0, 0x38, 2, 1, 0, NULL, },
 };
