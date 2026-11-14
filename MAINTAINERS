@@ -1517,6 +1517,8 @@ F:	drivers/media/i2c/gc1054.c
 F:	drivers/media/i2c/gc1054-modes.h
 F:	drivers/media/i2c/gc2053.c
 F:	drivers/media/i2c/gc2053-modes.h
+F:	drivers/media/i2c/gc2083.c
+F:	drivers/media/i2c/gc2083-modes.h
 F:	drivers/media/i2c/jxf37.c
 F:	drivers/media/i2c/jxf37-modes.h
 F:	drivers/media/i2c/sp2306.c
@@ -13662,6 +13664,7 @@ S:	Maintained
 F:	drivers/media/i2c/imx274.c
 F:	Documentation/devicetree/bindings/media/i2c/imx274.txt
 F:	Documentation/devicetree/bindings/media/i2c/galaxycore,gc2053.txt
+F:	Documentation/devicetree/bindings/media/i2c/galaxycore,gc2083.txt
 F:	Documentation/devicetree/bindings/media/i2c/soi,jxf37.txt
 F:	Documentation/devicetree/bindings/media/i2c/superpix,sp2306.txt
 F:	Documentation/devicetree/bindings/media/i2c/superpix,sp1405.txt
