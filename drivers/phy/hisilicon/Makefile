@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0-only
+obj-$(CONFIG_PHY_HI3520D_USB2)		+= phy-hi3520d-usb2.o
 obj-$(CONFIG_PHY_HI6220_USB)		+= phy-hi6220-usb.o
 obj-$(CONFIG_PHY_HI3660_USB)		+= phy-hi3660-usb3.o
 obj-$(CONFIG_PHY_HI3670_USB)		+= phy-hi3670-usb3.o

@@ -11495,6 +11495,12 @@ S:	Maintained
 F:	Documentation/devicetree/bindings/gpio/hisilicon,ascend910-gpio.yaml
 F:	drivers/gpio/gpio-hisi.c
 
+HISILICON HI3520D USB 2.0 PHY DRIVER
+M:	Dylan Corrales <deathcamel58@gmail.com>
+S:	Maintained
+F:	Documentation/devicetree/bindings/phy/hisilicon,hi3520dv100-usb2-phy.yaml
+F:	drivers/phy/hisilicon/phy-hi3520d-usb2.c
+
 HISILICON HIGH PERFORMANCE RSA ENGINE DRIVER (HPRE)
 M:	Zhiqi Song <songzhiqi1@huawei.com>
 M:	Longfang Liu <liulongfang@huawei.com>

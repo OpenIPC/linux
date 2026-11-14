@@ -69,3 +69,18 @@ config PHY_HIX5HD2_SATA
 	select MFD_SYSCON
 	help
 	  Support for SATA PHY on Hisilicon hix5hd2 Soc.
+
+config PHY_HI3520D_USB2
+	tristate "Hi3520D V100 USB 2.0 PHY driver"
+	depends on ARCH_HISI || ARCH_HISI_BVT || COMPILE_TEST
+	depends on OF && HAS_IOMEM
+	depends on RESET_CONTROLLER || COMPILE_TEST
+	select GENERIC_PHY
+	select MFD_SYSCON
+	help
+	  Support for the USB 2.0 PHY of the HiSilicon Hi3520D V100 (and the
+	  Hi3515A and Hi3515C of the same data sheet). The PHY is released
+	  from reset through the CRG and configured through the USB control
+	  word of the system controller, which must be its parent node.
+
+	  To compile this driver as a module, choose M here.
