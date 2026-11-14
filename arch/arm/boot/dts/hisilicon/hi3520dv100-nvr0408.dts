@@ -52,6 +52,7 @@
 		reg = <1>;
 		label = "hi_sfc";
 		spi-rx-bus-width = <2>;
+		spi-tx-bus-width = <2>;
 	};
 };
 
