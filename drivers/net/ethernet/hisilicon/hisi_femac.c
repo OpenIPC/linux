@@ -14,7 +14,9 @@
 #include <linux/of_net.h>
 #include <linux/platform_device.h>
 #include <linux/reset.h>
+#include <linux/rtnetlink.h>
 #include <linux/spinlock.h>
+#include <linux/workqueue.h>
 
 /* MAC control register list */
 #define MAC_PORTSEL			0x0200
@@ -159,15 +161,14 @@ static void hisi_femac_tx_dma_unmap(struct hisi_femac_priv *priv,
 	dma_unmap_single(priv->dev, dma_addr, skb->len, DMA_TO_DEVICE);
 }
 
-static void hisi_femac_xmit_reclaim(struct net_device *dev)
+/* Called with the TX lock held, returns the number of reclaimed packets */
+static unsigned int hisi_femac_xmit_reclaim_locked(struct net_device *dev)
 {
 	struct sk_buff *skb;
 	struct hisi_femac_priv *priv = netdev_priv(dev);
 	struct hisi_femac_queue *txq = &priv->txq;
 	unsigned int bytes_compl = 0, pkts_compl = 0;
 	u32 val;
-
-	netif_tx_lock(dev);
 
 	val = readl(priv->port_base + ADDRQ_STAT) & TX_CNT_INUSE_MASK;
 	while (val < priv->tx_fifo_used_cnt) {
@@ -191,7 +192,14 @@ static void hisi_femac_xmit_reclaim(struct net_device *dev)
 
 	netdev_completed_queue(dev, pkts_compl, bytes_compl);
 
-	if (unlikely(netif_queue_stopped(dev)) && pkts_compl)
+	return pkts_compl;
+}
+
+static void hisi_femac_xmit_reclaim(struct net_device *dev)
+{
+	netif_tx_lock(dev);
+
+	if (hisi_femac_xmit_reclaim_locked(dev) && netif_queue_stopped(dev))
 		netif_wake_queue(dev);
 
 	netif_tx_unlock(dev);
@@ -321,7 +329,7 @@ static int hisi_femac_poll(struct napi_struct *napi, int budget)
 					struct hisi_femac_priv, napi);
 	struct net_device *dev = priv->ndev;
 	int work_done = 0, task = budget;
-	int ints, num;
+	int ints, num, enable;
 
 	do {
 		hisi_femac_xmit_reclaim(dev);
@@ -338,8 +346,16 @@ static int hisi_femac_poll(struct napi_struct *napi, int budget)
 
 	if (work_done < budget) {
 		napi_complete_done(napi, work_done);
-		hisi_femac_irq_enable(priv, DEF_INT_MASK &
-					(~IRQ_INT_TX_PER_PACKET));
+		/*
+		 * The handler masked the per-packet TX event as well. Keep it
+		 * as the wake-up source while the queue waits for room,
+		 * otherwise the queue only wakes when the hardware queue has
+		 * run empty.
+		 */
+		enable = DEF_INT_MASK;
+		if (!netif_queue_stopped(dev))
+			enable &= ~IRQ_INT_TX_PER_PACKET;
+		hisi_femac_irq_enable(priv, enable);
 	}
 
 	return work_done;
@@ -530,12 +546,43 @@ static int hisi_femac_net_close(struct net_device *dev)
 	if (dev->phydev)
 		phy_stop(dev->phydev);
 
-	netif_stop_queue(dev);
+	/*
+	 * Nothing may start or wake the transmitter once the rings are freed:
+	 * the poll is stopped first (it reclaims frames and wakes the queue),
+	 * and netif_tx_disable() waits for a transmit that is in progress on
+	 * another CPU. The carrier is off so that the watchdog stays quiet.
+	 */
+	netif_carrier_off(dev);
 	napi_disable(&priv->napi);
+	netif_tx_disable(dev);
 
 	hisi_femac_free_skb_rings(priv);
 
 	return 0;
+}
+
+/* The hardware cannot take another frame or the software ring is full */
+static bool hisi_femac_tx_full(struct hisi_femac_priv *priv)
+{
+	struct hisi_femac_queue *txq = &priv->txq;
+
+	return !(readl(priv->port_base + ADDRQ_STAT) & BIT_TX_READY) ||
+	       !CIRC_SPACE(txq->head, txq->tail, txq->num);
+}
+
+/*
+ * Stop the queue and make sure that a completion cannot be missed: the
+ * per-packet interrupt is enabled before the check for a completion that
+ * came in before the queue was stopped. Called with the TX lock held.
+ */
+static void hisi_femac_tx_stop(struct net_device *dev)
+{
+	struct hisi_femac_priv *priv = netdev_priv(dev);
+
+	hisi_femac_irq_enable(priv, IRQ_INT_TX_PER_PACKET);
+	netif_stop_queue(dev);
+	if (hisi_femac_xmit_reclaim_locked(dev) && !hisi_femac_tx_full(priv))
+		netif_wake_queue(dev);
 }
 
 static netdev_tx_t hisi_femac_net_xmit(struct sk_buff *skb,
@@ -544,25 +591,26 @@ static netdev_tx_t hisi_femac_net_xmit(struct sk_buff *skb,
 	struct hisi_femac_priv *priv = netdev_priv(dev);
 	struct hisi_femac_queue *txq = &priv->txq;
 	dma_addr_t addr;
-	u32 val;
 
-	val = readl(priv->port_base + ADDRQ_STAT);
-	val &= BIT_TX_READY;
-	if (!val) {
-		hisi_femac_irq_enable(priv, IRQ_INT_TX_PER_PACKET);
-		dev->stats.tx_dropped++;
-		dev->stats.tx_fifo_errors++;
-		netif_stop_queue(dev);
-		return NETDEV_TX_BUSY;
-	}
-
-	if (unlikely(!CIRC_SPACE(txq->head, txq->tail,
-				 txq->num))) {
-		hisi_femac_irq_enable(priv, IRQ_INT_TX_PER_PACKET);
-		dev->stats.tx_dropped++;
-		dev->stats.tx_fifo_errors++;
-		netif_stop_queue(dev);
-		return NETDEV_TX_BUSY;
+	/*
+	 * The queue is stopped as soon as the hardware or the ring has no room
+	 * left, so there is room here. If the hardware was slow to report the
+	 * state, stop the queue now and let the stack requeue the frame; the
+	 * queue is stopped, so returning BUSY is allowed. With nothing in
+	 * flight no completion would ever wake the queue again, so the frame
+	 * is dropped instead and the queue stays running.
+	 */
+	if (unlikely(hisi_femac_tx_full(priv))) {
+		hisi_femac_xmit_reclaim_locked(dev);
+		if (hisi_femac_tx_full(priv)) {
+			if (priv->tx_fifo_used_cnt) {
+				hisi_femac_tx_stop(dev);
+				return NETDEV_TX_BUSY;
+			}
+			dev_kfree_skb_any(skb);
+			dev->stats.tx_dropped++;
+			return NETDEV_TX_OK;
+		}
 	}
 
 	addr = dma_map_single(priv->dev, skb->data,
@@ -585,6 +633,9 @@ static netdev_tx_t hisi_femac_net_xmit(struct sk_buff *skb,
 	dev->stats.tx_packets++;
 	dev->stats.tx_bytes += skb->len;
 	netdev_sent_queue(dev, skb->len);
+
+	if (hisi_femac_tx_full(priv))
+		hisi_femac_tx_stop(dev);
 
 	return NETDEV_TX_OK;
 }
