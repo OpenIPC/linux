@@ -170,13 +170,13 @@ static void hisi_femac_get_phy_addr(struct hisi_femac_mdio_data *data,
 
 	child = of_get_next_available_child(np, NULL);
 	if (!child) {
-		pr_err("%s: No valid PHY device node!\n", __func__);
+		dev_err(data->bus->parent, "No valid PHY device node!\n");
 		return;
 	}
 
 	addr = of_mdio_parse_addr(&data->bus->dev, child);
 	if (addr < 0) {
-		pr_err("%s: get PHY address failed!\n", __func__);
+		dev_err(data->bus->parent, "get PHY address failed!\n");
 		return;
 	}
 
@@ -239,12 +239,12 @@ static inline int fephy_expanded_write(struct mii_bus *bus, int phy_addr,
 	return ret;
 }
 
-void hisi_femac_fephy_use_default_trim(struct hisi_femac_mdio_data *data)
+static void hisi_femac_fephy_use_default_trim(struct hisi_femac_mdio_data *data)
 {
 	unsigned short val;
 	int timeout = 3;
 
-	pr_info("No OTP data, festa PHY use default ATE parameters!\n");
+	dev_dbg(data->bus->parent, "No OTP data, festa PHY uses default ATE parameters\n");
 
 	do {
 		msleep(250);
@@ -254,7 +254,7 @@ void hisi_femac_fephy_use_default_trim(struct hisi_femac_mdio_data *data)
 	} while (!val && --timeout);
 
 	if (!timeout)
-		pr_err("festa PHY wait autotrim done timeout!\n");
+		dev_err(data->bus->parent, "festa PHY wait autotrim done timeout!\n");
 
 	mdelay(5);
 }
@@ -298,7 +298,7 @@ static void hisi_femac_fephy_trim(struct hisi_femac_mdio_data *data)
 
 	val = fephy_expanded_read(bus, phy_addr, REG_WR_DONE);
 	if (val & BIT_CFG_ACK)
-		pr_err("festa PHY 0x3053 bit CFG_ACK value: 1\n");
+		dev_err(data->bus->parent, "festa PHY 0x3053 bit CFG_ACK value: 1\n");
 	val = val | BIT_CFG_DONE;
 	fephy_expanded_write(bus, phy_addr, REG_WR_DONE, val);
 
@@ -308,11 +308,11 @@ static void hisi_femac_fephy_trim(struct hisi_femac_mdio_data *data)
 		val &= BIT_CFG_ACK;
 	} while (!val && --timeout);
 	if (!timeout)
-		pr_err("festa PHY 0x3053 wait bit CFG_ACK timeout!\n");
+		dev_err(data->bus->parent, "festa PHY 0x3053 wait bit CFG_ACK timeout!\n");
 
 	mdelay(5);
 
-	pr_info("FEPHY:addr=%d, la_am=0x%x, ldo_am=0x%x, r_tuning=0x%x\n",
+	dev_dbg(data->bus->parent, "FEPHY:addr=%d, la_am=0x%x, ldo_am=0x%x, r_tuning=0x%x\n",
 		phy_addr,
 		fephy_expanded_read(bus, phy_addr, REG_LD_AM),
 		fephy_expanded_read(bus, phy_addr, REG_LDO_AM),
@@ -435,9 +435,9 @@ static int hisi_femac_mdio_probe(struct platform_device *pdev)
 						 DELAYS_NUM);
 		if (ret)
 			goto err_out_disable_clk;
-		dev_info(&pdev->dev, "external PHY reset with delays %u/%u/%u us\n",
-			 data->phy_reset_delays[0], data->phy_reset_delays[1],
-			 data->phy_reset_delays[2]);
+		dev_dbg(&pdev->dev, "external PHY reset with delays %u/%u/%u us\n",
+			data->phy_reset_delays[0], data->phy_reset_delays[1],
+			data->phy_reset_delays[2]);
 		hisi_femac_phy_reset(data);
 	}
 
@@ -452,12 +452,9 @@ static int hisi_femac_mdio_probe(struct platform_device *pdev)
 	hisi_femac_get_phy_addr(data, np);
 	data->fephy_addr_only = data->fephy_iobase &&
 				device_get_match_data(&pdev->dev);
-	dev_info(&pdev->dev, "fephy_iobase=%p fephy_rst=%p fephy_clk=%p use_fephy=%d phy_addr=%d\n",
-		 data->fephy_iobase, data->fephy_rst, data->fephy_clk,
-		 hisi_femac_use_fephy(data), data->phy_addr);
-	if (data->fephy_iobase)
-		dev_info(&pdev->dev, "FEPHY ctrl reg=0x%08x\n",
-			 readl(data->fephy_iobase));
+	dev_dbg(&pdev->dev, "fephy_iobase=%p fephy_rst=%p fephy_clk=%p use_fephy=%d phy_addr=%d\n",
+		data->fephy_iobase, data->fephy_rst, data->fephy_clk,
+		hisi_femac_use_fephy(data), data->phy_addr);
 
 	if (data->fephy_addr_only)
 		hisi_femac_fephy_write_addr(data);
@@ -493,8 +490,6 @@ static void hisi_femac_mdio_remove(struct platform_device *pdev)
 		clk_disable_unprepare(data->fephy_clk);
 	clk_disable_unprepare(data->clk);
 	mdiobus_free(bus);
-
-	return;
 }
 
 static const struct of_device_id hisi_femac_mdio_dt_ids[] = {
