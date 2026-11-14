@@ -44,3 +44,18 @@ config MACH_AK3918EV300L
 	select MULTI_IRQ_HANDLER
 	help
 		Support for AK3918EV300L
+
+config AK_OPENIPC_DTB
+	string "Device tree appended to the uImage"
+	depends on ARCH_AK
+	default "ak3918ev300l-demb" if MACH_AK3918EV300L
+	default "ak3918av100-demb" if MACH_AK3918AV100
+	default ""
+	help
+	  Name, without .dtb, of the blob arch/arm/boot/Makefile appends to
+	  the zImage to make the uImage (CONFIG_ARM_APPENDED_DTB), as
+	  OpenIPC's NOR images boot it: ak3918av100-demb for the 64 MB
+	  AK3918AV100N/P and KM01N, ak3918av100x-demb for the 128 MB
+	  AK3918AV100X/XP and KM01D, ak3918ev300l-demb for the AK3918EV300L,
+	  or a camera's own board. Empty: the plain zImage, as the SDK boots
+	  it with its DTB partition.
