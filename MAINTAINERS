@@ -11673,8 +11673,10 @@ F:	drivers/crypto/hisilicon/trng/trng.c
 
 HISILICON V3XX SPI NOR FLASH Controller Driver
 M:	Yang Shen <shenyang39@huawei.com>
+R:	Dylan Corrales <deathcamel58@gmail.com>
 S:	Maintained
 W:	http://www.hisilicon.com
+F:	Documentation/devicetree/bindings/spi/hisilicon,hisfc350.yaml
 F:	drivers/spi/spi-hisi-sfc-v3xx.c
 
 HISILICON ZIP Controller DRIVER
