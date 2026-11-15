@@ -378,7 +378,7 @@ static int hisi_femac_mdio_probe(struct platform_device *pdev)
 	struct resource *res;
 	int ret;
 
-	bus = mdiobus_alloc_size(sizeof(*data));
+	bus = devm_mdiobus_alloc_size(&pdev->dev, sizeof(*data));
 	if (!bus)
 		return -ENOMEM;
 
@@ -390,52 +390,38 @@ static int hisi_femac_mdio_probe(struct platform_device *pdev)
 
 	data = bus->priv;
 	data->bus = bus;
-	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	data->membase = devm_ioremap_resource(&pdev->dev, res);
-	if (IS_ERR(data->membase)) {
-		ret = PTR_ERR(data->membase);
-		goto err_out_free_mdiobus;
-	}
+	data->membase = devm_platform_ioremap_resource(pdev, 0);
+	if (IS_ERR(data->membase))
+		return PTR_ERR(data->membase);
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 1);
 	if (res) {
 		data->fephy_iobase = devm_ioremap_resource(&pdev->dev, res);
-		if (IS_ERR(data->fephy_iobase)) {
-			ret = PTR_ERR(data->fephy_iobase);
-			goto err_out_free_mdiobus;
-		}
-	} else {
-		data->fephy_iobase = NULL;
+		if (IS_ERR(data->fephy_iobase))
+			return PTR_ERR(data->fephy_iobase);
 	}
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 2);
 	if (res) {
 		data->fephy_trim_iobase = devm_ioremap_resource(&pdev->dev,
 								res);
-		if (IS_ERR(data->fephy_trim_iobase)) {
-			ret = PTR_ERR(data->fephy_trim_iobase);
-			goto err_out_free_mdiobus;
-		}
-	} else {
-		data->fephy_trim_iobase = NULL;
+		if (IS_ERR(data->fephy_trim_iobase))
+			return PTR_ERR(data->fephy_trim_iobase);
 	}
 
 	data->clk = devm_clk_get(&pdev->dev, "mdio");
-	if (IS_ERR(data->clk)) {
-		ret = PTR_ERR(data->clk);
-		goto err_out_free_mdiobus;
-	}
+	if (IS_ERR(data->clk))
+		return dev_err_probe(&pdev->dev, PTR_ERR(data->clk),
+				     "failed to get the MDIO clock\n");
 
 	data->fephy_clk = devm_clk_get_optional(&pdev->dev, "phy");
-	if (IS_ERR(data->fephy_clk)) {
-		ret = dev_err_probe(&pdev->dev, PTR_ERR(data->fephy_clk),
-				    "failed to get the PHY clock\n");
-		goto err_out_free_mdiobus;
-	}
+	if (IS_ERR(data->fephy_clk))
+		return dev_err_probe(&pdev->dev, PTR_ERR(data->fephy_clk),
+				     "failed to get the PHY clock\n");
 
 	ret = clk_prepare_enable(data->clk);
 	if (ret)
-		goto err_out_free_mdiobus;
+		return ret;
 	data->clk_on = true;
 
 	data->phy_rst = devm_reset_control_get_optional_exclusive(&pdev->dev,
@@ -496,8 +482,6 @@ err_out_disable_clk:
 		clk_disable_unprepare(data->fephy_clk);
 	if (data->clk_on)
 		clk_disable_unprepare(data->clk);
-err_out_free_mdiobus:
-	mdiobus_free(bus);
 	return ret;
 }
 
@@ -511,7 +495,6 @@ static void hisi_femac_mdio_remove(struct platform_device *pdev)
 		clk_disable_unprepare(data->fephy_clk);
 	if (data->clk_on)
 		clk_disable_unprepare(data->clk);
-	mdiobus_free(bus);
 }
 
 static const struct of_device_id hisi_femac_mdio_dt_ids[] = {
