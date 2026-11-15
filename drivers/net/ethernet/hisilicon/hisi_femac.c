@@ -17,6 +17,7 @@
 #include <linux/reset.h>
 #include <linux/rtnetlink.h>
 #include <linux/spinlock.h>
+#include <linux/u64_stats_sync.h>
 #include <linux/workqueue.h>
 
 /* MAC control register list */
@@ -207,6 +208,13 @@ struct hisi_femac_priv {
 	struct work_struct reset_work;
 
 	/* 64 bit sums of the 32 bit port counters, see hisi_femac_stats_update() */
+	struct u64_stats_sync tx_syncp;	/* writer: reclaim, under the TX lock */
+	u64 tx_packets;
+	u64 tx_bytes;
+	struct u64_stats_sync rx_syncp;	/* writer: NAPI poll */
+	u64 rx_packets;
+	u64 rx_bytes;
+
 	struct mutex stats_lock;
 	struct delayed_work stats_work;
 	u64 stats[HF_STAT_NUM];
@@ -319,6 +327,11 @@ static unsigned int hisi_femac_xmit_reclaim_locked(struct net_device *dev)
 		txq->skb[txq->tail] = NULL;
 		txq->tail = (txq->tail + 1) % txq->num;
 	}
+
+	u64_stats_update_begin(&priv->tx_syncp);
+	priv->tx_packets += pkts_compl;
+	priv->tx_bytes += bytes_compl;
+	u64_stats_update_end(&priv->tx_syncp);
 
 	netdev_completed_queue(dev, pkts_compl, bytes_compl);
 
@@ -439,8 +452,10 @@ static int hisi_femac_rx(struct net_device *dev, int limit)
 
 		skb->protocol = eth_type_trans(skb, dev);
 		napi_gro_receive(&priv->napi, skb);
-		dev->stats.rx_packets++;
-		dev->stats.rx_bytes += len;
+		u64_stats_update_begin(&priv->rx_syncp);
+		priv->rx_packets++;
+		priv->rx_bytes += len;
+		u64_stats_update_end(&priv->rx_syncp);
 next:
 		pos = (pos + 1) % rxq->num;
 		if (rx_pkts_num >= limit)
@@ -701,6 +716,11 @@ static int hisi_femac_net_close(struct net_device *dev)
 	hisi_femac_stats_update(priv);
 	mutex_unlock(&priv->stats_lock);
 
+	/* Count the frames that the hardware sent since the last reclaim */
+	netif_tx_lock_bh(dev);
+	hisi_femac_xmit_reclaim_locked(dev);
+	netif_tx_unlock_bh(dev);
+
 	hisi_femac_free_skb_rings(priv);
 
 	return 0;
@@ -775,8 +795,6 @@ static netdev_tx_t hisi_femac_net_xmit(struct sk_buff *skb,
 
 	priv->tx_fifo_used_cnt++;
 
-	dev->stats.tx_packets++;
-	dev->stats.tx_bytes += skb->len;
 	netdev_sent_queue(dev, skb->len);
 
 	if (hisi_femac_tx_full(priv))
@@ -942,6 +960,31 @@ static void hisi_femac_net_set_rx_mode(struct net_device *dev)
 	}
 }
 
+/*
+ * The standard counters are 64 bit sums kept by the driver, they do not touch
+ * the hardware. TX frames are counted when they complete.
+ */
+static void hisi_femac_get_stats64(struct net_device *dev,
+				   struct rtnl_link_stats64 *stats)
+{
+	struct hisi_femac_priv *priv = netdev_priv(dev);
+	unsigned int start;
+
+	netdev_stats_to_stats64(stats, &dev->stats);
+
+	do {
+		start = u64_stats_fetch_begin(&priv->tx_syncp);
+		stats->tx_packets = priv->tx_packets;
+		stats->tx_bytes = priv->tx_bytes;
+	} while (u64_stats_fetch_retry(&priv->tx_syncp, start));
+
+	do {
+		start = u64_stats_fetch_begin(&priv->rx_syncp);
+		stats->rx_packets = priv->rx_packets;
+		stats->rx_bytes = priv->rx_bytes;
+	} while (u64_stats_fetch_retry(&priv->rx_syncp, start));
+}
+
 static int hisi_femac_get_sset_count(struct net_device *dev, int sset)
 {
 	if (sset != ETH_SS_STATS)
@@ -1032,6 +1075,7 @@ static const struct net_device_ops hisi_femac_netdev_ops = {
 	.ndo_eth_ioctl		= phy_do_ioctl_running,
 	.ndo_set_mac_address	= hisi_femac_set_mac_address,
 	.ndo_set_rx_mode	= hisi_femac_net_set_rx_mode,
+	.ndo_get_stats64	= hisi_femac_get_stats64,
 };
 
 static void hisi_femac_core_reset(struct hisi_femac_priv *priv)
@@ -1261,6 +1305,8 @@ static int hisi_femac_drv_probe(struct platform_device *pdev)
 			 ndev->dev_addr);
 	}
 
+	u64_stats_init(&priv->tx_syncp);
+	u64_stats_init(&priv->rx_syncp);
 	mutex_init(&priv->stats_lock);
 	INIT_DELAYED_WORK(&priv->stats_work, hisi_femac_stats_work);
 
