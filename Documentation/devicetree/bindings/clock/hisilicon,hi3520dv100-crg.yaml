@@ -19,6 +19,17 @@ description: |
   Reset specifiers have two cells: the register offset from the CRG base and
   the bit number. A set bit holds the peripheral in reset.
 
+  The SATA block has two clock selects in PERI_CRG45: HI3520DV100_SATA_MUX
+  chooses the 150 MHz or the 50 MHz clock of the controller and the PHY, and
+  HI3520DV100_SATA_ALIVE_MUX chooses the internal 50 MHz clock or the
+  cko_alive clock recovered by the SATA PHY, which no driver provides, so
+  only the internal 50 MHz clock can be selected. A SATA controller node can
+  set them with assigned-clocks and assigned-clock-parents instead of relying
+  on the state the boot loader left. The parent of a select can only be
+  changed while the SATA clock gates are off, which is the case when the
+  assigned clocks are applied before the controller driver probes. The reset
+  value of both selects is 0, which is 150 MHz and the internal 50 MHz clock.
+
   This binding was written and tested on Hi3520D V100 only. Hi3520D V200 is
   a different silicon revision with its own data sheet and is not covered.
 
