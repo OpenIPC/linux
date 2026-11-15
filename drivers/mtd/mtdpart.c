@@ -787,8 +787,13 @@ static const char *flash_root_fstype(struct mtd_info *mtd)
 	int ret;
 
 	ret = mtd_read(mtd, 0, sizeof(magic), &retlen, (u_char *)&magic);
+	/*
+	 * Unreadable now, although the split has just read it: still only the
+	 * types a split root can be, never every filesystem in turn -- that is
+	 * the path to yaffs2 over NOR this exists to close.
+	 */
 	if ((ret && !mtd_is_bitflip(ret)) || retlen != sizeof(magic))
-		return NULL;
+		return "squashfs,jffs2";
 
 	if (le32_to_cpu(magic) == SQUASHFS_MAGIC)
 		return "squashfs";

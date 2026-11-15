@@ -572,8 +572,12 @@ void __init mount_root(void)
 		 * that device: an initrd's linuxrc may have chosen another root,
 		 * and the initrd itself is mounted through the same names.
 		 */
-		if (flash_root && ROOT_DEV == flash_root && root_dev_flash_fstype)
+		if (flash_root && ROOT_DEV == flash_root && root_dev_flash_fstype) {
 			root_fs_names = (char *)root_dev_flash_fstype;
+			/* and what get_rootfs_type() reports is what this mounts */
+			strlcpy(save_root_fs_names, root_dev_flash_fstype,
+				sizeof(save_root_fs_names));
+		}
 
 		mount_block_root("/dev/root", root_mountflags);
 	}
