@@ -11486,6 +11486,7 @@ M:	Dylan Corrales <deathcamel58@gmail.com>
 L:	linux-phy@lists.infradead.org
 S:	Maintained
 F:	Documentation/devicetree/bindings/phy/hisilicon,hi3520dv100-sata-phy.yaml
+F:	drivers/phy/hisilicon/phy-hisi-ahci-sata.c
 
 HISILICON DMA DRIVER
 M:	Zhou Wang <wangzhou1@hisilicon.com>

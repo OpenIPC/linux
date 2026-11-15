@@ -62,6 +62,20 @@ config PHY_HISI_INNO_USB2
 	  USB 1.5Mb/s, USB 12Mb/s, USB 480Mb/s speeds. It supports one
 	  USB host port to accept one USB device.
 
+config PHY_HISI_AHCI_SATA
+	tristate "HiSilicon AHCI SATA PHY support"
+	depends on ARCH_HISI_BVT || COMPILE_TEST
+	depends on OF && HAS_IOMEM
+	depends on RESET_CONTROLLER || COMPILE_TEST
+	select GENERIC_PHY
+	select MFD_SYSCON
+	help
+	  Support for the SATA PHY of the HiSilicon AHCI controller, which
+	  is configured through registers inside the controller's register
+	  window and a reset bit of the clock and reset generator. The
+	  controller itself is driven by the generic platform AHCI driver
+	  (SATA_AHCI_PLATFORM). Only the Hi3520D V100 is supported so far.
+
 config PHY_HIX5HD2_SATA
 	tristate "HIX5HD2 SATA PHY Driver"
 	depends on ARCH_HIX5HD2 && OF && HAS_IOMEM
