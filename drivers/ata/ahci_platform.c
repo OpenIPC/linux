@@ -16,6 +16,7 @@
 #include <linux/platform_device.h>
 #include <linux/property.h>
 #include <linux/libata.h>
+#include <linux/phy/phy.h>
 #include <linux/ahci_platform.h>
 #include <linux/pci_ids.h>
 #include "ahci.h"
@@ -34,6 +35,50 @@ static const struct ata_port_info ahci_port_info_nolpm = {
 	.pio_mask	= ATA_PIO4,
 	.udma_mask	= ATA_UDMA6,
 	.port_ops	= &ahci_platform_ops,
+};
+
+/*
+ * The PHY of the Hi3520D V100 ignores the speed limit field of SControl; its
+ * link speed is selected through phy_set_speed(), in Mbit/s, which has to
+ * happen before the hard reset that applies libata's speed limit. libata keeps
+ * sata_spd_limit non-zero (UINT_MAX without a limit), so the speed is never 0;
+ * the clamp keeps the table index valid regardless.
+ */
+static int ahci_hi3520dv100_hardreset(struct ata_link *link,
+				      unsigned int *class,
+				      unsigned long deadline)
+{
+	static const int gen_speed_mbps[] = { 1500, 3000, 6000 };
+	struct ata_port *ap = link->ap;
+	struct ahci_host_priv *hpriv = ap->host->private_data;
+	int gen = clamp_t(int, fls(link->sata_spd_limit), 1,
+			  ARRAY_SIZE(gen_speed_mbps));
+	bool online;
+	int ret;
+
+	if (ata_is_host_link(link) && hpriv->phys &&
+	    ap->port_no < hpriv->nports) {
+		ret = phy_set_speed(hpriv->phys[ap->port_no],
+				    gen_speed_mbps[gen - 1]);
+		if (ret)
+			ata_link_warn(link,
+				      "PHY did not take the %d Mbit/s speed limit (%d)\n",
+				      gen_speed_mbps[gen - 1], ret);
+	}
+
+	return ahci_do_hardreset(link, class, deadline, &online);
+}
+
+static struct ata_port_operations ahci_hi3520dv100_ops = {
+	.inherits	= &ahci_platform_ops,
+	.reset.hardreset = ahci_hi3520dv100_hardreset,
+};
+
+static const struct ata_port_info ahci_hi3520dv100_port_info = {
+	.flags		= AHCI_FLAG_COMMON,
+	.pio_mask	= ATA_PIO4,
+	.udma_mask	= ATA_UDMA6,
+	.port_ops	= &ahci_hi3520dv100_ops,
 };
 
 static const struct scsi_host_template ahci_platform_sht = {
@@ -82,6 +127,8 @@ static const struct of_device_id ahci_of_match[] = {
 	/* Keep the following compatibles for device tree compatibility */
 	{ .compatible = "ibm,476gtr-ahci", },
 	{ .compatible = "hisilicon,hisi-ahci", },
+	{ .compatible = "hisilicon,hi3520dv100-ahci",
+	  .data = &ahci_hi3520dv100_port_info },
 	{ .compatible = "cavium,octeon-7130-ahci", },
 	{ /* sentinel */ }
 };

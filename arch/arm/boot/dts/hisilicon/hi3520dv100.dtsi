@@ -174,15 +174,15 @@
 		};
 
 		/*
-		 * reg 1 is PERI_CRG45, the SATA clock/reset register: the glue
-		 * sets the resets and the PHY bring-up order itself, the three
-		 * clock gates are also held by the clocks below, and the two
-		 * clock selects in the same register are set by the clock
-		 * driver from the assigned clocks.
+		 * Two-port AHCI controller. PERI_CRG45 holds the three clock
+		 * gates, the controller resets (bits 1 to 7) and the PHY reset
+		 * (bit 0, owned by the PHY node). The clock selects of the
+		 * register are set here, so the result does not depend on what
+		 * the boot loader left: 150 MHz and the internal 50 MHz clock.
 		 */
 		sata: sata@10080000 {
-			compatible = "hisilicon,hi3520dv100-ahci";
-			reg = <0x10080000 0x10000>, <0x200300b4 0x4>;
+			compatible = "hisilicon,hi3520dv100-ahci", "generic-ahci";
+			reg = <0x10080000 0x10000>;
 			interrupts = <GIC_SPI 20 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&crg HI3520DV100_SATA_CLK>,
 				 <&crg HI3520DV100_SATA0_CLK>,
@@ -191,7 +191,35 @@
 					  <&crg HI3520DV100_SATA_ALIVE_MUX>;
 			assigned-clock-parents = <&crg HI3520DV100_FIXED_150M>,
 						 <&crg HI3520DV100_FIXED_50M>;
+			resets = <&crg 0xb4 1>, <&crg 0xb4 2>, <&crg 0xb4 3>,
+				 <&crg 0xb4 4>, <&crg 0xb4 5>, <&crg 0xb4 6>,
+				 <&crg 0xb4 7>;
+			#address-cells = <1>;
+			#size-cells = <0>;
 			status = "disabled";
+
+			sata-port@0 {
+				reg = <0>;
+				phys = <&sata_phy 0>;
+			};
+
+			sata-port@1 {
+				reg = <1>;
+				phys = <&sata_phy 1>;
+			};
+		};
+
+		/*
+		 * PHY registers inside the AHCI window; one PHY per port, the
+		 * ports share the PHY reset and the global PHY registers
+		 */
+		sata_phy: phy@10080050 {
+			compatible = "hisilicon,hi3520dv100-sata-phy";
+			reg = <0x10080050 0x20>, <0x10080100 0x100>;
+			reg-names = "ctrl", "ports";
+			#phy-cells = <1>;
+			resets = <&crg 0xb4 0>;
+			hisilicon,sysctrl = <&sysctrl>;
 		};
 
 		/*
