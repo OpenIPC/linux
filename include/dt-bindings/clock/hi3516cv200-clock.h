@@ -15,6 +15,12 @@
 #ifndef __DTS_HI3516CV200_CLOCK_H
 #define __DTS_HI3516CV200_CLOCK_H
 
+/*
+ * Identifiers 15 to 25 (fixed PLL outputs), 32 to 34 (Ethernet mux, USB reset
+ * bits) and 54 (UART3 gate) were used by earlier versions of this header and
+ * are not reused.
+ */
+
 /* fixed rate clocks */
 #define HI3516CV200_FIXED_3M		1
 #define HI3516CV200_FIXED_6M		2
@@ -30,31 +36,17 @@
 #define HI3516CV200_FIXED_125M		12
 #define HI3516CV200_FIXED_148P5M	13
 #define HI3516CV200_FIXED_198M		14
-#define HI3516CV200_FIXED_200M		15
-#define HI3516CV200_FIXED_250M		16
-#define HI3516CV200_FIXED_297M		17
-#define HI3516CV200_FIXED_300M		18
-#define HI3516CV200_FIXED_396M		19
-#define HI3516CV200_FIXED_540M		20
-#define HI3516CV200_FIXED_594M		21
-#define HI3516CV200_FIXED_600M		22
-#define HI3516CV200_FIXED_650M		23
-#define HI3516CV200_FIXED_750M		24
-#define HI3516CV200_FIXED_1188M		25
 
-/* mux clocks (parent of gates / dividers) */
+/* mux clocks (parent of gates) */
 #define HI3516CV200_FMC_MUX		30
 #define HI3516CV200_UART_MUX		31
-#define HI3516CV200_ETH_MUX		32
-#define HI3516CV200_USB2_CTRL_UTMI0_REQ	33
-#define HI3516CV200_USB2_HRST_REQ	34
 #define HI3516CV200_MMC0_MUX		35
 #define HI3516CV200_MMC1_MUX		36
 #define HI3516CV200_ETH_CORE_MUX	37
 #define HI3516CV200_I2C_MUX		38
 #define HI3516CV200_PWM_MUX		39
 
-/* divider clocks */
+/* system APB clock (bus clock / 4) */
 #define HI3516CV200_SYSAPB_CLK		40
 
 /* PLL and CPU/bus clock selects */
@@ -69,7 +61,6 @@
 #define HI3516CV200_UART0_CLK		51
 #define HI3516CV200_UART1_CLK		52
 #define HI3516CV200_UART2_CLK		53
-#define HI3516CV200_UART3_CLK		54
 #define HI3516CV200_ETH_CLK		55
 #define HI3516CV200_MMC0_CLK		56
 #define HI3516CV200_MMC1_CLK		57
