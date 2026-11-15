@@ -10,10 +10,12 @@
  * HiSilicon reset controller (offset, bit specifiers) from a platform driver.
  *
  * The APLL is only read: the A9 and the bus clocks run from it, so the
- * bootloader's setting stays. The EPLL outputs (50, 75 and 112.5 MHz) are fixed
- * rates.
+ * bootloader's setting stays. The EPLL outputs (50, 75, 112.5 and 150 MHz) are
+ * fixed rates: the EPLL itself is not programmed, a boot loader that changed
+ * it changes these clocks without the clock tree knowing.
  *
  * Register descriptions: https://hisilicon.randomcpu.com/?p=hi3520dv100.CRG
+ * (data sheet: CRG register chapter, PERI_CRG45; SATA bring-up in 14.7.5)
  * and https://hisilicon.randomcpu.com/?p=hi3520dv100.SYS_CTRL
  */
 
@@ -126,6 +128,7 @@ static const struct hisi_fixed_rate_clock hi3520dv100_fixed_rate_clks[] = {
 	{ HI3520DV100_FIXED_24M, "24m", NULL, 0, HI3520DV100_XTAL_RATE, },
 	/* EPLL derived (VCO 1350 MHz at reset, EPLL is not tracked) */
 	{ HI3520DV100_FIXED_50M, "50m", NULL, 0, 50000000, },
+	{ HI3520DV100_FIXED_150M, "150m", NULL, 0, 150000000, },
 	{ HI3520DV100_FIXED_75M, "75m", NULL, 0, 75000000, },
 	{ HI3520DV100_FIXED_112P5M, "112.5m", NULL, 0, 112500000, },
 };
@@ -181,6 +184,23 @@ static const char *const uart_mux_p[] = { "apb", "2m" };
  */
 static const char *const sfc_mux_p[] = { "24m", "75m", "24m", "112.5m" };
 static const char *const pwm_mux_p[] = { "3m", "24m" };
+/*
+ * SATA clock select, PERI_CRG45[11] sata_clk_sel: 0 = 150 MHz (EPLL
+ * FOUTPOSTDIV), 1 = 50 MHz (FOUTPOSTDIV / 3). The register resets to 0. The
+ * parent rates come from the data sheet; only the 150 MHz was measured on
+ * hardware (clk_summary with the SATA link up), the 50 MHz was not.
+ */
+static const char *const sata_mux_p[] = { "150m", "50m" };
+/*
+ * PERI_CRG45[12] cko_alive_cksel: 0 = internal 50 MHz, 1 = the cko_alive
+ * clock recovered by the SATA PHY. The PHY is not a clock provider, so the
+ * second parent is a placeholder name that no provider registers: the select
+ * bit stays addressable and the mux keeps its position in the clock tree, but
+ * selecting that parent leaves the mux orphaned and at 0 Hz. Only the first
+ * parent is usable. If the PHY ever exports the clock, its provider takes
+ * over the name and the IDs do not change.
+ */
+static const char *const sata_alive_mux_p[] = { "50m", "sata_cko_alive" };
 
 static const struct hisi_mux_clock hi3520dv100_mux_clks[] = {
 	{ HI3520DV100_UART_MUX, "uart_mux", uart_mux_p, ARRAY_SIZE(uart_mux_p),
@@ -189,11 +209,16 @@ static const struct hisi_mux_clock hi3520dv100_mux_clks[] = {
 		0, 0xc0, 2, 2, 0, NULL, },
 	{ HI3520DV100_PWM_MUX, "pwm_mux", pwm_mux_p, ARRAY_SIZE(pwm_mux_p),
 		0, 0x38, 2, 1, 0, NULL, },
+	{ HI3520DV100_SATA_MUX, "sata_mux", sata_mux_p, ARRAY_SIZE(sata_mux_p),
+		CLK_SET_PARENT_GATE, 0xb4, 11, 1, 0, NULL, },
+	{ HI3520DV100_SATA_ALIVE_MUX, "sata_alive_mux", sata_alive_mux_p,
+		ARRAY_SIZE(sata_alive_mux_p), CLK_SET_PARENT_GATE, 0xb4, 12, 1, 0,
+		NULL, },
 };
 
 /*
  * Clock gates (set = enabled). Blocks whose input rate is not modelled have
- * no parent and report 0 Hz: clk_eth, clk_sata_phy/0/1, clk_scd, clk_efuse,
+ * no parent and report 0 Hz: clk_eth, clk_scd, clk_efuse,
  * clk_ddrtest, clk_cipher, the VOU/HDMI/VEDU/SED/VPSS/TDE/JPGE/JPGD/VAPU/
  * VOIE/VCMP gates, the VICAP gates and the AIO gates (clk_aio_h, clk_aip,
  * clk_aop0/1).
@@ -212,10 +237,10 @@ static const struct hisi_gate_clock hi3520dv100_gate_clks[] = {
 	{ HI3520DV100_SFC_CLK, "clk_sfc", "sfc_mux", CLK_IS_CRITICAL, 0xc0, 1, 0, },
 	{ HI3520DV100_ETH_CLK, "clk_eth", NULL, 0, 0xcc, 1, 0, },
 	{ HI3520DV100_USB_CLK, "clk_usb", "24m", 0, 0xb8, 7, 0, },
-	/* sata_cken: PHY and bus clock of the SATA block */
-	{ HI3520DV100_SATA_CLK, "clk_sata", NULL, 0, 0xb4, 10, 0, },
-	{ HI3520DV100_SATA0_CLK, "clk_sata0", NULL, 0, 0xb4, 9, 0, },
-	{ HI3520DV100_SATA1_CLK, "clk_sata1", NULL, 0, 0xb4, 8, 0, },
+	/* sata_cken: PHY and bus clock of the SATA block, selected by sata_mux */
+	{ HI3520DV100_SATA_CLK, "clk_sata", "sata_mux", 0, 0xb4, 10, 0, },
+	{ HI3520DV100_SATA0_CLK, "clk_sata0", "sata_mux", 0, 0xb4, 9, 0, },
+	{ HI3520DV100_SATA1_CLK, "clk_sata1", "sata_mux", 0, 0xb4, 8, 0, },
 	{ HI3520DV100_PWM_CLK, "clk_pwm", "pwm_mux", 0, 0x38, 1, 0, },
 	{ HI3520DV100_SCD_CLK, "clk_scd", NULL, 0, 0xd4, 3, 0, },
 	{ HI3520DV100_EFUSE_CLK, "clk_efuse", NULL, 0, 0xd8, 1, 0, },
