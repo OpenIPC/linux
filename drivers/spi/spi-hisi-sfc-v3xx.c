@@ -9,7 +9,8 @@
 // after its DT label): Bjorn Stout <bjorn.stout@hotmail.com>
 //
 // Copyright (c) 2026 Dylan Corrales <deathcamel58@gmail.com>
-// HISFC350 (device tree) support: AHB window reads, dual reads, bus DMA reads.
+// HISFC350 (device tree) support: AHB window reads, dual reads, bus DMA reads
+// and page programs.
 //
 // The same SPI flash controller IP (the command interface at 0x300, VERSION
 // at 0x1f8) is found in two families:
@@ -101,13 +102,20 @@
 #define HISI_SFC_V3XX_BUS_CFG1_RD_PREFETCH GENMASK(7, 6)
 #define HISI_SFC_V3XX_BUS_CFG1_RD_INS GENMASK(15, 8)
 #define HISI_SFC_V3XX_BUS_CFG1_RD_ENABLE BIT(31)
+#define HISI_SFC_V3XX_BUS_CFG1_WR_MEM_IF_TYPE GENMASK(18, 16)
+#define HISI_SFC_V3XX_BUS_CFG1_WR_DUMMY_CNT GENMASK(21, 19)
+#define HISI_SFC_V3XX_BUS_CFG1_WR_INS GENMASK(29, 22)
 #define HISI_SFC_V3XX_BUS_CFG1_WR_ENABLE BIT(30)
+#define HISI_SFC_V3XX_BUS_CFG1_WR_MASK (HISI_SFC_V3XX_BUS_CFG1_WR_ENABLE | \
+					HISI_SFC_V3XX_BUS_CFG1_WR_INS | \
+					HISI_SFC_V3XX_BUS_CFG1_WR_DUMMY_CNT | \
+					HISI_SFC_V3XX_BUS_CFG1_WR_MEM_IF_TYPE)
 #define HISI_SFC_V3XX_BUS_FLASH_SIZE (0x210)
 #define HISI_SFC_V3XX_BUS_FLASH_SIZE_MASK GENMASK(3, 0)
 #define HISI_SFC_V3XX_BUS_FLASH_SIZE_CS_SHIFT 8
 #define HISI_SFC_V3XX_BUS_BASE_ADDR(cs) (0x214 + 4 * (cs))
 #define HISI_SFC_V3XX_BUS_BASE_ADDR_MASK GENMASK(31, 16)
-/* Bus DMA engine (AHB master, flash -> memory) */
+/* Bus DMA engine (AHB master, flash <-> memory) */
 #define HISI_SFC_V3XX_BUS_DMA_CTRL (0x240)
 #define HISI_SFC_V3XX_BUS_DMA_CTRL_START BIT(0)
 #define HISI_SFC_V3XX_BUS_DMA_CTRL_READ BIT(1)
@@ -187,10 +195,12 @@ struct hisi_sfc_v3xx_data {
 /* Per-direct-mapping state */
 struct hisi_sfc_v3xx_dirmap {
 	void __iomem *win;		/* window of the chip select */
-	resource_size_t win_size;	/* size of the mapped window */
-	u32 bus_cfg;			/* BUS_CFG1 read fields */
+	resource_size_t win_size;	/* size of the window of the chip */
+	u32 bus_cfg;			/* BUS_CFG1 read or write fields */
+	bool write;			/* page program mapping, bus DMA only */
+	u8 opcode;			/* program opcode of a write mapping */
 	u8 cs;				/* controller chip select */
-	u8 addr_nbytes;			/* address size of the read op, 3 or 4 */
+	u8 addr_nbytes;			/* address size of the op, 3 or 4 */
 };
 
 struct hisi_sfc_v3xx_host {
@@ -199,7 +209,7 @@ struct hisi_sfc_v3xx_host {
 	const struct hisi_sfc_v3xx_data *data;
 	int max_cmd_dword;
 	void *dma_buf;			/* bounce buffer of the bus DMA, optional */
-	bool dma_failed;		/* the engine misbehaved: window reads only */
+	bool dma_failed;		/* the engine misbehaved: no more DMA */
 	bool stuck;			/* command or DMA never finished: no access */
 	bool dma_stuck;			/* the DMA engine never finished: its buffer must stay */
 	bool irq_broken;		/* the interrupt did not arrive for a command: polling */
@@ -648,12 +658,12 @@ static int hisi_sfc_v3xx_exec_op(struct spi_mem *mem,
 }
 
 /*
- * Bus DMA reads (HISFC350 BUS_DMA_* registers), used when the node has an
- * interrupt: the CPU sleeps while the engine runs. Reads shorter than
- * HISI_SFC_V3XX_DMA_MIN stay on the window, the DMA setup and the bounce copy
- * cost more than they save (measured on the Hi3520D V100: 64 B reads are 1.8x
- * faster through the window, from 256 B on DMA is faster and uses less CPU
- * time; 128 B was not measured on DMA).
+ * Bus DMA reads and page programs (HISFC350 BUS_DMA_* registers), used when
+ * the node has an interrupt: the CPU sleeps while the engine runs. Reads
+ * shorter than HISI_SFC_V3XX_DMA_MIN stay on the window, the DMA setup and
+ * the bounce copy cost more than they save (measured on the Hi3520D V100:
+ * 64 B reads are 1.8x faster through the window, from 256 B on DMA is faster
+ * and uses less CPU time; 128 B was not measured on DMA).
  */
 #define HISI_SFC_V3XX_DMA_MIN		256
 #define HISI_SFC_V3XX_WIN_SLICE		SZ_4K
@@ -666,8 +676,22 @@ static const char *hisi_sfc_v3xx_dirmap_declined(struct hisi_sfc_v3xx_host *host
 {
 	if (!host->mem_size)
 		return "no flash window in the node";
-	if (op->data.dir != SPI_MEM_DATA_IN)
-		return "not a read";
+	if (op->data.dir == SPI_MEM_NO_DATA)
+		return "no data phase";
+	/* Page programs go through the bus DMA engine, one line only */
+	if (op->data.dir == SPI_MEM_DATA_OUT) {
+		if (!host->dma_buf)
+			return "no bus DMA (needs the window and an interrupt)";
+		if (op->data.buswidth > 1 || op->addr.buswidth > 1)
+			return "page programs use one line";
+		/*
+		 * Nothing shows that the engine sends the address in the mode
+		 * of GLB_CFG, as the command interface does, and a wrong
+		 * program cannot be undone: only 3 byte addresses are used.
+		 */
+		if (op->addr.nbytes != 3)
+			return "page programs are only verified with 3 byte addresses";
+	}
 	if (!op->addr.nbytes)
 		return "no address phase";
 	/* The rules of the command interface apply to the window read too */
@@ -752,6 +776,34 @@ static int hisi_sfc_v3xx_get_window(struct hisi_sfc_v3xx_host *host,
 	return 0;
 }
 
+/*
+ * Program the write fields of BUS_CFG1 (opcode, I/O mode, dummy bytes and the
+ * window write enable, @cfg) and read them back. Returns -EIO if they did not
+ * stick; @found is what the register held.
+ */
+static int hisi_sfc_v3xx_set_write_cfg(struct hisi_sfc_v3xx_host *host,
+				       u32 cfg, u32 *found)
+{
+	u32 val = readl(host->regbase + HISI_SFC_V3XX_BUS_CFG1);
+
+	writel((val & ~HISI_SFC_V3XX_BUS_CFG1_WR_MASK) | cfg,
+	       host->regbase + HISI_SFC_V3XX_BUS_CFG1);
+	/* The read-back also makes sure the write is in place */
+	*found = readl(host->regbase + HISI_SFC_V3XX_BUS_CFG1) &
+		 HISI_SFC_V3XX_BUS_CFG1_WR_MASK;
+
+	return *found == cfg ? 0 : -EIO;
+}
+
+/* The window write enable is only set while a DMA page program runs */
+static void hisi_sfc_v3xx_clear_wr_enable(struct hisi_sfc_v3xx_host *host)
+{
+	u32 val = readl(host->regbase + HISI_SFC_V3XX_BUS_CFG1);
+
+	writel(val & ~HISI_SFC_V3XX_BUS_CFG1_WR_ENABLE,
+	       host->regbase + HISI_SFC_V3XX_BUS_CFG1);
+}
+
 static int hisi_sfc_v3xx_dirmap_create(struct spi_mem_dirmap_desc *desc)
 {
 	struct spi_device *spi = desc->mem->spi;
@@ -765,40 +817,81 @@ static int hisi_sfc_v3xx_dirmap_create(struct spi_mem_dirmap_desc *desc)
 
 	reason = hisi_sfc_v3xx_dirmap_declined(host, desc->mem, op);
 	if (reason) {
-		dev_dbg(&spi->dev, "direct read declined: %s\n", reason);
+		dev_dbg(&spi->dev, "direct %s declined: %s\n",
+			op->data.dir == SPI_MEM_DATA_OUT ? "write" : "read", reason);
 		return -EOPNOTSUPP;
 	}
 
 	mode = hisi_sfc_v3xx_io_mode(op);
 	cs = spi_get_chipselect(spi, 0);
 
-	ret = hisi_sfc_v3xx_get_window(host, cs, desc->info.offset + desc->info.length,
-				       &base, &size);
-	if (ret)
-		return ret;
-
 	dm = devm_kzalloc(&spi->dev, sizeof(*dm), GFP_KERNEL);
 	if (!dm)
 		return -ENOMEM;
 
-	/* Map the window of this chip only, not the 64 MiB of both selects */
-	dm->win = devm_ioremap_wc(&spi->dev, base, size);
-	if (!dm->win)
-		return -ENOMEM;
+	dm->write = op->data.dir == SPI_MEM_DATA_OUT;
+
+	/*
+	 * Program the window of this chip: the bus DMA engine runs the flash
+	 * command through it, so a write mapping needs the window as much as a
+	 * read one. Only reads map it, and only the window of this chip, not
+	 * the 64 MiB of both selects.
+	 */
+	ret = hisi_sfc_v3xx_get_window(host, cs,
+				       desc->info.offset + desc->info.length,
+				       &base, &size);
+	if (ret)
+		return ret;
+
+	dm->win_size = size;
+	if (!dm->write) {
+		dm->win = devm_ioremap_wc(&spi->dev, base, size);
+		if (!dm->win)
+			return -ENOMEM;
+	}
 
 	hisi_sfc_v3xx_check_speed(host, spi);
 
-	dm->win_size = size;
 	dm->addr_nbytes = op->addr.nbytes;
 	dm->cs = cs;
-	dm->bus_cfg = HISI_SFC_V3XX_BUS_CFG1_RD_ENABLE |
-		      FIELD_PREP(HISI_SFC_V3XX_BUS_CFG1_RD_INS, op->cmd.opcode) |
-		      FIELD_PREP(HISI_SFC_V3XX_BUS_CFG1_RD_DUMMY_CNT, op->dummy.nbytes) |
-		      FIELD_PREP(HISI_SFC_V3XX_BUS_CFG1_RD_MEM_IF_TYPE, mode);
+	dm->opcode = op->cmd.opcode;
+	if (dm->write)
+		dm->bus_cfg = HISI_SFC_V3XX_BUS_CFG1_WR_ENABLE |
+			      FIELD_PREP(HISI_SFC_V3XX_BUS_CFG1_WR_INS, op->cmd.opcode) |
+			      FIELD_PREP(HISI_SFC_V3XX_BUS_CFG1_WR_DUMMY_CNT, op->dummy.nbytes) |
+			      FIELD_PREP(HISI_SFC_V3XX_BUS_CFG1_WR_MEM_IF_TYPE, mode);
+	else
+		dm->bus_cfg = HISI_SFC_V3XX_BUS_CFG1_RD_ENABLE |
+			      FIELD_PREP(HISI_SFC_V3XX_BUS_CFG1_RD_INS, op->cmd.opcode) |
+			      FIELD_PREP(HISI_SFC_V3XX_BUS_CFG1_RD_DUMMY_CNT, op->dummy.nbytes) |
+			      FIELD_PREP(HISI_SFC_V3XX_BUS_CFG1_RD_MEM_IF_TYPE, mode);
+
+	/*
+	 * The write fields of BUS_CFG1 are not known to stick on every
+	 * HISFC350: check them once here and decline the mapping if they do
+	 * not, the writes then go through the command interface.
+	 */
+	if (dm->write) {
+		u32 found;
+
+		ret = hisi_sfc_v3xx_wait_cmd_idle_stuck(host);
+		if (ret)
+			return ret;
+
+		ret = hisi_sfc_v3xx_set_write_cfg(host, dm->bus_cfg, &found);
+		hisi_sfc_v3xx_clear_wr_enable(host);
+		if (ret) {
+			dev_warn(host->dev, "BUS_CFG1 write fields do not stick (wrote 0x%x, read 0x%x), page programs use the command interface\n",
+				 dm->bus_cfg, found);
+			devm_kfree(&spi->dev, dm);
+			return -EOPNOTSUPP;
+		}
+	}
+
 	desc->priv = dm;
 
-	dev_dbg(&spi->dev, "direct read: opcode 0x%02x, %u-%u-%u, %u dummy byte(s)%s\n",
-		op->cmd.opcode, op->cmd.buswidth, op->addr.buswidth,
+	dev_dbg(&spi->dev, "direct %s: opcode 0x%02x, %u-%u-%u, %u dummy byte(s)%s\n",
+		dm->write ? "write" : "read", op->cmd.opcode, op->cmd.buswidth, op->addr.buswidth,
 		op->data.buswidth, op->dummy.nbytes,
 		host->dma_buf ? ", bus DMA" : "");
 
@@ -806,12 +899,13 @@ static int hisi_sfc_v3xx_dirmap_create(struct spi_mem_dirmap_desc *desc)
 }
 
 /*
- * One bus DMA transfer of at most HISI_SFC_V3XX_DMA_CHUNK bytes into the
- * bounce buffer. The engine runs the read command programmed in BUS_CFG1
- * (opcode, I/O mode, dummy bytes) like a window read does. The length
- * register takes the byte count minus one (vendor driver, data sheet is
- * silent), so the byte after the chunk is poisoned beforehand to notice an
- * engine that writes one byte too many.
+ * One bus DMA transfer of at most HISI_SFC_V3XX_DMA_CHUNK bytes between the
+ * flash and the bounce buffer. The engine runs the read command programmed in
+ * BUS_CFG1 (opcode, I/O mode, dummy bytes) like a window read does, or the
+ * page program of the write fields. The length register takes the byte count
+ * minus one (vendor driver, data sheet is silent), so for a read the byte
+ * after the chunk is poisoned beforehand to notice an engine that writes one
+ * byte too many.
  *
  * chip_offset is the offset within the flash of dm->cs. That is what
  * BUS_DMA_FLASH_SADDR takes together with the chip select bit of
@@ -829,11 +923,13 @@ static int hisi_sfc_v3xx_dirmap_create(struct spi_mem_dirmap_desc *desc)
 #define HISI_SFC_V3XX_DMA_DRAIN_US	100000
 
 /*
- * A DMA engine that never finished may still write to the bounce buffer. The
- * driver does not reset the controller at unbind (it may be the boot flash),
- * and nothing in the data sheet says that a reset aborts a running transfer:
- * leak the buffer rather than hand its pages back. The reset the next probe
- * pulses is what recovers the engine.
+ * A DMA engine that never finished may still write to the bounce buffer (a
+ * read) or read from it (a page program: freeing it could program arbitrary
+ * memory into the flash). The driver does not reset the controller at unbind
+ * (it may be the boot flash), and nothing in the data sheet says that a reset
+ * aborts a running transfer: leak the buffer rather than hand its pages
+ * back. The controller stays disabled until the reset that the next probe
+ * pulses recovers the engine.
  */
 static void hisi_sfc_v3xx_free_dma(void *data)
 {
@@ -863,7 +959,8 @@ static int hisi_sfc_v3xx_dma_chunk(struct hisi_sfc_v3xx_host *host,
 	u32 raw;
 	int ret = 0;
 
-	buf[len] = 0xa5;
+	if (!dm->write)
+		buf[len] = 0xa5;
 
 	/* Drop stale status before the mask opens */
 	hisi_sfc_v3xx_clear_int(host);
@@ -874,7 +971,7 @@ static int hisi_sfc_v3xx_dma_chunk(struct hisi_sfc_v3xx_host *host,
 	writel(len - 1, host->regbase + HISI_SFC_V3XX_BUS_DMA_LEN);
 	writel(HISI_SFC_V3XX_BUS_DMA_AHB_CTRL_INCR_ALL,
 	       host->regbase + HISI_SFC_V3XX_BUS_DMA_AHB_CTRL);
-	writel(HISI_SFC_V3XX_BUS_DMA_CTRL_READ |
+	writel((dm->write ? 0 : HISI_SFC_V3XX_BUS_DMA_CTRL_READ) |
 	       (dm->cs ? HISI_SFC_V3XX_BUS_DMA_CTRL_CS : 0) |
 	       HISI_SFC_V3XX_BUS_DMA_CTRL_START,
 	       host->regbase + HISI_SFC_V3XX_BUS_DMA_CTRL);
@@ -927,7 +1024,7 @@ static int hisi_sfc_v3xx_dma_chunk(struct hisi_sfc_v3xx_host *host,
 		host->dma_failed = true;
 	}
 
-	if (buf[len] != 0xa5)
+	if (!dm->write && buf[len] != 0xa5)
 		dev_warn_once(host->dev, "bus DMA wrote past the requested length\n");
 
 	return 0;
@@ -988,9 +1085,9 @@ static void hisi_sfc_v3xx_win_copy(void *buf, const void __iomem *src, size_t le
 }
 
 /*
- * The spi-mem core serializes dirmap reads with exec_op(), so the read fields
- * of BUS_CFG1 need no lock of their own. They are programmed for every call,
- * the driver keeps no copy of them.
+ * The spi-mem core serializes dirmap reads and writes with exec_op(), so
+ * BUS_CFG1 needs no lock of its own. Its read fields are programmed for every
+ * call, the driver keeps no copy of them.
  */
 static ssize_t hisi_sfc_v3xx_dirmap_read(struct spi_mem_dirmap_desc *desc,
 					 u64 offs, size_t len, void *buf)
@@ -1076,6 +1173,97 @@ static ssize_t hisi_sfc_v3xx_dirmap_read(struct spi_mem_dirmap_desc *desc,
 }
 
 /*
+ * Page programs. A whole aligned 256 byte page goes out through the bus DMA
+ * engine as ONE program command with the write opcode of BUS_CFG1; the engine
+ * appears to issue its own write enable, to wait for the flash to finish
+ * programming and to raise the done interrupt afterwards. That was measured
+ * on the Hi3520D V100 and is not in the data sheet, so spi-nor still sets
+ * the write enable latch and reads the flash status after every program and
+ * nothing here depends on it. Everything else (a partial page, an unaligned
+ * start, or any write after the engine was given up on) is programmed in
+ * command mode in pieces of the data buffer size, which is what spi-nor does
+ * itself when a controller has no write mapping; spi-nor sets the write
+ * enable latch before each call and calls again for the rest of a short
+ * return. The window write enable of BUS_CFG1 is set only while a page is
+ * programmed through the engine (and, with the command interface idle, for
+ * the read-back check when the mapping is created), and the write fields are
+ * read back after they are programmed.
+ *
+ * A failed page program is NOT retried here, neither through the engine nor
+ * in command mode: the page may be partly programmed, so the error goes up
+ * and the caller decides. After any DMA failure the engine stays off for
+ * reads and writes alike (dma_failed is never cleared), and when a command or
+ * the engine never finishes the controller refuses everything (stuck), so no
+ * command can run while BUS_DMA_CTRL.START is set.
+ */
+static ssize_t hisi_sfc_v3xx_dirmap_write(struct spi_mem_dirmap_desc *desc,
+					  u64 offs, size_t len, const void *buf)
+{
+	struct hisi_sfc_v3xx_host *host =
+		spi_controller_get_devdata(desc->mem->spi->controller);
+	struct hisi_sfc_v3xx_dirmap *dm = desc->priv;
+	u64 flash_addr = desc->info.offset + offs;
+	size_t n;
+	u32 found;
+	int ret;
+
+	if (host->stuck)
+		return -EIO;
+
+	/*
+	 * The engine takes a 32 bit address and the flash sees 24 bits: a
+	 * program past the window would land somewhere else and cannot be
+	 * undone. spi-nor and mtd never ask for it.
+	 */
+	if (flash_addr >= dm->win_size)
+		return -EINVAL;
+	len = min_t(u64, len, dm->win_size - flash_addr);
+	n = min_t(size_t, len, -flash_addr & (HISI_SFC_V3XX_DMA_ALIGN - 1) ?:
+		  HISI_SFC_V3XX_DMA_ALIGN);
+
+	ret = hisi_sfc_v3xx_wait_cmd_idle_stuck(host);
+	if (ret)
+		return ret;
+
+	/* The page program through the engine sends the address in the mode of GLB_CFG */
+	hisi_sfc_v3xx_set_addr_mode(host, dm->addr_nbytes);
+
+	if (!hisi_sfc_v3xx_dma_usable(host) || n < HISI_SFC_V3XX_DMA_ALIGN ||
+	    (flash_addr & (HISI_SFC_V3XX_DMA_ALIGN - 1))) {
+		struct spi_mem_op op =
+			SPI_MEM_OP(SPI_MEM_OP_CMD(dm->opcode, 1),
+				   SPI_MEM_OP_ADDR(dm->addr_nbytes, flash_addr, 1),
+				   SPI_MEM_OP_NO_DUMMY,
+				   SPI_MEM_OP_DATA_OUT(min_t(size_t, n, host->max_cmd_dword * 4),
+						       buf, 1));
+
+		ret = hisi_sfc_v3xx_generic_exec_op(host, &op, dm->cs);
+		return ret ? ret : op.data.nbytes;
+	}
+
+	/* Window writes stay disabled except while this page is programmed */
+	ret = hisi_sfc_v3xx_set_write_cfg(host, dm->bus_cfg, &found);
+	if (ret) {
+		hisi_sfc_v3xx_clear_wr_enable(host);
+		dev_err(host->dev, "BUS_CFG1 write fields do not stick (wrote 0x%x, read 0x%x)\n",
+			dm->bus_cfg, found);
+		return ret;
+	}
+
+	memcpy(host->dma_buf, buf, HISI_SFC_V3XX_DMA_ALIGN);
+	ret = hisi_sfc_v3xx_dma_chunk(host, dm, flash_addr, HISI_SFC_V3XX_DMA_ALIGN);
+	hisi_sfc_v3xx_clear_wr_enable(host);
+	if (ret) {
+		if (!host->stuck)
+			host->dma_failed = true;
+		dev_err(host->dev, "bus DMA page program failed (%d)\n", ret);
+		return ret;
+	}
+
+	return HISI_SFC_V3XX_DMA_ALIGN;
+}
+
+/*
  * Name the MTD device after the "label" of the flash node when it has one.
  * Boot loaders that describe the layout with "mtdparts=<name>:..." on the
  * kernel command line (the HiSilicon SDK U-Boot uses "hi_sfc") can only match
@@ -1095,6 +1283,7 @@ static const struct spi_controller_mem_ops hisi_sfc_v3xx_mem_ops = {
 	.get_name = hisi_sfc_v3xx_get_name,
 	.dirmap_create = hisi_sfc_v3xx_dirmap_create,
 	.dirmap_read = hisi_sfc_v3xx_dirmap_read,
+	.dirmap_write = hisi_sfc_v3xx_dirmap_write,
 	.adjust_op_size = hisi_sfc_v3xx_adjust_op_size,
 	.supports_op = hisi_sfc_v3xx_supports_op,
 	.exec_op = hisi_sfc_v3xx_exec_op,
