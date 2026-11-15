@@ -43,6 +43,7 @@ static char * __initdata root_device_name;
 static char __initdata saved_root_name[64];
 
 bool root_dev_from_flash;
+const char *root_dev_flash_fstype;
 static int root_wait;
 
 dev_t ROOT_DEV;
@@ -591,13 +592,19 @@ void __init prepare_namespace(void)
 	 * When the kernel found the root filesystem on the flash itself, those
 	 * give way for an MTD root; a root elsewhere (NFS, an SD card, a RAM disk)
 	 * is the bootloader's to choose.
+	 *
+	 * The type it is mounted as is the one the flash holds, not every type
+	 * the kernel knows: a damaged squashfs then ends in "VFS: Unable to mount
+	 * root fs" as it should, where trying the rest ran yaffs2 over the NOR
+	 * partition and that BUG()s (yaffs_getblockinfo.h, from a GK7205V210
+	 * whose split squashfs could not be read).
 	 */
 	if (root_dev_from_flash && root_names_flash(saved_root_name)) {
 		if (saved_root_name[0])
 			pr_notice("VFS: root=%s ignored, the flash names its own root\n",
 				  saved_root_name);
 		saved_root_name[0] = '\0';
-		root_fs_names = NULL;
+		root_fs_names = (char *)root_dev_flash_fstype;
 	}
 
 	if (saved_root_name[0]) {
