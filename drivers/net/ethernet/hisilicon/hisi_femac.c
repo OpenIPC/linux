@@ -121,6 +121,8 @@ struct hisi_femac_priv {
 	struct hisi_femac_queue rxq;
 	u32 tx_fifo_used_cnt;
 	struct napi_struct napi;
+	/* The clock is off and the interface was already closed by suspend */
+	bool suspended;
 };
 
 static void hisi_femac_irq_enable(struct hisi_femac_priv *priv, int irqs)
@@ -332,6 +334,10 @@ static irqreturn_t hisi_femac_interrupt(int irq, void *dev_id)
 	struct net_device *dev = (struct net_device *)dev_id;
 	struct hisi_femac_priv *priv = netdev_priv(dev);
 
+	/* The clock is off while suspended, and so after a failed resume */
+	if (READ_ONCE(priv->suspended))
+		return IRQ_NONE;
+
 	ints = readl(priv->glb_base + GLB_IRQ_RAW);
 
 	if (likely(ints & DEF_INT_MASK)) {
@@ -484,6 +490,14 @@ static int hisi_femac_net_open(struct net_device *dev)
 static int hisi_femac_net_close(struct net_device *dev)
 {
 	struct hisi_femac_priv *priv = netdev_priv(dev);
+
+	/*
+	 * Suspend has closed the interface already. If the resume failed it
+	 * is still marked running, and touching the block with its clock off
+	 * would hang the bus.
+	 */
+	if (priv->suspended)
+		return 0;
 
 	hisi_femac_irq_disable(priv, IRQ_ENA_PORT0);
 
@@ -909,7 +923,9 @@ static void hisi_femac_drv_remove(struct platform_device *pdev)
 	phy_disconnect(ndev->phydev);
 	/* The shared interrupt must not run once the clock is off */
 	devm_free_irq(priv->dev, ndev->irq, ndev);
-	clk_disable_unprepare(priv->clk);
+	/* The clock was already disabled if a resume failed */
+	if (!priv->suspended)
+		clk_disable_unprepare(priv->clk);
 	free_netdev(ndev);
 }
 
@@ -920,12 +936,24 @@ static int hisi_femac_drv_suspend(struct platform_device *pdev,
 	struct net_device *ndev = platform_get_drvdata(pdev);
 	struct hisi_femac_priv *priv = netdev_priv(ndev);
 
-	disable_irq(ndev->irq);
-	if (netif_running(ndev)) {
-		hisi_femac_net_close(ndev);
-		netif_device_detach(ndev);
-	}
+	/*
+	 * A failed resume left the device suspended with the clock off: it is
+	 * still closed and detached, and the clock must not be disabled twice.
+	 */
+	if (priv->suspended)
+		return 0;
 
+	if (netif_running(ndev))
+		hisi_femac_net_close(ndev);
+	/* Also an interface that is down must not be opened without a clock */
+	netif_device_detach(ndev);
+
+	/*
+	 * The interrupt line is shared and stays enabled for the other
+	 * devices on it: the handler leaves the block alone while suspended.
+	 */
+	WRITE_ONCE(priv->suspended, true);
+	synchronize_irq(ndev->irq);
 	clk_disable_unprepare(priv->clk);
 
 	return 0;
@@ -935,17 +963,27 @@ static int hisi_femac_drv_resume(struct platform_device *pdev)
 {
 	struct net_device *ndev = platform_get_drvdata(pdev);
 	struct hisi_femac_priv *priv = netdev_priv(ndev);
+	int ret;
 
-	clk_prepare_enable(priv->clk);
+	ret = clk_prepare_enable(priv->clk);
+	if (ret) {
+		/*
+		 * Stay marked suspended and detached: with the clock off the
+		 * handler, an open of the interface and the close on unbind
+		 * would all hang the bus on a register read.
+		 */
+		dev_err(&pdev->dev, "failed to enable the clock: %d\n", ret);
+		return ret;
+	}
+	WRITE_ONCE(priv->suspended, false);
 	if (priv->phy_rst)
 		hisi_femac_phy_reset(priv);
 
 	if (netif_running(ndev)) {
 		hisi_femac_port_init(priv);
 		hisi_femac_net_open(ndev);
-		netif_device_attach(ndev);
 	}
-	enable_irq(ndev->irq);
+	netif_device_attach(ndev);
 
 	return 0;
 }
