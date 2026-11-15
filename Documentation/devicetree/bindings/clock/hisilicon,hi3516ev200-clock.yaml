@@ -18,7 +18,6 @@ properties:
     enum:
       - hisilicon,hi3516ev200-clock
       - hisilicon,hi3516ev300-clock
-      - hisilicon,hi3518ev200-clock
       - hisilicon,hi3518ev300-clock
       - hisilicon,hi3516dv200-clock
       - hisilicon,hi3516dv300-clock
