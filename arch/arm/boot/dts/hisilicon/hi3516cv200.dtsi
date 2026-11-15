@@ -85,12 +85,6 @@
 			compatible = "arm,sp804", "arm,primecell";
 			reg = <0x20000000 0x1000>;
 			interrupts = <3>;
-			/* SP804 driver in 6.x uses clk_get_rate() which returns
-			 * 0 if the clock provider isn't fully initialized when
-			 * timer inits at start_kernel. clock-frequency
-			 * overrides — matches the 3 MHz fixed-rate the sysctrl
-			 * early init registers. */
-			clock-frequency = <3000000>;
 			clocks = <&sys_ctrl HI3516CV200_TIME0_0_CLK>,
 				 <&sys_ctrl HI3516CV200_TIME0_1_CLK>,
 				 <&crg_ctrl HI3516CV200_SYSAPB_CLK>;
@@ -101,7 +95,6 @@
 			compatible = "arm,sp804", "arm,primecell";
 			reg = <0x20010000 0x1000>;
 			interrupts = <4>;
-			clock-frequency = <3000000>;
 			clocks = <&sys_ctrl HI3516CV200_TIME1_2_CLK>,
 				 <&sys_ctrl HI3516CV200_TIME1_3_CLK>,
 				 <&crg_ctrl HI3516CV200_SYSAPB_CLK>;
