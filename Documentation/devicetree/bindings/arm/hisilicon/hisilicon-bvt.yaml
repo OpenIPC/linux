@@ -10,8 +10,13 @@ maintainers:
   - Dmitry Ilyin <6576495+widgetii@users.noreply.github.com>
 
 description: |
-  HiSilicon BVT (Broadcast Video Technology) SoC family — ARM Cortex-A7
-  processors used in IP cameras and video surveillance equipment.
+  HiSilicon BVT (Broadcast Video Technology) SoC family: ARM Cortex-A7
+  processors, and the earlier ARM926EJ-S Hi3516C V200 and Hi3518E V20X
+  parts, used in IP cameras and video surveillance equipment.
+
+  hisilicon,hi3518ev200 is the ARM926EJ-S Hi3518E V200, which the
+  hisilicon,hi3518ev20x name predates and replaces; the latter names no chip
+  and is deprecated.
 
 properties:
   $nodename:
@@ -23,7 +28,12 @@ properties:
       - items:
           - const: hisilicon,hi3516ev300
       - items:
+          - const: hisilicon,hi3516cv200
+      - items:
           - const: hisilicon,hi3518ev200
+      - items:
+          - const: hisilicon,hi3518ev20x
+        deprecated: true
       - items:
           - const: hisilicon,hi3518ev300
       - items:
