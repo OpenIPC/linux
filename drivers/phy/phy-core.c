@@ -409,6 +409,19 @@ int phy_set_media(struct phy *phy, enum phy_media media)
 }
 EXPORT_SYMBOL_GPL(phy_set_media);
 
+/**
+ * phy_set_speed() - set the speed of the PHY
+ * @phy: the phy returned by phy_get()
+ * @speed: speed to set; the unit is defined by the PHY provider and the
+ *	   consumer (a PCIe controller passes the link generation, an Ethernet
+ *	   MAC or an AHCI host driver Mbit/s). A provider may reject 0, others
+ *	   take it as "no speed" (pci-imx6 passes 0 when it disables the link)
+ *
+ * Does nothing and returns 0 for a NULL @phy or a PHY without a set_speed
+ * operation.
+ *
+ * Return: 0 on success, a negative error code from the provider otherwise.
+ */
 int phy_set_speed(struct phy *phy, int speed)
 {
 	int ret;
