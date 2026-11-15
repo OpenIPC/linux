@@ -61,12 +61,7 @@
 	status = "okay";
 };
 
-/*
- * The PHY value XiongMai's firmware writes (the Hi3520D reference value
- * leaves the link resetting on this board's SSD).
- */
 &sata {
-	hisilicon,phy-config = <0x0e262709>;
 	status = "okay";
 };
 
