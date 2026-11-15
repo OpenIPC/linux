@@ -256,7 +256,6 @@ static int hisi_femac_rx(struct net_device *dev, int limit)
 	while (readl(priv->glb_base + GLB_IRQ_RAW) & IRQ_INT_RX_RDY) {
 		rx_pkt_info = readl(priv->port_base + IQFRM_DES);
 		len = rx_pkt_info & RX_FRAME_LEN_MASK;
-		len -= ETH_FCS_LEN;
 
 		/* tell hardware we will deal with this packet */
 		writel(IRQ_INT_RX_RDY, priv->glb_base + GLB_IRQ_RAW);
@@ -273,14 +272,23 @@ static int hisi_femac_rx(struct net_device *dev, int limit)
 		addr = rxq->dma_phys[pos];
 		dma_unmap_single(priv->dev, addr, MAX_FRAME_SIZE,
 				 DMA_FROM_DEVICE);
-		skb_put(skb, len);
-		if (unlikely(skb->len > MAX_FRAME_SIZE)) {
-			netdev_err(dev, "rcv len err, len = %d\n", skb->len);
+
+		/*
+		 * The length includes the FCS. Check it before it is used:
+		 * a value below the FCS size would wrap and one above the
+		 * buffer size would make skb_put() panic.
+		 */
+		if (unlikely(len < ETH_HLEN + ETH_FCS_LEN ||
+			     len > MAX_FRAME_SIZE)) {
+			dev_err_ratelimited(priv->dev, "rcv len err, len = %u\n",
+					    len);
 			dev->stats.rx_errors++;
 			dev->stats.rx_length_errors++;
 			dev_kfree_skb_any(skb);
 			goto next;
 		}
+		len -= ETH_FCS_LEN;
+		skb_put(skb, len);
 
 		skb->protocol = eth_type_trans(skb, dev);
 		napi_gro_receive(&priv->napi, skb);
