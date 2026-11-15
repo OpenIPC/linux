@@ -37,15 +37,6 @@
 #define BIT_MASK_FEPHY_ADDR	GENMASK(4, 0)
 #define BIT_FEPHY_SEL		BIT(5)
 
-#if defined(CONFIG_ARCH_HI3536DV100)
-#define BIT_OFFSET_LD_SET	0
-#define BIT_OFFSET_LDO_SET	5
-#define BIT_OFFSET_R_TUNING	8
-#else
-#define BIT_OFFSET_LD_SET	25
-#define BIT_OFFSET_LDO_SET	22
-#define BIT_OFFSET_R_TUNING	16
-#endif
 #define MII_EXPMD		0x1d
 #define MII_EXPMA		0x1e
 
@@ -68,6 +59,38 @@ enum phy_reset_delays {
 	PULSE,
 	POST_DELAY,
 	DELAYS_NUM,
+};
+
+/*
+ * Where the PHY trim values are kept. They are in the PHY control register
+ * (the second register window) unless the device tree gives a separate trim
+ * window as a third one, which uses another bit layout.
+ */
+struct hisi_femac_trim_layout {
+	u8 ld_set;
+	u8 ldo_set;
+	u8 r_tuning;
+};
+
+static const struct hisi_femac_trim_layout hisi_femac_trim_in_ctrl = {
+	.ld_set = 25, .ldo_set = 22, .r_tuning = 16,
+};
+
+static const struct hisi_femac_trim_layout hisi_femac_trim_window = {
+	.ld_set = 0, .ldo_set = 5, .r_tuning = 8,
+};
+
+/* Per-compatible behavior that the hardware does not tell by itself */
+struct hisi_femac_mdio_variant {
+	/*
+	 * The internal PHY is not a festa PHY: it has no trim data and only
+	 * needs its address in the control register.
+	 */
+	bool fephy_addr_only;
+};
+
+static const struct hisi_femac_mdio_variant hisi_femac_mdio_addr_only = {
+	.fephy_addr_only = true,
 };
 
 struct hisi_femac_mdio_data {
@@ -271,6 +294,7 @@ static void hisi_femac_fephy_use_default_trim(struct hisi_femac_mdio_data *data)
 
 static void hisi_femac_fephy_trim(struct hisi_femac_mdio_data *data)
 {
+	const struct hisi_femac_trim_layout *layout;
 	struct mii_bus *bus = data->bus;
 	u32 phy_addr = data->phy_addr;
 	int timeout = 3000;
@@ -279,15 +303,16 @@ static void hisi_femac_fephy_trim(struct hisi_femac_mdio_data *data)
 	u8 ldo_set;
 	u8 r_tuning;
 
-/*Only 36DV100 fephy trim data need to get otp data from special space not fephy control reg1*/
-#if defined(CONFIG_ARCH_HI3536DV100) 	
-	val = readl(data->fephy_trim_iobase);
-#else
-	val = readl(data->fephy_iobase);
-#endif
-	ld_set = (val >> BIT_OFFSET_LD_SET) & BIT_MASK_LD_SET;
-	ldo_set = (val >> BIT_OFFSET_LDO_SET) & BIT_MASK_LDO_SET;
-	r_tuning = (val >> BIT_OFFSET_R_TUNING) & BIT_MASK_R_TUNING;
+	if (data->fephy_trim_iobase) {
+		layout = &hisi_femac_trim_window;
+		val = readl(data->fephy_trim_iobase);
+	} else {
+		layout = &hisi_femac_trim_in_ctrl;
+		val = readl(data->fephy_iobase);
+	}
+	ld_set = (val >> layout->ld_set) & BIT_MASK_LD_SET;
+	ldo_set = (val >> layout->ldo_set) & BIT_MASK_LDO_SET;
+	r_tuning = (val >> layout->r_tuning) & BIT_MASK_R_TUNING;
 
 	if (!ld_set && !ldo_set && !r_tuning) {
 		hisi_femac_fephy_use_default_trim(data);
@@ -374,6 +399,7 @@ static int hisi_femac_mdio_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
 	struct mii_bus *bus;
+	const struct hisi_femac_mdio_variant *variant;
 	struct hisi_femac_mdio_data *data;
 	struct resource *res;
 	int ret;
@@ -453,8 +479,9 @@ static int hisi_femac_mdio_probe(struct platform_device *pdev)
 	}
 
 	hisi_femac_get_phy_addr(data, np);
-	data->fephy_addr_only = data->fephy_iobase &&
-				device_get_match_data(&pdev->dev);
+	variant = device_get_match_data(&pdev->dev);
+	data->fephy_addr_only = data->fephy_iobase && variant &&
+				variant->fephy_addr_only;
 	dev_dbg(&pdev->dev, "fephy_iobase=%p fephy_rst=%p fephy_clk=%p use_fephy=%d phy_addr=%d\n",
 		data->fephy_iobase, data->fephy_rst, data->fephy_clk,
 		hisi_femac_use_fephy(data), data->phy_addr);
@@ -498,8 +525,8 @@ static void hisi_femac_mdio_remove(struct platform_device *pdev)
 }
 
 static const struct of_device_id hisi_femac_mdio_dt_ids[] = {
-	{ .compatible = "hisilicon,hi3520dv100-femac-mdio", .data = (void *)true },
-	{ .compatible = "hisilicon,hi3520dv200-femac-mdio", .data = (void *)true },
+	{ .compatible = "hisilicon,hi3520dv100-femac-mdio", .data = &hisi_femac_mdio_addr_only },
+	{ .compatible = "hisilicon,hi3520dv200-femac-mdio", .data = &hisi_femac_mdio_addr_only },
 	{ .compatible = "hisilicon,hisi-femac-mdio" },
 	{ }
 };
