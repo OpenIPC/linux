@@ -30,6 +30,7 @@
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
 #include <linux/magic.h>
+#include <linux/jffs2.h>
 #include <linux/err.h>
 
 #include "mtdcore.h"
@@ -725,6 +726,25 @@ static void split_firmware(struct mtd_info *master, struct mtd_part *part)
 		pr_err("\"%s\" was not fully split: %d\n", part->mtd.name, ret);
 }
 
+/* What the flash root holds, by its magic; NULL for anything else. */
+static const char *flash_root_fstype(struct mtd_info *mtd)
+{
+	__le32 magic;
+	size_t retlen;
+	int ret;
+
+	ret = mtd_read(mtd, 0, sizeof(magic), &retlen, (u_char *)&magic);
+	if ((ret && !mtd_is_bitflip(ret)) || retlen != sizeof(magic))
+		return NULL;
+
+	if (le32_to_cpu(magic) == SQUASHFS_MAGIC)
+		return "squashfs";
+	if (le16_to_cpu(*(__le16 *)&magic) == JFFS2_MAGIC_BITMASK ||
+	    be16_to_cpu(*(__be16 *)&magic) == JFFS2_MAGIC_BITMASK)
+		return "jffs2";
+	return NULL;
+}
+
 static void mtd_partition_split(struct mtd_info *master, struct mtd_part *part)
 {
 	bool child = ACCESS_ONCE(splitting_task) == current;
@@ -738,6 +758,7 @@ static void mtd_partition_split(struct mtd_info *master, struct mtd_part *part)
 		if (IS_ENABLED(CONFIG_MTD_ROOTFS_ROOT_DEV) && !root_dev_from_flash) {
 			ROOT_DEV = MKDEV(MTD_BLOCK_MAJOR, part->mtd.index);
 			root_dev_from_flash = true;
+			root_dev_flash_fstype = flash_root_fstype(&part->mtd);
 		}
 		run_parsers_by_type(part, MTD_PARSER_TYPE_ROOTFS);
 	}
