@@ -89,8 +89,8 @@ static int hisi_femac_mdio_wait_ready(struct hisi_femac_mdio_data *data)
 {
 	u32 val;
 
-	return readl_poll_timeout_atomic(data->membase + MDIO_RWCTRL,
-				  val, val & MDIO_RW_FINISH, 20, 10000);
+	return readl_poll_timeout(data->membase + MDIO_RWCTRL, val,
+				  val & MDIO_RW_FINISH, 20, 10000);
 }
 
 static int hisi_femac_mdio_read(struct mii_bus *bus, int mii_id, int regnum)
@@ -122,7 +122,7 @@ static int hisi_femac_mdio_write(struct mii_bus *bus, int mii_id, int regnum,
 	if (ret)
 		return ret;
 
-	writel(MDIO_WRITE | (value << BIT_WR_DATA_OFFSET) |
+	writel(MDIO_WRITE | ((u32)value << BIT_WR_DATA_OFFSET) |
 	       ((u32)mii_id << BIT_PHY_ADDR_OFFSET) | ((u32)regnum),
 	       data->membase + MDIO_RWCTRL);
 
