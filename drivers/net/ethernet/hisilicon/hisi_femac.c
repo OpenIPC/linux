@@ -878,11 +878,13 @@ static int hisi_femac_drv_probe(struct platform_device *pdev)
 	ret = register_netdev(ndev);
 	if (ret) {
 		dev_err(dev, "register_netdev failed!\n");
-		goto out_disconnect_phy;
+		goto out_free_irq;
 	}
 
 	return ret;
 
+out_free_irq:
+	devm_free_irq(dev, ndev->irq, ndev);
 out_disconnect_phy:
 	netif_napi_del(&priv->napi);
 	phy_disconnect(phy);
@@ -899,10 +901,12 @@ static void hisi_femac_drv_remove(struct platform_device *pdev)
 	struct net_device *ndev = platform_get_drvdata(pdev);
 	struct hisi_femac_priv *priv = netdev_priv(ndev);
 
-	netif_napi_del(&priv->napi);
 	unregister_netdev(ndev);
+	netif_napi_del(&priv->napi);
 
 	phy_disconnect(ndev->phydev);
+	/* The shared interrupt must not run once the clock is off */
+	devm_free_irq(priv->dev, ndev->irq, ndev);
 	clk_disable_unprepare(priv->clk);
 	free_netdev(ndev);
 }
