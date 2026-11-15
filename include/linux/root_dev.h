@@ -31,7 +31,8 @@ extern bool root_dev_from_flash;
 
 /*
  * The filesystem the flash root holds, from its magic ("squashfs", "jffs2"),
- * or NULL when it is none of those. mount_root() mounts the flash root as
+ * "squashfs,jffs2" when the magic cannot be read, or NULL when it is none of
+ * those. mount_root() mounts the flash root as
  * this type alone: the bootloader's rootfstype= gave way with its root=, and
  * trying every type in turn on a root that would not mount ran yaffs2 over a
  * NOR partition, which BUG()s instead of failing.
