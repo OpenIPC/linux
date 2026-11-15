@@ -177,7 +177,6 @@ static const struct hisi_crg_funcs hi3516cv200_crg_funcs = {
  * the minimum set of clocks that early consumers (SP804, PL011 console,
  * FEMAC ethernet) demand via CLK_OF_DECLARE. Same approach cv300 uses. */
 static const struct hisi_fixed_rate_clock hi3516cv200_crg_early_fixed[] = {
-	{ HI3516CV200_SYSAPB_CLK, "sysapb_early", NULL, 0, 50000000, },
 	{ HI3516CV200_UART0_CLK,  "uart0_early",  NULL, 0, 24000000, },
 	{ HI3516CV200_UART1_CLK,  "uart1_early",  NULL, 0, 24000000, },
 	{ HI3516CV200_UART2_CLK,  "uart2_early",  NULL, 0, 24000000, },
@@ -215,6 +214,27 @@ static struct reset_controller_dev hi3516cv200_crg_reset_rcdev = {
 	.of_xlate         = hi3516cv200_crg_reset_xlate,
 };
 
+/*
+ * PERI_CRG12 bus_sc_sel [0] selects the bus clock, 24 MHz (0) or 198 MHz (1),
+ * and the system APB clock is the bus clock divided by four. The boot loader
+ * makes the choice (the Hi3518E V200 U-Boot selects 198 MHz, so 49.5 MHz), so
+ * the early APB clock reads the select back instead of assuming a rate.
+ */
+#define HI3516CV200_PERI_CRG12		0x30
+#define HI3516CV200_BUS_SC_SEL		BIT(0)
+
+static void __init hi3516cv200_crg_early_apb(struct hisi_clock_data *clk_data)
+{
+	struct hisi_fixed_rate_clock apb = {
+		HI3516CV200_SYSAPB_CLK, "sysapb_early", NULL, 0, 0,
+	};
+	u32 sel = readl(clk_data->base + HI3516CV200_PERI_CRG12);
+
+	apb.fixed_rate = (sel & HI3516CV200_BUS_SC_SEL ? 198000000 : 24000000) / 4;
+	if (hisi_clk_register_fixed_rate(&apb, 1, clk_data))
+		pr_err("hi3516cv200-clk: failed to register the early APB clock\n");
+}
+
 static void __init hi3516cv200_crg_early_init(struct device_node *np)
 {
 	struct hisi_clock_data *clk_data;
@@ -227,6 +247,7 @@ static void __init hi3516cv200_crg_early_init(struct device_node *np)
 	}
 	hisi_clk_register_fixed_rate(hi3516cv200_crg_early_fixed,
 		ARRAY_SIZE(hi3516cv200_crg_early_fixed), clk_data);
+	hi3516cv200_crg_early_apb(clk_data);
 
 	hi3516cv200_crg_reset_rcdev.of_node = np;
 	hi3516cv200_crg_reset_rcdev.owner = THIS_MODULE;
@@ -238,16 +259,37 @@ CLK_OF_DECLARE(hi3516cv200_clk_early, "hisilicon,hi3518ev20x-clock",
 
 /* ---------------- sys controller block (sysctrl@20050000) ---------------- */
 
-/* SP804 timer DT references sysctrl-exposed TIME0_0..TIME1_3 clocks.
- * Timer init runs at start_kernel — well before platform_driver probing.
- * Register the timer clocks as fixed-rate 3 MHz (the value the vendor
- * mux ultimately selects via timer_mux_p={"3m", "apb"} entry 0).
- * Mirrors cv300's sysctrl_early_init exactly. */
-static const struct hisi_fixed_rate_clock hi3516cv200_sysctrl_early_fixed[] = {
-	{ HI3516CV200_TIME0_0_CLK, "timer0_0_early", NULL, 0, 3000000, },
-	{ HI3516CV200_TIME0_1_CLK, "timer0_1_early", NULL, 0, 3000000, },
-	{ HI3516CV200_TIME1_2_CLK, "timer1_2_early", NULL, 0, 3000000, },
-	{ HI3516CV200_TIME1_3_CLK, "timer1_3_early", NULL, 0, 3000000, },
+/*
+ * The SP804 count clocks are selected by SC_CTRL (sysctrl + 0x0): bit 16 (timer
+ * 0), 18 (timer 1), 20 (timer 2) and 22 (timer 3) choose between the 3 MHz
+ * reference (0) and the system APB clock (1). The boot loader may leave either
+ * value (the Hi3518E V200 U-Boot sets bit 16), so model the select as a
+ * read-only mux (SC_CTRL is write-protected by SC_LOCKEN) and let the read-back
+ * of the register decide the rate. Timer init runs at
+ * start_kernel, long before platform driver probing, so the mux and its parents
+ * are registered from the sysctrl early init. The 3 MHz parent gets its own
+ * early name; the CRG platform driver registers the "3m" clock later.
+ */
+static const char *const hi3516cv200_timer_mux_p[] = { "3m_early", "sysapb_early" };
+static u32 hi3516cv200_timer_mux_table[] = { 0, 1 };
+
+static const struct hisi_mux_clock hi3516cv200_sysctrl_early_mux[] = {
+	{ HI3516CV200_TIME0_0_CLK, "timer0_0_early", hi3516cv200_timer_mux_p,
+		ARRAY_SIZE(hi3516cv200_timer_mux_p), 0, 0x0, 16, 1,
+		CLK_MUX_READ_ONLY,
+		hi3516cv200_timer_mux_table, },
+	{ HI3516CV200_TIME0_1_CLK, "timer0_1_early", hi3516cv200_timer_mux_p,
+		ARRAY_SIZE(hi3516cv200_timer_mux_p), 0, 0x0, 18, 1,
+		CLK_MUX_READ_ONLY,
+		hi3516cv200_timer_mux_table, },
+	{ HI3516CV200_TIME1_2_CLK, "timer1_2_early", hi3516cv200_timer_mux_p,
+		ARRAY_SIZE(hi3516cv200_timer_mux_p), 0, 0x0, 20, 1,
+		CLK_MUX_READ_ONLY,
+		hi3516cv200_timer_mux_table, },
+	{ HI3516CV200_TIME1_3_CLK, "timer1_3_early", hi3516cv200_timer_mux_p,
+		ARRAY_SIZE(hi3516cv200_timer_mux_p), 0, 0x0, 22, 1,
+		CLK_MUX_READ_ONLY,
+		hi3516cv200_timer_mux_table, },
 };
 
 static void __init hi3516cv200_sysctrl_early_init(struct device_node *np)
@@ -260,8 +302,21 @@ static void __init hi3516cv200_sysctrl_early_init(struct device_node *np)
 		pr_err("hi3516cv200-sys: hisi_clk_init FAILED\n");
 		return;
 	}
-	hisi_clk_register_fixed_rate(hi3516cv200_sysctrl_early_fixed,
-		ARRAY_SIZE(hi3516cv200_sysctrl_early_fixed), clk_data);
+	if (IS_ERR(clk_register_fixed_rate(NULL, "3m_early", NULL, 0, 3000000))) {
+		pr_err("hi3516cv200-sys: failed to register the early 3 MHz clock\n");
+		goto err_del_provider;
+	}
+	if (hisi_clk_register_mux(hi3516cv200_sysctrl_early_mux,
+				  ARRAY_SIZE(hi3516cv200_sysctrl_early_mux),
+				  clk_data)) {
+		pr_err("hi3516cv200-sys: failed to register the timer clock selects\n");
+		goto err_del_provider;
+	}
+	return;
+
+err_del_provider:
+	/* no provider at all is better than one with missing timer clocks */
+	of_clk_del_provider(np);
 }
 CLK_OF_DECLARE(hi3516cv200_sysctrl_early, "hisilicon,hi3518ev20x-sysctrl",
 		hi3516cv200_sysctrl_early_init);
