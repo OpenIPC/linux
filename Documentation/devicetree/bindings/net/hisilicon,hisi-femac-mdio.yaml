@@ -1,0 +1,163 @@
+# SPDX-License-Identifier: GPL-2.0-only OR BSD-2-Clause
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/net/hisilicon,hisi-femac-mdio.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: HiSilicon Fast Ethernet MAC (FEMAC) MDIO controller
+
+maintainers:
+  - Dylan Corrales <deathcamel58@gmail.com>
+
+properties:
+  compatible:
+    oneOf:
+      - const: hisilicon,hisi-femac-mdio
+      - items:
+          - enum:
+              - hisilicon,hi3520dv100-femac-mdio
+              - hisilicon,hi3520dv200-femac-mdio
+          - const: hisilicon,hisi-femac-mdio
+
+  reg:
+    minItems: 1
+    items:
+      - description: MDIO registers
+      - description: |
+          Internal PHY control register (Hi3520D: SYS_CTRL, its low five bits
+          set the address the PHY answers at). The Hi3520D compatibles need
+          this window and have no third one.
+      - description: |
+          Internal PHY trim data, for chips that keep them in a separate
+          window. Without it the trim data are read from the control register
+          of the second window.
+
+  clocks:
+    minItems: 1
+    items:
+      - description: MDIO clock
+      - description: internal PHY clock
+
+  clock-names:
+    minItems: 1
+    items:
+      - const: mdio
+      - const: phy
+
+  resets:
+    minItems: 1
+    maxItems: 2
+    description:
+      The external PHY reset and the internal PHY reset, in the order of
+      reset-names.
+
+  reset-names:
+    oneOf:
+      - minItems: 1
+        items:
+          - const: external-phy
+          - const: internal-phy
+      - items:
+          - const: internal-phy
+
+  hisilicon,phy-reset-delays-us:
+    minItems: 3
+    maxItems: 3
+    description:
+      Pre-delay, pulse and post-delay of the reset of an external PHY in
+      microseconds, required with the "external-phy" reset.
+
+required:
+  - compatible
+  - reg
+  - clocks
+  - clock-names
+
+dependentRequired:
+  resets: [reset-names]
+  reset-names: [resets]
+
+allOf:
+  - $ref: mdio.yaml#
+
+  - if:
+      properties:
+        compatible:
+          contains:
+            enum:
+              - hisilicon,hi3520dv100-femac-mdio
+              - hisilicon,hi3520dv200-femac-mdio
+      required:
+        - compatible
+    then:
+      properties:
+        reg:
+          minItems: 2
+          maxItems: 2
+
+  - if:
+      properties:
+        reset-names:
+          contains:
+            const: external-phy
+      required:
+        - reset-names
+    then:
+      required:
+        - hisilicon,phy-reset-delays-us
+
+  - if:
+      properties:
+        reset-names:
+          minItems: 2
+      required:
+        - reset-names
+    then:
+      properties:
+        resets:
+          minItems: 2
+
+  - if:
+      properties:
+        reset-names:
+          maxItems: 1
+      required:
+        - reset-names
+    then:
+      properties:
+        resets:
+          maxItems: 1
+
+unevaluatedProperties: false
+
+examples:
+  - |
+    mdio@10091100 {
+        compatible = "hisilicon,hisi-femac-mdio";
+        reg = <0x10091100 0x10>;
+        clocks = <&crg 25>;
+        clock-names = "mdio";
+        resets = <&crg 0xec 3>;
+        reset-names = "external-phy";
+        hisilicon,phy-reset-delays-us = <10000 20000 20000>;
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        phy0: ethernet-phy@1 {
+            reg = <1>;
+        };
+    };
+  - |
+    mdio@10091100 {
+        compatible = "hisilicon,hi3520dv200-femac-mdio",
+                     "hisilicon,hisi-femac-mdio";
+        reg = <0x10091100 0x10>, <0x20050094 0x4>;
+        clocks = <&crg 25>;
+        clock-names = "mdio";
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        phy1: ethernet-phy@3 {
+            reg = <3>;
+        };
+    };
