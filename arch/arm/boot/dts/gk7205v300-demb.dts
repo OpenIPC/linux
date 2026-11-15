@@ -35,15 +35,27 @@
 		ramoops@41f00000 {
 			compatible = "ramoops";
 			reg = <0x41f00000 0x20000>;
-			/* Two 32K oops records (zlib-compressed, ample for one
-			 * oops) and a 64K pmsg ring: userspace copies its syslog --
-			 * klogd's kernel lines at every level included -- into
-			 * /dev/pmsg0, so a boot that hung or was reset without an oops
-			 * still leaves the log of what it was doing. console-size
-			 * stays 0: kernel.printk keeps the console at errors only, so
-			 * a console record would hold next to nothing. */
-			record-size = <0x8000>;
-			console-size = <0>;
+			/* Two 16K oops records, a 32K console record and a 64K pmsg
+			 * ring.
+			 *
+			 * pmsg: userspace copies its syslog -- klogd's kernel lines at
+			 * every level included -- into /dev/pmsg0, so a boot that hung
+			 * or was reset without an oops still leaves the log of what it
+			 * was doing. But only from S03pmsglog on: a boot that ended
+			 * before userspace logging started leaves it empty, and boot
+			 * loops reported after it existed arrived with no log at all.
+			 *
+			 * console: the kernel's own messages, at every level until
+			 * S02sysctl lowers kernel.printk and at errors after it -- the
+			 * whole kernel boot of a boot that never reached userspace,
+			 * which nothing else keeps.
+			 *
+			 * The region cannot grow (the boot counter follows it), so the
+			 * console's 32K comes out of the oops records, not the system
+			 * log: they are zlib-compressed, and an oops with the log before
+			 * it fits 16K many times over. */
+			record-size = <0x4000>;
+			console-size = <0x8000>;
 			pmsg-size = <0x10000>;
 		};
 
