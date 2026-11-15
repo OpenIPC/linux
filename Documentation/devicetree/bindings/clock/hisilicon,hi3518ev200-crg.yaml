@@ -1,0 +1,95 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/clock/hisilicon,hi3518ev200-crg.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: HiSilicon Hi3516C V200 / Hi3518E V200 Clock and Reset Generator (CRG) and system controller
+
+maintainers:
+  - Vasiliy Yakovlev <vixand@openipc.org>
+
+description: |
+  The CRG of the Hi3516C V200 and the Hi3518E V200 (and V201) ARM926EJ-S IP
+  camera SoCs provides the PLLs, the CPU and bus clock selection, the
+  peripheral clock gates and the peripheral soft resets. Both SoCs have the
+  same register description, so the Hi3518E V200 compatibles are the fallback
+  of the Hi3516C V200 ones. The SP804 timer count clock selects live in the
+  system controller, which has its own compatible and provides those clocks.
+
+  The hisilicon,hi3518ev20x-clock and hisilicon,hi3518ev20x-sysctrl
+  compatibles name no chip and are deprecated; they are accepted for the
+  existing device trees.
+
+  Reset specifiers have two cells: the register offset from the CRG base and
+  the bit number. A set bit holds the peripheral in reset.
+
+  See include/dt-bindings/clock/hi3516cv200-clock.h for the clock identifiers.
+
+properties:
+  compatible:
+    oneOf:
+      - items:
+          - const: hisilicon,hi3516cv200-crg
+          - const: hisilicon,hi3518ev200-crg
+      - const: hisilicon,hi3518ev200-crg
+      - const: hisilicon,hi3518ev20x-clock
+        deprecated: true
+      - items:
+          - const: hisilicon,hi3516cv200-sysctrl
+          - const: hisilicon,hi3518ev200-sysctrl
+          - const: syscon
+      - items:
+          - const: hisilicon,hi3518ev200-sysctrl
+          - const: syscon
+      - items:
+          - const: hisilicon,hi3518ev20x-sysctrl
+          - const: syscon
+        deprecated: true
+
+  reg:
+    maxItems: 1
+
+  '#clock-cells':
+    const: 1
+
+  '#reset-cells':
+    const: 2
+
+required:
+  - compatible
+  - reg
+  - '#clock-cells'
+
+allOf:
+  - if:
+      properties:
+        compatible:
+          contains:
+            enum:
+              - hisilicon,hi3518ev200-crg
+              - hisilicon,hi3518ev20x-clock
+    then:
+      required:
+        - '#reset-cells'
+    else:
+      properties:
+        '#reset-cells': false
+
+additionalProperties: false
+
+examples:
+  - |
+    clock-controller@20030000 {
+        compatible = "hisilicon,hi3516cv200-crg", "hisilicon,hi3518ev200-crg";
+        reg = <0x20030000 0x1000>;
+        #clock-cells = <1>;
+        #reset-cells = <2>;
+    };
+
+    system-controller@20050000 {
+        compatible = "hisilicon,hi3516cv200-sysctrl",
+                     "hisilicon,hi3518ev200-sysctrl", "syscon";
+        reg = <0x20050000 0x1000>;
+        #clock-cells = <1>;
+    };

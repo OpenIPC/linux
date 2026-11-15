@@ -29231,15 +29231,19 @@ ARM/HISILICON BVT IP CAMERA SOC SUPPORT
 M:	Vasiliy Yakovlev <vixand@openipc.org>
 L:	linux-arm-kernel@lists.infradead.org (moderated for non-subscribers)
 S:	Maintained
+F:	arch/arm/boot/dts/hisilicon/hi3516cv*.dts*
 F:	arch/arm/boot/dts/hisilicon/hi3516dv*.dts*
 F:	arch/arm/boot/dts/hisilicon/hi3516ev*.dts*
 F:	arch/arm/boot/dts/hisilicon/hi3518ev*.dts*
 F:	arch/arm/mach-hibvt/
 F:	Documentation/devicetree/bindings/arm/hisilicon/hisilicon-bvt.yaml
 F:	Documentation/devicetree/bindings/clock/hisilicon,hi3516ev200-clock.yaml
+F:	Documentation/devicetree/bindings/clock/hisilicon,hi3518ev200-crg.yaml
 F:	Documentation/devicetree/bindings/i2c/hisilicon,hibvt-i2c.yaml
 F:	drivers/clk/hisilicon/clk-hi3516ev*.c
 F:	drivers/clk/hisilicon/clk-hi3518ev*.c
+F:	drivers/clk/hisilicon/crg-hi3516cv*.c
 F:	drivers/i2c/busses/i2c-hibvt.c
+F:	include/dt-bindings/clock/hi3516cv*-clock.h
 F:	include/dt-bindings/clock/hi3516ev*-clock.h
 F:	include/dt-bindings/clock/hi3518ev*-clock.h

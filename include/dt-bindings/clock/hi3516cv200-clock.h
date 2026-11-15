@@ -2,12 +2,14 @@
 /*
  * Copyright (c) 2016 HiSilicon Technologies Co., Ltd.
  *
- * Hi3516CV200 / Hi3518EV20x V2 family clock IDs — kept aligned with the
- * vendor BSP so its 4.9-era DT (arch/arm/boot/dts/hi3518ev20x{.dtsi,-demb.dts})
- * compiles unchanged against the modern crg-hi3516cv200.c driver.
+ * Clock identifiers of the CRG and system controller of the Hi3516C V200
+ * and Hi3518E V200 (and V201), ARM926EJ-S / ARMv5TE. Both SoCs have the same
+ * CRG register description; see hisilicon,hi3518ev200-crg.yaml. The CRGs of
+ * the other HiSilicon IP camera SoCs (Hi3516C V100, Hi3518E V100, Hi3516E V200,
+ * V300) differ, and their identifiers live in their own headers.
  *
- * V2 generation (ARM926EJ-S / ARMv5TE) — siblings: Hi3516CV200,
- * Hi3518EV200, Hi3518EV201.
+ * The file name and the HI3516CV200_ prefix are the ones the device trees and
+ * the clock driver already use.
  */
 
 #ifndef __DTS_HI3516CV200_CLOCK_H
@@ -48,9 +50,19 @@
 #define HI3516CV200_USB2_HRST_REQ	34
 #define HI3516CV200_MMC0_MUX		35
 #define HI3516CV200_MMC1_MUX		36
+#define HI3516CV200_ETH_CORE_MUX	37
+#define HI3516CV200_I2C_MUX		38
+#define HI3516CV200_PWM_MUX		39
 
 /* divider clocks */
 #define HI3516CV200_SYSAPB_CLK		40
+
+/* PLL and CPU/bus clock selects */
+#define HI3516CV200_APLL_CLK		41
+#define HI3516CV200_VPLL_CLK		42
+#define HI3516CV200_EPLL_CLK		43
+#define HI3516CV200_CPU_MUX		44
+#define HI3516CV200_BUS_MUX		45
 
 /* gate clocks */
 #define HI3516CV200_FMC_CLK		50
@@ -64,8 +76,25 @@
 #define HI3516CV200_SPI0_CLK		58
 #define HI3516CV200_SPI1_CLK		59
 #define HI3516CV200_DMAC_CLK		60
+#define HI3516CV200_USB2_CLK		61
+#define HI3516CV200_PWM_CLK		62
+#define HI3516CV200_IR_CLK		63
 
-#define HI3516CV200_CRG_NR_CLKS		64
+/* imaging clocks, identifiers 64 to 127 are reserved for them */
+#define HI3516CV200_SENSOR_MUX		64
+#define HI3516CV200_VI_MUX		65
+#define HI3516CV200_SENSOR_CLK		66
+#define HI3516CV200_VI_CLK		67
+#define HI3516CV200_MIPI_CLK		68
+#define HI3516CV200_TDE_CLK		69
+#define HI3516CV200_VGS_CLK		70
+#define HI3516CV200_JPGE_CLK		71
+#define HI3516CV200_VEDU_CLK		72
+#define HI3516CV200_VPSS_CLK		73
+#define HI3516CV200_AIAO_CLK		74
+#define HI3516CV200_CIPHER_CLK		75
+
+#define HI3516CV200_CRG_NR_CLKS		128
 
 /* sysctrl (timer mux) clocks — exported via the system-controller provider */
 #define HI3516CV200_TIME0_0_CLK		1
