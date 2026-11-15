@@ -56,20 +56,22 @@
 		interrupt-parent = <&vic>;
 		ranges;
 
-		/* Vendor names this node "clock" but the analogous block
-		 * on cv300 is called "crg_ctrl" — keep vendor naming so the
-		 * 4.9-era DT (which we want to be a drop-in) parses
-		 * unchanged. The compatible matches the CRG driver's
-		 * CLK_OF_DECLARE / platform_driver match_table. */
+		/*
+		 * The vendor names this node "clock" while the analogous block
+		 * on cv300 is called "crg_ctrl"; the vendor node name is kept so
+		 * that a device tree written for it parses unchanged. The
+		 * Hi3518E V200 compatible is what the CRG driver matches.
+		 */
 		crg_ctrl: clock@20030000 {
-			compatible = "hisilicon,hi3518ev20x-clock";
+			compatible = "hisilicon,hi3516cv200-crg", "hisilicon,hi3518ev200-crg";
 			reg = <0x20030000 0x1000>;
 			#clock-cells = <1>;
 			#reset-cells = <2>;
 		};
 
 		sys_ctrl: system-controller@20050000 {
-			compatible = "hisilicon,hi3518ev20x-sysctrl", "syscon";
+			compatible = "hisilicon,hi3516cv200-sysctrl",
+				     "hisilicon,hi3518ev200-sysctrl", "syscon";
 			reg = <0x20050000 0x1000>;
 			#clock-cells = <1>;
 		};
