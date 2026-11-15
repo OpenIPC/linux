@@ -14,6 +14,7 @@
 #include <linux/of_net.h>
 #include <linux/platform_device.h>
 #include <linux/reset.h>
+#include <linux/spinlock.h>
 
 /* MAC control register list */
 #define MAC_PORTSEL			0x0200
@@ -121,24 +122,32 @@ struct hisi_femac_priv {
 	struct hisi_femac_queue rxq;
 	u32 tx_fifo_used_cnt;
 	struct napi_struct napi;
+	/* Protects the read-modify-write of GLB_IRQ_ENA */
+	spinlock_t irq_lock;
 	/* The clock is off and the interface was already closed by suspend */
 	bool suspended;
 };
 
 static void hisi_femac_irq_enable(struct hisi_femac_priv *priv, int irqs)
 {
+	unsigned long flags;
 	u32 val;
 
+	spin_lock_irqsave(&priv->irq_lock, flags);
 	val = readl(priv->glb_base + GLB_IRQ_ENA);
 	writel(val | irqs, priv->glb_base + GLB_IRQ_ENA);
+	spin_unlock_irqrestore(&priv->irq_lock, flags);
 }
 
 static void hisi_femac_irq_disable(struct hisi_femac_priv *priv, int irqs)
 {
+	unsigned long flags;
 	u32 val;
 
+	spin_lock_irqsave(&priv->irq_lock, flags);
 	val = readl(priv->glb_base + GLB_IRQ_ENA);
 	writel(val & (~irqs), priv->glb_base + GLB_IRQ_ENA);
+	spin_unlock_irqrestore(&priv->irq_lock, flags);
 }
 
 static void hisi_femac_tx_dma_unmap(struct hisi_femac_priv *priv,
@@ -809,6 +818,7 @@ static int hisi_femac_drv_probe(struct platform_device *pdev)
 	priv = netdev_priv(ndev);
 	priv->dev = dev;
 	priv->ndev = ndev;
+	spin_lock_init(&priv->irq_lock);
 
 	priv->port_base = devm_platform_ioremap_resource(pdev, 0);
 	if (IS_ERR(priv->port_base)) {
