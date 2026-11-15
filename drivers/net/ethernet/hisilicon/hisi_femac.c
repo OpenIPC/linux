@@ -396,6 +396,7 @@ static void hisi_femac_free_skb_rings(struct hisi_femac_priv *priv)
 		if (unlikely(!skb)) {
 			netdev_err(priv->ndev, "NULL rx skb. pos=%d, head=%d\n",
 				   pos, rxq->head);
+			pos = (pos + 1) % rxq->num;
 			continue;
 		}
 
@@ -415,6 +416,7 @@ static void hisi_femac_free_skb_rings(struct hisi_femac_priv *priv)
 		if (unlikely(!skb)) {
 			netdev_err(priv->ndev, "NULL tx skb. pos=%d, head=%d\n",
 				   pos, txq->head);
+			pos = (pos + 1) % txq->num;
 			continue;
 		}
 		hisi_femac_tx_dma_unmap(priv, skb, pos);
