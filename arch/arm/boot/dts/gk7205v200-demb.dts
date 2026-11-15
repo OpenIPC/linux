@@ -41,8 +41,8 @@
 		ramoops@41f00000 {
 			compatible = "ramoops";
 			reg = <0x41f00000 0x20000>;
-			/* Two 32K oops records (zlib-compressed, ample for one
-			 * oops), a 32K console record and a 32K pmsg ring.
+			/* Two 16K oops records, a 32K console record and a 64K pmsg
+			 * ring.
 			 *
 			 * pmsg: userspace copies its syslog -- klogd's kernel lines at
 			 * every level included -- into /dev/pmsg0, so a boot that hung
@@ -54,11 +54,15 @@
 			 * console: the kernel's own messages, at every level until
 			 * S02sysctl lowers kernel.printk and at errors after it -- the
 			 * whole kernel boot of a boot that never reached userspace,
-			 * which nothing else keeps. The region cannot grow (the boot
-			 * counter follows it), so pmsg gives up half of its 64K. */
-			record-size = <0x8000>;
+			 * which nothing else keeps.
+			 *
+			 * The region cannot grow (the boot counter follows it), so the
+			 * console's 32K comes out of the oops records, not the system
+			 * log: they are zlib-compressed, and an oops with the log before
+			 * it fits 16K many times over. */
+			record-size = <0x4000>;
 			console-size = <0x8000>;
-			pmsg-size = <0x8000>;
+			pmsg-size = <0x10000>;
 		};
 
 		/* Boot-attempt counter shared with U-Boot (bootcount). no-map so
