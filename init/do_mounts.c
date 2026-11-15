@@ -43,6 +43,9 @@ static char * __initdata root_device_name;
 static char __initdata saved_root_name[64];
 
 bool root_dev_from_flash;
+const char *root_dev_flash_fstype;
+/* The flash root, once prepare_namespace() has let it win over root=. */
+static dev_t __initdata flash_root;
 static int root_wait;
 
 dev_t ROOT_DEV;
@@ -541,6 +544,19 @@ void __init mount_root(void)
 
 		if (err < 0)
 			pr_emerg("Failed to create /dev/root: %d\n", err);
+
+		/*
+		 * The flash root is mounted as the filesystem it holds, not as
+		 * every one the kernel knows in turn: a damaged squashfs then ends
+		 * in "VFS: Unable to mount root fs", where trying the rest ran
+		 * yaffs2 over the NOR partition and that BUG()s
+		 * (yaffs_getblockinfo.h, from a GK7205V210 whose split squashfs
+		 * could not be read). Only for that device: an initrd's linuxrc
+		 * may have chosen another root.
+		 */
+		if (flash_root && ROOT_DEV == flash_root && root_dev_flash_fstype)
+			root_fs_names = (char *)root_dev_flash_fstype;
+
 		mount_block_root("/dev/root", root_mountflags);
 	}
 #endif
@@ -591,6 +607,10 @@ void __init prepare_namespace(void)
 	 * When the kernel found the root filesystem on the flash itself, those
 	 * give way for an MTD root; a root elsewhere (NFS, an SD card, a RAM disk)
 	 * is the bootloader's to choose.
+	 *
+	 * The type the flash root is mounted as is set in mount_root(), not
+	 * here: a legacy initrd is mounted through the same root_fs_names first,
+	 * and may well be another filesystem.
 	 */
 	if (root_dev_from_flash && root_names_flash(saved_root_name)) {
 		if (saved_root_name[0])
@@ -598,6 +618,7 @@ void __init prepare_namespace(void)
 				  saved_root_name);
 		saved_root_name[0] = '\0';
 		root_fs_names = NULL;
+		flash_root = ROOT_DEV;
 	}
 
 	if (saved_root_name[0]) {
