@@ -44,6 +44,9 @@ static char __initdata saved_root_name[64];
 
 /* Set when the split NOR layout found the root (drivers/mtd/split_layout.c). */
 bool root_dev_from_flash;
+const char *root_dev_flash_fstype;
+/* The flash root, once prepare_namespace() has let it win over root=. */
+static dev_t __initdata flash_root;
 static int root_wait;
 
 dev_t ROOT_DEV;
@@ -542,6 +545,17 @@ void __init mount_root(void)
 
 		if (err < 0)
 			pr_emerg("Failed to create /dev/root: %d\n", err);
+		/*
+		 * The flash root is mounted as the filesystem it holds, not as
+		 * every one the kernel knows in turn: a damaged squashfs then
+		 * ends in "VFS: Unable to mount root fs", where trying the rest
+		 * ran yaffs2 over the NOR partition and that BUG()s. Only for
+		 * that device: an initrd's linuxrc may have chosen another root,
+		 * and the initrd itself is mounted through the same names.
+		 */
+		if (flash_root && ROOT_DEV == flash_root && root_dev_flash_fstype)
+			root_fs_names = (char *)root_dev_flash_fstype;
+
 		mount_block_root("/dev/root", root_mountflags);
 	}
 #endif
@@ -599,6 +613,8 @@ void __init prepare_namespace(void)
 			       saved_root_name);
 		saved_root_name[0] = '\0';
 		root_fs_names = NULL;
+		/* mount_root() mounts it as the type it holds. */
+		flash_root = ROOT_DEV;
 	}
 
 	if (saved_root_name[0]) {

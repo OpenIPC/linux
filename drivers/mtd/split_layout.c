@@ -116,6 +116,8 @@ static void split_set_root(struct mtd_info *r)
 {
 	ROOT_DEV = MKDEV(MTD_BLOCK_MAJOR, r->index);
 	root_dev_from_flash = true;
+	/* split_find() only accepts a rootfs that opens with squashfs */
+	root_dev_flash_fstype = "squashfs";
 	printk(KERN_NOTICE "split NOR layout: root on mtdblock%d\n", r->index);
 }
 
