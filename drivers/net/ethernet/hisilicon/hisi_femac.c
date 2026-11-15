@@ -914,6 +914,7 @@ static int hisi_femac_drv_probe(struct platform_device *pdev)
 	struct net_device *ndev;
 	struct hisi_femac_priv *priv;
 	struct phy_device *phy;
+	struct device_node *phy_node;
 	int ret;
 
 	ndev = alloc_etherdev(sizeof(*priv));
@@ -942,8 +943,8 @@ static int hisi_femac_drv_probe(struct platform_device *pdev)
 
 	priv->clk = devm_clk_get(&pdev->dev, NULL);
 	if (IS_ERR(priv->clk)) {
-		dev_err(dev, "failed to get clk\n");
-		ret = -ENODEV;
+		ret = dev_err_probe(dev, PTR_ERR(priv->clk),
+				    "failed to get clk\n");
 		goto out_free_netdev;
 	}
 
@@ -960,10 +961,13 @@ static int hisi_femac_drv_probe(struct platform_device *pdev)
 	}
 	hisi_femac_core_reset(priv);
 
-	priv->phy_rst = devm_reset_control_get(dev, "phy");
+	priv->phy_rst = devm_reset_control_get_optional_exclusive(dev, "phy");
 	if (IS_ERR(priv->phy_rst)) {
-		priv->phy_rst = NULL;
-	} else {
+		ret = dev_err_probe(dev, PTR_ERR(priv->phy_rst),
+				    "failed to get the PHY reset\n");
+		goto out_disable_clk;
+	}
+	if (priv->phy_rst) {
 		ret = of_property_read_u32_array(node,
 						 PHY_RESET_DELAYS_PROPERTY,
 						 priv->phy_reset_delays,
@@ -971,6 +975,24 @@ static int hisi_femac_drv_probe(struct platform_device *pdev)
 		if (ret)
 			goto out_disable_clk;
 		hisi_femac_phy_reset(priv);
+	}
+
+	/*
+	 * The MDIO bus may register after this device: only a PHY that is
+	 * not there yet defers the probe. A failed connection (for example
+	 * an invalid or unsupported "phy-mode") is an error.
+	 */
+	phy_node = of_parse_phandle(node, "phy-handle", 0);
+	if (phy_node) {
+		struct phy_device *found = of_phy_find_device(phy_node);
+
+		of_node_put(phy_node);
+		if (!found) {
+			ret = dev_err_probe(dev, -EPROBE_DEFER,
+					    "PHY not found yet\n");
+			goto out_disable_clk;
+		}
+		put_device(&found->mdio.dev);
 	}
 
 	phy = of_phy_get_and_connect(ndev, node, hisi_femac_adjust_link);
