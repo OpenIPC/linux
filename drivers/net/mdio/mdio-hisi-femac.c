@@ -83,6 +83,7 @@ struct hisi_femac_mdio_data {
 	u32 phy_addr;
 	bool fephy_addr_only;
 	bool fephy_clk_on;
+	bool clk_on;
 };
 
 static int hisi_femac_mdio_wait_ready(struct hisi_femac_mdio_data *data)
@@ -190,20 +191,24 @@ static inline bool hisi_femac_use_fephy(struct hisi_femac_mdio_data *data)
 			!(readl(data->fephy_iobase) & BIT_FEPHY_SEL) : false);
 }
 
-static void hisi_femac_fephy_reset(struct hisi_femac_mdio_data *data)
+static int hisi_femac_fephy_reset(struct hisi_femac_mdio_data *data)
 {
 	u32 val;
+	int ret;
 
 	/* disable MDCK clock to make sure FEPHY reset success */
 	clk_disable_unprepare(data->clk);
+	data->clk_on = false;
 
 	val = readl(data->fephy_iobase);
 	val &= ~BIT_MASK_FEPHY_ADDR;
 	val |= data->phy_addr;
 	writel(val, data->fephy_iobase);
 
-	if (!clk_prepare_enable(data->fephy_clk))
-		data->fephy_clk_on = true;
+	ret = clk_prepare_enable(data->fephy_clk);
+	if (ret)
+		return ret;
+	data->fephy_clk_on = !!data->fephy_clk;
 	udelay(10);
 
 	reset_control_assert(data->fephy_rst);
@@ -212,9 +217,14 @@ static void hisi_femac_fephy_reset(struct hisi_femac_mdio_data *data)
 	/* delay at least 15ms for MDIO operation */
 	msleep(20);
 
-	clk_prepare_enable(data->clk);
+	ret = clk_prepare_enable(data->clk);
+	if (ret)
+		return ret;
+	data->clk_on = true;
 	/* delay 5ms after enable MDCK to make sure FEPHY trim safe */
 	mdelay(5);
+
+	return 0;
 }
 
 static inline int fephy_expanded_read(struct mii_bus *bus, int phy_addr,
@@ -319,10 +329,16 @@ static void hisi_femac_fephy_trim(struct hisi_femac_mdio_data *data)
 		fephy_expanded_read(bus, phy_addr, REG_R_TUNING));
 }
 
-static void hisi_femac_fephy_reset_and_trim(struct hisi_femac_mdio_data *data)
+static int hisi_femac_fephy_reset_and_trim(struct hisi_femac_mdio_data *data)
 {
-	hisi_femac_fephy_reset(data);
+	int ret;
+
+	ret = hisi_femac_fephy_reset(data);
+	if (ret)
+		return ret;
 	hisi_femac_fephy_trim(data);
+
+	return 0;
 }
 
 /*
@@ -420,6 +436,7 @@ static int hisi_femac_mdio_probe(struct platform_device *pdev)
 	ret = clk_prepare_enable(data->clk);
 	if (ret)
 		goto err_out_free_mdiobus;
+	data->clk_on = true;
 
 	data->phy_rst = devm_reset_control_get_optional_exclusive(&pdev->dev,
 								  "external-phy");
@@ -456,12 +473,15 @@ static int hisi_femac_mdio_probe(struct platform_device *pdev)
 		data->fephy_iobase, data->fephy_rst, data->fephy_clk,
 		hisi_femac_use_fephy(data), data->phy_addr);
 
+	ret = 0;
 	if (data->fephy_addr_only)
 		hisi_femac_fephy_write_addr(data);
 	else if (hisi_femac_use_fephy(data))
-		hisi_femac_fephy_reset_and_trim(data);
+		ret = hisi_femac_fephy_reset_and_trim(data);
 	else
 		hisi_femac_fephy_set_phy_addr(data);
+	if (ret)
+		goto err_out_disable_clk;
 
 	ret = of_mdiobus_register(bus, np);
 	if (ret)
@@ -474,7 +494,8 @@ static int hisi_femac_mdio_probe(struct platform_device *pdev)
 err_out_disable_clk:
 	if (data->fephy_clk_on)
 		clk_disable_unprepare(data->fephy_clk);
-	clk_disable_unprepare(data->clk);
+	if (data->clk_on)
+		clk_disable_unprepare(data->clk);
 err_out_free_mdiobus:
 	mdiobus_free(bus);
 	return ret;
@@ -488,7 +509,8 @@ static void hisi_femac_mdio_remove(struct platform_device *pdev)
 	mdiobus_unregister(bus);
 	if (data->fephy_clk_on)
 		clk_disable_unprepare(data->fephy_clk);
-	clk_disable_unprepare(data->clk);
+	if (data->clk_on)
+		clk_disable_unprepare(data->clk);
 	mdiobus_free(bus);
 }
 
