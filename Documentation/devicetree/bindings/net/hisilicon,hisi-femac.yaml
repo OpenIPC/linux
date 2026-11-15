@@ -1,0 +1,160 @@
+# SPDX-License-Identifier: GPL-2.0-only OR BSD-2-Clause
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/net/hisilicon,hisi-femac.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: HiSilicon Fast Ethernet MAC (FEMAC)
+
+maintainers:
+  - Dylan Corrales <deathcamel58@gmail.com>
+
+description: |
+  Fast Ethernet MAC (FEMAC) found in several HiSilicon Hi35xx SoCs. The Hi3520D
+  V100 register description names the block ETH (HIETH_SF), the other chips
+  name it FEMAC. The Hi3516E V200 and V300 and the Hi3518E V200 and V300 share
+  one register description (94 registers, identical on each chip), and the
+  Hi3518E V100 has 90 of those 94 at the same offsets and with the same layout.
+  The registers that differ or are missing are the ones the driver does not
+  use: a second port, the RX checksum offload register, VLAN counters and the
+  EEE registers.
+
+  This is not the gigabit MAC of the Hi3520D V300 (GSF), the Hi3531 or the
+  Hi3535; that one is a different IP block of the GMAC family and has its own
+  binding.
+
+  On the Hi3520D V100 the controller is the "hieth-sf" switch fabric with two
+  ports (up and down) that share the global registers. The
+  "hisilicon,hi3520dv100-femac" compatible describes the up port, whose
+  registers and bits are those of this binding, with the global register
+  region as the second reg entry.
+
+  The MAC address is not read from the controller. The driver takes it from
+  the first of these that holds a valid address, in this order: an address
+  that is all zeros (or has the multicast bit set) is not valid and is
+  skipped. If none holds a valid address the driver uses a random one and
+  logs a warning. "mac-address" and "local-mac-address" (usually filled in by
+  the boot loader) and an NVMEM cell named "mac-address" are defined by
+  ethernet-controller.yaml; the obsolete "address" property is also read by
+  the OF core but is not part of the schema. A node that names an NVMEM cell
+  but has no valid address property defers the probe until the provider of
+  the cell is registered, and stays deferred if it never is.
+
+properties:
+  compatible:
+    oneOf:
+      - items:
+          - enum:
+              - hisilicon,hi3516cv300-femac
+              - hisilicon,hi3516dv300-femac
+              - hisilicon,hi3516ev200-femac
+              - hisilicon,hi3516ev300-femac
+              - hisilicon,hi3518ev20x-femac
+              - hisilicon,hi3518ev300-femac
+              - hisilicon,hi3520dv100-femac
+              - hisilicon,hi3536dv100-femac
+          - enum:
+              - hisilicon,hisi-femac-v1
+              - hisilicon,hisi-femac-v2
+      - enum:
+          - hisilicon,hi3516cv300-femac
+          - hisilicon,hisi-femac-v1
+          - hisilicon,hisi-femac-v2
+
+  reg:
+    items:
+      - description: MAC core registers
+      - description: global MAC control registers
+
+  interrupts:
+    maxItems: 1
+
+  clocks:
+    maxItems: 1
+    description: MAC main clock
+
+  resets:
+    minItems: 1
+    maxItems: 2
+    description:
+      The MAC reset and the PHY reset, in the order of reset-names.
+
+  reset-names:
+    oneOf:
+      - minItems: 1
+        items:
+          - const: mac
+          - const: phy
+      - items:
+          - const: phy
+
+  hisilicon,phy-reset-delays-us:
+    minItems: 3
+    maxItems: 3
+    description:
+      Pre-delay, pulse and post-delay of the PHY reset in microseconds,
+      required with the "phy" reset.
+
+required:
+  - compatible
+  - reg
+  - interrupts
+  - clocks
+  - phy-mode
+  - phy-handle
+
+dependentRequired:
+  resets: [reset-names]
+  reset-names: [resets]
+
+allOf:
+  - $ref: ethernet-controller.yaml#
+
+  - if:
+      properties:
+        reset-names:
+          contains:
+            const: phy
+      required:
+        - reset-names
+    then:
+      required:
+        - hisilicon,phy-reset-delays-us
+
+  - if:
+      properties:
+        reset-names:
+          minItems: 2
+      required:
+        - reset-names
+    then:
+      properties:
+        resets:
+          minItems: 2
+
+  - if:
+      properties:
+        reset-names:
+          maxItems: 1
+      required:
+        - reset-names
+    then:
+      properties:
+        resets:
+          maxItems: 1
+
+unevaluatedProperties: false
+
+examples:
+  - |
+    ethernet@10090000 {
+        compatible = "hisilicon,hi3516cv300-femac", "hisilicon,hisi-femac-v2";
+        reg = <0x10090000 0x1000>, <0x10091300 0x200>;
+        interrupts = <12>;
+        clocks = <&crg 25>;
+        resets = <&crg 0xec 0>, <&crg 0xec 3>;
+        reset-names = "mac", "phy";
+        phy-mode = "mii";
+        phy-handle = <&phy0>;
+        hisilicon,phy-reset-delays-us = <10000 20000 20000>;
+    };
