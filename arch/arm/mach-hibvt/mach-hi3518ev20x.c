@@ -53,13 +53,14 @@ static void __init hi3518ev20x_map_io(void)
     iotable_init(hi3518ev20x_io_desc, ARRAY_SIZE(hi3518ev20x_io_desc));
 }
 static const char *const hi3518ev20x_compat[] __initconst = {
-    "hisilicon,hi3516cv100",
-    "hisilicon,hi3516ev200",
-    "hisilicon,hi3516ev300",
-    "hisilicon,hi3518ev300",
-    "hisilicon,hi3516dv200",
-    "hisilicon,hi3518ev20x",
-    NULL,
+	"hisilicon,hi3516cv100",
+	"hisilicon,hi3516cv200",
+	"hisilicon,hi3516ev200",
+	"hisilicon,hi3516ev300",
+	"hisilicon,hi3518ev300",
+	"hisilicon,hi3516dv200",
+	"hisilicon,hi3518ev20x",
+	NULL,
 };
 
 DT_MACHINE_START(HI3518EV20x_DT, "Hisilicon Hi3518EV20X (Flattened Device Tree)")
