@@ -673,6 +673,17 @@ static inline void __local_r4k_flush_icache_range(unsigned long start,
 			break;
 		}
 	}
+
+	/*
+	 * Ingenic T23 XBurst1 (MXU2.0, PRID_IMP_XBURST_REV2) requires an
+	 * explicit CP0 Config7 BTB invalidation after I-cache maintenance so
+	 * execution does not branch using stale target predictions.
+	 */
+	if (boot_cpu_type() == CPU_XBURST &&
+	    (current_cpu_data.processor_id & PRID_IMP_MASK) ==
+	    PRID_IMP_XBURST_REV2 &&
+	    mips_machtype == MACH_INGENIC_T23)
+		set_c0_config7(MIPS_CONF7_XBURST_BTB_INV);
 }
 
 static inline void local_r4k_flush_icache_range(unsigned long start,
