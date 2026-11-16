@@ -93,6 +93,7 @@
 #define JZ_MMC_CMDAT_RSP_R2 2
 #define JZ_MMC_CMDAT_RSP_R3 3
 
+#define JZ_MMC_IRQ_TIMEOUT_RES BIT(9)
 #define JZ_MMC_IRQ_SDIO BIT(7)
 #define JZ_MMC_IRQ_TXFIFO_WR_REQ BIT(6)
 #define JZ_MMC_IRQ_RXFIFO_RD_REQ BIT(5)
@@ -118,6 +119,7 @@ enum jz4740_mmc_version {
 	JZ_MMC_JZ4760,
 	JZ_MMC_JZ4780,
 	JZ_MMC_X1000,
+	JZ_MMC_T23,
 };
 
 enum jz4740_mmc_state {
@@ -150,6 +152,7 @@ struct jz4740_mmc_host {
 	struct mmc_host *mmc;
 	struct platform_device *pdev;
 	struct clk *clk;
+	struct clk *clk_gate;
 
 	enum jz4740_mmc_version version;
 
@@ -167,6 +170,7 @@ struct jz4740_mmc_host {
 	uint32_t cmdat;
 
 	uint32_t irq_mask;
+	u32 cmd_irqs;
 
 	spinlock_t lock;
 
@@ -646,7 +650,7 @@ static void jz4740_mmc_timeout(struct timer_list *t)
 	if (!test_and_clear_bit(0, &host->waiting))
 		return;
 
-	jz4740_mmc_set_irq_enabled(host, JZ_MMC_IRQ_END_CMD_RES, false);
+	jz4740_mmc_set_irq_enabled(host, host->cmd_irqs, false);
 
 	host->req->cmd->error = -ETIMEDOUT;
 	jz4740_mmc_request_done(host);
@@ -731,7 +735,10 @@ static void jz4740_mmc_send_command(struct jz4740_mmc_host *host,
 		writew(cmd->data->blocks, host->base + JZ_REG_MMC_NOB);
 	}
 
-	writeb(cmd->opcode, host->base + JZ_REG_MMC_CMD);
+	if (host->version >= JZ_MMC_T23)
+		writew(cmd->opcode, host->base + JZ_REG_MMC_CMD);
+	else
+		writeb(cmd->opcode, host->base + JZ_REG_MMC_CMD);
 	writel(cmd->arg, host->base + JZ_REG_MMC_ARG);
 	writel(cmdat, host->base + JZ_REG_MMC_CMDAT);
 
@@ -875,7 +882,10 @@ static irqreturn_t jz_mmc_irq(int irq, void *devid)
 				cmd->error = -EIO;
 			}
 
-			jz4740_mmc_set_irq_enabled(host, irq_reg, false);
+			tmp = irq_reg;
+			if (tmp & host->cmd_irqs)
+				tmp |= host->cmd_irqs;
+			jz4740_mmc_set_irq_enabled(host, tmp, false);
 			jz4740_mmc_write_irq_reg(host, irq_reg);
 
 			return IRQ_WAKE_THREAD;
@@ -927,7 +937,7 @@ static void jz4740_mmc_request(struct mmc_host *mmc, struct mmc_request *req)
 	host->req = req;
 
 	jz4740_mmc_write_irq_reg(host, ~0);
-	jz4740_mmc_set_irq_enabled(host, JZ_MMC_IRQ_END_CMD_RES, true);
+	jz4740_mmc_set_irq_enabled(host, host->cmd_irqs, true);
 
 	host->state = JZ4740_MMC_STATE_READ_RESPONSE;
 	set_bit(0, &host->waiting);
@@ -1032,6 +1042,7 @@ static const struct of_device_id jz4740_mmc_of_match[] = {
 	{ .compatible = "ingenic,jz4775-mmc", .data = (void *) JZ_MMC_JZ4780 },
 	{ .compatible = "ingenic,jz4780-mmc", .data = (void *) JZ_MMC_JZ4780 },
 	{ .compatible = "ingenic,x1000-mmc", .data = (void *) JZ_MMC_X1000 },
+	{ .compatible = "ingenic,t23-mmc", .data = (void *) JZ_MMC_T23 },
 	{},
 };
 MODULE_DEVICE_TABLE(of, jz4740_mmc_of_match);
@@ -1052,6 +1063,9 @@ static int jz4740_mmc_probe(struct platform_device* pdev)
 
 	/* Default if no match is JZ4740 */
 	host->version = (enum jz4740_mmc_version)device_get_match_data(&pdev->dev);
+	host->cmd_irqs = JZ_MMC_IRQ_END_CMD_RES;
+	if (host->version == JZ_MMC_T23)
+		host->cmd_irqs |= JZ_MMC_IRQ_TIMEOUT_RES;
 
 	ret = mmc_of_parse(mmc);
 	if (ret) {
@@ -1072,6 +1086,14 @@ static int jz4740_mmc_probe(struct platform_device* pdev)
 		ret = PTR_ERR(host->clk);
 		dev_err(&pdev->dev, "Failed to get mmc clock\n");
 		goto err_free_host;
+	}
+
+	if (host->version >= JZ_MMC_T23) {
+		host->clk_gate = devm_clk_get_optional_enabled(&pdev->dev, "gate");
+		if (IS_ERR(host->clk_gate)) {
+			ret = PTR_ERR(host->clk_gate);
+			goto err_free_host;
+		}
 	}
 
 	host->base = devm_platform_get_and_ioremap_resource(pdev, 0, &host->mem_res);
