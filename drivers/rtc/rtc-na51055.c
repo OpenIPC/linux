@@ -38,6 +38,8 @@ static struct completion cset_completion;
 static struct semaphore rtc_sem;
 
 static unsigned int _REGIOBASE;
+/* Set once an RTC is registered: reboot and power-off use it only then. */
+static bool rtc_present;
 static int is_power_lost;
 
 #define loc_cpu() down(&rtc_sem);
@@ -95,6 +97,15 @@ void nvt_rtc_power_control(int reboot_sec)
 {
 	union RTC_PWBC_REG pwbc_reg;
 	union RTC_CTRL_REG ctrl_reg;
+
+	/*
+	 * The reboot notifier calls this whatever the probe found. With no
+	 * RTC the restart handler's watchdog resets the chip instead; going
+	 * on would spin in the waits below, as a crystal-less board's reboot
+	 * did, on registers the failed probe has released.
+	 */
+	if (!rtc_present)
+		return;
 
 	if (reboot_sec) {
 		union RTC_TIMER_REG timer_reg;
@@ -986,6 +997,7 @@ static int nvt_rtc_probe(struct platform_device *pdev)
 		goto out_proc_data;
 	}
 	priv->rtc = rtc;
+	rtc_present = true;
 
 	return 0;
 
@@ -1015,6 +1027,7 @@ static int nvt_rtc_remove(struct platform_device *pdev)
 	if (priv->pproc_pwbc) {
 		proc_remove(priv->pproc_pwbc);
 	}
+	rtc_present = false;
 	rtc_device_unregister(priv->rtc);
 	kfree(priv);
 	return 0;
