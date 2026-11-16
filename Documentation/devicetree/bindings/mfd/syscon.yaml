@@ -72,6 +72,7 @@ select:
           - hisilicon,pcie-sas-subctrl
           - hisilicon,peri-subctrl
           - hpe,gxp-sysreg
+          - ingenic,t23-mac-phy-ctrl
           - loongson,ls1b-syscon
           - loongson,ls1c-syscon
           - lsi,axxia-syscon
@@ -169,6 +170,7 @@ properties:
           - hisilicon,pcie-sas-subctrl
           - hisilicon,peri-subctrl
           - hpe,gxp-sysreg
+          - ingenic,t23-mac-phy-ctrl
           - loongson,ls1b-syscon
           - loongson,ls1c-syscon
           - lsi,axxia-syscon

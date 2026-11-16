@@ -64,6 +64,7 @@ properties:
         - ingenic,x1000-mac
         - ingenic,x1600-mac
         - ingenic,x1830-mac
+        - ingenic,t23-mac
         - ingenic,x2000-mac
         - loongson,ls2k-dwmac
         - loongson,ls7a-dwmac
