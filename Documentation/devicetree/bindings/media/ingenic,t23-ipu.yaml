@@ -1,0 +1,55 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/media/ingenic,t23-ipu.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: Ingenic T23 Image Processing Unit (IPU v1.3)
+
+maintainers:
+  - Paul Cercueil <paul@crapouillou.net>
+
+description:
+  Hardware NV12/NV21 to packed RGB32/NV21 color-space converter in Ingenic
+  T23 SoCs.
+
+properties:
+  compatible:
+    const: ingenic,t23-ipu
+
+  reg:
+    maxItems: 1
+
+  interrupts:
+    maxItems: 1
+
+  clocks:
+    maxItems: 1
+
+  clock-names:
+    const: ipu
+
+  memory-region:
+    maxItems: 1
+
+required:
+  - compatible
+  - reg
+  - interrupts
+  - clocks
+  - clock-names
+
+additionalProperties: false
+
+examples:
+  - |
+    #include <dt-bindings/clock/ingenic,t23-cgu.h>
+
+    ipu@13080000 {
+        compatible = "ingenic,t23-ipu";
+        reg = <0x13080000 0x8000>;
+        interrupt-parent = <&intc>;
+        interrupts = <6>;
+        clocks = <&cgu CLK_IPU>;
+        clock-names = "ipu";
+    };
