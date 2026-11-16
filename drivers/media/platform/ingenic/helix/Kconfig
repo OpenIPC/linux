@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (C) 2026 Difan Zhang
+
+config VIDEO_INGENIC_HELIX
+	tristate "Ingenic T23 Helix V4L2 M2M video encoder"
+	depends on V4L_MEM2MEM_DRIVERS
+	depends on VIDEO_DEV
+	depends on MACH_INGENIC || COMPILE_TEST
+	depends on OF && HAS_DMA
+	select VIDEOBUF2_DMA_CONTIG
+	select V4L2_MEM2MEM_DEV
+	help
+	  V4L2 memory-to-memory H.264 and JPEG hardware encoder driver
+	  for Ingenic T23 SoCs.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called ingenic-helix-v4l2.

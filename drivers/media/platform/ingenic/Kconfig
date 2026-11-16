@@ -20,3 +20,4 @@ config VIDEO_INGENIC_PTZ_MOTOR
 	  will be called ptz-motor.
 
 source "drivers/media/platform/ingenic/tx-isp/Kconfig"
+source "drivers/media/platform/ingenic/helix/Kconfig"
