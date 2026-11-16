@@ -12,14 +12,48 @@ maintainers:
 description:
   The Ethernet Media Access Controller in Ingenic SoCs.
 
+select:
+  properties:
+    compatible:
+      contains:
+        enum:
+          - ingenic,jz4775-mac
+          - ingenic,x1000-mac
+          - ingenic,x1600-mac
+          - ingenic,x1830-mac
+          - ingenic,t23-mac
+          - ingenic,x2000-mac
+  required:
+    - compatible
+
+allOf:
+  - $ref: snps,dwmac.yaml#
+  - if:
+      not:
+        properties:
+          compatible:
+            contains:
+              const: ingenic,t23-mac
+    then:
+      properties:
+        clocks:
+          maxItems: 1
+        clock-names:
+          const: stmmaceth
+
 properties:
   compatible:
-    enum:
-      - ingenic,jz4775-mac
-      - ingenic,x1000-mac
-      - ingenic,x1600-mac
-      - ingenic,x1830-mac
-      - ingenic,x2000-mac
+    oneOf:
+      - enum:
+          - ingenic,jz4775-mac
+          - ingenic,x1000-mac
+          - ingenic,x1600-mac
+          - ingenic,x1830-mac
+          - ingenic,t23-mac
+          - ingenic,x2000-mac
+      - items:
+          - const: ingenic,t23-mac
+          - const: snps,dwmac
 
   reg:
     maxItems: 1
@@ -31,10 +65,16 @@ properties:
     const: macirq
 
   clocks:
-    maxItems: 1
+    minItems: 1
+    items:
+      - description: GMAC main clock
+      - description: MAC PHY clock
 
   clock-names:
-    const: stmmaceth
+    minItems: 1
+    items:
+      - const: stmmaceth
+      - const: macphy
 
   mode-reg:
     $ref: /schemas/types.yaml#/definitions/phandle
@@ -55,7 +95,7 @@ required:
   - clock-names
   - mode-reg
 
-additionalProperties: false
+unevaluatedProperties: false
 
 examples:
   - |
@@ -73,5 +113,6 @@ examples:
         clock-names = "stmmaceth";
 
         mode-reg = <&mac_phy_ctrl>;
+        phy-mode = "rmii";
     };
 ...
