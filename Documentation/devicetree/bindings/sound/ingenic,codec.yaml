@@ -11,6 +11,24 @@ maintainers:
 
 allOf:
   - $ref: dai-common.yaml#
+  - if:
+      properties:
+        compatible:
+          contains:
+            const: ingenic,t23-codec
+    then:
+      properties:
+        '#sound-dai-cells':
+          const: 1
+        clocks: false
+        clock-names: false
+    else:
+      properties:
+        '#sound-dai-cells':
+          const: 0
+      required:
+        - clocks
+        - clock-names
 
 properties:
   $nodename:
@@ -23,6 +41,7 @@ properties:
           - ingenic,jz4760-codec
           - ingenic,jz4725b-codec
           - ingenic,jz4740-codec
+          - ingenic,t23-codec
       - items:
           - const: ingenic,jz4760b-codec
           - const: ingenic,jz4760-codec
@@ -38,15 +57,13 @@ properties:
       - const: aic
 
   '#sound-dai-cells':
-    const: 0
+    enum: [0, 1]
 
 unevaluatedProperties: false
 
 required:
   - compatible
   - reg
-  - clocks
-  - clock-names
   - '#sound-dai-cells'
 
 examples:
