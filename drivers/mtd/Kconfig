@@ -220,6 +220,16 @@ config MTD_SPLIT_LAYOUT
 
 	  If unsure, say N.
 
+config MTD_SPLIT_LAYOUT_NAME
+	string "Name of the boot flash the split layout is looked for on"
+	depends on MTD_SPLIT_LAYOUT
+	default "hi_sfc"
+	help
+	  The split layout is only looked for on the MTD device of this name:
+	  the boot NOR flash, by the name the bootloader's mtdparts= gives it
+	  (the HiSilicon boards' "hi_sfc"). Any other flash, whatever it
+	  holds, keeps its usual partitions and never names the root.
+
 source "drivers/mtd/chips/Kconfig"
 
 source "drivers/mtd/maps/Kconfig"
