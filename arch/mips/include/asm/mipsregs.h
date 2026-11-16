@@ -871,6 +871,8 @@
 #define XBURST_PAGECTRL_HPTLB_DIS 0xa9000000
 
 /* Ingenic Config7 bits */
+/* Invalidate Branch Target Buffer on Ingenic XBurst1 cores */
+#define MIPS_CONF7_XBURST_BTB_INV	(_ULCAST_(1) << 1)
 #define MIPS_CONF7_BTB_LOOP_EN	(_ULCAST_(1) << 4)
 
 /* Config7 Bits specific to MIPS Technologies. */
