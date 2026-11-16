@@ -762,6 +762,8 @@ patternProperties:
     description: Jiandangjing Technology Co., Ltd.
   "^jide,.*":
     description: Jide Tech
+  "^jooan,.*":
+    description: Shenzhen Jooan Technology Co., Ltd.
   "^joz,.*":
     description: JOZ BV
   "^kam,.*":
@@ -1100,6 +1102,8 @@ patternProperties:
     description: OpenCores.org
   "^openembed,.*":
     description: OpenEmbed
+  "^openipc,.*":
+    description: OpenIPC Project
   "^openpandora,.*":
     description: OpenPandora GmbH
   "^openrisc,.*":
@@ -1372,6 +1376,8 @@ patternProperties:
     description: SmartLabs LLC
   "^smartrg,.*":
     description: SmartRG, Inc.
+  "^smartsens,.*":
+    description: SmartSens Technology (Shanghai) Co., Ltd.
   "^smi,.*":
     description: Silicon Motion Technology Corporation
   "^smsc,.*":
