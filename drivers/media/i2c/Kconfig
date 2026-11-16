@@ -90,6 +90,15 @@ config VIDEO_GC08A3
 	  To compile this driver as a module, choose M here: the
 	  module will be called gc08a3.
 
+config VIDEO_GC2053
+	tristate "GalaxyCore GC2053 sensor support"
+	help
+	  This is a Video4Linux2 sensor driver for the GalaxyCore GC2053
+	  1080p MIPI CSI-2 CMOS image sensor.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called gc2053.
+
 config VIDEO_GC2145
 	select V4L2_CCI_I2C
 	tristate "GalaxyCore GC2145 sensor support"

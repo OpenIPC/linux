@@ -40,6 +40,7 @@ obj-$(CONFIG_VIDEO_ET8EK8) += et8ek8/
 obj-$(CONFIG_VIDEO_GC0308) += gc0308.o
 obj-$(CONFIG_VIDEO_GC05A2) += gc05a2.o
 obj-$(CONFIG_VIDEO_GC08A3) += gc08a3.o
+obj-$(CONFIG_VIDEO_GC2053) += gc2053.o
 obj-$(CONFIG_VIDEO_GC2145) += gc2145.o
 obj-$(CONFIG_VIDEO_HI556) += hi556.o
 obj-$(CONFIG_VIDEO_HI846) += hi846.o
