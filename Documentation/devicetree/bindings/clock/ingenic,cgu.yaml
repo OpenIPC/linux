@@ -29,6 +29,7 @@ select:
           - ingenic,jz4780-cgu
           - ingenic,x1000-cgu
           - ingenic,x1830-cgu
+          - ingenic,t23-cgu
   required:
     - compatible
 
@@ -48,19 +49,25 @@ properties:
   ranges: true
 
   compatible:
-    items:
-      - enum:
-          - ingenic,jz4740-cgu
-          - ingenic,jz4725b-cgu
-          - ingenic,jz4755-cgu
-          - ingenic,jz4760-cgu
-          - ingenic,jz4760b-cgu
-          - ingenic,jz4770-cgu
-          - ingenic,jz4780-cgu
-          - ingenic,x1000-cgu
-          - ingenic,x1830-cgu
-      - const: simple-mfd
-    minItems: 1
+    oneOf:
+      - items:
+          - enum:
+              - ingenic,jz4740-cgu
+              - ingenic,jz4725b-cgu
+              - ingenic,jz4755-cgu
+              - ingenic,jz4760-cgu
+              - ingenic,jz4760b-cgu
+              - ingenic,jz4770-cgu
+              - ingenic,jz4780-cgu
+              - ingenic,x1000-cgu
+              - ingenic,x1830-cgu
+              - ingenic,t23-cgu
+          - const: simple-mfd
+        minItems: 1
+      - items:
+          - const: ingenic,t23-cgu
+          - const: syscon
+          - const: simple-mfd
 
   reg:
     maxItems: 1
@@ -89,6 +96,9 @@ properties:
     minItems: 1
     maxItems: 64
 
+  reset-controller:
+    $ref: /schemas/reset/ingenic,t23-reset.yaml#
+
 required:
   - "#clock-cells"
   - compatible
@@ -100,7 +110,24 @@ patternProperties:
   "^usb-phy@[a-f0-9]+$":
     $ref: /schemas/phy/ingenic,phy-usb.yaml#
   "^mac-phy-ctrl@[a-f0-9]+$":
-    $ref: /schemas/net/ingenic,mac.yaml#
+    type: object
+
+allOf:
+  - if:
+      properties:
+        compatible:
+          contains:
+            const: ingenic,t23-cgu
+    then:
+      patternProperties:
+        "^mac-phy-ctrl@[a-f0-9]+$":
+          $ref: /schemas/mfd/syscon.yaml#
+    else:
+      properties:
+        reset-controller: false
+      patternProperties:
+        "^mac-phy-ctrl@[a-f0-9]+$":
+          $ref: /schemas/net/ingenic,mac.yaml#
 
 additionalProperties: false
 
