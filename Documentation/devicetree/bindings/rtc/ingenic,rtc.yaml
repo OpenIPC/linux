@@ -22,6 +22,14 @@ allOf:
     then:
       properties:
         "#clock-cells": false
+  - if:
+      properties:
+        compatible:
+          contains:
+            const: ingenic,t23-rtc
+    then:
+      properties:
+        system-power-controller: false
 
 properties:
   compatible:
@@ -29,6 +37,10 @@ properties:
       - enum:
           - ingenic,jz4740-rtc
           - ingenic,jz4760-rtc
+          - ingenic,t23-rtc
+      - items:
+          - const: ingenic,t23-rtc
+          - const: ingenic,jz4780-rtc
       - items:
           - const: ingenic,jz4725b-rtc
           - const: ingenic,jz4740-rtc
