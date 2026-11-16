@@ -85,6 +85,16 @@ config INGENIC_CGU_X1830
 
 	  If building for a X1830 SoC, you want to say Y here.
 
+config INGENIC_CGU_T23
+	bool "Ingenic T23 CGU driver"
+	default MACH_T23
+	select INGENIC_CGU_COMMON
+	help
+	  Support the clocks provided by the CGU hardware on Ingenic T23
+	  and compatible SoCs.
+
+	  If building for a T23 SoC, you want to say Y here.
+
 config INGENIC_TCU_CLK
 	bool "Ingenic JZ47xx TCU clocks driver"
 	default MACH_INGENIC
