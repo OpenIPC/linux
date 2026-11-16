@@ -1,0 +1,72 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/crypto/hisilicon,hisi-cipher-mc.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: HiSilicon multi-channel CIPHER engine
+
+maintainers:
+  - Dylan Corrales <deathcamel58@gmail.com>
+
+description: |
+  Symmetric cipher engine of the HiSilicon Hi35xx SoCs (AES, DES and 3DES in
+  ECB, CBC, CFB, OFB and CTR modes). It has eight channels: channel 0 is a
+  register mode channel and channels 1 to 7 are linked-list DMA channels with
+  one key slot each. The data sheets of several SoCs describe the same
+  register map, so the generic compatible names the programming model and the
+  SoC compatible names the silicon revision.
+
+  The single-channel CIPHER of the Hi3511, Hi3515 and Hi3520 V100, the SPACC
+  of the Hi3516A V300 and the cipher blocks of the Hi3520D V300 and Hi3535 have
+  a different register layout and are not described by this binding.
+
+  SoC compatibles and the chips that carry the same silicon:
+    hisilicon,hi3520dv100-cipher-mc - Hi3520D V100, Hi3515A V100, Hi3515C V100
+    hisilicon,hi3518ev200-cipher-mc - Hi3518E V200, V201, V202, Hi3516C V200
+
+properties:
+  compatible:
+    items:
+      - enum:
+          - hisilicon,hi3518ev200-cipher-mc
+          - hisilicon,hi3520dv100-cipher-mc
+      - const: hisilicon,hisi-cipher-mc
+
+  reg:
+    maxItems: 1
+
+  interrupts:
+    maxItems: 1
+
+  clocks:
+    description: Clock gate of the engine (cipher_cken in the clock controller).
+    maxItems: 1
+
+  resets:
+    description:
+      Soft reset line of the engine (cipher_srst_req). The driver resets the
+      whole block at probe and at resume.
+    maxItems: 1
+
+required:
+  - compatible
+  - reg
+  - interrupts
+  - clocks
+  - resets
+
+additionalProperties: false
+
+examples:
+  - |
+    #include <dt-bindings/clock/hi3520dv100-clock.h>
+    #include <dt-bindings/interrupt-controller/arm-gic.h>
+
+    crypto@100c0000 {
+        compatible = "hisilicon,hi3520dv100-cipher-mc", "hisilicon,hisi-cipher-mc";
+        reg = <0x100c0000 0x2000>;
+        interrupts = <GIC_SPI 23 IRQ_TYPE_LEVEL_HIGH>;
+        clocks = <&crg HI3520DV100_CIPHER_CLK>;
+        resets = <&crg 0x7c 0>;
+    };
