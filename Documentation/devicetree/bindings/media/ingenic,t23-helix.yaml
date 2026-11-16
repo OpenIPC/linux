@@ -1,0 +1,66 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/media/ingenic,t23-helix.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: Ingenic T23 Helix H.264 and JPEG Video Encoder
+
+maintainers:
+  - Paul Cercueil <paul@crapouillou.net>
+
+description:
+  Hardware H.264 (Baseline/Main/High Profile) and baseline JPEG video
+  encoder block in Ingenic T23 SoCs driven via VDMA descriptor chains.
+
+properties:
+  compatible:
+    const: ingenic,t23-helix
+
+  reg:
+    maxItems: 1
+
+  interrupts:
+    maxItems: 1
+
+  clocks:
+    items:
+      - description: VPU core divider clock
+      - description: AVPU/Helix bus gate clock
+      - description: IVDC bus gate clock
+
+  clock-names:
+    items:
+      - const: vpu
+      - const: gate
+      - const: ivdc
+
+  resets:
+    maxItems: 1
+
+  memory-region:
+    maxItems: 1
+
+required:
+  - compatible
+  - reg
+  - interrupts
+  - clocks
+  - clock-names
+
+additionalProperties: false
+
+examples:
+  - |
+    #include <dt-bindings/clock/ingenic,t23-cgu.h>
+    #include <dt-bindings/reset/ingenic,t23-reset.h>
+
+    video-codec@13100000 {
+        compatible = "ingenic,t23-helix";
+        reg = <0x13100000 0x100000>;
+        interrupt-parent = <&intc>;
+        interrupts = <40>;
+        clocks = <&cgu CLK_CGU_VPU>, <&cgu CLK_AVPU>, <&cgu CLK_IVDC>;
+        clock-names = "vpu", "gate", "ivdc";
+        resets = <&cpm_reset T23_RESET_HELIX>;
+    };
