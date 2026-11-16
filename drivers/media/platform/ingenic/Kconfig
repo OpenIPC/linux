@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# Ingenic media platform drivers
+#
+
+comment "Ingenic media platform drivers"
+
+config VIDEO_INGENIC_PTZ_MOTOR
+	tristate "Ingenic T23 GPIO PTZ stepper motor"
+	depends on V4L_PLATFORM_DRIVERS
+	depends on VIDEO_DEV && GPIOLIB && HIGH_RES_TIMERS
+	depends on MACH_INGENIC || COMPILE_TEST
+	select MEDIA_CONTROLLER
+	select VIDEO_V4L2_SUBDEV_API
+	help
+	  V4L2 pan/tilt stepper motor driver for Ingenic T23 camera boards
+	  using an hrtimer pulse generator.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called ptz-motor.

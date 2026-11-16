@@ -14,6 +14,7 @@ obj-y += broadcom/
 obj-y += cadence/
 obj-y += chips-media/
 obj-y += imagination/
+obj-y += ingenic/
 obj-y += intel/
 obj-y += marvell/
 obj-y += mediatek/
