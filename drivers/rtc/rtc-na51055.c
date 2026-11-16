@@ -44,7 +44,7 @@ static int is_power_lost;
 #define unl_cpu() up(&rtc_sem);
 
 void rtc_wait_pwr_alarm_done(void);
-void rtc_trigger_cset(void);
+int rtc_trigger_cset(void);
 
 static const unsigned short rtc_ydays[2][13] = {
 	/* Normal years */
@@ -220,19 +220,32 @@ static irqreturn_t rtc_update_handler(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
-void rtc_trigger_cset(void)
+/*
+ * The RTC domain clears SRST_STS and CSET from its 32 kHz clock. With no
+ * oscillator they never clear, and an unbounded wait here held a kworker
+ * spinning in sync_hw_clock once NTP synced, starving the mtdblock queue
+ * until the camera hung (OpenIPC/firmware#2865). Give up after a second,
+ * and release the completion the caller took, so the next caller is not
+ * stuck behind an interrupt that will never come.
+ */
+int rtc_trigger_cset(void)
 {
 	union RTC_STATUS_REG status_reg;
 	union RTC_CTRL_REG ctrl_reg;
+	unsigned long timeout = jiffies + msecs_to_jiffies(1000);
 
 	/*Wait for RTC SRST done*/
 	do {
 		status_reg.reg = rtc_getreg(RTC_STATUS_REG_OFS);
+		if (status_reg.bit.srst_sts && time_after_eq(jiffies, timeout))
+			goto stuck;
 	} while (status_reg.bit.srst_sts == 1);
 
 	/*Wait for RTC is ready for next CSET*/
 	do {
 		ctrl_reg.reg = rtc_getreg(RTC_CTRL_REG_OFS);
+		if (ctrl_reg.bit.cset && time_after_eq(jiffies, timeout))
+			goto stuck;
 	} while (ctrl_reg.bit.cset == 1);
 
 	/*Trigger CSET*/
@@ -240,6 +253,12 @@ void rtc_trigger_cset(void)
 	ctrl_reg.bit.cset = 1;
 	ctrl_reg.bit.cset_inten = 1;
 	rtc_setreg(RTC_CTRL_REG_OFS, ctrl_reg.reg);
+	return 0;
+
+stuck:
+	pr_err("nvt_rtc: RTC not responding, is its 32K oscillator running?\n");
+	complete(&cset_completion);
+	return -ETIMEDOUT;
 }
 
 void rtc_wait_pwr_alarm_done(void)
@@ -337,18 +356,22 @@ static int nvt_rtc_proc(struct device *dev, struct seq_file *seq)
 
 static int nvt_rtc_reset(struct device *dev)
 {
-	ulong timeout;
+	ulong timeout = jiffies + msecs_to_jiffies(1000);
 	union RTC_STATUS_REG status_reg;
 	union RTC_CTRL_REG ctrl_reg;
 
 	// Wait for previous SRST done
 	do {
 		status_reg.reg = rtc_getreg(RTC_STATUS_REG_OFS);
+		if (status_reg.bit.srst_sts && time_after_eq(jiffies, timeout))
+			goto stuck;
 	} while (status_reg.bit.srst_sts);
 
 	// Wait for RTC is ready for next CSET
 	do {
 		ctrl_reg.reg = rtc_getreg(RTC_CTRL_REG_OFS);
+		if (ctrl_reg.bit.cset && time_after_eq(jiffies, timeout))
+			goto stuck;
 	} while (ctrl_reg.bit.cset);
 
 	// Do software reset
@@ -368,6 +391,10 @@ static int nvt_rtc_reset(struct device *dev)
 	} while(ctrl_reg.bit.srst);
 
 	return 0;
+
+stuck:
+	dev_err(dev, "RTC busy, plz check RTC 32K osc or PWR_SW\n");
+	return -ETXTBSY;
 }
 
 static int nvt_rtc_chk_power(struct device *dev)
@@ -534,7 +561,7 @@ static int nvt_rtc_set_time(struct device *dev, struct rtc_time *tm)
 	daykey_reg.bit.day = days;
 	rtc_setreg(RTC_DAYKEY_REG_OFS, daykey_reg.reg);
 
-	rtc_trigger_cset();
+	ret = rtc_trigger_cset();
 
 	unl_cpu();
 
@@ -922,7 +949,18 @@ static int nvt_rtc_probe(struct platform_device *pdev)
 	sema_init(&rtc_sem, 1);
 	complete(&cset_completion);
 
-	nvt_rtc_chk_power(&pdev->dev);
+	/*
+	 * A board with no 32 kHz crystal fails the reset here. Registering it
+	 * anyway handed the kernel an rtc0 that every later write hung on
+	 * (OpenIPC/firmware#2865); without one the clock comes from NTP alone.
+	 */
+	ret = nvt_rtc_chk_power(&pdev->dev);
+	if (ret) {
+		dev_err(&pdev->dev, "no working RTC, not registering it\n");
+		devm_free_irq(&pdev->dev, irq, priv);
+		cancel_delayed_work_sync(&priv->cset_work);
+		goto out;
+	}
 
 	pentry = proc_create("pwbc", S_IRUGO | S_IXUGO, NULL, &proc_pwbc_fops);
         if (pentry == NULL) {
