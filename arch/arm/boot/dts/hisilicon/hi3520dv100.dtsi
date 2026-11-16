@@ -11,7 +11,7 @@
  * resets come from the CRG and the system controller, whose rates are read
  * back from the hardware, so no boot loader state is assumed.
  *
- * Blocks without a driver in this tree (RTC, I2C, IR, PWM, DDR controller,
+ * Blocks without a driver in this tree (I2C, IR, PWM, DDR controller,
  * pinctrl, the media blocks and the SATA PHY) are not
  * described yet. The IP blocks that generic drivers handle (SP804, SP805,
  * PL011, PL022, PL061) are listed as disabled reference nodes.
@@ -275,6 +275,15 @@
 			clocks = <&crg HI3520DV100_ETH_CLK>;
 			resets = <&crg 0xcc 0>;
 			reset-names = "mac";
+			status = "disabled";
+		};
+
+		/* SPI-bridged RTC in its own battery powered domain, clocked from the APB clock */
+		rtc: rtc@20060000 {
+			compatible = "hisilicon,hi3520dv100-rtc", "hisilicon,hisi-spi-rtc-v1";
+			reg = <0x20060000 0x1000>;
+			interrupts = <GIC_SPI 7 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&crg HI3520DV100_APB_CLK>;
 			status = "disabled";
 		};
 
