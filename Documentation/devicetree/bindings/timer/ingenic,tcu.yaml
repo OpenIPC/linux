@@ -25,6 +25,7 @@ select:
           - ingenic,jz4770-tcu
           - ingenic,jz4780-tcu
           - ingenic,x1000-tcu
+          - ingenic,t23-tcu
   required:
     - compatible
 
@@ -56,6 +57,12 @@ properties:
               - ingenic,jz4725b-tcu
               - ingenic,jz4760-tcu
               - ingenic,x1000-tcu
+              - ingenic,t23-tcu
+          - const: simple-mfd
+      - items:
+          - const: ingenic,t23-tcu
+          - const: ingenic,x1000-tcu
+          - const: syscon
           - const: simple-mfd
       - items:
           - enum:
@@ -122,12 +129,14 @@ patternProperties:
           - enum:
               - ingenic,jz4740-watchdog
               - ingenic,jz4780-watchdog
+              - ingenic,t23-watchdog
           - items:
               - enum:
                   - ingenic,jz4770-watchdog
                   - ingenic,jz4760b-watchdog
                   - ingenic,jz4760-watchdog
                   - ingenic,jz4725b-watchdog
+                  - ingenic,t23-watchdog
               - const: ingenic,jz4740-watchdog
 
       reg:
@@ -157,6 +166,10 @@ patternProperties:
               - ingenic,jz4740-pwm
               - ingenic,jz4725b-pwm
               - ingenic,x1000-pwm
+              - ingenic,t23-pwm
+          - items:
+              - const: ingenic,t23-pwm
+              - const: ingenic,x1000-pwm
           - items:
               - enum:
                   - ingenic,jz4760-pwm
@@ -169,7 +182,7 @@ patternProperties:
         maxItems: 1
 
       clocks:
-        minItems: 6
+        minItems: 4
         maxItems: 8
 
       clock-names:
@@ -182,13 +195,27 @@ patternProperties:
           - const: timer5
           - const: timer6
           - const: timer7
-        minItems: 6
+        minItems: 4
 
     required:
       - compatible
       - reg
       - clocks
       - clock-names
+
+    allOf:
+      - if:
+          not:
+            properties:
+              compatible:
+                contains:
+                  const: ingenic,t23-pwm
+        then:
+          properties:
+            clocks:
+              minItems: 6
+            clock-names:
+              minItems: 6
 
   "^timer@[a-f0-9]+$":
     type: object
