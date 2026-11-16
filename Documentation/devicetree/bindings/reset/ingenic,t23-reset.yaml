@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/reset/ingenic,t23-reset.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: Ingenic T23 CPM Bus-Stop Reset Controller
+
+maintainers:
+  - Paul Cercueil <paul@crapouillou.net>
+
+description:
+  Child reset controller of the Ingenic T23 CGU/CPM syscon driving SRBC
+  bus-stop handshakes and soft resets for ISP and Helix VPU blocks.
+
+properties:
+  compatible:
+    const: ingenic,t23-reset
+
+  "#reset-cells":
+    const: 1
+
+required:
+  - compatible
+  - "#reset-cells"
+
+additionalProperties: false
