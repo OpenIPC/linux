@@ -53,6 +53,23 @@ properties:
           - const: yna,cu2000-neo
           - const: ingenic,x2000e
 
+      - description: Jooan JA-A12 / JA-A10 and generic Ingenic T23 boards
+        items:
+          - enum:
+              - jooan,ja-a12
+              - jooan,ja-a10
+              - openipc,t23-qemu
+          - const: ingenic,t23
+
+      - description: OpenIPC T23 QEMU Virtual IPC
+        items:
+          - const: openipc,t23-qemu
+          - const: jooan,ja-a12
+          - const: ingenic,t23
+
+      - description: Generic Ingenic T23 SoC
+        const: ingenic,t23
+
 additionalProperties: true
 
 ...
