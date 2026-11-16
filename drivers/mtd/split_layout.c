@@ -78,6 +78,15 @@ static int split_find(struct mtd_info *mtd, u64 *rootfs, u64 *data)
 	if (get_unaligned_be32(buf) != UIMAGE_MAGIC ||
 	    !get_unaligned_be32(buf + 12))
 		return -ENOENT;
+	/*
+	 * The squashfs right after the uImage. The fixed slots put theirs at
+	 * 0x250000, so a fixed-slot uImage ending in its slot's last 64 KiB
+	 * would look the same; the build never ships one (the Makefile holds
+	 * a fixed-slot uImage to 1983K of its 2048K slot), and sysupgrade
+	 * tells the layouts apart the same way. Were it ever flashed, kernel
+	 * and rootfs here are where the fixed slots have them, and only
+	 * rootfs_data starts at the squashfs end rather than at 0x750000.
+	 */
 	*rootfs = split_round(SPLIT_FW_START + UIMAGE_HDR_SIZE +
 			      get_unaligned_be32(buf + 12));
 	if (*rootfs + SPLIT_BLOCK > mtd->size)
@@ -104,6 +113,10 @@ int mtd_split_layout_parts(struct mtd_info *master,
 	struct mtd_partition *parts;
 	u64 rootfs, data;
 	int n = 0, err;
+
+	/* the boot flash only: no other flash's contents choose the root */
+	if (strcmp(master->name, CONFIG_MTD_SPLIT_LAYOUT_NAME))
+		return 0;
 
 	err = split_find(master, &rootfs, &data);
 	if (err == -ENOENT)
@@ -158,7 +171,11 @@ void mtd_split_layout_set_root(struct mtd_info *master)
 	}
 	mutex_unlock(&master->master.partitions_lock);
 
-	/* the first flash with the layout keeps the root: the boot flash probes first */
+	/*
+	 * Only the flash named CONFIG_MTD_SPLIT_LAYOUT_NAME gets here. Should two
+	 * chips share the name (Hi3520DV200 boards describe both chip selects,
+	 * and only the fitted one probes), the first keeps the root.
+	 */
 	if (!root || root_dev_from_flash)
 		return;
 	ROOT_DEV = MKDEV(MTD_BLOCK_MAJOR, root->index);
