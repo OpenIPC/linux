@@ -248,6 +248,15 @@
 			status = "disabled";
 		};
 
+		/* Eight-channel CIPHER (AES, DES, 3DES): clock gate and soft reset in PERI_CRG31 */
+		cipher: crypto@100c0000 {
+			compatible = "hisilicon,hi3520dv100-cipher-mc", "hisilicon,hisi-cipher-mc";
+			reg = <0x100c0000 0x2000>;
+			interrupts = <GIC_SPI 23 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&crg HI3520DV100_CIPHER_CLK>;
+			resets = <&crg 0x7c 0>;
+		};
+
 		/*
 		 * The "hieth-sf" switch-fabric MAC: two ports, up (0x0000) and
 		 * down (+0x2000), sharing global registers at +0x1300 and an
