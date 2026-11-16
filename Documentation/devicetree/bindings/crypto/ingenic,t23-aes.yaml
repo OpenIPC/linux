@@ -1,0 +1,44 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/crypto/ingenic,t23-aes.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: Ingenic T23 Hardware AES Engine
+
+maintainers:
+  - Paul Cercueil <paul@crapouillou.net>
+
+properties:
+  compatible:
+    const: ingenic,t23-aes
+
+  reg:
+    maxItems: 1
+
+  interrupts:
+    maxItems: 1
+
+  clocks:
+    maxItems: 1
+
+  clock-names:
+    const: aes
+
+required:
+  - compatible
+  - reg
+  - interrupts
+  - clocks
+
+additionalProperties: false
+
+examples:
+  - |
+    crypto@13430000 {
+        compatible = "ingenic,t23-aes";
+        reg = <0x13430000 0x1000>;
+        interrupts = <23>;
+        clocks = <&cgu 38>;
+        clock-names = "aes";
+    };
