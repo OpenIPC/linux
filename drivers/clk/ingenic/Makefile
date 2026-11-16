@@ -8,4 +8,5 @@ obj-$(CONFIG_INGENIC_CGU_JZ4770)	+= jz4770-cgu.o
 obj-$(CONFIG_INGENIC_CGU_JZ4780)	+= jz4780-cgu.o
 obj-$(CONFIG_INGENIC_CGU_X1000)		+= x1000-cgu.o
 obj-$(CONFIG_INGENIC_CGU_X1830)		+= x1830-cgu.o
+obj-$(CONFIG_INGENIC_CGU_T23)		+= t23-cgu.o
 obj-$(CONFIG_INGENIC_TCU_CLK)		+= tcu.o
