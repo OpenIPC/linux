@@ -11,6 +11,18 @@ maintainers:
 
 allOf:
   - $ref: mmc-controller.yaml#
+  - if:
+      not:
+        properties:
+          compatible:
+            contains:
+              const: ingenic,t23-mmc
+    then:
+      properties:
+        clocks:
+          maxItems: 1
+        clock-names:
+          const: mmc
 
 properties:
   compatible:
@@ -22,6 +34,10 @@ properties:
           - ingenic,jz4775-mmc
           - ingenic,jz4780-mmc
           - ingenic,x1000-mmc
+          - ingenic,t23-mmc
+      - items:
+          - const: ingenic,t23-mmc
+          - const: ingenic,x1000-mmc
       - items:
           - const: ingenic,jz4770-mmc
           - const: ingenic,jz4760-mmc
@@ -33,10 +49,16 @@ properties:
     maxItems: 1
 
   clocks:
-    maxItems: 1
+    minItems: 1
+    items:
+      - description: MMC controller clock
+      - description: MMC gate clock
 
   clock-names:
-    const: mmc
+    minItems: 1
+    items:
+      - const: mmc
+      - const: gate
 
   dmas:
     minItems: 1
@@ -47,6 +69,9 @@ properties:
       - items:
           - const: rx
           - const: tx
+      - items:
+          - const: tx
+          - const: rx
       - const: tx-rx
 
 required:
