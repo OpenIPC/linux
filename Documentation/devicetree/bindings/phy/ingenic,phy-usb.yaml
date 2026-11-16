@@ -21,13 +21,28 @@ properties:
       - ingenic,jz4780-phy
       - ingenic,x1000-phy
       - ingenic,x1830-phy
+      - ingenic,t23-phy
       - ingenic,x2000-phy
 
   reg:
-    maxItems: 1
+    minItems: 1
+    maxItems: 2
+
+  reg-names:
+    minItems: 1
+    items:
+      - const: cpm
+      - const: tuning
 
   clocks:
     maxItems: 1
+
+  clock-names:
+    const: otg
+
+  ingenic,cpm:
+    $ref: /schemas/types.yaml#/definitions/phandle
+    description: Phandle to the CPM syscon node.
 
   vcc-supply:
     description: VCC power supply
@@ -39,8 +54,18 @@ required:
   - compatible
   - reg
   - clocks
-  - vcc-supply
   - '#phy-cells'
+
+allOf:
+  - if:
+      not:
+        properties:
+          compatible:
+            contains:
+              const: ingenic,t23-phy
+    then:
+      required:
+        - vcc-supply
 
 additionalProperties: false
 
