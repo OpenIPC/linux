@@ -1,0 +1,49 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/sound/ingenic,t23-aic-loop.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: Ingenic T23 AIC Loopback Capture DAI
+
+maintainers:
+  - Paul Cercueil <paul@crapouillou.net>
+
+allOf:
+  - $ref: dai-common.yaml#
+
+properties:
+  compatible:
+    const: ingenic,t23-aic-loop
+
+  '#sound-dai-cells':
+    const: 0
+
+  ingenic,aic:
+    $ref: /schemas/types.yaml#/definitions/phandle
+    description: Phandle to the companion Ingenic T23 AIC node.
+
+  dmas:
+    maxItems: 1
+
+  dma-names:
+    const: rx
+
+required:
+  - compatible
+  - ingenic,aic
+  - '#sound-dai-cells'
+  - dmas
+  - dma-names
+
+unevaluatedProperties: false
+
+examples:
+  - |
+    aic-loop {
+      compatible = "ingenic,t23-aic-loop";
+      ingenic,aic = <&aic>;
+      #sound-dai-cells = <0>;
+      dmas = <&pdma 5 0xffffffff>;
+      dma-names = "rx";
+    };
