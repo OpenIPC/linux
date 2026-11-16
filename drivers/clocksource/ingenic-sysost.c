@@ -56,6 +56,7 @@
 
 struct ingenic_soc_info {
 	unsigned int num_channels;
+	bool clear_fflag;
 };
 
 struct ingenic_ost_clk_info {
@@ -260,6 +261,8 @@ static irqreturn_t ingenic_ost_cevt_cb(int irq, void *dev_id)
 	struct ingenic_ost *ost = to_ingenic_ost(evt);
 
 	writel(OSTECR_OST1ENC, ost->base + OST_REG_OSTECR);
+	if (ost->soc_info->clear_fflag)
+		writel((u32)~OSTFR_FFLAG, ost->base + OST_REG_OSTFR);
 
 	if (evt->event_handler)
 		evt->event_handler(evt);
@@ -415,8 +418,14 @@ static const struct ingenic_soc_info x1000_soc_info = {
 	.num_channels = 2,
 };
 
+static const struct ingenic_soc_info t23_soc_info = {
+	.num_channels = 2,
+	.clear_fflag = true,
+};
+
 static const struct of_device_id __maybe_unused ingenic_ost_of_matches[] __initconst = {
 	{ .compatible = "ingenic,x1000-ost", .data = &x1000_soc_info },
+	{ .compatible = "ingenic,t23-ost", .data = &t23_soc_info },
 	{ /* sentinel */ }
 };
 
@@ -538,3 +547,4 @@ err_free_ingenic_ost:
 }
 
 TIMER_OF_DECLARE(x1000_ost,  "ingenic,x1000-ost",  ingenic_ost_init);
+TIMER_OF_DECLARE(t23_ost,    "ingenic,t23-ost",    ingenic_ost_init);
