@@ -26,6 +26,12 @@
 	status = "okay";
 };
 
+/* The alarm is wired to the interrupt controller and wakes the SoC from standby */
+&rtc {
+	wakeup-source;
+	status = "okay";
+};
+
 /*
  * 16 MiB flash on CS1, nothing on CS0. It takes the label the bootloader
  * names in mtdparts=, and no fixed partitions are given: the bootloader's
