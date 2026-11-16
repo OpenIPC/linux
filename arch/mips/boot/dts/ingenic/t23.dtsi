@@ -1,0 +1,617 @@
+// SPDX-License-Identifier: GPL-2.0
+// Copyright (C) 2026 Difan Zhang
+#include <dt-bindings/clock/ingenic,t23-cgu.h>
+#include <dt-bindings/clock/ingenic,tcu.h>
+#include <dt-bindings/reset/ingenic,t23-reset.h>
+
+/ {
+	#address-cells = <1>;
+	#size-cells = <1>;
+	compatible = "ingenic,t23";
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		cpu0: cpu@0 {
+			device_type = "cpu";
+			compatible = "ingenic,xburst-fpu2.0-mxu2.0";
+			reg = <0>;
+			clocks = <&cgu CLK_CCLK>;
+		};
+	};
+
+	cpuintc: interrupt-controller {
+		#address-cells = <0>;
+		#interrupt-cells = <1>;
+		interrupt-controller;
+		compatible = "mti,cpu-interrupt-controller";
+	};
+
+	ext: ext {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <24000000>;
+		clock-output-names = "ext";
+	};
+
+	rtc_clk: rtc-clk {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <32768>;
+		clock-output-names = "rtc";
+	};
+
+	aic_loop: aic-loop {
+		compatible = "ingenic,t23-aic-loop";
+		ingenic,aic = <&aic>;
+		#sound-dai-cells = <0>;
+		dmas = <&pdma 5 0xffffffff>;
+		dma-names = "rx";
+		status = "disabled";
+	};
+
+	soc: soc {
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		cgu: clock-controller@10000000 {
+			compatible = "ingenic,t23-cgu", "syscon", "simple-mfd";
+			reg = <0x10000000 0x100>;
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges = <0x0 0x10000000 0x100>;
+			#clock-cells = <1>;
+			clocks = <&ext>, <&rtc_clk>;
+			clock-names = "ext", "rtc";
+
+			cpm_reset: reset-controller {
+				compatible = "ingenic,t23-reset";
+				#reset-cells = <1>;
+			};
+
+			mac_phy_ctrl: mac-phy-ctrl@e8 {
+				compatible = "ingenic,t23-mac-phy-ctrl", "syscon";
+				reg = <0xe8 0x4>;
+			};
+		};
+
+		intc: interrupt-controller@10001000 {
+			compatible = "ingenic,t23-intc", "ingenic,jz4780-intc";
+			reg = <0x10001000 0x40>;
+			interrupt-controller;
+			#interrupt-cells = <1>;
+			interrupt-parent = <&cpuintc>;
+			interrupts = <2>;
+		};
+
+		tcu: timer@10002000 {
+			compatible = "ingenic,t23-tcu", "ingenic,x1000-tcu",
+				     "syscon", "simple-mfd";
+			reg = <0x10002000 0x1000>;
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges = <0x0 0x10002000 0x1000>;
+			#clock-cells = <1>;
+			clocks = <&rtc_clk>, <&ext>,
+				 <&cgu CLK_PCLK>, <&cgu CLK_TCU>;
+			clock-names = "rtc", "ext", "pclk", "tcu";
+			interrupt-controller;
+			#interrupt-cells = <1>;
+			interrupt-parent = <&intc>;
+			interrupts = <27 26 25>;
+			ingenic,pwm-channels-mask = <0x0f>;
+			status = "disabled";
+
+			watchdog: watchdog@0 {
+				compatible = "ingenic,t23-watchdog",
+					     "ingenic,jz4740-watchdog";
+				reg = <0x0 0x10>;
+				clocks = <&tcu TCU_CLK_WDT>;
+				clock-names = "wdt";
+				status = "disabled";
+			};
+
+			pwm: pwm@40 {
+				compatible = "ingenic,t23-pwm",
+					     "ingenic,x1000-pwm";
+				reg = <0x40 0x80>;
+				#pwm-cells = <3>;
+				clocks = <&tcu TCU_CLK_TIMER0>,
+					 <&tcu TCU_CLK_TIMER1>,
+					 <&tcu TCU_CLK_TIMER2>,
+					 <&tcu TCU_CLK_TIMER3>;
+				clock-names = "timer0", "timer1",
+					      "timer2", "timer3";
+				status = "disabled";
+			};
+		};
+
+		rtc: rtc@10003000 {
+			compatible = "ingenic,t23-rtc", "ingenic,jz4780-rtc";
+			reg = <0x10003000 0x4c>;
+			interrupt-parent = <&intc>;
+			interrupts = <32>;
+			clocks = <&cgu CLK_RTC>;
+			clock-names = "rtc";
+			status = "disabled";
+		};
+
+		pinctrl: pinctrl@10010000 {
+			compatible = "ingenic,t23-pinctrl";
+			reg = <0x10010000 0x9000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "disabled";
+
+			gpa: gpio@0 {
+				compatible = "ingenic,t23-gpio";
+				reg = <0>;
+				gpio-controller;
+				gpio-ranges = <&pinctrl 0 0 32>;
+				#gpio-cells = <2>;
+				interrupt-controller;
+				#interrupt-cells = <2>;
+				interrupt-parent = <&intc>;
+				interrupts = <17>;
+			};
+
+			gpb: gpio@1 {
+				compatible = "ingenic,t23-gpio";
+				reg = <1>;
+				gpio-controller;
+				gpio-ranges = <&pinctrl 0 32 32>;
+				#gpio-cells = <2>;
+				interrupt-controller;
+				#interrupt-cells = <2>;
+				interrupt-parent = <&intc>;
+				interrupts = <16>;
+			};
+
+			gpc: gpio@2 {
+				compatible = "ingenic,t23-gpio";
+				reg = <2>;
+				gpio-controller;
+				gpio-ranges = <&pinctrl 0 64 32>;
+				#gpio-cells = <2>;
+				interrupt-controller;
+				#interrupt-cells = <2>;
+				interrupt-parent = <&intc>;
+				interrupts = <15>;
+			};
+
+			pins_uart0_b: uart0-data-b {
+				function = "uart0";
+				groups = "uart0-data";
+				bias-disable;
+			};
+
+			pins_uart1_a: uart1-data-a {
+				function = "uart1";
+				groups = "uart1-data-a";
+				bias-disable;
+			};
+
+			pins_uart1_b: uart1-data-b {
+				function = "uart1";
+				groups = "uart1-data-b";
+				bias-disable;
+			};
+
+			pins_uart2_b: uart2-data-b {
+				function = "uart2";
+				groups = "uart2-data-b";
+				bias-disable;
+			};
+
+			pins_uart2_c: uart2-data-c {
+				function = "uart2";
+				groups = "uart2-data-c";
+				bias-disable;
+			};
+
+			pins_sfc: sfc-data {
+				function = "sfc";
+				groups = "sfc-data";
+				bias-disable;
+			};
+
+			pins_sfc_quad: sfc-quad {
+				function = "sfc";
+				groups = "sfc-data", "sfc-quad";
+				bias-disable;
+			};
+
+			pins_mmc0: mmc0 {
+				function = "mmc0";
+				groups = "mmc0-1bit", "mmc0-4bit";
+				bias-disable;
+			};
+
+			pins_mmc1_c: mmc1-c {
+				function = "mmc1";
+				groups = "mmc1-1bit-c", "mmc1-4bit-c";
+				bias-disable;
+			};
+
+			pins_i2c0: i2c0-data {
+				function = "i2c0";
+				groups = "i2c0-data";
+				bias-disable;
+			};
+
+			pins_cim_mclk: cim-mclk {
+				function = "cim";
+				groups = "cim-mclk";
+				bias-disable;
+			};
+
+			pins_i2c1_a: i2c1-data-a {
+				function = "i2c1";
+				groups = "i2c1-data-a";
+				bias-disable;
+			};
+
+			pins_i2c1_b: i2c1-data-b {
+				function = "i2c1";
+				groups = "i2c1-data-b";
+				bias-disable;
+			};
+
+			pins_i2c1_c: i2c1-data-c {
+				function = "i2c1";
+				groups = "i2c1-data-c";
+				bias-disable;
+			};
+
+			pins_i2c2_b: i2c2-data-b {
+				function = "i2c2";
+				groups = "i2c2-data-b";
+				bias-disable;
+			};
+
+			pins_ssi0_b: ssi0-data-b {
+				function = "ssi0";
+				groups = "ssi0-data-b";
+				bias-disable;
+			};
+
+			pins_mac: mac-rmii {
+				function = "mac";
+				groups = "mac-rmii";
+				bias-disable;
+			};
+
+			pins_vic_switch: vic-switch {
+				function = "vic";
+				groups = "vic-switch";
+				bias-disable;
+			};
+		};
+
+		aic: audio-controller@10020000 {
+			compatible = "ingenic,t23-aic", "ingenic,jz4780-i2s";
+			reg = <0x10020000 0x70>;
+			#sound-dai-cells = <0>;
+			interrupt-parent = <&intc>;
+			interrupts = <1>;
+			clocks = <&cgu CLK_CGU_I2S_SPK>, <&cgu CLK_CGU_I2S_MIC>,
+				 <&cgu CLK_AIC>;
+			clock-names = "cgu_i2s_spk", "cgu_i2s_mic", "aic";
+			dmas = <&pdma 7 0xffffffff>, <&pdma 6 0xffffffff>;
+			dma-names = "rx", "tx";
+			status = "disabled";
+		};
+
+		codec: audio-codec@10021000 {
+			compatible = "ingenic,t23-codec";
+			reg = <0x10021000 0x140>;
+			#sound-dai-cells = <1>;
+			status = "disabled";
+		};
+
+		uart0: serial@10030000 {
+			compatible = "ingenic,t23-uart", "ingenic,x1000-uart";
+			reg = <0x10030000 0x100>;
+			interrupt-parent = <&intc>;
+			interrupts = <51>;
+			clocks = <&ext>, <&cgu CLK_UART0>;
+			clock-names = "baud", "module";
+			status = "disabled";
+		};
+
+		uart1: serial@10031000 {
+			compatible = "ingenic,t23-uart", "ingenic,x1000-uart";
+			reg = <0x10031000 0x100>;
+			interrupt-parent = <&intc>;
+			interrupts = <50>;
+			clocks = <&ext>, <&cgu CLK_UART1>;
+			clock-names = "baud", "module";
+			status = "disabled";
+		};
+
+		uart2: serial@10032000 {
+			compatible = "ingenic,t23-uart", "ingenic,x1000-uart";
+			reg = <0x10032000 0x100>;
+			interrupt-parent = <&intc>;
+			interrupts = <49>;
+			clocks = <&ext>, <&cgu CLK_UART2>;
+			clock-names = "baud", "module";
+			status = "disabled";
+		};
+
+		ssi0: spi@10043000 {
+			compatible = "ingenic,t23-spi", "ingenic,x1000-spi";
+			reg = <0x10043000 0x20>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			interrupt-parent = <&intc>;
+			interrupts = <9>;
+			clocks = <&cgu CLK_SSI0>;
+			clock-names = "spi";
+			status = "disabled";
+		};
+
+		i2c0: i2c@10050000 {
+			compatible = "ingenic,t23-i2c", "ingenic,x1000-i2c";
+			reg = <0x10050000 0x1000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			interrupt-parent = <&intc>;
+			interrupts = <60>;
+			clocks = <&cgu CLK_I2C0>;
+			clock-names = "i2c";
+			status = "disabled";
+		};
+
+		i2c1: i2c@10051000 {
+			compatible = "ingenic,t23-i2c", "ingenic,x1000-i2c";
+			reg = <0x10051000 0x1000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			interrupt-parent = <&intc>;
+			interrupts = <59>;
+			clocks = <&cgu CLK_I2C1>;
+			clock-names = "i2c";
+			status = "disabled";
+		};
+
+		i2c2: i2c@10052000 {
+			compatible = "ingenic,t23-i2c", "ingenic,x1000-i2c";
+			reg = <0x10052000 0x1000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			interrupt-parent = <&intc>;
+			interrupts = <58>;
+			clocks = <&cgu CLK_I2C2>;
+			clock-names = "i2c";
+			status = "disabled";
+		};
+
+		sadc: adc@10070000 {
+			compatible = "ingenic,t23-sadc";
+			reg = <0x10070000 0x34>;
+			#io-channel-cells = <1>;
+			interrupt-parent = <&intc>;
+			interrupts = <18>;
+			clocks = <&cgu CLK_SADC>;
+			clock-names = "sadc";
+			status = "disabled";
+		};
+
+		dtrng: rng@10072000 {
+			compatible = "ingenic,t23-dtrng", "ingenic,x1830-dtrng";
+			reg = <0x10072000 0x10>;
+			interrupt-parent = <&intc>;
+			interrupts = <34>;
+			clocks = <&cgu CLK_DTRNG>;
+			status = "disabled";
+		};
+
+		ost: timer@12000000 {
+			compatible = "ingenic,t23-ost", "ingenic,x1000-ost";
+			reg = <0x12000000 0x3c>;
+			#clock-cells = <1>;
+			interrupt-parent = <&cpuintc>;
+			interrupts = <4>;
+			clocks = <&cgu CLK_SYS_OST>;
+			clock-names = "ost";
+			status = "disabled";
+		};
+
+		ipu: ipu@13080000 {
+			compatible = "ingenic,t23-ipu";
+			reg = <0x13080000 0x8000>;
+			interrupt-parent = <&intc>;
+			interrupts = <6>;
+			clocks = <&cgu CLK_IPU>;
+			clock-names = "ipu";
+			status = "disabled";
+		};
+
+		helix: video-codec@13100000 {
+			compatible = "ingenic,t23-helix";
+			reg = <0x13100000 0x100000>;
+			interrupt-parent = <&intc>;
+			interrupts = <40>;
+			clocks = <&cgu CLK_CGU_VPU>, <&cgu CLK_AVPU>,
+				 <&cgu CLK_IVDC>;
+			clock-names = "vpu", "gate", "ivdc";
+			resets = <&cpm_reset T23_RESET_HELIX>;
+			status = "disabled";
+		};
+
+		coproc: coprocessor@132a0000 {
+			compatible = "ingenic,t23-coprocessor",
+				     "ingenic,t23-riscv";
+			reg = <0x132a0000 0x1000>,
+			      <0x132c0000 0x4000>;
+			reg-names = "aux", "tcsm";
+			clocks = <&cgu CLK_RISCV>;
+			clock-names = "coproc";
+			ingenic,cpm = <&cgu>;
+			interrupt-parent = <&intc>;
+			interrupts = <4>;
+			interrupt-names = "doorbell";
+			firmware-name = "ingenic/t23_riscv.elf";
+			status = "disabled";
+		};
+
+		isp: isp@13300000 {
+			compatible = "ingenic,t23-isp";
+			reg = <0x13300000 0x90000>,
+			      <0x133e0000 0x10000>,
+			      <0x10023000 0x1000>,
+			      <0x10022000 0x1000>,
+			      <0x13200000 0x10000>;
+			reg-names = "core", "vic", "csi", "phy", "ivdc";
+			interrupt-parent = <&intc>;
+			interrupts = <29>, <30>, <38>;
+			interrupt-names = "core", "vic", "ivdc";
+			clocks = <&cgu CLK_CGU_ISP>, <&cgu CLK_ISP>,
+				 <&cgu CLK_CSI>, <&cgu CLK_CGU_VPU>,
+				 <&cgu CLK_IVDC>;
+			clock-names = "cgu_isp", "isp", "csi", "cgu_vpu",
+				      "ivdc";
+			resets = <&cpm_reset T23_RESET_ISP>;
+			reset-names = "isp";
+			status = "disabled";
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@0 {
+					reg = <0>;
+				};
+
+				port@1 {
+					reg = <1>;
+				};
+			};
+		};
+
+		pdma: dma-controller@13420000 {
+			compatible = "ingenic,t23-dma", "ingenic,x1830-dma";
+			reg = <0x13420000 0x400>, <0x13421000 0x40>;
+			#dma-cells = <2>;
+			interrupt-parent = <&intc>;
+			interrupts = <10>;
+			clocks = <&cgu CLK_PDMA>;
+			status = "disabled";
+		};
+
+		aes: crypto@13430000 {
+			compatible = "ingenic,t23-aes";
+			reg = <0x13430000 0x1000>;
+			interrupt-parent = <&intc>;
+			interrupts = <23>;
+			clocks = <&cgu CLK_AES>;
+			clock-names = "aes";
+			status = "disabled";
+		};
+
+		sfc: spi@13440000 {
+			compatible = "ingenic,t23-sfc";
+			reg = <0x13440000 0x1000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			interrupt-parent = <&intc>;
+			interrupts = <7>;
+			clocks = <&cgu CLK_CGU_SFC>, <&cgu CLK_SFC>;
+			clock-names = "sfc", "gate";
+			status = "disabled";
+		};
+
+		msc0: mmc@13450000 {
+			compatible = "ingenic,t23-mmc", "ingenic,x1000-mmc";
+			reg = <0x13450000 0x1000>;
+			dmas = <&pdma 0x1a 0xffffffff>, <&pdma 0x1b 0xffffffff>;
+			dma-names = "tx", "rx";
+			interrupt-parent = <&intc>;
+			interrupts = <37>;
+			clocks = <&cgu CLK_CGU_MSC0>, <&cgu CLK_MSC0>;
+			clock-names = "mmc", "gate";
+			cap-sd-highspeed;
+			cap-mmc-highspeed;
+			status = "disabled";
+		};
+
+		msc1: mmc@13460000 {
+			compatible = "ingenic,t23-mmc", "ingenic,x1000-mmc";
+			reg = <0x13460000 0x1000>;
+			dmas = <&pdma 0x1c 0xffffffff>, <&pdma 0x1d 0xffffffff>;
+			dma-names = "tx", "rx";
+			interrupt-parent = <&intc>;
+			interrupts = <36>;
+			clocks = <&cgu CLK_CGU_MSC1>, <&cgu CLK_MSC1>;
+			clock-names = "mmc", "gate";
+			cap-sd-highspeed;
+			cap-mmc-highspeed;
+			status = "disabled";
+		};
+
+		mac: ethernet@134b0000 {
+			compatible = "ingenic,t23-mac", "snps,dwmac";
+			reg = <0x134b0000 0x2000>;
+			interrupt-parent = <&intc>;
+			interrupts = <55>;
+			interrupt-names = "macirq";
+			clocks = <&cgu CLK_GMAC>, <&cgu CLK_CGU_MACPHY>;
+			clock-names = "stmmaceth", "macphy";
+			mode-reg = <&mac_phy_ctrl>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&pins_mac>;
+			phy-mode = "rmii";
+			status = "disabled";
+
+			mdio: mdio {
+				compatible = "snps,dwmac-mdio";
+				#address-cells = <1>;
+				#size-cells = <0>;
+				status = "disabled";
+			};
+		};
+
+		ddr: memory-controller@134f0000 {
+			compatible = "ingenic,t23-ddr";
+			reg = <0x134f0000 0x400>,
+			      <0x13011000 0x100>,
+			      <0x13012000 0x100>;
+			reg-names = "controller", "phy", "apb";
+		};
+
+		otg_phy: usb-phy@1000003c {
+			compatible = "ingenic,t23-phy";
+			reg = <0x1000003c 0x10>, <0x10060000 0x1000>;
+			reg-names = "cpm", "tuning";
+			ingenic,cpm = <&cgu>;
+			clocks = <&cgu CLK_OTG>;
+			clock-names = "otg";
+			#phy-cells = <0>;
+			status = "disabled";
+		};
+
+		otg: usb@13500000 {
+			compatible = "ingenic,t23-otg", "snps,dwc2";
+			reg = <0x13500000 0x40000>;
+			interrupt-parent = <&intc>;
+			interrupts = <21>;
+			clocks = <&cgu CLK_OTG>;
+			clock-names = "otg";
+			phys = <&otg_phy>;
+			phy-names = "usb2-phy";
+			dr_mode = "host";
+			status = "disabled";
+		};
+
+		efuse: efuse@13540200 {
+			compatible = "ingenic,t23-efuse";
+			reg = <0x13540200 0x40>;
+			clocks = <&cgu CLK_EFUSE>;
+			clock-names = "efuse";
+		};
+	};
+};
