@@ -16,6 +16,7 @@
 #include <linux/math64.h>
 #include <linux/of.h>
 #include <linux/of_address.h>
+#include <linux/ratelimit.h>
 #include <linux/slab.h>
 #include <linux/spinlock.h>
 #include <linux/time.h>
@@ -533,6 +534,8 @@ ingenic_clk_set_rate(struct clk_hw *hw, unsigned long req_rate,
 	int ret = 0;
 
 	if (clk_info->type & CGU_CLK_DIV) {
+		bool keep_stopped;
+
 		div = ingenic_clk_calc_div(hw, clk_info, parent_rate, req_rate);
 		rate = DIV_ROUND_UP(parent_rate, div);
 
@@ -547,10 +550,20 @@ ingenic_clk_set_rate(struct clk_hw *hw, unsigned long req_rate,
 		spin_lock_irqsave(&cgu->lock, flags);
 		reg = readl(cgu->base + clk_info->div.reg);
 
+		keep_stopped = cgu->stop_div_on_disable &&
+			       clk_info->div.stop_bit != -1 &&
+			       (reg & BIT(clk_info->div.stop_bit));
+
 		/* update the divide */
 		mask = GENMASK(clk_info->div.bits - 1, 0);
 		reg &= ~(mask << clk_info->div.shift);
 		reg |= hw_div << clk_info->div.shift;
+
+		if (keep_stopped) {
+			writel(reg, cgu->base + clk_info->div.reg);
+			spin_unlock_irqrestore(&cgu->lock, flags);
+			return 0;
+		}
 
 		/* clear the stop bit */
 		if (clk_info->div.stop_bit != -1)
@@ -567,11 +580,70 @@ ingenic_clk_set_rate(struct clk_hw *hw, unsigned long req_rate,
 		if (clk_info->div.busy_bit != -1)
 			ret = ingenic_clk_check_stable(cgu, clk_info);
 
+		if (cgu->stop_div_on_disable && clk_info->div.ce_bit != -1) {
+			reg = readl(cgu->base + clk_info->div.reg);
+			reg &= ~BIT(clk_info->div.ce_bit);
+			writel(reg, cgu->base + clk_info->div.reg);
+		}
+
 		spin_unlock_irqrestore(&cgu->lock, flags);
 		return ret;
 	}
 
 	return -EINVAL;
+}
+
+/* The caller holds cgu->lock; clocks may start before timekeeping. */
+static int ingenic_cgu_div_wait(struct ingenic_cgu *cgu,
+				const struct ingenic_cgu_div_info *info)
+{
+	unsigned int i;
+
+	if (info->busy_bit < 0)
+		return 0;
+	for (i = 0; i < 10000; i++) {
+		if (!(readl(cgu->base + info->reg) & BIT(info->busy_bit)))
+			return 0;
+		udelay(1);
+	}
+	return -ETIMEDOUT;
+}
+
+static int ingenic_cgu_div_set_enabled(struct ingenic_cgu *cgu,
+				       const struct ingenic_cgu_div_info *info,
+				       bool enable)
+{
+	u32 reg;
+	int ret;
+
+	if (info->stop_bit < 0)
+		return 0;
+	ret = ingenic_cgu_div_wait(cgu, info);
+	if (ret)
+		return ret;
+	reg = readl(cgu->base + info->reg);
+	if (!!(reg & BIT(info->stop_bit)) == !enable)
+		return 0;
+	if (enable)
+		reg &= ~BIT(info->stop_bit);
+	else
+		reg |= BIT(info->stop_bit);
+	if (info->ce_bit >= 0)
+		reg |= BIT(info->ce_bit);
+	writel(reg, cgu->base + info->reg);
+
+	ret = enable ? ingenic_cgu_div_wait(cgu, info) : 0;
+	if (ret) {
+		reg = readl(cgu->base + info->reg);
+		reg |= BIT(info->stop_bit);
+		writel(reg, cgu->base + info->reg);
+	}
+	if (info->ce_bit >= 0) {
+		reg = readl(cgu->base + info->reg);
+		reg &= ~BIT(info->ce_bit);
+		writel(reg, cgu->base + info->reg);
+	}
+	return ret;
 }
 
 static int ingenic_clk_enable(struct clk_hw *hw)
@@ -580,6 +652,27 @@ static int ingenic_clk_enable(struct clk_hw *hw)
 	const struct ingenic_cgu_clk_info *clk_info = to_clk_info(ingenic_clk);
 	struct ingenic_cgu *cgu = ingenic_clk->cgu;
 	unsigned long flags;
+
+	if (cgu->stop_div_on_disable) {
+		int ret = 0;
+
+		spin_lock_irqsave(&cgu->lock, flags);
+		if (clk_info->type & CGU_CLK_DIV) {
+			ret = ingenic_cgu_div_set_enabled(cgu, &clk_info->div,
+							  true);
+			if (ret)
+				goto unlock;
+		}
+		if (clk_info->type & CGU_CLK_GATE)
+			ingenic_cgu_gate_set(cgu, &clk_info->gate, false);
+unlock:
+		spin_unlock_irqrestore(&cgu->lock, flags);
+		if (!ret && (clk_info->type & CGU_CLK_GATE) &&
+		    clk_info->gate.delay_us)
+			udelay(clk_info->gate.delay_us);
+
+		return ret;
+	}
 
 	if (clk_info->type & CGU_CLK_GATE) {
 		/* ungate the clock */
@@ -601,6 +694,22 @@ static void ingenic_clk_disable(struct clk_hw *hw)
 	struct ingenic_cgu *cgu = ingenic_clk->cgu;
 	unsigned long flags;
 
+	if (cgu->stop_div_on_disable) {
+		int ret = 0;
+
+		spin_lock_irqsave(&cgu->lock, flags);
+		if (clk_info->type & CGU_CLK_GATE)
+			ingenic_cgu_gate_set(cgu, &clk_info->gate, true);
+		if (clk_info->type & CGU_CLK_DIV)
+			ret = ingenic_cgu_div_set_enabled(cgu, &clk_info->div,
+							  false);
+		spin_unlock_irqrestore(&cgu->lock, flags);
+		if (ret)
+			pr_warn_ratelimited("%s: divider stop timed out\n",
+					    clk_hw_get_name(hw));
+		return;
+	}
+
 	if (clk_info->type & CGU_CLK_GATE) {
 		/* gate the clock */
 		spin_lock_irqsave(&cgu->lock, flags);
@@ -615,6 +724,19 @@ static int ingenic_clk_is_enabled(struct clk_hw *hw)
 	const struct ingenic_cgu_clk_info *clk_info = to_clk_info(ingenic_clk);
 	struct ingenic_cgu *cgu = ingenic_clk->cgu;
 	int enabled = 1;
+
+	if (cgu->stop_div_on_disable) {
+		unsigned long flags;
+
+		spin_lock_irqsave(&cgu->lock, flags);
+		if ((clk_info->type & CGU_CLK_DIV) && clk_info->div.stop_bit >= 0)
+			enabled = !(readl(cgu->base + clk_info->div.reg) &
+				    BIT(clk_info->div.stop_bit));
+		if (clk_info->type & CGU_CLK_GATE)
+			enabled &= !ingenic_cgu_gate_get(cgu, &clk_info->gate);
+		spin_unlock_irqrestore(&cgu->lock, flags);
+		return enabled;
+	}
 
 	if (clk_info->type & CGU_CLK_GATE)
 		enabled = !ingenic_cgu_gate_get(cgu, &clk_info->gate);
@@ -669,6 +791,8 @@ static int ingenic_register_clock(struct ingenic_cgu *cgu, unsigned idx)
 	}
 
 	if (!clk_info->type) {
+		if (cgu->stop_div_on_disable && !clk_info->name)
+			return 0;
 		pr_err("%s: no clock type specified for '%s'\n", __func__,
 		       clk_info->name);
 		goto out;
@@ -706,17 +830,30 @@ static int ingenic_register_clock(struct ingenic_cgu *cgu, unsigned idx)
 			num_possible = ARRAY_SIZE(clk_info->parents);
 
 		for (i = 0; i < num_possible; i++) {
-			if (clk_info->parents[i] == -1)
+			int parent_idx = clk_info->parents[i];
+
+			if (parent_idx == -1)
 				continue;
 
-			parent = cgu->clocks.clks[clk_info->parents[i]];
+			parent = cgu->clocks.clks[parent_idx];
 			parent_names[clk_init.num_parents] =
+				(cgu->stop_div_on_disable && !parent) ?
+				cgu->clock_info[parent_idx].name :
 				__clk_get_name(parent);
 			clk_init.num_parents++;
 		}
 
 		BUG_ON(!clk_init.num_parents);
 		BUG_ON(clk_init.num_parents > ARRAY_SIZE(parent_names));
+	} else if (cgu->stop_div_on_disable) {
+		int parent_idx = clk_info->parents[0];
+
+		if (parent_idx == -1)
+			goto out;
+		clk_init.num_parents = 1;
+		parent = cgu->clocks.clks[parent_idx];
+		parent_names[0] = parent ? __clk_get_name(parent) :
+					   cgu->clock_info[parent_idx].name;
 	} else {
 		BUG_ON(clk_info->parents[0] == -1);
 		clk_init.num_parents = 1;

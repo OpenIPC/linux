@@ -194,6 +194,7 @@ struct ingenic_cgu_clk_info {
  * @clock_info: an array containing information about implemented clocks
  * @clocks: used to provide clocks to DT, allows lookup of struct clk*
  * @lock: lock to be held whilst manipulating CGU registers
+ * @stop_div_on_disable: stop/start dividers via stop_bit on disable/enable
  */
 struct ingenic_cgu {
 	struct device_node *np;
@@ -203,6 +204,7 @@ struct ingenic_cgu {
 	struct clk_onecell_data clocks;
 
 	spinlock_t lock;
+	bool stop_div_on_disable;
 };
 
 /**
