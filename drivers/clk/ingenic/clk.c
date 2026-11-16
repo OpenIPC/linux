@@ -461,9 +461,17 @@ static int ingenic_clk_suspend(void)
 {
 	struct ingenic_clock_reg_cache *reg_cache;
 
-	list_for_each_entry(reg_cache, &clock_reg_cache_list, node)
-		ingenic_clk_save(reg_cache->reg_base, reg_cache->rdump,
+	list_for_each_entry(reg_cache, &clock_reg_cache_list, node) {
+		unsigned int i;
+		if (!reg_cache->reg_sleep) {
+			ingenic_clk_save(reg_cache->reg_base, reg_cache->rdump,
 				reg_cache->rd_num);
+			continue;
+		}
+		for (i = 0; i < reg_cache->nr_reg_sleep; i++)
+			reg_cache->reg_sleep[i].value = readl(reg_cache->reg_base +
+				reg_cache->reg_sleep[i].offset);
+	}
 	return 0;
 }
 
@@ -471,9 +479,21 @@ static void ingenic_clk_resume(void)
 {
 	struct ingenic_clock_reg_cache *reg_cache;
 
-	list_for_each_entry(reg_cache, &clock_reg_cache_list, node)
-		ingenic_clk_restore(reg_cache->reg_base, reg_cache->rdump,
+	list_for_each_entry(reg_cache, &clock_reg_cache_list, node) {
+		unsigned int i;
+		if (!reg_cache->reg_sleep) {
+			ingenic_clk_restore(reg_cache->reg_base, reg_cache->rdump,
 				reg_cache->rd_num);
+			continue;
+		}
+		for (i = 0; i < reg_cache->nr_reg_sleep; i++) {
+			struct ingenic_clk_reg_sleep *reg = &reg_cache->reg_sleep[i];
+			u32 value = reg->value;
+			if (reg->ce || reg->busy)
+				value |= BIT(reg->ce);
+			writel(value, reg_cache->reg_base + reg->offset);
+		}
+	}
 }
 
 static struct syscore_ops ingenic_clk_syscore_ops = {
@@ -502,6 +522,22 @@ static void ingenic_clk_sleep_init(void __iomem *reg_base,
 	reg_cache->reg_base = reg_base;
 	reg_cache->rd_num = nr_rdump;
 	list_add_tail(&reg_cache->node, &clock_reg_cache_list);
+}
+
+void __init ingenic_clk_t41_sleep_init(void __iomem *base,
+		struct ingenic_clk_reg_sleep *regs, unsigned long count)
+{
+	struct ingenic_clock_reg_cache *cache;
+
+	cache = kzalloc(sizeof(*cache), GFP_KERNEL);
+	if (!cache)
+		panic("could not allocate T41 clock register cache");
+	if (list_empty(&clock_reg_cache_list))
+		register_syscore_ops(&ingenic_clk_syscore_ops);
+	cache->reg_base = base;
+	cache->reg_sleep = regs;
+	cache->nr_reg_sleep = count;
+	list_add_tail(&cache->node, &clock_reg_cache_list);
 }
 
 #else

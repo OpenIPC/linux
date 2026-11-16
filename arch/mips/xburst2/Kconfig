@@ -22,6 +22,17 @@ config SOC_T40
 	select CLKSRC_INGENIC_CORE_OST
 
 
+config SOC_T41
+	bool "t41"
+	select IRQ_INGENIC_CPU
+	select CLK_T41
+	select INGENIC_INTC_CHIP
+	select PINCTRL
+	select PINCTRL_INGENIC
+	select CLKSRC_OF
+	select CLKDEV_LOOKUP
+	select CLKSRC_INGENIC_CORE_OST
+
 config SOC_X2000_V12
 	bool "x2000-v12"
 	select IRQ_INGENIC_CPU
@@ -50,6 +61,10 @@ if SOC_T40
 source "arch/mips/xburst2/soc-t40/Kconfig.DT"
 endif
 
+if SOC_T41
+source "arch/mips/xburst2/soc-t41/Kconfig.DT"
+endif
+
 if SOC_X2000_V12
 source "arch/mips/xburst2/soc-x2000-v12/Kconfig.DT"
 endif
@@ -62,6 +77,10 @@ config DT_T40_MODULE_BASE_DTS_FILE
 	default shark.dts
 	help
 		the dts file location is arch/mips/boot/dts/ingenic/
+
+config KERNEL_4_4_94
+	bool
+	default y if SOC_T41
 
 config RAW_BOOT
 	bool "Raw Boot Kernel"

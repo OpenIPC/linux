@@ -25,3 +25,10 @@ config CLK_T40
 	select COMMON_CLK_INGENIC
 	help
 	  build the ingenic t40 soc clock driver.
+
+config CLK_T41
+	bool
+	depends on SOC_T41
+	select COMMON_CLK_INGENIC
+	help
+	  Build the Ingenic T41 clock driver.

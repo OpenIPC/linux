@@ -107,6 +107,10 @@ enum gpio_function {
 #define PxPHES		0x194   /* Port Hold Enable Set Register */
 #define PxPHEC		0x198   /* Port Hold Enable Clear Register */
 
+#define PxPDS3  0x1a0
+#define PxPDS3S 0x1a4
+#define PxPDS3C 0x1a8
+
 #define PSHADOW_OFF	0x7000
 #define PZGIDLD         0xF0   /* GPIOZ Group ID to load */
 
@@ -195,6 +199,7 @@ struct ingenic_pinctrl_group {
 
 /*soc private data*/
 struct ingenic_priv {
+	bool t41_drive_strength;
 	bool				have_shadow;		/*support shadow register or not*/
 	bool				have_filter;		/*support input pin filter of nor*/
 	bool				pull_tristate;		/*support pullup/pulldown/hiz settable.*/

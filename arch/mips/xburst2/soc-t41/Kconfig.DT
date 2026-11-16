@@ -1,0 +1,2 @@
+config DT_T41_MARMOT
+    bool "t41 marmot"

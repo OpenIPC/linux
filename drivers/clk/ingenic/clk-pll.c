@@ -109,6 +109,53 @@ static const struct clk_ops ingenic_t40_pll_clk_ops = {
 	.set_rate = ingenic_t40_pll_set_rate,
 };
 
+static unsigned long ingenic_t41_pll_recalc_rate(struct clk_hw *hw,
+		unsigned long parent_rate)
+{
+	struct ingenic_clk_pll *pll = to_clk_pll(hw);
+	u32 value = readl(pll->con_reg);
+	u32 m, n, od0, od1;
+
+	m = (value >> pll->hwdesc->m_sft) & GENMASK(pll->hwdesc->m_width - 1, 0);
+	n = (value >> pll->hwdesc->n_sft) & GENMASK(pll->hwdesc->n_width - 1, 0);
+	od0 = (value >> pll->hwdesc->od0_sft) & GENMASK(pll->hwdesc->od0_width - 1, 0);
+	od1 = (value >> pll->hwdesc->od1_sft) & GENMASK(pll->hwdesc->od1_width - 1, 0);
+	return ((parent_rate / 1000000) * (m + 1) * 2 /
+		((n + 1) * (1 << od0) * (od1 + 1))) * 1000000;
+}
+
+static int ingenic_t41_pll_set_rate(struct clk_hw *hw, unsigned long drate,
+		unsigned long prate)
+{
+	struct ingenic_clk_pll *pll = to_clk_pll(hw);
+	const struct ingenic_pll_rate_table *rate = NULL;
+	u32 value;
+	unsigned int i;
+
+	for (i = 0; i < pll->rate_count; i++)
+		if (drate == pll->rate_table[i].rate) {
+			rate = &pll->rate_table[i];
+			break;
+		}
+	if (!rate)
+		return -EINVAL;
+	value = (rate->m << pll->hwdesc->m_sft) |
+		(rate->n << pll->hwdesc->n_sft) |
+		(rate->od0 << pll->hwdesc->od0_sft) |
+		(rate->od1 << pll->hwdesc->od1_sft) |
+		(rate->rg << pll->hwdesc->rg_sft) | 1;
+	writel(0, pll->con_reg);
+	writel(value, pll->con_reg);
+	wait_pll_stable(pll->con_reg, pll->hwdesc->on_bit);
+	return 0;
+}
+
+static const struct clk_ops ingenic_t41_pll_clk_ops = {
+	.recalc_rate = ingenic_t41_pll_recalc_rate,
+	.round_rate = ingenic_pll_round_rate,
+	.set_rate = ingenic_t41_pll_set_rate,
+};
+
 static void __init _ingenic_clk_register_pll(struct ingenic_clk_provider *ctx,
 				const struct ingenic_pll_clock *pll_clk,
 				void __iomem *base)
@@ -129,7 +176,8 @@ static void __init _ingenic_clk_register_pll(struct ingenic_clk_provider *ctx,
 //	init.flags = pll_clk->flags;
 	init.parent_names = &pll_clk->parent_name;
 	init.num_parents = 1;
-	init.ops = &ingenic_t40_pll_clk_ops;
+	init.ops = IS_ENABLED(CONFIG_SOC_T41) ? &ingenic_t41_pll_clk_ops :
+		&ingenic_t40_pll_clk_ops;
 
 
 	pll->hw.init = &init;

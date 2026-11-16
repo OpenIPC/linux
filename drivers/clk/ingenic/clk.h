@@ -469,11 +469,24 @@ struct ingenic_pll_clock {
 	.rate_table = _rtable,	\
 }
 
+struct ingenic_clk_reg_sleep {
+	u32 offset;
+	u32 value;
+	u32 ce;
+	u32 busy;
+	u32 flags;
+};
+
+#define REG_SLEEP(o, c, b, f) \
+{ .offset = o, .ce = c, .busy = b, .flags = f }
+
 struct ingenic_clock_reg_cache {
 	struct list_head node;
 	void __iomem *reg_base;
 	struct ingenic_clk_reg_dump *rdump;
 	unsigned int rd_num;
+	struct ingenic_clk_reg_sleep *reg_sleep;
+	unsigned int nr_reg_sleep;
 };
 
 struct ingenic_cmu_info {
@@ -578,4 +591,12 @@ extern void __init ingenic_clk_register_fra_div(struct ingenic_clk_provider *ctx
 					unsigned int nr_clk);
 
 void ingenic_clk_of_dump(struct ingenic_clk_provider *ctx);
+#ifdef CONFIG_PM_SLEEP
+void __init ingenic_clk_t41_sleep_init(void __iomem *base,
+		struct ingenic_clk_reg_sleep *regs, unsigned long count);
+#else
+static inline void ingenic_clk_t41_sleep_init(void __iomem *base,
+		struct ingenic_clk_reg_sleep *regs, unsigned long count) {}
+#endif
+
 #endif /* __INGENIC_CLK_H */

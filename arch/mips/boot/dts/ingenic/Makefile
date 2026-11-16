@@ -16,3 +16,5 @@ obj-				+= dummy.o
 
 always				:= $(dtb-y)
 clean-files			:= *.dtb *.dtb.S
+
+dtb-$(CONFIG_DT_T41_MARMOT) += marmot.dtb

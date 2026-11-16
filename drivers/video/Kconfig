@@ -54,3 +54,5 @@ endif
 
 
 endmenu
+
+source "drivers/video/ingenic_vpu/Kconfig"

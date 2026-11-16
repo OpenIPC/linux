@@ -38,7 +38,7 @@ struct clk_bus_divider {
 	spinlock_t * lock;
 };
 
-static inline struct clk_bus *to_clk_bus_divider(struct clk_hw *hw)
+static inline struct clk_bus_divider *to_clk_bus_divider(struct clk_hw *hw)
 {
 	struct clk_divider *div = container_of(hw, struct clk_divider, hw);
 

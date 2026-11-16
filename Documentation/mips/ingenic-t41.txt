@@ -1,0 +1,61 @@
+Ingenic T41 initial BSP
+======================
+
+The T41NQ camera reported in OpenIPC/majestic#376 uses the T40 family's
+0x10040003 chip ID, but a different interrupt-controller base, PLL encoding,
+pin controller and DMA request map. Selecting SOC_T40 is not sufficient.
+This adds a separate SOC_T41 choice and the SDK's Marmot reference tree.
+The existing T40/X2000 choices and default remain in place.
+
+Source basis
+------------
+The T41-specific platform, reference device tree, clock table and VPU
+sources are from the publicly available Ingenic SDK mirror:
+
+  https://github.com/iesah/IPC-SDK
+  1986333e26bd50a453edca5749433071cf88b390
+  opensource/kernel-4.4.94/
+
+The original copyright/license notices are retained. This is a source
+import, not code extracted from camera firmware. Unrelated SDK WLAN and
+framebuffer additions, generated build files and opaque fast-resume code
+are not imported. Deep suspend/fast-resume is not enabled by this BSP.
+
+The shared clock helpers retain the T40 PLL encoding and suspend-table
+format. T41 has separate descriptor macros and clock operations. Its
+pin-controller match data select the non-shadow path and the T41 drive
+strength layout; existing match data are unchanged. Its UART4/5 DMA request
+IDs live in a separate binding header, rather than replacing T40's DMIC
+request at the same numeric slot.
+
+Build and validation boundaries
+-------------------------------
+Use a MIPS32r2 little-endian toolchain. A basic source build is:
+
+  make ARCH=mips CROSS_COMPILE=<prefix> O=<build-dir> isvp_marmot_defconfig
+  make ARCH=mips CROSS_COMPILE=<prefix> O=<build-dir> -j4 uImage
+
+On a modern host, this old kernel may require HOSTCFLAGS="-O2 -std=gnu89
+-fcommon" and KCFLAGS="-Wno-error=attribute-alias -Wno-error=array-compare".
+Both T41 and the existing firmware T40 configuration compiled with the
+MIPS OpenIPC musl GCC 13.3 toolchain. The T41 uImage was about 2.02 MiB,
+so it does not fit a 2 MiB kernel partition.
+
+This is platform support, not an installation image or a sysupgrade target.
+The reference tree does not identify a retail camera. A device profile
+must choose its memory split, console, flash partitions and sensor wiring.
+Do not overwrite a camera's bootloader or assume T40 flash offsets apply.
+
+A related SDK-based 4.4.94 kernel was booted on a physical T41NQ/GC5603
+camera, with 128 MiB RAM and 16 MiB NOR. The native T41 Majestic test build
+reached SDK startup and decoded main/substream video and a snapshot on
+that installation. Those measurements motivated this BSP; they are NOT a
+hardware boot test of this exact rebased patch set. The installed camera
+was not flashed with this candidate kernel.
+
+Reusing prebuilt modules requires matching their kernel configuration and
+structure layout. In the measured installation CONFIG_KALLSYMS changed
+struct module and made the original modules incompatible. Rebuild modules
+for the chosen kernel instead of treating a matching release string as
+proof of compatibility. Audio and sensor/user-library packaging are
+separate from this kernel change.

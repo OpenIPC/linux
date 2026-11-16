@@ -232,9 +232,45 @@ static void ingenic_gpio_set_slew_rate(struct ingenic_gpio_chip *chip,
 	}
 }
 
+/* T41 has four drive bits on PA0-19 and two on its other pads. */
+static unsigned int ingenic_t41_drive_bits(struct ingenic_gpio_chip *chip,
+		u32 pin)
+{
+	return chip->idx == 0 && pin <= 19 ? 4 : 2;
+}
+
+static void ingenic_t41_set_drive(struct ingenic_gpio_chip *chip,
+		u32 pin, u16 strength)
+{
+	static const unsigned int set[] = { PxPDS0S, PxPDS1S, PxPDS2S, PxPDS3S };
+	static const unsigned int clear[] = { PxPDS0C, PxPDS1C, PxPDS2C, PxPDS3C };
+	unsigned int bits = ingenic_t41_drive_bits(chip, pin), i;
+
+	strength = min_t(u16, strength, BIT(bits) - 1);
+	for (i = 0; i < bits; i++)
+		ingenic_gpio_writel(chip, strength & BIT(i) ? set[i] : clear[i], BIT(pin));
+}
+
+static unsigned short ingenic_t41_get_drive(struct ingenic_gpio_chip *chip,
+		u32 pin)
+{
+	static const unsigned int regs[] = { PxPDS0, PxPDS1, PxPDS2, PxPDS3 };
+	unsigned int bits = ingenic_t41_drive_bits(chip, pin), i;
+	unsigned short strength = 0;
+
+	for (i = 0; i < bits; i++)
+		if (ingenic_gpio_readl(chip, regs[i]) & BIT(pin))
+			strength |= BIT(i);
+	return strength;
+}
+
 static void ingenic_gpio_set_drive_strength(struct ingenic_gpio_chip *chip,
 		u32 pin, u16 strength)
 {
+	if (chip->pctl->priv->t41_drive_strength) {
+		ingenic_t41_set_drive(chip, pin, strength);
+		return;
+	}
 	if(strength > 7)
 		strength = 7;
 
@@ -259,6 +295,8 @@ static unsigned short ingenic_gpio_get_drive_strength(struct ingenic_gpio_chip *
 {
 	unsigned short strength = 0;
 
+	if (chip->pctl->priv->t41_drive_strength)
+		return ingenic_t41_get_drive(chip, pin);
 	strength |= (ingenic_gpio_readl(chip, PxPDS0) & BIT(pin)) ? (1 << 0) : 0;
 	strength |= (ingenic_gpio_readl(chip, PxPDS1) & BIT(pin)) ? (1 << 1) : 0;
 	strength |= (ingenic_gpio_readl(chip, PxPDS2) & BIT(pin)) ? (1 << 2) : 0;
@@ -1728,7 +1766,14 @@ static const struct ingenic_priv common_priv_data[] = {
 	},
 };
 
+static const struct ingenic_priv t41_priv_data = {
+	.have_shadow = false,
+	.pull_tristate = true,
+	.t41_drive_strength = true,
+};
+
 static const struct of_device_id ingenic_pinctrl_dt_match[] = {
+	{ .compatible = "ingenic,t41-pinctrl", .data = &t41_priv_data },
 	{ .compatible = "ingenic,t40-pinctrl", .data = (void *)common_priv_data},
 	{ .compatible = "ingenic,x2000-v12-pinctrl", .data = (void *)common_priv_data},
 	{},
