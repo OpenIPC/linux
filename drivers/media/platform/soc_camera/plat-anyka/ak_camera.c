@@ -2195,7 +2195,8 @@ static int ak_camera_querycap(struct soc_camera_host *ici,
 
 	/* cap->name is set by the friendly caller:-> */
 	strlcpy(cap->card, ak_cam_driver_description, sizeof(cap->card));
-	cap->capabilities = V4L2_CAP_VIDEO_CAPTURE | V4L2_CAP_STREAMING;
+	cap->device_caps = V4L2_CAP_VIDEO_CAPTURE | V4L2_CAP_STREAMING;
+	cap->capabilities = cap->device_caps | V4L2_CAP_DEVICE_CAPS;
 
 	return 0;
 }
