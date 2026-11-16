@@ -63,6 +63,9 @@
 #define X1830_GPIO_SR				0x150
 #define X1830_GPIO_SMT				0x160
 
+#define T23_GPIO_PUEN				0x110
+#define T23_GPIO_PDEN				0x120
+
 #define X2000_GPIO_EDG				0x70
 #define X2000_GPIO_PEPU				0x80
 #define X2000_GPIO_PEPD				0x90
@@ -113,6 +116,7 @@ enum jz_version {
 	ID_X1000,
 	ID_X1500,
 	ID_X1830,
+	ID_T23,
 	ID_X2000,
 	ID_X2100,
 };
@@ -163,6 +167,7 @@ static const unsigned long enabled_socs =
 	IS_ENABLED(CONFIG_MACH_X1000) << ID_X1000 |
 	IS_ENABLED(CONFIG_MACH_X1500) << ID_X1500 |
 	IS_ENABLED(CONFIG_MACH_X1830) << ID_X1830 |
+	IS_ENABLED(CONFIG_MACH_T23) << ID_T23 |
 	IS_ENABLED(CONFIG_MACH_X2000) << ID_X2000 |
 	IS_ENABLED(CONFIG_MACH_X2100) << ID_X2100;
 
@@ -2578,6 +2583,137 @@ static const struct ingenic_chip_info x1830_chip_info = {
 	.access_table = &x1830_access_table,
 };
 
+static const u32 t23_pull_ups[4] = {
+	0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff,
+};
+
+static const u32 t23_pull_downs[4] = {
+	0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff,
+};
+
+static int t23_uart0_data_pins[] = { 0x33, 0x36, };
+static int t23_uart0_hwflow_pins[] = { 0x34, 0x35, };
+static int t23_uart1_data_a_pins[] = { 0x06, 0x07, };
+static int t23_uart1_data_b_pins[] = { 0x37, 0x38, };
+static int t23_uart2_data_b_pins[] = { 0x31, 0x32, };
+static int t23_uart2_data_c_pins[] = { 0x4d, 0x4e, };
+static int t23_sfc_data_pins[] = { 0x17, 0x18, 0x1b, 0x1c, };
+static int t23_sfc_quad_pins[] = { 0x2f, 0x30, };
+static int t23_mmc0_1bit_pins[] = { 0x24, 0x25, 0x20, };
+static int t23_mmc0_4bit_pins[] = { 0x21, 0x22, 0x23, };
+static int t23_mmc1_1bit_c_pins[] = { 0x42, 0x43, 0x44, };
+static int t23_mmc1_4bit_c_pins[] = { 0x45, 0x46, 0x47, };
+static int t23_i2c0_data_pins[] = { 0x0c, 0x0d, };
+static int t23_cim_mclk_pins[] = { 0x0f, };
+static int t23_i2c1_data_a_pins[] = { 0x10, 0x11, };
+static int t23_i2c1_data_b_pins[] = { 0x39, 0x3a, };
+static int t23_i2c1_data_c_pins[] = { 0x48, 0x49, };
+static int t23_i2c2_data_b_pins[] = { 0x34, 0x35, };
+static int t23_ssi0_data_b_pins[] = { 0x2f, 0x30, 0x31, 0x32, };
+static int t23_i2s_pins[] = { 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, };
+static int t23_dmic_pins[] = { 0x3c, 0x3d, 0x3e, };
+static int t23_pwm0_b_pins[] = { 0x31, };
+static int t23_pwm1_b_pins[] = { 0x32, };
+static int t23_pwm2_c_pins[] = { 0x48, };
+static int t23_pwm3_c_pins[] = { 0x49, };
+static int t23_mac_rmii_pins[] = {
+	0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b, 0x2d, 0x2e, 0x2f, 0x30,
+};
+static int t23_vic_switch_pins[] = { 0x07, };
+
+static const struct group_desc t23_groups[] = {
+	INGENIC_PIN_GROUP("uart0-data", t23_uart0_data, 0),
+	INGENIC_PIN_GROUP("uart0-hwflow", t23_uart0_hwflow, 0),
+	INGENIC_PIN_GROUP("uart1-data-a", t23_uart1_data_a, 2),
+	INGENIC_PIN_GROUP("uart1-data-b", t23_uart1_data_b, 0),
+	INGENIC_PIN_GROUP("uart1-data", t23_uart1_data_b, 0),
+	INGENIC_PIN_GROUP("uart2-data-b", t23_uart2_data_b, 2),
+	INGENIC_PIN_GROUP("uart2-data-c", t23_uart2_data_c, 2),
+	INGENIC_PIN_GROUP("sfc-data", t23_sfc_data, 1),
+	INGENIC_PIN_GROUP("sfc-quad", t23_sfc_quad, 2),
+	INGENIC_PIN_GROUP("mmc0-1bit", t23_mmc0_1bit, 0),
+	INGENIC_PIN_GROUP("mmc0-4bit", t23_mmc0_4bit, 0),
+	INGENIC_PIN_GROUP("mmc1-1bit-c", t23_mmc1_1bit_c, 0),
+	INGENIC_PIN_GROUP("mmc1-4bit-c", t23_mmc1_4bit_c, 0),
+	INGENIC_PIN_GROUP("i2c0-data", t23_i2c0_data, 1),
+	INGENIC_PIN_GROUP("cim-mclk", t23_cim_mclk, 1),
+	INGENIC_PIN_GROUP("i2c1-data-a", t23_i2c1_data_a, 2),
+	INGENIC_PIN_GROUP("i2c1-data-b", t23_i2c1_data_b, 0),
+	INGENIC_PIN_GROUP("i2c1-data", t23_i2c1_data_b, 0),
+	INGENIC_PIN_GROUP("i2c1-data-c", t23_i2c1_data_c, 3),
+	INGENIC_PIN_GROUP("i2c2-data-b", t23_i2c2_data_b, 2),
+	INGENIC_PIN_GROUP("i2c2-data", t23_i2c2_data_b, 2),
+	INGENIC_PIN_GROUP("ssi0-data-b", t23_ssi0_data_b, 1),
+	INGENIC_PIN_GROUP("i2s-data", t23_i2s, 0),
+	INGENIC_PIN_GROUP("dmic-data", t23_dmic, 3),
+	INGENIC_PIN_GROUP("pwm0-b", t23_pwm0_b, 0),
+	INGENIC_PIN_GROUP("pwm1-b", t23_pwm1_b, 0),
+	INGENIC_PIN_GROUP("pwm2-c", t23_pwm2_c, 0),
+	INGENIC_PIN_GROUP("pwm3-c", t23_pwm3_c, 0),
+	INGENIC_PIN_GROUP("mac-rmii", t23_mac_rmii, 0),
+	INGENIC_PIN_GROUP("mac", t23_mac_rmii, 0),
+	INGENIC_PIN_GROUP("vic-switch", t23_vic_switch, 0),
+};
+
+static const char * const t23_uart0_groups[] = { "uart0-data", "uart0-hwflow", };
+static const char * const t23_uart1_groups[] = {
+	"uart1-data-a", "uart1-data-b", "uart1-data",
+};
+static const char * const t23_uart2_groups[] = { "uart2-data-b", "uart2-data-c", };
+static const char * const t23_sfc_groups[] = { "sfc-data", "sfc-quad", };
+static const char * const t23_mmc0_groups[] = { "mmc0-1bit", "mmc0-4bit", };
+static const char * const t23_mmc1_groups[] = { "mmc1-1bit-c", "mmc1-4bit-c", };
+static const char * const t23_i2c0_groups[] = { "i2c0-data", };
+static const char * const t23_cim_groups[] = { "cim-mclk", };
+static const char * const t23_i2c1_groups[] = {
+	"i2c1-data-a", "i2c1-data-b", "i2c1-data", "i2c1-data-c",
+};
+static const char * const t23_i2c2_groups[] = { "i2c2-data-b", "i2c2-data", };
+static const char * const t23_ssi0_groups[] = { "ssi0-data-b", };
+static const char * const t23_i2s_groups[] = { "i2s-data", };
+static const char * const t23_dmic_groups[] = { "dmic-data", };
+static const char * const t23_pwm0_groups[] = { "pwm0-b", };
+static const char * const t23_pwm1_groups[] = { "pwm1-b", };
+static const char * const t23_pwm2_groups[] = { "pwm2-c", };
+static const char * const t23_pwm3_groups[] = { "pwm3-c", };
+static const char * const t23_mac_groups[] = { "mac-rmii", "mac", };
+static const char * const t23_vic_groups[] = { "vic-switch", };
+
+static const struct function_desc t23_functions[] = {
+	INGENIC_PIN_FUNCTION("uart0", t23_uart0),
+	INGENIC_PIN_FUNCTION("uart1", t23_uart1),
+	INGENIC_PIN_FUNCTION("uart2", t23_uart2),
+	INGENIC_PIN_FUNCTION("sfc", t23_sfc),
+	INGENIC_PIN_FUNCTION("mmc0", t23_mmc0),
+	INGENIC_PIN_FUNCTION("mmc1", t23_mmc1),
+	INGENIC_PIN_FUNCTION("i2c0", t23_i2c0),
+	INGENIC_PIN_FUNCTION("cim", t23_cim),
+	INGENIC_PIN_FUNCTION("i2c1", t23_i2c1),
+	INGENIC_PIN_FUNCTION("i2c2", t23_i2c2),
+	INGENIC_PIN_FUNCTION("ssi0", t23_ssi0),
+	INGENIC_PIN_FUNCTION("i2s", t23_i2s),
+	INGENIC_PIN_FUNCTION("dmic", t23_dmic),
+	INGENIC_PIN_FUNCTION("pwm0", t23_pwm0),
+	INGENIC_PIN_FUNCTION("pwm1", t23_pwm1),
+	INGENIC_PIN_FUNCTION("pwm2", t23_pwm2),
+	INGENIC_PIN_FUNCTION("pwm3", t23_pwm3),
+	INGENIC_PIN_FUNCTION("mac", t23_mac),
+	INGENIC_PIN_FUNCTION("vic", t23_vic),
+};
+
+static const struct ingenic_chip_info t23_chip_info = {
+	.num_chips = 4,
+	.reg_offset = 0x1000,
+	.version = ID_T23,
+	.groups = t23_groups,
+	.num_groups = ARRAY_SIZE(t23_groups),
+	.functions = t23_functions,
+	.num_functions = ARRAY_SIZE(t23_functions),
+	.pull_ups = t23_pull_ups,
+	.pull_downs = t23_pull_downs,
+	.access_table = &x1830_access_table,
+};
+
 static const u32 x2000_pull_ups[5] = {
 	0x0003ffff, 0xffffffff, 0x1ff0ffff, 0xc7fe3f3f, 0x8fff003f,
 };
@@ -3843,6 +3979,14 @@ static int ingenic_pinconf_get(struct pinctrl_dev *pctldev,
 				!ingenic_get_pin_config(jzpc, pin, X2000_GPIO_PEPU) &&
 				(jzpc->info->pull_downs[offt] & BIT(idx));
 
+	} else if (jzpc->info->version == ID_T23) {
+		pullup = ingenic_get_pin_config(jzpc, pin, T23_GPIO_PUEN) &&
+				!ingenic_get_pin_config(jzpc, pin, T23_GPIO_PDEN) &&
+				(jzpc->info->pull_ups[offt] & BIT(idx));
+		pulldown = ingenic_get_pin_config(jzpc, pin, T23_GPIO_PDEN) &&
+				!ingenic_get_pin_config(jzpc, pin, T23_GPIO_PUEN) &&
+				(jzpc->info->pull_downs[offt] & BIT(idx));
+
 	} else if (is_soc_or_above(jzpc, ID_X1830)) {
 		unsigned int half = PINS_PER_GPIO_CHIP / 2;
 		unsigned int idxh = (pin % half) * 2;
@@ -3939,6 +4083,23 @@ static void ingenic_set_bias(struct ingenic_pinctrl *jzpc,
 		default:
 			ingenic_config_pin(jzpc, pin, X2000_GPIO_PEPU, false);
 			ingenic_config_pin(jzpc, pin, X2000_GPIO_PEPD, false);
+		}
+
+	} else if (jzpc->info->version == ID_T23) {
+		switch (bias) {
+		case GPIO_PULL_UP:
+			ingenic_config_pin(jzpc, pin, T23_GPIO_PDEN, false);
+			ingenic_config_pin(jzpc, pin, T23_GPIO_PUEN, true);
+			break;
+		case GPIO_PULL_DOWN:
+			ingenic_config_pin(jzpc, pin, T23_GPIO_PUEN, false);
+			ingenic_config_pin(jzpc, pin, T23_GPIO_PDEN, true);
+			break;
+		case GPIO_PULL_DIS:
+		default:
+			ingenic_config_pin(jzpc, pin, T23_GPIO_PUEN, false);
+			ingenic_config_pin(jzpc, pin, T23_GPIO_PDEN, false);
+			break;
 		}
 
 	} else if (is_soc_or_above(jzpc, ID_X1830)) {
@@ -4151,6 +4312,7 @@ static const struct of_device_id ingenic_gpio_of_matches[] __initconst = {
 	{ .compatible = "ingenic,jz4780-gpio" },
 	{ .compatible = "ingenic,x1000-gpio" },
 	{ .compatible = "ingenic,x1830-gpio" },
+	{ .compatible = "ingenic,t23-gpio" },
 	{ .compatible = "ingenic,x2000-gpio" },
 	{ .compatible = "ingenic,x2100-gpio" },
 	{},
@@ -4260,6 +4422,8 @@ static int __init ingenic_pinctrl_probe(struct platform_device *pdev)
 	if (chip_info->access_table) {
 		regmap_config.rd_table = chip_info->access_table;
 		regmap_config.wr_table = chip_info->access_table;
+		if (chip_info->version == ID_T23)
+			regmap_config.max_register = 0x8000 - 4;
 	} else {
 		regmap_config.max_register = chip_info->num_chips * chip_info->reg_offset - 4;
 	}
@@ -4400,6 +4564,10 @@ static const struct of_device_id ingenic_pinctrl_of_matches[] = {
 	{
 		.compatible = "ingenic,x1830-pinctrl",
 		.data = IF_ENABLED(CONFIG_MACH_X1830, &x1830_chip_info)
+	},
+	{
+		.compatible = "ingenic,t23-pinctrl",
+		.data = IF_ENABLED(CONFIG_MACH_T23, &t23_chip_info)
 	},
 	{
 		.compatible = "ingenic,x2000-pinctrl",
