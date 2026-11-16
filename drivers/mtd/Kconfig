@@ -206,6 +206,20 @@ config MTD_PARTITIONED_MASTER
 	  the parent of the partition device be the master device, rather than
 	  what lies behind the master.
 
+config MTD_SPLIT_LAYOUT
+	bool "OpenIPC split NOR layout"
+	depends on MTD=y && MTD_BLOCK=y
+	help
+	  When the NOR flash holds a uImage at 0x50000 with the root squashfs
+	  at the next 64 KiB boundary (OpenIPC's firmware.bin), register boot,
+	  env, firmware and, inside it, kernel, rootfs and rootfs_data from the
+	  images themselves, and mount the root from that rootfs whatever
+	  MTD root= the bootloader passes. Any other contents of the flash
+	  keep the partitions the command line, the device tree or the driver
+	  gives it.
+
+	  If unsure, say N.
+
 source "drivers/mtd/chips/Kconfig"
 
 source "drivers/mtd/maps/Kconfig"

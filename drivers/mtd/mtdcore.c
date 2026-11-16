@@ -34,6 +34,7 @@
 
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
+#include <linux/mtd/split_layout.h>
 
 #include "mtdcore.h"
 
@@ -1106,6 +1107,7 @@ int mtd_device_parse_register(struct mtd_info *mtd, const char * const *types,
 			      const struct mtd_partition *parts,
 			      int nr_parts)
 {
+	struct mtd_partition *split_parts;
 	int ret, err;
 
 	mtd_set_dev_defaults(mtd);
@@ -1118,6 +1120,27 @@ int mtd_device_parse_register(struct mtd_info *mtd, const char * const *types,
 		ret = add_mtd_device(mtd);
 		if (ret)
 			goto out;
+	}
+
+	/*
+	 * The OpenIPC split NOR layout names its partitions itself, over any
+	 * the command line or the device tree gives: those describe the
+	 * bootloader's idea of the flash. One that cannot be registered leaves
+	 * none of it behind (add_mtd_partitions()), and the flash is
+	 * partitioned as it would be without the layout.
+	 */
+	ret = mtd_split_layout_parts(mtd, &split_parts);
+	if (ret > 0) {
+		ret = add_mtd_partitions(mtd, split_parts, ret);
+		kfree(split_parts);
+		if (!ret) {
+			mtd_split_layout_set_root(mtd);
+			goto registered;
+		}
+		pr_err("%s: the split NOR layout was not registered (%d), partitioning as without it\n",
+		       mtd->name, ret);
+	} else if (ret < 0) {
+		goto out;
 	}
 
 	/* Prefer parsed partitions over driver-provided fallback */
@@ -1137,6 +1160,7 @@ int mtd_device_parse_register(struct mtd_info *mtd, const char * const *types,
 	if (ret)
 		goto out;
 
+registered:
 	/*
 	 * FIXME: some drivers unfortunately call this function more than once.
 	 * So we have to check if we've already assigned the reboot notifier.
