@@ -1,0 +1,48 @@
+// SPDX-License-Identifier: GPL-2.0
+// Copyright (C) 2026 Difan Zhang
+
+#include "t23-qemu.dts"
+
+/delete-node/ &{/soc/i2c@10050000/sensor@30};
+/delete-node/ &{/soc/i2c@10050000/sensor@32};
+/delete-node/ &{/soc/isp@13300000/ports/port@0/endpoint};
+/delete-node/ &{/soc/isp@13300000/ports/port@1/endpoint};
+
+&i2c0 {
+	sensor@37 {
+		compatible = "galaxycore,gc2053";
+		reg = <0x37>;
+		clocks = <&cgu CLK_CGU_CIM>;
+		clock-names = "xvclk";
+		pwdn-gpios = <&gpa 18 GPIO_ACTIVE_LOW>;
+		reset-gpios = <&gpa 16 GPIO_ACTIVE_LOW>;
+
+		port {
+			gc2053_out: endpoint {
+				remote-endpoint = <&gc_isp_in0>;
+				clock-lanes = <0>;
+				data-lanes = <1 2>;
+				link-frequencies = /bits/ 64 <297000000>;
+			};
+		};
+	};
+};
+
+&isp {
+	/delete-property/ ingenic,frame-sync-source-port;
+	pinctrl-0 = <&pins_cim_mclk>;
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+			gc_isp_in0: endpoint {
+				remote-endpoint = <&gc2053_out>;
+				clock-lanes = <0>;
+				data-lanes = <1 2>;
+			};
+		};
+	};
+};
