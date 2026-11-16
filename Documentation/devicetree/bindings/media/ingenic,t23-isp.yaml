@@ -1,0 +1,142 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/media/ingenic,t23-isp.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: Ingenic T23 MIPI CSI-2, VIC, ISP and MSCA Video Pipeline
+
+maintainers:
+  - Paul Cercueil <paul@crapouillou.net>
+
+description:
+  Ingenic T23 integrated image signal processing pipeline comprising the
+  MIPI CSI-2 receiver and D-PHY, Video Input Controller (VIC), Tiziano ISP
+  core, and 3-channel MSCA scaler/DMA output engine.
+
+properties:
+  compatible:
+    const: ingenic,t23-isp
+
+  reg:
+    items:
+      - description: ISP core and MSCA registers
+      - description: Video Input Controller (VIC) registers
+      - description: MIPI CSI-2 controller registers
+      - description: MIPI D-PHY registers
+      - description: IVDC frame-sharing registers
+
+  reg-names:
+    items:
+      - const: core
+      - const: vic
+      - const: csi
+      - const: phy
+      - const: ivdc
+
+  interrupts:
+    items:
+      - description: ISP core and MSCA interrupt
+      - description: VIC capture interrupt
+      - description: IVDC interrupt
+    minItems: 2
+
+  interrupt-names:
+    items:
+      - const: core
+      - const: vic
+      - const: ivdc
+    minItems: 2
+
+  clocks:
+    items:
+      - description: ISP divider clock
+      - description: ISP bus gate clock
+      - description: CSI gate clock
+      - description: VPU/IVDC divider clock
+      - description: IVDC gate clock
+
+  clock-names:
+    items:
+      - const: cgu_isp
+      - const: isp
+      - const: csi
+      - const: cgu_vpu
+      - const: ivdc
+
+  resets:
+    maxItems: 1
+
+  reset-names:
+    items:
+      - const: isp
+
+  memory-region:
+    maxItems: 1
+
+  ingenic,frame-sync-source-port:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    enum: [0, 1]
+    description:
+      Sensor port index driving dual-sensor TDM frame synchronization.
+
+  ports:
+    $ref: /schemas/graph.yaml#/properties/ports
+
+    properties:
+      port@0:
+        $ref: /schemas/graph.yaml#/$defs/port-base
+        unevaluatedProperties: false
+        description: Primary MIPI CSI-2 / DVP sensor input port.
+
+        properties:
+          endpoint:
+            $ref: /schemas/media/video-interfaces.yaml#
+            unevaluatedProperties: false
+
+      port@1:
+        $ref: /schemas/graph.yaml#/$defs/port-base
+        unevaluatedProperties: false
+        description: Secondary TDM MIPI CSI-2 sensor input port.
+
+        properties:
+          endpoint:
+            $ref: /schemas/media/video-interfaces.yaml#
+            unevaluatedProperties: false
+
+required:
+  - compatible
+  - reg
+  - reg-names
+  - interrupts
+  - interrupt-names
+  - clocks
+  - clock-names
+  - resets
+  - reset-names
+
+additionalProperties: false
+
+examples:
+  - |
+    #include <dt-bindings/clock/ingenic,t23-cgu.h>
+    #include <dt-bindings/reset/ingenic,t23-reset.h>
+
+    isp@13300000 {
+        compatible = "ingenic,t23-isp";
+        reg = <0x13300000 0x90000>,
+              <0x133e0000 0x10000>,
+              <0x10023000 0x1000>,
+              <0x10022000 0x1000>,
+              <0x13200000 0x10000>;
+        reg-names = "core", "vic", "csi", "phy", "ivdc";
+        interrupt-parent = <&intc>;
+        interrupts = <29>, <30>, <38>;
+        interrupt-names = "core", "vic", "ivdc";
+        clocks = <&cgu CLK_CGU_ISP>, <&cgu CLK_ISP>,
+                 <&cgu CLK_CSI>, <&cgu CLK_CGU_VPU>,
+                 <&cgu CLK_IVDC>;
+        clock-names = "cgu_isp", "isp", "csi", "cgu_vpu", "ivdc";
+        resets = <&cpm_reset T23_RESET_ISP>;
+        reset-names = "isp";
+    };
