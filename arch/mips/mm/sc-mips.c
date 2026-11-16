@@ -2,11 +2,13 @@
 /*
  * Copyright (C) 2006 Chris Dearman (chris@mips.com),
  */
+#include <linux/cpumask.h>
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/sched.h>
 #include <linux/mm.h>
 
+#include <asm/barrier.h>
 #include <asm/cpu-type.h>
 #include <asm/mipsregs.h>
 #include <asm/bcache.h>
@@ -20,12 +22,48 @@
 /*
  * MIPS32/MIPS64 L2 cache handling
  */
+static unsigned long scache_size __read_mostly;
+
+static inline bool mips_sc_is_t23(void)
+{
+	return current_cpu_type() == CPU_XBURST &&
+	       mips_machtype == MACH_INGENIC_T23;
+}
+
+static inline void mips_sc_blast(void)
+{
+	switch (cpu_scache_line_size()) {
+	case 16:
+		blast_scache16();
+		break;
+	case 32:
+		blast_scache32();
+		break;
+	case 64:
+		blast_scache64();
+		break;
+	case 128:
+		blast_scache128();
+		break;
+	}
+}
 
 /*
  * Writeback and invalidate the secondary cache before DMA.
  */
 static void mips_sc_wback_inv(unsigned long addr, unsigned long size)
 {
+	if (mips_sc_is_t23()) {
+		__sync();
+		if (num_online_cpus() == 1 && scache_size &&
+		    size >= scache_size)
+			mips_sc_blast();
+		else
+			blast_scache_range(addr, addr + size);
+		__fast_iob();
+		return;
+	}
+
 	blast_scache_range(addr, addr + size);
 }
 
@@ -36,6 +74,21 @@ static void mips_sc_inv(unsigned long addr, unsigned long size)
 {
 	unsigned long lsize = cpu_scache_line_size();
 	unsigned long almask = ~(lsize - 1);
+
+	if (mips_sc_is_t23()) {
+		if (num_online_cpus() == 1 && scache_size &&
+		    size >= scache_size) {
+			__sync();
+			mips_sc_blast();
+		} else {
+			cache_op(Hit_Writeback_Inv_SD, addr & almask);
+			cache_op(Hit_Writeback_Inv_SD,
+				 (addr + size - 1) & almask);
+			blast_inv_scache_range(addr, addr + size);
+		}
+		__fast_iob();
+		return;
+	}
 
 	cache_op(Hit_Writeback_Inv_SD, addr & almask);
 	cache_op(Hit_Writeback_Inv_SD, (addr + size - 1) & almask);
@@ -241,11 +294,21 @@ static inline int mips_sc_probe(void)
 			c->scache.sets = 256;
 			c->scache.ways = 4;
 			break;
+
+		/*
+		 * Clear CP0 ErrCtl ($26,0) on T23 so secondary-cache ops
+		 * address normal Tag/Data RAM rather than test mode.
+		 */
+		case MACH_INGENIC_T23:
+			write_c0_ecc(0x0);
+			break;
 		}
 	}
 
 	c->scache.waysize = c->scache.sets * c->scache.linesz;
 	c->scache.waybit = __ffs(c->scache.waysize);
+	if (mips_sc_is_t23())
+		scache_size = c->scache.ways * c->scache.waysize;
 
 	c->scache.flags &= ~MIPS_CACHE_NOT_PRESENT;
 
