@@ -21,7 +21,11 @@ properties:
           - ingenic,jz4775-spi
           - ingenic,jz4780-spi
           - ingenic,x1000-spi
+          - ingenic,t23-spi
           - ingenic,x2000-spi
+      - items:
+          - const: ingenic,t23-spi
+          - const: ingenic,x1000-spi
       - items:
           - enum:
               - ingenic,jz4760-spi
