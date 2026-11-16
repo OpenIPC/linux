@@ -14,10 +14,18 @@ description:
 
 properties:
   compatible:
-    enum:
-      - ingenic,x1830-dtrng
+    oneOf:
+      - enum:
+          - ingenic,x1830-dtrng
+          - ingenic,t23-dtrng
+      - items:
+          - const: ingenic,t23-dtrng
+          - const: ingenic,x1830-dtrng
 
   reg:
+    maxItems: 1
+
+  interrupts:
     maxItems: 1
 
   clocks:
