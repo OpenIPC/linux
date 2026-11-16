@@ -1,0 +1,6 @@
+config VIDEO_INGENIC_X1000
+	tristate "Ingenic Soc camera Driver for X1000"
+	depends on VIDEO_INGENIC
+	help
+		CIM Driver for X1000
+

@@ -53,7 +53,6 @@ scm_version()
 			# If only the short version is requested, don't bother
 			# running further git commands
 			if $short; then
-				echo "+"
 				return
 			fi
 			# If we are past a tagged commit (like
@@ -167,7 +166,6 @@ else
 	# LOCALVERSION= is not specified
 	if test "${LOCALVERSION+set}" != "set"; then
 		scm=$(scm_version --short)
-		res="$res${scm:++}"
 	fi
 fi
 

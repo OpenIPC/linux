@@ -61,7 +61,7 @@ static void free(void *where)
 #define large_malloc(a) malloc(a)
 #define large_free(a) free(a)
 
-#define INIT
+//#define INIT
 
 #else /* STATIC */
 
@@ -83,7 +83,7 @@ static void free(void *where)
 #define large_malloc(a) vmalloc(a)
 #define large_free(a) vfree(a)
 
-#define INIT __init
+//#define INIT __init
 #define STATIC
 
 #include <linux/init.h>

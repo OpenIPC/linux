@@ -1,0 +1,5 @@
+
+obj-$(CONFIG_SND_SOC_WM8594)	+= wm8594.o
+obj-$(CONFIG_SND_SOC_AK4458)	+= ak4458.o
+obj-$(CONFIG_SND_SOC_AK5558)	+= ak5558.o
+

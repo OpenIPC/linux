@@ -15,6 +15,8 @@
 #include <linux/of_gpio.h>
 #include <linux/gpio/consumer.h>
 
+#include <soc/gpio.h>
+
 #include <linux/mmc/host.h>
 
 #include "pwrseq.h"
@@ -50,7 +52,7 @@ static void mmc_pwrseq_simple_pre_power_on(struct mmc_host *host)
 		pwrseq->clk_enabled = true;
 	}
 
-	mmc_pwrseq_simple_set_gpios_value(pwrseq, 1);
+	mmc_pwrseq_simple_set_gpios_value(pwrseq, 0);
 }
 
 static void mmc_pwrseq_simple_post_power_on(struct mmc_host *host)
@@ -58,7 +60,9 @@ static void mmc_pwrseq_simple_post_power_on(struct mmc_host *host)
 	struct mmc_pwrseq_simple *pwrseq = container_of(host->pwrseq,
 					struct mmc_pwrseq_simple, pwrseq);
 
-	mmc_pwrseq_simple_set_gpios_value(pwrseq, 0);
+	mmc_pwrseq_simple_set_gpios_value(pwrseq, 1);
+
+	jzgpio_set_func(GPIO_PORT_B, GPIO_FUNC_0, 0x3f);
 }
 
 static void mmc_pwrseq_simple_power_off(struct mmc_host *host)
@@ -66,7 +70,8 @@ static void mmc_pwrseq_simple_power_off(struct mmc_host *host)
 	struct mmc_pwrseq_simple *pwrseq = container_of(host->pwrseq,
 					struct mmc_pwrseq_simple, pwrseq);
 
-	mmc_pwrseq_simple_set_gpios_value(pwrseq, 1);
+	jzgpio_set_func(GPIO_PORT_B, GPIO_OUTPUT0, 0x3f);
+	mmc_pwrseq_simple_set_gpios_value(pwrseq, 0);
 
 	if (!IS_ERR(pwrseq->ext_clk) && pwrseq->clk_enabled) {
 		clk_disable_unprepare(pwrseq->ext_clk);

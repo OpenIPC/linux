@@ -1,0 +1,66 @@
+config INGENIC_SFC_V2
+	tristate "Ingenic series SFC driver v2"
+	depends on MACH_XBURST || MACH_XBURST2
+	help
+		SFC driver version v2.0 for Ingenic series SoCs
+
+if INGENIC_SFC_V2
+
+config MTD_INGENIC_SFC_V2_NORFLASH
+	bool "Support ingenic sfc-nor"
+	depends on INGENIC_SFC_V2
+
+if MTD_INGENIC_SFC_V2_NORFLASH
+choice
+	prompt "Erase block size"
+	help
+	  Select nor flash erase block size
+
+config ERASE_SIZE_32K
+	bool "sfc-nor 32k erase block"
+	depends on MTD_INGENIC_SFC_V2_NORFLASH
+
+config ERASE_SIZE_64K
+	bool "sfc-nor 64k erase block"
+	depends on MTD_INGENIC_SFC_V2_NORFLASH
+
+endchoice
+
+config JZ_SFC_NOR_RESET
+	bool "Reset nor flash in the kernel"
+	depends on MTD_INGENIC_SFC_V2_NORFLASH
+	help
+		Reset nor flash in the kernel
+endif
+
+config MTD_INGENIC_SFC_V2_NANDFLASH
+	bool "Support ingenic sfc-nand"
+	depends on INGENIC_SFC_V2
+	select MTD_NAND
+
+choice
+	prompt "sfc Mode"
+	help
+	  Select sfc Mode
+
+config SPI_STANDARD_MODE
+	bool "standard spi mode"
+	depends on INGENIC_SFC_V2
+	help
+	  Say Y here to enable spi standard mode
+
+config SPI_DUAL_MODE
+	bool "dual spi mode"
+	depends on INGENIC_SFC_V2
+	help
+	  Say Y here to enable spi dual mode
+
+config SPI_QUAD_MODE
+	bool "quad spi mode"
+	depends on INGENIC_SFC_V2
+	help
+	  Say Y Here to enable spi QUAD MODE
+endchoice
+
+endif
+

@@ -1165,6 +1165,7 @@ do {									\
 #define write_c0_wired(val)	__write_32bit_c0_register($6, 0, val)
 
 #define read_c0_info()		__read_32bit_c0_register($7, 0)
+#define write_c0_info(val)	__write_32bit_c0_register($7, 0, val)
 
 #define read_c0_cache()		__read_32bit_c0_register($7, 0) /* TX39xx */
 #define write_c0_cache(val)	__write_32bit_c0_register($7, 0, val)
@@ -2008,6 +2009,7 @@ change_c0_##name(unsigned int change, unsigned int val)		\
 	return res;						\
 }
 
+__BUILD_SET_C0(info)
 __BUILD_SET_C0(status)
 __BUILD_SET_C0(cause)
 __BUILD_SET_C0(config)

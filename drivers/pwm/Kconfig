@@ -189,6 +189,132 @@ config PWM_JZ4740
 	  To compile this driver as a module, choose M here: the module
 	  will be called pwm-jz4740.
 
+
+config PWM_INGENIC
+	tristate "Ingenic PWM support"
+	depends on MACH_XBURST2
+	help
+	  Generic PWM framework driver for Ingenic soc based
+	  machines.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called pwm-ingenic.
+
+config PWM_CHANNEL0_ENABLE
+	depends on PWM_INGENIC
+	bool "PWM channel0 Enable"
+choice
+	depends on PWM_CHANNEL0_ENABLE
+	prompt "PWM channel0 GPIO select"
+	default PWM_CHANNEL0_PC15
+config PWM_CHANNEL0_PB17
+	bool "PWM channel0 PB17"
+config PWM_CHANNEL0_PC15
+	bool "PWM channel0 PC15"
+endchoice
+
+config PWM_CHANNEL1_ENABLE
+	depends on PWM_INGENIC
+	bool "PWM channel1 Enable"
+choice
+	depends on PWM_CHANNEL1_ENABLE
+	prompt "PWM channel1 GPIO select"
+	default PWM_CHANNEL1_PC16
+config PWM_CHANNEL1_PB18
+	bool "PWM channel1 PB18"
+config PWM_CHANNEL1_PC16
+	bool "PWM channel1 PC16"
+endchoice
+
+config PWM_CHANNEL2_ENABLE
+	depends on PWM_INGENIC
+	bool "PWM channel2 Enable"
+choice
+	depends on PWM_CHANNEL2_ENABLE
+	prompt "PWM channel2 GPIO select"
+	default PWM_CHANNEL2_PC17
+config PWM_CHANNEL2_PB08
+	bool "PWM channel2 PB08"
+config PWM_CHANNEL2_PC17
+	bool "PWM channel2 PC17"
+endchoice
+
+config PWM_CHANNEL3_ENABLE
+	depends on PWM_INGENIC
+	bool "PWM channel3 Enable"
+choice
+	depends on PWM_CHANNEL3_ENABLE
+	prompt "PWM channel3 GPIO select"
+	default PWM_CHANNEL3_PC18
+config PWM_CHANNEL3_PB09
+	bool "PWM channel3 PB09"
+config PWM_CHANNEL3_PC18
+	bool "PWM channel3 PC18"
+endchoice
+
+config PWM_CHANNEL4_ENABLE
+	depends on PWM_INGENIC
+	bool "PWM channel4 Enable"
+choice
+	depends on PWM_CHANNEL4_ENABLE
+	prompt "PWM channel4 GPIO select"
+	default PWM_CHANNEL4_PD09
+config PWM_CHANNEL4_PB13
+	bool "PWM channel4 PB13"
+config PWM_CHANNEL4_PD09
+	bool "PWM channel4 PD09"
+endchoice
+
+config PWM_CHANNEL5_ENABLE
+	depends on PWM_INGENIC
+	bool "PWM channel5 Enable"
+choice
+	depends on PWM_CHANNEL5_ENABLE
+	prompt "PWM channel5 GPIO select"
+	default PWM_CHANNEL5_PD10
+config PWM_CHANNEL5_PB14
+	bool "PWM channel5 PB14"
+config PWM_CHANNEL5_PD10
+	bool "PWM channel5 PD10"
+endchoice
+
+config PWM_CHANNEL6_ENABLE
+	depends on PWM_INGENIC
+	bool "PWM channel6 Enable"
+choice
+	depends on PWM_CHANNEL6_ENABLE
+	prompt "PWM channel6 GPIO select"
+	default PWM_CHANNEL6_PD11
+config PWM_CHANNEL6_PB15
+	bool "PWM channel6 PB15"
+config PWM_CHANNEL6_PD11
+	bool "PWM channel6 PD11"
+endchoice
+
+config PWM_CHANNEL7_ENABLE
+	depends on PWM_INGENIC
+	bool "PWM channel7 Enable"
+choice
+	depends on PWM_CHANNEL7_ENABLE
+	prompt "PWM channel7 GPIO select"
+	default PWM_CHANNEL7_PD12
+config PWM_CHANNEL7_PB16
+	bool "PWM channel7 PB16"
+config PWM_CHANNEL7_PD12
+	bool "PWM channel7 PD12"
+endchoice
+
+config PWM_INGENIC_V2
+	tristate "Ingenic PWM V2 support"
+	depends on MACH_XBURST2
+	help
+	  Generic PWM framework driver for Ingenic soc based
+	  machines.
+	  Support SOCs: T41,
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called pwm-ingenic.
+
 config PWM_LP3943
 	tristate "TI/National Semiconductor LP3943 PWM support"
 	depends on MFD_LP3943

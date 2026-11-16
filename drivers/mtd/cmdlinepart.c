@@ -221,7 +221,7 @@ static struct mtd_partition * newpart(char *s,
  */
 static int mtdpart_setup_real(char *s)
 {
-	cmdline_parsed = 1;
+	//cmdline_parsed = 1;
 
 	for( ; s != NULL; )
 	{
@@ -311,10 +311,31 @@ static int parse_cmdline_partitions(struct mtd_info *master,
 	int i, err;
 	struct cmdline_mtd_partition *part;
 	const char *mtd_id = master->name;
+	char *tmp = cmdline;
+	char cmdline_actual[1024];
+	char colon_position=0;
 
+	if(cmdline) {
+		strcpy(cmdline_actual,cmdline);
+		for(;*tmp != '\0';) {
+			if(*(tmp) == ';')
+				break;
+			colon_position++;
+			tmp++;
+		}
+
+		if(master->sfc_index == 0) {
+			*(cmdline_actual+colon_position) = '\0';
+		} else if(master->sfc_index == 1) {
+			for(i=0;*tmp != '\0';i++) {
+				tmp++;
+				*(cmdline_actual+i) = *tmp;
+			}
+		}
+	}
 	/* parse command line */
 	if (!cmdline_parsed) {
-		err = mtdpart_setup_real(cmdline);
+		err = mtdpart_setup_real(cmdline_actual);
 		if (err)
 			return err;
 	}

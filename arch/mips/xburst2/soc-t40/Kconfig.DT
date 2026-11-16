@@ -1,0 +1,2 @@
+config DT_T40_SHARK
+	bool "t40 shark"

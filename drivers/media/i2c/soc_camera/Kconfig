@@ -1,5 +1,17 @@
 comment "soc_camera sensor drivers"
 
+config SOC_CAMERA_OV5640
+	tristate "ov5640 camera support"
+	depends on SOC_CAMERA && I2C
+	help
+	  This is a ov5640 camera driver
+
+config SOC_CAMERA_GC2155
+	tristate "gc2155 camera support"
+	depends on SOC_CAMERA && I2C
+	help
+	  This is a gc2155 camera driver
+
 config SOC_CAMERA_IMX074
 	tristate "imx074 support"
 	depends on SOC_CAMERA && I2C
@@ -49,6 +61,12 @@ config SOC_CAMERA_OV5642
 	depends on SOC_CAMERA && I2C
 	help
 	  This is a V4L2 camera driver for the OmniVision OV5642 sensor
+
+config SOC_CAMERA_OV9281
+	tristate "ov9281 camera support"
+	depends on SOC_CAMERA && I2C
+	help
+	  This is a V4L2 camera driver for the OmniVision OV9281 sensor
 
 config SOC_CAMERA_OV6650
 	tristate "ov6650 sensor support"

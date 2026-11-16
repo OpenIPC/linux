@@ -410,6 +410,16 @@ static unsigned long __clk_get_accuracy(struct clk_core *core)
 	return core->accuracy;
 }
 
+void __clk_set_flags(struct clk *clk, unsigned long enable)
+{
+    if (1 == enable) {
+        clk->core->flags |= BIT(1);
+    } else {
+        clk->core->flags &= ~BIT(1);
+    }
+}
+EXPORT_SYMBOL_GPL(__clk_set_flags);
+
 unsigned long __clk_get_flags(struct clk *clk)
 {
 	return !clk ? 0 : clk->core->flags;

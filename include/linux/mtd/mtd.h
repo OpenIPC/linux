@@ -113,6 +113,7 @@ struct module;	/* only needed for owner field in mtd_info */
 
 struct mtd_info {
 	u_char type;
+	uint8_t sfc_index;  //ingenic sfc index
 	uint32_t flags;
 	uint64_t size;	 // Total size of the MTD
 

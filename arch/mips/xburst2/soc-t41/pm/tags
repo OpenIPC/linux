@@ -1,0 +1,340 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+CP0_CAUSE	regs_save_restore.S	/^#define CP0_CAUSE	$13,0$/;"	d
+CP0_CONFIG	regs_save_restore.S	/^#define CP0_CONFIG	$16,0$/;"	d
+CP0_CONFIG1	regs_save_restore.S	/^#define CP0_CONFIG1	$16,1$/;"	d
+CP0_CONFIG2	regs_save_restore.S	/^#define CP0_CONFIG2	$16,2$/;"	d
+CP0_CONFIG3	regs_save_restore.S	/^#define CP0_CONFIG3	$16,3$/;"	d
+CP0_CONFIG4	regs_save_restore.S	/^#define CP0_CONFIG4	$16,4$/;"	d
+CP0_CONFIG5	regs_save_restore.S	/^#define CP0_CONFIG5	$16,5$/;"	d
+CP0_CONFIG7	regs_save_restore.S	/^#define CP0_CONFIG7	$16,7$/;"	d
+CP0_CONTEXT	regs_save_restore.S	/^#define CP0_CONTEXT	$4,0$/;"	d
+CP0_EBASE	regs_save_restore.S	/^#define CP0_EBASE	$15,1$/;"	d
+CP0_ERRCTL	regs_save_restore.S	/^#define CP0_ERRCTL	$26,0$/;"	d
+CP0_INTCTL	regs_save_restore.S	/^#define CP0_INTCTL	$12,1$/;"	d
+CP0_KSCRATCH1	regs_save_restore.S	/^#define CP0_KSCRATCH1	$31,2$/;"	d
+CP0_KSCRATCH2	regs_save_restore.S	/^#define CP0_KSCRATCH2	$31,3$/;"	d
+CP0_KSCRATCH3	regs_save_restore.S	/^#define CP0_KSCRATCH3	$31,4$/;"	d
+CP0_KSCRATCH4	regs_save_restore.S	/^#define CP0_KSCRATCH4	$31,5$/;"	d
+CP0_KSCRATCH5	regs_save_restore.S	/^#define CP0_KSCRATCH5	$31,6$/;"	d
+CP0_KSCRATCH6	regs_save_restore.S	/^#define CP0_KSCRATCH6	$31,7$/;"	d
+CP0_LLADDR	regs_save_restore.S	/^#define CP0_LLADDR	$17,0$/;"	d
+CP0_PAGEMASK	regs_save_restore.S	/^#define CP0_PAGEMASK	$5,0$/;"	d
+CP0_STATUS	regs_save_restore.S	/^#define CP0_STATUS	$12,0$/;"	d
+CP0_WATCHHI	regs_save_restore.S	/^#define CP0_WATCHHI	$19,0$/;"	d
+CP0_WATCHLo	regs_save_restore.S	/^#define CP0_WATCHLo	$18,0$/;"	d
+DEBUG_PM	pm.h	133;"	d
+FASTBOOT	pm.h	/^	FASTBOOT,$/;"	e	enum:__anon1
+FASTBOOT_DATA_ADDR	pm.h	63;"	d
+FASTBOOT_DATA_LEN	pm.h	64;"	d
+FASTBOOT_RESUME_CODE1_ADDR	pm.h	55;"	d
+FASTBOOT_RESUME_CODE1_LEN	pm.h	56;"	d
+FASTBOOT_RESUME_CODE2_ADDR	pm.h	57;"	d
+FASTBOOT_RESUME_CODE_LEN	pm.h	58;"	d
+FASTBOOT_RESUME_SP	pm.h	54;"	d
+FASTBOOT_SLEEP_CODE_ADDR	pm.h	60;"	d
+FASTBOOT_SLEEP_CODE_LEN	pm.h	61;"	d
+FIRMWARE_ADDR	pm_interface.h	7;"	d
+FIRMWARE_NAME	pm_interface.h	6;"	d
+FIRMWARE_SPACE	pm_interface.h	8;"	d
+FUNC	pm_interface.h	/^typedef int (*FUNC)(int args);$/;"	t
+IDLE	pm.h	/^	IDLE,$/;"	e	enum:__anon1
+IDLE_PD	pm.h	/^	IDLE_PD,$/;"	e	enum:__anon1
+INTERFACE_H	pm_interface.h	2;"	d
+LSR_TDRQ	pm.h	144;"	d
+LSR_TEMT	pm.h	145;"	d
+NORMAL_PARAM_ADDR	pm.h	50;"	d
+NORMAL_PARAM_LEN	pm.h	51;"	d
+NORMAL_RESUME_CODE1_ADDR	pm.h	44;"	d
+NORMAL_RESUME_CODE1_LEN	pm.h	45;"	d
+NORMAL_RESUME_CODE2_ADDR	pm.h	46;"	d
+NORMAL_RESUME_CODE2_LEN	pm.h	47;"	d
+NORMAL_RESUME_SP	pm.h	43;"	d
+NORMAL_SLEEP_CODE_ADDR	pm.h	48;"	d
+NORMAL_SLEEP_CODE_LEN	pm.h	49;"	d
+OFF_LCR	pm.h	142;"	d
+OFF_LSR	pm.h	143;"	d
+OFF_TDR	pm.h	141;"	d
+PMTEXTENTRY	pm_interface.h	/^typedef void (*PMTEXTENTRY)(void* entry,struct pm_param **p);$/;"	t
+PRINT_DEBUG	pm.h	134;"	d
+RTC_MEMORY_END	pm.h	40;"	d
+RTC_MEMORY_START	pm.h	39;"	d
+SLEEP	pm.h	/^	SLEEP,$/;"	e	enum:__anon1
+SLEEP_LEVEL	pm.c	20;"	d	file:
+SLEEP_LEVEL_MAGIC	pm.c	21;"	d	file:
+SLEEP_MAGIC	pm.c	22;"	d	file:
+SRAM_MEMORY_END	pm.h	38;"	d
+SRAM_MEMORY_START	pm.h	37;"	d
+TCSM_DELAY	pm.h	156;"	d
+TCSM_PCHAR	pm.h	149;"	d
+TCSM_PCHAR	pm.h	153;"	d
+UART_OFF	pm.h	138;"	d
+U_IOBASE	pm.h	137;"	d
+__PM_FASTBOOT_H__	pm_fastboot.h	2;"	d
+__PM_H__	pm.h	2;"	d
+__PM_SLEEP_H__	pm_sleep.h	2;"	d
+_regs_stack	regs_save_restore.S	/^_regs_stack:$/;"	l
+al	pm_fastboot.h	/^	unsigned int al;$/;"	m	struct:ddr_phy_resume_reg
+autorefresh	pm.h	/^	unsigned int autorefresh;$/;"	m	struct:sleep_param
+bc_idx	pm.c	/^int bc_idx = 0;$/;"	v
+begin	pm_interface.h	/^	FUNC begin;$/;"	m	struct:pm_param
+bufcfg	pm_fastboot.h	/^	unsigned int bufcfg;$/;"	m	struct:ddrc_resume_reg
+calib_bypass_ah	pm_fastboot.h	/^	unsigned int calib_bypass_ah;$/;"	m	struct:ddr_phy_resume_reg
+calib_bypass_al	pm_fastboot.h	/^	unsigned int calib_bypass_al;$/;"	m	struct:ddr_phy_resume_reg
+ccguc0	pm_fastboot.h	/^	unsigned int ccguc0;$/;"	m	struct:ddrc_resume_reg
+ccguc1	pm_fastboot.h	/^	unsigned int ccguc1;$/;"	m	struct:ddrc_resume_reg
+cchc0	pm_fastboot.h	/^	unsigned int cchc0;$/;"	m	struct:ddrc_resume_reg
+cchc1	pm_fastboot.h	/^	unsigned int cchc1;$/;"	m	struct:ddrc_resume_reg
+cchc2	pm_fastboot.h	/^	unsigned int cchc2;$/;"	m	struct:ddrc_resume_reg
+cchc3	pm_fastboot.h	/^	unsigned int cchc3;$/;"	m	struct:ddrc_resume_reg
+cchc4	pm_fastboot.h	/^	unsigned int cchc4;$/;"	m	struct:ddrc_resume_reg
+cchc5	pm_fastboot.h	/^	unsigned int cchc5;$/;"	m	struct:ddrc_resume_reg
+cchc6	pm_fastboot.h	/^	unsigned int cchc6;$/;"	m	struct:ddrc_resume_reg
+cchc7	pm_fastboot.h	/^	unsigned int cchc7;$/;"	m	struct:ddrc_resume_reg
+ccu_regs	pm_fastboot.c	/^struct ccu_regs *ccu_regs;$/;"	v	typeref:struct:ccu_regs
+ccu_regs	pm_fastboot.h	/^struct ccu_regs {$/;"	s
+ccu_restore	pm_fastboot.c	/^static void ccu_restore(struct ccu_regs *ccu_regs)$/;"	f	file:
+ccu_save	pm_fastboot.c	/^static void ccu_save(struct ccu_regs *ccu_regs)$/;"	f	file:
+cl	pm_fastboot.h	/^	unsigned int cl;$/;"	m	struct:ddr_phy_resume_reg
+clkgr0	pm_fastboot.h	/^	unsigned int clkgr0;$/;"	m	struct:cpm_regs
+clkgr1	pm_fastboot.h	/^	unsigned int clkgr1;$/;"	m	struct:cpm_regs
+cmonc0	pm_fastboot.h	/^	unsigned int cmonc0;$/;"	m	struct:ddrc_resume_reg
+cmonc1	pm_fastboot.h	/^	unsigned int cmonc1;$/;"	m	struct:ddrc_resume_reg
+cmonc2	pm_fastboot.h	/^	unsigned int cmonc2;$/;"	m	struct:ddrc_resume_reg
+cmonc3	pm_fastboot.h	/^	unsigned int cmonc3;$/;"	m	struct:ddrc_resume_reg
+cmonc4	pm_fastboot.h	/^	unsigned int cmonc4;$/;"	m	struct:ddrc_resume_reg
+common_regs	regs_save_restore.py	/^common_regs=["s0","s1","s2","s3",$/;"	v
+cp0_regs	regs_save_restore.py	/^cp0_regs=[$/;"	v
+cpac	pm_fastboot.h	/^	unsigned int cpac;$/;"	m	struct:ddrc_resume_reg
+cpapcr	pm_fastboot.h	/^	unsigned int cpapcr;$/;"	m	struct:pll_resume_reg
+cpccr	pm_fastboot.h	/^	unsigned int cpccr;$/;"	m	struct:pll_resume_reg
+cpepcr	pm_fastboot.h	/^	unsigned int cpepcr;$/;"	m	struct:pll_resume_reg
+cpm_regs	pm_fastboot.c	/^struct cpm_regs *cpm_regs;$/;"	v	typeref:struct:cpm_regs
+cpm_regs	pm_fastboot.h	/^struct cpm_regs {$/;"	s
+cpm_restore	pm_fastboot.c	/^static void cpm_restore(struct cpm_regs *cpm_regs)$/;"	f	file:
+cpm_save	pm_fastboot.c	/^static void cpm_save(struct cpm_regs *cpm_regs)$/;"	f	file:
+cpm_sftint	pm_fastboot.h	/^	unsigned int cpm_sftint;$/;"	m	struct:cpm_regs
+cpmpcr	pm_fastboot.h	/^	unsigned int cpmpcr;$/;"	m	struct:pll_resume_reg
+cppcr	pm_fastboot.h	/^	unsigned int cppcr;$/;"	m	struct:pll_resume_reg
+cpsppr	pm_fastboot.h	/^	unsigned int cpsppr;$/;"	m	struct:cpm_regs
+cpspr	pm_fastboot.h	/^	unsigned int cpspr;$/;"	m	struct:cpm_regs
+cpu_div	pm.h	/^	unsigned int cpu_div;$/;"	m	struct:sleep_param
+cpu_resume	pm_sleep.c	/^static noinline void cpu_resume(void)$/;"	f	file:
+cpu_resume_bootup	pm_sleep.c	/^static noinline void cpu_resume_bootup(void)$/;"	f	file:
+cpu_sleep	pm_sleep.c	/^static noinline void cpu_sleep(void)$/;"	f	file:
+csar0	pm_fastboot.h	/^	unsigned int csar0;$/;"	m	struct:ccu_regs
+csar1	pm_fastboot.h	/^	unsigned int csar1;$/;"	m	struct:ccu_regs
+cschc0	pm_fastboot.h	/^	unsigned int cschc0;$/;"	m	struct:ddrc_resume_reg
+cschc1	pm_fastboot.h	/^	unsigned int cschc1;$/;"	m	struct:ddrc_resume_reg
+cschc2	pm_fastboot.h	/^	unsigned int cschc2;$/;"	m	struct:ddrc_resume_reg
+cschc3	pm_fastboot.h	/^	unsigned int cschc3;$/;"	m	struct:ddrc_resume_reg
+cslr0	pm_fastboot.h	/^	unsigned int cslr0;$/;"	m	struct:ccu_regs
+cslr1	pm_fastboot.h	/^	unsigned int cslr1;$/;"	m	struct:ccu_regs
+cwl	pm_fastboot.h	/^	unsigned int cwl;$/;"	m	struct:ddr_phy_resume_reg
+dasr_cnt	pm_fastboot.h	/^	unsigned int dasr_cnt;$/;"	m	struct:ddrc_resume_reg
+dasr_en	pm_fastboot.h	/^	unsigned int dasr_en;$/;"	m	struct:ddrc_resume_reg
+dbgen	pm_fastboot.h	/^	unsigned int dbgen;$/;"	m	struct:ddrc_resume_reg
+dbwcfg	pm_fastboot.h	/^	unsigned int dbwcfg;$/;"	m	struct:ddrc_resume_reg
+dbwstp	pm_fastboot.h	/^	unsigned int dbwstp;$/;"	m	struct:ddrc_resume_reg
+dcfg	pm_fastboot.h	/^	unsigned int dcfg;$/;"	m	struct:ddrc_resume_reg
+dctrl	pm_fastboot.h	/^	unsigned int dctrl;$/;"	m	struct:ddrc_resume_reg
+ddlp	pm_fastboot.h	/^	unsigned int ddlp;$/;"	m	struct:ddrc_resume_reg
+ddr_phy_resume_reg	pm_fastboot.h	/^	struct ddr_phy_resume_reg ddr_phy_resume_reg;$/;"	m	struct:store_regs	typeref:struct:store_regs::ddr_phy_resume_reg
+ddr_phy_resume_reg	pm_fastboot.h	/^struct ddr_phy_resume_reg {$/;"	s
+ddr_phy_store	pm_fastboot.c	/^static void ddr_phy_store(void)$/;"	f	file:
+ddrc_resume_reg	pm_fastboot.h	/^	struct ddrc_resume_reg ddrc_resume_reg;$/;"	m	struct:store_regs	typeref:struct:store_regs::ddrc_resume_reg
+ddrc_resume_reg	pm_fastboot.h	/^struct ddrc_resume_reg {$/;"	s
+ddrc_store	pm_fastboot.c	/^static void ddrc_store(void)$/;"	f	file:
+ddrcdr	pm_fastboot.h	/^	unsigned int ddrcdr;$/;"	m	struct:pll_resume_reg
+ddrp_auto_calibration	pm_sleep.c	/^static inline void ddrp_auto_calibration(void)$/;"	f	file:
+dev	pm_interface.c	/^	struct device *dev;$/;"	m	struct:firmware_interface	typeref:struct:firmware_interface::device	file:
+dipr	pm_fastboot.h	/^	unsigned int dipr;$/;"	m	struct:ccu_regs
+dlmr	pm_fastboot.h	/^	unsigned int dlmr;$/;"	m	struct:ddrc_resume_reg
+dlp	pm.h	/^	unsigned int dlp;$/;"	m	struct:sleep_param
+dmmap0	pm_fastboot.h	/^	unsigned int dmmap0;$/;"	m	struct:ddrc_resume_reg
+dmmap1	pm_fastboot.h	/^	unsigned int dmmap1;$/;"	m	struct:ddrc_resume_reg
+dpd	pm.h	/^	unsigned int dpd;$/;"	m	struct:sleep_param
+dq_width	pm_fastboot.h	/^	unsigned int dq_width;$/;"	m	struct:ddr_phy_resume_reg
+drefcnt	pm_fastboot.h	/^	unsigned int drefcnt;$/;"	m	struct:ddrc_resume_reg
+dremap1	pm_fastboot.h	/^	unsigned int dremap1;$/;"	m	struct:ddrc_resume_reg
+dremap2	pm_fastboot.h	/^	unsigned int dremap2;$/;"	m	struct:ddrc_resume_reg
+dremap3	pm_fastboot.h	/^	unsigned int dremap3;$/;"	m	struct:ddrc_resume_reg
+dremap4	pm_fastboot.h	/^	unsigned int dremap4;$/;"	m	struct:ddrc_resume_reg
+dremap5	pm_fastboot.h	/^	unsigned int dremap5;$/;"	m	struct:ddrc_resume_reg
+dtimming1	pm_fastboot.h	/^	unsigned int dtimming1;$/;"	m	struct:ddrc_resume_reg
+dtimming2	pm_fastboot.h	/^	unsigned int dtimming2;$/;"	m	struct:ddrc_resume_reg
+dtimming3	pm_fastboot.h	/^	unsigned int dtimming3;$/;"	m	struct:ddrc_resume_reg
+dtimming4	pm_fastboot.h	/^	unsigned int dtimming4;$/;"	m	struct:ddrc_resume_reg
+dtimming5	pm_fastboot.h	/^	unsigned int dtimming5;$/;"	m	struct:ddrc_resume_reg
+dwcfg	pm_fastboot.h	/^	unsigned int dwcfg;$/;"	m	struct:ddrc_resume_reg
+end	pm_interface.h	/^	FUNC end;$/;"	m	struct:pm_param
+enter	pm_interface.h	/^	FUNC enter;$/;"	m	struct:pm_param
+exclk_ds	pm_fastboot.h	/^	unsigned int exclk_ds;$/;"	m	struct:cpm_regs
+fastboot_cpu_resume	pm_fastboot.c	/^static noinline void fastboot_cpu_resume(void)$/;"	f	file:
+fastboot_cpu_sleep	pm_fastboot.c	/^static noinline void fastboot_cpu_sleep(void)$/;"	f	file:
+fastboot_resume_code	pm_fastboot.c	/^static int fastboot_resume_code[] = {$/;"	v	file:
+finish	pm_interface.h	/^	FUNC finish;$/;"	m	struct:pm_param
+firmware_interface	pm_interface.c	/^struct firmware_interface{$/;"	s	file:
+fm_size	pm_interface.c	/^	int fm_size;$/;"	m	struct:firmware_interface	file:
+fw_data	pm_interface.c	/^struct firmware_interface *fw_data;$/;"	v	typeref:struct:firmware_interface
+fw_interface	pm_interface.c	/^static struct firmware_interface fw_interface;$/;"	v	typeref:struct:firmware_interface	file:
+g_ostccr	pm_fastboot.h	/^	unsigned int g_ostccr;$/;"	m	struct:ost_regs
+g_ostcntb	pm_fastboot.h	/^	unsigned int g_ostcntb;$/;"	m	struct:ost_regs
+g_ostcnth	pm_fastboot.h	/^	unsigned int g_ostcnth;$/;"	m	struct:ost_regs
+g_ostcntl	pm_fastboot.h	/^	unsigned int g_ostcntl;$/;"	m	struct:ost_regs
+g_ostcr	pm_fastboot.h	/^	unsigned int g_ostcr;$/;"	m	struct:ost_regs
+g_oster	pm_fastboot.h	/^	unsigned int g_oster;$/;"	m	struct:ost_regs
+gdimr	pm_fastboot.h	/^	unsigned int gdimr;$/;"	m	struct:ccu_regs
+gen_define_global_arg	regs_save_restore.py	/^def gen_define_global_arg(str, num):$/;"	f
+gen_get_array_size	regs_save_restore.py	/^def gen_get_array_size():$/;"	f
+gen_print_function	regs_save_restore.py	/^def gen_print_function(f_name, regs_stack):$/;"	f
+gen_print_head_and_macro	regs_save_restore.py	/^def gen_print_head_and_macro():$/;"	f
+gen_restore_common_regs	regs_save_restore.py	/^def gen_restore_common_regs(index):$/;"	f
+gen_restore_cp0_regs	regs_save_restore.py	/^def gen_restore_cp0_regs(index):$/;"	f
+gen_save_common_regs	regs_save_restore.py	/^def gen_save_common_regs(index):$/;"	f
+gen_save_cp0_regs	regs_save_restore.py	/^def gen_save_cp0_regs(index):$/;"	f
+goto_sleep	pm.c	/^static void goto_sleep(unsigned int sleep_addr)$/;"	f	file:
+hregpro	pm_fastboot.h	/^	unsigned int hregpro;$/;"	m	struct:ddrc_resume_reg
+ingenic_pm_match	pm_interface.c	/^static const struct of_device_id ingenic_pm_match[] = {$/;"	v	typeref:struct:of_device_id	file:
+ingenic_pm_valid	pm.c	/^static int ingenic_pm_valid(suspend_state_t state)$/;"	f	file:
+isr	pm_fastboot.h	/^	unsigned int isr;$/;"	m	struct:uart_regs
+lcr	pm_fastboot.h	/^	unsigned int lcr;$/;"	m	struct:cpm_regs
+ldimr0	pm_fastboot.h	/^	unsigned int ldimr0;$/;"	m	struct:ccu_regs
+ldimr1	pm_fastboot.h	/^	unsigned int ldimr1;$/;"	m	struct:ccu_regs
+load_addr	pm_interface.h	/^	unsigned int load_addr;$/;"	m	struct:pm_param
+load_func_to_rtc_ram	pm_fastboot.c	/^void load_func_to_rtc_ram(void)$/;"	f
+load_func_to_sram	pm_sleep.c	/^void load_func_to_sram(void)$/;"	f
+load_func_to_tcsm	pm.c	/^void load_func_to_tcsm(unsigned int *tcsm_addr,unsigned int *f_addr,unsigned int size)$/;"	f
+load_space	pm_interface.h	/^	unsigned int load_space;$/;"	m	struct:pm_param
+main	regs_save_restore.py	/^def main():$/;"	f
+mbr0	pm_fastboot.h	/^	unsigned int mbr0;$/;"	m	struct:ccu_regs
+mbr1	pm_fastboot.h	/^	unsigned int mbr1;$/;"	m	struct:ccu_regs
+mcu_uart_baud	pm_interface.h	/^	int mcu_uart_baud;$/;"	m	struct:pm_param
+mcu_uart_idx	pm_interface.h	/^	int mcu_uart_idx;$/;"	m	struct:pm_param
+mem_cfg	pm_fastboot.h	/^	unsigned int mem_cfg;$/;"	m	struct:ddr_phy_resume_reg
+memory_pd0	pm_fastboot.h	/^	unsigned int memory_pd0;$/;"	m	struct:cpm_regs
+memory_pd1	pm_fastboot.h	/^	unsigned int memory_pd1;$/;"	m	struct:cpm_regs
+mestsel	pm_fastboot.h	/^	unsigned int mestsel;$/;"	m	struct:cpm_regs
+mimr	pm_fastboot.h	/^	unsigned int mimr;$/;"	m	struct:ccu_regs
+mscr	pm_fastboot.h	/^	unsigned int mscr;$/;"	m	struct:ccu_regs
+oimr	pm_fastboot.h	/^	unsigned int oimr;$/;"	m	struct:ccu_regs
+opcr	pm_fastboot.h	/^	unsigned int opcr;$/;"	m	struct:cpm_regs
+ost_regs	pm_fastboot.c	/^struct ost_regs *ost_regs;$/;"	v	typeref:struct:ost_regs
+ost_regs	pm_fastboot.h	/^struct ost_regs {$/;"	s
+ost_restore	pm_fastboot.c	/^static void ost_restore(struct ost_regs *ost_regs)$/;"	f	file:
+ost_save	pm_fastboot.c	/^static void ost_save(struct ost_regs *ost_regs)$/;"	f	file:
+ostccr	pm_fastboot.h	/^	unsigned int ostccr;$/;"	m	struct:ost_regs
+ostcnt	pm_fastboot.h	/^	unsigned int ostcnt;$/;"	m	struct:ost_regs
+ostcr	pm_fastboot.h	/^	unsigned int ostcr;$/;"	m	struct:ost_regs
+ostdfr	pm_fastboot.h	/^	unsigned int ostdfr;$/;"	m	struct:ost_regs
+oster	pm_fastboot.h	/^	unsigned int oster;$/;"	m	struct:ost_regs
+ostfr	pm_fastboot.h	/^	unsigned int ostfr;$/;"	m	struct:ost_regs
+ostmr	pm_fastboot.h	/^	unsigned int ostmr;$/;"	m	struct:ost_regs
+param	pm_interface.c	/^	struct pm_param *param;$/;"	m	struct:firmware_interface	typeref:struct:firmware_interface::pm_param	file:
+pdt	pm.h	/^	unsigned int pdt;$/;"	m	struct:sleep_param
+phy_rst	pm_fastboot.h	/^	unsigned int phy_rst;$/;"	m	struct:ddr_phy_resume_reg
+pimr	pm_fastboot.h	/^	unsigned int pimr;$/;"	m	struct:ccu_regs
+pll_ctrl	pm_fastboot.h	/^	unsigned int pll_ctrl;$/;"	m	struct:ddr_phy_resume_reg
+pll_fbdiv	pm_fastboot.h	/^	unsigned int pll_fbdiv;$/;"	m	struct:ddr_phy_resume_reg
+pll_pdiv	pm_fastboot.h	/^	unsigned int pll_pdiv;$/;"	m	struct:ddr_phy_resume_reg
+pll_resume_reg	pm_fastboot.h	/^	struct pll_resume_reg pll_resume_reg;$/;"	m	struct:store_regs	typeref:struct:store_regs::pll_resume_reg
+pll_resume_reg	pm_fastboot.h	/^struct pll_resume_reg {$/;"	s
+pll_store	pm_fastboot.c	/^static void pll_store(void)$/;"	f	file:
+pm_exit	pm_interface.c	/^module_exit(pm_exit);$/;"	v
+pm_exit	pm_interface.c	/^static void __exit pm_exit(void)$/;"	f	file:
+pm_firmware_probe	pm_interface.c	/^static int pm_firmware_probe(struct platform_device *pdev)$/;"	f	file:
+pm_firmware_remove	pm_interface.c	/^static int pm_firmware_remove(struct platform_device *pdev)$/;"	f	file:
+pm_init	pm.c	/^late_initcall(pm_init);$/;"	v
+pm_init	pm.c	/^static int __init pm_init(void)$/;"	f	file:
+pm_init	pm_interface.c	/^module_init(pm_init);$/;"	v
+pm_init	pm_interface.c	/^static int __init pm_init(void)$/;"	f	file:
+pm_param	pm_interface.h	/^struct pm_param$/;"	s
+poweroff	pm_interface.h	/^	FUNC poweroff;$/;"	m	struct:pm_param
+pregpro	pm_fastboot.h	/^	unsigned int pregpro;$/;"	m	struct:ddrc_resume_reg
+prepare	pm_interface.h	/^	FUNC prepare;$/;"	m	struct:pm_param
+pswc0st	pm_fastboot.h	/^	unsigned int pswc0st;$/;"	m	struct:cpm_regs
+pswc1st	pm_fastboot.h	/^	unsigned int pswc1st;$/;"	m	struct:cpm_regs
+pswc2st	pm_fastboot.h	/^	unsigned int pswc2st;$/;"	m	struct:cpm_regs
+pswc3st	pm_fastboot.h	/^	unsigned int pswc3st;$/;"	m	struct:cpm_regs
+reg_ddr_phy	pm.h	121;"	d
+reload_pc	pm_interface.h	/^	unsigned int reload_pc;$/;"	m	struct:pm_param
+rer	pm_fastboot.h	/^	unsigned int rer;$/;"	m	struct:ccu_regs
+restore_goto	regs_save_restore.S	/^restore_goto:$/;"	l
+resume_pc	pm_fastboot.h	/^	unsigned int resume_pc;$/;"	m	struct:store_regs
+resume_pc	pm_interface.h	/^	unsigned int resume_pc;$/;"	m	struct:pm_param
+rsr	pm_fastboot.h	/^	unsigned int rsr;$/;"	m	struct:cpm_regs
+rtc_ram_store	pm_fastboot.c	/^static void rtc_ram_store(void)$/;"	f	file:
+rtc_ram_write_disable	pm_fastboot.c	/^static void rtc_ram_write_disable(void)$/;"	f	file:
+rtc_ram_write_enable	pm_fastboot.c	/^static void rtc_ram_write_enable(void)$/;"	f	file:
+rtc_read_reg	pm.h	/^static inline unsigned int  rtc_read_reg(unsigned int reg)$/;"	f
+rtc_write_reg	pm.h	/^static inline void rtc_write_reg(unsigned int reg, unsigned int val)$/;"	f
+save_goto	regs_save_restore.S	/^save_goto:$/;"	l
+save_resume_pc	pm_fastboot.c	/^static void save_resume_pc(void)$/;"	f	file:
+save_uart_index	pm_fastboot.c	/^static void save_uart_index(void)$/;"	f	file:
+serial_put_hex	pm.h	/^static inline void serial_put_hex(unsigned int x) {$/;"	f
+slbc	pm_fastboot.h	/^	unsigned int slbc;$/;"	m	struct:cpm_regs
+sleep_level	pm.h	/^	unsigned int sleep_level;$/;"	m	struct:sleep_param
+sleep_param	pm.h	/^struct sleep_param {$/;"	s
+sleep_param	pm.h	81;"	d
+slpc	pm_fastboot.h	/^	unsigned int slpc;$/;"	m	struct:cpm_regs
+soc_pm_fastboot	pm.c	/^static void soc_pm_fastboot(void)$/;"	f	file:
+soc_pm_fastboot_config	pm_fastboot.c	/^void soc_pm_fastboot_config(void)$/;"	f
+soc_pm_idle_config	pm_sleep.c	/^int soc_pm_idle_config(void)$/;"	f
+soc_pm_idle_pd_config	pm_sleep.c	/^int soc_pm_idle_pd_config(void)$/;"	f
+soc_pm_sleep_config	pm_sleep.c	/^int soc_pm_sleep_config(void)$/;"	f
+soc_pm_wakeup_fastboot	pm_fastboot.c	/^void soc_pm_wakeup_fastboot(void)$/;"	f
+soc_pm_wakeup_fastboot_config	pm_fastboot.c	/^static int soc_pm_wakeup_fastboot_config(void)$/;"	f	file:
+soc_pm_wakeup_idle_sleep	pm_sleep.c	/^int soc_pm_wakeup_idle_sleep(void)$/;"	f
+soc_set_reset_entry	pm_sleep.c	/^void soc_set_reset_entry(void)$/;"	f
+space_size	pm_interface.c	/^	int space_size;$/;"	m	struct:firmware_interface	file:
+srbc	pm_fastboot.h	/^	unsigned int srbc;$/;"	m	struct:cpm_regs
+state	pm.h	/^	suspend_state_t state;$/;"	m	struct:sleep_param
+state	pm_interface.h	/^	suspend_state_t state;$/;"	m	struct:pm_param
+store_regs	pm_fastboot.c	/^static struct store_regs *store_regs;$/;"	v	typeref:struct:store_regs	file:
+store_regs	pm_fastboot.h	/^struct store_regs {$/;"	s
+suspend_console_setup	pm.c	/^static int __init suspend_console_setup(char *str)$/;"	f	file:
+sys_restore	pm_fastboot.c	/^void sys_restore(void)$/;"	f
+sys_save	pm_fastboot.c	/^void sys_save(void)$/;"	f
+text	pm_interface.c	/^	unsigned int *text;$/;"	m	struct:firmware_interface	file:
+training_ctrl	pm_fastboot.h	/^	unsigned int training_ctrl;$/;"	m	struct:ddr_phy_resume_reg
+uacr	pm_fastboot.h	/^	unsigned int uacr;$/;"	m	struct:uart_regs
+uart_base	pm.h	/^	unsigned int uart_base;$/;"	m	struct:sleep_param
+uart_index	pm_fastboot.h	/^	unsigned int uart_index;$/;"	m	struct:store_regs
+uart_index	pm_interface.h	/^	int uart_index;$/;"	m	struct:pm_param
+uart_regs	pm_fastboot.c	/^struct uart_regs *uart_regs;$/;"	v	typeref:struct:uart_regs
+uart_regs	pm_fastboot.h	/^struct uart_regs {$/;"	s
+udlhr	pm_fastboot.h	/^	unsigned int udlhr;$/;"	m	struct:uart_regs
+udllr	pm_fastboot.h	/^	unsigned int udllr;$/;"	m	struct:uart_regs
+ufcr	pm_fastboot.h	/^	unsigned int ufcr;$/;"	m	struct:uart_regs
+uier	pm_fastboot.h	/^	unsigned int uier;$/;"	m	struct:uart_regs
+ulcr	pm_fastboot.h	/^	unsigned int ulcr;$/;"	m	struct:uart_regs
+umcr	pm_fastboot.h	/^	unsigned int umcr;$/;"	m	struct:uart_regs
+umr	pm_fastboot.h	/^	unsigned int umr;$/;"	m	struct:uart_regs
+urcr	pm_fastboot.h	/^	unsigned int urcr;$/;"	m	struct:uart_regs
+uspr	pm_fastboot.h	/^	unsigned int uspr;$/;"	m	struct:uart_regs
+utcr	pm_fastboot.h	/^	unsigned int utcr;$/;"	m	struct:uart_regs
+uthr	pm_fastboot.h	/^	unsigned int uthr;$/;"	m	struct:uart_regs
+valid	pm_interface.h	/^	FUNC valid;$/;"	m	struct:pm_param
+wl_mode1	pm_fastboot.h	/^	unsigned int wl_mode1;$/;"	m	struct:ddr_phy_resume_reg
+wl_mode2	pm_fastboot.h	/^	unsigned int wl_mode2;$/;"	m	struct:ddr_phy_resume_reg
+x2000_pm_begin	pm.c	/^static int x2000_pm_begin(suspend_state_t state)$/;"	f	file:
+x2000_pm_begin	pm_interface.c	/^static int x2000_pm_begin(suspend_state_t state)$/;"	f	file:
+x2000_pm_driver	pm_interface.c	/^static struct platform_driver x2000_pm_driver = {$/;"	v	typeref:struct:platform_driver	file:
+x2000_pm_end	pm.c	/^static void x2000_pm_end(void)$/;"	f	file:
+x2000_pm_end	pm_interface.c	/^static void x2000_pm_end(void)$/;"	f	file:
+x2000_pm_enter	pm.c	/^int x2000_pm_enter(suspend_state_t state)$/;"	f
+x2000_pm_enter	pm_interface.c	/^static int x2000_pm_enter(suspend_state_t state)$/;"	f	file:
+x2000_pm_finish	pm_interface.c	/^static void x2000_pm_finish(void)$/;"	f	file:
+x2000_pm_ops	pm.c	/^static const struct platform_suspend_ops x2000_pm_ops = {$/;"	v	typeref:struct:platform_suspend_ops	file:
+x2000_pm_ops	pm_interface.c	/^static const struct platform_suspend_ops x2000_pm_ops = {$/;"	v	typeref:struct:platform_suspend_ops	file:
+x2000_pm_poweroff	pm_interface.c	/^static int x2000_pm_poweroff(void)$/;"	f	file:
+x2000_pm_prepare	pm_interface.c	/^static int x2000_pm_prepare(void)$/;"	f	file:
+x2000_pm_valid	pm_interface.c	/^static int x2000_pm_valid(suspend_state_t state)$/;"	f	file:
+x2000_poweroff_notifier	pm_interface.c	/^static struct notifier_block x2000_poweroff_notifier = {$/;"	v	typeref:struct:notifier_block	file:
+x2000_poweroff_notifier_callback	pm_interface.c	/^static int x2000_poweroff_notifier_callback(struct notifier_block *nb, unsigned long action, void *data)$/;"	f	file:
+x2000_suspend_finish	pm.c	/^static void x2000_suspend_finish(void)$/;"	f	file:
+x2000_suspend_prepare	pm.c	/^static int x2000_suspend_prepare(void)$/;"	f	file:

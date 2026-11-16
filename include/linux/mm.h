@@ -379,7 +379,7 @@ static inline int is_vmalloc_addr(const void *x)
 #ifdef CONFIG_MMU
 	unsigned long addr = (unsigned long)x;
 
-	return addr >= VMALLOC_START && addr < VMALLOC_END;
+	return addr >= VMALLOC_START && addr < FIXADDR_TOP;
 #else
 	return 0;
 #endif
@@ -1793,6 +1793,7 @@ extern void zone_pcp_reset(struct zone *zone);
 
 /* page_alloc.c */
 extern int min_free_kbytes;
+extern int watermark_scale_factor;
 
 /* nommu.c */
 extern atomic_long_t mmap_pages_allocated;
@@ -2172,6 +2173,7 @@ static inline int in_gate_area(struct mm_struct *mm, unsigned long addr)
 
 #ifdef CONFIG_SYSCTL
 extern int sysctl_drop_caches;
+extern int sysctl_dirty_pagecaches_enable;
 int drop_caches_sysctl_handler(struct ctl_table *, int,
 					void __user *, size_t *, loff_t *);
 #endif

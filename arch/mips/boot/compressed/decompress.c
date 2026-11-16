@@ -72,6 +72,30 @@ void error(char *x)
 #ifdef CONFIG_KERNEL_XZ
 #include "../../../../lib/decompress_unxz.c"
 #endif
+void only_flush_dcache(void){
+#define Index_Writeback_Inv_D   0x01
+#define K0BASE					0x80000000
+#define CFG_DCACHE_SIZE			(32 * 1024)
+#define CFG_CACHELINE_SIZE		32
+	register unsigned long addr;
+	// only flush DCache
+	for (addr = K0BASE; addr < (K0BASE + CFG_DCACHE_SIZE);
+		 addr += CFG_CACHELINE_SIZE) {
+		asm volatile (
+				".set mips32r2        \n\t"
+				" cache %0, 0(%1)     \n\t"
+				".set mips32r2        \n\t"
+				:
+				: "I" (Index_Writeback_Inv_D), "r"(addr));
+	}
+	/* operation sync */
+	asm volatile (
+		    "sync\n\t"
+		    "lw $0,0(%0)"
+		    ::"r" (0xa0000000));
+}
+
+
 
 unsigned long __stack_chk_guard;
 
@@ -113,6 +137,8 @@ void decompress_kernel(unsigned long boot_heap_start)
 	/* Decompress the kernel with according algorithm */
 	__decompress((char *)zimage_start, zimage_size, 0, 0,
 		   (void *)VMLINUX_LOAD_ADDRESS_ULL, 0, 0, error);
+
+  only_flush_dcache();
 
 	/* FIXME: should we flush cache here? */
 	puts("Now, booting the kernel...\n");

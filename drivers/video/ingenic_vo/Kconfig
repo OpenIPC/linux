@@ -1,0 +1,13 @@
+menuconfig JZ_VO
+    bool "JZ VO Driver"
+    default y
+    help
+        Support for Ingenic vo Driver
+
+config INGENIC_VO
+	bool "Ingenic VO Driver"
+    depends on JZ_VO
+    default y
+	help
+	  Support for Ingenic vo  operations.
+

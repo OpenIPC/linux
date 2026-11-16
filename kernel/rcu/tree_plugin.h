@@ -85,8 +85,7 @@ static void __init rcu_bootup_announce_oddness(void)
 	if (RCU_NUM_LVLS >= 4)
 		pr_info("\tFour(or more)-level hierarchy is enabled.\n");
 	if (RCU_FANOUT_LEAF != 16)
-		pr_info("\tBuild-time adjustment of leaf fanout to %d.\n",
-			RCU_FANOUT_LEAF);
+		;//pr_info("\tBuild-time adjustment of leaf fanout to %d.\n", RCU_FANOUT_LEAF);
 	if (rcu_fanout_leaf != RCU_FANOUT_LEAF)
 		pr_info("\tBoot-time adjustment of leaf fanout to %d.\n", rcu_fanout_leaf);
 	if (nr_cpu_ids != NR_CPUS)

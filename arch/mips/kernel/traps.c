@@ -64,6 +64,8 @@
 #include <asm/types.h>
 #include <asm/stacktrace.h>
 #include <asm/uasm.h>
+#include <asm/smp.h>
+
 
 extern void check_wait(void);
 extern asmlinkage void rollback_handle_int(void);
@@ -85,7 +87,11 @@ extern asmlinkage void handle_ov(void);
 extern asmlinkage void handle_tr(void);
 extern asmlinkage void handle_msa_fpe(void);
 extern asmlinkage void handle_fpe(void);
+#ifdef CONFIG_XBURST_MXUV2
+extern asmlinkage void handle_mfpe(void);
+#else
 extern asmlinkage void handle_ftlb(void);
+#endif
 extern asmlinkage void handle_msa(void);
 extern asmlinkage void handle_mdmx(void);
 extern asmlinkage void handle_watch(void);
@@ -873,6 +879,14 @@ out:
 	exception_exit(prev_state);
 }
 
+#ifdef CONFIG_MACH_XBURST
+asmlinkage void do_mfpe(struct pt_regs * regs)
+{
+	die_if_kernel("Kernel bug detected", regs);
+	force_sig(SIGILL, current);
+}
+#endif
+
 void do_trap_or_bp(struct pt_regs *regs, unsigned int code,
 	const char *str)
 {
@@ -1077,13 +1091,28 @@ asmlinkage void do_ri(struct pt_regs *regs)
 	unsigned int opcode = 0;
 	int status = -1;
 
+#if 0	/*To Xburst T41, p0 and p1 both have mxuv3 */
+	/* If Config1.CU2 is not set, the exc_code = 10 of cause reg */
+	if (cpu_has_mxuv3 && (1 == smp_processor_id())) {
+		printk("%s(%d):reschedule to cpu0 to smp_processor_id()=%d, read_c0_status()=0x%x, task_cpu(current)=%d, KSTK_STATUS(current)=0x%lx, current->tgid=%d, current->pid=%d\n", __func__, __LINE__, smp_processor_id(), read_c0_status(), task_cpu(current), KSTK_STATUS(current), current->tgid, current->pid);
+		//resched_cpu(0);
+		smp_send_reschedule(0);
+		if (0 == smp_processor_id()) {
+			printk("%s(%d):open cu2 field to cpu0 to smp_processor_id()=%d, read_c0_status()=0x%x, task_cpu(current)=%d, KSTK_STATUS(current)=0x%lx, current->tgid=%d, current->pid=%d\n", __func__, __LINE__, smp_processor_id(), read_c0_status(), task_cpu(current), KSTK_STATUS(current), current->tgid, current->pid);
+			set_c0_status(ST0_CU2);
+			KSTK_STATUS(current) |= ST0_CU2;
+		}
+		printk("%s(%d):no cu2 coprocessor to smp_processor_id()=%d, read_c0_status()=0x%x, task_cpu(current)=%d, KSTK_STATUS(current)=0x%lx, current->tgid=%d, current->pid=%d\n", __func__, __LINE__, smp_processor_id(), read_c0_status(), task_cpu(current), KSTK_STATUS(current), current->tgid, current->pid);
+		return;
+	}
+#endif
 	/*
 	 * Avoid any kernel code. Just emulate the R2 instruction
 	 * as quickly as possible.
 	 */
 	if (mipsr2_emulation && cpu_has_mips_r6 &&
-	    likely(user_mode(regs)) &&
-	    likely(get_user(opcode, epc) >= 0)) {
+		likely(user_mode(regs)) &&
+		likely(get_user(opcode, epc) >= 0)) {
 		unsigned long fcr31 = 0;
 
 		status = mipsr2_decoder(regs, opcode, &fcr31);
@@ -1445,10 +1474,35 @@ asmlinkage void do_cpu(struct pt_regs *regs)
 		break;
 
 	case 2:
-		raw_notifier_call_chain(&cu2_chain, CU2_EXCEPTION, regs);
-		break;
-	}
+#ifdef CONFIG_MACH_XBURST2
+#if 0
+		/* Processing of MXA instructions needs setting MSA enable. */
+		if (cpu_has_mxuv3 && (KSTK_STATUS(current) & ST0_CU2)) {
+			err = enable_restore_fp_context(0);
+			if (err) {
+				printk("===debug CU2 exception, KSTK_STATUS(current) & ST0_CU2=0x%lx\n", KSTK_STATUS(current) & ST0_CU2);
+				force_sig(SIGILL, current);
+			}
+		}
 
+#else
+
+		/* To Xburst2 T41, p0 and p1 both have mxuv3. If Status.CU2 is not set and Config1.CU2 is set, the exc_code is 10 and CE field is 2 to Cause Reg
+		* So here only need to open the Status.CU2 field */
+		if (cpu_has_mxuv3) {
+			set_c0_info(0xffffffff); /* OPEN CPU's nna rdhwr */
+			set_c0_status(ST0_CU2);		/* OPEN CPU's SIMD512 */
+			KSTK_STATUS(current) |= ST0_CU2;
+//			printk("%s(%d):open cu2 field to cpu0 to smp_processor_id()=%d, read_c0_status()=0x%x, task_cpu(current)=%d, KSTK_STATUS(current)=0x%lx, current->tgid=%d, current->pid=%d\n", __func__, __LINE__, smp_processor_id(), read_c0_status(), task_cpu(current), KSTK_STATUS(current), current->tgid, current->pid);
+			goto out;
+		}
+#endif
+#else
+		raw_notifier_call_chain(&cu2_chain, CU2_EXCEPTION, regs);
+#endif
+		goto out;
+	}
+out:
 	exception_exit(prev_state);
 }
 
@@ -2070,6 +2124,9 @@ static void configure_status(void)
 		status_set |= ST0_XX;
 	if (cpu_has_dsp)
 		status_set |= ST0_MX;
+        if (cpu_has_mxuv3 && (KSTK_STATUS(current) & ST0_CU2)) {
+               status_set |= ST0_CU2;
+       }
 
 	change_c0_status(ST0_CU|ST0_MX|ST0_RE|ST0_FR|ST0_BEV|ST0_TS|ST0_KX|ST0_SX|ST0_UX,
 			 status_set);
@@ -2321,8 +2378,14 @@ void __init trap_init(void)
 	if (cpu_has_fpu && !cpu_has_nofpuex)
 		set_except_vector(15, handle_fpe);
 
+#ifdef CONFIG_XBURST_MXUV2
+       if (cpu_has_mxu)
+               set_except_vector(16, handle_fpe);
+       if (cpu_has_mxuv3)
+               set_except_vector(16, handle_fpe);
+#else
 	set_except_vector(16, handle_ftlb);
-
+#endif
 	if (cpu_has_rixiex) {
 		set_except_vector(19, tlb_do_page_fault_0);
 		set_except_vector(20, tlb_do_page_fault_0);

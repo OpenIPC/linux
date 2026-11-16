@@ -25,6 +25,9 @@ obj-$(CONFIG_VIDEO_SH_VEU)		+= sh_veu.o
 
 obj-$(CONFIG_VIDEO_MEM2MEM_DEINTERLACE)	+= m2m-deinterlace.o
 
+obj-$(CONFIG_VIDEO_INGENIC_JPEG) 		+= ingenic-jpeg/
+obj-$(CONFIG_VIDEO_INGENIC_ROTATE) 		+= ingenic-rotate/
+
 obj-$(CONFIG_VIDEO_S3C_CAMIF) 		+= s3c-camif/
 obj-$(CONFIG_VIDEO_SAMSUNG_EXYNOS4_IS) 	+= exynos4-is/
 obj-$(CONFIG_VIDEO_SAMSUNG_S5P_JPEG)	+= s5p-jpeg/
@@ -33,6 +36,8 @@ obj-$(CONFIG_VIDEO_SAMSUNG_S5P_TV)	+= s5p-tv/
 
 obj-$(CONFIG_VIDEO_SAMSUNG_S5P_G2D)	+= s5p-g2d/
 obj-$(CONFIG_VIDEO_SAMSUNG_EXYNOS_GSC)	+= exynos-gsc/
+
+obj-$(CONFIG_VIDEO_INGENIC_VCODEC)	+= ingenic-vcodec/
 
 obj-$(CONFIG_VIDEO_STI_BDISP)		+= sti/bdisp/
 obj-$(CONFIG_DVB_C8SECTPFE)		+= sti/c8sectpfe/

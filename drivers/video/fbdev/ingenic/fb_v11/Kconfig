@@ -1,0 +1,8 @@
+menuconfig FB_INGENIC_X2000
+	tristate "Ingenic Framebuffer Driver for Version 11"
+	depends on FB_INGENIC
+	select FB_INGENIC_DISPLAYS_X2000
+	help
+		LCD Driver for X2000
+
+source "drivers/video/fbdev/ingenic/fb_v11/displays/Kconfig"

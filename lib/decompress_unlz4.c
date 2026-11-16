@@ -10,8 +10,10 @@
 
 #ifdef STATIC
 #define PREBOOT
+#define INIT
 #include "lz4/lz4_decompress.c"
 #else
+#define INIT __init
 #include <linux/decompress/unlz4.h>
 #endif
 #include <linux/types.h>

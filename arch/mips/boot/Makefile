@@ -58,6 +58,7 @@ extra-y += vmlinux.bin.bz2
 extra-y += vmlinux.bin.gz
 extra-y += vmlinux.bin.lzma
 extra-y += vmlinux.bin.lzo
+extra-y += vmlinux.bin.jzlzma
 
 $(obj)/vmlinux.bin.bz2: $(obj)/vmlinux.bin FORCE
 	$(call if_changed,bzip2)
@@ -71,16 +72,21 @@ $(obj)/vmlinux.bin.lzma: $(obj)/vmlinux.bin FORCE
 $(obj)/vmlinux.bin.lzo: $(obj)/vmlinux.bin FORCE
 	$(call if_changed,lzo)
 
+
+$(obj)/vmlinux.bin.jzlzma: $(obj)/vmlinux.bin FORCE
+	$(call if_changed,jzlzma)
+
 #
 # Compressed u-boot images
 #
 
-targets += uImage
+#targets += uImage
 targets += uImage.bin
 targets += uImage.bz2
 targets += uImage.gz
 targets += uImage.lzma
 targets += uImage.lzo
+targets += uImage.jzlzma
 
 $(obj)/uImage.bin: $(obj)/vmlinux.bin FORCE
 	$(call if_changed,uimage,none)
@@ -97,6 +103,12 @@ $(obj)/uImage.lzma: $(obj)/vmlinux.bin.lzma FORCE
 $(obj)/uImage.lzo: $(obj)/vmlinux.bin.lzo FORCE
 	$(call if_changed,uimage,lzo)
 
-$(obj)/uImage: $(obj)/uImage.$(suffix-y)
+
+$(obj)/uImage.jzlzma: $(obj)/vmlinux.bin.jzlzma FORCE
+	$(call if_changed,jzuimage,none)
+	$(call if_changed,jzhead)
+
+targets += uImage
+$(obj)/uImage: $(obj)/uImage.lzma  $(obj)/uImage.lzo $(obj)/uImage.jzlzma FORCE
 	@ln -sf $(notdir $<) $@
 	@echo '  Image $@ is ready'

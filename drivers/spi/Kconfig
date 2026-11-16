@@ -53,6 +53,13 @@ if SPI_MASTER
 
 comment "SPI Master Controller Drivers"
 
+config INGENIC_SPI
+	tristate "Ingenic SPI Controller"
+	depends on MACH_XBURST2
+	select SPI_BITBANG
+	help
+		SPI driver for Ingenic series SoCs
+
 config SPI_ALTERA
 	tristate "Altera SPI Controller"
 	select SPI_BITBANG

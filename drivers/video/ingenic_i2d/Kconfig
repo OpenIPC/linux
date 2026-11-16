@@ -1,0 +1,13 @@
+menuconfig JZ_I2D
+    bool "JZ I2D Driver"
+    default y
+    help
+        Support for Ingenic i2d Driver
+
+config INGENIC_I2D
+	bool "Ingenic I2D Driver"
+    depends on JZ_I2D
+    default y
+	help
+	  Support for Ingenic i2d  operations.
+

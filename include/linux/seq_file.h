@@ -112,9 +112,9 @@ int seq_release(struct inode *, struct file *);
 int seq_write(struct seq_file *seq, const void *data, size_t len);
 
 __printf(2, 0)
-void seq_vprintf(struct seq_file *m, const char *fmt, va_list args);
+int seq_vprintf(struct seq_file *m, const char *fmt, va_list args);
 __printf(2, 3)
-void seq_printf(struct seq_file *m, const char *fmt, ...);
+int seq_printf(struct seq_file *m, const char *fmt, ...);
 void seq_putc(struct seq_file *m, char c);
 void seq_puts(struct seq_file *m, const char *s);
 void seq_put_decimal_ull(struct seq_file *m, char delimiter,

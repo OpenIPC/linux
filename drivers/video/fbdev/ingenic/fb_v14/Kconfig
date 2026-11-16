@@ -1,0 +1,9 @@
+menuconfig FB_INGENIC_V14
+	tristate "Ingenic Framebuffer Driver for Version 14"
+	depends on FB_INGENIC
+	select FB_INGENIC_DISPLAYS_V14
+	help
+	  Framebuffer support for the T41 SoC.
+
+source "drivers/video/fbdev/ingenic/fb_v14/displays/Kconfig"
+

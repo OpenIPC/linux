@@ -139,6 +139,40 @@ config RTC_DRV_TEST
 	  This driver can also be built as a module. If so, the module
 	  will be called rtc-test.
 
+config RTC_DRV_INGENIC
+    tristate "INGENIC RTC"
+        help
+        If you say Y here you will get access to the real time clock
+          built into your INGENIC CPU.
+
+          To compile this driver as a module, choose M here: the
+          module will be called rtc-ingenic.
+
+config SUSPEND_TEST
+	  boolean "Ingenic RTC suspend test"
+	  depends on RTC_DRV_INGENIC
+	  help
+	  If you say yes here the Ingenic rtc will support suspend test.
+
+config KEY_WAKEUP
+	  boolean "Ingenic RTC suspend test.(Key wakeup)"
+	  depends on SUSPEND_TEST
+	  help
+	  If you say yes here the Ingenic rtc will support suspend test.
+
+config ALARM_WAKEUP
+	  boolean "Ingenic RTC suspend test.(Alarm wakeup)"
+	  depends on SUSPEND_TEST
+	  help
+	  If you say yes here the Ingenic rtc will support suspend test.
+
+config SUSPEND_ALARM_TIME
+	  int "Ingenic RTC suspend alarm time Unit of second"
+	  depends on ALARM_WAKEUP
+	  default "2"
+	  help
+	  If you say yes here Automatically wake up after a set time of sleep.
+
 comment "I2C RTC drivers"
 	depends on I2C
 
@@ -418,6 +452,15 @@ config RTC_DRV_PCF8523
 
 	  This driver can also be built as a module. If so, the module
 	  will be called rtc-pcf8523.
+
+config RTC_DRV_BM8563
+	tristate "BM8563 "
+	help
+	  If you say yes here you get support for the NXP BM8563 RTC
+	  chips.
+
+	  This driver can also be built as a module. If so, the module
+	  will be called rtc-bm8563.
 
 config RTC_DRV_PCF8563
 	tristate "Philips PCF8563/Epson RTC8564"

@@ -1,0 +1,101 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+CONFIG_FPGA_TEST	ingenic_vo.c	41;"	d	file:
+IOCTL_VO_BUF_FLUSH_CACHE	ingenic_vo.h	103;"	d
+IOCTL_VO_END	ingenic_vo.h	102;"	d
+IOCTL_VO_RUN	ingenic_vo.h	101;"	d
+IOCTL_VO_START	ingenic_vo.h	100;"	d
+JZVO_IOC_MAGIC	ingenic_vo.h	99;"	d
+VO_ADDR_BASE	ingenic_vo.h	4;"	d
+VO_ADDR_INT_CLC	ingenic_vo.h	10;"	d
+VO_ADDR_INT_EN	ingenic_vo.h	8;"	d
+VO_ADDR_INT_VAL	ingenic_vo.h	9;"	d
+VO_ADDR_TOP_CON	ingenic_vo.h	6;"	d
+VO_ADDR_TOP_STATUS	ingenic_vo.h	7;"	d
+VO_ADDR_VC0_ADDR_INFO	ingenic_vo.h	21;"	d
+VO_ADDR_VC0_BLK_INFO	ingenic_vo.h	15;"	d
+VO_ADDR_VC0_CON_PAR	ingenic_vo.h	16;"	d
+VO_ADDR_VC0_HBLK_PAR	ingenic_vo.h	18;"	d
+VO_ADDR_VC0_SIZE	ingenic_vo.h	11;"	d
+VO_ADDR_VC0_STRIDE	ingenic_vo.h	12;"	d
+VO_ADDR_VC0_TIME_OUT	ingenic_vo.h	20;"	d
+VO_ADDR_VC0_TRAN_EN	ingenic_vo.h	19;"	d
+VO_ADDR_VC0_UV_ADDR	ingenic_vo.h	14;"	d
+VO_ADDR_VC0_VBLK_PAR	ingenic_vo.h	17;"	d
+VO_ADDR_VC0_YUV_CLIP	ingenic_vo.h	22;"	d
+VO_ADDR_VC0_Y_ADDR	ingenic_vo.h	13;"	d
+VO_ADDR_VER	ingenic_vo.h	5;"	d
+VO_DEBUG	ingenic_vo.c	48;"	d	file:
+VO_DEBUG	ingenic_vo.c	50;"	d	file:
+__VO__H__	ingenic_vo.h	2;"	d
+__release_reset_vo	ingenic_vo.h	96;"	d
+__reset_vo	ingenic_vo.h	95;"	d
+__reset_vo_dma	ingenic_vo.h	97;"	d
+__start_vo	ingenic_vo.h	94;"	d
+__vo_irq_clear	ingenic_vo.h	93;"	d
+addr	ingenic_vo.h	/^	unsigned int addr;$/;"	m	struct:vo_reg_struct
+addr	ingenic_vo.h	/^	void *addr;$/;"	m	struct:vo_flush_cache_para
+ahb0_gate	ingenic_vo.h	/^	struct clk *ahb0_gate; \/* T31 IPU mount at AHB1*\/$/;"	m	struct:jz_vo	typeref:struct:jz_vo::clk
+bt_mode	ingenic_vo.h	/^	unsigned int 		bt_mode;$/;"	m	struct:vo_param
+clk	ingenic_vo.h	/^	struct clk *clk;$/;"	m	struct:jz_vo	typeref:struct:jz_vo::clk
+clk_div	ingenic_vo.h	/^	struct clk *clk_div;$/;"	m	struct:jz_vo	typeref:struct:jz_vo::clk
+clk_mux	ingenic_vo.h	/^	struct clk *clk_mux;$/;"	m	struct:jz_vo	typeref:struct:jz_vo::clk
+clk_name	ingenic_vo.c	/^static char *clk_name = "mpll";$/;"	v	file:
+debug_vo	ingenic_vo.c	/^static int debug_vo = 1;$/;"	v	file:
+dev	ingenic_vo.h	/^	struct device *dev;$/;"	m	struct:jz_vo	typeref:struct:jz_vo::device
+done_buf	ingenic_vo.h	/^	struct completion done_buf;$/;"	m	struct:jz_vo	typeref:struct:jz_vo::completion
+done_vo	ingenic_vo.h	/^	struct completion done_vo;$/;"	m	struct:jz_vo	typeref:struct:jz_vo::completion
+hfb_num	ingenic_vo.h	/^    unsigned int        hfb_num;$/;"	m	struct:vo_param
+ingenic_vo_dt_match	ingenic_vo.c	/^static const struct of_device_id ingenic_vo_dt_match[] = {$/;"	v	typeref:struct:of_device_id	file:
+iomem	ingenic_vo.h	/^	void __iomem *iomem;$/;"	m	struct:jz_vo
+irq	ingenic_vo.h	/^	int irq;$/;"	m	struct:jz_vo
+irq_mutex	ingenic_vo.h	/^	struct mutex irq_mutex;$/;"	m	struct:jz_vo	typeref:struct:jz_vo::mutex
+jz_vo	ingenic_vo.h	/^struct jz_vo {$/;"	s
+jz_vo_driver	ingenic_vo.c	/^static struct platform_driver jz_vo_driver = {$/;"	v	typeref:struct:platform_driver	file:
+jz_vo_regs_name	ingenic_vo.c	/^struct vo_reg_struct jz_vo_regs_name[] = {$/;"	v	typeref:struct:vo_reg_struct
+line_full_thr	ingenic_vo.h	/^    unsigned int        line_full_thr;$/;"	m	struct:vo_param
+misc_dev	ingenic_vo.h	/^	struct miscdevice misc_dev;$/;"	m	struct:jz_vo	typeref:struct:jz_vo::miscdevice
+mutex	ingenic_vo.h	/^	struct mutex mutex;$/;"	m	struct:jz_vo	typeref:struct:jz_vo::mutex
+name	ingenic_vo.h	/^	char *name;$/;"	m	struct:vo_reg_struct
+name	ingenic_vo.h	/^	char name[16];$/;"	m	struct:jz_vo
+paddr	ingenic_vo.h	/^	unsigned int paddr;$/;"	m	struct:vo_buf_info
+paddr_align	ingenic_vo.h	/^	unsigned int paddr_align;$/;"	m	struct:vo_buf_info
+pbuf	ingenic_vo.h	/^	struct vo_buf_info pbuf;$/;"	m	struct:jz_vo	typeref:struct:jz_vo::vo_buf_info
+reg_bit_clr	ingenic_vo.c	/^static void reg_bit_clr(struct jz_vo *vo, int offset, unsigned int bit)$/;"	f	file:
+reg_bit_set	ingenic_vo.c	/^static void reg_bit_set(struct jz_vo *vo, int offset, unsigned int bit)$/;"	f	file:
+reg_read	ingenic_vo.h	/^static inline unsigned int reg_read(struct jz_vo *jzvo, int offset)$/;"	f
+reg_write	ingenic_vo.h	/^static inline void reg_write(struct jz_vo *jzvo, int offset, unsigned int val)$/;"	f
+res	ingenic_vo.h	/^	struct resource *res;$/;"	m	struct:jz_vo	typeref:struct:jz_vo::resource
+size	ingenic_vo.h	/^	unsigned int size;$/;"	m	struct:vo_buf_info
+size	ingenic_vo.h	/^	unsigned int size;$/;"	m	struct:vo_flush_cache_para
+soft_reset_vo	ingenic_vo.c	/^static int soft_reset_vo(struct jz_vo *vo)$/;"	f	file:
+src_addr_uv	ingenic_vo.h	/^	unsigned int		src_addr_uv;$/;"	m	struct:vo_param
+src_addr_y	ingenic_vo.h	/^    unsigned int		src_addr_y;$/;"	m	struct:vo_param
+src_h	ingenic_vo.h	/^	unsigned int 		src_h;$/;"	m	struct:vo_param
+src_uv_strid	ingenic_vo.h	/^	unsigned int		src_uv_strid;$/;"	m	struct:vo_param
+src_w	ingenic_vo.h	/^	unsigned int 		src_w;$/;"	m	struct:vo_param
+src_y_strid	ingenic_vo.h	/^	unsigned int		src_y_strid;$/;"	m	struct:vo_param
+u32	ingenic_vo.h	25;"	d
+vaddr_alloc	ingenic_vo.h	/^	unsigned int vaddr_alloc;$/;"	m	struct:vo_buf_info
+vbb_num	ingenic_vo.h	/^    unsigned int        vbb_num;$/;"	m	struct:vo_param
+vfb_num	ingenic_vo.h	/^    unsigned int        vfb_num;$/;"	m	struct:vo_param
+vo_buf_info	ingenic_vo.h	/^struct vo_buf_info {$/;"	s
+vo_dump_regs	ingenic_vo.c	/^static int vo_dump_regs(struct jz_vo *vo)$/;"	f	file:
+vo_flush_cache_para	ingenic_vo.h	/^struct vo_flush_cache_para$/;"	s
+vo_ioctl	ingenic_vo.c	/^static long vo_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)$/;"	f	file:
+vo_irq_handler	ingenic_vo.c	/^static irqreturn_t vo_irq_handler(int irq, void *data)$/;"	f	file:
+vo_open	ingenic_vo.c	/^static int vo_open(struct inode *inode, struct file *filp)$/;"	f	file:
+vo_ops	ingenic_vo.c	/^static struct file_operations vo_ops = {$/;"	v	typeref:struct:file_operations	file:
+vo_param	ingenic_vo.h	/^struct vo_param$/;"	s
+vo_probe	ingenic_vo.c	/^static int vo_probe(struct platform_device *pdev)$/;"	f	file:
+vo_reg_set	ingenic_vo.c	/^static vo_reg_set(struct jz_vo *vo, struct vo_param *vo_param)$/;"	f	file:
+vo_reg_struct	ingenic_vo.h	/^struct vo_reg_struct {$/;"	s
+vo_release	ingenic_vo.c	/^static int vo_release(struct inode *inode, struct file *filp)$/;"	f	file:
+vo_remove	ingenic_vo.c	/^static int vo_remove(struct platform_device *pdev)$/;"	f	file:
+vo_start	ingenic_vo.c	/^static int vo_start(struct jz_vo *vo, struct vo_param *vo_param)$/;"	f	file:
+vo_stop	ingenic_vo.c	/^static int vo_stop(struct jz_vo *vo, struct vo_param *vo_param)$/;"	f	file:
+vo_timeout_restart	ingenic_vo.c	/^static int vo_timeout_restart = 0;$/;"	v	file:

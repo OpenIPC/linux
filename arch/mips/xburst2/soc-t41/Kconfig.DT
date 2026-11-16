@@ -1,0 +1,4 @@
+config DT_T41_MARMOT
+    bool "t41 marmot"
+config DT_T41_TOMCAT
+	bool "t41 tomcat"

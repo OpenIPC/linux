@@ -1,0 +1,3 @@
+config JZ_AIP
+    bool "jz aip driver"
+    default y

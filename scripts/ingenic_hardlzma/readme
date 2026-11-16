@@ -1,0 +1,5 @@
+.
+├── ingenic_lzmacomp.sh		/*君正lzma压缩脚本*/
+├── ingenic_mkimage			/*君正添加私有头*/
+├── ingenic_mkinfo.sh		/*君正私有头打入,uboot 判断*/
+├── lzma					/*君正私有压缩*/

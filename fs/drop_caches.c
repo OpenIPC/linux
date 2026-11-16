@@ -12,8 +12,9 @@
 
 /* A global variable is a bit ugly, but it keeps the code simple */
 int sysctl_drop_caches;
+int sysctl_dirty_pagecaches_enable = 0;
 
-static void drop_pagecache_sb(struct super_block *sb, void *unused)
+void drop_pagecache_sb(struct super_block *sb, void *unused)
 {
 	struct inode *inode, *toput_inode = NULL;
 
@@ -58,11 +59,13 @@ int drop_caches_sysctl_handler(struct ctl_table *table, int write,
 			drop_slab();
 			count_vm_event(DROP_SLAB);
 		}
+#if 0
 		if (!stfu) {
 			pr_info("%s (%d): drop_caches: %d\n",
 				current->comm, task_pid_nr(current),
 				sysctl_drop_caches);
 		}
+#endif
 		stfu |= sysctl_drop_caches & 4;
 	}
 	return 0;

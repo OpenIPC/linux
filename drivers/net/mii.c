@@ -133,6 +133,7 @@ int mii_ethtool_gset(struct mii_if_info *mii, struct ethtool_cmd *ecmd)
 
 	return 0;
 }
+EXPORT_SYMBOL(mii_ethtool_gset);
 
 /**
  * mii_ethtool_sset - set settings that are specified in @ecmd
@@ -225,6 +226,7 @@ int mii_ethtool_sset(struct mii_if_info *mii, struct ethtool_cmd *ecmd)
 	}
 	return 0;
 }
+EXPORT_SYMBOL(mii_ethtool_sset);
 
 /**
  * mii_check_gmii_support - check if the MII supports Gb interfaces
@@ -243,6 +245,7 @@ int mii_check_gmii_support(struct mii_if_info *mii)
 
 	return 0;
 }
+EXPORT_SYMBOL(mii_check_gmii_support);
 
 /**
  * mii_link_ok - is link status up/ok
@@ -258,6 +261,7 @@ int mii_link_ok (struct mii_if_info *mii)
 		return 1;
 	return 0;
 }
+EXPORT_SYMBOL(mii_link_ok);
 
 /**
  * mii_nway_restart - restart NWay (autonegotiation) for this interface
@@ -281,6 +285,7 @@ int mii_nway_restart (struct mii_if_info *mii)
 
 	return r;
 }
+EXPORT_SYMBOL(mii_nway_restart);
 
 /**
  * mii_check_link - check MII link status
@@ -300,6 +305,7 @@ void mii_check_link (struct mii_if_info *mii)
 	else if (prev_link && !cur_link)
 		netif_carrier_off(mii->dev);
 }
+EXPORT_SYMBOL(mii_check_link);
 
 /**
  * mii_check_media - check the MII interface for a carrier/speed/duplex change
@@ -379,6 +385,7 @@ unsigned int mii_check_media (struct mii_if_info *mii,
 
 	return 0; /* duplex did not change */
 }
+EXPORT_SYMBOL(mii_check_media);
 
 /**
  * generic_mii_ioctl - main MII ioctl interface
@@ -458,17 +465,8 @@ int generic_mii_ioctl(struct mii_if_info *mii_if,
 
 	return rc;
 }
+EXPORT_SYMBOL(generic_mii_ioctl);
 
 MODULE_AUTHOR ("Jeff Garzik <jgarzik@pobox.com>");
 MODULE_DESCRIPTION ("MII hardware support library");
 MODULE_LICENSE("GPL");
-
-EXPORT_SYMBOL(mii_link_ok);
-EXPORT_SYMBOL(mii_nway_restart);
-EXPORT_SYMBOL(mii_ethtool_gset);
-EXPORT_SYMBOL(mii_ethtool_sset);
-EXPORT_SYMBOL(mii_check_link);
-EXPORT_SYMBOL(mii_check_media);
-EXPORT_SYMBOL(mii_check_gmii_support);
-EXPORT_SYMBOL(generic_mii_ioctl);
-

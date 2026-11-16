@@ -161,11 +161,13 @@ struct clk *clk_register_mux_table(struct device *dev, const char *name,
 	mux->hw.init = &init;
 
 	clk = clk_register(dev, &mux->hw);
-
-	if (IS_ERR(clk))
+	if (IS_ERR(clk)) {
 		kfree(mux);
+    } else {
+        __clk_set_flags(clk, 1);
+    }
 
-	return clk;
+    return clk;
 }
 EXPORT_SYMBOL_GPL(clk_register_mux_table);
 

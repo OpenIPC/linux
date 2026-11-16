@@ -50,6 +50,8 @@ obj-$(CONFIG_MMC_DW_PCI)	+= dw_mmc-pci.o
 obj-$(CONFIG_MMC_DW_ROCKCHIP)	+= dw_mmc-rockchip.o
 obj-$(CONFIG_MMC_SH_MMCIF)	+= sh_mmcif.o
 obj-$(CONFIG_MMC_JZ4740)	+= jz4740_mmc.o
+obj-$(CONFIG_INGENIC_MMC_MMC0)	+= ingenic_mmc.o ingenic_sdio.o
+obj-$(CONFIG_INGENIC_MMC_MMC1)	+= ingenic_mmc.o ingenic_sdio.o
 obj-$(CONFIG_MMC_VUB300)	+= vub300.o
 obj-$(CONFIG_MMC_USHC)		+= ushc.o
 obj-$(CONFIG_MMC_WMT)		+= wmt-sdmmc.o
@@ -75,6 +77,13 @@ obj-$(CONFIG_MMC_SDHCI_BCM2835)		+= sdhci-bcm2835.o
 obj-$(CONFIG_MMC_SDHCI_IPROC)		+= sdhci-iproc.o
 obj-$(CONFIG_MMC_SDHCI_MSM)		+= sdhci-msm.o
 obj-$(CONFIG_MMC_SDHCI_ST)		+= sdhci-st.o
+
+ifeq ($(CONFIG_MMC_SDHCI_INGENIC),m)
+	obj-m += ingenic_sdhci_sdio.o
+	ingenic_sdhci_sdio-objs := sdhci-ingenic.o ingenic_sdio.o
+else
+	obj-$(CONFIG_MMC_SDHCI_INGENIC)		+= sdhci-ingenic.o ingenic_sdio.o
+endif
 
 ifeq ($(CONFIG_CB710_DEBUG),y)
 	CFLAGS-cb710-mmc	+= -DDEBUG

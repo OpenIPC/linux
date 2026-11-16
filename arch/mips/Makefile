@@ -88,10 +88,10 @@ all-$(CONFIG_SYS_SUPPORTS_ZBOOT)+= vmlinuz
 # crossformat linking we rely on the elf2ecoff tool for format conversion.
 #
 cflags-y			+= -G 0 -mno-abicalls -fno-pic -pipe
-cflags-y			+= -msoft-float
+cflags-y			+= -msoft-float -Wno-array-bounds -Wno-bool-operation
 LDFLAGS_vmlinux			+= -G 0 -static -n -nostdlib
-KBUILD_AFLAGS_MODULE		+= -mlong-calls
-KBUILD_CFLAGS_MODULE		+= -mlong-calls
+KBUILD_AFLAGS_MODULE		+= -mlong-calls -Wno-array-bounds -Wno-bool-operation
+KBUILD_CFLAGS_MODULE		+= -mlong-calls -Wno-array-bounds -Wno-bool-operation
 
 #
 # pass -msoft-float to GAS if it supports it.  However on newer binutils
@@ -342,6 +342,16 @@ $(boot-y): $(vmlinux-32) FORCE
 	$(Q)$(MAKE) $(build)=arch/mips/boot VMLINUX=$(vmlinux-32) \
 		$(bootvars-y) arch/mips/boot/$@
 
+# zImage
+zImage: $(vmlinux-32) FORCE
+	$(Q)$(MAKE) $(build)=arch/mips/boot/zcompressed VMLINUX=$(vmlinux-32) $@
+	@cp arch/mips/boot/zcompressed/$@ arch/mips/boot/compressed/$@
+	@echo '  Kernel: arch/mips/boot/compressed/$@ is ready'
+xImage: $(vmlinux-32) FORCE
+	$(Q)$(MAKE) $(build)=arch/mips/boot/zcompressed VMLINUX=$(vmlinux-32) $@
+	@cp arch/mips/boot/zcompressed/$@ arch/mips/boot/compressed/$@
+	@echo '  Kernel: arch/mips/boot/compressed/$@ is ready'
+
 ifdef CONFIG_SYS_SUPPORTS_ZBOOT
 # boot/compressed
 $(bootz-y): $(vmlinux-32) FORCE
@@ -409,6 +419,7 @@ define archhelp
 	echo '  uImage.gz            - U-Boot image (gzip)'
 	echo '  uImage.lzma          - U-Boot image (lzma)'
 	echo '  uImage.lzo           - U-Boot image (lzo)'
+	echo '  xImage               - U-Boot-spl xImage (ingenic spl boot)'
 	echo '  dtbs                 - Device-tree blobs for enabled boards'
 	echo '  dtbs_install         - Install dtbs to $(INSTALL_DTBS_PATH)'
 	echo

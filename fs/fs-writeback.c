@@ -1861,6 +1861,8 @@ static long wb_do_writeback(struct bdi_writeback *wb)
 	return wrote;
 }
 
+extern int sysctl_dirty_pagecaches_enable;
+extern void drop_pagecache_sb(struct super_block *sb, void *unused);
 /*
  * Handle writeback of dirty data for the device backed by this bdi. Also
  * reschedules periodically and does kupdated style flushing.
@@ -1899,9 +1901,13 @@ void wb_workfn(struct work_struct *work)
 
 	if (!list_empty(&wb->work_list))
 		mod_delayed_work(bdi_wq, &wb->dwork, 0);
-	else if (wb_has_dirty_io(wb) && dirty_writeback_interval)
+	else if (wb_has_dirty_io(wb) && dirty_writeback_interval){
 		wb_wakeup_delayed(wb);
-
+		if(sysctl_dirty_pagecaches_enable){
+			iterate_supers(drop_pagecache_sb, NULL);
+			count_vm_event(DROP_PAGECACHE);
+		}
+	}
 	current->flags &= ~PF_SWAPWRITE;
 }
 

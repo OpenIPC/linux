@@ -420,7 +420,9 @@ static int is_gpt_valid(struct parsed_partitions *state, u64 lba,
 		pr_debug("GPT: last_usable_lba incorrect: %lld > %lld\n",
 			 (unsigned long long)le64_to_cpu((*gpt)->last_usable_lba),
 			 (unsigned long long)lastlba);
+#ifndef CONFIG_INGENIC_GPT_CHECK
 		goto fail;
+#endif
 	}
 	if (le64_to_cpu((*gpt)->last_usable_lba) < le64_to_cpu((*gpt)->first_usable_lba)) {
 		pr_debug("GPT: last_usable_lba incorrect: %lld > %lld\n",

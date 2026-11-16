@@ -934,7 +934,7 @@ static inline int of_get_available_child_count(const struct device_node *np)
 	static const struct of_device_id __of_table_##name		\
 		__used __section(__##table##_of_table)			\
 		 = { .compatible = compat,				\
-		     .data = (fn == (fn_type)NULL) ? fn : fn  }
+		     .data = (fn == ((fn_type)NULL)) ? fn : fn  }
 #else
 #define _OF_DECLARE(table, name, compat, fn, fn_type)			\
 	static const struct of_device_id __of_table_##name		\

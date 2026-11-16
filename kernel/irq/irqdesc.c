@@ -271,7 +271,7 @@ int __init early_irq_init(void)
 
 	init_irq_default_affinity();
 
-	printk(KERN_INFO "NR_IRQS:%d\n", NR_IRQS);
+	//printk(KERN_INFO "NR_IRQS:%d\n", NR_IRQS);
 
 	desc = irq_desc;
 	count = ARRAY_SIZE(irq_desc);

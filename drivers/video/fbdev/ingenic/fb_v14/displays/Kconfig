@@ -1,0 +1,11 @@
+menuconfig FB_INGENIC_DISPLAYS_V14
+	tristate "Supported lcd panels"
+	depends on FB_INGENIC_V14
+
+config PANEL_TRULY240320
+  tristate "lcd panel truly240320"
+  depends on FB_INGENIC_DISPLAYS_V14
+
+config PANEL_ST7789
+  tristate "lcd panel st7789"
+  depends on FB_INGENIC_DISPLAYS_V14

@@ -29,6 +29,11 @@ source "drivers/video/fbdev/Kconfig"
 endmenu
 
 source "drivers/video/backlight/Kconfig"
+source "drivers/video/ingenic_i2d/Kconfig"
+source "drivers/video/ingenic_vo/Kconfig"
+source "drivers/video/ingenic_ipu/Kconfig"
+source "drivers/video/ingenic_aip/Kconfig"
+source "drivers/video/ingenic_vpu/Kconfig"
 
 config VGASTATE
        tristate

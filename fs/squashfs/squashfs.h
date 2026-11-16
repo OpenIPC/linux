@@ -111,3 +111,5 @@ extern const struct inode_operations squashfs_symlink_inode_ops;
 
 /* xattr.c */
 extern const struct xattr_handler *squashfs_xattr_handlers[];
+/* lzma wrapper.c */
+extern  const struct squashfs_decompressor squashfs_lzma_comp_ops;

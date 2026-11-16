@@ -395,7 +395,7 @@ void seq_escape(struct seq_file *m, const char *s, const char *esc)
 }
 EXPORT_SYMBOL(seq_escape);
 
-void seq_vprintf(struct seq_file *m, const char *f, va_list args)
+int seq_vprintf(struct seq_file *m, const char *f, va_list args)
 {
 	int len;
 
@@ -403,20 +403,24 @@ void seq_vprintf(struct seq_file *m, const char *f, va_list args)
 		len = vsnprintf(m->buf + m->count, m->size - m->count, f, args);
 		if (m->count + len < m->size) {
 			m->count += len;
-			return;
+			return len;
 		}
 	}
 	seq_set_overflow(m);
+    return 0;
 }
 EXPORT_SYMBOL(seq_vprintf);
 
-void seq_printf(struct seq_file *m, const char *f, ...)
+int seq_printf(struct seq_file *m, const char *f, ...)
 {
+    int ret;
 	va_list args;
 
 	va_start(args, f);
-	seq_vprintf(m, f, args);
+	ret = seq_vprintf(m, f, args);
 	va_end(args);
+
+    return ret;
 }
 EXPORT_SYMBOL(seq_printf);
 

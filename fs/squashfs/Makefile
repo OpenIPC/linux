@@ -14,4 +14,5 @@ squashfs-$(CONFIG_SQUASHFS_XATTR) += xattr.o xattr_id.o
 squashfs-$(CONFIG_SQUASHFS_LZ4) += lz4_wrapper.o
 squashfs-$(CONFIG_SQUASHFS_LZO) += lzo_wrapper.o
 squashfs-$(CONFIG_SQUASHFS_XZ) += xz_wrapper.o
+squashfs-$(CONFIG_SQUASHFS_LZMA) += lzma_wrapper.o hardware_lzma.o
 squashfs-$(CONFIG_SQUASHFS_ZLIB) += zlib_wrapper.o

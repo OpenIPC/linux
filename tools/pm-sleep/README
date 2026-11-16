@@ -1,0 +1,6 @@
+
+pm sleep only support x1000 and m200
+
+compile:
+	exprot CHIP_TYPE=m200
+	make

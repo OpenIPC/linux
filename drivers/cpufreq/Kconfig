@@ -234,6 +234,30 @@ config IA64_ACPI_CPUFREQ
 endif
 
 if MIPS
+config T40_CPUFREQ
+	tristate "t40 CPUFreq Driver"
+	help
+	  This option adds a CPUFreq driver for ingenic processors which
+	  support software configurable cpu frequency.
+
+	  T40 and it's successors support this feature.
+
+	  For details, take a look at <file:Documentation/cpu-freq/>.
+
+	  If in doubt, say N.
+
+config X2000_V12_CPUFREQ
+	tristate "x2000-v12 CPUFreq Driver"
+	help
+	  This option adds a CPUFreq driver for ingenic processors which
+	  support software configurable cpu frequency.
+
+	  X2000-v12 and it's successors support this feature.
+
+	  For details, take a look at <file:Documentation/cpu-freq/>.
+
+	  If in doubt, say N.
+
 config LOONGSON2_CPUFREQ
 	tristate "Loongson2 CPUFreq Driver"
 	help

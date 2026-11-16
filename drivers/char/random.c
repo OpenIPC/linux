@@ -921,7 +921,8 @@ void add_interrupt_randomness(int irq, int irq_flags)
 	add_interrupt_bench(cycles);
 
 	if ((fast_pool->count < 64) &&
-	    !time_after(now, fast_pool->last + HZ))
+	    !time_after(now, fast_pool->last + HZ) &&
+        nonblocking_pool.initialized)
 		return;
 
 	r = nonblocking_pool.initialized ? &input_pool : &nonblocking_pool;
@@ -1467,9 +1468,9 @@ urandom_read(struct file *file, char __user *buf, size_t nbytes, loff_t *ppos)
 	if (unlikely(nonblocking_pool.initialized == 0) &&
 	    maxwarn > 0) {
 		maxwarn--;
-		printk(KERN_NOTICE "random: %s: uninitialized urandom read "
+	/*	printk(KERN_NOTICE "random: %s: uninitialized urandom read "
 		       "(%zd bytes read, %d bits of entropy available)\n",
-		       current->comm, nbytes, nonblocking_pool.entropy_total);
+		       current->comm, nbytes, nonblocking_pool.entropy_total);*/
 	}
 
 	nbytes = min_t(size_t, nbytes, INT_MAX >> (ENTROPY_SHIFT + 3));

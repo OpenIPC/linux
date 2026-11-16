@@ -2146,7 +2146,7 @@ void usb_disconnect(struct usb_device **pdev)
 
 	put_device(&udev->dev);
 }
-
+#if 0
 #ifdef CONFIG_USB_ANNOUNCE_NEW_DEVICES
 static void show_string(struct usb_device *udev, char *id, char *string)
 {
@@ -2172,7 +2172,7 @@ static void announce_device(struct usb_device *udev)
 #else
 static inline void announce_device(struct usb_device *udev) { }
 #endif
-
+#endif
 
 /**
  * usb_enumerate_device_otg - FIXME (usbcore-internal)
@@ -2414,7 +2414,7 @@ int usb_new_device(struct usb_device *udev)
 			(((udev->bus->busnum-1) * 128) + (udev->devnum-1)));
 
 	/* Tell the world! */
-	announce_device(udev);
+	/*announce_device(udev);*/
 
 	if (udev->serial)
 		add_device_randomness(udev->serial, strlen(udev->serial));

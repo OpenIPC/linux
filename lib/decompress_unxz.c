@@ -102,6 +102,9 @@
  */
 #ifdef STATIC
 #	define XZ_PREBOOT
+#	define INIT
+#else
+#	define INIT __init
 #endif
 #ifdef __KERNEL__
 #	include <linux/decompress/mm.h>
