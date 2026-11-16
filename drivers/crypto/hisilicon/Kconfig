@@ -1,5 +1,27 @@
 # SPDX-License-Identifier: GPL-2.0
 
+config CRYPTO_DEV_HISI_CIPHER
+	tristate "HiSilicon multi-channel CIPHER engine"
+	depends on ARCH_HISI || ARCH_HISI_BVT || COMPILE_TEST
+	depends on HAS_DMA
+	depends on HAS_IOMEM
+	select CRYPTO_AES
+	select CRYPTO_CBC
+	select CRYPTO_CTR
+	select CRYPTO_DES
+	select CRYPTO_ECB
+	select CRYPTO_ENGINE
+	select CRYPTO_LIB_DES
+	select CRYPTO_SKCIPHER
+	help
+	  Support for the 8-channel symmetric cipher engine of the HiSilicon
+	  Hi35xx SoCs (Hi3520D V100, Hi3518E V200): AES and DES/3DES in ECB
+	  and CBC mode, AES in CTR mode. Requests the hardware cannot handle
+	  are passed to the software implementation.
+
+	  To compile this as a module, choose M here: the module will be
+	  called hisi-cipher.
+
 config CRYPTO_DEV_HISI_SEC
 	tristate "Support for Hisilicon SEC crypto block cipher accelerator"
 	select CRYPTO_SKCIPHER
