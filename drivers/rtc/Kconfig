@@ -1593,6 +1593,22 @@ config RTC_DRV_PL031
 	  To compile this driver as a module, choose M here: the
 	  module will be called rtc-pl031.
 
+config RTC_DRV_HISI_SPI
+	tristate "HiSilicon SPI-bridged RTC"
+	depends on ARCH_HISI || ARCH_HISI_BVT || COMPILE_TEST
+	depends on HAS_IOMEM
+	help
+	  If you say yes here you get support for the battery backed RTC of
+	  the HiSilicon Hi3520D, Hi3518, Hi3516 and Hi3519 SoC families. The
+	  counter lives in its own power domain and is reached through a small
+	  SPI bridge in the APB register window.
+
+	  The alarm and wakeup from standby are supported if the interrupt
+	  is described in the device tree.
+
+	  This driver can also be built as a module. If so, the module
+	  will be called rtc-hisi-spi.
+
 config RTC_DRV_AT91RM9200
 	tristate "AT91RM9200 or some AT91SAM9 RTC"
 	depends on ARCH_AT91 || COMPILE_TEST
