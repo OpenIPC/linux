@@ -631,6 +631,17 @@ config INGENIC_ADC
 	  This driver can also be built as a module. If so, the module will be
 	  called ingenic_adc.
 
+config INGENIC_T23_SADC
+	tristate "Ingenic T23 SAR ADC driver"
+	depends on MACH_INGENIC || COMPILE_TEST
+	depends on OF && HAS_IOMEM
+	help
+	  Say yes here to build support for the Successive Approximation
+	  Register (SAR) ADC unit on Ingenic T23 SoCs.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called ingenic-sadc.
+
 config INTEL_MRFLD_ADC
 	tristate "Intel Merrifield Basin Cove ADC driver"
 	depends on INTEL_SOC_PMIC_MRFLD
