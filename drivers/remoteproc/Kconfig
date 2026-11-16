@@ -54,6 +54,17 @@ config INGENIC_VPU_RPROC
 	  This can be either built-in or a loadable module.
 	  If unsure say N.
 
+config INGENIC_T23_REMOTEPROC
+	tristate "Ingenic T23 RISC-V coprocessor support"
+	depends on MACH_INGENIC || COMPILE_TEST
+	depends on OF && HAS_IOMEM
+	select MFD_SYSCON
+	help
+	  Say y or m here to build the remoteproc skeleton driver for the
+	  auxiliary RISC-V coprocessor on Ingenic T23 SoCs.
+
+	  This is an experimental placeholder and is disabled by default.
+
 config MTK_SCP
 	tristate "Mediatek SCP support"
 	depends on ARCH_MEDIATEK || COMPILE_TEST
