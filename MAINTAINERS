@@ -11643,6 +11643,7 @@ HISILICON SPI-BRIDGED RTC DRIVER
 M:	Dylan Corrales <deathcamel58@gmail.com>
 S:	Maintained
 F:	Documentation/devicetree/bindings/rtc/hisilicon,hisi-spi-rtc.yaml
+F:	drivers/rtc/rtc-hisi-spi.c
 
 HISILICON SPMI CONTROLLER DRIVER FOR HIKEY 970
 M:	Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
