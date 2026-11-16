@@ -675,6 +675,22 @@ config CRYPTO_DEV_IMGTEC_HASH
 	  hardware hash accelerator. Supporting MD5/SHA1/SHA224/SHA256
 	  hashing algorithms.
 
+config CRYPTO_DEV_INGENIC_AES
+	tristate "Ingenic T23 AES hardware accelerator"
+	depends on MACH_INGENIC || COMPILE_TEST
+	depends on OF && HAS_DMA
+	select CRYPTO_SKCIPHER
+	select CRYPTO_AES
+	select CRYPTO_ECB
+	select CRYPTO_CBC
+	select CRYPTO_CTR
+	help
+	  Support for the AES hardware accelerator on Ingenic T23 SoCs,
+	  implementing ECB, CBC, and CTR skcipher modes with DMA.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called ingenic-crypto.
+
 config CRYPTO_DEV_ROCKCHIP
 	tristate "Rockchip's Cryptographic Engine driver"
 	depends on OF && ARCH_ROCKCHIP
