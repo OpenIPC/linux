@@ -9,6 +9,7 @@ config MACH_INGENIC_GENERIC
 	select MACH_JZ4780
 	select MACH_X1000
 	select MACH_X1830
+	select MACH_T23
 
 choice
 	prompt "Machine type"
@@ -43,6 +44,10 @@ config X1830_CU1830_NEO
 	bool "YSH & ATIL CU1830 Module with Neo backplane"
 	select MACH_X1830
 
+config JZ_T23_JA_A12
+	bool "Ingenic T23 IPC board"
+	select MACH_T23
+
 endchoice
 
 config MACH_JZ4725B
@@ -73,6 +78,13 @@ config MACH_X1000
 
 config MACH_X1830
 	bool
+	select MIPS_CPU_SCACHE
+	select SYS_HAS_CPU_MIPS32_R2
+	select SYS_SUPPORTS_HIGHMEM
+
+config MACH_T23
+	bool
+	select ARCH_HAS_RESET_CONTROLLER
 	select MIPS_CPU_SCACHE
 	select SYS_HAS_CPU_MIPS32_R2
 	select SYS_SUPPORTS_HIGHMEM
