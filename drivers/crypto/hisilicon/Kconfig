@@ -15,8 +15,8 @@ config CRYPTO_DEV_HISI_CIPHER
 	select CRYPTO_SKCIPHER
 	help
 	  Support for the 8-channel symmetric cipher engine of the HiSilicon
-	  Hi35xx SoCs (Hi3520D V100, Hi3518E V200): AES and DES/3DES in ECB
-	  and CBC mode, AES in CTR mode. Requests the hardware cannot handle
+	  Hi35xx SoCs (Hi3520D V100, Hi3518E V200): AES, DES and 3DES in ECB,
+	  CBC, CFB and OFB mode, AES in CTR mode. Requests the hardware cannot handle
 	  are passed to the software implementation.
 
 	  To compile this as a module, choose M here: the module will be
