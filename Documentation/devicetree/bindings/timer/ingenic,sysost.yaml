@@ -18,9 +18,14 @@ properties:
     const: 1
 
   compatible:
-    enum:
-      - ingenic,x1000-ost
-      - ingenic,x2000-ost
+    oneOf:
+      - enum:
+          - ingenic,x1000-ost
+          - ingenic,t23-ost
+          - ingenic,x2000-ost
+      - items:
+          - const: ingenic,t23-ost
+          - const: ingenic,x1000-ost
 
   reg:
     maxItems: 1
