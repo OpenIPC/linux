@@ -17,34 +17,44 @@ maintainers:
 
 properties:
   compatible:
-    const: ingenic,jz4770-vpu-rproc
+    oneOf:
+      - enum:
+          - ingenic,jz4770-vpu-rproc
+          - ingenic,t23-coprocessor
+          - ingenic,t23-riscv
+      - items:
+          - const: ingenic,t23-coprocessor
+          - const: ingenic,t23-riscv
 
   reg:
-    items:
-      - description: aux registers
-      - description: tcsm0 registers
-      - description: tcsm1 registers
-      - description: sram registers
+    minItems: 2
+    maxItems: 4
 
   reg-names:
-    items:
-      - const: aux
-      - const: tcsm0
-      - const: tcsm1
-      - const: sram
+    minItems: 2
+    maxItems: 4
 
   clocks:
-    items:
-      - description: aux clock
-      - description: vpu clock
+    minItems: 1
+    maxItems: 2
 
   clock-names:
-    items:
-      - const: aux
-      - const: vpu
+    minItems: 1
+    maxItems: 2
+
+  ingenic,cpm:
+    $ref: /schemas/types.yaml#/definitions/phandle
+    description: Phandle to the CPM syscon node.
 
   interrupts:
     maxItems: 1
+
+  interrupt-names:
+    const: doorbell
+
+  firmware-name:
+    $ref: /schemas/types.yaml#/definitions/string
+    description: Default firmware image name.
 
 required:
   - compatible
@@ -53,6 +63,54 @@ required:
   - clocks
   - clock-names
   - interrupts
+
+allOf:
+  - if:
+      properties:
+        compatible:
+          contains:
+            enum:
+              - ingenic,t23-coprocessor
+              - ingenic,t23-riscv
+    then:
+      properties:
+        reg:
+          items:
+            - description: aux registers
+            - description: tcsm shared memory
+        reg-names:
+          items:
+            - const: aux
+            - const: tcsm
+        clocks:
+          maxItems: 1
+        clock-names:
+          const: coproc
+    else:
+      properties:
+        reg:
+          items:
+            - description: aux registers
+            - description: tcsm0 registers
+            - description: tcsm1 registers
+            - description: sram registers
+        reg-names:
+          items:
+            - const: aux
+            - const: tcsm0
+            - const: tcsm1
+            - const: sram
+        clocks:
+          items:
+            - description: aux clock
+            - description: vpu clock
+        clock-names:
+          items:
+            - const: aux
+            - const: vpu
+        ingenic,cpm: false
+        interrupt-names: false
+        firmware-name: false
 
 additionalProperties: false
 
