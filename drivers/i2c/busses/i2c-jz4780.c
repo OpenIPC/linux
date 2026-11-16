@@ -126,6 +126,7 @@
 enum ingenic_i2c_version {
 	ID_JZ4780,
 	ID_X1000,
+	ID_T23,
 };
 
 /* ingenic_i2c_config: SoC specific config data. */
@@ -416,10 +417,14 @@ static void jz4780_i2c_send_rcmd(struct jz4780_i2c *i2c,
 {
 	int i;
 
+	if (i2c->cdata->version >= ID_T23 && cmd_count <= 0)
+		return;
+
 	for (i = 0; i < cmd_count - 1; i++)
 		jz4780_i2c_writew(i2c, JZ4780_I2C_DC, JZ4780_I2C_DC_READ);
 
-	if ((cmd_left == 0) && (i2c->cdata->version >= ID_X1000))
+	if ((cmd_left == 0) && (i2c->cdata->version >= ID_X1000) &&
+	    (i2c->cdata->version < ID_T23 || !i2c->stop_hold))
 		jz4780_i2c_writew(i2c, JZ4780_I2C_DC,
 				JZ4780_I2C_DC_READ | X1000_I2C_DC_STOP);
 	else
@@ -493,7 +498,8 @@ static irqreturn_t jz4780_i2c_irq(int irqno, void *dev_id)
 						  i2c->cdata->fifosize
 						  - i2c->cdata->tx_level - 1);
 
-			if (cmd_to_send) {
+			if (i2c->cdata->version >= ID_T23 ?
+			    cmd_to_send > 0 : cmd_to_send) {
 				i2c->rd_cmd_xfered += cmd_to_send;
 				cmd_left = i2c->rd_total_len -
 						i2c->rd_cmd_xfered;
@@ -751,10 +757,19 @@ static const struct ingenic_i2c_config x1000_i2c_config = {
 	.rx_level = X1000_I2C_FIFO_LEN / 2 - 1,
 };
 
+static const struct ingenic_i2c_config t23_i2c_config = {
+	.version = ID_T23,
+
+	.fifosize = X1000_I2C_FIFO_LEN,
+	.tx_level = X1000_I2C_FIFO_LEN / 2,
+	.rx_level = X1000_I2C_FIFO_LEN / 2 - 1,
+};
+
 static const struct of_device_id jz4780_i2c_of_matches[] = {
 	{ .compatible = "ingenic,jz4770-i2c", .data = &jz4780_i2c_config },
 	{ .compatible = "ingenic,jz4780-i2c", .data = &jz4780_i2c_config },
 	{ .compatible = "ingenic,x1000-i2c", .data = &x1000_i2c_config },
+	{ .compatible = "ingenic,t23-i2c", .data = &t23_i2c_config },
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, jz4780_i2c_of_matches);
