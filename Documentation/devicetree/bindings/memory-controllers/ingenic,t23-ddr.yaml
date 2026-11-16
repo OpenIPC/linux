@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/memory-controllers/ingenic,t23-ddr.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: Ingenic T23 DDR Memory Controller
+
+maintainers:
+  - Paul Cercueil <paul@crapouillou.net>
+
+properties:
+  compatible:
+    const: ingenic,t23-ddr
+
+  reg:
+    maxItems: 3
+
+  reg-names:
+    items:
+      - const: controller
+      - const: phy
+      - const: apb
+
+required:
+  - compatible
+  - reg
+  - reg-names
+
+additionalProperties: false
+
+examples:
+  - |
+    memory-controller@134f0000 {
+        compatible = "ingenic,t23-ddr";
+        reg = <0x134f0000 0x400>,
+              <0x13011000 0x100>,
+              <0x13012000 0x100>;
+        reg-names = "controller", "phy", "apb";
+    };
