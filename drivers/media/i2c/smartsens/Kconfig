@@ -1,0 +1,47 @@
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (C) 2026 Difan Zhang
+
+config VIDEO_SMARTSENS_COMMON
+	tristate
+
+config VIDEO_SC1A4T
+	tristate "SmartSens SC1A4T sensor support"
+	depends on I2C && VIDEO_DEV && OF
+	select MEDIA_CONTROLLER
+	select VIDEO_V4L2_SUBDEV_API
+	select V4L2_FWNODE
+	select VIDEO_SMARTSENS_COMMON
+	help
+	  This is a Video4Linux2 sensor driver for the SmartSens SC1A4T
+	  CMOS image sensor in primary or frame-sync slave configuration.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called sensor_sc1a4t.
+
+config VIDEO_SC2336P
+	tristate "SmartSens SC2336 / SC2336P sensor support"
+	depends on I2C && VIDEO_DEV && OF
+	select MEDIA_CONTROLLER
+	select VIDEO_V4L2_SUBDEV_API
+	select V4L2_FWNODE
+	select VIDEO_SMARTSENS_COMMON
+	help
+	  This is a Video4Linux2 sensor driver for the SmartSens SC2336
+	  and SC2336P CMOS image sensors.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called sensor_sc2336p.
+
+config VIDEO_SC2337P
+	tristate "SmartSens SC2337P sensor support"
+	depends on I2C && VIDEO_DEV && OF
+	select MEDIA_CONTROLLER
+	select VIDEO_V4L2_SUBDEV_API
+	select V4L2_FWNODE
+	select VIDEO_SMARTSENS_COMMON
+	help
+	  This is a Video4Linux2 sensor driver for the SmartSens SC2337P
+	  CMOS image sensor.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called sensor_sc2337p.
