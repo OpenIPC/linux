@@ -110,6 +110,7 @@ static int ingenic_trng_probe(struct platform_device *pdev)
 
 static const struct of_device_id ingenic_trng_of_match[] = {
 	{ .compatible = "ingenic,x1830-dtrng" },
+	{ .compatible = "ingenic,t23-dtrng" },
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, ingenic_trng_of_match);
