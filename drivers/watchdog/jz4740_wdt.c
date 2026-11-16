@@ -129,6 +129,7 @@ static const struct watchdog_ops jz4740_wdt_ops = {
 static const struct of_device_id jz4740_wdt_of_matches[] = {
 	{ .compatible = "ingenic,jz4740-watchdog", },
 	{ .compatible = "ingenic,jz4780-watchdog", },
+	{ .compatible = "ingenic,t23-watchdog", },
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, jz4740_wdt_of_matches);
