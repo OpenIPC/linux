@@ -1,0 +1,263 @@
+/* SPDX-License-Identifier: GPL-2.0 */
+/* Copyright (C) 2026 Difan Zhang */
+
+#ifndef _HELIX_HW_H_
+#define _HELIX_HW_H_
+
+#include <linux/types.h>
+#include <linux/bitops.h>
+
+#define HELIX_INTERNAL_RAM	0x131f0000
+#define HELIX_TASK_SIZE		16384
+
+/* Pipeline Scheduler Registers (0x00000) */
+#define REG_SCH_GLBC		0x00000
+#define REG_SCH_STAT		0x00034
+#define REG_SCH_SCHC		0x00060
+#define REG_SCH_BND		0x00064
+#define REG_VDMA_TASKRG_T21	0x00084
+
+#define SCH_STAT_ENDFLAG	BIT(0)
+#define SCH_STAT_ACFGERR	BIT(2)
+#define SCH_STAT_JPGEND		BIT(4)
+#define SCH_STAT_BSERR		BIT(7)
+#define SCH_STAT_ORESERR	BIT(10)
+
+#define SCH_GLBC_HIAXI		BIT(9)
+#define SCH_INTE_ENDF		BIT(16)
+#define SCH_INTE_BSERR		BIT(17)
+#define SCH_INTE_TLBERR		BIT(18)
+#define SCH_INTE_ACFGERR	BIT(20)
+#define SCH_INTE_RESERR		BIT(29)
+#define SCH_INTE_MASK		(SCH_INTE_RESERR | (0x1f << 16))
+
+/* VDMA Control & Descriptors (0x10000) */
+#define REG_VDMA_LOCK		0x10000
+#define REG_VDMA_UNLK		0x10004
+#define REG_VDMA_TASKRG		0x10008
+#define REG_VDMA_TASKST		0x1000C
+#define REG_VDMA_CH0_CNT	0x10010
+#define REG_VDMA_REF_Y_BA	0x10014
+#define REG_VDMA_REF_C_BA	0x10018
+#define REG_VDMA_STRIDE		0x1001c
+#define REG_VDMA_CFG0		0x10020
+#define REG_VDMA_CFG1		0x10024
+#define REG_VDMA_CFG2		0x10028
+#define REG_VDMA_CFG3		0x1002c
+
+#define VDMA_ACFG_VLD		BIT(31)
+#define VDMA_ACFG_TERM		BIT(30)
+#define VDMA_ACFG_RUN		0x1
+#define VDMA_ACFG_CLR		0x8
+#define VDMA_ACFG_SAFE		0x4
+#define VDMA_ACFG_ERR		BIT(3)
+#define VDMA_ACFG_END		BIT(2)
+#define VDMA_ACFG_DHA(a)	(((u32)(a)) & ~0x7fU)
+#define VDMA_ACFG_IDX(a)	(((u32)(a)) & 0xffffc)
+
+/* Output DMA (ODMA) Registers (0x30000) */
+#define REG_ODMA_GLB_TRIG	0x30000
+#define REG_ODMA_GLB_CTRL	0x30004
+#define REG_ODMA_TLC_BA		0x30018
+#define REG_ODMA_CFG0		0x30024
+#define REG_ODMA_AXI_CTRL	0x30040
+#define REG_ODMA_RAW_Y_BA	0x3004c
+#define REG_ODMA_RAW_C_BA	0x30050
+#define REG_ODMA_BUF2_BA	0x30054
+#define REG_ODMA_BUF3_BA	0x30058
+
+/* Encoding Frontend (EFE) Registers (0x40000) */
+#define REG_EFE_CTRL		0x40000
+#define REG_EFE_GEOM		0x40004
+#define REG_EFE_COEF_BA		0x4000C
+#define REG_EFE_RAWY_SBA	0x40010
+#define REG_EFE_RAWC_SBA	0x40014
+#define REG_EFE_TOPMV_BA	0x40018
+#define REG_EFE_TOPPA_BA	0x4001C
+#define REG_EFE_MECHN_BA	0x40020
+#define REG_EFE_MAUCHN_BA	0x40024
+#define REG_EFE_DBLKCHN_BA	0x40028
+#define REG_EFE_SDECHN_BA	0x4002C
+#define REG_EFE_RAW_DBA		0x40030
+#define REG_EFE_RAWV_SBA	0x40034
+#define REG_EFE_RAW_STRD	0x40038
+#define REG_EFE_ROI_MAX_QP	0x40040
+#define REG_EFE_ROI_BASE_INFO0	0x40044
+#define REG_EFE_ROI_BASE_INFO1	0x40048
+#define REG_EFE_ROI_POS_INFO0	0x4004C
+#define REG_EFE_QP_GEN_TAB	0x4006C
+#define REG_EFE_QPG_CTRL	0x40074
+#define REG_EFE_CRP_FILT	0x40078
+#define REG_EFE_CRP_THR0	0x4007C
+#define REG_EFE_CRP_THR1	0x40080
+#define REG_EFE_CRP_THR2	0x40084
+#define REG_EFE_CRP_THR3	0x40088
+#define REG_EFE_CRP_MB_OFST0	0x4008C
+#define REG_EFE_CRP_MB_OFST1	0x40090
+#define REG_EFE_SAS_THDG2	0x400AC
+#define REG_EFE_SAS_MB_OFSTA	0x400B0
+#define REG_EFE_SAS_MB_OFSTB	0x400B4
+#define REG_EFE_SAS_CNT		0x400B8
+#define REG_EFE_SAS_MCNT0	0x400BC
+#define REG_EFE_SAS_MCNT1	0x400C0
+#define REG_EFE_QP_SUM		0x400C4
+#define REG_EFE_SAS_FLT_THR	0x400C8
+#define REG_EFE_ME_CFG0		0x400cc
+#define REG_EFE_ME_CFG1		0x400d0
+#define REG_EFE_ME_CFG2		0x400d4
+#define REG_EFE_ME_CFG3		0x400d8
+#define REG_EFE_ME_LAMBDA0	0x400dc
+#define REG_EFE_ME_LAMBDA1	0x400e0
+#define REG_EFE_ME_LAMBDA2	0x400e4
+#define REG_EFE_ME_CFG4		0x400e8
+#define REG_EFE_ME_CFG5		0x400ec
+#define REG_EFE_ME_CFG6		0x400f0
+#define REG_EFE_SSAD		0x40108
+#define REG_EFE_DCS		0x4010C
+#define REG_EFE_CQP_OFST	0x40120
+#define REG_EFE_INTRA_CFG0	0x40170
+#define REG_EFE_INTRA_CFG1	0x40174
+
+#define EFE_RUN			BIT(0)
+#define EFE_EN			BIT(1)
+#define EFE_PLANE_NV12		(0x2 << 2)
+#define EFE_PLANE_NV21		(0x3 << 2)
+#define EFE_ID_JPEG		(0x1 << 14)
+#define EFE_CTRL_NV12		(EFE_ID_JPEG | EFE_PLANE_NV12 | EFE_EN | EFE_RUN) /* 0x400b */
+#define EFE_CTRL_NV21		(EFE_ID_JPEG | EFE_PLANE_NV21 | EFE_EN | EFE_RUN) /* 0x400f */
+
+/* Motion Compensation & Estimation (MCE) Registers (0x50000) */
+#define REG_MCE_GLB_CTRL	0x50000
+#define REG_MCE_COMP_CTRL	0x50010
+#define REG_MCE_ESTI_CTRL	0x50040
+#define REG_MCE_MRGI		0x50044
+#define REG_MCE_MVR		0x50048
+#define REG_MCE_FSC		0x5004C
+#define REG_MCE_FRM_SIZE	0x50060
+#define REG_MCE_FRM_STRD	0x50064
+#define REG_MCE_SLC_SPOS	0x50068
+#define REG_MCE_REF_Y_BA	0x5006c
+#define REG_MCE_REF_C_BA	0x50070
+#define REG_MCE_CFG0		0x50074
+#define REG_MCE_CFG1		0x50078
+#define REG_MCE_CFG2		0x5007c
+#define REG_MCE_TMV_BA		0x50104
+#define REG_MCE_CHN_SYNC	0x50108
+#define REG_MCE_CHN_BA		0x5010C
+#define REG_MCE_SRC_Y_BA	0x50110
+#define REG_MCE_SRC_C_BA	0x50114
+
+/* Reconstruction Frame Buffer (JRFD) Registers (0x60000) */
+#define REG_JRFD_GLB_CTRL	0x60000
+#define REG_JRFD_GEOM		0x60004
+#define REG_JRFD_Y_BA		0x60008
+#define REG_JRFD_C_BA		0x6000C
+#define REG_JRFD_STRD		0x60010
+#define REG_JRFD_CFG0		0x60014
+
+/* Deblocking Filter (DBLK) Registers (0x70000) */
+#define REG_DBLK_CFG		0x7005c /* undocumented; programmed with stock value */
+#define REG_DBLK_TRIG		0x70060
+#define REG_DBLK_GSTA		0x70070
+#define DBLK_STAT_DOEND		BIT(0)
+
+/* Video Macroblock Analysis Unit (VMAU) Registers (0x80000) */
+#define REG_VMAU_NCCHN_ADDR	0x8000C
+#define REG_VMAU_TOP_BASE	0x80028
+#define REG_VMAU_CTX		0x8002c
+#define REG_VMAU_MD_CFG0	0x80030
+#define REG_VMAU_MD_CFG1	0x80034
+#define REG_VMAU_MD_CFG2	0x80038
+#define REG_VMAU_MD_CFG3	0x8003c
+#define REG_VMAU_GBL_RUN	0x80040
+#define REG_VMAU_GBL_CTR	0x80044
+#define REG_VMAU_VIDEO_TYPE	0x80050
+#define REG_VMAU_Y_GS		0x80054
+#define REG_VMAU_DEC_DONE	0x80058
+#define REG_VMAU_ENC_DONE	0x8005C
+#define REG_VMAU_DEADZONE	0x80078
+#define REG_VMAU_ACMASK		0x8007C
+#define REG_VMAU_MD_CFG4	0x800d8
+#define REG_VMAU_MD_CFG5	0x800dc
+#define REG_VMAU_MD_CFG6	0x800fc
+#define REG_VMAU_MD_CFG7	0x80114
+#define REG_VMAU_MD_CFG8	0x80118
+#define REG_VMAU_MD_CFG9	0x8011c
+#define REG_VMAU_CABAC_RUN1	0x80174
+#define REG_VMAU_FIFO_CTRL	0x80194
+#define REG_VMAU_FIFO_DATA	0x80198
+#define REG_VMAU_FIFO_CFG	0x8019c
+#define REG_VMAU_SDE_CFG0	0x801c0
+#define REG_VMAU_SDE_CFG1	0x801c4
+#define REG_VMAU_SDE_CFG2	0x801c8
+#define REG_VMAU_SDE_CFG3	0x801cc
+#define REG_VMAU_SDE_CFG4	0x801d0
+#define REG_VMAU_SDE_CFG5	0x801d4
+#define REG_VMAU_CFG7		0x801e0
+#define REG_VMAU_CFG8		0x801e4
+#define REG_VMAU_RC_MAD_RAM	0x80800
+#define REG_VMAU_IQUANT_BASE	0x80900
+#define REG_VMAU_QT		0x80980
+
+/* Syntax Decoder/Encoder (SDE) Registers (0x90000) */
+#define REG_SDE_STAT		0x90000
+#define REG_SDE_SL_CTRL		0x90004
+#define REG_SDE_SL_GEOM		0x90008
+#define REG_SDE_GL_CTRL		0x9000C
+#define REG_SDE_CODEC_ID	0x90010
+#define REG_SDE_CFG0		0x90014
+#define REG_SDE_CFG1		0x90018
+#define REG_SDE_CFG2		0x9001C
+#define REG_SDE_CFG3		0x90020
+#define REG_SDE_CFG4		0x90024
+#define REG_SDE_CFG5		0x90028
+#define REG_SDE_CFG9		0x90038
+#define REG_SDE_CTX_TBL		0x92000
+#define SDE_STAT_BSEND		BIT(1)
+
+/* TCSM Registers (0xB0000) */
+#define REG_TCSM_CTRL		0xB0000
+#define REG_TCSM_GEOM		0xB0004
+#define REG_TCSM_Y_BA		0xB0008
+#define REG_TCSM_C_BA		0xB000C
+#define REG_TCSM_STRD		0xB0010
+#define REG_TCSM_REF_Y_BA	0xB0014
+#define REG_TCSM_REF_C_BA	0xB0018
+#define REG_TCSM_CFG0		0xB001c
+#define REG_TCSM_CFG1		0xB0020
+#define REG_TCSM_SRC_Y_BA	0xB0030
+#define REG_TCSM_SRC_C_BA	0xB0034
+#define REG_TCSM_FLUSH		0xc0000
+
+/* JPEG Codec (JPGC) Registers (0xE0000) */
+#define REG_JPGC_TRIG		0xE0000
+#define REG_JPGC_GLBI		0xE0004
+#define REG_JPGC_STAT		0xE0008
+#define REG_JPGC_BSA		0xE000C
+#define REG_JPGC_P0A		0xE0010
+#define REG_JPGC_P1A		0xE0014
+#define REG_JPGC_P2A		0xE0018
+#define REG_JPGC_NMCU		0xE0028
+#define REG_JPGC_NRSM		0xE002C
+#define REG_JPGC_P0C		0xE0030
+#define REG_JPGC_P1C		0xE0034
+#define REG_JPGC_P2C		0xE0038
+#define REG_JPGC_MAX_BS		0xE0068
+#define REG_JPGC_QMEM		0xE1400
+#define REG_JPGC_HUFE		0xE1800
+
+#define JPGC_STAT_ENDF		BIT(31)
+#define JPGC_STAT_LEN_MASK	0x00FFFFFF
+
+#define JPGC_CORE_OPEN		BIT(0)
+#define JPGC_BS_TRIG		BIT(1)
+#define JPGC_PP_TRIG		BIT(2)
+#define JPGC_TRIG_ENCODE	(JPGC_CORE_OPEN | JPGC_BS_TRIG | JPGC_PP_TRIG) /* 0x07 */
+
+#define JPGC_P0C_DEFAULT	0x30
+#define JPGC_P1C_DEFAULT	7
+#define JPGC_P2C_DEFAULT	7
+#define JPGC_GLBI_INIT		1
+#define JPGC_GLBI_RUN		0x000a0121
+
+#endif /* _HELIX_HW_H_ */
