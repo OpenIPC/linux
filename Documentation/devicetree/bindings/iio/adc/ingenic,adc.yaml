@@ -26,6 +26,7 @@ properties:
       - ingenic,jz4760-adc
       - ingenic,jz4760b-adc
       - ingenic,jz4770-adc
+      - ingenic,t23-sadc
 
   '#io-channel-cells':
     const: 1
@@ -39,8 +40,9 @@ properties:
     maxItems: 1
 
   clock-names:
-    items:
-      - const: adc
+    enum:
+      - adc
+      - sadc
 
   interrupts:
     maxItems: 1
@@ -52,15 +54,29 @@ properties:
       which does not have such a divider.
     type: boolean
 
-if:
-  not:
-    properties:
-      compatible:
-        contains:
-          const: ingenic,jz4760b-adc
-then:
-  properties:
-    ingenic,use-internal-divider: false
+allOf:
+  - if:
+      not:
+        properties:
+          compatible:
+            contains:
+              const: ingenic,jz4760b-adc
+    then:
+      properties:
+        ingenic,use-internal-divider: false
+  - if:
+      properties:
+        compatible:
+          contains:
+            const: ingenic,t23-sadc
+    then:
+      properties:
+        clock-names:
+          const: sadc
+    else:
+      properties:
+        clock-names:
+          const: adc
 
 required:
   - compatible
