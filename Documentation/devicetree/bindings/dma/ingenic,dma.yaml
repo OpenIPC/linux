@@ -29,6 +29,10 @@ properties:
           - ingenic,jz4780-dma
           - ingenic,x1000-dma
           - ingenic,x1830-dma
+          - ingenic,t23-dma
+      - items:
+          - const: ingenic,t23-dma
+          - const: ingenic,x1830-dma
       - items:
           - const: ingenic,jz4770-bdma
           - const: ingenic,jz4760b-bdma
