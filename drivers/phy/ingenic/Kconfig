@@ -8,6 +8,7 @@ config PHY_INGENIC_USB
 	depends on USB_SUPPORT
 	depends on HAS_IOMEM
 	select GENERIC_PHY
+	select MFD_SYSCON if MACH_T23
 	help
 	  This driver provides USB PHY support for the USB controller found
-	  on the JZ-series and X-series SoCs from Ingenic.
+	  on the JZ-series, X-series, and T-series SoCs from Ingenic.
