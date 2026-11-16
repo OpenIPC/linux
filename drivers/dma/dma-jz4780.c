@@ -93,6 +93,7 @@
 #define JZ_SOC_DATA_PER_CHAN_PM		BIT(2)
 #define JZ_SOC_DATA_NO_DCKES_DCKEC	BIT(3)
 #define JZ_SOC_DATA_BREAK_LINKS		BIT(4)
+#define JZ_SOC_DATA_T23			BIT(5)
 
 /**
  * struct jz4780_dma_hwdesc - descriptor structure read by the DMA controller.
@@ -379,7 +380,10 @@ static struct dma_async_tx_descriptor *jz4780_dma_prep_slave_sg(
 					      sg_dma_len(&sgl[i]),
 					      direction);
 		if (err < 0) {
-			jz4780_dma_desc_free(&jzchan->desc->vdesc);
+			if (jzdma->soc_data->flags & JZ_SOC_DATA_T23)
+				jz4780_dma_desc_free(&desc->vdesc);
+			else
+				jz4780_dma_desc_free(&jzchan->desc->vdesc);
 			return NULL;
 		}
 
@@ -409,6 +413,7 @@ static struct dma_async_tx_descriptor *jz4780_dma_prep_dma_cyclic(
 	unsigned long flags)
 {
 	struct jz4780_dma_chan *jzchan = to_jz4780_dma_chan(chan);
+	struct jz4780_dma_dev *jzdma = jz4780_dma_chan_parent(jzchan);
 	struct jz4780_dma_desc *desc;
 	unsigned int periods, i;
 	int err;
@@ -426,7 +431,10 @@ static struct dma_async_tx_descriptor *jz4780_dma_prep_dma_cyclic(
 		err = jz4780_dma_setup_hwdesc(jzchan, &desc->desc[i], buf_addr,
 					      period_len, direction);
 		if (err < 0) {
-			jz4780_dma_desc_free(&jzchan->desc->vdesc);
+			if (jzdma->soc_data->flags & JZ_SOC_DATA_T23)
+				jz4780_dma_desc_free(&desc->vdesc);
+			else
+				jz4780_dma_desc_free(&jzchan->desc->vdesc);
 			return NULL;
 		}
 
@@ -642,6 +650,7 @@ static enum dma_status jz4780_dma_tx_status(struct dma_chan *chan,
 	dma_cookie_t cookie, struct dma_tx_state *txstate)
 {
 	struct jz4780_dma_chan *jzchan = to_jz4780_dma_chan(chan);
+	struct jz4780_dma_dev *jzdma = jz4780_dma_chan_parent(jzchan);
 	struct virt_dma_desc *vdesc;
 	enum dma_status status;
 	unsigned long flags;
@@ -658,7 +667,9 @@ static enum dma_status jz4780_dma_tx_status(struct dma_chan *chan,
 		/* On the issued list, so hasn't been processed yet */
 		residue = jz4780_dma_desc_residue(jzchan,
 					to_jz4780_dma_desc(vdesc), 0);
-	} else if (cookie == jzchan->desc->vdesc.tx.cookie) {
+	} else if ((!(jzdma->soc_data->flags & JZ_SOC_DATA_T23) ||
+		    jzchan->desc) &&
+		   cookie == jzchan->desc->vdesc.tx.cookie) {
 		residue = jz4780_dma_desc_residue(jzchan, jzchan->desc,
 					jzchan->curr_hwdesc + 1);
 	}
@@ -682,6 +693,8 @@ static bool jz4780_dma_chan_irq(struct jz4780_dma_dev *jzdma,
 	bool ack = true;
 
 	spin_lock(&jzchan->vchan.lock);
+	if (soc_flags & JZ_SOC_DATA_T23)
+		desc = jzchan->desc;
 
 	dcs = jz4780_dma_chn_readl(jzdma, jzchan->id, JZ_DMA_REG_DCS);
 	jz4780_dma_chn_writel(jzdma, jzchan->id, JZ_DMA_REG_DCS, 0);
@@ -1102,6 +1115,12 @@ static const struct jz4780_dma_soc_data x1830_dma_soc_data = {
 	.flags = JZ_SOC_DATA_PROGRAMMABLE_DMA,
 };
 
+static const struct jz4780_dma_soc_data t23_dma_soc_data = {
+	.nb_channels = 32,
+	.transfer_ord_max = 7,
+	.flags = JZ_SOC_DATA_PROGRAMMABLE_DMA | JZ_SOC_DATA_T23,
+};
+
 static const struct of_device_id jz4780_dma_dt_match[] = {
 	{ .compatible = "ingenic,jz4740-dma", .data = &jz4740_dma_soc_data },
 	{ .compatible = "ingenic,jz4725b-dma", .data = &jz4725b_dma_soc_data },
@@ -1116,6 +1135,7 @@ static const struct of_device_id jz4780_dma_dt_match[] = {
 	{ .compatible = "ingenic,jz4780-dma", .data = &jz4780_dma_soc_data },
 	{ .compatible = "ingenic,x1000-dma", .data = &x1000_dma_soc_data },
 	{ .compatible = "ingenic,x1830-dma", .data = &x1830_dma_soc_data },
+	{ .compatible = "ingenic,t23-dma", .data = &t23_dma_soc_data },
 	{},
 };
 MODULE_DEVICE_TABLE(of, jz4780_dma_dt_match);
