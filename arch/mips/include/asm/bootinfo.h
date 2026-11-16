@@ -86,6 +86,7 @@ enum ingenic_machine_type {
 	MACH_INGENIC_X2000E,
 	MACH_INGENIC_X2000H,
 	MACH_INGENIC_X2100,
+	MACH_INGENIC_T23,
 };
 
 extern char *system_type;

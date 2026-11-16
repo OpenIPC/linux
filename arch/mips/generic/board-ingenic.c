@@ -5,17 +5,23 @@
  * Copyright (C) 2009-2010, Lars-Peter Clausen <lars@metafoo.de>
  * Copyright (C) 2011, Maarten ter Huurne <maarten@treewalker.org>
  * Copyright (C) 2020 Paul Cercueil <paul@crapouillou.net>
+ * Copyright (C) 2026 Difan Zhang
  */
 
+#include <linux/bitops.h>
 #include <linux/clk.h>
+#include <linux/delay.h>
 #include <linux/of.h>
 #include <linux/of_address.h>
 #include <linux/of_fdt.h>
 #include <linux/pm.h>
+#include <linux/reboot.h>
 #include <linux/sizes.h>
+#include <linux/string.h>
 #include <linux/suspend.h>
 #include <linux/types.h>
 
+#include <asm/addrspace.h>
 #include <asm/bootinfo.h>
 #include <asm/io.h>
 #include <asm/machine.h>
@@ -32,6 +38,8 @@ static __init char *ingenic_get_system_type(unsigned long machtype)
 		return "X2000E";
 	case MACH_INGENIC_X2000:
 		return "X2000";
+	case MACH_INGENIC_T23:
+		return "T23";
 	case MACH_INGENIC_X1830:
 		return "X1830";
 	case MACH_INGENIC_X1000E:
@@ -147,6 +155,7 @@ static const struct of_device_id ingenic_of_match[] __initconst = {
 	{ .compatible = "ingenic,x1000", .data = (void *)MACH_INGENIC_X1000 },
 	{ .compatible = "ingenic,x1000e", .data = (void *)MACH_INGENIC_X1000E },
 	{ .compatible = "ingenic,x1830", .data = (void *)MACH_INGENIC_X1830 },
+	{ .compatible = "ingenic,t23", .data = (void *)MACH_INGENIC_T23 },
 	{ .compatible = "ingenic,x2000", .data = (void *)MACH_INGENIC_X2000 },
 	{ .compatible = "ingenic,x2000e", .data = (void *)MACH_INGENIC_X2000E },
 	{ .compatible = "ingenic,x2000h", .data = (void *)MACH_INGENIC_X2000H },
@@ -158,6 +167,64 @@ MIPS_MACHINE(ingenic) = {
 	.matches = ingenic_of_match,
 	.fixup_fdt = ingenic_fixup_fdt,
 };
+
+#define T23_TCU_BASE_PHYS	0x10002000
+#define T23_CPM_CPPSR		0x34
+#define T23_CPM_CPSPPR		0x38
+#define T23_TCU_TSCR		0x3c
+#define T23_WDT_TDR		0x00
+#define T23_WDT_TCER		0x04
+#define T23_WDT_TCNT		0x08
+#define T23_WDT_TCSR		0x0c
+#define T23_RECOVERY_SIG	0x001a1a
+#define T23_REBOOT_SIG		0x003535
+
+static void ingenic_t23_write_cppsr(const char *cmd)
+{
+	void __iomem *cpm = (void __iomem *)CKSEG1ADDR(INGENIC_CGU_BASE);
+	u32 sig = (cmd && !strcmp(cmd, "recovery")) ?
+		  T23_RECOVERY_SIG : T23_REBOOT_SIG;
+	int retries = 1000;
+
+	do {
+		writel(0x5a5a, cpm + T23_CPM_CPSPPR);
+		writel(sig, cpm + T23_CPM_CPPSR);
+		writel(0x0, cpm + T23_CPM_CPSPPR);
+		if (readl(cpm + T23_CPM_CPPSR) == sig)
+			break;
+		udelay(100);
+	} while (--retries);
+}
+
+static int ingenic_t23_reboot_notify(struct notifier_block *nb,
+				     unsigned long action, void *data)
+{
+	if (action == SYS_RESTART)
+		ingenic_t23_write_cppsr(data);
+	return NOTIFY_DONE;
+}
+
+static struct notifier_block ingenic_t23_reboot_nb = {
+	.notifier_call = ingenic_t23_reboot_notify,
+};
+
+static void ingenic_t23_restart(char *command)
+{
+	void __iomem *tcu = (void __iomem *)CKSEG1ADDR(T23_TCU_BASE_PHYS);
+
+	local_irq_disable();
+	ingenic_t23_write_cppsr(command);
+
+	writel(BIT(16), tcu + T23_TCU_TSCR);
+	writel(0, tcu + T23_WDT_TCNT);
+	writel(4, tcu + T23_WDT_TDR);
+	writel((3 << 3) | BIT(1), tcu + T23_WDT_TCSR);
+	writel(0, tcu + T23_WDT_TCER);
+	writel(1, tcu + T23_WDT_TCER);
+	mdelay(200);
+	for (;;)
+		__asm__(".set push;\n.set mips3;\nwait;\n.set pop;\n");
+}
 
 static void ingenic_wait_instr(void)
 {
@@ -192,6 +259,10 @@ static int __init ingenic_pm_init(void)
 		if (IS_ENABLED(CONFIG_PM_SLEEP))
 			suspend_set_ops(&ingenic_pm_ops);
 		_machine_halt = ingenic_halt;
+		if (mips_machtype == MACH_INGENIC_T23) {
+			register_reboot_notifier(&ingenic_t23_reboot_nb);
+			_machine_restart = ingenic_t23_restart;
+		}
 	}
 
 	return 0;
