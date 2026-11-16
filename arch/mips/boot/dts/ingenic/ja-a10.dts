@@ -1,0 +1,309 @@
+// SPDX-License-Identifier: GPL-2.0
+// Copyright (C) 2026 Difan Zhang
+/dts-v1/;
+
+#include "t23.dtsi"
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+
+/ {
+	model = "Jooan JA-A10 (Ingenic T23DL)";
+	compatible = "jooan,ja-a10", "ingenic,t23";
+
+	aliases {
+		serial0 = &uart0;
+		serial1 = &uart1;
+		serial2 = &uart2;
+	};
+
+	chosen {
+		bootargs = "earlycon console=ttyS1,115200n8 loglevel=7";
+		stdout-path = "serial1:115200n8";
+	};
+
+	memory@0 {
+		device_type = "memory";
+		reg = <0x00000000 0x02000000>;
+	};
+
+	reserved-memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		camera_reserved: camera@1800000 {
+			compatible = "shared-dma-pool";
+			reg = <0x01800000 0x00800000>;
+			reusable;
+			linux,cma-default;
+		};
+	};
+
+	illumination {
+		compatible = "gpio-leds";
+
+		led-white {
+			label = "white:illumination";
+			gpios = <&gpb 28 GPIO_ACTIVE_HIGH>;
+			default-state = "off";
+		};
+
+		led-infrared {
+			label = "ir:illumination";
+			gpios = <&gpb 27 GPIO_ACTIVE_HIGH>;
+			default-state = "off";
+		};
+
+		led-status {
+			label = "status:indicator";
+			gpios = <&gpb 26 GPIO_ACTIVE_HIGH>;
+			default-state = "off";
+		};
+	};
+
+	keys {
+		compatible = "gpio-keys";
+
+		key-reset {
+			label = "Reset";
+			gpios = <&gpb 30 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_RESTART>;
+		};
+
+		key-call {
+			label = "Call";
+			gpios = <&gpb 25 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_PHONE>;
+		};
+	};
+
+	wifi_pwr: wifi-regulator {
+		compatible = "regulator-fixed";
+		regulator-name = "wifi_power";
+		gpio = <&gpa 6 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+		regulator-boot-on;
+		regulator-always-on;
+	};
+
+	speaker_amp: speaker-amplifier {
+		compatible = "simple-audio-amplifier";
+		enable-gpios = <&gpb 31 GPIO_ACTIVE_HIGH>;
+		sound-name-prefix = "Speaker Amp";
+	};
+
+	sound {
+		compatible = "simple-audio-card";
+		simple-audio-card,name = "ja-a10-audio";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		simple-audio-card,widgets =
+			"Speaker", "Speaker",
+			"Microphone", "Mic";
+		simple-audio-card,routing =
+			"Speaker Amp INL", "LOUT",
+			"Speaker Amp INR", "ROUT",
+			"Speaker", "Speaker Amp OUTL",
+			"Speaker", "Speaker Amp OUTR",
+			"MICIN", "Mic";
+
+		simple-audio-card,aux-devs = <&speaker_amp>;
+
+		simple-audio-card,dai-link@0 {
+			reg = <0>;
+			format = "i2s";
+			bitclock-master = <&sound_codec>;
+			frame-master = <&sound_codec>;
+
+			cpu {
+				sound-dai = <&aic>;
+			};
+
+			sound_codec: codec {
+				sound-dai = <&codec 0>;
+			};
+		};
+
+		simple-audio-card,dai-link@1 {
+			reg = <1>;
+
+			cpu {
+				sound-dai = <&aic_loop>;
+			};
+
+			codec {
+				sound-dai = <&codec 1>;
+			};
+		};
+	};
+
+	motor {
+		compatible = "ingenic,t23-motor";
+		pan-gpios = <&gpb 13 GPIO_ACTIVE_HIGH>,
+			    <&gpb 14 GPIO_ACTIVE_HIGH>,
+			    <&gpb 15 GPIO_ACTIVE_HIGH>,
+			    <&gpb 16 GPIO_ACTIVE_HIGH>;
+		tilt-gpios = <&gpb 20 GPIO_ACTIVE_HIGH>,
+			     <&gpb 21 GPIO_ACTIVE_HIGH>,
+			     <&gpb 22 GPIO_ACTIVE_HIGH>,
+			     <&gpb 19 GPIO_ACTIVE_HIGH>;
+		ingenic,pan-max-steps = <4100>;
+		ingenic,tilt-max-steps = <1200>;
+		ingenic,tilt-reset-steps = <700>;
+		status = "okay";
+	};
+};
+
+&pinctrl {
+	status = "okay";
+};
+
+&gpb {
+	gpio-line-names = "", "", "", "", "", "", "", "",
+			  "", "", "", "", "", "", "", "",
+			  "", "ircut-out", "ircut-in";
+};
+
+&ost {
+	status = "okay";
+};
+
+&tcu {
+	status = "okay";
+};
+
+&pwm {
+	status = "okay";
+};
+
+&watchdog {
+	status = "okay";
+};
+
+&pdma {
+	status = "okay";
+};
+
+&uart1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_uart1_b>;
+	status = "okay";
+};
+
+&sfc {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_sfc>;
+	status = "okay";
+
+	flash@0 {
+		compatible = "jedec,spi-nor";
+		reg = <0>;
+		label = "jz_sfc";
+		spi-max-frequency = <50000000>;
+		spi-rx-bus-width = <2>;
+		spi-tx-bus-width = <2>;
+	};
+};
+
+&msc0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_mmc0>;
+	bus-width = <4>;
+	max-frequency = <25000000>;
+	cd-gpios = <&gpb 29 GPIO_ACTIVE_LOW>;
+	status = "okay";
+};
+
+&otg_phy {
+	status = "okay";
+};
+
+&otg {
+	status = "okay";
+};
+
+&aic {
+	status = "okay";
+};
+
+&aic_loop {
+	status = "okay";
+};
+
+&codec {
+	status = "okay";
+};
+
+&i2c0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_i2c0>;
+	clock-frequency = <100000>;
+	status = "okay";
+
+	sensor@30 {
+		compatible = "smartsens,sc1a4t";
+		reg = <0x30>;
+		clocks = <&cgu CLK_CGU_CIM>;
+		clock-names = "xvclk";
+		pwdn-gpios = <&gpa 18 GPIO_ACTIVE_LOW>;
+		reset-gpios = <&gpa 16 GPIO_ACTIVE_LOW>;
+
+		port {
+			sensor0_out: endpoint {
+				remote-endpoint = <&isp_in0>;
+				clock-lanes = <0>;
+				data-lanes = <1>;
+				link-frequencies = /bits/ 64 <360000000>;
+			};
+		};
+	};
+};
+
+&isp {
+	assigned-clocks = <&cgu CLK_CGU_ISP>;
+	assigned-clock-parents = <&cgu CLK_SCLKA>;
+	assigned-clock-rates = <240000000>;
+	memory-region = <&camera_reserved>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_cim_mclk>;
+	status = "okay";
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+			isp_in0: endpoint {
+				remote-endpoint = <&sensor0_out>;
+				clock-lanes = <0>;
+				data-lanes = <1>;
+			};
+		};
+	};
+};
+
+&ipu {
+	memory-region = <&camera_reserved>;
+	status = "okay";
+};
+
+&helix {
+	assigned-clocks = <&cgu CLK_CGU_VPU>;
+	assigned-clock-rates = <450000000>;
+	memory-region = <&camera_reserved>;
+	status = "okay";
+};
+
+&aes {
+	status = "okay";
+};
+
+&dtrng {
+	status = "okay";
+};
+
+&sadc {
+	status = "okay";
+};
