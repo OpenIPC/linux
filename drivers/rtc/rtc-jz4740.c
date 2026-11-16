@@ -55,6 +55,7 @@ enum jz4740_rtc_type {
 	ID_JZ4740,
 	ID_JZ4760,
 	ID_JZ4780,
+	ID_T23,
 };
 
 struct jz4740_rtc {
@@ -264,6 +265,7 @@ static const struct of_device_id jz4740_rtc_of_match[] = {
 	{ .compatible = "ingenic,jz4760-rtc", .data = (void *)ID_JZ4760 },
 	{ .compatible = "ingenic,jz4770-rtc", .data = (void *)ID_JZ4780 },
 	{ .compatible = "ingenic,jz4780-rtc", .data = (void *)ID_JZ4780 },
+	{ .compatible = "ingenic,t23-rtc", .data = (void *)ID_T23 },
 	{},
 };
 MODULE_DEVICE_TABLE(of, jz4740_rtc_of_match);
@@ -382,7 +384,10 @@ static int jz4740_rtc_probe(struct platform_device *pdev)
 	rtc->rtc->range_max = U32_MAX;
 
 	rate = clk_get_rate(clk);
-	jz4740_rtc_set_wakeup_params(rtc, np, rate);
+	if (rtc->type != ID_T23)
+		jz4740_rtc_set_wakeup_params(rtc, np, rate);
+	else if (!(jz4740_rtc_reg_read(rtc, JZ_REG_RTC_CTRL) & JZ_RTC_CTRL_ENABLE))
+		jz4740_rtc_ctrl_set_bits(rtc, JZ_RTC_CTRL_ENABLE, true);
 
 	/* Each 1 Hz pulse should happen after (rate) ticks */
 	jz4740_rtc_reg_write(rtc, JZ_REG_RTC_REGULATOR, rate - 1);
@@ -396,7 +401,7 @@ static int jz4740_rtc_probe(struct platform_device *pdev)
 	if (ret)
 		return dev_err_probe(dev, ret, "Failed to request rtc irq\n");
 
-	if (of_device_is_system_power_controller(np)) {
+	if (rtc->type != ID_T23 && of_device_is_system_power_controller(np)) {
 		dev_for_power_off = dev;
 
 		if (!pm_power_off)
