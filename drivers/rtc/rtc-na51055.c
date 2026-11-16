@@ -45,8 +45,9 @@ static int is_power_lost;
 #define loc_cpu() down(&rtc_sem);
 #define unl_cpu() up(&rtc_sem);
 
-void rtc_wait_pwr_alarm_done(void);
+int rtc_wait_pwr_alarm_done(void);
 int rtc_trigger_cset(void);
+static int rtc_wait_cset_done(void);
 
 static const unsigned short rtc_ydays[2][13] = {
 	/* Normal years */
@@ -126,7 +127,8 @@ void nvt_rtc_power_control(int reboot_sec)
 		for (i = 0;i < reboot_sec; i++)
 			nvt_rtc_add_one_sec(&sec, &min, &hour, &days);
 
-		wait_for_completion(&cset_completion);
+		if (rtc_wait_cset_done())
+			return;
 
 		ctrl_reg.reg = rtc_getreg(RTC_CTRL_REG_OFS);
 		ctrl_reg.bit.cset = 0;
@@ -146,9 +148,8 @@ void nvt_rtc_power_control(int reboot_sec)
 		oscan_reg.bit.osc_analogcfg = RTC_INT_OSC_ANALOG_CFG;
 		rtc_setreg(RTC_OSCAN_REG_OFS, oscan_reg.reg);
 
-		rtc_trigger_cset();
-
-		rtc_wait_pwr_alarm_done();
+		if (rtc_trigger_cset() || rtc_wait_pwr_alarm_done())
+			return;
 
 		pwbc_reg.reg = rtc_getreg(RTC_PWBC_REG_OFS);
 		pwbc_reg.bit.pwralarm_en = 1;
@@ -161,9 +162,10 @@ void nvt_rtc_power_control(int reboot_sec)
 
 	loc_cpu();
 
-	wait_for_completion(&cset_completion);
-
-	rtc_wait_pwr_alarm_done();
+	/* Going down: the semaphore stays taken. On a timeout the restart
+	 * handler's watchdog resets the chip instead. */
+	if (rtc_wait_cset_done() || rtc_wait_pwr_alarm_done())
+		return;
 
 	pwbc_reg.reg = 0x0;
 	pwbc_reg.bit.reset_sdt_timer = 1;
@@ -192,6 +194,22 @@ static struct rtc_time default_tm = {
 static void rtc_cset_work(struct work_struct *work)
 {
 	complete(&cset_completion);
+}
+
+/*
+ * Every access first waits for the previous CSET's interrupt. If it never
+ * comes, give up after a second rather than hold rtc_sem for good, and
+ * re-arm the completion so one lost interrupt does not fail every later
+ * caller: rtc_trigger_cset() still checks the hardware is idle.
+ */
+static int rtc_wait_cset_done(void)
+{
+	if (wait_for_completion_timeout(&cset_completion,
+					msecs_to_jiffies(1000)))
+		return 0;
+	pr_err("nvt_rtc: no CSET interrupt, is its 32K oscillator running?\n");
+	complete(&cset_completion);
+	return -ETIMEDOUT;
 }
 
 static irqreturn_t rtc_update_handler(int irq, void *data)
@@ -272,14 +290,22 @@ stuck:
 	return -ETIMEDOUT;
 }
 
-void rtc_wait_pwr_alarm_done(void)
+int rtc_wait_pwr_alarm_done(void)
 {
 	union RTC_PWBC_REG pwbc_reg;
+	unsigned long timeout = jiffies + msecs_to_jiffies(1000);
+
 	do
 	{
 		pwbc_reg.reg = rtc_getreg(RTC_PWBC_REG_OFS);
+		if (time_after_eq(jiffies, timeout) &&
+		    (pwbc_reg.bit.pwralarm_en || pwbc_reg.bit.pwralarm_dis)) {
+			pr_err("nvt_rtc: power alarm never settled\n");
+			return -ETIMEDOUT;
+		}
 	} while ((pwbc_reg.bit.pwralarm_en == 1) || \
 			(pwbc_reg.bit.pwralarm_dis == 1));
+	return 0;
 }
 
 #ifdef CONFIG_RTC_INTF_DEV
@@ -444,7 +470,11 @@ static int nvt_rtc_chk_power(struct device *dev)
 	loc_cpu();
 
 	/*wait for cset done*/
-	wait_for_completion(&cset_completion);
+	ret = rtc_wait_cset_done();
+	if (ret) {
+		unl_cpu();
+		return ret;
+	}
 
 	ctrl_reg.reg = rtc_getreg(RTC_CTRL_REG_OFS);
 	ctrl_reg.bit.cset = 0;
@@ -467,7 +497,7 @@ static int nvt_rtc_chk_power(struct device *dev)
 	daykey_reg.bit.day = days;
 	rtc_setreg(RTC_DAYKEY_REG_OFS, daykey_reg.reg);
 
-	rtc_trigger_cset();
+	ret = rtc_trigger_cset();
 
 	unl_cpu();
 
@@ -482,7 +512,10 @@ static int nvt_rtc_read_time(struct device *dev, struct rtc_time *tm)
 
 	loc_cpu();
 	/*wait for cset done*/
-	wait_for_completion(&cset_completion);
+	if (rtc_wait_cset_done()) {
+		unl_cpu();
+		return -ETIMEDOUT;
+	}
 	complete(&cset_completion);
 	unl_cpu();
 
@@ -554,7 +587,11 @@ static int nvt_rtc_set_time(struct device *dev, struct rtc_time *tm)
 	loc_cpu();
 
 	/*wait for cset done*/
-	wait_for_completion(&cset_completion);
+	ret = rtc_wait_cset_done();
+	if (ret) {
+		unl_cpu();
+		return ret;
+	}
 
 	ctrl_reg.reg = rtc_getreg(RTC_CTRL_REG_OFS);
 	ctrl_reg.bit.cset = 0;
@@ -588,7 +625,10 @@ static int nvt_rtc_read_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 
 	loc_cpu();
 	/*wait for cset done*/
-	wait_for_completion(&cset_completion);
+	if (rtc_wait_cset_done()) {
+		unl_cpu();
+		return -ETIMEDOUT;
+	}
 	complete(&cset_completion);
 	unl_cpu();
 
@@ -678,7 +718,9 @@ static int nvt_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 		return E_PAR;
 	}
 
-	wait_for_completion(&cset_completion);
+	ret = rtc_wait_cset_done();
+	if (ret)
+		return ret;
 
 	ctrl_reg.reg = rtc_getreg(RTC_CTRL_REG_OFS);
 	ctrl_reg.bit.cset = 0;
@@ -699,9 +741,11 @@ static int nvt_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 	oscan_reg.bit.osc_analogcfg = RTC_INT_OSC_ANALOG_CFG;
 	rtc_setreg(RTC_OSCAN_REG_OFS, oscan_reg.reg);
 
-	rtc_trigger_cset();
-
-	rtc_wait_pwr_alarm_done();
+	ret = rtc_trigger_cset();
+	if (!ret)
+		ret = rtc_wait_pwr_alarm_done();
+	if (ret)
+		return ret;
 
 	pwbc_reg.reg = rtc_getreg(RTC_PWBC_REG_OFS);
 	pwbc_reg.bit.pwralarm_en = 1;
@@ -828,7 +872,10 @@ static int data_proc_show(struct seq_file *seq, void *v)
 
 	loc_cpu();
 	/*wait for cset done*/
-	wait_for_completion(&cset_completion);
+	if (rtc_wait_cset_done()) {
+		unl_cpu();
+		return -ETIMEDOUT;
+	}
 	complete(&cset_completion);
 	unl_cpu();
 
@@ -846,7 +893,7 @@ static int data_proc_open(struct inode *inode, struct file *file)
 static ssize_t data_proc_cmd_write(struct file *file, const char __user *buf,
 		size_t size, loff_t *off)
 {
-	int val;
+	int val, ret;
 	int len = size;
 	char cmd_line[MAX_CMD_LENGTH];
 	char *cmdstr = cmd_line;
@@ -878,7 +925,10 @@ static ssize_t data_proc_cmd_write(struct file *file, const char __user *buf,
 	loc_cpu();
 
         /*wait for cset done*/
-        wait_for_completion(&cset_completion);
+        if (rtc_wait_cset_done()) {
+                unl_cpu();
+                return -ETIMEDOUT;
+        }
 
         ctrl_reg.reg = rtc_getreg(RTC_CTRL_REG_OFS);
         ctrl_reg.bit.cset = 0;
@@ -889,11 +939,11 @@ static ssize_t data_proc_cmd_write(struct file *file, const char __user *buf,
 	data_reg.bit.data0 = val;
         rtc_setreg(RTC_DATA_REG_OFS, data_reg.reg);
 
-        rtc_trigger_cset();
+        ret = rtc_trigger_cset();
 
         unl_cpu();
 
-	return size;
+	return ret ? ret : size;
 }
 
 static struct file_operations proc_data_fops = {
