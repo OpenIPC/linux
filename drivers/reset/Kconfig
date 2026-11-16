@@ -113,6 +113,16 @@ config RESET_IMX8MP_AUDIOMIX
 	help
 	  This enables the reset controller driver for i.MX8MP AudioMix
 
+config RESET_INGENIC_T23
+	bool "Ingenic T23 CPM reset controller"
+	depends on OF && HAS_IOMEM
+	depends on MACH_T23 || COMPILE_TEST
+	default MACH_T23
+	select MFD_SYSCON
+	help
+	  Reset the Ingenic T23 ISP and Helix VPU through the CPM SRBC
+	  bus-stop handshake.
+
 config RESET_INTEL_GW
 	bool "Intel Reset Controller Driver"
 	depends on X86 || COMPILE_TEST
