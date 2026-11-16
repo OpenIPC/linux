@@ -6,6 +6,7 @@
 # Core functionality.
 obj-$(CONFIG_MTD)		+= mtd.o
 mtd-y				:= mtdcore.o mtdsuper.o mtdconcat.o mtdpart.o mtdchar.o
+mtd-$(CONFIG_MTD_SPLIT_LAYOUT)	+= split_layout.o
 
 obj-y				+= parsers/
 
