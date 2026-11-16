@@ -52,12 +52,14 @@ enum ingenic_mac_version {
 	ID_X1600,
 	ID_X1830,
 	ID_X2000,
+	ID_T23,
 };
 
 struct ingenic_mac {
 	const struct ingenic_soc_info *soc_info;
 	struct device *dev;
 	struct regmap *regmap;
+	struct clk *macphy_clk;
 
 	int rx_delay;
 	int tx_delay;
@@ -185,6 +187,40 @@ static int x1830_mac_set_mode(struct plat_stmmacenet_data *plat_dat)
 	return regmap_update_bits(mac->regmap, 0, mac->soc_info->mask, val);
 }
 
+static int t23_mac_set_mode(struct plat_stmmacenet_data *plat_dat)
+{
+	struct ingenic_mac *mac = plat_dat->bsp_priv;
+	unsigned int val;
+
+	switch (plat_dat->mac_interface) {
+	case PHY_INTERFACE_MODE_MII:
+		val = FIELD_PREP(MACPHYC_TXCLK_SEL_MASK, MACPHYC_TXCLK_SEL_INPUT) |
+		      FIELD_PREP(MACPHYC_PHY_INFT_MASK, MACPHYC_PHY_INFT_MII);
+		break;
+	case PHY_INTERFACE_MODE_GMII:
+		val = FIELD_PREP(MACPHYC_TXCLK_SEL_MASK, MACPHYC_TXCLK_SEL_OUTPUT) |
+		      FIELD_PREP(MACPHYC_PHY_INFT_MASK, MACPHYC_PHY_INFT_GMII);
+		break;
+	case PHY_INTERFACE_MODE_RMII:
+		val = FIELD_PREP(MACPHYC_TXCLK_SEL_MASK, MACPHYC_TXCLK_SEL_INPUT) |
+		      FIELD_PREP(MACPHYC_PHY_INFT_MASK, MACPHYC_PHY_INFT_RMII);
+		break;
+	case PHY_INTERFACE_MODE_RGMII:
+	case PHY_INTERFACE_MODE_RGMII_ID:
+	case PHY_INTERFACE_MODE_RGMII_TXID:
+	case PHY_INTERFACE_MODE_RGMII_RXID:
+		val = FIELD_PREP(MACPHYC_TXCLK_SEL_MASK, MACPHYC_TXCLK_SEL_OUTPUT) |
+		      FIELD_PREP(MACPHYC_PHY_INFT_MASK, MACPHYC_PHY_INFT_RGMII);
+		break;
+	default:
+		dev_err(mac->dev, "Unsupported interface %d\n",
+			plat_dat->mac_interface);
+		return -EINVAL;
+	}
+
+	return regmap_update_bits(mac->regmap, 0, mac->soc_info->mask, val);
+}
+
 static int x2000_mac_set_mode(struct plat_stmmacenet_data *plat_dat)
 {
 	struct ingenic_mac *mac = plat_dat->bsp_priv;
@@ -260,6 +296,15 @@ static int ingenic_mac_probe(struct platform_device *pdev)
 	if (IS_ERR(mac->regmap)) {
 		dev_err(&pdev->dev, "%s: Failed to get syscon regmap\n", __func__);
 		return PTR_ERR(mac->regmap);
+	}
+
+	if (data->version == ID_T23) {
+		mac->macphy_clk = devm_clk_get_optional_enabled(&pdev->dev,
+								"macphy");
+		if (IS_ERR(mac->macphy_clk))
+			return dev_err_probe(&pdev->dev,
+					     PTR_ERR(mac->macphy_clk),
+					     "Failed to get macphy clock\n");
 	}
 
 	if (!of_property_read_u32(pdev->dev.of_node, "tx-clk-delay-ps", &tx_delay_ps)) {
@@ -350,6 +395,13 @@ static struct ingenic_soc_info x1830_soc_info = {
 	.set_mode = x1830_mac_set_mode,
 };
 
+static struct ingenic_soc_info t23_soc_info = {
+	.version = ID_T23,
+	.mask = MACPHYC_TXCLK_SEL_MASK | MACPHYC_SOFT_RST_MASK | MACPHYC_PHY_INFT_MASK,
+
+	.set_mode = t23_mac_set_mode,
+};
+
 static struct ingenic_soc_info x2000_soc_info = {
 	.version = ID_X2000,
 	.mask = MACPHYC_TX_SEL_MASK | MACPHYC_TX_DELAY_MASK | MACPHYC_RX_SEL_MASK |
@@ -363,6 +415,7 @@ static const struct of_device_id ingenic_mac_of_matches[] = {
 	{ .compatible = "ingenic,x1000-mac", .data = &x1000_soc_info },
 	{ .compatible = "ingenic,x1600-mac", .data = &x1600_soc_info },
 	{ .compatible = "ingenic,x1830-mac", .data = &x1830_soc_info },
+	{ .compatible = "ingenic,t23-mac", .data = &t23_soc_info },
 	{ .compatible = "ingenic,x2000-mac", .data = &x2000_soc_info },
 	{ }
 };
