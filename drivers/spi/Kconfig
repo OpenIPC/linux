@@ -484,6 +484,17 @@ config SPI_INGENIC
 	  To compile this driver as a module, choose M here: the module
 	  will be called spi-ingenic.
 
+config SPI_INGENIC_SFC
+	tristate "Ingenic T-Series SFC v1 SPI Flash Controller"
+	depends on MACH_INGENIC || COMPILE_TEST
+	depends on HAS_IOMEM
+	help
+	  This enables spi-mem support for the Special Flash Controller (SFC v1)
+	  on Ingenic T-Series SoCs such as the T23.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called spi-ingenic-sfc.
+
 config SPI_INTEL
 	tristate
 
