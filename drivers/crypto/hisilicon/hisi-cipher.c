@@ -12,10 +12,12 @@
  * time. Requests the hardware cannot do (lengths that are not a multiple of
  * the cipher block, more nodes than the ring holds) go to a software fallback.
  *
- * Modes: ECB and CBC for AES, DES and 3DES (three keys, or two keys when K3
- * equals K1; keys with K1 equal to K2 or K2 equal to K3 are done in software,
- * the engine gives wrong results for them) and CTR for AES. The hardware only
- * works on whole cipher blocks.
+ * Modes: ECB, CBC and CTR (AES only) as well as CFB and OFB, for AES, DES and
+ * 3DES (three keys, or two keys when K3 equals K1; keys with K1 equal to K2 or
+ * K2 equal to K3 are done in software, the engine gives wrong results for
+ * them). The hardware only works on whole cipher blocks. The CFB/OFB fallback
+ * is a one-block-cipher model in this file, the generic cfb/ofb templates are
+ * gone from the kernel.
  *
  * Queuing is done by crypto_engine in its retry mode: the engine thread hands
  * requests to do_one_request() one after the other, which sleeps while all
@@ -49,6 +51,7 @@
 #include <crypto/algapi.h>
 #include <crypto/engine.h>
 #include <crypto/internal/des.h>
+#include <crypto/internal/cipher.h>
 #include <crypto/internal/skcipher.h>
 #include <linux/bitfield.h>
 #include <linux/clk.h>
@@ -109,6 +112,8 @@
 
 #define MODE_ECB		0
 #define MODE_CBC		1
+#define MODE_CFB		2
+#define MODE_OFB		3
 #define MODE_CTR		4
 #define KEYLEN_2KEY		3	/* DES/3DES with two keys */
 #define ALG_DES			0
@@ -163,7 +168,7 @@ struct hc_chan {
 	struct timer_list timer;
 };
 
-#define HC_NUM_ALGS		7
+#define HC_NUM_ALGS		13
 
 struct hc_alg {
 	struct skcipher_engine_alg alg;
@@ -216,7 +221,8 @@ struct hc_ctx {
 	bool sw_only;		/* key the engine gets wrong: software only */
 	u32 key_length;		/* CTRL.key_length encoding */
 	const struct hc_alg *info;
-	struct crypto_skcipher *fallback;
+	struct crypto_skcipher *fallback;	/* ECB, CBC, CTR */
+	struct crypto_cipher *sw;		/* CFB, OFB: one-block cipher, see hc_sw_stream() */
 };
 
 struct hc_reqctx {
@@ -453,12 +459,54 @@ static void hc_unmap(struct hc_dev *hc, struct skcipher_request *req)
 	rctx->chan = NULL;
 }
 
+/*
+ * CFB and OFB in software. The generic cfb/ofb templates were removed from the
+ * kernel, so the fallback (odd lengths, tiny requests, engine gone) is built on
+ * the one-block cipher.
+ */
+static int hc_sw_stream(struct skcipher_request *req, bool decrypt)
+{
+	struct crypto_skcipher *tfm = crypto_skcipher_reqtfm(req);
+	struct hc_ctx *ctx = crypto_skcipher_ctx(tfm);
+	unsigned int bs = crypto_skcipher_ivsize(tfm);
+	bool cfb = ctx->info->mode == MODE_CFB;
+	struct skcipher_walk walk;
+	u8 ks[AES_BLOCK_SIZE], in[AES_BLOCK_SIZE];
+	int err;
+
+	err = skcipher_walk_virt(&walk, req, false);
+	while (walk.nbytes) {
+		const u8 *src = walk.src.virt.addr;
+		u8 *dst = walk.dst.virt.addr, *reg = walk.iv;
+		unsigned int n = walk.nbytes;
+
+		for (; n >= bs; n -= bs, src += bs, dst += bs) {
+			crypto_cipher_encrypt_one(ctx->sw, ks, reg);
+			memcpy(in, src, bs);
+			crypto_xor_cpy(dst, in, ks, bs);
+			memcpy(reg, cfb ? (decrypt ? in : dst) : ks, bs);
+		}
+		/* a partial block ends the request; else the walk hands it back */
+		if (n && walk.nbytes == walk.total) {
+			crypto_cipher_encrypt_one(ctx->sw, ks, reg);
+			crypto_xor_cpy(dst, src, ks, n);
+			n = 0;
+		}
+		err = skcipher_walk_done(&walk, n);
+	}
+
+	return err;
+}
+
 static int hc_fallback(struct skcipher_request *req, bool decrypt)
 {
 	struct crypto_skcipher *tfm = crypto_skcipher_reqtfm(req);
 	struct hc_ctx *ctx = crypto_skcipher_ctx(tfm);
 	struct hc_reqctx *rctx = skcipher_request_ctx(req);
 	struct skcipher_request *sub = &rctx->fallback_req;
+
+	if (ctx->sw)
+		return hc_sw_stream(req, decrypt);
 
 	skcipher_request_set_tfm(sub, ctx->fallback);
 	skcipher_request_set_callback(sub, req->base.flags,
@@ -1050,11 +1098,18 @@ static int hc_setkey(struct crypto_skcipher *tfm, const u8 *key,
 	 * rejects the key, the context keeps the key it had and both paths
 	 * still agree.
 	 */
-	crypto_skcipher_clear_flags(ctx->fallback, CRYPTO_TFM_REQ_MASK);
-	crypto_skcipher_set_flags(ctx->fallback,
-				  crypto_skcipher_get_flags(tfm) &
-				  CRYPTO_TFM_REQ_MASK);
-	ret = crypto_skcipher_setkey(ctx->fallback, key, keylen);
+	if (ctx->sw) {
+		crypto_cipher_clear_flags(ctx->sw, CRYPTO_TFM_REQ_MASK);
+		crypto_cipher_set_flags(ctx->sw, crypto_skcipher_get_flags(tfm) &
+					CRYPTO_TFM_REQ_MASK);
+		ret = crypto_cipher_setkey(ctx->sw, key, keylen);
+	} else {
+		crypto_skcipher_clear_flags(ctx->fallback, CRYPTO_TFM_REQ_MASK);
+		crypto_skcipher_set_flags(ctx->fallback,
+					  crypto_skcipher_get_flags(tfm) &
+					  CRYPTO_TFM_REQ_MASK);
+		ret = crypto_skcipher_setkey(ctx->fallback, key, keylen);
+	}
 	if (ret)
 		return ret;
 
@@ -1075,16 +1130,25 @@ static int hc_init_tfm(struct crypto_skcipher *tfm)
 
 	ctx->info = hc_to_info(tfm);
 	ctx->hc = ctx->info->hc;
-	/* synchronous only: the engine completes the request itself */
-	ctx->fallback = crypto_alloc_skcipher(name, 0,
-					      CRYPTO_ALG_NEED_FALLBACK |
-					      CRYPTO_ALG_ASYNC);
-	if (IS_ERR(ctx->fallback))
-		return PTR_ERR(ctx->fallback);
+	if (ctx->info->mode == MODE_CFB || ctx->info->mode == MODE_OFB) {
+		const char *cipher = ctx->info->ctrl_alg == ALG_AES ? "aes" :
+				     ctx->info->ctrl_alg == ALG_DES ? "des" : "des3_ede";
+
+		ctx->sw = crypto_alloc_cipher(cipher, 0, 0);
+		if (IS_ERR(ctx->sw))
+			return PTR_ERR(ctx->sw);
+	} else {
+		/* synchronous only: the engine completes the request itself */
+		ctx->fallback = crypto_alloc_skcipher(name, 0,
+						      CRYPTO_ALG_NEED_FALLBACK |
+						      CRYPTO_ALG_ASYNC);
+		if (IS_ERR(ctx->fallback))
+			return PTR_ERR(ctx->fallback);
+	}
 	kref_get(&ctx->hc->ref);
 
 	crypto_skcipher_set_reqsize(tfm, sizeof(struct hc_reqctx) +
-				    crypto_skcipher_reqsize(ctx->fallback));
+				    (ctx->fallback ? crypto_skcipher_reqsize(ctx->fallback) : 0));
 
 	return 0;
 }
@@ -1111,11 +1175,16 @@ static void hc_exit_tfm(struct crypto_skcipher *tfm)
 	}
 	spin_unlock_irqrestore(&hc->lock, flags);
 	memzero_explicit(ctx->key, sizeof(ctx->key));
-	crypto_free_skcipher(ctx->fallback);
+	if (ctx->sw)
+		crypto_free_cipher(ctx->sw);
+	else
+		crypto_free_skcipher(ctx->fallback);
 	hc_put(hc);
 }
 
 #define HC_FLAGS (CRYPTO_ALG_ASYNC | CRYPTO_ALG_KERN_DRIVER_ONLY | CRYPTO_ALG_NEED_FALLBACK)
+/* CFB and OFB are modeled on the one-block cipher: no fallback tfm */
+#define HC_FLAGS_STREAM (CRYPTO_ALG_ASYNC | CRYPTO_ALG_KERN_DRIVER_ONLY)
 
 #define HC_ALGF(_flags, _name, _drv, _blk, _bs, _min, _max, _iv, _calg, _mode) \
 	{								\
@@ -1153,6 +1222,14 @@ static const struct hc_alg hc_alg_tmpl[HC_NUM_ALGS] = {
 	HC_ALGF(HC_FLAGS, "cbc(des)", "hisi-cbc-des", 8, 8, 8, 8, 8, ALG_DES, MODE_CBC),
 	HC_ALGF(HC_FLAGS, "ecb(des3_ede)", "hisi-ecb-des3", 8, 8, 24, 24, 0, ALG_3DES, MODE_ECB),
 	HC_ALGF(HC_FLAGS, "cbc(des3_ede)", "hisi-cbc-des3", 8, 8, 24, 24, 8, ALG_3DES, MODE_CBC),
+	HC_ALGF(HC_FLAGS_STREAM, "cfb(aes)", "hisi-cfb-aes", 16, 1, 16, 32, 16, ALG_AES, MODE_CFB),
+	HC_ALGF(HC_FLAGS_STREAM, "ofb(aes)", "hisi-ofb-aes", 16, 1, 16, 32, 16, ALG_AES, MODE_OFB),
+	HC_ALGF(HC_FLAGS_STREAM, "cfb(des)", "hisi-cfb-des", 8, 1, 8, 8, 8, ALG_DES, MODE_CFB),
+	HC_ALGF(HC_FLAGS_STREAM, "ofb(des)", "hisi-ofb-des", 8, 1, 8, 8, 8, ALG_DES, MODE_OFB),
+	HC_ALGF(HC_FLAGS_STREAM, "cfb(des3_ede)",
+		"hisi-cfb-des3", 8, 1, 24, 24, 8, ALG_3DES, MODE_CFB),
+	HC_ALGF(HC_FLAGS_STREAM, "ofb(des3_ede)",
+		"hisi-ofb-des3", 8, 1, 24, 24, 8, ALG_3DES, MODE_OFB),
 };
 
 /*
@@ -1494,3 +1571,4 @@ module_platform_driver(hc_driver);
 MODULE_AUTHOR("Dylan Corrales <deathcamel58@gmail.com>");
 MODULE_DESCRIPTION("HiSilicon multi-channel CIPHER driver");
 MODULE_LICENSE("GPL");
+MODULE_IMPORT_NS("CRYPTO_INTERNAL");
