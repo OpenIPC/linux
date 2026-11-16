@@ -11,6 +11,33 @@ maintainers:
 
 allOf:
   - $ref: dai-common.yaml#
+  - if:
+      properties:
+        compatible:
+          contains:
+            const: ingenic,t23-aic
+    then:
+      properties:
+        clocks:
+          minItems: 2
+          maxItems: 3
+        clock-names:
+          oneOf:
+            - items:
+                - const: aic
+                - const: i2s
+            - items:
+                - const: cgu_i2s_spk
+                - const: cgu_i2s_mic
+                - const: aic
+    else:
+      properties:
+        clocks:
+          maxItems: 2
+        clock-names:
+          items:
+            - const: aic
+            - const: i2s
 
 properties:
   $nodename:
@@ -24,9 +51,14 @@ properties:
           - ingenic,jz4770-i2s
           - ingenic,jz4780-i2s
           - ingenic,x1000-i2s
+          - ingenic,t23-i2s
+          - ingenic,t23-aic
       - items:
           - const: ingenic,jz4725b-i2s
           - const: ingenic,jz4740-i2s
+      - items:
+          - const: ingenic,t23-aic
+          - const: ingenic,jz4780-i2s
 
   '#sound-dai-cells':
     const: 0
@@ -38,14 +70,12 @@ properties:
     maxItems: 1
 
   clocks:
-    items:
-      - description: AIC clock
-      - description: I2S clock
+    minItems: 2
+    maxItems: 3
 
   clock-names:
-    items:
-      - const: aic
-      - const: i2s
+    minItems: 2
+    maxItems: 3
 
   dmas:
     items:
