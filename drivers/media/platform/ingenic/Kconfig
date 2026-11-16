@@ -18,3 +18,5 @@ config VIDEO_INGENIC_PTZ_MOTOR
 
 	  To compile this driver as a module, choose M here: the module
 	  will be called ptz-motor.
+
+source "drivers/media/platform/ingenic/tx-isp/Kconfig"
