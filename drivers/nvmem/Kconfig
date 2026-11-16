@@ -101,6 +101,18 @@ config NVMEM_IMX_OCOTP_SCU
 	  This is a driver for the SCU On-Chip OTP Controller (OCOTP)
 	  available on i.MX8 SoCs.
 
+config NVMEM_INGENIC_EFUSE
+	tristate "Ingenic T23 EFUSE support"
+	depends on MACH_INGENIC || COMPILE_TEST
+	depends on HAS_IOMEM
+	help
+	  Read-only nvmem access to the T23 EFUSE data window. Bytes come
+	  from little-endian word loads. The EFUSE clock is enabled only
+	  for the duration of a read.
+
+	  This driver can also be built as a module. If so, the module
+	  will be called nvmem-ingenic-efuse.
+
 config NVMEM_JZ4780_EFUSE
 	tristate "JZ4780 EFUSE Memory Support"
 	depends on MACH_INGENIC || COMPILE_TEST
