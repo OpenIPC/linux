@@ -11,6 +11,16 @@ maintainers:
 
 allOf:
   - $ref: /schemas/i2c/i2c-controller.yaml#
+  - if:
+      not:
+        properties:
+          compatible:
+            contains:
+              const: ingenic,t23-i2c
+    then:
+      required:
+        - dmas
+        - dma-names
 
 properties:
   $nodename:
@@ -21,6 +31,10 @@ properties:
       - enum:
           - ingenic,jz4770-i2c
           - ingenic,x1000-i2c
+          - ingenic,t23-i2c
+      - items:
+          - const: ingenic,t23-i2c
+          - const: ingenic,x1000-i2c
       - items:
           - const: ingenic,jz4780-i2c
           - const: ingenic,jz4770-i2c
@@ -33,6 +47,9 @@ properties:
 
   clocks:
     maxItems: 1
+
+  clock-names:
+    const: i2c
 
   clock-frequency:
     enum: [ 100000, 400000 ]
@@ -53,8 +70,6 @@ required:
   - interrupts
   - clocks
   - clock-frequency
-  - dmas
-  - dma-names
 
 unevaluatedProperties: false
 
