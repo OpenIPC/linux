@@ -43,6 +43,7 @@ properties:
           - ingenic,x1000-pinctrl
           - ingenic,x1500-pinctrl
           - ingenic,x1830-pinctrl
+          - ingenic,t23-pinctrl
           - ingenic,x2000-pinctrl
           - ingenic,x2100-pinctrl
       - items:
@@ -82,6 +83,7 @@ patternProperties:
           - ingenic,x1000-gpio
           - ingenic,x1500-gpio
           - ingenic,x1830-gpio
+          - ingenic,t23-gpio
           - ingenic,x2000-gpio
           - ingenic,x2100-gpio
 
