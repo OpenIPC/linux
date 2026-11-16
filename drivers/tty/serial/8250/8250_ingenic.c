@@ -18,6 +18,8 @@
 #include <linux/serial_core.h>
 #include <linux/serial_reg.h>
 
+#include <asm/serial.h>
+
 #include "8250.h"
 
 /** ingenic_uart_config: SOC specific config data. */
@@ -164,6 +166,20 @@ OF_EARLYCON_DECLARE(jz4775_uart, "ingenic,jz4775-uart",
 
 OF_EARLYCON_DECLARE(jz4780_uart, "ingenic,jz4780-uart",
 		    ingenic_early_console_setup);
+
+static int __init t23_early_console_setup(struct earlycon_device *dev,
+					  const char *opt)
+{
+	if (initial_boot_params)
+		ingenic_early_console_setup_clock(dev);
+	if (!dev->port.uartclk || dev->port.uartclk == BASE_BAUD * 16)
+		dev->port.uartclk = 24000000;
+
+	return ingenic_earlycon_setup_tail(dev, opt);
+}
+
+OF_EARLYCON_DECLARE(t23_uart, "ingenic,t23-uart",
+		    t23_early_console_setup);
 
 OF_EARLYCON_DECLARE(x1000_uart, "ingenic,x1000-uart",
 		    ingenic_early_console_setup);
@@ -351,6 +367,7 @@ static const struct of_device_id of_match[] = {
 	{ .compatible = "ingenic,jz4775-uart", .data = &jz4760_uart_config },
 	{ .compatible = "ingenic,jz4780-uart", .data = &jz4780_uart_config },
 	{ .compatible = "ingenic,x1000-uart", .data = &x1000_uart_config },
+	{ .compatible = "ingenic,t23-uart", .data = &x1000_uart_config },
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, of_match);
