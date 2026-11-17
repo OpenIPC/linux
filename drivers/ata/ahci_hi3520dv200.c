@@ -17,6 +17,7 @@
 #include <linux/module.h>
 #include <linux/of.h>
 #include <linux/platform_device.h>
+#include <linux/property.h>
 
 #include "ahci.h"
 
@@ -69,9 +70,15 @@
 #define PORT_PHYCTL_DEFAULT	0x0e276756
 #define NR_PORTS		2
 
+struct hi3520dv200_sata_data {
+	/* the clock selects are set by the clock framework, not here */
+	bool clk_sel_from_clk;
+};
+
 struct hi3520dv200_sata {
 	void __iomem *crg;
 	u32 phy_config;
+	bool clk_sel_from_clk;
 };
 
 static void crg_update(void __iomem *crg, u32 clear, u32 set)
@@ -94,7 +101,8 @@ static void hi3520dv200_sata_phy_init(struct ahci_host_priv *hpriv)
 	 * the clocks are off, and the values read back after a cold boot.
 	 */
 	crg_update(crg, 0, CRG_CKEN | CRG_PORT0_CKEN | CRG_PORT1_CKEN);
-	crg_update(crg, CRG_CLK_SEL | CRG_CLK_ALIVE, 0);
+	if (!priv->clk_sel_from_clk)
+		crg_update(crg, CRG_CLK_SEL | CRG_CLK_ALIVE, 0);
 	for (i = 0; i < NR_PORTS; i++)
 		writel(PORT_BUG_BYPASS_VAL, mmio + PORT_BASE(i) + PORT_BUG_BYPASS);
 
@@ -138,6 +146,7 @@ static const struct scsi_host_template ahci_hi3520dv200_sht = {
 static int ahci_hi3520dv200_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
+	const struct hi3520dv200_sata_data *data;
 	struct hi3520dv200_sata *priv;
 	struct ahci_host_priv *hpriv;
 	struct resource *res;
@@ -146,6 +155,10 @@ static int ahci_hi3520dv200_probe(struct platform_device *pdev)
 	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
 	if (!priv)
 		return -ENOMEM;
+
+	data = device_get_match_data(dev);
+	if (data)
+		priv->clk_sel_from_clk = data->clk_sel_from_clk;
 
 	/*
 	 * PERI_CRG45 lies inside the register window of the CRG, which has its
@@ -185,8 +198,16 @@ static int ahci_hi3520dv200_probe(struct platform_device *pdev)
 	return 0;
 }
 
+/*
+ * The Hi3520D V100 clock driver models the two clock selects of PERI_CRG45, and
+ * the controller node picks their parents with assigned-clocks.
+ */
+static const struct hi3520dv200_sata_data hi3520dv100_data = {
+	.clk_sel_from_clk = true,
+};
+
 static const struct of_device_id ahci_hi3520dv200_of_match[] = {
-	{ .compatible = "hisilicon,hi3520dv100-ahci" },
+	{ .compatible = "hisilicon,hi3520dv100-ahci", .data = &hi3520dv100_data },
 	{ .compatible = "hisilicon,hi3520dv200-ahci" },
 	{}
 };
