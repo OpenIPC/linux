@@ -109,6 +109,6 @@ $(obj)/uImage.jzlzma: $(obj)/vmlinux.bin.jzlzma FORCE
 	$(call if_changed,jzhead)
 
 targets += uImage
-$(obj)/uImage: $(obj)/uImage.lzma  $(obj)/uImage.lzo $(obj)/uImage.jzlzma FORCE
+$(obj)/uImage: $(obj)/uImage.$(suffix-y) FORCE
 	@ln -sf $(notdir $<) $@
 	@echo '  Image $@ is ready'
