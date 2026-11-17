@@ -423,7 +423,7 @@ static int nvt_rtc_reset(struct device *dev)
 
 		if (time_after_eq(jiffies, timeout)) {
 			dev_err(dev, "RTC s/w reset timeout, plz check RTC 32K osc or PWR_SW\n");
-			return -ETXTBSY;
+			return -ETIMEDOUT;
 		}
 	} while(ctrl_reg.bit.srst);
 
@@ -431,7 +431,7 @@ static int nvt_rtc_reset(struct device *dev)
 
 stuck:
 	dev_err(dev, "RTC busy, plz check RTC 32K osc or PWR_SW\n");
-	return -ETXTBSY;
+	return -ETIMEDOUT;
 }
 
 static int nvt_rtc_chk_power(struct device *dev)
@@ -1020,6 +1020,8 @@ static int nvt_rtc_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "no working RTC, not registering it\n");
 		devm_free_irq(&pdev->dev, irq, priv);
 		cancel_delayed_work_sync(&priv->cset_work);
+		/* No RTC here: say so, rather than "probe failed with error" */
+		ret = -ENODEV;
 		goto out;
 	}
 
