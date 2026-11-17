@@ -126,6 +126,7 @@ struct lotus_fmc_spinor {
 	void (*resume)(struct lotus_fmc_spinor *spinor);
 
 	struct flash_regop_intf regop_intf;
+	u8 mid;		/* JEDEC manufacturer of chip 0 */
 };
 
 #define NAND_MODE_SYNC		(1 << 0)
