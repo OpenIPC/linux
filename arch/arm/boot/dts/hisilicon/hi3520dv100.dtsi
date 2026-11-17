@@ -176,7 +176,9 @@
 		/*
 		 * reg 1 is PERI_CRG45, the SATA clock/reset register: the glue
 		 * sets the resets and the PHY bring-up order itself, the three
-		 * clock gates are also held by the clocks below.
+		 * clock gates are also held by the clocks below, and the two
+		 * clock selects in the same register are set by the clock
+		 * driver from the assigned clocks.
 		 */
 		sata: sata@10080000 {
 			compatible = "hisilicon,hi3520dv100-ahci";
@@ -185,6 +187,10 @@
 			clocks = <&crg HI3520DV100_SATA_CLK>,
 				 <&crg HI3520DV100_SATA0_CLK>,
 				 <&crg HI3520DV100_SATA1_CLK>;
+			assigned-clocks = <&crg HI3520DV100_SATA_MUX>,
+					  <&crg HI3520DV100_SATA_ALIVE_MUX>;
+			assigned-clock-parents = <&crg HI3520DV100_FIXED_150M>,
+						 <&crg HI3520DV100_FIXED_50M>;
 			status = "disabled";
 		};
 
