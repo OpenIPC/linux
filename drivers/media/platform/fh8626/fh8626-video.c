@@ -146,7 +146,12 @@ static void fh8626_video_fill_fmt(struct v4l2_pix_format *pix, u32 width,
 	pix->pixelformat = V4L2_PIX_FMT_NV12;
 	pix->field = V4L2_FIELD_NONE;
 	pix->bytesperline = width;
-	pix->sizeimage = width * height * 3 / 2;
+	/*
+	 * The JPEG engine reads chroma for 16-row aligned height. Sizing the
+	 * plane for that lets it encode a capture buffer in place instead of
+	 * staging a copy (3 MiB of CMA at 1080p); 720p is unchanged.
+	 */
+	pix->sizeimage = width * height + width * ALIGN(height, 16) / 2;
 	pix->colorspace = V4L2_COLORSPACE_SRGB;
 	pix->xfer_func = V4L2_XFER_FUNC_SRGB;
 	pix->ycbcr_enc = V4L2_YCBCR_ENC_601;

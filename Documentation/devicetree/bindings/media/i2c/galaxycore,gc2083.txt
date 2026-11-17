@@ -1,0 +1,40 @@
+GalaxyCore GC2083 camera sensor
+
+The GC2083 is a 1920x1080 RAW10 sensor with a 2-lane MIPI CSI-2 output
+and 16-bit register addresses.
+
+Required properties:
+- compatible: "galaxycore,gc2083"
+- reg: I2C address
+- clocks: the 24 MHz sensor clock
+- clock-names: "xvclk"
+- port: one output port containing an endpoint, as described by
+  Documentation/devicetree/bindings/media/video-interfaces.txt
+- data-lanes: <1 2> in the endpoint
+
+Optional properties:
+- reset-gpios: the sensor's active-low RESETB line
+- avdd-supply: analogue supply
+- dovdd-supply: digital I/O supply
+- dvdd-supply: digital core supply
+- clock-lanes: <0> in the endpoint; defaults to 0
+- lane-polarities: <0 0 0> in the endpoint; defaults to normal polarity
+- link-frequencies: <250000000> in the endpoint, the only supported rate
+
+Example:
+
+	camera-sensor@37 {
+		compatible = "galaxycore,gc2083";
+		reg = <0x37>;
+		clocks = <&sensor_clk>;
+		clock-names = "xvclk";
+		reset-gpios = <&gpio0 13 GPIO_ACTIVE_LOW>;
+
+		port {
+			endpoint {
+				clock-lanes = <0>;
+				data-lanes = <1 2>;
+				link-frequencies = /bits/ 64 <250000000>;
+			};
+		};
+	};

@@ -46,6 +46,8 @@
 		spi0 = &spi0;
 		spi1 = &spi1;
 		mmc0 = &mmc0;
+		gpio0 = &gpio0;
+		gpio1 = &gpio1;
 	};
 
 	soc {
