@@ -25,6 +25,7 @@
 #include <linux/interrupt.h>
 #include <linux/io.h>
 #include <linux/module.h>
+#include <linux/mutex.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
@@ -85,6 +86,9 @@ struct uio_platdata {
 	int irq;
 	enum uio_vcodec_type type;
 	void __iomem *regs;
+	/* open_count and the IRQ registration it guards: UIO calls open and
+	 * release without serializing them */
+	struct mutex open_lock;
 	unsigned int open_count;
 
 	/* EV200 */
@@ -200,8 +204,11 @@ static int al5_wait_irq(struct uio_platdata *pdata, unsigned long arg)
 		return ret;
 
 	spin_lock_irqsave(&pdata->irq_lock, flags);
-	if (pdata->irq_head == pdata->irq_tail) {
-		/* woken by AKUIO_UNBLOCK_CHANNEL with nothing queued */
+	/*
+	 * An unblock wins over a queued interrupt: the client is stopping, and
+	 * every waiter returns -EINTR until the device is opened afresh.
+	 */
+	if (pdata->unblock || pdata->irq_head == pdata->irq_tail) {
 		spin_unlock_irqrestore(&pdata->irq_lock, flags);
 		return -EINTR;
 	}
@@ -287,42 +294,50 @@ static int uio_vcodec_ioctl(struct uio_info *uioinfo, unsigned int cmd, unsigned
 static int uio_vcodec_open(struct uio_info *uioinfo, struct inode *inode)
 {
 	struct uio_platdata *pdata = uioinfo->priv;
+	unsigned long flags;
+	int ret = 0;
 
+	mutex_lock(&pdata->open_lock);
 	if (pdata->open_count++ > 0)
-		return 0;
+		goto out;
 
 	if (pdata->type == UIO_VCODEC_AL5) {
+		spin_lock_irqsave(&pdata->irq_lock, flags);
 		pdata->irq_head = pdata->irq_tail = 0;
 		pdata->irq_dropped = 0;
 		pdata->unblock = false;
+		spin_unlock_irqrestore(&pdata->irq_lock, flags);
 		/* as the SDK does on open: the core starts from reset */
 		al5_video_reset();
 		if (request_irq(pdata->irq, al5_irq_handler, 0, "VIDEO HW CODEC", pdata)) {
 			pdata->open_count--;
-			return -EBUSY;
+			ret = -EBUSY;
 		}
-		return 0;
+		goto out;
 	}
 
 	init_MUTEX_LOCKED(&pdata->vcodec_sem);
 
 	if (request_irq(pdata->irq, uio_vcodec_irq_handler, 0, "VIDEO HW CODEC", pdata)) {
 		pdata->open_count--;
-		return -EBUSY;
+		ret = -EBUSY;
+		goto out;
 	}
 	disable_irq_nosync(pdata->irq);
 
-	return 0;
+out:
+	mutex_unlock(&pdata->open_lock);
+	return ret;
 }
 
 static int uio_vcodec_release(struct uio_info *uioinfo, struct inode *inode)
 {
 	struct uio_platdata *pdata = uioinfo->priv;
 
-	if (--pdata->open_count != 0)
-		return 0;
-
-	free_irq(pdata->irq, pdata);
+	mutex_lock(&pdata->open_lock);
+	if (--pdata->open_count == 0)
+		free_irq(pdata->irq, pdata);
+	mutex_unlock(&pdata->open_lock);
 
 	return 0;
 }
@@ -361,6 +376,7 @@ static int uio_vcodec_probe(struct platform_device *pdev)
 	if (pdata->irq < 0)
 		return pdata->irq;
 
+	mutex_init(&pdata->open_lock);
 	init_waitqueue_head(&pdata->irq_queue);
 	spin_lock_init(&pdata->irq_lock);
 
