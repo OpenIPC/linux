@@ -15,20 +15,25 @@
  * the Free Software Foundation.
  *
  * AKUIO_SYSREG_WRITE / AKUIO_WAIT_IRQ / AKUIO_INVALIDATE_L2CACHE /
- * AKUIO_INVALIDATE_L1CACHE (include/linux/akuio_driver.h) are
- * ABI-critical for the userspace H.264 encoder library.
+ * AKUIO_INVALIDATE_L1CACHE / AKUIO_UNBLOCK_CHANNEL / AKUIO_VIDEO_RESET
+ * (include/linux/akuio_driver.h) are ABI-critical for the userspace
+ * encoder libraries.
  */
 
 #include <linux/clk.h>
+#include <linux/delay.h>
 #include <linux/interrupt.h>
 #include <linux/io.h>
 #include <linux/module.h>
+#include <linux/mutex.h>
 #include <linux/of.h>
+#include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/semaphore.h>
 #include <linux/slab.h>
 #include <linux/spinlock.h>
 #include <linux/uio_driver.h>
+#include <linux/wait.h>
 #include <asm/cacheflush.h>
 #include <asm/uaccess.h>
 
@@ -40,13 +45,62 @@
 #define init_MUTEX(sem)		sema_init(sem, 1)
 #define init_MUTEX_LOCKED(sem)	sema_init(sem, 0)
 
+/*
+ * Two encoder cores sit behind this node, and the userspace library of each
+ * expects a different contract from AKUIO_WAIT_IRQ.
+ *
+ * EV200 (Hantro 8290): the ioctl returns once the line has fired. The handler
+ * masks it and the library reads and clears the core's own status.
+ *
+ * EV300 (Allegro, the AnyCloud39EV300 SDK's libakv_encode): the kernel reads
+ * and acknowledges the core's interrupt register itself and hands the library
+ * one interrupt number per call, in the order they fired, through the int the
+ * ioctl points at. That is the SDK kernel's al5r_hardirq_handler/wait_irq
+ * (drivers/uio/uio_video_codec.c of the 3.4.35 SDK), with two differences:
+ * the wait can be interrupted by a signal, and a fixed ring replaces the
+ * per-interrupt kmem_cache allocation in hard IRQ context.
+ */
+enum uio_vcodec_type {
+	UIO_VCODEC_HANTRO,
+	UIO_VCODEC_AL5,
+};
+
+/* Allegro interrupt mask and status, from the encoder register base */
+#define AL5_INTERRUPT_MASK	0x8014
+#define AL5_INTERRUPT		0x8018
+#define AL5_INTERRUPT_NB	20
+
+/*
+ * The EV300 SDK pulses bit 20 of SYSCTRL 0x20 (MODULE_RESET_CON1,
+ * AK39_SRESET_VIDEO) for 5 ms: arch/arm/mach-ak39/reset.c.
+ */
+#define AK_SYSCTRL_RESET_CON1	0x20
+#define AK_SRESET_VIDEO_BIT	BIT(20)
+
+#define AL5_IRQ_RING		64
+
 /* platform data of this driver */
 struct uio_platdata {
 	struct uio_info uioinfo;
 	struct clk *clk;
 	int irq;
-	struct semaphore vcodec_sem;
+	enum uio_vcodec_type type;
+	void __iomem *regs;
+	/* open_count and the IRQ registration it guards: UIO calls open and
+	 * release without serializing them */
+	struct mutex open_lock;
 	unsigned int open_count;
+
+	/* EV200 */
+	struct semaphore vcodec_sem;
+
+	/* EV300 */
+	wait_queue_head_t irq_queue;
+	spinlock_t irq_lock;
+	u8 irq_ring[AL5_IRQ_RING];
+	unsigned int irq_head, irq_tail;
+	unsigned int irq_dropped;
+	bool unblock;
 };
 
 static DEFINE_SPINLOCK(sys_ctrl_reg_lock);
@@ -75,6 +129,15 @@ static void sys_ctrl_reg_set(unsigned long reg_phy_addr, unsigned long reg_mask,
 	spin_unlock_irqrestore(&sys_ctrl_reg_lock, flags);
 }
 
+static void al5_video_reset(void)
+{
+	unsigned long pa = AK_PA_SYSCTRL + AK_SYSCTRL_RESET_CON1;
+
+	sys_ctrl_reg_set(pa, AK_SRESET_VIDEO_BIT, AK_SRESET_VIDEO_BIT);
+	mdelay(5);
+	sys_ctrl_reg_set(pa, AK_SRESET_VIDEO_BIT, 0);
+}
+
 static irqreturn_t uio_vcodec_irq_handler(int irq, void *dev_id)
 {
 	struct uio_platdata *pdata = dev_id;
@@ -85,9 +148,89 @@ static irqreturn_t uio_vcodec_irq_handler(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
+static irqreturn_t al5_irq_handler(int irq, void *dev_id)
+{
+	struct uio_platdata *pdata = dev_id;
+	u32 pending, fired;
+	unsigned long flags;
+	int i;
+
+	pending = readl(pdata->regs + AL5_INTERRUPT);
+	fired = pending & readl(pdata->regs + AL5_INTERRUPT_MASK);
+	if (!fired)
+		return IRQ_NONE;
+
+	/* write-one-to-clear, then read back so the write lands first */
+	writel(pending, pdata->regs + AL5_INTERRUPT);
+	readl(pdata->regs + AL5_INTERRUPT);
+
+	spin_lock_irqsave(&pdata->irq_lock, flags);
+	for (i = 0; i < AL5_INTERRUPT_NB; i++) {
+		if (!(fired & BIT(i)))
+			continue;
+		if (pdata->irq_head - pdata->irq_tail >= AL5_IRQ_RING) {
+			pdata->irq_dropped++;
+			continue;
+		}
+		pdata->irq_ring[pdata->irq_head++ % AL5_IRQ_RING] = i;
+	}
+	spin_unlock_irqrestore(&pdata->irq_lock, flags);
+
+	wake_up_interruptible(&pdata->irq_queue);
+
+	return IRQ_HANDLED;
+}
+
+static bool al5_ready(struct uio_platdata *pdata)
+{
+	unsigned long flags;
+	bool ready;
+
+	spin_lock_irqsave(&pdata->irq_lock, flags);
+	ready = pdata->unblock || pdata->irq_head != pdata->irq_tail;
+	spin_unlock_irqrestore(&pdata->irq_lock, flags);
+
+	return ready;
+}
+
+static int al5_wait_irq(struct uio_platdata *pdata, unsigned long arg)
+{
+	unsigned long flags;
+	unsigned int dropped;
+	int nb, ret;
+
+	ret = wait_event_interruptible(pdata->irq_queue, al5_ready(pdata));
+	if (ret)
+		return ret;
+
+	spin_lock_irqsave(&pdata->irq_lock, flags);
+	/*
+	 * An unblock wins over a queued interrupt: the client is stopping, and
+	 * every waiter returns -EINTR until the device is opened afresh.
+	 */
+	if (pdata->unblock || pdata->irq_head == pdata->irq_tail) {
+		spin_unlock_irqrestore(&pdata->irq_lock, flags);
+		return -EINTR;
+	}
+	nb = pdata->irq_ring[pdata->irq_tail++ % AL5_IRQ_RING];
+	dropped = pdata->irq_dropped;
+	pdata->irq_dropped = 0;
+	spin_unlock_irqrestore(&pdata->irq_lock, flags);
+
+	if (dropped)
+		pr_warn_ratelimited(DRIVER_NAME ": %u encoder interrupts lost, the queue was full\n",
+				    dropped);
+
+	if (copy_to_user((void __user *)arg, &nb, sizeof(nb)))
+		return -EFAULT;
+
+	return 0;
+}
+
 static int uio_vcodec_ioctl(struct uio_info *uioinfo, unsigned int cmd, unsigned long arg)
 {
 	struct uio_platdata *pdata = uioinfo->priv;
+	unsigned long flags;
 	int err;
 
 	switch (cmd) {
@@ -105,8 +248,29 @@ static int uio_vcodec_ioctl(struct uio_info *uioinfo, unsigned int cmd, unsigned
 	break;
 
 	case AKUIO_WAIT_IRQ:
+		if (pdata->type == UIO_VCODEC_AL5) {
+			err = al5_wait_irq(pdata, arg);
+			break;
+		}
 		enable_irq(pdata->irq);
 		down(&pdata->vcodec_sem);
+		err = 0;
+		break;
+
+	case AKUIO_UNBLOCK_CHANNEL:
+		if (pdata->type != UIO_VCODEC_AL5)
+			return -EINVAL;
+		spin_lock_irqsave(&pdata->irq_lock, flags);
+		pdata->unblock = true;
+		spin_unlock_irqrestore(&pdata->irq_lock, flags);
+		wake_up_interruptible(&pdata->irq_queue);
+		err = 0;
+		break;
+
+	case AKUIO_VIDEO_RESET:
+		if (pdata->type != UIO_VCODEC_AL5)
+			return -EINVAL;
+		al5_video_reset();
 		err = 0;
 		break;
 
@@ -130,33 +294,59 @@ static int uio_vcodec_ioctl(struct uio_info *uioinfo, unsigned int cmd, unsigned
 static int uio_vcodec_open(struct uio_info *uioinfo, struct inode *inode)
 {
 	struct uio_platdata *pdata = uioinfo->priv;
+	unsigned long flags;
+	int ret = 0;
 
+	mutex_lock(&pdata->open_lock);
 	if (pdata->open_count++ > 0)
-		return 0;
+		goto out;
+
+	if (pdata->type == UIO_VCODEC_AL5) {
+		spin_lock_irqsave(&pdata->irq_lock, flags);
+		pdata->irq_head = pdata->irq_tail = 0;
+		pdata->irq_dropped = 0;
+		pdata->unblock = false;
+		spin_unlock_irqrestore(&pdata->irq_lock, flags);
+		/* as the SDK does on open: the core starts from reset */
+		al5_video_reset();
+		if (request_irq(pdata->irq, al5_irq_handler, 0, "VIDEO HW CODEC", pdata)) {
+			pdata->open_count--;
+			ret = -EBUSY;
+		}
+		goto out;
+	}
 
 	init_MUTEX_LOCKED(&pdata->vcodec_sem);
 
-	if (request_irq(pdata->irq, uio_vcodec_irq_handler, 0, "VIDEO HW CODEC", pdata))
-		return -EBUSY;
+	if (request_irq(pdata->irq, uio_vcodec_irq_handler, 0, "VIDEO HW CODEC", pdata)) {
+		pdata->open_count--;
+		ret = -EBUSY;
+		goto out;
+	}
 	disable_irq_nosync(pdata->irq);
 
-	return 0;
+out:
+	mutex_unlock(&pdata->open_lock);
+	return ret;
 }
 
 static int uio_vcodec_release(struct uio_info *uioinfo, struct inode *inode)
 {
 	struct uio_platdata *pdata = uioinfo->priv;
 
-	if (--pdata->open_count != 0)
-		return 0;
-
-	free_irq(pdata->irq, pdata);
+	mutex_lock(&pdata->open_lock);
+	if (--pdata->open_count == 0)
+		free_irq(pdata->irq, pdata);
+	mutex_unlock(&pdata->open_lock);
 
 	return 0;
 }
 
+static const struct of_device_id uio_vcodec_of_match[];
+
 static int uio_vcodec_probe(struct platform_device *pdev)
 {
+	const struct of_device_id *match;
 	struct uio_platdata *pdata;
 	struct resource *res;
 	void __iomem *base;
@@ -166,14 +356,29 @@ static int uio_vcodec_probe(struct platform_device *pdev)
 	if (!pdata)
 		return -ENOMEM;
 
+	match = of_match_device(uio_vcodec_of_match, &pdev->dev);
+	pdata->type = match ? (enum uio_vcodec_type)match->data : UIO_VCODEC_HANTRO;
+
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	base = devm_ioremap_resource(&pdev->dev, res);
 	if (IS_ERR(base))
 		return PTR_ERR(base);
+	pdata->regs = base;
+
+	if (pdata->type == UIO_VCODEC_AL5 &&
+	    resource_size(res) < AL5_INTERRUPT + sizeof(u32)) {
+		dev_err(&pdev->dev, "register window %pR does not reach the interrupt status at +0x%x\n",
+			res, AL5_INTERRUPT);
+		return -EINVAL;
+	}
 
 	pdata->irq = platform_get_irq(pdev, 0);
 	if (pdata->irq < 0)
 		return pdata->irq;
+
+	mutex_init(&pdata->open_lock);
+	init_waitqueue_head(&pdata->irq_queue);
+	spin_lock_init(&pdata->irq_lock);
 
 	pdata->clk = devm_clk_get(&pdev->dev, NULL);
 	if (!IS_ERR(pdata->clk))
@@ -201,6 +406,10 @@ static int uio_vcodec_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, pdata);
 
+	dev_info(&pdev->dev, "%s encoder at %pR, irq %d\n",
+		 pdata->type == UIO_VCODEC_AL5 ? "Allegro" : "Hantro",
+		 res, pdata->irq);
+
 	return 0;
 }
 
@@ -216,7 +425,10 @@ static int uio_vcodec_remove(struct platform_device *pdev)
 }
 
 static const struct of_device_id uio_vcodec_of_match[] = {
-	{ .compatible = "anyka,ak39ev330-uio-vencoder" },
+	{ .compatible = "anyka,ak39ev330-uio-vencoder",
+	  .data = (void *)UIO_VCODEC_HANTRO },
+	{ .compatible = "anyka,ak3918ev300-uio-vencoder",
+	  .data = (void *)UIO_VCODEC_AL5 },
 	{ }
 };
 MODULE_DEVICE_TABLE(of, uio_vcodec_of_match);

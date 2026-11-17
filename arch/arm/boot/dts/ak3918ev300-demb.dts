@@ -43,3 +43,43 @@
 	/delete-property/ pinctrl-1;
 	/delete-property/ pinctrl-2;
 };
+
+/*
+ * The H.264/H.265 encoder is an Allegro core driven by the SDK's userspace
+ * library (libakv_encode), which needs physically contiguous memory for its
+ * reference frames and stream buffers, and wants the capture buffers there
+ * too so it can read them in place. The EV330 board gives the whole 24 MB
+ * pool to the ISP host; here the ISP keeps 7 MB for what it allocates itself
+ * (the 1080p 3D-NR reference frame is 6.2 MB) and an ION carve-out after it
+ * holds the rest: three 1080p capture buffers with their sub channel (10.4 MB)
+ * and the encoder (7.3 MB for a 1080p H.264 or H.265 channel, 0.95 MB for
+ * 640x360, 0.83 MB for 1080p JPEG, as libakv_encode V2.2.21 asks for them).
+ * 32 MB in all, leaving Linux 32 MB; the SDK's own EV300 kernels reserve 34.
+ */
+/ {
+	reserved-memory {
+		ion_reserved: ion_reserved@81b00000 {
+			reg = <0x81b00000 0x01900000>;
+		};
+	};
+
+	ion {
+		memory-region = <&ion_reserved>;
+		status = "okay";
+	};
+};
+
+&dma_reserved {
+	reg = <0x81400000 0x00700000>;
+	size = <0x00700000>;
+};
+
+&dma_reserved_heap {
+	base-address = <0x81b00000>;
+	size = <0x01900000>;
+};
+
+&vencoder {
+	compatible = "anyka,ak3918ev300-uio-vencoder";
+	status = "okay";
+};
