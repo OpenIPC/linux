@@ -83,11 +83,11 @@ if [ "ss$out" = "ss" ]; then
 fi
 
 # The name the kernel's own uImage rule stamps (UIMAGE_NAME in
-# scripts/Makefile.lib), so the image this script replaces it with still
-# carries the release -- and the localversion after it, which is where
-# OpenIPC's sysupgrade reads the SoC from. The SDK fixed this to
-# "linux-5.10.y".
-kernel_version=Linux-$(cat $out/include/config/kernel.release 2>/dev/null || echo 5.10.y)
+# scripts/Makefile.lib), so the image this script replaces it with keeps it:
+# OpenIPC's build exports UIMAGE_NAME as "Linux-<release>-<soc>", and its
+# sysupgrade reads the SoC from after the last '-'. Without it, the release
+# alone, as before. The SDK fixed this to "linux-5.10.y".
+kernel_version=${UIMAGE_NAME:-Linux-$(cat $out/include/config/kernel.release 2>/dev/null || echo 5.10.y)}
 
 kernel_config=$out/.config
 
