@@ -34,5 +34,11 @@ struct akuio_sysreg_write_t
 /* incalidate the l1 cache in ak98 */
 #define AKUIO_INVALIDATE_L1CACHE      _IOR('U', 103, int)
 
+/* wake a thread blocked in AKUIO_WAIT_IRQ; it returns -EINTR (EV300) */
+#define AKUIO_UNBLOCK_CHANNEL    _IOR('U', 104, int)
+
+/* soft-reset the video encoder block (EV300) */
+#define AKUIO_VIDEO_RESET        _IOR('U', 105, int)
+
 
 #endif
