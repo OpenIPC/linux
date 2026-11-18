@@ -1355,14 +1355,22 @@ static int dw_probe(struct platform_device *pdev)
 		return PTR_ERR(chip->regs);
 	}
 
+	/*
+	 * The reset is optional: NULL (none in the devicetree) is fine, and
+	 * returning PTR_ERR(NULL) here ended the probe "successfully" with no
+	 * DMA device registered. AX620U's devicetree names no reset and calls
+	 * the clock "core-clk", so fall back to the node's first clock.
+	 */
 	chip->rst = devm_reset_control_get_optional(&pdev->dev, "dmac-rst");
-	if (IS_ERR_OR_NULL(chip->rst)) {
+	if (IS_ERR(chip->rst)) {
 		dev_err(chip->dev, "devm_reset_control_get_optional fail\n");
 		return PTR_ERR(chip->rst);
 	}
 
 	chip->core_clk = devm_clk_get(chip->dev, "dmac-clk");
-	if (IS_ERR_OR_NULL(chip->core_clk))
+	if (IS_ERR(chip->core_clk))
+		chip->core_clk = devm_clk_get(chip->dev, NULL);
+	if (IS_ERR(chip->core_clk))
 		return PTR_ERR(chip->core_clk);
 
 	ret = parse_device_properties(chip);

@@ -34,4 +34,7 @@ proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
 proc-$(CONFIG_PRINTK)	+= kmsg.o
 proc-$(CONFIG_PRINTK)	+= axkmsg.o
 proc-$(CONFIG_PROC_PAGE_MONITOR)	+= page.o
+# AX620U's closed ax_logctl.ko creates ax_proc/logctl itself
+ifneq ($(CONFIG_AXERA_AX620U_COMPAT),y)
 proc-$(CONFIG_PRINTK)	+= axlogctl.o
+endif
