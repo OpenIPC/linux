@@ -94,6 +94,12 @@ config AX88796B_PHY
 	  Currently supports the Asix Electronics PHY found in the X-Surf 100
 	  AX88796B package.
 
+config AXERA_EPHY
+	tristate "Axera AX620E internal 10/100 EPHY"
+	help
+	  Driver for the Ethernet PHY built into the Axera AX620E
+	  (PHY id 0x00441400).
+
 config BROADCOM_PHY
 	tristate "Broadcom 54XX PHYs"
 	select BCM_NET_PHYLIB
