@@ -1,0 +1,281 @@
+// SPDX-License-Identifier: GPL-2.0
+// Copyright (C) 2026 Difan Zhang
+/dts-v1/;
+
+#include "t23.dtsi"
+#include <dt-bindings/gpio/gpio.h>
+
+/ {
+	model = "ingenic T23 OpenIPC Generic IPC";
+	compatible = "openipc,t23", "ingenic,t23";
+
+	aliases {
+		serial0 = &uart0;
+		serial1 = &uart1;
+		serial2 = &uart2;
+	};
+
+	chosen {
+		bootargs = "console=ttyS1,115200n8 root=/dev/mtdblock3 rootfstype=squashfs init=/init";
+		stdout-path = "serial1:115200n8";
+	};
+
+	memory@0 {
+		device_type = "memory";
+		reg = <0x00000000 0x04000000>;
+	};
+
+	reserved-memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		camera {
+			compatible = "shared-dma-pool";
+			size = <0x01800000>;
+			alloc-ranges = <0x02800000 0x01800000>;
+			reusable;
+			linux,cma-default;
+		};
+	};
+
+	sound {
+		compatible = "simple-audio-card";
+		simple-audio-card,name = "t23-audio";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		simple-audio-card,widgets =
+			"Speaker", "Speaker",
+			"Microphone", "Mic";
+		simple-audio-card,routing =
+			"Speaker", "LOUT",
+			"Speaker", "ROUT",
+			"MICIN", "Mic";
+
+		simple-audio-card,dai-link@0 {
+			reg = <0>;
+			format = "i2s";
+			bitclock-master = <&sound_codec>;
+			frame-master = <&sound_codec>;
+
+			cpu {
+				sound-dai = <&aic>;
+			};
+
+			sound_codec: codec {
+				sound-dai = <&codec 0>;
+			};
+		};
+
+		simple-audio-card,dai-link@1 {
+			reg = <1>;
+
+			cpu {
+				sound-dai = <&aic_loop>;
+			};
+
+			codec {
+				sound-dai = <&codec 1>;
+			};
+		};
+	};
+};
+
+&pinctrl {
+	status = "okay";
+};
+
+&ost {
+	status = "okay";
+};
+
+&tcu {
+	status = "okay";
+};
+
+&pwm {
+	status = "okay";
+};
+
+&watchdog {
+	status = "okay";
+};
+
+&pdma {
+	status = "okay";
+};
+
+&uart0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_uart0_b>;
+	status = "okay";
+};
+
+&uart1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_uart1_b>;
+	status = "okay";
+};
+
+&sfc {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_sfc>;
+	status = "okay";
+
+	flash@0 {
+		compatible = "jedec,spi-nor";
+		reg = <0>;
+		label = "jz_sfc";
+		spi-max-frequency = <50000000>;
+		spi-rx-bus-width = <2>;
+		spi-tx-bus-width = <2>;
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			partition@0 {
+				label = "boot";
+				reg = <0x000000 0x040000>;
+			};
+
+			partition@40000 {
+				label = "env";
+				reg = <0x040000 0x010000>;
+			};
+
+			partition@50000 {
+				label = "kernel";
+				reg = <0x050000 0x200000>;
+			};
+
+			partition@250000 {
+				label = "rootfs";
+				reg = <0x250000 0x500000>;
+			};
+
+			partition@750000 {
+				label = "rootfs_data";
+				reg = <0x750000 0x0b0000>;
+			};
+		};
+	};
+};
+
+&msc0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_mmc0>;
+	bus-width = <4>;
+	max-frequency = <25000000>;
+	cd-gpios = <&gpb 27 GPIO_ACTIVE_LOW>;
+	status = "okay";
+};
+
+&mac {
+	phy-handle = <&ethphy0>;
+	status = "okay";
+};
+
+&mdio {
+	status = "okay";
+
+	ethphy0: ethernet-phy@0 {
+		reg = <0>;
+	};
+};
+
+&otg_phy {
+	status = "okay";
+};
+
+&otg {
+	status = "okay";
+};
+
+&aic {
+	status = "okay";
+};
+
+&aic_loop {
+	status = "okay";
+};
+
+&codec {
+	status = "okay";
+};
+
+&i2c0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_i2c0>;
+	clock-frequency = <100000>;
+	status = "okay";
+
+	sensor@37 {
+		compatible = "galaxycore,gc2053";
+		reg = <0x37>;
+		clocks = <&cgu CLK_CGU_CIM>;
+		clock-names = "xvclk";
+		pwdn-gpios = <&gpa 18 GPIO_ACTIVE_LOW>;
+		reset-gpios = <&gpa 16 GPIO_ACTIVE_LOW>;
+
+		port {
+			gc2053_out: endpoint {
+				remote-endpoint = <&isp_in0>;
+				clock-lanes = <0>;
+				data-lanes = <1 2>;
+				link-frequencies = /bits/ 64 <297000000>;
+			};
+		};
+	};
+};
+
+&isp {
+	assigned-clocks = <&cgu CLK_CGU_ISP>;
+	assigned-clock-parents = <&cgu CLK_SCLKA>;
+	assigned-clock-rates = <240000000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_cim_mclk>;
+	status = "okay";
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+			isp_in0: endpoint {
+				remote-endpoint = <&gc2053_out>;
+				clock-lanes = <0>;
+				data-lanes = <1 2>;
+			};
+		};
+	};
+};
+
+&ipu {
+	status = "okay";
+};
+
+&helix {
+	assigned-clocks = <&cgu CLK_CGU_VPU>;
+	assigned-clock-rates = <450000000>;
+	status = "okay";
+};
+
+&aes {
+	status = "okay";
+};
+
+&dtrng {
+	status = "okay";
+};
+
+&sadc {
+	status = "okay";
+};
+
+&efuse {
+	status = "okay";
+};
