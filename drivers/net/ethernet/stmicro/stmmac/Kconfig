@@ -49,6 +49,14 @@ config DWMAC_DWC_QOS_ETH
 	help
 	  Support for chips using the snps,dwc-qos-ethernet.txt DT binding.
 
+config DWMAC_AXERA
+	tristate "Axera AX620E DWMAC (EQOS 4.10a) support"
+	default ARCH_AXERA
+	depends on OF && (ARCH_AXERA || COMPILE_TEST)
+	help
+	  Support for the Axera AX620E/AX630C Ethernet controller
+	  ("axera,dwmac-4.10a") and its internal 100M EPHY (RMII).
+
 config DWMAC_GENERIC
 	tristate "Generic driver for DWMAC"
 	default STMMAC_PLATFORM
