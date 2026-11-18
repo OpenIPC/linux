@@ -161,7 +161,7 @@ static ssize_t logctl_proc_write(struct file *file, const char *buffer, size_t c
 	pLevel = (axlog_lvl_info_ptr)s_logctl_cfg->klvladdr;
 	do
 	{
-		ret = sscanf(tmp, "%s %s %hhd", logType, param1, &level);
+		ret = sscanf(tmp, "%63s %63s %hhd", logType, param1, &level);
 		if (0 == strcmp(logType, LOG_TYPE_USER)){
 			switch (ret)
 			{
@@ -191,7 +191,7 @@ static ssize_t logctl_proc_write(struct file *file, const char *buffer, size_t c
 						pr_warn("[axlogctl] unsupported cmd: %s", tmp);
 					}
 				}else{
-					ret = sscanf(tmp, "%s %hhd %hhd", logType, &id, &level);
+					ret = sscanf(tmp, "%63s %hhd %hhd", logType, &id, &level);
 					if ( ret == 3 
 					&&(id >= 0 && id <= s_logctl_cfg->max_id)
 					&& (level >= 0 && level <= 7) ){
@@ -230,7 +230,7 @@ static ssize_t logctl_proc_write(struct file *file, const char *buffer, size_t c
 						pr_warn("[axlogctl] unsupported cmd: %s", tmp);
 					}
 				}else{
-					ret = sscanf(tmp, "%s %hhd %hhd", logType, &id, &level);
+					ret = sscanf(tmp, "%63s %hhd %hhd", logType, &id, &level);
 					if ( ret == 3 
 					&&(id >= 0 && id <= s_logctl_cfg->max_id)
 					&& (level >= 0 && level <= 7) ){
@@ -318,7 +318,11 @@ static const struct file_operations proc_axlogctl_operations = {
 
 static int __init logctl_proc_init(void)
 {
-	axera_logctl_init();
+	int ret = axera_logctl_init();
+
+	/* the proc handlers use s_logctl_cfg unconditionally */
+	if (ret)
+		return ret;
 	proc_create(PROC_NAME, S_IRUSR, NULL, &proc_axlogctl_operations);
 	return 0;
 }
