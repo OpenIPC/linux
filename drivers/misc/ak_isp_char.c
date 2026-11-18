@@ -3371,6 +3371,50 @@ int ak_isp_set_awb_auto(int enabled)
 }
 EXPORT_SYMBOL_GPL(ak_isp_set_awb_auto);
 
+int ak_isp_orientation(int *hflip, int *vflip)
+{
+	AK_ISP_MISC_ATTR misc;
+	int flip, mirror, height_block_num;
+	int ret;
+
+	if (!priv || !hflip || !vflip)
+		return -ENODEV;
+	mutex_lock(&priv->lock);
+	if (!priv->capture_users || !priv->prepared) {
+		ret = -ENODEV;
+		goto out;
+	}
+	/*
+	 * The register is what the ISP does; AK_ISP_SET_FLIP_MIRROR sets it
+	 * without the misc attributes.
+	 */
+	ak_isp_get_flip_mirror(&flip, &mirror, &height_block_num);
+	if (*hflip >= 0)
+		mirror = !!*hflip;
+	if (*vflip >= 0)
+		flip = !!*vflip;
+	if (*hflip >= 0 || *vflip >= 0) {
+		/* The misc attributes too, so the ISP's re-init keeps them. */
+		ret = ak_isp_vo_get_misc_attr(&misc);
+		if (ret)
+			goto out;
+		misc.mirror_en = mirror;
+		misc.flip_en = flip;
+		ret = ak_isp_vo_set_misc_attr(&misc);
+		if (!ret)
+			ret = ak_isp_set_flip_mirror(flip, mirror);
+		if (ret)
+			goto out;
+	}
+	*hflip = mirror;
+	*vflip = flip;
+	ret = 0;
+out:
+	mutex_unlock(&priv->lock);
+	return ret;
+}
+EXPORT_SYMBOL_GPL(ak_isp_orientation);
+
 static void akisp_put_locked(void)
 {
 	if (priv->capture_users)

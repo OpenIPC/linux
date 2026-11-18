@@ -525,6 +525,22 @@ static int set_sensor_interface(struct ak_cam_dev *dev, int sensor_interface)
 	}
 }
 
+/*
+ * Mirror and flip are the ISP's, applied to its output, so the main and sub
+ * channels turn together. The tuning file carries its own orientation and
+ * every tuning load (power-on, and each style change such as day/night)
+ * writes it back, so an axis userspace has written is reapplied after each
+ * load; an axis it has not written stays as the tuning file has it.
+ */
+static int ak_cam_apply_flip(struct ak_cam_dev *dev)
+{
+	int hflip = dev->hflip, vflip = dev->vflip;
+
+	if (hflip < 0 && vflip < 0)
+		return 0;
+	return ak_isp_orientation(&hflip, &vflip);
+}
+
 static int ak_cam_power_on(struct ak_cam_dev *dev)
 {
 	int sensor_interface = DVP_INTERFACE;
@@ -576,6 +592,9 @@ static int ak_cam_power_on(struct ak_cam_dev *dev)
 	if (ret)
 		goto err_power;
 	ret = ak_isp_prepare(dev->dev);
+	if (ret)
+		goto err_isp;
+	ret = ak_cam_apply_flip(dev);
 	if (ret)
 		goto err_isp;
 	ret = v4l2_subdev_call(dev->sensor, video, cropcap, &cropcap);
@@ -745,6 +764,8 @@ static int ak_cam_set_tuning_style(void *context, unsigned int style)
 	ak_cam_stop_capture(dev);
 	disable_irq(dev->irq);
 	ret = ak_isp_apply_tuning_style(style);
+	if (!ret)
+		ret = ak_cam_apply_flip(dev);
 	if (resume && !ret) {
 		mutex_lock(&dev->stream_lock);
 		resume_ret = ispdrv_set_isp_resume();
@@ -1417,23 +1438,63 @@ static struct video_device ak_cam_videodev = {
  * platform driver
  * ------------------------------------------------------------------------- */
 
+/*
+ * Called with dev->mutex held: it is every node's video_device lock. The
+ * controls are only reachable through an open node, so the ISP is powered.
+ */
 static int ak_cam_set_ctrl(struct v4l2_ctrl *ctrl)
 {
-	if (ctrl->id == V4L2_CID_AUTO_WHITE_BALANCE)
+	struct ak_cam_dev *dev = container_of(ctrl->handler, struct ak_cam_dev,
+					      controls);
+	int hflip = -1, vflip = -1;
+
+	switch (ctrl->id) {
+	case V4L2_CID_AUTO_WHITE_BALANCE:
 		return ak_isp_set_awb_auto(ctrl->val);
-	return -EINVAL;
+	case V4L2_CID_HFLIP:
+		hflip = ctrl->val;
+		break;
+	case V4L2_CID_VFLIP:
+		vflip = ctrl->val;
+		break;
+	default:
+		return -EINVAL;
+	}
+	if (!dev->users)
+		return -ENODEV;
+	/* Only the axis written: the other keeps what the ISP has. */
+	if (ak_isp_orientation(&hflip, &vflip))
+		return -EIO;
+	if (ctrl->id == V4L2_CID_HFLIP)
+		dev->hflip = ctrl->val;
+	else
+		dev->vflip = ctrl->val;
+	return 0;
 }
 
+/* Volatile: what the ISP has, which the tuning file may have set. */
 static int ak_cam_get_ctrl(struct v4l2_ctrl *ctrl)
 {
-	int value, ret;
+	struct ak_cam_dev *dev = container_of(ctrl->handler, struct ak_cam_dev,
+					      controls);
+	int value, ret, hflip = -1, vflip = -1;
 
-	if (ctrl->id != V4L2_CID_AUTO_WHITE_BALANCE)
-		return -EINVAL;
-	ret = ak_isp_get_awb_auto(&value);
-	if (!ret)
-		ctrl->val = value;
-	return ret;
+	switch (ctrl->id) {
+	case V4L2_CID_AUTO_WHITE_BALANCE:
+		ret = ak_isp_get_awb_auto(&value);
+		if (!ret)
+			ctrl->val = value;
+		return ret;
+	case V4L2_CID_HFLIP:
+	case V4L2_CID_VFLIP:
+		if (!dev->users)
+			return -ENODEV;
+		ret = ak_isp_orientation(&hflip, &vflip);
+		if (!ret)
+			ctrl->val = ctrl->id == V4L2_CID_HFLIP ? hflip : vflip;
+		return ret;
+	}
+	return -EINVAL;
 }
 
 static const struct v4l2_ctrl_ops ak_cam_ctrl_ops = {
@@ -1587,7 +1648,7 @@ static int ak_cam_claim_pool(struct platform_device *pdev, size_t *bytes)
 static int ak_cam_probe(struct platform_device *pdev)
 {
 	struct ak_cam_dev *dev;
-	struct v4l2_ctrl *awb;
+	struct v4l2_ctrl *awb, *hflip, *vflip;
 	int ret;
 
 	dev = kzalloc(sizeof(*dev), GFP_KERNEL);
@@ -1636,14 +1697,25 @@ static int ak_cam_probe(struct platform_device *pdev)
 	ret = v4l2_device_register(&pdev->dev, &dev->v4l2_dev);
 	if (ret)
 		goto err_put_clk;
-	v4l2_ctrl_handler_init(&dev->controls, 1);
+	v4l2_ctrl_handler_init(&dev->controls, 3);
 	awb = v4l2_ctrl_new_std(&dev->controls, &ak_cam_ctrl_ops,
 			      V4L2_CID_AUTO_WHITE_BALANCE, 0, 1, 1, 1);
+	hflip = v4l2_ctrl_new_std(&dev->controls, &ak_cam_ctrl_ops,
+				  V4L2_CID_HFLIP, 0, 1, 1, 0);
+	vflip = v4l2_ctrl_new_std(&dev->controls, &ak_cam_ctrl_ops,
+				  V4L2_CID_VFLIP, 0, 1, 1, 0);
 	if (dev->controls.error) {
 		ret = dev->controls.error;
 		goto err_v4l2;
 	}
 	awb->flags |= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE;
+	/* Read from the ISP, and every write reaches it, a 0 included. */
+	hflip->flags |= V4L2_CTRL_FLAG_VOLATILE |
+			V4L2_CTRL_FLAG_EXECUTE_ON_WRITE;
+	vflip->flags |= V4L2_CTRL_FLAG_VOLATILE |
+			V4L2_CTRL_FLAG_EXECUTE_ON_WRITE;
+	dev->hflip = -1;
+	dev->vflip = -1;
 
 	dev->alloc_ctx = vb2_dma_contig_init_ctx(&pdev->dev);
 	if (IS_ERR(dev->alloc_ctx)) {
