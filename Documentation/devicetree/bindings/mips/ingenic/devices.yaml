@@ -67,6 +67,11 @@ properties:
           - const: jooan,ja-a12
           - const: ingenic,t23
 
+      - description: OpenIPC T23 Generic IPC
+        items:
+          - const: openipc,t23
+          - const: ingenic,t23
+
       - description: Generic Ingenic T23 SoC
         const: ingenic,t23
 
