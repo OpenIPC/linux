@@ -3141,6 +3141,10 @@ int spi_nor_scan(struct spi_nor *nor, const char *name,
 	if (ret)
 		return ret;
 
+	/* A devicetree "label" names the MTD (mtdparts= on the command line). */
+	if (!mtd->name)
+		of_property_read_string(spi_nor_get_flash_node(nor), "label",
+					&mtd->name);
 	if (!mtd->name)
 		mtd->name = dev_name(dev);
 	mtd->priv = nor;

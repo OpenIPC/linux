@@ -181,6 +181,16 @@ config DW_AXI_DMAC
 	  NOTE: This driver wasn't tested on 64 bit platform because
 	  of lack 64 bit platform with Synopsys DW AXI DMAC.
 
+config AXERA_DMA_PER
+	tristate "Axera AX_DMAPER peripheral DMA support"
+	depends on ARCH_AXERA || COMPILE_TEST
+	depends on OF
+	select DMA_ENGINE
+	select DMA_VIRTUAL_CHANNELS
+	help
+	  Enable support for the Axera peripheral DMA controller
+	  ("axera,dma-per"), used by the SPI flash controller and I2S.
+
 config EP93XX_DMA
 	bool "Cirrus Logic EP93xx DMA support"
 	depends on ARCH_EP93XX || COMPILE_TEST
