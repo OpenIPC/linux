@@ -1129,8 +1129,10 @@ static int ax_dma_per_probe(struct platform_device *pdev)
 	}
 
 	mem = platform_get_resource(pdev, IORESOURCE_MEM, 1);
+	if (!mem)
+		return -EINVAL;
 	chip->req_regs = ioremap(mem->start, resource_size(mem));
-	if (IS_ERR_OR_NULL(chip->req_regs)) {
+	if (!chip->req_regs) {
 		dev_err(chip->dev, "devm_ioremap_resource req_regs\n");
 		return -ENOMEM;
 	}
@@ -1186,6 +1188,21 @@ static int ax_dma_per_probe(struct platform_device *pdev)
 	axdma->dma.dev->dma_parms = &axdma->dma_parms;
 	platform_set_drvdata(pdev, chip);
 
+	/* LLI address must be aligned to a 64-byte boundary */
+	chip->desc_pool = dma_pool_create(dev_name(chip->dev), chip->dev,
+					  sizeof(struct axi_dma_lli), 64, 0);
+	if (!chip->desc_pool) {
+		dev_err(chip->dev, "No memory for descriptors\n");
+		ret = -ENOMEM;
+		goto err_ioremap;
+	}
+
+	chip->desc_kmem = kmem_cache_create(dev_name(chip->dev), sizeof(struct axi_dma_desc), 0, 0, NULL);
+	if (!chip->desc_kmem) {
+		ret = -ENOMEM;
+		goto err_pool;
+	}
+
 	ax_dma_per_pclk_en(chip, 1);
 	ax_dma_per_chan_clk_en(&axdma->chans[0], 1);
 #ifndef CONFIG_AX_RISCV_LOAD_ROOTFS
@@ -1207,18 +1224,11 @@ static int ax_dma_per_probe(struct platform_device *pdev)
 #ifdef CONFIG_AX_RISCV_LOAD_ROOTFS
 	disable_irq_nosync(chip->irq);
 #endif
-	/* LLI address must be aligned to a 64-byte boundary */
-	chip->desc_pool = dma_pool_create(dev_name(chip->dev), chip->dev,
-					  sizeof(struct axi_dma_lli), 64, 0);
-	if (!chip->desc_pool) {
-		dev_err(chip->dev, "No memory for descriptors\n");
-		goto err_disable;
-	}
 
-	ret = dmaenginem_async_device_register(&axdma->dma);
+	ret = dma_async_device_register(&axdma->dma);
 	if (ret) {
-		dev_err(chip->dev, "dmaenginem_async_device_register failed\n");
-		goto err_disable;
+		dev_err(chip->dev, "dma_async_device_register failed\n");
+		goto err_irq;
 	}
 
 	/* Register with OF helpers for DMA lookups */
@@ -1226,17 +1236,23 @@ static int ax_dma_per_probe(struct platform_device *pdev)
 					 dma_of_xlate, axdma);
 	if (ret < 0) {
 		dev_err(&pdev->dev, "Failed to register OF DMA controller\n");
-		goto err_disable;
+		goto err_unregister;
 	}
 
-	chip->desc_kmem = kmem_cache_create(dev_name(chip->dev), sizeof(struct axi_dma_desc), 0, 0, NULL);
-	if (!chip->desc_kmem)
-		goto err_disable;
 	dev_info(chip->dev, "Axera DMA Peripherals Controller, %d channels\n",
 		 axdma->hinfo->nr_channels);
 	return 0;
 
+err_unregister:
+	dma_async_device_unregister(&axdma->dma);
+err_irq:
+	devm_free_irq(chip->dev, chip->irq, chip);
 err_disable:
+	ax_dma_per_chan_clk_en(&axdma->chans[0], 0);
+	ax_dma_per_pclk_en(chip, 0);
+	kmem_cache_destroy(chip->desc_kmem);
+err_pool:
+	dma_pool_destroy(chip->desc_pool);
 err_ioremap:
 	iounmap(chip->req_regs);
 	return ret;
@@ -1246,19 +1262,22 @@ static int ax_dma_per_remove(struct platform_device *pdev)
 {
 	struct ax_dma_per_chip *chip = platform_get_drvdata(pdev);
 	struct ax_dma_per_info *axdma = chip->axdma;
-	struct axi_dma_chan *chan, *_chan;
+	u32 i;
 
-	ax_dma_per_pclk_en(chip, 0);
-	ax_dma_per_chan_clk_en(&axdma->chans[0], 0);
-	devm_free_irq(chip->dev, chip->irq, chip);
+	/* no new lookups, then no clients: the channels go with the device */
 	of_dma_controller_free(chip->dev->of_node);
+	dma_async_device_unregister(&axdma->dma);
 
-	list_for_each_entry_safe(chan, _chan, &axdma->dma.channels,
-				 vc.chan.device_node) {
-		list_del(&chan->vc.chan.device_node);
-		tasklet_kill(&chan->vc.task);
-	}
+	devm_free_irq(chip->dev, chip->irq, chip);
+	for (i = 0; i < axdma->hinfo->nr_channels; i++)
+		tasklet_kill(&axdma->chans[i].vc.task);
+
+	ax_dma_per_chan_clk_en(&axdma->chans[0], 0);
+	ax_dma_per_pclk_en(chip, 0);
+
 	kmem_cache_destroy(chip->desc_kmem);
+	dma_pool_destroy(chip->desc_pool);
+	iounmap(chip->req_regs);
 	return 0;
 }
 
