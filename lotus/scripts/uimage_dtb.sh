@@ -19,7 +19,7 @@ function usage()
 
 ARGS=$(getopt -o bc \
 	--long "build,clean,arch:,cross_compile:,\
-out:,soc:,compress:,hwgzip:,help" \
+out:,soc:,compress:,hwgzip:,name:,help" \
 	-n "$(basename $0)" -- "$@")
 if [ $? != 0 ];then
 	echo "Invalid args"
@@ -64,6 +64,10 @@ while true; do
 			hwgzip=$2
 			shift 2
 			;;
+		--name)
+			name=$2
+			shift 2
+			;;
 		--help)
 			usage
 			;;
@@ -83,11 +87,13 @@ if [ "ss$out" = "ss" ]; then
 fi
 
 # The name the kernel's own uImage rule stamps (UIMAGE_NAME in
-# scripts/Makefile.lib), so the image this script replaces it with keeps it:
-# OpenIPC's build exports UIMAGE_NAME as "Linux-<release>-<soc>", and its
-# sysupgrade reads the SoC from after the last '-'. Without it, the release
-# alone, as before. The SDK fixed this to "linux-5.10.y".
-kernel_version=${UIMAGE_NAME:-Linux-$(cat $out/include/config/kernel.release 2>/dev/null || echo 5.10.y)}
+# scripts/Makefile.lib), handed over by arch/arm/boot/Makefile as --name
+# on the same recipe line, so make and the shell expand it as they do for
+# that rule (Buildroot's value is a `make kernelrelease` command
+# substitution). OpenIPC's sysupgrade reads the SoC from after its last
+# '-'. Without --name, "Linux-<release>". The SDK fixed this to
+# "linux-5.10.y".
+kernel_version=${name:-Linux-$(cat $out/include/config/kernel.release 2>/dev/null || echo 5.10.y)}
 
 kernel_config=$out/.config
 

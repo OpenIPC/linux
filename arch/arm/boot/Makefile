@@ -98,7 +98,8 @@ $(obj)/uImage:	$(obj)/zImage FORCE
 	$(srctree)/lotus/scripts/uimage_dtb.sh --build --arch=$(ARCH) \
 		--cross_compile=$(CROSS_COMPILE) --out=$(O) \
 		--soc=$(patsubst "%",%,$(CONFIG_LOTUS_SOC_NAME)) \
-		--hwgzip=$(CONFIG_HW_GZIP_TOOL) --compress=$(compress-y)
+		--hwgzip=$(CONFIG_HW_GZIP_TOOL) --compress=$(compress-y) \
+		--name=$(UIMAGE_NAME)
 
 $(obj)/bootp/bootp: $(obj)/zImage initrd FORCE
 	$(Q)$(MAKE) $(build)=$(obj)/bootp $@
