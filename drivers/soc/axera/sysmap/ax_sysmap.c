@@ -18,8 +18,20 @@
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 #include <linux/version.h>
+#include <linux/ioport.h>
+#include <linux/mm.h>
+
+/*
+ * /dev/ax_sysmap is how the MSP user library (libax_sys AX_SYS_Mmap*,
+ * the dump tools) maps CMM buffers by physical address: the CMM is the
+ * DRAM above the kernel's mem=, which ax_cmm manages. It is a /dev/mem
+ * for that memory, so it gets /dev/mem's capability check, and it never
+ * maps memory the kernel itself manages (System RAM).
+ */
 static int sysmap_open(struct inode *inode, struct file *file)
 {
+	if (!capable(CAP_SYS_RAWIO))
+		return -EPERM;
 	return 0;
 }
 
@@ -31,14 +43,25 @@ static int sysmap_close(struct inode *inode, struct file *file)
 static int sys_devmap_mmap(struct file *filp, struct vm_area_struct *vma)
 {
 	int retval;
+	size_t size = vma->vm_end - vma->vm_start;
+	phys_addr_t start = (phys_addr_t)vma->vm_pgoff << PAGE_SHIFT;
+
+	if (vma->vm_pgoff > (~(phys_addr_t)0 >> PAGE_SHIFT) ||
+	    start + size - 1 < start)
+		return -EINVAL;
+	if (region_intersects(start, size, IORESOURCE_SYSTEM_RAM,
+			      IORES_DESC_NONE) != REGION_DISJOINT)
+		return -EPERM;
 
 	if (filp->f_flags & O_SYNC) {
 		vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
 	} else {
 #ifdef	CONFIG_64BIT
-		vma->vm_page_prot =
-			__pgprot(pgprot_val(vma->vm_page_prot) | PTE_WRITE |
-				PTE_DIRTY);
+		/* writable mappings start out dirty (no first-write fault) */
+		if (vma->vm_flags & VM_WRITE)
+			vma->vm_page_prot =
+				__pgprot(pgprot_val(vma->vm_page_prot) |
+					 PTE_WRITE | PTE_DIRTY);
 #else
 		vma->vm_page_prot = __pgprot(pgprot_val(vma->vm_page_prot) | L_PTE_PRESENT
 			| L_PTE_YOUNG | L_PTE_DIRTY | L_PTE_MT_DEV_CACHED);
@@ -65,13 +88,13 @@ static struct file_operations sys_devmap_fops = {
 static struct miscdevice ax_sysmap_miscdev = {
 	.minor = MISC_DYNAMIC_MINOR,
 	.name = "ax_sysmap",
-	.fops = &sys_devmap_fops
+	.fops = &sys_devmap_fops,
+	.mode = 0600,
 };
 
 static int register_sysmap_dev(void)
 {
-	misc_register(&ax_sysmap_miscdev);
-	return 0;
+	return misc_register(&ax_sysmap_miscdev);
 }
 
 static int unregister_sysmap_dev(void)
@@ -82,8 +105,7 @@ static int unregister_sysmap_dev(void)
 
 static int ax_sysmap_probe(struct platform_device *pdev)
 {
-	register_sysmap_dev();
-	return 0;
+	return register_sysmap_dev();
 }
 
 static int ax_sysmap_remove(struct platform_device *pdev)
