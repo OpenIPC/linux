@@ -1937,6 +1937,27 @@ static int ak_camera_set_fmt(struct soc_camera_device *icd,
 	if (mf.code != xlate->code)
 		return -EINVAL;
 
+	/*
+	 * The ISP's input window is programmed only through
+	 * ak_camera_set_crop(), so an application that never calls
+	 * VIDIOC_S_CROP (Majestic, the vendor SDK on this kernel) leaves it
+	 * empty and the ISP writes no picture. Start from the whole sensor
+	 * frame; a later S_CROP narrows it, as V4L2 lets S_FMT reset cropping.
+	 */
+	{
+		struct v4l2_crop full = {
+			.type = V4L2_BUF_TYPE_VIDEO_CAPTURE,
+			.c = {
+				.width = cropcap.bounds.width,
+				.height = cropcap.bounds.height,
+			},
+		};
+
+		ret = ak_camera_set_crop(icd, &full);
+		if (ret)
+			return ret;
+	}
+
 	ispdrv_vo_set_main_channel_scale(pix->width, pix->height);
 
 	return ret;
