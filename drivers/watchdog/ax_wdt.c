@@ -396,6 +396,7 @@ static int ax_wdt_drv_probe(struct platform_device *pdev)
 	ax_wdt->pfile = proc_create_data(ax_wdt->proc_name, 0644, NULL, &ax_wdt_proc_ops, ax_wdt);
 	if (unlikely(!ax_wdt->pfile)) {
 		pr_err("err: Create proc fail!\n");
+		ret = -ENOMEM;
 		goto err;
 	}
 	ret =
@@ -416,7 +417,6 @@ static int ax_wdt_drv_probe(struct platform_device *pdev)
 			IRQF_SHARED, KBUILD_MODNAME, ax_wdt);
 		if (ret) {
 			pr_err("err %d\n", ret);
-			watchdog_unregister_device(wdd);
 			goto err_proc;
 		}
 	}
@@ -427,6 +427,7 @@ static int ax_wdt_drv_probe(struct platform_device *pdev)
 	     of_property_read_u32_array(dev->of_node, "arst", ax_wdt->arst, 3) ||
 	     of_property_read_u32_array(dev->of_node, "prst", ax_wdt->prst, 3))) {
 		pr_err("get clk/reset cells err\n");
+		ret = -EINVAL;
 		goto err_proc;
 	}
 
