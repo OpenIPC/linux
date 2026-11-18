@@ -68,6 +68,8 @@ struct ax_gpio {
 	struct reset_control *rst;
 	int irq;
 	int gpio_clk_id;
+	struct clk_bulk_data *clks;
+	int num_clks;
 };
 
 static int gpio_base;
@@ -422,6 +424,13 @@ static void ax_gpio_clk(int ax_clk_id, bool on)
 	}
 }
 
+static void ax_gpio_clks_off(void *data)
+{
+	struct ax_gpio *ax_gpio = data;
+
+	clk_bulk_disable_unprepare(ax_gpio->num_clks, ax_gpio->clks);
+}
+
 static int ax_gpio_probe(struct platform_device *pdev)
 {
 	struct gpio_irq_chip *irq;
@@ -479,9 +488,18 @@ static int ax_gpio_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	irq->num_parents = 1;
 	irq->parents = &ax_gpio->irq;
-	/* Optional interface clock */
-	device_property_read_u32(&pdev->dev, "ax_clk_id", &clk_id);
-	ax_gpio->gpio_clk_id = clk_id;
+	/*
+	 * Interface clocks: the devicetree's clocks (clk_gpio, pclk_gpio),
+	 * or else the SDK's "ax_clk_id" gate index; neither is required.
+	 */
+	ax_gpio->gpio_clk_id = -1;
+	ax_gpio->num_clks = devm_clk_bulk_get_all(&pdev->dev, &ax_gpio->clks);
+	if (ax_gpio->num_clks < 0)
+		return dev_err_probe(&pdev->dev, ax_gpio->num_clks,
+				     "cannot get clocks\n");
+	if (!ax_gpio->num_clks &&
+	    !device_property_read_u32(&pdev->dev, "ax_clk_id", &clk_id))
+		ax_gpio->gpio_clk_id = clk_id;
 	if (source_set_flag == 0) {
 		gpio_clk_reg = ioremap(PERI_SYS_BASE, PERI_SYS_BASE_LEN);
 		writel(CLK_SOURCE_BIT, gpio_clk_reg + CLK_MUX_0_SET);
@@ -489,17 +507,28 @@ static int ax_gpio_probe(struct platform_device *pdev)
 	}
 
 	ax_gpio->prst =  devm_reset_control_get_optional(ax_gpio->dev, "gpio_prst");
-	if (IS_ERR(ax_gpio->prst)) {
-		dev_err(ax_gpio->dev, "Cannot get preset descriptor\n");
-		return -ENODEV;
-	}
+	if (IS_ERR(ax_gpio->prst))
+		return dev_err_probe(ax_gpio->dev, PTR_ERR(ax_gpio->prst),
+				     "Cannot get preset descriptor\n");
 	ax_gpio->rst =  devm_reset_control_get_optional(ax_gpio->dev, "gpio_rst");
-	if (IS_ERR(ax_gpio->rst)) {
-		dev_err(ax_gpio->dev, "Cannot get reset descriptor\n");
-		return -ENODEV;
-	}
+	if (IS_ERR(ax_gpio->rst))
+		return dev_err_probe(ax_gpio->dev, PTR_ERR(ax_gpio->rst),
+				     "Cannot get reset descriptor\n");
 	ax_deassert_reset(ax_gpio);
-	ax_gpio_clk(clk_id, true);
+	if (ax_gpio->num_clks) {
+		int ret = clk_bulk_prepare_enable(ax_gpio->num_clks,
+						  ax_gpio->clks);
+
+		if (ret)
+			return dev_err_probe(&pdev->dev, ret,
+					     "cannot enable clocks\n");
+		ret = devm_add_action_or_reset(&pdev->dev, ax_gpio_clks_off,
+					       ax_gpio);
+		if (ret)
+			return ret;
+	} else if (ax_gpio->gpio_clk_id >= 0) {
+		ax_gpio_clk(ax_gpio->gpio_clk_id, true);
+	}
 	pr_debug("%s enabled\n",__func__);
 	dev_set_drvdata(&pdev->dev, ax_gpio);
 	return devm_gpiochip_add_data(&pdev->dev, &ax_gpio->chip, ax_gpio);
