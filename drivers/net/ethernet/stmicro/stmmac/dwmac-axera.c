@@ -433,18 +433,33 @@ int emac_get_reset_control(struct axera_eqos *eqos)
 EXPORT_SYMBOL_GPL(emac_get_reset_control);
 #endif
 
+/*
+ * phy-reset-gpios follows its flags (asserted = active); the SDK's
+ * phy-rst-gpio is described active high but its PHYs reset on low, which
+ * the SDK drives raw: keep that.
+ */
+void emac_phy_reset_set(struct axera_eqos *eqos, int asserted)
+{
+	if (!eqos->phy_reset)
+		return;
+	if (eqos->phy_reset_sdk)
+		gpiod_direction_output_raw(eqos->phy_reset, !asserted);
+	else
+		gpiod_direction_output(eqos->phy_reset, asserted);
+}
+EXPORT_SYMBOL_GPL(emac_phy_reset_set);
+
 static void emac_phy_gpio_rst(struct axera_eqos *eqos)
 {
-	if (!gpio_is_valid(eqos->gpiod_reset)) {
+	if (!eqos->phy_reset) {
 		dev_err(eqos->dev, "EMAC:no phy reset gpio found\n");
 		return;
 	}
 
-	gpio_direction_output(eqos->gpiod_reset, 0);
-	/* For a complete PHY reset, must be asserted low for at least 10ms. */
-	gpio_direction_output(eqos->gpiod_reset, 0);
+	/* For a complete PHY reset, must be asserted for at least 10ms. */
+	emac_phy_reset_set(eqos, 1);
 	msleep(15);
-	gpio_direction_output(eqos->gpiod_reset, 1);
+	emac_phy_reset_set(eqos, 0);
 	msleep(75);
 }
 
@@ -795,7 +810,7 @@ void plat_exit(struct platform_device *pdev, void *private)
 		//ephy shutdown=1;
 		reset_control_assert(eqos->ephy_shutdown);
 	} else {
-		gpio_direction_output(eqos->gpiod_reset, 0);
+		emac_phy_reset_set(eqos, 1);
 	}
 
 	return;

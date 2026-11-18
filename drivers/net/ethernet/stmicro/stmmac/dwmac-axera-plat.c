@@ -41,10 +41,23 @@ int axera_dwmac_get_dts(
 	eqos->led1_en =
 			of_property_read_bool(pdev->dev.of_node, "axera-ephy,led1-enable");
 
-	eqos->gpiod_reset = of_get_named_gpio(pdev->dev.of_node, "phy-rst-gpio", 0);
-	if (gpio_is_valid(eqos->gpiod_reset)) {
-		gpio_request(eqos->gpiod_reset, NULL);
-		gpio_direction_output(eqos->gpiod_reset, 0);
+	eqos->phy_reset = devm_gpiod_get_optional(&pdev->dev, "phy-reset",
+						  GPIOD_ASIS);
+	if (IS_ERR(eqos->phy_reset))
+		return dev_err_probe(&pdev->dev, PTR_ERR(eqos->phy_reset),
+				     "phy-reset-gpios\n");
+	if (!eqos->phy_reset) {
+		eqos->phy_reset = devm_gpiod_get_optional(&pdev->dev, "phy-rst",
+							  GPIOD_ASIS);
+		if (IS_ERR(eqos->phy_reset))
+			return dev_err_probe(&pdev->dev,
+					     PTR_ERR(eqos->phy_reset),
+					     "phy-rst-gpio\n");
+		eqos->phy_reset_sdk = !!eqos->phy_reset;
+	}
+	if (eqos->phy_reset) {
+		/* held in reset until the PHY reset sequence */
+		emac_phy_reset_set(eqos, 1);
 	} else {
 		dev_info(&pdev->dev, "phy-rst-gpio not configure\n");
 	}
@@ -113,7 +126,9 @@ static int dwmac_axera_probe(struct platform_device *pdev)
 	plat_dat->pmt = 1;
 	plat_dat->tso_en = of_property_read_bool(pdev->dev.of_node, "snps,tso");
 
-	axera_dwmac_get_dts(pdev, plat_dat, eqos);
+	ret = axera_dwmac_get_dts(pdev, plat_dat, eqos);
+	if (ret)
+		goto err_remove_config_dt;
 
 	/* TODO: need to improve, mdio_clk = csr_clk / 324 */
 #ifdef CONFIG_DWMAC_AXERA_HAPS
@@ -143,7 +158,9 @@ static int dwmac_axera_probe(struct platform_device *pdev)
 #endif
 
 #ifdef EMAC_SYS_REST_EN
-	emac_get_reset_control(eqos);
+	ret = emac_get_reset_control(eqos);
+	if (ret)
+		goto err_remove_config_dt;
 #endif
 
 	dev_info(&pdev->dev, "reset axera emac...\n");
@@ -162,10 +179,6 @@ static int dwmac_axera_probe(struct platform_device *pdev)
 err_remove_config_dt:
 	if (pdev->dev.of_node) {
 		stmmac_remove_config_dt(pdev, plat_dat);
-	}
-
-	if (gpio_is_valid(eqos->gpiod_reset)) {
-		gpio_free(eqos->gpiod_reset);
 	}
 
 	return ret;

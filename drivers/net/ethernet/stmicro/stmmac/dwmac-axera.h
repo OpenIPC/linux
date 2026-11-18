@@ -17,6 +17,7 @@
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
 #include <linux/of_gpio.h>
+#include <linux/gpio/consumer.h>
 #include <linux/phy.h>
 #include <linux/soc/axera/ax_boardinfo.h>
 
@@ -76,7 +77,9 @@ struct axera_eqos {
 	struct reset_control *ephy_shutdown;
 	int phy_interface;
 	int bus_clock;
-	int gpiod_reset;
+	/* external PHY reset: phy-reset-gpios, or the SDK's phy-rst-gpio */
+	struct gpio_desc *phy_reset;
+	bool phy_reset_sdk;
 	int bus_id;
 	unsigned char rmii_loopback_mode;
 	unsigned char out_rmii_mode;
@@ -92,6 +95,7 @@ struct axera_eqos {
 
 void select_phy_interface(struct plat_stmmacenet_data *plat_dat);
 int emac_get_reset_control(struct axera_eqos *eqos);
+void emac_phy_reset_set(struct axera_eqos *eqos, int asserted);
 void emac_sw_rst(struct axera_eqos *eqos);
 void emac_clk_init(struct axera_eqos *eqos);
 void axera_eqos_fix_speed(void *priv, unsigned int speed);
