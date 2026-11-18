@@ -705,6 +705,7 @@
 
 			spi_nand@0 {
 				compatible = "spi-nand";
+				label = "spi4.0_nand";
 				reg = <0x00>;
 				spi-max-frequency = <0x1c9c380>;
 				spi-tx-bus-width = <0x04>;
