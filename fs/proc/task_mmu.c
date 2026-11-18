@@ -1225,6 +1225,21 @@ static int pagemap_hugetlb_range(pte_t *ptep, unsigned long hmask,
 #endif /* HUGETLB_PAGE */
 
 /*
+ * Walk VM_PFNMAP areas too. The default skips them as holes, so a driver's
+ * remap_pfn_range() mapping (ION's carveout heaps here) reads back as frame
+ * 0, and a privileged process that hands such a buffer to DMA cannot check
+ * where it is. Their page tables hold the real frame numbers, which is what
+ * follow_pfn() reads for videobuf's USERPTR; pte_to_pagemap_entry() already
+ * copes with entries that have no struct page, and frame numbers are still
+ * shown only to CAP_SYS_ADMIN.
+ */
+static int pagemap_test_walk(unsigned long start, unsigned long end,
+			     struct mm_walk *walk)
+{
+	return 0;
+}
+
+/*
  * /proc/pid/pagemap - an array mapping virtual pages to pfns
  *
  * For each page in the address space, this file contains one 64-bit entry
@@ -1285,6 +1300,7 @@ static ssize_t pagemap_read(struct file *file, char __user *buf,
 
 	pagemap_walk.pmd_entry = pagemap_pmd_range;
 	pagemap_walk.pte_hole = pagemap_pte_hole;
+	pagemap_walk.test_walk = pagemap_test_walk;
 #ifdef CONFIG_HUGETLB_PAGE
 	pagemap_walk.hugetlb_entry = pagemap_hugetlb_range;
 #endif
