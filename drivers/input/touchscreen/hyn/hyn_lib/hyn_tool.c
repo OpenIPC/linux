@@ -24,6 +24,8 @@ static struct proc_dir_entry *g_tool_node = NULL;
 // #undef HYN_INFO
 // #define HYN_INFO(...)
 
+#define MAX_R_SIZE (64 * 1024)
+
 static ssize_t hyn_proc_tool_read(struct file *page,char __user *user_buf, size_t count, loff_t *f_pos)
 {
 	unsigned char *buf = NULL;
@@ -36,6 +38,11 @@ static ssize_t hyn_proc_tool_read(struct file *page,char __user *user_buf, size_
 	if(*f_pos != 0){
 		goto tool_read_end;
 	}
+	/* the paths below copy up to count bytes out of buf */
+	if(count < 4 || count > MAX_R_SIZE){
+		count = -EINVAL;
+		goto tool_read_end;
+	}
 	ret_len = (mt_total_len + sizeof(struct ts_frame))*2;
 	if(ret_len > count){
 		ret_len = count;
@@ -43,7 +50,7 @@ static ssize_t hyn_proc_tool_read(struct file *page,char __user *user_buf, size_
 	if(hyn_tool_data->work_mode == FAC_TEST_MODE){
 		ret_len += mt_total_len;
 	}
-    buf = kzalloc(ret_len, GFP_KERNEL);
+    buf = kzalloc(max_t(size_t, ret_len, count), GFP_KERNEL);
 	// buf = kzalloc(ret_len, GFP_KERNEL);
     if(buf == NULL){
         HYN_ERROR("zalloc GFP_KERNEL memory failed.\n");
@@ -107,7 +114,7 @@ static ssize_t hyn_proc_tool_write(struct file *file, const char __user *buffer,
 	HYN_ENTER();
 	mutex_lock(&hyn_tool_data->mutex_fs);
 	#define MAX_W_SIZE (1024+8)
-	if(count > MAX_W_SIZE){
+	if(count < 1 || count > MAX_W_SIZE){
 		ret = -1;
 		HYN_ERROR("count > MAX_W_SIZE\n");
 		goto ERRO_WEND;
@@ -128,8 +135,13 @@ static ssize_t hyn_proc_tool_write(struct file *file, const char __user *buffer,
 
 	switch(cmd[0]){
 		case UPDATA_FW: // apk download bin
-			HYN_INFO("updata file_name =%s",&cmd[1]);
-			strcpy(hyn_tool_data->fw_file_name,&cmd[1]);
+			{
+				/* cmd is not NUL-terminated; keep the name in its field */
+				size_t len = min_t(size_t, count - 1,
+						   sizeof(hyn_tool_data->fw_file_name) - 1);
+				memcpy(hyn_tool_data->fw_file_name, &cmd[1], len);
+				hyn_tool_data->fw_file_name[len] = '\0';
+			}
 			hyn_tool_data->fw_updata_process = 0;
 			if(0==queue_work(hyn_tool_data->hyn_workqueue,&hyn_tool_data->work_updata_fw)){
 				HYN_ERROR("queue_work work_updata_fw failed");
@@ -171,7 +183,8 @@ int hyn_tool_fs_int(struct hyn_ts_data *ts_data)
 		HYN_INFO("proc_mkdir %s failed.\n",HYN_PROC_DIR_NAME);
 		return -1;
 	}
-	g_tool_node = proc_create_data(HYN_PROC_NODE_NAME, 0777 | S_IFREG, g_tool_dir, (void *)&proc_tool_fops, (void *)ts_data->client);
+	/* raw I2C access, reset and firmware update: root only */
+	g_tool_node = proc_create_data(HYN_PROC_NODE_NAME, 0600 | S_IFREG, g_tool_dir, (void *)&proc_tool_fops, (void *)ts_data->client);
 				//proc_create(HYN_PROC_NODE_NAME, 0777|S_IFREG, g_tool_dir, &proc_tool_fops);
 	if (IS_ERR_OR_NULL(g_tool_node)) {
 		HYN_INFO("proc_create %s failed.\n",HYN_PROC_NODE_NAME);
