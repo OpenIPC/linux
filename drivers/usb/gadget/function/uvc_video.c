@@ -55,9 +55,10 @@ static bool axera_uvc_transport_metadata_valid(const u8 *metadata)
 static u32 axera_uvc_clock_48mhz(void)
 {
 	u64 nanoseconds = ktime_get_ns();
-	u64 ticks = div_u64(nanoseconds, 1000) * 48;
+	u32 rem;
+	u64 ticks = div_u64_rem(nanoseconds, 1000, &rem) * 48;
 
-	ticks += div_u64((nanoseconds % 1000) * 48, 1000);
+	ticks += rem * 48 / 1000;
 	return (u32)ticks;
 }
 #endif

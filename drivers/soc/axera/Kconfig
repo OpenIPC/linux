@@ -257,3 +257,11 @@ config AX_RISCV_SUPPORT
 	default n
 	help
 	  for fast project.
+
+config AXERA_AX620E_PINMUX
+	bool "AX620E/AX620Q/AX630C board pinmux tables"
+	depends on ARCH_AXERA
+	default y
+	help
+	  Built-in pinmux tables of the SDK's AX620E-family boards; needs the
+	  SDK's build/projects/<project>/pinmux headers. Say N for AX620U.
