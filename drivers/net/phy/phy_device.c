@@ -400,7 +400,7 @@ phy_reg_store(struct device *dev,
 		    const char *buf, size_t count)
 {
 	struct phy_device *phydev = to_phy_device(dev);
-	int index = 0, val = 0, reg = 0;
+	int index = 0, val = 0, reg = 0, old_page;
 	char tmp[32];
 	char *data_cmd, *data_index, *data_reg, *data_val;
 	char *data;
@@ -457,7 +457,7 @@ phy_reg_store(struct device *dev,
 			goto out;
 		}
 
-		if (reg < 0 || reg>32)
+		if (reg < 0 || reg > 31)
 			goto out;
 
 		//value
@@ -479,22 +479,33 @@ phy_reg_store(struct device *dev,
 			goto out;
 		}
 
-		if (reg < 0 || reg>32)
+		if (reg < 0 || reg > 31)
 			goto out;
 	}
 
+	/*
+	 * Select the page in register 0x1f, access, and put the previous
+	 * page back, all under the bus lock so the PHY driver never runs
+	 * on the diagnostic's page.
+	 */
+	mutex_lock(&phydev->mdio.bus->mdio_lock);
+	old_page = __phy_read(phydev, 0x1f);
+	if (old_page < 0) {
+		mutex_unlock(&phydev->mdio.bus->mdio_lock);
+		return old_page;
+	}
+	__phy_write(phydev, 0x1f, 0x0100*index);
 	if (!strcmp(data_cmd, "read")) {
-		phy_write(phydev, 0x1f, 0x0100*index);
-		val = phy_read(phydev, reg);
+		val = __phy_read(phydev, reg);
 		reg_val = val;
-		pr_info("Read phy page=0x%x register=0x%x value=0x%x\n", (int)index, (int)reg, (int)val);
+	} else {
+		__phy_write(phydev, reg, val);
 	}
+	__phy_write(phydev, 0x1f, old_page);
+	mutex_unlock(&phydev->mdio.bus->mdio_lock);
 
-	if (!strcmp(data_cmd, "write")) {
-		pr_info("Write phy page=0x%x register=0x%x value=0x%x\n", (int)index, (int)reg, (int)val);
-		phy_write(phydev, 0x1f, 0x0100*index);
-		phy_write(phydev, reg, val);
-	}
+	pr_info("%s phy page=0x%x register=0x%x value=0x%x\n",
+		data_cmd, (int)index, (int)reg, (int)val);
 
 	return count;
 
