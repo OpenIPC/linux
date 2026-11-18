@@ -1957,6 +1957,13 @@ static const struct soc_mbus_pixelfmt ak_camera_nv12 = {
 	.bits_per_sample	= 8,
 	.packing		= SOC_MBUS_PACKING_1_5X8,
 	.order			= SOC_MBUS_ORDER_LE,
+	/*
+	 * A luma plane and an interleaved chroma plane. Without the layout,
+	 * soc_mbus treats the format as packed 12-bit pixels and reports
+	 * bytesperline as width * 3 / 2 (2880 at 1080p) instead of the luma
+	 * pitch; the image size is the same either way.
+	 */
+	.layout			= SOC_MBUS_LAYOUT_PLANAR_2Y_C,
 };
 
 static int ak_camera_get_formats(struct soc_camera_device *icd, unsigned int idx,
