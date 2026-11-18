@@ -249,6 +249,24 @@ config SPI_DAVINCI
 	help
 	  SPI master controller for DaVinci/DA8x/OMAP-L/AM1x SPI modules.
 
+config SPI_AXERA
+	tristate "Axera DesignWare SSI controller (vendor driver)"
+	depends on ARCH_AXERA || COMPILE_TEST
+	help
+	  Axera's driver for the DesignWare SSI as wired on AX620E: polled
+	  transfers, GPIO chip selects, enhanced (dual/quad) reads and
+	  optional AX_DMAPER receive DMA. Used for the boot SPI NOR flash.
+
+config SPI_AXERA_MMIO
+	tristate "Axera SPI controller platform driver"
+	depends on SPI_AXERA
+	help
+	  Platform glue for SPI_AXERA ("snps,dwc-ssi-1.03a").
+
+config SPI_AXERA_DMA
+	bool "Axera SPI receive DMA over AX_DMAPER"
+	depends on SPI_AXERA && AXERA_DMA_PER
+
 config SPI_DESIGNWARE
 	tristate "DesignWare SPI controller core support"
 	imply SPI_MEM
