@@ -244,14 +244,19 @@ static void dw_i2c_plat_pm_cleanup(struct dw_i2c_dev *dev)
 /*
  * AX620E devicetrees name the controller's gate bits in the AX620E
  * peripheral clock block with "ax_clk_id".  Without it (AX620U, whose
- * register map differs) gate the devicetree clock the upstream way.
+ * register map differs) gate the devicetree clock instead.
  */
 void ax_i2c_clk(struct dw_i2c_dev *dev, bool on)
 {
 	u32 ax_clk_id = dev->i2c_id;
 
 	if (ax_clk_id == AX_I2C_NO_CLK_ID) {
-		i2c_dw_prepare_clk(dev, on);
+		if (IS_ERR_OR_NULL(dev->clk))
+			return;
+		if (on)
+			clk_prepare_enable(dev->clk);
+		else
+			clk_disable_unprepare(dev->clk);
 		return;
 	}
 	if (on) {
