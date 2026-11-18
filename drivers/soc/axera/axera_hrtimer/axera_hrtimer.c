@@ -178,6 +178,7 @@ static int ax_hrtimer_rb_insert(struct rb_root *root, struct ax_hrtimer *timer)
 static int ax_hrtimer_rb_erase(struct ax_hrtimer *timer)
 {
 	rb_erase(&timer->node, &ax_hrtimer_rbroot);
+	RB_CLEAR_NODE(&timer->node);
 	return 0;
 }
 
@@ -238,6 +239,8 @@ struct ax_hrtimer *ax_hrtimer_alloc(void)
 	if (timer == NULL)
 		return NULL;
 	memset(timer, 0, sizeof(struct ax_hrtimer));
+	RB_CLEAR_NODE(&timer->node);
+	INIT_LIST_HEAD(&timer->list);
 	return timer;
 }
 EXPORT_SYMBOL(ax_hrtimer_alloc);
@@ -264,11 +267,36 @@ static void ax_hrtimer_cancel(struct ax_hrtimer *timer)
 	} while (!atomic_read(&timer->timer_wake));
 }
 
+static void ax_hrtimer_detach(struct ax_hrtimer *timer);
+
+/*
+ * Stop the timer if it is queued, then wait for a callback of it that the
+ * interrupt handler may be running on another CPU. Not from the timer's
+ * own callback.
+ */
 void ax_hrtimer_destroy(struct ax_hrtimer *timer)
 {
+	unsigned long flags;
+	bool running;
+
 	if(IS_ERR_OR_NULL(timer)) {
 		return;
 	}
+
+	ax_raw_spin_lock_irqsave(&dw_timer->ax_hrtimer_lock, &flags);
+	if (!RB_EMPTY_NODE(&timer->node))
+		ax_hrtimer_detach(timer);
+	timer->cancelled = true;
+	ax_raw_spin_unlock_irqrestore(&dw_timer->ax_hrtimer_lock, &flags);
+
+	do {
+		ax_raw_spin_lock_irqsave(&dw_timer->ax_hrtimer_lock, &flags);
+		running = timer->running;
+		ax_raw_spin_unlock_irqrestore(&dw_timer->ax_hrtimer_lock, &flags);
+		if (running)
+			cpu_relax();
+	} while (running);
+
 	kfree(timer);
 }
 
@@ -446,6 +474,11 @@ int ax_hrtimer_start(struct ax_hrtimer *timer)
 	unsigned long current_task_delay;
 	s64 now;
 	struct rb_node *node;
+
+	if(IS_ERR_OR_NULL(timer)) {
+		return -1;
+	}
+
 	now = ax_timespec64_to_us();
 	if(timer->expires != 0) {
 		timer->delay = timer->expires;
@@ -457,15 +490,17 @@ int ax_hrtimer_start(struct ax_hrtimer *timer)
 	timer->task = NULL;
 	timer->start_time = now;
 
-	if(IS_ERR_OR_NULL(timer)) {
-		return -1;
-	}
-
 	if((timer->function != NULL) && (timer->task != NULL)) {
 		return -1;
 	}
 
 	ax_raw_spin_lock_irqsave(&dw_timer->ax_hrtimer_lock, &flags);
+	/* already queued: inserting it again would corrupt the tree */
+	if (!RB_EMPTY_NODE(&timer->node)) {
+		ax_raw_spin_unlock_irqrestore(&dw_timer->ax_hrtimer_lock, &flags);
+		return -EBUSY;
+	}
+	timer->cancelled = false;
 
 	node = rb_first(&ax_hrtimer_rbroot);
 	if (node == NULL) {
@@ -505,61 +540,61 @@ int ax_hrtimer_start(struct ax_hrtimer *timer)
 
 EXPORT_SYMBOL(ax_hrtimer_start);
 
+/* take a queued timer out of the tree, rearm for the next one; lock held */
+static void ax_hrtimer_detach(struct ax_hrtimer *timer)
+{
+	struct ax_hrtimer *current_timer;
+	struct rb_node *node;
+	unsigned long current_delay_us;
+	s64 now;
+
+	if (dw_timer->arg != timer) {
+		ax_hrtimer_rb_erase(timer);
+		return;
+	}
+
+	dw_apb_timer_end();
+	ax_hrtimer_rb_erase(timer);
+	node = rb_first(&ax_hrtimer_rbroot);
+	if (node == NULL) {
+		dw_timer->arg = NULL;
+		return;// rb tree is empty
+	}
+	current_timer = rb_entry(node, struct ax_hrtimer, node);
+	now = ax_timespec64_to_us();
+	current_delay_us = now - current_timer->start_time;
+	if (current_timer->expires > current_delay_us) {
+		current_timer->delay = current_timer->expires - current_delay_us;
+		ax_dw_apb_timer_start(current_timer);
+	} else if (current_timer->expires <= current_delay_us) {
+		/*Simply deal with some penalties for the current timer,
+		 *otherwise you will have to continue traversing the rb trees
+		 */
+		current_timer->expires =+50;
+		current_timer->delay = 50;//50 us
+		ax_dw_apb_timer_start(current_timer);
+	}
+}
+
 int ax_hrtimer_stop(struct ax_hrtimer *timer)
 {
 	unsigned long flags;
-	struct ax_hrtimer *current_timer;
-	struct ax_hrtimer *this_timer = NULL;
-	s64 now;
-	struct rb_node *node;
-	unsigned long current_delay_us;
 
 	ax_raw_spin_lock_irqsave(&dw_timer->ax_hrtimer_lock, &flags);
 
-	node = rb_first(&ax_hrtimer_rbroot);
-	for (; node != NULL; ) {
-		this_timer = rb_entry(node, struct ax_hrtimer, node);
-		node = rb_next(node);
-		if (this_timer == timer) {
-			break;
-		} else {
-			this_timer = NULL;
+	if (RB_EMPTY_NODE(&timer->node)) {
+		/* stopped from (or while) its callback: do not restart it */
+		if (timer->running) {
+			timer->cancelled = true;
+			ax_raw_spin_unlock_irqrestore(&dw_timer->ax_hrtimer_lock, &flags);
+			return 0;
 		}
-	}
-
-	if(this_timer == NULL) {
 		printk(KERN_ERR "ax_hrtimer_stop not found timer %d\n", __LINE__);
 		ax_raw_spin_unlock_irqrestore(&dw_timer->ax_hrtimer_lock, &flags);
 		return -1;
 	}
 
-
-	if (dw_timer->arg != timer) {
-		rb_erase(&timer->node, &ax_hrtimer_rbroot);
-	} else if (dw_timer->arg == timer) {
-
-		dw_apb_timer_end();
-		rb_erase(&timer->node, &ax_hrtimer_rbroot);
-		node = rb_first(&ax_hrtimer_rbroot);
-		if (node == NULL) {
-			ax_raw_spin_unlock_irqrestore(&dw_timer->ax_hrtimer_lock, &flags);
-			return 0;// rb tree is empty
-		}
-		current_timer = rb_entry(node, struct ax_hrtimer, node);
-		now = ax_timespec64_to_us();
-		current_delay_us = now - current_timer->start_time;
-		if (current_timer->expires > current_delay_us) {
-			current_timer->delay = current_timer->expires - current_delay_us;
-			ax_dw_apb_timer_start(current_timer);
-		} else if (current_timer->expires <= current_delay_us) {
-				/*Simply deal with some penalties for the current timer,
-				 *otherwise you will have to continue traversing the rb trees
-				 */
-				current_timer->expires =+50;
-				current_timer->delay = 50;//50 us
-				ax_dw_apb_timer_start(current_timer);
-		}
-	}
+	ax_hrtimer_detach(timer);
 	ax_raw_spin_unlock_irqrestore(&dw_timer->ax_hrtimer_lock, &flags);
 	return 0;
 }
@@ -579,20 +614,44 @@ static struct miscdevice ax_hrtimer_miscdev = {
 	.fops = &ax_hrtimer_fops,
 };
 
+/*
+ * An expired timer leaves the tree: a sleeper is woken, a callback timer
+ * goes on @expired for its callback to run once the lock is dropped.
+ */
+static void ax_hrtimer_expire(struct ax_hrtimer *timer, struct list_head *expired)
+{
+	struct task_struct *task = timer->task;
+
+	ax_hrtimer_rb_erase(timer);
+	if (task) {
+		timer->task = NULL;
+		atomic_inc(&timer->timer_wake);
+		wake_up_process(task);
+	} else if (timer->function) {
+		timer->running = true;
+		list_add_tail(&timer->list, expired);
+	}
+}
+
+/* program the hardware for the first queued timer; lock held */
+static void ax_hrtimer_rearm(void)
+{
+	struct rb_node *node = rb_first(&ax_hrtimer_rbroot);
+
+	if (node)
+		ax_dw_apb_timer_start(rb_entry(node, struct ax_hrtimer, node));
+	else
+		dw_timer->arg = NULL;
+}
+
 static irqreturn_t dw_apb_timer_irq(int irq, void *data)
 {
 	struct rb_node *node;
 	unsigned long flags;
 	s64 now;
-	struct ax_hrtimer *timer,*next_timer;
+	struct ax_hrtimer *timer, *tmp;
 	unsigned long current_delay_us;
-	struct task_struct *task = NULL;
-
-	timer = (struct ax_hrtimer *)dw_timer->arg;
-	if (timer == NULL) {
-		printk(KERN_ERR "ax hrtimer logic error\n");
-		return IRQ_HANDLED;
-	}
+	LIST_HEAD(expired);
 
 	disable_irq_nosync(dw_timer->irq);
 
@@ -601,22 +660,15 @@ static irqreturn_t dw_apb_timer_irq(int irq, void *data)
 	if (dw_timer->eoi)
 		dw_timer->eoi();
 
-	task = timer->task;
-	if (task) {
-		ax_hrtimer_rb_erase(timer);
-		timer->task = NULL;
-		atomic_inc(&timer->timer_wake);
-		wake_up_process(task);
-	} else if (timer->function) {
-		if(AX_HRTIMER_NORESTART == timer->function(timer->private)){
-			rb_erase(&timer->node, &ax_hrtimer_rbroot);
-		} else {//restart mode
-			now = ax_timespec64_to_us();
-			timer->delay = timer->expires;
-			timer->task = NULL;
-			timer->start_time = now;
-		}
+	timer = (struct ax_hrtimer *)dw_timer->arg;
+	if (timer == NULL) {
+		ax_raw_spin_unlock_irqrestore(&dw_timer->ax_hrtimer_lock, &flags);
+		enable_irq(dw_timer->irq);
+		return IRQ_HANDLED;
 	}
+
+	if (!RB_EMPTY_NODE(&timer->node))
+		ax_hrtimer_expire(timer, &expired);
 
 	node = rb_first(&ax_hrtimer_rbroot);
 	for (; node; ) {
@@ -624,38 +676,42 @@ static irqreturn_t dw_apb_timer_irq(int irq, void *data)
 		node = rb_next(node);
 		now = ax_timespec64_to_us();
 		current_delay_us = now - timer->start_time;
-		if (timer->expires > current_delay_us) {
+		if (timer->expires > current_delay_us)
 			timer->delay = timer->expires - current_delay_us;
-		} else if (timer->expires <= current_delay_us) {
-			task = timer->task;
-			if (task) {
-				rb_erase(&timer->node, &ax_hrtimer_rbroot);
-				timer->task = NULL;
-				atomic_inc(&timer->timer_wake);
-				wake_up_process(task);
-			} else if (timer->function) {
-				if (AX_HRTIMER_NORESTART == timer->function(timer->private)) {
-					rb_erase(&timer->node, &ax_hrtimer_rbroot);
-				} else { //restart mode
-					now = ax_timespec64_to_us();
-					timer->delay = timer->expires;
-					timer->task = NULL;
-					timer->start_time = now;
-				}
-			}
-		}
+		else
+			ax_hrtimer_expire(timer, &expired);
 	}
 
-	node = rb_first(&ax_hrtimer_rbroot);
-	if (node != NULL) {
-		next_timer = rb_entry(node, struct ax_hrtimer, node);
-		if (next_timer != NULL) {
-			ax_dw_apb_timer_start(next_timer);
-		} else {
-			ax_hrtimer_rbroot = RB_ROOT;
-                }
-	}
+	ax_hrtimer_rearm();
 	ax_raw_spin_unlock_irqrestore(&dw_timer->ax_hrtimer_lock, &flags);
+
+	/*
+	 * Callbacks run without the tree lock, so that they may stop or
+	 * start timers; a restarting one is queued again afterwards.
+	 */
+	list_for_each_entry_safe(timer, tmp, &expired, list) {
+		int ret;
+
+		list_del_init(&timer->list);
+		ret = timer->function(timer->private);
+
+		ax_raw_spin_lock_irqsave(&dw_timer->ax_hrtimer_lock, &flags);
+		if (ret != AX_HRTIMER_NORESTART && !timer->cancelled &&
+		    RB_EMPTY_NODE(&timer->node)) {
+			timer->delay = timer->expires;
+			timer->start_time = ax_timespec64_to_us();
+			while (ax_hrtimer_init(timer) == RETRY)
+				timer->delay += 1;
+			if (rb_first(&ax_hrtimer_rbroot) == &timer->node) {
+				dw_apb_timer_end();
+				ax_hrtimer_rearm();
+			}
+		}
+		timer->cancelled = false;
+		timer->running = false;
+		ax_raw_spin_unlock_irqrestore(&dw_timer->ax_hrtimer_lock, &flags);
+	}
+
 	enable_irq(dw_timer->irq);
 	return IRQ_HANDLED;
 }

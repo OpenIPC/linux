@@ -25,6 +25,9 @@ struct ax_hrtimer {
 	s64 start_time;
 	atomic_t timer_wake;
 	void *private;
+	/* callback in progress / stopped meanwhile: under ax_hrtimer_lock */
+	bool running;
+	bool cancelled;
 };
 
 struct ax_hrtimer *ax_hrtimer_alloc(void);

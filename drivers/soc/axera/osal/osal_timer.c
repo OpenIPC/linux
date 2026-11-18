@@ -204,6 +204,9 @@ EXPORT_SYMBOL(AX_OSAL_DEV_usleep);
 void *AX_OSAL_DEV_hrtimer_alloc(unsigned long use,int (*function)(void *),void *private)
 {
 	struct ax_hrtimer *timer = ax_hrtimer_alloc();
+
+	if (!timer)
+		return NULL;
 	timer->delay = use;
 	timer->function = function;
 	timer->private = private;
