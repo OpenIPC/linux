@@ -9890,7 +9890,7 @@
 
 		gzipd@10410000 {
 			compatible = "axera,ax_gzipd";
-			reg = <0x00 0x10410000 0x01 0x00>;
+			reg = <0x00 0x10410000 0x00 0x10000>;
 			reg-names = "reg_gzipd";
 			interrupts = <GIC_SPI 81 IRQ_TYPE_LEVEL_HIGH>;
 			status = "okay";
