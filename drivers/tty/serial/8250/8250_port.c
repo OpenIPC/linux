@@ -1864,21 +1864,18 @@ int serial8250_handle_irq(struct uart_port *port, unsigned int iir)
 	unsigned char status;
 	unsigned long flags;
 	struct uart_8250_port *up = up_to_u8250p(port);
-	char sysrq_flags = 0;
+
 	if (iir & UART_IIR_NO_INT)
 		return 0;
 
 	spin_lock_irqsave(&port->lock, flags);
 
+	/*
+	 * The SDK reads LSR a second time; reading it clears OE/PE/FE/BI,
+	 * so keep whatever the first read reported.
+	 */
 	status = serial_port_in(port, UART_LSR);
-	if(status & UART_LSR_BI) {
-	    sysrq_flags = UART_LSR_BI;
-	} else {
-	    sysrq_flags = 0;
-	}
-	status = serial_port_in(port, UART_LSR);
-	if(sysrq_flags == UART_LSR_BI)
-		status |= UART_LSR_BI;
+	status |= serial_port_in(port, UART_LSR);
 	if (status & (UART_LSR_DR | UART_LSR_BI)) {
 		if (!up->dma || handle_rx_dma(up, iir))
 			status = serial8250_rx_chars(up, status);
