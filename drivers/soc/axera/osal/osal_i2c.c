@@ -107,6 +107,11 @@ int AX_OSAL_DEV_i2c_read(unsigned char i2c_dev, unsigned char dev_addr,
 	if (NULL == pRegData) {
 		return -EIO;
 	}
+	/* 8/16-bit register addresses and 8/16-bit values only: tmp_buf
+	 * holds both the address and the reply */
+	if (reg_addr_num < 1 || reg_addr_num > 2 ||
+	    data_byte_num < 1 || data_byte_num > 2)
+		return -EINVAL;
 
 	AX_OSAL_LIB_memcpy(&client, sensor_client[i2c_dev], sizeof(struct i2c_client));
 	client.addr = dev_addr;	/* notes */

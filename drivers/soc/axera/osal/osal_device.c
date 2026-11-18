@@ -126,7 +126,7 @@ static int osal_open(struct inode *inode, struct file *file)
 	pdata = (AX_DEV_PRIVATE_DATA_T *) kmalloc(sizeof(AX_DEV_PRIVATE_DATA_T), GFP_KERNEL);
 	if (pdata == NULL) {
 		printk("%s - kmalloc error!\n", __func__);
-		return -1;
+		return -ENOMEM;
 	}
 
 	memset(pdata, 0, sizeof(AX_DEV_PRIVATE_DATA_T));
@@ -141,8 +141,16 @@ static int osal_open(struct inode *inode, struct file *file)
 	   if (axera_dev->osal_dev.fops->open != NULL)
 	   return axera_dev->osal_dev.fops->open((void *) & (pdata->data));
 	 */
-	if (axera_dev->osal_dev.fops->open != NULL)
-		return axera_dev->osal_dev.fops->open((void *)pdata);
+	if (axera_dev->osal_dev.fops->open != NULL) {
+		int ret = axera_dev->osal_dev.fops->open((void *)pdata);
+
+		/* the VFS does not call release after a failed open */
+		if (ret) {
+			file->private_data = axdev;
+			kfree(pdata);
+			return ret;
+		}
+	}
 
 	return 0;
 }

@@ -282,7 +282,8 @@ int AX_OSAL_DEV_platform_get_resource_byname(void * dev, u32 type, const char * 
 		AX_OSAL_LIB_memset(res, 0, sizeof(struct AXERA_RESOURCE));
 		res->start = res_tmp->start;
 		res->end = res_tmp->end;
-		AX_OSAL_LIB_memcpy(res->name, res_tmp->name, AX_OSAL_LIB_strlen(res_tmp->name));
+		if (res_tmp->name)
+			strscpy((char *)res->name, res_tmp->name, sizeof(res->name));
 		res->flags = res_tmp->flags;
 		res->desc = res_tmp->desc;
 	}
@@ -301,7 +302,8 @@ int AX_OSAL_DEV_platform_get_resource(void * dev, u32 type, u32 num, struct AXER
 		AX_OSAL_LIB_memset(res, 0, sizeof(struct AXERA_RESOURCE));
 		res->start = res_tmp->start;
 		res->end = res_tmp->end;
-		AX_OSAL_LIB_memcpy(res->name, res_tmp->name, AX_OSAL_LIB_strlen(res_tmp->name));
+		if (res_tmp->name)
+			strscpy((char *)res->name, res_tmp->name, sizeof(res->name));
 		res->flags = res_tmp->flags;
 		res->desc = res_tmp->desc;
 	}
