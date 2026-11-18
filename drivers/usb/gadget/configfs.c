@@ -1334,6 +1334,18 @@ static int configfs_composite_bind(struct usb_gadget *gadget,
 		if (gadget_is_otg(gadget))
 			c->descriptors = otg_desc;
 
+/// SIPEED EDIT ///
+		/**
+		 * https://patches.linaro.org/project/linux-usb/list/?series=205060
+		 * Message ID 	1679694482-16430-2-git-send-email-quic_eserrao@quicinc.com
+		 * Series 	Add function suspend/resume and remote wakeup support
+		 * 
+		 * [v13,1/6] usb: gadget: Properly configure the device for remote wakeup
+		 */
+		/* Properly configure the bmAttributes wakeup bit */
+		check_remote_wakeup_config(gadget, c);
+/// SIPEED EDIT END ///
+
 		cfg = container_of(c, struct config_usb_cfg, c);
 		if (!list_empty(&cfg->string_list)) {
 			i = 0;

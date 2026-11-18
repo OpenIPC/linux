@@ -79,6 +79,13 @@ int serial8250_tx_dma(struct uart_8250_port *p)
 
 	dma->tx_size = CIRC_CNT_TO_END(xmit->head, xmit->tail, UART_XMIT_SIZE);
 
+#ifdef CONFIG_ARCH_AXERA
+	if((dma->tx_size) < (dma->txconf.dst_maxburst ?: 64)) {
+		ret = -EINVAL;
+		goto err;
+	}
+#endif
+
 	desc = dmaengine_prep_slave_single(dma->txchan,
 					   dma->tx_addr + xmit->tail,
 					   dma->tx_size, DMA_MEM_TO_DEV,

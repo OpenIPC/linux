@@ -35,6 +35,9 @@
 #include "core.h"
 #include "gadget.h"
 #include "io.h"
+#ifdef CONFIG_USB_DWC3_AXERA
+#include "dwc3-axera.h"
+#endif
 
 #include "debug.h"
 
@@ -96,6 +99,9 @@ static int dwc3_get_dr_mode(struct dwc3 *dwc)
 		dwc->dr_mode = mode;
 	}
 
+#ifdef CONFIG_USB_DWC3_AXERA
+	dev_info(dev, "dr_mode is %d (1-host 2-device 3-otg)\n", dwc->dr_mode);
+#endif
 	return 0;
 }
 
@@ -276,11 +282,17 @@ done:
 	return 0;
 }
 
+#ifdef CONFIG_USB_DWC3_AXERA
+static const struct clk_bulk_data dwc3_core_clks[] = {
+	//we configure usb clock in dwc3-axera.c
+};
+#else
 static const struct clk_bulk_data dwc3_core_clks[] = {
 	{ .id = "ref" },
 	{ .id = "bus_early" },
 	{ .id = "suspend" },
 };
+#endif
 
 /*
  * dwc3_frame_length_adjustment - Adjusts frame length if required
@@ -510,6 +522,9 @@ static void dwc3_core_num_eps(struct dwc3 *dwc)
 	struct dwc3_hwparams	*parms = &dwc->hwparams;
 
 	dwc->num_eps = DWC3_NUM_EPS(parms);
+#ifdef CONFIG_USB_DWC3_AXERA
+	dev_info(dwc->dev, "EP NUM:%d\n", dwc->num_eps);
+#endif
 }
 
 static void dwc3_cache_hwparams(struct dwc3 *dwc)
@@ -1444,6 +1459,10 @@ static int dwc3_probe(struct platform_device *pdev)
 		if (ret)
 			dwc->num_clks = 0;
 	}
+
+#ifdef CONFIG_USB_DWC3_AXERA
+	axera_usb_global_init(dwc);
+#endif
 
 	ret = reset_control_deassert(dwc->reset);
 	if (ret)

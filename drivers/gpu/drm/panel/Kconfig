@@ -38,6 +38,15 @@ config DRM_PANEL_SIMPLE
 	  that it can be automatically turned off when the panel goes into a
 	  low power state.
 
+config DRM_PANEL_SIMPLE_AXERA
+         tristate "support for axera simple panels"
+         depends on OF
+         depends on BACKLIGHT_CLASS_DEVICE
+         select VIDEOMODE_HELPERS
+         help
+           Axera DRM panel is used to support BT/DPI/DIS panels, and supports reset,
+           power on and DCS command initialization of mipi panel
+
 config DRM_PANEL_ILITEK_IL9322
 	tristate "Ilitek ILI9322 320x240 QVGA panels"
 	depends on OF && SPI

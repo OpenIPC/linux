@@ -197,6 +197,7 @@
 
 /* #define VERBOSE_DEBUG */
 /* #define DUMP_MSGS */
+// ### SIPEED EDIT ###
 
 #include <linux/blkdev.h>
 #include <linux/completion.h>
@@ -574,21 +575,37 @@ static int start_transfer(struct fsg_dev *fsg, struct usb_ep *ep,
 
 static bool start_in_transfer(struct fsg_common *common, struct fsg_buffhd *bh)
 {
+	int rc;
+
 	if (!fsg_is_set(common))
 		return false;
 	bh->state = BUF_STATE_SENDING;
-	if (start_transfer(common->fsg, common->fsg->bulk_in, bh->inreq))
+	rc = start_transfer(common->fsg, common->fsg->bulk_in, bh->inreq);
+	if (rc) {
 		bh->state = BUF_STATE_EMPTY;
+		if (rc == -ESHUTDOWN) {
+			common->running = 0;
+			return false;
+		}
+	}
 	return true;
 }
 
 static bool start_out_transfer(struct fsg_common *common, struct fsg_buffhd *bh)
 {
+	int rc;
+
 	if (!fsg_is_set(common))
 		return false;
 	bh->state = BUF_STATE_RECEIVING;
-	if (start_transfer(common->fsg, common->fsg->bulk_out, bh->outreq))
+	rc = start_transfer(common->fsg, common->fsg->bulk_out, bh->outreq);
+	if (rc) {
 		bh->state = BUF_STATE_FULL;
+		if (rc == -ESHUTDOWN) {
+			common->running = 0;
+			return false;
+		}
+	}
 	return true;
 }
 
@@ -619,7 +636,7 @@ static int sleep_thread(struct fsg_common *common, bool can_freeze,
 static int do_read(struct fsg_common *common)
 {
 	struct fsg_lun		*curlun = common->curlun;
-	u32			lba;
+	u64			lba;
 	struct fsg_buffhd	*bh;
 	int			rc;
 	u32			amount_left;
@@ -634,7 +651,10 @@ static int do_read(struct fsg_common *common)
 	if (common->cmnd[0] == READ_6)
 		lba = get_unaligned_be24(&common->cmnd[1]);
 	else {
-		lba = get_unaligned_be32(&common->cmnd[2]);
+		if (common->cmnd[0] == READ_16)
+			lba = get_unaligned_be64(&common->cmnd[2]);
+		else		/* READ_10 or READ_12 */
+			lba = get_unaligned_be32(&common->cmnd[2]);
 
 		/*
 		 * We allow DPO (Disable Page Out = don't save data in the
@@ -747,7 +767,7 @@ static int do_read(struct fsg_common *common)
 static int do_write(struct fsg_common *common)
 {
 	struct fsg_lun		*curlun = common->curlun;
-	u32			lba;
+	u64			lba;
 	struct fsg_buffhd	*bh;
 	int			get_some_more;
 	u32			amount_left_to_req, amount_left_to_write;
@@ -771,7 +791,10 @@ static int do_write(struct fsg_common *common)
 	if (common->cmnd[0] == WRITE_6)
 		lba = get_unaligned_be24(&common->cmnd[1]);
 	else {
-		lba = get_unaligned_be32(&common->cmnd[2]);
+		if (common->cmnd[0] == WRITE_16)
+			lba = get_unaligned_be64(&common->cmnd[2]);
+		else		/* WRITE_10 or WRITE_12 */
+			lba = get_unaligned_be32(&common->cmnd[2]);
 
 		/*
 		 * We allow DPO (Disable Page Out = don't save data in the
@@ -950,7 +973,7 @@ static void invalidate_sub(struct fsg_lun *curlun)
 {
 	struct file	*filp = curlun->filp;
 	struct inode	*inode = file_inode(filp);
-	unsigned long	rc;
+	unsigned long __maybe_unused	rc;
 
 	rc = invalidate_mapping_pages(inode->i_mapping, 0, -1);
 	VLDBG(curlun, "invalidate_mapping_pages -> %ld\n", rc);
@@ -1078,7 +1101,10 @@ static int do_inquiry(struct fsg_common *common, struct fsg_buffhd *bh)
 	buf[5] = 0;		/* No special options */
 	buf[6] = 0;
 	buf[7] = 0;
-	if (curlun->inquiry_string[0])
+	if (curlun->cdrom && curlun->inquiry_string_cdrom[0])
+		memcpy(buf + 8, curlun->inquiry_string_cdrom,
+		       sizeof(curlun->inquiry_string_cdrom));
+	else if (curlun->inquiry_string[0])
 		memcpy(buf + 8, curlun->inquiry_string,
 		       sizeof(curlun->inquiry_string));
 	else
@@ -1146,6 +1172,7 @@ static int do_read_capacity(struct fsg_common *common, struct fsg_buffhd *bh)
 	u32		lba = get_unaligned_be32(&common->cmnd[2]);
 	int		pmi = common->cmnd[8];
 	u8		*buf = (u8 *)bh->buf;
+	u32		max_lba;
 
 	/* Check the PMI and LBA fields */
 	if (pmi > 1 || (pmi == 0 && lba != 0)) {
@@ -1153,10 +1180,35 @@ static int do_read_capacity(struct fsg_common *common, struct fsg_buffhd *bh)
 		return -EINVAL;
 	}
 
-	put_unaligned_be32(curlun->num_sectors - 1, &buf[0]);
-						/* Max logical block */
-	put_unaligned_be32(curlun->blksize, &buf[4]);/* Block length */
+	if (curlun->num_sectors < 0x100000000ULL)
+		max_lba = curlun->num_sectors - 1;
+	else
+		max_lba = 0xffffffff;
+	put_unaligned_be32(max_lba, &buf[0]);		/* Max logical block */
+	put_unaligned_be32(curlun->blksize, &buf[4]);	/* Block length */
 	return 8;
+}
+
+static int do_read_capacity_16(struct fsg_common *common, struct fsg_buffhd *bh)
+{
+	struct fsg_lun  *curlun = common->curlun;
+	u64		lba = get_unaligned_be64(&common->cmnd[2]);
+	int		pmi = common->cmnd[14];
+	u8		*buf = (u8 *)bh->buf;
+
+	/* Check the PMI and LBA fields */
+	if (pmi > 1 || (pmi == 0 && lba != 0)) {
+		curlun->sense_data = SS_INVALID_FIELD_IN_CDB;
+		return -EINVAL;
+	}
+
+	put_unaligned_be64(curlun->num_sectors - 1, &buf[0]);
+							/* Max logical block */
+	put_unaligned_be32(curlun->blksize, &buf[8]);	/* Block length */
+
+	/* It is safe to keep other fields zeroed */
+	memset(&buf[12], 0, 32 - 12);
+	return 32;
 }
 
 static int do_read_header(struct fsg_common *common, struct fsg_buffhd *bh)
@@ -1166,6 +1218,16 @@ static int do_read_header(struct fsg_common *common, struct fsg_buffhd *bh)
 	u32		lba = get_unaligned_be32(&common->cmnd[2]);
 	u8		*buf = (u8 *)bh->buf;
 
+	if (curlun->cd_as_dvd) {
+		/*
+		 * The READ_HEADER command is obsolete since MMC-3.
+		 * We're keeping it for backward compatibility,
+		 * but disabling it for big images since they will be
+		 * handled as DVD.
+		 */
+		curlun->sense_data = SS_INVALID_COMMAND;
+		return -EINVAL;
+	}
 	if (common->cmnd[1] & ~0x02) {		/* Mask away MSF */
 		curlun->sense_data = SS_INVALID_FIELD_IN_CDB;
 		return -EINVAL;
@@ -1187,25 +1249,90 @@ static int do_read_toc(struct fsg_common *common, struct fsg_buffhd *bh)
 	int		msf = common->cmnd[1] & 0x02;
 	int		start_track = common->cmnd[6];
 	u8		*buf = (u8 *)bh->buf;
+	u8		format;
+	int		i, len;
+
+	format = common->cmnd[2] & 0xf;
 
 	if ((common->cmnd[1] & ~0x02) != 0 ||	/* Mask away MSF */
-			start_track > 1) {
+			(start_track > 1 && format != 0x1)) {
 		curlun->sense_data = SS_INVALID_FIELD_IN_CDB;
 		return -EINVAL;
 	}
 
-	memset(buf, 0, 20);
-	buf[1] = (20-2);		/* TOC data length */
-	buf[2] = 1;			/* First track number */
-	buf[3] = 1;			/* Last track number */
-	buf[5] = 0x16;			/* Data track, copying allowed */
-	buf[6] = 0x01;			/* Only track is number 1 */
-	store_cdrom_address(&buf[8], msf, 0);
+	/*
+	 * Check if CDB is old style SFF-8020i
+	 * i.e. format is in 2 MSBs of byte 9
+	 * Mac OS-X host sends us this.
+	 */
+	if (format == 0)
+		format = (common->cmnd[9] >> 6) & 0x3;
 
-	buf[13] = 0x16;			/* Lead-out track is data */
-	buf[14] = 0xAA;			/* Lead-out track number */
-	store_cdrom_address(&buf[16], msf, curlun->num_sectors);
-	return 20;
+	switch (format) {
+	case 0:	/* Formatted TOC */
+	case 1:	/* Multi-session info */
+		/* Formatted TOC */
+		len = 4 + 2*8;		/* 4 byte header + 2 descriptors */
+		memset(buf, 0, len);
+		buf[1] = len - 2;	/* TOC Length excludes length field */
+		buf[2] = 1;		/* First track number */
+		buf[3] = 1;		/* Last track number */
+		buf[5] = 0x16;		/* Data track, copying allowed */
+		buf[6] = 0x01;		/* Only track is number 1 */
+		store_cdrom_address(&buf[8], msf, 0);
+
+		buf[13] = 0x16;		/* Lead-out track is data */
+		buf[14] = 0xAA;		/* Lead-out track number */
+		if (curlun->cd_as_dvd) {
+			/*
+			 * According to specifications, for DVD images
+			 * the lead-out address should be fabricated.
+			 * It seems it's not using by drivers at all,
+			 * so it can contain any big valid MSF address.
+			 * This address MSF:0,0x23,0,0 is taken
+			 * from the example in the doc.
+			 */
+			store_cdrom_address(&buf[16], msf, 157350);
+		} else {
+			store_cdrom_address(&buf[16], msf, curlun->num_sectors);
+		}
+		return len;
+
+	case 2:
+		/* Raw TOC */
+		len = 4 + 3*11;		/* 4 byte header + 3 descriptors */
+		memset(buf, 0, len);	/* Header + A0, A1 & A2 descriptors */
+		buf[1] = len - 2;	/* TOC Length excludes length field */
+		buf[2] = 1;		/* First complete session */
+		buf[3] = 1;		/* Last complete session */
+
+		buf += 4;
+		/* fill in A0, A1 and A2 points */
+		for (i = 0; i < 3; i++) {
+			buf[0] = 1;	/* Session number */
+			buf[1] = 0x16;	/* Data track, copying allowed */
+			/* 2 - Track number 0 ->  TOC */
+			buf[3] = 0xA0 + i; /* A0, A1, A2 point */
+			/* 4, 5, 6 - Min, sec, frame is zero */
+			buf[8] = 1;	/* Pmin: last track number */
+			buf += 11;	/* go to next track descriptor */
+		}
+		buf -= 11;		/* go back to A2 descriptor */
+
+		/* For A2, 7, 8, 9, 10 - zero, Pmin, Psec, Pframe of Lead out */
+		if (curlun->cd_as_dvd) {
+			/* The same magic number as for the case 0/1 */
+			store_cdrom_address(&buf[7], msf, 157350);
+		} else {
+			store_cdrom_address(&buf[7], msf, curlun->num_sectors);
+		}
+		return len;
+
+	default:
+		/* PMA, ATIP, CD-TEXT not supported/required */
+		curlun->sense_data = SS_INVALID_FIELD_IN_CDB;
+		return -EINVAL;
+	}
 }
 
 static int do_mode_sense(struct fsg_common *common, struct fsg_buffhd *bh)
@@ -1218,6 +1345,23 @@ static int do_mode_sense(struct fsg_common *common, struct fsg_buffhd *bh)
 	int		changeable_values, all_pages;
 	int		valid_page = 0;
 	int		len, limit;
+
+	/*
+	 * This magic blob contains a bunch of flags according to
+	 * "Table 580 - C/DVD Capabilities and Mechanical Status"
+	 * and too long to decode it here.
+	 * See the big PDF "INF-TA-1010 Rev 1.0.0".
+	 */
+	const u8	capabilities[] =
+		"\x3f\x00\xf1\x77\x29\x23\x2b\x48" \
+		"\x01\x00\x06\x00\x2b\x48\x00\x10" \
+		"\x2b\x48\x2b\x48\x00\x01\x00\x00" \
+		"\x00\x00\x2b\x48\x00\x09\x00\x00" \
+		"\x2b\x48\x00\x00\x20\x76\x00\x00" \
+		"\x15\xa4\x00\x00\x10\x3b\x00\x00" \
+		"\x10\x3b\x00\x00\x10\x3b\x00\x00" \
+		"\x10\x3b\x00\x00\x10\x3b\x00\x00" \
+		"\x10\x3b";
 
 	if ((common->cmnd[1] & ~0x08) != 0) {	/* Mask away DBD */
 		curlun->sense_data = SS_INVALID_FIELD_IN_CDB;
@@ -1251,10 +1395,9 @@ static int do_mode_sense(struct fsg_common *common, struct fsg_buffhd *bh)
 
 	/* No block descriptors */
 
-	/*
-	 * The mode pages, in numerical order.  The only page we support
-	 * is the Caching page.
-	 */
+	/* The mode pages, in numerical order */
+
+	/* Caching page */
 	if (page_code == 0x08 || all_pages) {
 		valid_page = 1;
 		buf[0] = 0x08;		/* Page code */
@@ -1274,6 +1417,24 @@ static int do_mode_sense(struct fsg_common *common, struct fsg_buffhd *bh)
 					/* Maximum prefetch ceiling */
 		}
 		buf += 12;
+	}
+
+	/* Power Condition Page */
+	if (page_code == 0x1A || all_pages) {
+		valid_page = 1;
+		buf[0] = 0x1A;		/* Page code */
+		buf[1] = 10;		/* Page length */
+		memset(buf+2, 0, 10);	/* Disable the Standby/Idle timers */
+		buf += 12;
+	}
+
+	/* C/DVD Capabilities and Mechanical Status Page */
+	if (curlun->cdrom && (page_code == 0x2A || all_pages)) {
+		valid_page = 1;
+		buf[0] = 0x2A;		/* Page code */
+		buf[1] = sizeof(capabilities) - 1; /* Page length */
+		memcpy(buf+2, capabilities, buf[1]);
+		buf += buf[1] + 2;
 	}
 
 	/*
@@ -1395,6 +1556,248 @@ static int do_mode_select(struct fsg_common *common, struct fsg_buffhd *bh)
 	return -EINVAL;
 }
 
+static int do_get_configuration(struct fsg_common *common,
+			struct fsg_buffhd *bh)
+{
+	struct fsg_lun	*curlun = common->curlun;
+	u8		*buf = (u8 *) bh->buf;
+	u8		*buf0 = buf;
+	int		len;
+	int		profile;
+	int		rt; /* Request type */
+	int		starting; /* Feature code */
+
+	/*
+	 * The standard prescribes to return disabled profiles
+	 * MMC_PROFILE_NONE when we have no medium, but it seems
+	 * it is enough to make unknown_cmnd in do_scsi_command().
+	 */
+	if (curlun->cd_as_dvd) {
+		/* Big images will be handled as DVD */
+		profile = MMC_PROFILE_DVD_ROM;
+	} else {
+		profile = MMC_PROFILE_CD_ROM;
+	}
+
+	/*
+	 * RT == 0x00 - Return all features since starting;
+	 * RT == 0x01 - Same but filtered by Current bit (all in our case);
+	 * RT == 0x02 - Return only header and zero or one supported feature;
+	 * RT == 0x03 - Reserved, but we'll handle it as 0x00 for paranoia;
+	 * ... So we have only one special case for 0x02.
+	 */
+	rt = common->cmnd[1] & 0x03;
+	starting = get_unaligned_be16(&common->cmnd[2]);
+
+	memset(buf, 0, 256); /* This should be enough for our all features */
+	/* Allocation Length in buf[0,1,2,3] will be calculated later */
+	put_unaligned_be16(profile, &buf[6]);
+	buf += 8;
+
+#define NEED_REPORT(feature) \
+		(rt == 0x02 ? (starting == feature) : (starting <= feature))
+
+	/* Profile List feature */
+	if (NEED_REPORT(0)) {
+		/* buf[8,9] = 0 for the feature */
+		buf[2] = 0 | 0x03;	/* Version = 0, Persistent|Current */
+		buf[3] = 8;		/* Additional length for two profiles */
+		put_unaligned_be16(MMC_PROFILE_DVD_ROM, &buf[4]);
+		buf[6] = (profile == MMC_PROFILE_DVD_ROM);
+		put_unaligned_be16(MMC_PROFILE_CD_ROM, &buf[8]);
+		buf[10] = (profile == MMC_PROFILE_CD_ROM);
+		buf += 12;
+	}
+
+	/* Core feature */
+	if (NEED_REPORT(0x0001)) {
+		put_unaligned_be16(0x0001, &buf[0]);
+		buf[2] = 0x08 | 0x03;	/* Version = 2, Persistent|Current */
+		buf[3] = 8;		/* Additional length */
+		put_unaligned_be32(1, &buf[4]); /* Phy = SCSI Family */
+		buf[8] = 0x01;		/* Device Busy Class Events = 1 */
+		buf += 12;
+	}
+
+/* Morphing feature */
+	if (NEED_REPORT(0x0002)) {
+		put_unaligned_be16(0x0002, &buf[0]);
+		buf[2] = 0x04 | 0x03;	/* Version = 1, Persistent|Current */
+		buf[3] = 4;		/* Additional length */
+		buf += 8;
+	}
+
+	/* Removable Medium feature */
+	if (NEED_REPORT(0x0003)) {
+		put_unaligned_be16(0x0003, &buf[0]);
+		buf[2] = 0x08 | 0x03;	/* Version = 2, Persistent|Current */
+		buf[3] = 4;		/* Additional length */
+		buf[4] = 0x20 | 0x19;	/* Tray mechanism, Load|Eject|Lock */
+		buf += 8;
+	}
+
+	/* Random Readable feature */
+	if (NEED_REPORT(0x0010)) {
+		put_unaligned_be16(0x0010, &buf[0]);
+		buf[2] = 0 | 0x03;	/* Version = 0, Persistent|Current */
+		buf[3] = 8;		/* Additional length */
+		put_unaligned_be32(2048, &buf[4]); /* Logical Block Size */
+		/* buf[8,9] = 0, no Blocking size presented */
+		buf[10] = 0x01;		/* RW Error Recovery Mode Page */
+		buf += 12;
+	}
+
+	/* MultiRead feature */
+	if (NEED_REPORT(0x001D)) {
+		put_unaligned_be16(0x001D, &buf[0]);
+		buf[2] = 0 | 0x03;	/* Version = 0, Persistent|Current */
+		buf += 4;
+	}
+
+	/* CD Read feature */
+	if (NEED_REPORT(0x001E)) {
+		put_unaligned_be16(0x001E, &buf[0]);
+		buf[2] = 0x04 | 0x03;	/* Version = 1, Persistent|Current */
+		buf[3] = 4;		/* Additional length */
+		buf[4] = 0x03;		/* C2|CD-Text */
+		buf += 8;
+	}
+
+	/* DVD Read feature */
+	if (NEED_REPORT(0x001F)) {
+		put_unaligned_be16(0x001F, &buf[0]);
+		buf[2] = 0x04 | 0x03;	/* Version = 1, Persistent|Current */
+		buf[3] = 4;		/* Additional length */
+		buf[4] = 0x01;		/* MULTI110 */
+		buf[6] = 0x01;		/* Dual-R */
+		buf += 8;
+	}
+
+	/* Power Management feature */
+	if (NEED_REPORT(0x0100)) {
+		put_unaligned_be16(0x0100, &buf[0]);
+		buf[2] = 0 | 0x03;	/* Version = 0, Persistent|Current */
+		buf += 4;
+	}
+
+	/* Timeout feature */
+	if (NEED_REPORT(0x0105)) {
+		put_unaligned_be16(0x0105,&buf[0]);
+		buf[2] = 0x04 | 0x03;	/* Version = 1, Persistent|Current */
+		buf[3] = 4;		/* Additional length */
+		buf += 8;
+	}
+
+	/* Real Time Streaming feature */
+	if (NEED_REPORT(0x0107)) {
+		put_unaligned_be16(0x0107, &buf[0]);
+		buf[2] = 0x10 | 0x03;	/* Version = 4, Persistent|Current */
+		buf[3] = 4;		/* Additional length */
+		buf[4] = 0x0F;		/* SCS|MP2A|WSPD|SW */
+		buf += 8;
+	}
+
+#undef NEED_REPORT
+
+	len = buf - buf0;
+	/* Put len minus the size of data length field (be32) */
+	put_unaligned_be32(len - 4, &buf0[0]);
+	return len;
+}
+
+static int do_read_disc_information(struct fsg_common *common,
+			struct fsg_buffhd *bh)
+{
+	struct fsg_lun	*curlun = common->curlun;
+	u8		*buf = (u8 *) bh->buf;
+
+	/*
+	 * (common->cmnd[1] & 0x07) contains Data Type, but it is safe
+	 * to ignore it and always return Data Type = 0 in buf[2]
+	 * for the Standard Disc Information.
+	 */
+
+	memset(buf, 0, 34);
+	put_unaligned_be16(32, &buf[0]);
+	buf[2] = 0x0E;	/* Last session complete, disc finalized */
+	buf[3] = 1;	/* First track on disc */
+	buf[4] = 1;	/* Number of sessions */
+	buf[5] = 1;	/* First track of last session */
+	buf[6] = 1;	/* Last track of last session */
+	buf[7] = 0x20;	/* Unrestricted use */
+	buf[8] = 0;	/* For CD should be 0, for DVD is inapplicable */
+
+	if (!curlun->cd_as_dvd) {
+		/*
+		 * For CD if the disc is complete, both should be 0xFF.
+		 * For DVD it's inapplicable and shall be set to 0.
+		 * buf[16,17,18,19] - Last Session Lead-in Start Time.
+		 * buf[20,21,22,23] - Last Possible Start Time
+		 *                    for Start of Lead-out.
+		 */
+		memset(&buf[16], 0, 8);
+	}
+	return 34;
+}
+
+static int do_read_track_information(struct fsg_common* common,
+		struct fsg_buffhd * bh)
+{
+	struct fsg_lun	*curlun = common->curlun;
+	u8		*buf = (u8 *) bh->buf;
+	u32		track;
+
+	track = get_unaligned_be32(&common->cmnd[2]);
+
+	/* We only support T_CDB */
+	if ((common->cmnd[1] & 0x03) != 1 || track != 1) {
+		curlun->sense_data = SS_INVALID_FIELD_IN_CDB;
+		return -EINVAL;
+	}
+
+	memset(buf, 0, 36);
+	put_unaligned_be16(34, &buf[0]);
+	buf[2] = 1;	/* Track 1 */
+	buf[3] = 1;	/* Session 1 */
+	buf[5] = 0x06;	/* Data track | Digital copy permitted */
+	buf[6] = 0x01;	/* Data mode 1 */
+	put_unaligned_be32(curlun->num_sectors, &buf[24]);
+	return 36;
+}
+
+static int do_read_disc_structure(struct fsg_common* common,
+		struct fsg_buffhd * bh)
+{
+	struct fsg_lun	*curlun = common->curlun;
+	u8		*buf = (u8 *) bh->buf;
+
+	/* We only support physical format info */
+	if (common->cmnd[7] != 0x00) {
+		curlun->sense_data = SS_INVALID_FIELD_IN_CDB;
+		return -EINVAL;
+	}
+
+	memset(buf, 0, 2052);
+	put_unaligned_be16(2050, &buf[0]);
+	buf += 4;		/* Skip size and 2 reserved bytes */
+	buf[0] = 0 | 0x01;	/* DVD-ROM, DVD-R Part Version 1 */
+	buf[1] = 0 | 0x0F;	/* 120mm disc, No transfer rate limit */
+	buf[2] = 0 | 0 | 0x01;	/* 1 Layer, Single Layer, Read-Only */
+	/* buf[3] = 0 - Linear Density = 0.267, Track Density = 0.74 */
+
+	/* Starting sector of main data is always 0x30000 for DVD-ROM */
+	put_unaligned_be24(0x030000, &buf[5]);
+
+	/*
+	 * We can't address more than (2 ^^ 24) - 0x30000 sectors
+	 * i.e. 32384MB per layer, and it seems we will never reach
+	 * this limit. But maybe we should make a check to be sure.
+	 */
+	put_unaligned_be24(0x030000 + curlun->num_sectors, &buf[9]);
+
+	/* It is okay to keep 0 in End physical sector number of Layer 0 */
+	return 2052;
+}
 
 /*-------------------------------------------------------------------------*/
 
@@ -1816,6 +2219,63 @@ static int do_scsi_command(struct fsg_common *common)
 	down_read(&common->filesem);	/* We're using the backing file */
 	switch (common->cmnd[0]) {
 
+	case 0x46: /* GET_CONFIGURATION */
+		if (!common->curlun || !common->curlun->cdrom)
+			goto unknown_cmnd;
+		common->data_size_from_cmnd =
+			get_unaligned_be16(&common->cmnd[7]);
+		reply = check_command(common, 10, DATA_DIR_TO_HOST,
+				      0xffffffff, 1,
+				      "GET CONFIGURATION");
+		if (reply == 0)
+			reply = do_get_configuration(common, bh);
+		break;
+
+	case 0x51: /* READ_DISC_INFORMATION */
+		if (!common->curlun || !common->curlun->cdrom)
+			goto unknown_cmnd;
+		common->data_size_from_cmnd =
+			get_unaligned_be16(&common->cmnd[7]);
+		reply = check_command(common, 10, DATA_DIR_TO_HOST,
+				      0xffffffff, 1,
+				      "READ DISK INFORMATION");
+		if (reply == 0)
+			reply = do_read_disc_information(common, bh);
+		break;
+
+	case 0x52: /* READ_TRACK_INFORMATION */
+		if (!common->curlun || !common->curlun->cdrom)
+			goto unknown_cmnd;
+		common->data_size_from_cmnd =
+			get_unaligned_be16(&common->cmnd[7]);
+		reply = check_command(common, 10, DATA_DIR_TO_HOST,
+				      0xffffffff, 1,
+				      "READ TRACK INFORMATION");
+		if (reply == 0)
+			reply = do_read_track_information(common, bh);
+		break;
+
+	case 0xAD: /* READ_DISK_STRUCTURE */
+		if (!common->curlun || !common->curlun->cdrom)
+			goto unknown_cmnd;
+		common->data_size_from_cmnd =
+			get_unaligned_be16(&common->cmnd[8]);
+		reply = check_command(common, 12, DATA_DIR_TO_HOST,
+				      0xffffffff, 1,
+				      "READ DISK STRUCTURE");
+		if (reply == 0)
+			reply = do_read_disc_structure(common, bh);
+		break;
+
+	case 0xBB: /* SET_CD_SPEED */
+		if (!common->curlun || !common->curlun->cdrom)
+			goto unknown_cmnd;
+		common->data_size_from_cmnd = 0;
+		reply = check_command(common, 12, DATA_DIR_NONE,
+				      0xffffffff, 1,
+				      "SET CD SPEED");
+		break;
+
 	case INQUIRY:
 		common->data_size_from_cmnd = common->cmnd[4];
 		reply = check_command(common, 6, DATA_DIR_TO_HOST,
@@ -1857,7 +2317,7 @@ static int do_scsi_command(struct fsg_common *common)
 		common->data_size_from_cmnd =
 			get_unaligned_be16(&common->cmnd[7]);
 		reply = check_command(common, 10, DATA_DIR_TO_HOST,
-				      (1<<1) | (1<<2) | (3<<7), 0,
+					  (0xf<<6) | (3<<1), 1,
 				      "MODE SENSE(10)");
 		if (reply == 0)
 			reply = do_mode_sense(common, bh);
@@ -1905,6 +2365,17 @@ static int do_scsi_command(struct fsg_common *common)
 			reply = do_read(common);
 		break;
 
+	case READ_16:
+		common->data_size_from_cmnd =
+				get_unaligned_be32(&common->cmnd[10]);
+		reply = check_command_size_in_blocks(common, 16,
+				      DATA_DIR_TO_HOST,
+				      (1<<1) | (0xff<<2) | (0xf<<10), 1,
+				      "READ(16)");
+		if (reply == 0)
+			reply = do_read(common);
+		break;
+
 	case READ_CAPACITY:
 		common->data_size_from_cmnd = 8;
 		reply = check_command(common, 10, DATA_DIR_TO_HOST,
@@ -1932,7 +2403,7 @@ static int do_scsi_command(struct fsg_common *common)
 		common->data_size_from_cmnd =
 			get_unaligned_be16(&common->cmnd[7]);
 		reply = check_command(common, 10, DATA_DIR_TO_HOST,
-				      (7<<6) | (1<<1), 1,
+					  0xffffffff, 1, /* (0xf<<6) | (3<<1), 1, */
 				      "READ TOC");
 		if (reply == 0)
 			reply = do_read_toc(common, bh);
@@ -1955,6 +2426,25 @@ static int do_scsi_command(struct fsg_common *common)
 				      "REQUEST SENSE");
 		if (reply == 0)
 			reply = do_request_sense(common, bh);
+		break;
+
+	case SERVICE_ACTION_IN_16:
+		switch (common->cmnd[1] & 0x1f) {
+
+		case SAI_READ_CAPACITY_16:
+			common->data_size_from_cmnd =
+				get_unaligned_be32(&common->cmnd[10]);
+			reply = check_command(common, 16, DATA_DIR_TO_HOST,
+					      (1<<1) | (0xff<<2) | (0xf<<10) |
+					      (1<<14), 1,
+					      "READ CAPACITY(16)");
+			if (reply == 0)
+				reply = do_read_capacity_16(common, bh);
+			break;
+
+		default:
+			goto unknown_cmnd;
+		}
 		break;
 
 	case START_STOP:
@@ -2024,6 +2514,17 @@ static int do_scsi_command(struct fsg_common *common)
 				      DATA_DIR_FROM_HOST,
 				      (1<<1) | (0xf<<2) | (0xf<<6), 1,
 				      "WRITE(12)");
+		if (reply == 0)
+			reply = do_write(common);
+		break;
+
+	case WRITE_16:
+		common->data_size_from_cmnd =
+				get_unaligned_be32(&common->cmnd[10]);
+		reply = check_command_size_in_blocks(common, 16,
+				      DATA_DIR_FROM_HOST,
+				      (1<<1) | (0xff<<2) | (0xf<<10), 1,
+				      "WRITE(16)");
 		if (reply == 0)
 			reply = do_write(common);
 		break;
@@ -2301,6 +2802,16 @@ static void fsg_disable(struct usb_function *f)
 {
 	struct fsg_dev *fsg = fsg_from_func(f);
 
+	/* Disable the endpoints */
+	if (fsg->bulk_in_enabled) {
+		usb_ep_disable(fsg->bulk_in);
+		fsg->bulk_in_enabled = 0;
+	}
+	if (fsg->bulk_out_enabled) {
+		usb_ep_disable(fsg->bulk_out);
+		fsg->bulk_out_enabled = 0;
+	}
+
 	__raise_exception(fsg->common, FSG_STATE_CONFIG_CHANGE, NULL);
 }
 
@@ -2552,10 +3063,26 @@ static ssize_t file_store(struct device *dev, struct device_attribute *attr,
 	return fsg_store_file(curlun, filesem, buf, count);
 }
 
+static ssize_t forced_eject_store(struct device *dev,
+				  struct device_attribute *attr,
+				  const char *buf, size_t count)
+{
+	struct fsg_lun		*curlun = fsg_lun_from_dev(dev);
+	struct rw_semaphore	*filesem = dev_get_drvdata(dev);
+
+	return fsg_store_forced_eject(curlun, filesem, buf, count);
+}
+
 static DEVICE_ATTR_RW(nofua);
-/* mode wil be set in fsg_lun_attr_is_visible() */
-static DEVICE_ATTR(ro, 0, ro_show, ro_store);
-static DEVICE_ATTR(file, 0, file_show, file_store);
+static DEVICE_ATTR_WO(forced_eject);
+
+/*
+ * Mode of the ro and file attribute files will be overridden in
+ * fsg_lun_dev_is_visible() depending on if this is a cdrom, or if it is a
+ * removable device.
+ */
+ static DEVICE_ATTR_RW(ro);
+ static DEVICE_ATTR_RW(file);
 
 /****************************** FSG COMMON ******************************/
 
@@ -2709,6 +3236,7 @@ static struct attribute *fsg_lun_dev_attrs[] = {
 	&dev_attr_ro.attr,
 	&dev_attr_file.attr,
 	&dev_attr_nofua.attr,
+	&dev_attr_forced_eject.attr,
 	NULL
 };
 
@@ -2740,7 +3268,7 @@ int fsg_common_create_lun(struct fsg_common *common, struct fsg_lun_config *cfg,
 			  const char **name_pfx)
 {
 	struct fsg_lun *lun;
-	char *pathbuf, *p;
+	char *pathbuf = NULL, *p = "(no medium)";
 	int rc = -ENOMEM;
 
 	if (id >= ARRAY_SIZE(common->luns))
@@ -2790,12 +3318,9 @@ int fsg_common_create_lun(struct fsg_common *common, struct fsg_lun_config *cfg,
 		rc = fsg_lun_open(lun, cfg->filename);
 		if (rc)
 			goto error_lun;
-	}
 
-	pathbuf = kmalloc(PATH_MAX, GFP_KERNEL);
-	p = "(no medium)";
-	if (fsg_lun_is_open(lun)) {
 		p = "(error)";
+		pathbuf = kmalloc(PATH_MAX, GFP_KERNEL);
 		if (pathbuf) {
 			p = file_path(lun->filp, pathbuf, PATH_MAX);
 			if (IS_ERR(p))
@@ -2814,7 +3339,6 @@ int fsg_common_create_lun(struct fsg_common *common, struct fsg_lun_config *cfg,
 error_lun:
 	if (device_is_registered(&lun->dev))
 		device_unregister(&lun->dev);
-	fsg_lun_close(lun);
 	common->luns[id] = NULL;
 error_sysfs:
 	kfree(lun);
@@ -3122,6 +3646,33 @@ static ssize_t fsg_lun_opts_inquiry_string_store(struct config_item *item,
 
 CONFIGFS_ATTR(fsg_lun_opts_, inquiry_string);
 
+static ssize_t fsg_lun_opts_inquiry_string_cdrom_show(struct config_item *item,
+						      char *page)
+{
+	return fsg_show_inquiry_string_cdrom(to_fsg_lun_opts(item)->lun, page);
+}
+
+static ssize_t fsg_lun_opts_inquiry_string_cdrom_store(struct config_item *item,
+						       const char *page, size_t len)
+{
+	return fsg_store_inquiry_string_cdrom(to_fsg_lun_opts(item)->lun,
+					      page, len);
+}
+
+CONFIGFS_ATTR(fsg_lun_opts_, inquiry_string_cdrom);
+
+static ssize_t fsg_lun_opts_forced_eject_store(struct config_item *item,
+					       const char *page, size_t len)
+{
+	struct fsg_lun_opts *opts = to_fsg_lun_opts(item);
+	struct fsg_opts *fsg_opts = to_fsg_opts(opts->group.cg_item.ci_parent);
+
+	return fsg_store_forced_eject(opts->lun, &fsg_opts->common->filesem,
+				      page, len);
+}
+
+CONFIGFS_ATTR_WO(fsg_lun_opts_, forced_eject);
+
 static struct configfs_attribute *fsg_lun_attrs[] = {
 	&fsg_lun_opts_attr_file,
 	&fsg_lun_opts_attr_ro,
@@ -3129,6 +3680,8 @@ static struct configfs_attribute *fsg_lun_attrs[] = {
 	&fsg_lun_opts_attr_cdrom,
 	&fsg_lun_opts_attr_nofua,
 	&fsg_lun_opts_attr_inquiry_string,
+	&fsg_lun_opts_attr_inquiry_string_cdrom,
+	&fsg_lun_opts_attr_forced_eject,
 	NULL,
 };
 
@@ -3474,3 +4027,4 @@ void fsg_config_from_params(struct fsg_config *cfg,
 	cfg->fsg_num_buffers = fsg_num_buffers;
 }
 EXPORT_SYMBOL_GPL(fsg_config_from_params);
+// ### SIPEED EDIT END ###

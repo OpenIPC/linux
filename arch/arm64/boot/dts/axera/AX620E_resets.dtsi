@@ -1,0 +1,114 @@
+// AXERA : AX620E RESET
+/*
+ * DTS file for AXERA : AX620E RESET
+ *
+ * Copyright (C) 2023 AXERA Copyright, Inc.
+ */
+
+		cpu_reset: cpu_sys_reset@1900000 {
+			compatible = "axera,axera_reset_match", "syscon";
+			reg = <0x0 0x1900000 0x0 0x10000>;
+			#reset-cells = <3>;
+		};
+
+		cpu_reset_ext: cpu_sys_reset_ext@1900000 {
+			compatible = "axera,axera_reset_match", "syscon";
+			reg = <0x0 0x1900000 0x0 0x10000>;
+			#reset-cells = <4>;
+		};
+
+		comm_reset: comm_sys_reset@2340000 {
+			compatible = "axera,axera_reset_match", "syscon";
+			reg = <0x0 0x2340000 0x0 0x10000>;
+			#reset-cells = <3>;
+		};
+
+		comm_reset_async: comm_sys_reset_async@2340000 {
+			compatible = "axera,axera_reset_match", "syscon";
+			reg = <0x0 0x2340000 0x0 0x10000>;
+			#reset-cells = <10>;
+		};
+
+		isp_reset: isp_sys_reset@2500000 {
+			compatible = "axera,axera_reset_match", "syscon";
+			reg = <0x0 0x2500000 0x0 0x10000>;
+			#reset-cells = <3>;
+		};
+
+
+		vpu_reset: vpu_sys_reset@4030000 {
+			compatible = "axera,axera_reset_match", "syscon";
+			reg = <0x0 0x4030000 0x0 0x10000>;
+			#reset-cells = <3>;
+		};
+
+		vpu_reset_async: vpu_sys_reset_async@4030000 {
+			compatible = "axera,axera_reset_match", "syscon";
+			reg = <0x0 0x4030000 0x0 0x10000>;
+			#reset-cells = <10>;
+		};
+
+		mm_reset: mm_sys_reset@4430000 {
+			compatible = "axera,axera_reset_match", "syscon";
+			reg = <0x0 0x4430000 0x0 0x10000>;
+			#reset-cells = <3>;
+		};
+
+		mm_reset_4: mm_sys_reset_4@4430000 {
+			compatible = "axera,axera_reset_match", "syscon";
+			reg = <0x0 0x4430000 0x0 0x10000>;
+			#reset-cells = <4>;
+		};
+
+		mm_reset_async: mm_sys_reset_async@4430000 {
+			compatible = "axera,axera_reset_match", "syscon";
+			reg = <0x0 0x4430000 0x0 0x10000>;
+			#reset-cells = <10>;
+		};
+		dispc_reset:dispc_sys_reset@4600000 {
+			compatible = "axera,axera_reset_match", "syscon";
+			reg = <0x0 0x4600000 0x0 0x10000>;
+			#reset-cells = <3>;
+		};
+
+		dispc_reset_async:dispc_sys_reset_async@4600000 {
+			compatible = "axera,axera_reset_match", "syscon";
+			reg = <0x0 0x4600000 0x0 0x10000>;
+			#reset-cells = <10>;
+		};
+
+		periph_reset: periph_sys_reset@4870000 {
+			compatible = "axera,axera_reset_match", "syscon";
+			reg = <0x0 0x4870000 0x0 0x10000>;
+			#reset-cells = <3>;
+		};
+
+		periph_reset_ext: periph_sys_reset_ext@4870000 {
+			compatible = "axera,axera_reset_match", "syscon";
+			reg = <0x0 0x4870000 0x0 0x10000>;
+			#reset-cells = <4>;
+		};
+
+		periph_reset_async: periph_sys_reset_async@4870000 {
+			compatible = "axera,axera_reset_match", "syscon";
+			reg = <0x0 0x4870000 0x0 0x10000>;
+			#reset-cells = <10>;
+		};
+
+		flash_reset: flash_sys_reset@10030000 {
+			compatible = "axera,axera_reset_match", "syscon";
+			reg = <0x0 0x10030000 0x0 0x10000>;
+			#reset-cells = <3>;
+		};
+
+		flash_reset_ext: flash_sys_reset_ext@10030000 {
+			compatible = "axera,axera_reset_match", "syscon";
+			reg = <0x0 0x10030000 0x0 0x10000>;
+			#reset-cells = <4>;
+		};
+
+		flash_reset_async: flash_sys_reset_async@10030000 {
+			compatible = "axera,axera_reset_match", "syscon";
+			reg = <0x0 0x10030000 0x0 0x10000>;
+			#reset-cells = <10>;
+		};

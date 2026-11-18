@@ -34,6 +34,9 @@ enum st_accel_type {
 	LIS3LV02DL,
 	LIS2DW12,
 	LIS3DHH,
+	// ### SIPEED EDIT ###
+	SC7A20,
+	// ### SIPEED EDIT END ###
 	ST_ACCEL_MAX,
 };
 
@@ -56,6 +59,9 @@ enum st_accel_type {
 #define LNG2DM_ACCEL_DEV_NAME		"lng2dm"
 #define LIS2DW12_ACCEL_DEV_NAME		"lis2dw12"
 #define LIS3DHH_ACCEL_DEV_NAME		"lis3dhh"
+// ### SIPEED EDIT ###
+#define SC7A20_ACCEL_DEV_NAME		"sc7a20"
+// ### SIPEED EDIT END ###
 
 /**
 * struct st_sensors_platform_data - default accel platform data

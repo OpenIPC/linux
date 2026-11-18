@@ -1,0 +1,1 @@
+obj-$(CONFIG_AXERA_WAKE_TIMER) += wake_timer.o

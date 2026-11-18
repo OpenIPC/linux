@@ -10,6 +10,7 @@ ccflags-$(CONFIG_SPI_DEBUG) := -DDEBUG
 obj-$(CONFIG_SPI_MASTER)		+= spi.o
 obj-$(CONFIG_SPI_MEM)			+= spi-mem.o
 obj-$(CONFIG_SPI_SPIDEV)		+= spidev.o
+obj-$(CONFIG_SPI_AXERA_SPIDEV)		+= axera_spidev.o
 obj-$(CONFIG_SPI_LOOPBACK_TEST)		+= spi-loopback-test.o
 
 # SPI master controller drivers (bus)
@@ -32,7 +33,15 @@ obj-$(CONFIG_SPI_COLDFIRE_QSPI)		+= spi-coldfire-qspi.o
 obj-$(CONFIG_SPI_DAVINCI)		+= spi-davinci.o
 obj-$(CONFIG_SPI_DLN2)			+= spi-dln2.o
 obj-$(CONFIG_SPI_DESIGNWARE)		+= spi-dw.o
+obj-$(CONFIG_APB_SPI_DW_DMA)		+= spi-dw-dma.o
+obj-$(CONFIG_SPI_DW_DMA)		+= spi-axera-dma.o
+obj-$(CONFIG_SPI_AXERA)			+= spi-axera.o
 obj-$(CONFIG_SPI_DW_MMIO)		+= spi-dw-mmio.o
+obj-$(CONFIG_SPI_AXERA_MMIO)		+= spi-axera-mmio.o
+obj-$(CONFIG_SPI_AXERA_SLV)		+= spi-axera-slv.o spi-axera-slv-mmio.o
+obj-$(CONFIG_SPI_AXERA_SLV_RAW) 	+= spi-axera-slv-raw.o
+obj-$(CONFIG_SPI_AXERA_MODULE) 	+= spi-axera-module.o
+spi-axera-module-objs := spi-axera.o spi-axera-mmio.o
 obj-$(CONFIG_SPI_DW_PCI)		+= spi-dw-midpci.o
 spi-dw-midpci-objs			:= spi-dw-pci.o spi-dw-mid.o
 obj-$(CONFIG_SPI_EFM32)			+= spi-efm32.o
@@ -111,3 +120,4 @@ obj-$(CONFIG_SPI_ZYNQMP_GQSPI)		+= spi-zynqmp-gqspi.o
 # SPI slave protocol handlers
 obj-$(CONFIG_SPI_SLAVE_TIME)		+= spi-slave-time.o
 obj-$(CONFIG_SPI_SLAVE_SYSTEM_CONTROL)	+= spi-slave-system-control.o
+obj-$(CONFIG_SPI_SLAVE_TEST)		+= spi-slave-test.o

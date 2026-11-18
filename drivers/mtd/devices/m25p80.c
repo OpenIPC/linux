@@ -42,6 +42,7 @@ static int m25p80_read_reg(struct spi_nor *nor, u8 code, u8 *val, int len)
 					  SPI_MEM_OP_DATA_IN(len, NULL, 1));
 	void *scratchbuf;
 	int ret;
+	static int read_reg_cnt = 0;
 
 	scratchbuf = kmalloc(len, GFP_KERNEL);
 	if (!scratchbuf)
@@ -57,6 +58,11 @@ static int m25p80_read_reg(struct spi_nor *nor, u8 code, u8 *val, int len)
 
 	kfree(scratchbuf);
 
+	if ((read_reg_cnt < 5) && ((SPINOR_OP_RDSR == code) || (0x35 == code))) {
+		read_reg_cnt++;
+		dev_info(&flash->spimem->spi->dev, "=========== read reg 0x%x, val 0x%x ===========\n", code, val[0]);
+	}
+
 	return ret;
 }
 
@@ -70,6 +76,12 @@ static int m25p80_write_reg(struct spi_nor *nor, u8 opcode, u8 *buf, int len)
 	void *scratchbuf;
 	int ret;
 
+	if ((SPINOR_OP_WRSR == opcode) || (0x31 == opcode)) {
+		if (buf[0] & 0x80) {
+			dev_err(&flash->spimem->spi->dev, "=========== write reg 0x%x, val 0x%x ===========\n", opcode, buf[0]);
+			dump_stack();
+		}
+	}
 	scratchbuf = kmemdup(buf, len, GFP_KERNEL);
 	if (!scratchbuf)
 		return -ENOMEM;
@@ -199,9 +211,13 @@ static int m25p_probe(struct spi_mem *spimem)
 		hwcaps.mask |= SNOR_HWCAPS_READ_1_1_4;
 
 		if (spi->mode & SPI_TX_QUAD)
+#if 0
 			hwcaps.mask |= (SNOR_HWCAPS_READ_1_4_4 |
 					SNOR_HWCAPS_PP_1_1_4 |
 					SNOR_HWCAPS_PP_1_4_4);
+#else
+			hwcaps.mask |= SNOR_HWCAPS_PP_1_1_4;
+#endif
 	} else if (spi->mode & SPI_RX_DUAL) {
 		hwcaps.mask |= SNOR_HWCAPS_READ_1_1_2;
 

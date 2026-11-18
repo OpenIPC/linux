@@ -129,4 +129,19 @@ config SPI_STM32_QUADSPI
 	  This enables support for the STM32 Quad SPI controller.
 	  We only connect the NOR to this controller.
 
+config MTD_SPI_NOR_FORCE_UNLOCK
+	bool "SPI flash status register no protect support"
+	help
+	  Enable the SPI flash status register no protect support.
+
+config MTD_SPI_NOR_WRENVSR
+	bool "Use Write Enable for Volatile Status Register (50h)"
+	default y if ARCH_AXERA
+	help
+	  Set the write enable latch for status register writes with 50h
+	  (volatile status register write enable, as on Winbond, GigaDevice
+	  and XMC parts) instead of 06h, as the Axera SDK does.  On other
+	  parts, Micron/ST among them, 50h is a different command and the
+	  status register write is ignored.  If unsure, say N.
+
 endif # MTD_SPI_NOR

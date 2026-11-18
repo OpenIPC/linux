@@ -79,7 +79,13 @@
  */
 #define QUEUE_SIZE		16
 #define WRITE_BUF_SIZE		8192		/* TX only */
+#ifdef CONFIG_ARCH_AXERA
+#ifdef CONFIG_U_SERIAL_CONSOLE
+#define GS_CONSOLE_BUF_SIZE	81920
+#endif
+#else
 #define GS_CONSOLE_BUF_SIZE	8192
+#endif
 
 /* console info */
 struct gscons_info {
@@ -130,6 +136,12 @@ static struct portmaster {
 } ports[MAX_U_SERIAL_PORTS];
 
 #define GS_CLOSE_TIMEOUT		15		/* seconds */
+
+#ifdef CONFIG_ARCH_AXERA
+#ifdef CONFIG_U_SERIAL_CONSOLE
+static struct gscons_info gscons_info;
+#endif
+#endif
 
 
 
@@ -235,6 +247,13 @@ __acquires(&port->port_lock)
 		return status;
 
 	in = port->port_usb->in;
+
+#ifdef CONFIG_ARCH_AXERA
+#ifdef CONFIG_U_SERIAL_CONSOLE
+	if(kfifo_len(&gscons_info.con_buf))
+		return status;
+#endif
+#endif
 
 	while (!port->write_busy && !list_empty(pool)) {
 		struct usb_request	*req;
@@ -898,7 +917,9 @@ static struct tty_driver *gs_tty_driver;
 
 #ifdef CONFIG_U_SERIAL_CONSOLE
 
+#ifndef CONFIG_ARCH_AXERA
 static struct gscons_info gscons_info;
+#endif
 static struct console gserial_cons;
 
 static struct usb_request *gs_request_new(struct usb_ep *ep)
@@ -1073,9 +1094,28 @@ static void gs_console_write(struct console *co,
 {
 	struct gscons_info *info = &gscons_info;
 	unsigned long flags;
+#ifdef CONFIG_ARCH_AXERA
+	char buf_tmp[count * 2];
+	unsigned buf_pos = 0, buf_tmp_pos = 0;
+
+	while(buf_pos < count){
+		if(buf[buf_pos] == '\n'){
+			buf_tmp[buf_tmp_pos] = '\r';
+			buf_tmp_pos++;
+		}
+
+		buf_tmp[buf_tmp_pos] = buf[buf_pos];
+		buf_pos ++;
+		buf_tmp_pos ++;
+	}
+#endif
 
 	spin_lock_irqsave(&info->con_lock, flags);
+#ifdef CONFIG_ARCH_AXERA
+	kfifo_in(&info->con_buf, buf_tmp, buf_tmp_pos);
+#else
 	kfifo_in(&info->con_buf, buf, count);
+#endif
 	spin_unlock_irqrestore(&info->con_lock, flags);
 
 	wake_up_process(info->console_thread);

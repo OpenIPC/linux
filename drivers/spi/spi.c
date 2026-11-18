@@ -995,6 +995,54 @@ static int spi_map_msg(struct spi_controller *ctlr, struct spi_message *msg)
 	return __spi_map_msg(ctlr, msg);
 }
 
+#ifdef SPI_MSG_PRINT
+static void spi_msg_buf_print(struct spi_transfer *xfer)
+{
+	unsigned char * pbuf = NULL;
+
+	if (xfer->tx_buf) {
+		pbuf = (unsigned char *)xfer->tx_buf;
+		switch(xfer->len) {
+		case 1:
+			printk("==> %dB: %02x\n", xfer->len, pbuf[0]);
+			break;
+
+		case 2:
+			printk("==> %dB: %02x %02x\n", xfer->len, pbuf[0], pbuf[1]);
+			break;
+
+		case 3:
+			printk("==> %dB: %02x %02x %02x\n", xfer->len, pbuf[0], pbuf[1], pbuf[2]);
+			break;
+
+		default:
+			printk("==> %dB: %02x %02x %02x %02x\n", xfer->len, pbuf[0], pbuf[1], pbuf[2], pbuf[3]);
+			break;
+		}
+	}
+	else if (xfer->rx_buf) {
+		pbuf = (unsigned char *)xfer->rx_buf;
+		switch(xfer->len) {
+		case 1:
+			printk("<== %dB: %02x\n", xfer->len, pbuf[0]);
+			break;
+
+		case 2:
+			printk("<== %dB: %02x %02x\n", xfer->len, pbuf[0], pbuf[1]);
+			break;
+
+		case 3:
+			printk("<== %dB: %02x %02x %02x\n", xfer->len, pbuf[0], pbuf[1], pbuf[2]);
+			break;
+
+		default:
+			printk("<== %dB: %02x %02x %02x %02x\n", xfer->len, pbuf[0], pbuf[1], pbuf[2], pbuf[3]);
+			break;
+		}
+	}
+}
+#endif
+
 /*
  * spi_transfer_one_message - Default implementation of transfer_one_message()
  *
@@ -1026,6 +1074,10 @@ static int spi_transfer_one_message(struct spi_controller *ctlr,
 		if (xfer->tx_buf || xfer->rx_buf) {
 			reinit_completion(&ctlr->xfer_completion);
 
+#ifdef SPI_MSG_PRINT
+			if (xfer->tx_buf)
+				spi_msg_buf_print(xfer);
+#endif
 			ret = ctlr->transfer_one(ctlr, msg->spi, xfer);
 			if (ret < 0) {
 				SPI_STATISTICS_INCREMENT_FIELD(statm,
@@ -1059,6 +1111,10 @@ static int spi_transfer_one_message(struct spi_controller *ctlr,
 					"SPI transfer timed out\n");
 				msg->status = -ETIMEDOUT;
 			}
+#ifdef SPI_MSG_PRINT
+			else if (xfer->rx_buf)
+				spi_msg_buf_print(xfer);
+#endif
 		} else {
 			if (xfer->len)
 				dev_err(&msg->spi->dev,

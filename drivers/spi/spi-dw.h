@@ -32,9 +32,12 @@
 #define DW_SPI_IDR			0x58
 #define DW_SPI_VERSION			0x5c
 #define DW_SPI_DR			0x60
+#define DW_SPI_RX_SAMPLE_DLY		0xf0
+#define DW_SPI_SPI_CTRL0		0xf4
 
 /* Bit fields in CTRLR0 */
 #define SPI_DFS_OFFSET			0
+#define SPI_DFS_32_OFFSET		16
 
 #define SPI_FRF_OFFSET			4
 #define SPI_FRF_SPI			0x0
@@ -43,6 +46,7 @@
 #define SPI_FRF_RESV			0x3
 
 #define SPI_MODE_OFFSET			6
+#define SPI_MOD_MASK			(0x3 << SPI_MODE_OFFSET)
 #define SPI_SCPH_OFFSET			6
 #define SPI_SCOL_OFFSET			7
 
@@ -126,6 +130,8 @@ struct dw_spi {
 	u32			dma_width;
 	irqreturn_t		(*transfer_handler)(struct dw_spi *dws);
 	u32			current_freq;	/* frequency in hz */
+	u32			cur_rx_sample_dly;
+	u32			def_rx_sample_dly_ns;
 
 	/* DMA info */
 	int			dma_inited;
@@ -144,6 +150,33 @@ struct dw_spi {
 #endif
 };
 
+#ifdef AX_SPI_REG_PRINT
+static inline u32 dw_readl(struct dw_spi *dws, u32 offset)
+{
+	u32 val = __raw_readl(dws->regs + offset);
+	printk("spi reg read: 0x%02X, 0x%08X\n", offset, val);
+	return val;
+}
+
+static inline u16 dw_readw(struct dw_spi *dws, u32 offset)
+{
+	u16 val = __raw_readw(dws->regs + offset);
+	printk("spi reg read: 0x%02X, 0x%04X\n", offset, val);
+	return  val;
+}
+
+static inline void dw_writel(struct dw_spi *dws, u32 offset, u32 val)
+{
+	printk("spi reg write: 0x%02X, 0x%08X\n", offset, val);
+	__raw_writel(val, dws->regs + offset);
+}
+
+static inline void dw_writew(struct dw_spi *dws, u32 offset, u16 val)
+{
+	printk("spi reg write: 0x%02X, 0x%04X\n", offset, val);
+	__raw_writew(val, dws->regs + offset);
+}
+#else
 static inline u32 dw_readl(struct dw_spi *dws, u32 offset)
 {
 	return __raw_readl(dws->regs + offset);
@@ -163,6 +196,7 @@ static inline void dw_writew(struct dw_spi *dws, u32 offset, u16 val)
 {
 	__raw_writew(val, dws->regs + offset);
 }
+#endif
 
 static inline u32 dw_read_io_reg(struct dw_spi *dws, u32 offset)
 {
@@ -246,12 +280,24 @@ struct dw_spi_chip {
 	void (*cs_control)(u32 command);
 };
 
+struct dw_spi_mmio {
+	struct dw_spi  dws;
+	struct clk     *clk;
+	struct clk     *pclk;
+	void           *priv;
+	struct reset_control *rstc;
+	struct reset_control *prstc;
+	void __iomem *peri_sys_glb_base;
+	int spi_id;
+};
+
 extern void dw_spi_set_cs(struct spi_device *spi, bool enable);
 extern int dw_spi_add_host(struct device *dev, struct dw_spi *dws);
 extern void dw_spi_remove_host(struct dw_spi *dws);
 extern int dw_spi_suspend_host(struct dw_spi *dws);
 extern int dw_spi_resume_host(struct dw_spi *dws);
-
+extern int axera_spi_prepare_clk(struct dw_spi_mmio *dwsmmio, bool prepare, int spi_id);
+extern int dw_apb_spi_dma_register(struct dw_spi *dws);
 /* platform related setup */
 extern int dw_spi_mid_init(struct dw_spi *dws); /* Intel MID platforms */
 #endif /* DW_SPI_HEADER_H */

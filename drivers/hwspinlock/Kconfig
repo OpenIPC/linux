@@ -59,3 +59,12 @@ config HSEM_U8500
 	  SoC.
 
 	  If unsure, say N.
+config HWSPINLOCK_AXERA
+	tristate "AXERA Hardware Spinlock device"
+	depends on ARCH_AXERA
+	depends on HWSPINLOCK
+	help
+	  Say here to support the AXERA Hardware Spinlock device.
+
+	  If unsure, say N.
+

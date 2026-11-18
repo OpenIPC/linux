@@ -1123,9 +1123,23 @@ void phy_state_machine(struct work_struct *work)
 	 * PHY, if PHY_IGNORE_INTERRUPT is set, then we will be moving
 	 * between states from phy_mac_interrupt()
 	 */
+#ifdef CONFIG_AXERA_PHY_CHANGELINK_DELAY_CHECK
+	if (phy_polling_mode(phydev)) {
+		if (phydev->state == PHY_CHANGELINK) {
+			pr_info("PHY state change %s delay\n", phy_state_to_str(phydev->state));
+			queue_delayed_work(system_power_efficient_wq, &phydev->state_queue,
+				   PHY_STATE_TIME * HZ * PHY_CHANGELINK_DELAY);
+		} else {
+			queue_delayed_work(system_power_efficient_wq, &phydev->state_queue,
+				   PHY_STATE_TIME * HZ);
+		}
+	}
+#else
 	if (phy_polling_mode(phydev))
 		queue_delayed_work(system_power_efficient_wq, &phydev->state_queue,
 				   PHY_STATE_TIME * HZ);
+#endif
+
 }
 
 /**

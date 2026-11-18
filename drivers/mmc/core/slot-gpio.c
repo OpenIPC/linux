@@ -153,6 +153,8 @@ void mmc_gpiod_request_cd_irq(struct mmc_host *host)
 			ctx->cd_label, host);
 		if (ret < 0)
 			irq = ret;
+		else
+			printk("register sd gpio interrupt\n");
 	}
 
 	host->slot.cd_irq = irq;
@@ -270,14 +272,20 @@ int mmc_gpiod_request_cd(struct mmc_host *host, const char *con_id,
 
 	if (debounce) {
 		ret = gpiod_set_debounce(desc, debounce);
+#if !(IS_ENABLED(CONFIG_MMC_SDHCI_AXERA))
 		if (ret < 0)
 			ctx->cd_debounce_delay_ms = debounce / 1000;
+#else
+		ctx->cd_debounce_delay_ms = debounce / 1000;
+		printk("set debounce time to %dms\n", debounce / 1000);
+#endif
 	}
 
 	if (gpio_invert)
 		*gpio_invert = !gpiod_is_active_low(desc);
 
 	ctx->override_cd_active_level = override_active_level;
+	printk("get cd gpio success\n");
 	ctx->cd_gpio = desc;
 
 	return 0;

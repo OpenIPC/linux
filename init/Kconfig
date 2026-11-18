@@ -552,6 +552,25 @@ config LOG_BUF_SHIFT
 		     13 =>  8 KB
 		     12 =>  4 KB
 
+config AXLOG_BUF_SHIFT
+	int "axprintk Kernel log buffer size (16 => 64KB, 17 => 128KB)"
+	range 12 25
+	default 20
+	depends on PRINTK
+	help
+	  Select the minimal axprintk kernel log buffer size as a power of 2.
+	  The final size is affected by LOG_CPU_MAX_BUF_SHIFT config
+	  parameter, see below.
+
+	  Examples:
+		     20 => 1 MB
+		     17 => 128 KB
+		     16 => 64 KB
+		     15 => 32 KB
+		     14 => 16 KB
+		     13 =>  8 KB
+		     12 =>  4 KB
+
 config LOG_CPU_MAX_BUF_SHIFT
 	int "CPU kernel log buffer size contribution (13 => 8 KB, 17 => 128KB)"
 	depends on SMP

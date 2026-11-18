@@ -1,0 +1,12 @@
+config DRM_AXERA
+	tristate "DRM Support for Axera Display Controller"
+	depends on DRM && OF && (ARM || ARM64)
+	select DRM_KMS_HELPER
+	select DRM_KMS_CMA_HELPER
+	select DRM_GEM_CMA_HELPER
+	select DRM_PANEL
+	select VIDEOMODE_HELPERS
+	select DRM_MIPI_DSI
+	select DRM_DW_MIPI_DSI
+	select DRM_PANEL_SIMPLE_AXERA
+

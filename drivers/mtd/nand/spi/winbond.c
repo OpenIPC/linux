@@ -12,11 +12,13 @@
 #include <linux/mtd/spinand.h>
 
 #define SPINAND_MFR_WINBOND		0xEF
+#define SPINAND_MFR_XTXTECH		0x0B
+#define WINBOND_STATUS_ECC_HAS_BITFLIPS_T	(3 << 4)
 
 #define WINBOND_CFG_BUF_READ		BIT(3)
 
 static SPINAND_OP_VARIANTS(read_cache_variants,
-		SPINAND_PAGE_READ_FROM_CACHE_QUADIO_OP(0, 2, NULL, 0),
+		//SPINAND_PAGE_READ_FROM_CACHE_QUADIO_OP(0, 2, NULL, 0),
 		SPINAND_PAGE_READ_FROM_CACHE_X4_OP(0, 1, NULL, 0),
 		SPINAND_PAGE_READ_FROM_CACHE_DUALIO_OP(0, 1, NULL, 0),
 		SPINAND_PAGE_READ_FROM_CACHE_X2_OP(0, 1, NULL, 0),
@@ -74,6 +76,199 @@ static int w25m02gv_select_target(struct spinand_device *spinand,
 	return spi_mem_exec_op(spinand->spimem, &op);
 }
 
+static int w25n02kv_ooblayout_ecc(struct mtd_info *mtd, int section,
+				 struct mtd_oob_region *region)
+{
+	if (section > 3)
+		return -ERANGE;
+
+	region->offset = 64 + (16 * section);
+	region->length = 13;
+
+	return 0;
+}
+
+static int w25n02kv_ooblayout_free(struct mtd_info *mtd, int section,
+				  struct mtd_oob_region *region)
+{
+	if (section > 3)
+		return -ERANGE;
+
+	/* 2 bytes reserved for BBM */
+	region->offset = (16 * section) + 2;
+	region->length = 14;
+
+	return 0;
+}
+
+static const struct mtd_ooblayout_ops w25n02kv_ooblayout = {
+	.ecc = w25n02kv_ooblayout_ecc,
+	.free = w25n02kv_ooblayout_free,
+};
+
+static int w25n02kv_ecc_get_status(struct spinand_device *spinand,
+					 u8 status)
+{
+	struct nand_device *nand = spinand_to_nand(spinand);
+	u8 mbf = 0;
+	struct spi_mem_op op = SPINAND_GET_FEATURE_OP(0x30, &mbf);
+
+	switch (status & STATUS_ECC_MASK) {
+	case STATUS_ECC_NO_BITFLIPS:
+		return 0;
+
+	case STATUS_ECC_UNCOR_ERROR:
+		return -EBADMSG;
+
+	case STATUS_ECC_HAS_BITFLIPS:
+	case WINBOND_STATUS_ECC_HAS_BITFLIPS_T:
+		/*
+		 * Let's try to retrieve the real maximum number of bitflips
+		 * in order to avoid forcing the wear-leveling layer to move
+		 * data around if it's not necessary.
+		 */
+		if (spi_mem_exec_op(spinand->spimem, &op))
+			return nand->eccreq.strength;
+
+		mbf >>= 4;
+
+		if (WARN_ON(mbf > nand->eccreq.strength || !mbf))
+			return nand->eccreq.strength;
+
+		return mbf;
+
+	default:
+		break;
+	}
+
+	return -EINVAL;
+}
+
+static int w25n02kw_ooblayout_ecc(struct mtd_info *mtd, int section,
+				 struct mtd_oob_region *region)
+{
+	if (section > 3)
+		return -ERANGE;
+
+	region->offset = mtd->oobsize / 2;
+	region->length = mtd->oobsize / 2;
+
+	return 0;
+}
+
+static int w25n02kw_ooblayout_free(struct mtd_info *mtd, int section,
+				  struct mtd_oob_region *region)
+{
+	if (section > 3)
+		return -ERANGE;
+
+	/* 2 bytes reserved for BBM */
+	region->offset = 2;
+	region->length = (mtd->oobsize / 2) - 2;
+
+	return 0;
+}
+
+static const struct mtd_ooblayout_ops w25n02kw_ooblayout = {
+	.ecc = w25n02kw_ooblayout_ecc,
+	.free = w25n02kw_ooblayout_free,
+};
+
+static int w25n02kw_ecc_get_status(struct spinand_device *spinand,
+					 u8 status)
+{
+	switch (status & STATUS_ECC_MASK) {
+	case STATUS_ECC_NO_BITFLIPS:
+		return 0;
+
+	case STATUS_ECC_UNCOR_ERROR:
+		return -EBADMSG;
+
+	case STATUS_ECC_HAS_BITFLIPS:
+	default:
+		return 8;
+	}
+
+	return -EINVAL;
+}
+
+static int w25n01kv_ooblayout_ecc(struct mtd_info *mtd, int section,
+				 struct mtd_oob_region *region)
+{
+	if (section > 3)
+		return -ERANGE;
+
+	region->offset = (8 * section) + 64;
+	region->length = 7;
+
+	return 0;
+}
+
+static int w25n01kv_ooblayout_free(struct mtd_info *mtd, int section,
+				  struct mtd_oob_region *region)
+{
+	if (section > 3)
+		return -ERANGE;
+
+	/* 2 bytes reserved for BBM */
+	region->offset = 2;
+	region->length = 62;
+
+	return 0;
+}
+
+static const struct mtd_ooblayout_ops w25n01kv_ooblayout = {
+	.ecc = w25n01kv_ooblayout_ecc,
+	.free = w25n01kv_ooblayout_free,
+};
+
+static int w25n01kv_ecc_get_status(struct spinand_device *spinand,
+					 u8 status)
+{
+	switch (status & STATUS_ECC_MASK) {
+	case STATUS_ECC_NO_BITFLIPS:
+		return 0;
+
+	case STATUS_ECC_UNCOR_ERROR:
+		return -EBADMSG;
+
+	case STATUS_ECC_HAS_BITFLIPS:
+	default:
+		return 4;
+	}
+
+	return -EINVAL;
+}
+
+static int w25n02jw_ooblayout_ecc(struct mtd_info *mtd, int section,
+				  struct mtd_oob_region *region)
+{
+	if (section > 3)
+		return -ERANGE;
+
+	region->offset = (16 * section) + 12;
+	region->length = 4;
+
+	return 0;
+}
+
+static int w25n02jw_ooblayout_free(struct mtd_info *mtd, int section,
+				   struct mtd_oob_region *region)
+{
+	if (section > 3)
+		return -ERANGE;
+
+	region->offset = (16 * section) + 2;
+	region->length = 10;
+
+	return 0;
+}
+
+static const struct mtd_ooblayout_ops w25n02jw_ooblayout = {
+	.ecc = w25n02jw_ooblayout_ecc,
+	.free = w25n02jw_ooblayout_free,
+};
+
 static const struct spinand_info winbond_spinand_table[] = {
 	SPINAND_INFO("W25M02GV", 0xAB,
 		     NAND_MEMORG(1, 2048, 64, 64, 1024, 1, 1, 2),
@@ -84,6 +279,46 @@ static const struct spinand_info winbond_spinand_table[] = {
 		     0,
 		     SPINAND_ECCINFO(&w25m02gv_ooblayout, NULL),
 		     SPINAND_SELECT_TARGET(w25m02gv_select_target)),
+	SPINAND_INFO("W25N02KV", 0xAA,
+		     NAND_MEMORG(1, 2048, 128, 64, 2048, 1, 1, 1),
+		     NAND_ECCREQ(8, 512),
+		     SPINAND_INFO_OP_VARIANTS(&read_cache_variants,
+					      &write_cache_variants,
+					      &update_cache_variants),
+		     SPINAND_HAS_QE_BIT,
+		     SPINAND_ECCINFO(&w25n02kv_ooblayout, w25n02kv_ecc_get_status)),
+	SPINAND_INFO("W25N01KV", 0xAE,
+		     NAND_MEMORG(1, 2048, 96, 64, 1024, 1, 1, 1),
+		     NAND_ECCREQ(4, 512),
+		     SPINAND_INFO_OP_VARIANTS(&read_cache_variants,
+					      &write_cache_variants,
+					      &update_cache_variants),
+		     SPINAND_HAS_QE_BIT,
+		     SPINAND_ECCINFO(&w25n01kv_ooblayout, w25n01kv_ecc_get_status)),
+	SPINAND_INFO("W25N02KW", 0xBA,
+		     NAND_MEMORG(1, 2048, 128, 64, 1024, 1, 2, 1),
+		     NAND_ECCREQ(1, 512),
+		     SPINAND_INFO_OP_VARIANTS(&read_cache_variants,
+					      &write_cache_variants,
+					      &update_cache_variants),
+		     SPINAND_HAS_QE_BIT,
+		     SPINAND_ECCINFO(&w25n02kw_ooblayout, w25n02kw_ecc_get_status)),
+	SPINAND_INFO("W25N02JW", 0xBF,
+		     NAND_MEMORG(1, 2048, 64, 64, 1024, 1, 2, 1),
+		     NAND_ECCREQ(1, 512),
+		     SPINAND_INFO_OP_VARIANTS(&read_cache_variants,
+					      &write_cache_variants,
+					      &update_cache_variants),
+		     SPINAND_HAS_QE_BIT,
+		     SPINAND_ECCINFO(&w25n02jw_ooblayout, NULL)),
+	SPINAND_INFO("XT26G01C", 0x11,
+		     NAND_MEMORG(1, 2048, 64, 64, 1024, 1, 1, 1),
+		     NAND_ECCREQ(1, 512),
+		     SPINAND_INFO_OP_VARIANTS(&read_cache_variants,
+					      &write_cache_variants,
+					      &update_cache_variants),
+		     SPINAND_HAS_QE_BIT,
+		     SPINAND_ECCINFO(&w25m02gv_ooblayout, NULL)),
 };
 
 /**
@@ -100,7 +335,7 @@ static int winbond_spinand_detect(struct spinand_device *spinand)
 	 * Winbond SPI NAND read ID need a dummy byte,
 	 * so the first byte in raw_id is dummy.
 	 */
-	if (id[1] != SPINAND_MFR_WINBOND)
+	if (id[1] != SPINAND_MFR_WINBOND && id[1] != SPINAND_MFR_XTXTECH)
 		return 0;
 
 	ret = spinand_match_and_init(spinand, winbond_spinand_table,

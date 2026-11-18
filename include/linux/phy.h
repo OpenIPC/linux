@@ -173,6 +173,8 @@ static inline const char *phy_modes(phy_interface_t interface)
 
 #define PHY_MAX_ADDR	32
 
+#define PHY_CHANGELINK_DELAY 3
+
 /* Used when trying to connect to a specific phy (mii bus id:phy device id) */
 #define PHY_ID_FMT "%s:%02x"
 

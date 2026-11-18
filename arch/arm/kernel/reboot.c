@@ -141,10 +141,14 @@ void machine_restart(char *cmd)
 	local_irq_disable();
 	smp_send_stop();
 
+	/*
+	 * Restart handlers first (Axera's SoCs reboot through one, rather
+	 * than the PSCI/machine hook), then the arm_pm_restart hook for
+	 * boards that only have that.
+	 */
+	do_kernel_restart(cmd);
 	if (arm_pm_restart)
 		arm_pm_restart(reboot_mode, cmd);
-	else
-		do_kernel_restart(cmd);
 
 	/* Give a grace period for failure to restart of 1s */
 	mdelay(1000);

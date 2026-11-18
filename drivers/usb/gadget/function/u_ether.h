@@ -79,6 +79,18 @@ struct gether {
 	/* called on network open/close */
 	void				(*open)(struct gether *);
 	void				(*close)(struct gether *);
+
+/// SIPEED EDIT ///
+	/**
+	 * https://patches.linaro.org/project/linux-usb/list/?series=205060
+	 * Message ID 	1679694482-16430-7-git-send-email-quic_eserrao@quicinc.com
+	 * Series 	Add function suspend/resume and remote wakeup support
+	 * 
+	 * [v13,6/6] usb: gadget: f_ecm: Add suspend/resume and remote wakeup support
+	 */
+	bool				is_suspend;
+/// SIPEED EDIT END ///
+
 };
 
 #define	DEFAULT_FILTER	(USB_CDC_PACKET_TYPE_BROADCAST \
@@ -245,6 +257,18 @@ unsigned gether_get_qmult(struct net_device *net);
 int gether_get_ifname(struct net_device *net, char *name, int len);
 
 void gether_cleanup(struct eth_dev *dev);
+
+/// SIPEED EDIT ///
+/**
+ * https://patches.linaro.org/project/linux-usb/list/?series=205060
+ * Message ID 	1679694482-16430-7-git-send-email-quic_eserrao@quicinc.com
+ * Series 	Add function suspend/resume and remote wakeup support
+ * 
+ * [v13,6/6] usb: gadget: f_ecm: Add suspend/resume and remote wakeup support
+ */
+void gether_suspend(struct gether *link);
+void gether_resume(struct gether *link);
+/// SIPEED EDIT END ///
 
 /* connect/disconnect is handled by individual functions */
 struct net_device *gether_connect(struct gether *);

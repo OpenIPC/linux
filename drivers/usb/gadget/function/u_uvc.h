@@ -21,9 +21,19 @@
 
 struct f_uvc_opts {
 	struct usb_function_instance			func_inst;
+	bool						streaming_bulk;
+#ifdef CONFIG_UVC_H264
+	unsigned int					uvc_gadget_trace_param;
+#endif
 	unsigned int					streaming_interval;
 	unsigned int					streaming_maxpacket;
 	unsigned int					streaming_maxburst;
+#ifdef CONFIG_ARCH_AXERA
+	unsigned int					streaming_mult;
+#endif
+
+	unsigned int					control_interface;
+	unsigned int					streaming_interface;
 
 	/*
 	 * Control descriptors array pointers for full-/high-speed and
@@ -49,7 +59,9 @@ struct f_uvc_opts {
 	struct uvc_processing_unit_descriptor		uvc_processing;
 	struct uvc_output_terminal_descriptor		uvc_output_terminal;
 	struct uvc_color_matching_descriptor		uvc_color_matching;
-
+#ifdef CONFIG_UVC_H264	
+	struct UVC_EXTENSION_UNIT_DESCRIPTOR(1, 2) 	uvc_extension;
+#endif
 	/*
 	 * Control descriptors pointers arrays for full-/high-speed and
 	 * super-speed. The first element is a configurable control header
@@ -57,9 +69,13 @@ struct f_uvc_opts {
 	 * descriptors. Used by configfs only, must not be touched by legacy
 	 * gadgets.
 	 */
+#ifdef CONFIG_UVC_H264
+	struct uvc_descriptor_header			*uvc_fs_control_cls[6];
+	struct uvc_descriptor_header			*uvc_ss_control_cls[6];
+#else
 	struct uvc_descriptor_header			*uvc_fs_control_cls[5];
 	struct uvc_descriptor_header			*uvc_ss_control_cls[5];
-
+#endif
 	/*
 	 * Streaming descriptors for full-speed, high-speed and super-speed.
 	 * Used by configfs only, must not be touched by legacy gadgets. The
@@ -79,5 +95,7 @@ struct f_uvc_opts {
 	struct mutex			lock;
 	int				refcnt;
 };
-
+#ifdef CONFIG_UVC_H264
+void uvc_set_trace_param(unsigned int trace);
+#endif
 #endif /* U_UVC_H */

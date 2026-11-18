@@ -190,6 +190,24 @@ config DW_AXI_DMAC
 	  NOTE: This driver wasn't tested on 64 bit platform because
 	  of lack 64 bit platform with Synopsys DW AXI DMAC.
 
+config AXERA_AXI_DMAC
+	tristate "AXERA AXI DMA support"
+	depends on OF || COMPILE_TEST
+	select DMA_ENGINE
+	select DMA_VIRTUAL_CHANNELS
+	help
+	   Enable support for Synopsys DesignWare AXI DMA controller.
+	   NOTE: This driver wasn't tested on 64 bit platform because
+	   of lack 64 bit platform with Synopsys DW AXI DMAC.
+
+config AXERA_DMA_PER
+	tristate "AXERA DMA Peripherals support"
+	depends on OF || COMPILE_TEST
+	select DMA_ENGINE
+	select DMA_VIRTUAL_CHANNELS
+	help
+	  Enable support for AXERA DMA Peripherals controller.
+
 config EP93XX_DMA
 	bool "Cirrus Logic EP93xx DMA support"
 	depends on ARCH_EP93XX || COMPILE_TEST
@@ -346,7 +364,7 @@ config MOXART_DMA
 	select DMA_VIRTUAL_CHANNELS
 	help
 	  Enable support for the MOXA ART SoC DMA controller.
- 
+
 	  Say Y here if you enabled MMP ADMA, otherwise say N.
 
 config MPC512X_DMA

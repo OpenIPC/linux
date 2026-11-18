@@ -10,6 +10,8 @@
 #include <linux/extcon.h>
 #include <linux/of_graph.h>
 #include <linux/platform_device.h>
+#include <linux/property.h>
+#include <linux/usb/role.h>
 
 #include "debug.h"
 #include "core.h"
@@ -433,6 +435,11 @@ static int dwc3_drd_notifier(struct notifier_block *nb,
 {
 	struct dwc3 *dwc = container_of(nb, struct dwc3, edev_nb);
 
+#ifdef CONFIG_USB_DWC3_AXERA
+	dev_info(dwc->dev, "dwc3_drd_notifier, mode is %s\n",
+		event ? "host" : "gadget");
+#endif
+
 	dwc3_set_mode(dwc, event ?
 		      DWC3_GCTL_PRTCAP_HOST :
 		      DWC3_GCTL_PRTCAP_DEVICE);
@@ -463,6 +470,68 @@ static struct extcon_dev *dwc3_get_extcon(struct dwc3 *dwc)
 	return edev;
 }
 
+#if defined(CONFIG_USB_DWC3_AXERA) && defined(CONFIG_USB_ROLE_SWITCH)
+struct usb_role_switch	*role_sw;
+int dwc3_usb_role_switch_set(struct device *dev, enum usb_role role)
+{
+	struct dwc3 *dwc = dev_get_drvdata(dev);
+	u32 mode;
+
+	switch (role) {
+	case USB_ROLE_HOST:
+		mode = DWC3_GCTL_PRTCAP_HOST;
+		break;
+	case USB_ROLE_DEVICE:
+		mode = DWC3_GCTL_PRTCAP_DEVICE;
+		break;
+	default:
+		break;
+	}
+
+	dwc3_set_mode(dwc, mode);
+	return 0;
+}
+
+static enum usb_role dwc3_usb_role_switch_get(struct device *dev)
+{
+	struct dwc3 *dwc = dev_get_drvdata(dev);
+	unsigned long flags;
+	enum usb_role role;
+
+	spin_lock_irqsave(&dwc->lock, flags);
+	switch (dwc->current_dr_role) {
+	case DWC3_GCTL_PRTCAP_HOST:
+		role = USB_ROLE_HOST;
+		break;
+	case DWC3_GCTL_PRTCAP_DEVICE:
+		role = USB_ROLE_DEVICE;
+		break;
+	case DWC3_GCTL_PRTCAP_OTG:
+		role = dwc->current_otg_role;
+		break;
+	default:
+		break;
+	}
+	spin_unlock_irqrestore(&dwc->lock, flags);
+	return role;
+}
+
+static int dwc3_setup_role_switch(struct dwc3 *dwc)
+{
+	struct usb_role_switch_desc dwc3_role_switch = {NULL};
+
+	dwc3_role_switch.set = dwc3_usb_role_switch_set;
+	dwc3_role_switch.get = dwc3_usb_role_switch_get;
+	dwc3_role_switch.allow_userspace_control = true;
+
+	role_sw = usb_role_switch_register(dwc->dev, &dwc3_role_switch);
+	if (IS_ERR(role_sw))
+		return PTR_ERR(role_sw);
+
+	return 0;
+}
+#endif
+
 int dwc3_drd_init(struct dwc3 *dwc)
 {
 	int ret, irq;
@@ -470,6 +539,24 @@ int dwc3_drd_init(struct dwc3 *dwc)
 	dwc->edev = dwc3_get_extcon(dwc);
 	if (IS_ERR(dwc->edev))
 		return PTR_ERR(dwc->edev);
+
+#ifdef CONFIG_USB_DWC3_AXERA
+	/*actually, dwc_usb3 also don't support otg block.
+	  if we don't use extcon or use typeC, default mode is host.
+	*/
+	if (!dwc->edev){
+		dev_info(dwc->dev, "typeC initial mode is host\n");
+		dwc3_set_mode(dwc, DWC3_GCTL_PRTCAP_HOST);
+		return 0;
+	}
+#ifdef CONFIG_USB_ROLE_SWITCH
+	if (device_property_read_bool(dwc->dev, "usb-role-switch")) {
+		ret = dwc3_setup_role_switch(dwc);
+		if (ret < 0)
+			return ret;
+	}
+#endif
+#endif
 
 	if (dwc->edev) {
 		dwc->edev_nb.notifier_call = dwc3_drd_notifier;
@@ -517,6 +604,10 @@ int dwc3_drd_init(struct dwc3 *dwc)
 void dwc3_drd_exit(struct dwc3 *dwc)
 {
 	unsigned long flags;
+
+#if defined(CONFIG_USB_DWC3_AXERA) && defined(CONFIG_USB_ROLE_SWITCH)
+	usb_role_switch_unregister(role_sw);
+#endif
 
 	if (dwc->edev)
 		extcon_unregister_notifier(dwc->edev, EXTCON_USB_HOST,

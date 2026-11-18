@@ -173,5 +173,6 @@ config RESET_ZYNQ
 source "drivers/reset/sti/Kconfig"
 source "drivers/reset/hisilicon/Kconfig"
 source "drivers/reset/tegra/Kconfig"
+source "drivers/reset/axera_reset/Kconfig"
 
 endif

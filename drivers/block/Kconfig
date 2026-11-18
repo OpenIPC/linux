@@ -295,6 +295,12 @@ config BLK_DEV_SKD
 
 	Use device /dev/skd$N amd /dev/skd$Np$M.
 
+config AXERA_RAMDISK_BLK
+	bool "axera ramdisk block driver"
+	default n
+	help
+	  This is the ramdisk block driver for axera platform.
+
 config BLK_DEV_SX8
 	tristate "Promise SATA SX8 support"
 	depends on PCI

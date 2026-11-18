@@ -1893,8 +1893,13 @@ static int clk_core_set_rate_nolock(struct clk_core *core,
 
 	rate = clk_core_req_round_rate_nolock(core, req_rate);
 
-	/* bail early if nothing to do */
-	if (rate == clk_core_get_rate_nolock(core))
+	/*
+	 * Bail early if nothing to do.  The Axera SDK always reprograms, even
+	 * at the cached rate; keep that only with the AX620E clock driver it
+	 * ships with, whose blocks may be reset behind the clk framework.
+	 */
+	if (!IS_ENABLED(CONFIG_COMMON_CLK_AX620E) &&
+	    rate == clk_core_get_rate_nolock(core))
 		return 0;
 
 	/* fail on a direct rate set of a protected provider */

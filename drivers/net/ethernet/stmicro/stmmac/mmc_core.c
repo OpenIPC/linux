@@ -155,6 +155,10 @@ void dwmac_mmc_intr_all_mask(void __iomem *mmcaddr)
  */
 void dwmac_mmc_read(void __iomem *mmcaddr, struct stmmac_counters *mmc)
 {
+#ifdef CONFIG_DWMAC_AXERA
+	dwmac_mmc_ctrl(mmcaddr, MMC_CNTRL_RESET_ON_READ);
+#endif
+
 	mmc->mmc_tx_octetcount_gb += readl(mmcaddr + MMC_TX_OCTETCOUNT_GB);
 	mmc->mmc_tx_framecount_gb += readl(mmcaddr + MMC_TX_FRAMECOUNT_GB);
 	mmc->mmc_tx_broadcastframe_g += readl(mmcaddr +

@@ -227,6 +227,15 @@ config CPUFREQ_DT_PLATDEV
 
 	  If in doubt, say N.
 
+config AXERA_CPUFREQ
+	tristate "Axera cpufreq driver"
+	depends on HAVE_CLK && OF
+	select CPUFREQ_DT_PLATDEV
+	select PM_OPP
+	help
+	  This adds axera cpufreq driver for frequency management.
+	  If in doubt, say N.
+
 if X86
 source "drivers/cpufreq/Kconfig.x86"
 endif

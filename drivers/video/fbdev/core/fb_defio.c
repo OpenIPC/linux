@@ -209,8 +209,10 @@ void fb_deferred_io_init(struct fb_info *info)
 	info->fbops->fb_mmap = fb_deferred_io_mmap;
 	INIT_DELAYED_WORK(&info->deferred_work, fb_deferred_io_work);
 	INIT_LIST_HEAD(&fbdefio->pagelist);
-	if (fbdefio->delay == 0) /* set a default of 1 s */
-		fbdefio->delay = HZ;
+	// ### SIPEED EDIT ###
+	// if (fbdefio->delay == 0) /* set a default of 1 s */
+	// 	fbdefio->delay = HZ;
+	// ### SIPEED EDIT END ###
 }
 EXPORT_SYMBOL_GPL(fb_deferred_io_init);
 

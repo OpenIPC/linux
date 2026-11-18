@@ -114,3 +114,12 @@ config FAT_DEFAULT_UTF8
 	  Say Y if you use UTF-8 encoding for file names, N otherwise.
 
 	  See <file:Documentation/filesystems/vfat.txt> for more information.
+
+config AX_MC
+	bool "Update file size if user call FALLOC_FL_KEEP_SIZE"
+	depends on FAT_FS
+	default n
+	help
+	  Set this if you want to update file size when user call
+	  FALLOC_FL_KEEP_SIZE, otherwise FAT only allocate clusters and file
+	  size is zero.

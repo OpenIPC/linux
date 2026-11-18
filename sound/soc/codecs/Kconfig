@@ -75,6 +75,9 @@ config SND_SOC_ALL_CODECS
 	select SND_SOC_DA732X if I2C
 	select SND_SOC_DA9055 if I2C
 	select SND_SOC_DMIC if GPIOLIB
+	### SIPEED EDIT ###
+	select SND_SOC_DUMMY_CODEC
+	### SIPEED EDIT END ###
 	select SND_SOC_ES8316 if I2C
 	select SND_SOC_ES8328_SPI if SPI_MASTER
 	select SND_SOC_ES8328_I2C if I2C
@@ -577,6 +580,11 @@ config SND_SOC_DA9055
 config SND_SOC_DMIC
 	tristate
 
+### SIPEED EDIT ###
+config SND_SOC_DUMMY_CODEC
+	tristate "Dummy CODEC"
+### SIPEED EDIT END ###
+
 config SND_SOC_HDMI_CODEC
 	tristate
 	select SND_PCM_ELD
@@ -605,6 +613,25 @@ config SND_SOC_ES8328_SPI
 	tristate "Everest Semi ES8328 CODEC (SPI)"
 	depends on SPI_MASTER
 	select SND_SOC_ES8328
+
+config SND_SOC_AXERA_ES8328
+	tristate
+
+config SND_SOC_ES7210
+	tristate "Everest Semi ES7210 4CH ADC"
+	depends on I2C
+
+config SND_SOC_ES7243L
+	tristate "Everest Semi ES7243L 2CH ADC"
+	depends on I2C
+
+config SND_SOC_ES8156
+	tristate "Everest Semi ES8156 2CH DAC"
+	depends on I2C
+
+config SND_SOC_ES8311
+	tristate "Everest Semi ES8311 2CH DAC"
+	depends on I2C
 
 config SND_SOC_GTM601
 	tristate 'GTM601 UMTS modem audio codec'

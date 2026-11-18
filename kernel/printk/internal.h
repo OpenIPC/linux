@@ -23,6 +23,7 @@
 #define PRINTK_NMI_CONTEXT_MASK		 0x80000000
 
 extern raw_spinlock_t logbuf_lock;
+extern raw_spinlock_t ax_logbuf_lock;
 
 __printf(5, 0)
 int vprintk_store(int facility, int level,

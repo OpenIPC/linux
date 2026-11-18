@@ -657,6 +657,12 @@ out_error:
  */
 static void mtd_set_dev_defaults(struct mtd_info *mtd)
 {
+	struct device_node *np = mtd_get_of_node(mtd);
+
+	/* A devicetree "label" names the device (upstream since v5.5) */
+	if (!mtd->name && np)
+		of_property_read_string(np, "label", &mtd->name);
+
 	if (mtd->dev.parent) {
 		if (!mtd->owner && mtd->dev.parent->driver)
 			mtd->owner = mtd->dev.parent->driver->owner;

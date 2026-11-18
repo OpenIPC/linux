@@ -45,6 +45,31 @@ config DWMAC_GENERIC
 	  platform specific code to function or is using platform
 	  data for setup.
 
+config DWMAC_AXERA
+        tristate "axera dwmac eqos support"
+        default STMMAC_PLATFORM
+        help
+          axera dwmac eqos support.
+
+config DWMAC_AXERA_PLAT
+        tristate "axera dwmac eqos plat support"
+        default STMMAC_PLATFORM
+        help
+          axera dwmac eqos support.
+
+config DWMAC_AXERA_DMA_BUF_CUT
+        tristate "axera dwmac cut down DMA buffer"
+        depends on DWMAC_AXERA
+        default n
+        help
+          reduce axera dwmac DMA buffer size.
+
+config DWMAC_AXERA_HAPS
+        tristate "test axera dwmac eqos in haps"
+        depends on DWMAC_AXERA
+        help
+          if we test axera dwmac eqos in haps, enable it.
+
 config DWMAC_ANARION
 	tristate "Adaptrum Anarion GMAC support"
 	default ARC

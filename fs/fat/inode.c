@@ -924,6 +924,14 @@ int fat_sync_inode(struct inode *inode)
 
 EXPORT_SYMBOL_GPL(fat_sync_inode);
 
+#if defined(CONFIG_AX_MC)
+int fat_update_inode(struct inode *inode)
+{
+	return __fat_write_inode(inode, 0);
+}
+EXPORT_SYMBOL_GPL(fat_update_inode);
+#endif
+
 static int fat_show_options(struct seq_file *m, struct dentry *root);
 static const struct super_operations fat_sops = {
 	.alloc_inode	= fat_alloc_inode,

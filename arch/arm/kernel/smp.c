@@ -52,6 +52,9 @@
 #include <asm/mach/arch.h>
 #include <asm/mpu.h>
 
+#include <asm/cacheflush.h>
+#include <asm/tlbflush.h>
+
 #define CREATE_TRACE_POINTS
 #include <trace/events/ipi.h>
 
@@ -604,7 +607,7 @@ static void ipi_cpu_stop(unsigned int cpu)
 	}
 
 	set_cpu_online(cpu, false);
-
+	flush_cache_all();
 	local_fiq_disable();
 	local_irq_disable();
 

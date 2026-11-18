@@ -36,6 +36,9 @@ struct platform_device {
 
 	/* arch specific additions */
 	struct pdev_archdata	archdata;
+#ifdef CONFIG_ARCH_AXERA
+	void *axera_devdfs_ptr;
+#endif
 };
 
 #define platform_get_device_id(pdev)	((pdev)->id_entry)
@@ -186,6 +189,9 @@ struct platform_driver {
 	struct device_driver driver;
 	const struct platform_device_id *id_table;
 	bool prevent_deferred_probe;
+#ifdef CONFIG_ARCH_AXERA
+	void *axera_driver_ptr;
+#endif
 };
 
 #define to_platform_driver(drv)	(container_of((drv), struct platform_driver, \

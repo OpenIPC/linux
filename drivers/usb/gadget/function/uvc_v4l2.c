@@ -57,7 +57,10 @@ struct uvc_format {
 
 static struct uvc_format uvc_formats[] = {
 	{ 16, V4L2_PIX_FMT_YUYV  },
+	{ 12, V4L2_PIX_FMT_NV12  },
 	{ 0,  V4L2_PIX_FMT_MJPEG },
+	{ 0,  V4L2_PIX_FMT_H264  },
+	{ 0,  V4L2_PIX_FMT_H265  },
 };
 
 static int
@@ -197,18 +200,30 @@ uvc_v4l2_streamon(struct file *file, void *fh, enum v4l2_buf_type type)
 	if (type != video->queue.queue.type)
 		return -EINVAL;
 
+	if (uvc->state != UVC_STATE_CONNECTED)
+		return -ENODEV;
+
 	/* Enable UVC video. */
 	ret = uvcg_video_enable(video, 1);
 	if (ret < 0)
 		return ret;
 
 	/*
-	 * Complete the alternate setting selection setup phase now that
-	 * userspace is ready to provide video frames.
+	 * Alt settings in an interface are supported only
+	 * for ISOC endpoints as there are different alt-
+	 * settings for zero-bandwidth and full-bandwidth
+	 * cases, but the same is not true for BULK endpoints,
+	 * as they have a single alt-setting.
 	 */
-	uvc_function_setup_continue(uvc);
-	uvc->state = UVC_STATE_STREAMING;
-
+	if (!usb_endpoint_xfer_bulk(video->ep->desc)) {
+		/*
+		 * Complete the alternate setting selection
+		 * setup phase now that userspace is ready
+		 * to provide video frames.
+		 */
+		uvc_function_setup_continue(uvc);
+		uvc->state = UVC_STATE_STREAMING;
+	}
 	return 0;
 }
 
@@ -218,7 +233,6 @@ uvc_v4l2_streamoff(struct file *file, void *fh, enum v4l2_buf_type type)
 	struct video_device *vdev = video_devdata(file);
 	struct uvc_device *uvc = video_get_drvdata(vdev);
 	struct uvc_video *video = &uvc->video;
-
 	if (type != video->queue.queue.type)
 		return -EINVAL;
 
@@ -305,12 +319,16 @@ uvc_v4l2_release(struct file *file)
 	struct uvc_device *uvc = video_get_drvdata(vdev);
 	struct uvc_file_handle *handle = to_uvc_file_handle(file->private_data);
 	struct uvc_video *video = handle->device;
+	int ret;
 
 	uvc_function_disconnect(uvc);
 
 	mutex_lock(&video->mutex);
-	uvcg_video_enable(video, 0);
-	uvcg_free_buffers(&video->queue);
+	ret = uvcg_video_enable(video, 0);
+	if (ret < 0)
+		pr_err("UVC release stop failed (%d), buffers retained\n", ret);
+	else
+		uvcg_free_buffers(&video->queue);
 	mutex_unlock(&video->mutex);
 
 	file->private_data = NULL;
@@ -362,4 +380,3 @@ const struct v4l2_file_operations uvc_v4l2_fops = {
 	.get_unmapped_area = uvcg_v4l2_get_unmapped_area,
 #endif
 };
-

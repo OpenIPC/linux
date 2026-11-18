@@ -240,6 +240,8 @@ static int asoc_simple_card_dai_link_of(struct device_node *node,
 
 	dai_link->ops = &asoc_simple_card_ops;
 	dai_link->init = asoc_simple_card_dai_init;
+	dai_link->playback_only = of_property_read_bool(node, "playback-only");
+	dai_link->capture_only = of_property_read_bool(node, "capture-only");
 
 	asoc_simple_card_canonicalize_cpu(dai_link, single_cpu);
 

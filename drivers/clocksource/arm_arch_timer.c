@@ -33,6 +33,10 @@
 
 #include <clocksource/arm_arch_timer.h>
 
+#ifdef CONFIG_AX_DEBUG_BOOT_TIME
+#include <linux/soc/axera/chip_reg.h>
+#endif
+
 #undef pr_fmt
 #define pr_fmt(fmt) "arch_timer: " fmt
 
@@ -926,6 +930,16 @@ static void arch_timer_of_configure_rate(u32 rate, struct device_node *np)
 
 static void arch_timer_banner(unsigned type)
 {
+#ifdef CONFIG_AX_DEBUG_BOOT_TIME
+	void *timer_base;
+	void *iram0_base;
+
+	timer_base = ioremap(TIMER64_0_BASE, 0x40);
+	iram0_base = ioremap(DEBUG_REG_BASE, 0x40);
+	writel(readl(timer_base), iram0_base + 0x24); // arch timer start
+	iounmap(timer_base);
+	iounmap(iram0_base);
+#endif
 	pr_info("%s%s%s timer(s) running at %lu.%02luMHz (%s%s%s).\n",
 		type & ARCH_TIMER_TYPE_CP15 ? "cp15" : "",
 		type == (ARCH_TIMER_TYPE_CP15 | ARCH_TIMER_TYPE_MEM) ?

@@ -116,4 +116,10 @@ config ARM_RK3399_DMC_DEVFREQ
 
 source "drivers/devfreq/event/Kconfig"
 
+config ARM_AXERA_BUS_DEVFREQ
+	tristate "Axera Generic Bus DEVFREQ Driver"
+	depends on ARCH_AXERA
+	help
+		This adds the bus generic DEVFREQ driver.
+
 endif # PM_DEVFREQ

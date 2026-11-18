@@ -1,3 +1,13 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Axera AX620U IP camera (JFtech IPC_AX620U_A8, 128 MiB SPI NAND, OS04A10).
+ *
+ * Decompiled from the stock firmware's FIT (/boot/uImage, fdt-1, 22870
+ * bytes) and kept as is, so the vendor's closed ax_*.ko modules find the
+ * nodes and properties they look up. Changes against the stock blob:
+ *  - spi-master@0x08000000: bound by the SDK's spi-axera-mmio driver
+ *    ("snps,dwc-ssi-1.03a"), which wants "flashclk" + "pclk".
+ */
 /dts-v1/;
 
 / {
@@ -682,19 +692,20 @@
 		};
 
 		spi-master@0x08000000 {
-			compatible = "snps,dw-ssi";
+			compatible = "snps,dwc-ssi-1.03a", "snps,dw-ssi";
 			reg = <0x8000000 0x1000>;
 			interrupts = <0x00 0x08 0x04>;
 			cs-gpios = <0x08 0x05 0x00>;
 			pinctrl-names = "default";
 			#address-cells = <0x01>;
 			#size-cells = <0x00>;
-			clocks = <0x05 0x06>;
-			clock-names = "spinand-flashclk";
+			clocks = <0x05 0x06 0x05 0x06>;
+			clock-names = "flashclk", "pclk";
 			status = "okay";
 
 			spi_nand@0 {
 				compatible = "spi-nand";
+				label = "spi4.0_nand";
 				reg = <0x00>;
 				spi-max-frequency = <0x1c9c380>;
 				spi-tx-bus-width = <0x04>;

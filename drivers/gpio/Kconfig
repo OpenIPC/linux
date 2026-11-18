@@ -182,6 +182,28 @@ config GPIO_DWAPB
 	  Say Y or M here to build support for the Synopsys DesignWare APB
 	  GPIO block.
 
+config GPIO_AXERA
+	tristate "AXERA GPIO driver"
+	select GPIO_GENERIC
+	select GPIOLIB_IRQCHIP
+	help
+	  Say Y or M here to build support for the AXERA
+	  GPIO block.
+
+config GPIO_AXERA_EXT
+	tristate "AXERA GPIO EXT CHIP driver"
+	select GPIO_GENERIC
+	select GPIOLIB_IRQCHIP
+	help
+	  Say Y or M here to build support for the AXERA EXT
+	  GPIO block.
+
+config GPIO_LP_AXERA
+	bool "AXERA DEB GPIO LP driver"
+	help
+		axera deb gpio lp wakeup source.
+	default y
+
 config GPIO_EIC_SPRD
 	tristate "Spreadtrum EIC support"
 	depends on ARCH_SPRD || COMPILE_TEST

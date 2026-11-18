@@ -23,6 +23,10 @@
 #include <asm/thread_info.h>
 #include <asm/pgtable.h>
 
+#ifdef CONFIG_AX_DEBUG_BOOT_TIME
+#include <linux/soc/axera/chip_reg.h>
+#endif
+
 #if defined(CONFIG_DEBUG_LL) && !defined(CONFIG_DEBUG_SEMIHOSTING)
 #include CONFIG_DEBUG_LL_INCLUDE
 #endif
@@ -84,6 +88,13 @@ ENTRY(stext)
  THUMB(	bx	r9		)	@ If this is a Thumb-2 kernel,
  THUMB(	.thumb			)	@ switch to Thumb now.
  THUMB(1:			)
+
+#ifdef CONFIG_AX_DEBUG_BOOT_TIME
+	ldr r9, =(DEBUG_REG_BASE + 0x20)	// set iram addr
+	ldr r10, =(TIMER64_0_BASE)		// set tmr addrs
+	ldr r8, [r10]				// read tmr to r8
+	str r8, [r9]				// write tmr to iram
+#endif
 
 #ifdef CONFIG_ARM_VIRT_EXT
 	bl	__hyp_stub_install

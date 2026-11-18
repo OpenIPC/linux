@@ -502,7 +502,12 @@ struct reset_control *__of_reset_control_get(struct device_node *node,
 		goto out;
 	}
 
-	if (WARN_ON(args.args_count != rcdev->of_reset_n_cells)) {
+	/*
+	 * The AX620E reset controller takes 3-, 4- and 10-cell specifiers
+	 * from one node and checks args_count in its own of_xlate.
+	 */
+	if (!IS_ENABLED(CONFIG_AXERA_RESET_AX620E) &&
+	    WARN_ON(args.args_count != rcdev->of_reset_n_cells)) {
 		rstc = ERR_PTR(-EINVAL);
 		goto out;
 	}

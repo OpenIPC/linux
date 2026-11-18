@@ -1,0 +1,32 @@
+# SPDX-License-Identifier: GPL-2.0
+menuconfig ARCH_AXERA
+	bool "Axera SOC Support"
+	depends on ARCH_MULTI_V7
+	select ARM_GIC
+	select NO_IOPORT_MAP
+
+if ARCH_AXERA
+
+menu "Axera platform type"
+
+config ARCH_AX620E
+	bool "Axera AX620X family"
+	depends on ARCH_MULTI_V7
+	select CACHE_L2X0
+	select HAVE_ARM_SCU if SMP
+	select HAVE_ARM_TWD if SMP
+	select PINCTRL
+	select PINCTRL_SINGLE
+	help
+	  Support for Axera AX620E SoC family
+
+config CLK_AUX_SUSPEND_DISABLE
+	bool "clk aux will be disabled during sleep"
+	depends on ARCH_AX620E
+	default y
+	help
+	  Used to disable clk aux during sleep or clk aux always work.
+
+endmenu
+
+endif

@@ -1,0 +1,401 @@
+
+
+	i2c1_scl_gpio0_a26_pins: i2c1_scl_gpio0_a26 {
+		mux {
+			pins = "I2C1_SCL";
+			function = "GPIO0_A26";
+		};
+		configs {
+			pins = "I2C1_SCL";
+			drive-strength = <3>;
+			input-schmitt-enable = <0>;
+		};
+	};
+
+	i2c1_sda_gpio0_a27_pins: i2c1_sda_gpio0_a27 {
+		mux {
+			pins = "I2C1_SDA";
+			function = "GPIO0_A27";
+		};
+		configs {
+			pins = "I2C1_SDA";
+			drive-strength = <3>;
+			input-schmitt-enable = <0>;
+		};
+	};
+
+	i2c0_scl_pins: i2c0_scl {
+		mux {
+			pins = "I2C0_SCL";
+			function = "I2C0_SCL";
+		};
+		configs {
+			pins = "I2C0_SCL";
+			drive-strength = <3>;
+			input-schmitt-enable = <0>;
+			bias-pull-up;
+		};
+	};
+
+	sdio_clk_i2c2_scl_pins: sdio_clk_i2c2_scl {
+		mux {
+			pins = "SDIO_CLK";
+			function = "I2C2_SCL";
+		};
+		configs {
+			pins = "SDIO_CLK";
+			drive-strength = <3>;
+			input-schmitt-enable = <0>;
+			bias-pull-up;
+		};
+	};
+
+	sdio_cmd_i2c2_sda_pins: sdio_cmd_i2c2_sda {
+		mux {
+			pins = "SDIO_CMD";
+			function = "I2C2_SDA";
+		};
+		configs {
+			pins = "SDIO_CMD";
+			drive-strength = <3>;
+			input-schmitt-enable = <0>;
+			bias-pull-up;
+		};
+	};
+
+	sdio_clk_gpio2_a0_pins: sdio_clk_gpio2_a0 {
+		mux {
+			pins = "SDIO_CLK";
+			function = "GPIO2_A0";
+		};
+		configs {
+			pins = "SDIO_CLK";
+			drive-strength = <3>;
+			input-schmitt-enable = <0>;
+		};
+	};
+
+	sdio_cmd_gpio2_a1_pins: sdio_cmd_gpio2_a1 {
+		mux {
+			pins = "SDIO_CMD";
+			function = "GPIO2_A1";
+		};
+		configs {
+			pins = "SDIO_CMD";
+			drive-strength = <3>;
+			input-schmitt-enable = <0>;
+		};
+	};
+
+	sdio_dat0_i2c3_scl_pins: sdio_dat0_i2c3_scl {
+		mux {
+			pins = "SDIO_DAT0";
+			function = "I2C3_SCL";
+		};
+		configs {
+			pins = "SDIO_DAT0";
+			drive-strength = <3>;
+			input-schmitt-enable = <0>;
+			bias-pull-up;
+		};
+	};
+
+	sdio_dat1_i2c3_sda_pins: sdio_dat1_i2c3_sda {
+		mux {
+			pins = "SDIO_DAT1";
+			function = "I2C3_SDA";
+		};
+		configs {
+			pins = "SDIO_DAT1";
+			drive-strength = <3>;
+			input-schmitt-enable = <0>;
+			bias-pull-up;
+		};
+	};
+
+	sdio_dat0_gpio1_a30_pins: sdio_dat0_gpio1_a30 {
+		mux {
+			pins = "SDIO_DAT0";
+			function = "GPIO1_A30";
+		};
+		configs {
+			pins = "SDIO_DAT0";
+			drive-strength = <3>;
+			input-schmitt-enable = <0>;
+		};
+	};
+
+	sdio_dat1_gpio1_a31_pins: sdio_dat1_gpio1_a31 {
+		mux {
+			pins = "SDIO_DAT1";
+			function = "GPIO1_A31";
+		};
+		configs {
+			pins = "SDIO_DAT1";
+			drive-strength = <3>;
+			input-schmitt-enable = <0>;
+		};
+	};
+
+	sdio_dat2_i2c4_scl_pins: sdio_dat2_i2c4_scl {
+		mux {
+			pins = "SDIO_DAT2";
+			function = "I2C4_SCL";
+		};
+		configs {
+			pins = "SDIO_DAT2";
+			drive-strength = <3>;
+			input-schmitt-enable = <0>;
+			bias-pull-up;
+		};
+	};
+
+	sdio_dat3_i2c4_sda_pins: sdio_dat3_i2c4_sda {
+		mux {
+			pins = "SDIO_DAT3";
+			function = "I2C4_SDA";
+		};
+		configs {
+			pins = "SDIO_DAT3";
+			drive-strength = <3>;
+			input-schmitt-enable = <0>;
+			bias-pull-up;
+		};
+	};
+
+	sdio_dat2_gpio2_a2_pins: sdio_dat2_gpio2_a2 {
+		mux {
+			pins = "SDIO_DAT2";
+			function = "GPIO2_A2";
+		};
+		configs {
+			pins = "SDIO_DAT2";
+			drive-strength = <3>;
+			input-schmitt-enable = <0>;
+		};
+	};
+
+	sdio_dat3_gpio2_a3_pins: sdio_dat3_gpio2_a3 {
+		mux {
+			pins = "SDIO_DAT3";
+			function = "GPIO2_A3";
+		};
+		configs {
+			pins = "SDIO_DAT3";
+			drive-strength = <3>;
+			input-schmitt-enable = <0>;
+		};
+	};
+
+	vi_clk0_i2c5_scl_pins: vi_clk0_i2c5_scl {
+		mux {
+			pins = "VI_CLK0";
+			function = "I2C5_SCL";
+		};
+		configs {
+			pins = "VI_CLK0";
+			drive-strength = <3>;
+			input-schmitt-enable = <0>;
+			bias-pull-up;
+		};
+	};
+
+	vi_d4_i2c5_sda_pins: vi_d4_i2c5_sda {
+		mux {
+			pins = "VI_D4";
+			function = "I2C5_SDA";
+		};
+		configs {
+			pins = "VI_D4";
+			drive-strength = <3>;
+			input-schmitt-enable = <0>;
+			bias-pull-up;
+		};
+	};
+
+	vi_clk0_gpio0_a10_pins: vi_clk0_gpio0_a10 {
+		mux {
+			pins = "VI_CLK0";
+			function = "GPIO0_A10";
+		};
+		configs {
+			pins = "VI_CLK0";
+			drive-strength = <3>;
+			input-schmitt-enable = <0>;
+		};
+	};
+
+	vi_d4_gpio0_a4_pins: vi_d4_gpio0_a4 {
+		mux {
+			pins = "VI_D4";
+			function = "GPIO0_A4";
+		};
+		configs {
+			pins = "VI_D4";
+			drive-strength = <3>;
+			input-schmitt-enable = <0>;
+		};
+	};
+
+	vi_d1_i2c6_scl_pins: vi_d1_i2c6_scl {
+		mux {
+			pins = "VI_D1";
+			function = "I2C6_SCL";
+		};
+		configs {
+			pins = "VI_D1";
+			drive-strength = <3>;
+			input-schmitt-enable = <0>;
+			bias-pull-up;
+		};
+	};
+
+	vi_d0_i2c6_sda_pins: vi_d0_i2c6_sda {
+		mux {
+			pins = "VI_D0";
+			function = "I2C6_SDA";
+		};
+		configs {
+			pins = "VI_D0";
+			drive-strength = <3>;
+			input-schmitt-enable = <0>;
+			bias-pull-up;
+		};
+	};
+
+	vi_d1_gpio0_a1_pins: vi_d1_gpio0_a1 {
+		mux {
+			pins = "VI_D1";
+			function = "GPIO0_A1";
+		};
+		configs {
+			pins = "VI_D1";
+			drive-strength = <3>;
+			input-schmitt-enable = <0>;
+		};
+	};
+
+	vi_d0_gpio0_a0_pins: vi_d0_gpio0_a0 {
+		mux {
+			pins = "VI_D0";
+			function = "GPIO0_A0";
+		};
+		configs {
+			pins = "VI_D0";
+			drive-strength = <3>;
+			input-schmitt-enable = <0>;
+		};
+	};
+
+	vi_d8_i2c7_scl_pins: vi_d8_i2c7_scl {
+		mux {
+			pins = "VI_D8";
+			function = "I2C7_SCL";
+		};
+		configs {
+			pins = "VI_D8";
+			drive-strength = <3>;
+			input-schmitt-enable = <0>;
+			bias-pull-up;
+		};
+	};
+
+	vi_d9_i2c7_sda_pins: vi_d9_i2c7_sda {
+		mux {
+			pins = "VI_D9";
+			function = "I2C7_SDA";
+		};
+		configs {
+			pins = "VI_D9";
+			drive-strength = <3>;
+			input-schmitt-enable = <0>;
+			bias-pull-up;
+		};
+	};
+
+	vi_d8_gpio0_a8_pins: vi_d8_gpio0_a8 {
+		mux {
+			pins = "VI_D8";
+			function = "GPIO0_A8";
+		};
+		configs {
+			pins = "VI_D8";
+			drive-strength = <3>;
+			input-schmitt-enable = <0>;
+		};
+	};
+
+	vi_d9_gpio0_a9_pins: vi_d9_gpio0_a9 {
+		mux {
+			pins = "VI_D9";
+			function = "GPIO0_A9";
+		};
+		configs {
+			pins = "VI_D9";
+			drive-strength = <3>;
+			input-schmitt-enable = <0>;
+		};
+	};
+
+	i2c0_sda_pins: i2c0_sda {
+		mux {
+			pins = "I2C0_SDA";
+			function = "I2C0_SDA";
+		};
+		configs {
+			pins = "I2C0_SDA";
+			drive-strength = <3>;
+			input-schmitt-enable = <0>;
+			bias-pull-up;
+		};
+	};
+
+	i2c0_scl_gpio0_a24_pins: i2c0_scl_gpio0_a24 {
+		mux {
+			pins = "I2C0_SCL";
+			function = "GPIO0_A24";
+		};
+		configs {
+			pins = "I2C0_SCL";
+			drive-strength = <3>;
+			input-schmitt-enable = <0>;
+		};
+	};
+
+	i2c0_sda_gpio0_a25_pins: i2c0_sda_gpio0_a25 {
+		mux {
+			pins = "I2C0_SDA";
+			function = "GPIO0_A25";
+		};
+		configs {
+			pins = "I2C0_SDA";
+			drive-strength = <3>;
+			input-schmitt-enable = <0>;
+		};
+	};
+
+	i2c1_scl_pins: i2c1_scl {
+		mux {
+			pins = "I2C1_SCL";
+			function = "I2C1_SCL";
+		};
+		configs {
+			pins = "I2C1_SCL";
+			drive-strength = <3>;
+			input-schmitt-enable = <0>;
+			bias-pull-up;
+		};
+	};
+
+	i2c1_sda_pins: i2c1_sda {
+		mux {
+			pins = "I2C1_SDA";
+			function = "I2C1_SDA";
+		};
+		configs {
+			pins = "I2C1_SDA";
+			drive-strength = <3>;
+			input-schmitt-enable = <0>;
+			bias-pull-up;
+		};
+	};

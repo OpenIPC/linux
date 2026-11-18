@@ -713,7 +713,7 @@ int __sdhci_add_host(struct sdhci_host *host);
 int sdhci_add_host(struct sdhci_host *host);
 void sdhci_remove_host(struct sdhci_host *host, int dead);
 void sdhci_send_command(struct sdhci_host *host, struct mmc_command *cmd);
-
+void sdhci_enable_v4_mode(struct sdhci_host *host);
 static inline void sdhci_read_caps(struct sdhci_host *host)
 {
 	__sdhci_read_caps(host, NULL, NULL, NULL);

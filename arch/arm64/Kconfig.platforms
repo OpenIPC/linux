@@ -304,4 +304,9 @@ config ARCH_ZYNQMP
 	help
 	  This enables support for Xilinx ZynqMP Family
 
+config ARCH_AXERA
+         bool "Axera SOC Family"
+         select GENERIC_IRQ_CHIP
+         help
+           This enables support for Axera SOC Family
 endmenu

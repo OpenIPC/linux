@@ -23,6 +23,7 @@
 #include <trace/events/power.h>
 #include <linux/cpuset.h>
 
+
 /*
  * Timeout for stopping processes
  */
@@ -92,6 +93,13 @@ static int try_to_freeze_tasks(bool user_only)
 		       wakeup ? "aborted" : "failed",
 		       elapsed_msecs / 1000, elapsed_msecs % 1000,
 		       todo - wq_busy, wq_busy);
+
+		for_each_process_thread(g, p) {
+			if (p == current || frozen(p) || freezer_should_skip(p))
+				continue;
+			else
+				pr_err("%s not frozen, pid = %d\n", p->comm, p->pid);
+		}
 
 		if (wq_busy)
 			show_workqueue_state();

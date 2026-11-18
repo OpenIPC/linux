@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: GPL-2.0
+# Axera OSAL (kernel/osal/linux/kernel of the Axera AX620E SDK).
+# Built-in (=y) as in the SDK, or as ax_osal.ko (=m).
+ccflags-y += -I$(srctree)/$(src)/include
+
+obj-$(CONFIG_AXERA_OSAL) += ax_osal.o
+ax_osal-y += osal_axera_core.o
+ax_osal-y += osal_axera_misc_device.o
+ax_osal-y += osal_address.o
+ax_osal-y += osal_atomic.o
+ax_osal-y += osal_barrier.o
+ax_osal-y += osal_cache.o
+ax_osal-y += osal_mem.o
+ax_osal-y += osal_debug.o
+ax_osal-y += osal_fileops.o
+ax_osal-y += osal_interrupt.o
+ax_osal-y += osal_kmalloc.o
+ax_osal-y += osal_math.o
+ax_osal-y += osal_mutex.o
+ax_osal-y += osal_power.o
+ax_osal-y += osal_semaphore.o
+ax_osal-y += osal_spinlock.o
+ax_osal-y += osal_string.o
+ax_osal-y += osal_task.o
+ax_osal-y += osal_waitqueue.o
+ax_osal-y += osal_workqueue.o
+ax_osal-y += osal_timer.o
+ax_osal-y += osal_device.o
+ax_osal-y += osal_platform.o
+ax_osal-y += osal_devtree.o
+ax_osal-y += osal_clk.o
+ax_osal-y += osal_reset.o
+ax_osal-y += osal_bwlimiter.o
+ax_osal-y += osal_devdfs.o
+ax_osal-y += osal_srcu.o
+ax_osal-y += osal_prefetch.o
+ax_osal-y += osal_mailbox.o
+ax_osal-y += osal_kfifo.o
+ax_osal-y += osal_sort.o
+ax_osal-y += osal_percpu.o

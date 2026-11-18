@@ -1,0 +1,16 @@
+config PINCTRL_AXERA
+	bool "AXERA pinctrl driver"
+	depends on GPIOLIB
+	select PINMUX
+	select GENERIC_PINCONF
+	select GENERIC_PINCTRL_GROUPS
+	select GENERIC_PINMUX_FUNCTIONS
+	help
+	  Say Y here to enable the axera pinctrl driver
+
+config PINCTRL_AX620E
+	bool "AX620E pinctrl driver"
+	depends on PINCTRL_AXERA
+	help
+	  Say Y here to enable the ax620e pinctrl driver
+

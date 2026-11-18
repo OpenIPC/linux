@@ -1,0 +1,8 @@
+CONFIG_TEE=y
+
+#
+# TEE drivers
+#
+CONFIG_OPTEE=y
+CONFIG_OPTEE_SHM_NUM_PRIV_PAGES=1
+## end of TEE drivers

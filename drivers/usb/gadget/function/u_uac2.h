@@ -19,9 +19,17 @@
 #define UAC2_DEF_PSRATE 48000
 #define UAC2_DEF_PSSIZE 2
 #define UAC2_DEF_CCHMASK 0x3
-#define UAC2_DEF_CSRATE 64000
+// ### SIPEED EDIT ###
+#define UAC2_DEF_CSRATE 48000
 #define UAC2_DEF_CSSIZE 2
-#define UAC2_DEF_REQ_NUM 2
+#define UAC2_DEF_CSYNC		USB_ENDPOINT_SYNC_ASYNC
+#define UAC2_DEF_REQ_NUM 6
+
+#define UAC2_DEF_P_TERM_TYPE 0x301
+	/* UAC_OUTPUT_TERMINAL_SPEAKER */
+#define UAC2_DEF_C_TERM_TYPE 0x201
+	/* UAC_INPUT_TERMINAL_MICROPHONE*/
+// ### SIPEED EDIT END ###
 
 struct f_uac2_opts {
 	struct usb_function_instance	func_inst;
@@ -31,8 +39,18 @@ struct f_uac2_opts {
 	int				c_chmask;
 	int				c_srate;
 	int				c_ssize;
+	// ### SIPEED EDIT ###
+	int				c_sync;
+	// ### SIPEED EDIT END ###
 	int				req_number;
 	bool				bound;
+
+	// ### SIPEED EDIT ###
+	char			function_name[32];
+
+	s16				p_terminal_type;
+	s16				c_terminal_type;
+	// ### SIPEED EDIT END ###
 
 	struct mutex			lock;
 	int				refcnt;
