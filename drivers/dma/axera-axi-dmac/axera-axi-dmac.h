@@ -19,7 +19,7 @@
 
 #include "../virt-dma.h"
 
-#define DMAC_MAX_CHANNELS	1
+#define DMAC_MAX_CHANNELS	8	/* AX620E has 1, AX620U 2 */
 #define DMAC_MAX_MASTERS	2
 #define DMAC_MAX_BLK_SIZE	(1 << 22)
 

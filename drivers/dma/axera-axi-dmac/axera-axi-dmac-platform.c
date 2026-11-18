@@ -1370,8 +1370,10 @@ static int dw_probe(struct platform_device *pdev)
 	chip->core_clk = devm_clk_get(chip->dev, "dmac-clk");
 	if (IS_ERR(chip->core_clk))
 		chip->core_clk = devm_clk_get(chip->dev, NULL);
-	if (IS_ERR(chip->core_clk))
+	if (IS_ERR(chip->core_clk)) {
+		dev_err(chip->dev, "no clock: %ld\n", PTR_ERR(chip->core_clk));
 		return PTR_ERR(chip->core_clk);
+	}
 
 	ret = parse_device_properties(chip);
 	if (ret) {
