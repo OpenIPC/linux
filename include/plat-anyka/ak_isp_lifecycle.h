@@ -13,5 +13,12 @@ void ak_isp_sync_style(void);
 int ak_isp_apply_tuning_style(unsigned int style);
 int ak_isp_get_awb_auto(int *enabled);
 int ak_isp_set_awb_auto(int enabled);
+/*
+ * The ISP's output orientation, mirror (@hflip) and flip (@vflip). Each is 0
+ * or 1 to set that axis, or negative to leave it; on success both hold what
+ * the ISP now has. Takes the lock the control ioctls take, so a concurrent
+ * AK_ISP_SET_MISC_ATTR cannot interleave with its read-modify-write.
+ */
+int ak_isp_orientation(int *hflip, int *vflip);
 
 #endif

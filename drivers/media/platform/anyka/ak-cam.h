@@ -115,10 +115,9 @@ struct ak_cam_dev {
 	struct delayed_work	ae_work;
 	struct work_struct	resume_work;
 
-	/* V4L2_CID_HFLIP / _VFLIP; flip_set once either has been written */
+	/* V4L2_CID_HFLIP / _VFLIP as written, or -1 for the tuning file's */
 	int			hflip;
 	int			vflip;
-	bool			flip_set;
 
 	int			stream_ctrl_off;
 	int			stream_active;
