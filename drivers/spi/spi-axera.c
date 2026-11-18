@@ -679,15 +679,22 @@ int dw_ahb_spi_add_host(struct device *dev, struct dw_spi *dws)
 	master->max_speed_hz = dws->max_freq;
 	master->dev.of_node = dev->of_node;
 	master->flags = SPI_MASTER_GPIO_SS;
+#ifdef ENHANCED_SPI_SUPPORT
+	/*
+	 * Transfers run TX-only or RX-only (dual/quad need it, and the
+	 * enhanced poll and DMA paths only move one direction): have the
+	 * core refuse a transfer with both buffers instead of losing RX.
+	 */
+	master->flags |= SPI_CONTROLLER_HALF_DUPLEX;
+#endif
 
 	if (dws->set_cs)
 		master->set_cs = dws->set_cs;
 
 	/* Basic HW init */
 	spi_hw_init(dev, dws);
-#ifdef CONFIG_SPI_DW_DMA
+	/* AX_DMAPER DMA with CONFIG_SPI_AXERA_DMA, a stub without */
 	dw_spi_dma_register(dws);
-#endif
 	/* Get default rx sample delay */
 	device_property_read_u32(dev, "rx-sample-delay-ns",
 				 &dws->def_rx_sample_dly_ns);
