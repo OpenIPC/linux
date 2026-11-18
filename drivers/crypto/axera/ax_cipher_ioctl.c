@@ -73,8 +73,8 @@ static int cipher_create_handle(void *arg)
 			break;
 		}
 	}
-	memset(&s_cipher_chn[i], 0, sizeof(s_cipher_chn[i]));
 	if (i < AX_CIPHER_MAX_CHN) {
+		memset(&s_cipher_chn[i], 0, sizeof(s_cipher_chn[i]));
 		s_cipher_chn[i].is_used = AX_TRUE_CE;
 		memcpy(&s_cipher_chn[i].cipher_ctrl, &ctl, sizeof(ctl));
 		p_ctl = (cipher_ctl_data_s *)arg;
@@ -462,6 +462,9 @@ static int cipher_rsa_verify(void *argp)
 		ret = AX_CIPHER_ACCESS_ERROR;
 		return ret;
 	}
+	/* hash_result[] is copied word by word into the command token */
+	if (data.u32_hash_size > sizeof(data.hash_result))
+		return AX_CIPHER_INVALID_PARAMETER;
 	ax_mutex_lock(&g_cipher_mutex);
 	if (data.u64_policy & CE_POLICY_PK_RSA_PSS_SIGN) {
 		sign_type = AX_CIPHER_PROC_RSA_PSS_SIGN;
@@ -534,6 +537,9 @@ static int cipher_rsa_sign(void *argp)
 		ret = AX_CIPHER_ACCESS_ERROR;
 		return ret;
 	}
+	/* hash_result[] is copied word by word into the command token */
+	if (data.u32_hash_size > sizeof(data.hash_result))
+		return AX_CIPHER_INVALID_PARAMETER;
 	ax_mutex_lock(&g_cipher_mutex);
 	if (data.u64_policy & CE_POLICY_PK_RSA_PSS_SIGN) {
 		sign_type = AX_CIPHER_PROC_RSA_PSS_SIGN;
