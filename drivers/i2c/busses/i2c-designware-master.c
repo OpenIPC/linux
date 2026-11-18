@@ -242,6 +242,9 @@ static void i2c_dw_xfer_init(struct dw_i2c_dev *dev)
 static int ax_get_riscv_use_status(struct dw_i2c_dev *dev)
 {
 	u32 *regs, status;
+
+	if (dev->i2c_id == AX_I2C_NO_CLK_ID)
+		return 0;
 	// riscv i2c status, dummy_sw12, bit[7:0], 1 is using
 	regs = (u32 *)ioremap(COMM_SYS_GLB_DUMMY_SW12, 4);
 	status = *regs & BIT(dev->i2c_id);
@@ -864,7 +867,7 @@ static void i2c_dw_prepare_recovery(struct i2c_adapter *adap)
 	struct dw_i2c_dev *dev = i2c_get_adapdata(adap);
 
 	i2c_dw_disable(dev);
-	ax_i2c_clk(dev->i2c_id, false);
+	ax_i2c_clk(dev, false);
 	reset_control_assert(dev->rst);
 }
 
@@ -873,7 +876,7 @@ static void i2c_dw_unprepare_recovery(struct i2c_adapter *adap)
 	struct dw_i2c_dev *dev = i2c_get_adapdata(adap);
 
 	reset_control_deassert(dev->rst);
-	ax_i2c_clk(dev->i2c_id, true);
+	ax_i2c_clk(dev, true);
 	i2c_dw_init_master(dev);
 }
 

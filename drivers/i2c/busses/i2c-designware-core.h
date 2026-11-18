@@ -336,4 +336,5 @@ static inline void i2c_dw_remove_lock_support(struct dw_i2c_dev *dev) {}
 int ax_i2c_prepare_hardware(struct device *dev);
 int ax_i2c_unprepare_hardware(struct device *dev);
 #endif
-void ax_i2c_clk(int ax_clk_id, bool on);
+#define AX_I2C_NO_CLK_ID	U32_MAX
+void ax_i2c_clk(struct dw_i2c_dev *dev, bool on);

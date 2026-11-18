@@ -46,7 +46,6 @@
 #define CLK_EB_2_CLR			0xC4
 #define PCLK_I2C_BIT(x)			BIT(17 + x)
 void __iomem *i2c_clk_reg;
-static int source_set_flag;
 static u32 i2c_dw_get_clk_rate_khz(struct dw_i2c_dev *dev)
 {
 	return I2C_CLK_SOURCE / 1000;
@@ -242,8 +241,19 @@ static void dw_i2c_plat_pm_cleanup(struct dw_i2c_dev *dev)
 		pm_runtime_put_noidle(dev->dev);
 }
 
-void ax_i2c_clk(int ax_clk_id, bool on)
+/*
+ * AX620E devicetrees name the controller's gate bits in the AX620E
+ * peripheral clock block with "ax_clk_id".  Without it (AX620U, whose
+ * register map differs) gate the devicetree clock the upstream way.
+ */
+void ax_i2c_clk(struct dw_i2c_dev *dev, bool on)
 {
+	u32 ax_clk_id = dev->i2c_id;
+
+	if (ax_clk_id == AX_I2C_NO_CLK_ID) {
+		i2c_dw_prepare_clk(dev, on);
+		return;
+	}
 	if (on) {
 		writel(PCLK_I2C_BIT(ax_clk_id), i2c_clk_reg + CLK_EB_2_SET);
 		writel(CLK_I2C_BIT(ax_clk_id), i2c_clk_reg + CLK_EB_1_SET);
@@ -261,7 +271,7 @@ static int dw_i2c_plat_probe(struct platform_device *pdev)
 	struct i2c_timings *t;
 	u32 acpi_speed;
 	struct resource *mem;
-	int i, irq, ret, clk_id;
+	int i, irq, ret;
 	u64 clk_khz;
 
 	static const int supported_speeds[] = {
@@ -289,13 +299,18 @@ static int dw_i2c_plat_probe(struct platform_device *pdev)
 		dev->poll_mode = 0;
 	}
 	spin_lock_init(&dev->lock);
-	/* Optional interface clock */
-	device_property_read_u32(&pdev->dev, "ax_clk_id", &clk_id);
-	dev->i2c_id = clk_id;
-	if (source_set_flag == 0) {
+	/* AX620E: gate bits in its peripheral clock block, 208 MHz source */
+	if (device_property_read_u32(&pdev->dev, "ax_clk_id", &dev->i2c_id) ||
+	    dev->i2c_id >= 8) {
+		dev->i2c_id = AX_I2C_NO_CLK_ID;
+		dev->clk = devm_clk_get(&pdev->dev, NULL);
+		if (PTR_ERR(dev->clk) == -EPROBE_DEFER)
+			return -EPROBE_DEFER;
+	} else if (!i2c_clk_reg) {
 		i2c_clk_reg = ioremap(PERI_SYS_BASE, PERI_SYS_BASE_LEN);
+		if (!i2c_clk_reg)
+			return -ENOMEM;
 		writel(CLK_SOURCE_BIT, i2c_clk_reg + CLK_MUX_0_SET);
-		source_set_flag = 1;
 	}
 	dev->prst = devm_reset_control_get_optional_exclusive(&pdev->dev, "prst");
 	if (IS_ERR(dev->prst))
@@ -307,7 +322,7 @@ static int dw_i2c_plat_probe(struct platform_device *pdev)
 	reset_control_deassert(dev->prst);
 	reset_control_deassert(dev->rst);
 
-	ax_i2c_clk(clk_id, true);
+	ax_i2c_clk(dev, true);
 	t = &dev->timings;
 	if (pdata)
 		t->bus_freq_hz = pdata->i2c_scl_freq;
@@ -362,6 +377,12 @@ static int dw_i2c_plat_probe(struct platform_device *pdev)
 	else
 		i2c_dw_configure_master(dev);
 
+	/*
+	 * The SDK times every controller for the AX620E's 208 MHz I2C source.
+	 * That stays the basis without "ax_clk_id" too: AX620U's clocks are
+	 * fixed-rate stand-ins (clk-ax620u) whose rate does not describe the
+	 * hardware.
+	 */
 	dev->get_clk_rate_khz = i2c_dw_get_clk_rate_khz;
 	clk_khz = I2C_CLK_SOURCE / 1000;
 
@@ -486,14 +507,14 @@ static int dw_i2c_plat_suspend(struct device *dev)
 			return 0;
 
 		i_dev->disable(i_dev);
-		ax_i2c_clk(i_dev->i2c_id, false);
+		ax_i2c_clk(i_dev, false);
 	}
 #else
 	if (i_dev->pm_disabled)
 		return 0;
 
 	i_dev->disable(i_dev);
-	ax_i2c_clk(i_dev->i2c_id, false);
+	ax_i2c_clk(i_dev, false);
 #endif
 
 	return 0;
@@ -508,13 +529,13 @@ static int dw_i2c_plat_resume(struct device *dev)
 		return 0;
 	else {
 		if (!i_dev->pm_disabled)
-			ax_i2c_clk(i_dev->i2c_id, true);
+			ax_i2c_clk(i_dev, true);
 
 		i_dev->init(i_dev);
 	}
 #else
 	if (!i_dev->pm_disabled)
-		ax_i2c_clk(i_dev->i2c_id, true);
+		ax_i2c_clk(i_dev, true);
 
 	i_dev->init(i_dev);
 #endif
@@ -535,7 +556,7 @@ static const struct dev_pm_ops dw_i2c_dev_pm_ops = {
 int ax_i2c_prepare_hardware(struct device *dev)
 {
 	struct dw_i2c_dev *i_dev = dev_get_drvdata(dev);
-	ax_i2c_clk(i_dev->i2c_id, true);
+	ax_i2c_clk(i_dev, true);
 
 	return 0;
 }
@@ -543,7 +564,7 @@ int ax_i2c_prepare_hardware(struct device *dev)
 int ax_i2c_unprepare_hardware(struct device *dev)
 {
 	struct dw_i2c_dev *i_dev = dev_get_drvdata(dev);
-	ax_i2c_clk(i_dev->i2c_id, false);
+	ax_i2c_clk(i_dev, false);
 
 	return 0;
 }
