@@ -122,14 +122,19 @@ void periph_timer32_disable(unsigned int dev_id)
 
 u32* periph_timer32_open(unsigned int dev_id)
 {
-	spin_lock(&timer_p[dev_id]->lock);
+	unsigned long flags;
+
+	if (dev_id >= AXERA_PERIPH_TIMER32_COUNT || !timer_p[dev_id])
+		return NULL;
+
+	spin_lock_irqsave(&timer_p[dev_id]->lock, flags);
 	if (timer_p[dev_id]->timer_status == 1) {
 		pr_err("timer is using\n");
-		spin_unlock(&timer_p[dev_id]->lock);
+		spin_unlock_irqrestore(&timer_p[dev_id]->lock, flags);
 		return NULL;
 	}
 	timer_p[dev_id]->timer_status = 1;
-	spin_unlock(&timer_p[dev_id]->lock);
+	spin_unlock_irqrestore(&timer_p[dev_id]->lock, flags);
 #ifdef USE_LINUX_CLK
 	clk_prepare_enable(timer_p[dev_id]->pclk);
 	clk_prepare_enable(timer_p[dev_id]->clk);
@@ -170,19 +175,29 @@ EXPORT_SYMBOL_GPL(periph_timer32_set);
 void periph_timer32_close(u32 *timer_handle)
 {
 	struct axera_periph_timer32 *timer;
+	unsigned long flags;
+
 	timer = container_of(timer_handle, struct axera_periph_timer32, handle);
-	spin_lock(&timer->lock);
+	spin_lock_irqsave(&timer->lock, flags);
 	if (timer->timer_status == 0) {
-		spin_unlock(&timer->lock);
+		spin_unlock_irqrestore(&timer->lock, flags);
 		return;
 	}
 	timer->timer_status = 0;
-	spin_unlock(&timer->lock);
 
 	/* disable int */
 	writel(0, TIMER32_INTR_CTRL + timer->base);
 	/* set cmr 0 */
 	writel(0, TIMER32_CMR + timer->base);
+	spin_unlock_irqrestore(&timer->lock, flags);
+
+	/*
+	 * The handler no longer rearms; wait for a running one and for the
+	 * callback it may have queued (unless this is that callback).
+	 */
+	synchronize_irq(timer->irq);
+	if (current_work() != &timer->timer_work)
+		cancel_work_sync(&timer->timer_work);
 
 #ifdef USE_LINUX_CLK
 	clk_disable_unprepare(timer->pclk);
@@ -199,8 +214,16 @@ static irqreturn_t axera_timer32_irq(int irq, void *data)
 {
 
 	struct axera_periph_timer32 *timer = (struct axera_periph_timer32 *)data;
+
+	spin_lock(&timer->lock);
 	if (timer->eoi)
 		timer->eoi(timer);
+
+	/* closed meanwhile: neither queue the callback nor rearm */
+	if (!timer->timer_status) {
+		spin_unlock(&timer->lock);
+		return IRQ_HANDLED;
+	}
 
 	schedule_work(&timer->timer_work);
 
@@ -209,6 +232,7 @@ static irqreturn_t axera_timer32_irq(int irq, void *data)
 	writel(0, TIMER32_CMR_START + timer->base);
 
 	periph_timer32_set(&timer->handle, timer->usec, timer->timer_handle, timer->arg);
+	spin_unlock(&timer->lock);
 
 	return IRQ_HANDLED;
 }
@@ -254,11 +278,15 @@ static int axera_periph_timer32_probe(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
-	timer_p[index] = devm_kzalloc(&pdev->dev, sizeof(*timer_p[0]), GFP_KERNEL);
-	timer_p[index]->dev_id = index;
+	if (index < 0 || index >= AXERA_PERIPH_TIMER32_COUNT) {
+		pr_err("timer index %d out of range.\n", index);
+		return -EINVAL;
+	}
 
+	timer_p[index] = devm_kzalloc(&pdev->dev, sizeof(*timer_p[0]), GFP_KERNEL);
 	if (!timer_p[index])
 		return -ENOMEM;
+	timer_p[index]->dev_id = index;
 
 	res_base = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 
@@ -365,16 +393,16 @@ static int axera_periph_timer32_probe(struct platform_device *pdev)
 		return -ENODATA;
 	}
 
-	err = devm_request_irq(&pdev->dev, timer_p[index]->irq, axera_timer32_irq,
-		IRQF_TRIGGER_HIGH, KBUILD_MODNAME, timer_p[index]);
-	if (err) {
-		return -ENOMEM;
-	}
-
 	timer_p[index]->eoi = handle_eoi;
 
 	spin_lock_init(&timer_p[index]->lock);
 	INIT_WORK(&timer_p[index]->timer_work, do_time_handle);
+
+	err = devm_request_irq(&pdev->dev, timer_p[index]->irq, axera_timer32_irq,
+		IRQF_TRIGGER_HIGH, KBUILD_MODNAME, timer_p[index]);
+	if (err) {
+		return err;
+	}
 
 #if 0
 	handle = periph_timer32_open(index);
