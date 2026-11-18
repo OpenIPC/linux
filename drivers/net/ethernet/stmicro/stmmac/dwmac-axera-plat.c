@@ -106,6 +106,13 @@ static int dwmac_axera_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 
+	/* An EQOS 4.10a under its own compatible: what stmmac_probe_config_dt()
+	 * does for snps,dwmac-4.10a (the SDK patched stmmac_platform.c). */
+	plat_dat->has_gmac4 = 1;
+	plat_dat->has_gmac = 0;
+	plat_dat->pmt = 1;
+	plat_dat->tso_en = of_property_read_bool(pdev->dev.of_node, "snps,tso");
+
 	axera_dwmac_get_dts(pdev, plat_dat, eqos);
 
 	/* TODO: need to improve, mdio_clk = csr_clk / 324 */
