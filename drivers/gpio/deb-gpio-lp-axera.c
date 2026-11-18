@@ -226,6 +226,12 @@ static int axera_deb_gpio_lp_probe(struct platform_device *pdev)
 	if ((lp_status_num = of_property_count_elems_of_size(np, "lp-status", 8)) < 0) {
 		return -ENODATA;
 	}
+	/* wait[], gpio_num[] and lp_trigger_type[] hold LP_GPIO_MAX entries */
+	if (lp_status_num > LP_GPIO_MAX) {
+		dev_err(&pdev->dev, "lp-status: %d entries, at most %d\n",
+			lp_status_num, LP_GPIO_MAX);
+		return -EINVAL;
+	}
 
 	deb_lp_res->lp_status_num = lp_status_num;
 
@@ -290,7 +296,7 @@ static int axera_deb_gpio_lp_remove(struct platform_device *pdev)
 		return -ENODATA;
 	}
 
-	free_irq(deb_lp_res->irq, NULL);
+	free_irq(deb_lp_res->irq, deb_lp_res);
 
 	if (deb_lp_res->sys_cfg)
 		iounmap(deb_lp_res->sys_cfg);
