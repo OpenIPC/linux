@@ -525,6 +525,33 @@ static int set_sensor_interface(struct ak_cam_dev *dev, int sensor_interface)
 	}
 }
 
+/*
+ * Mirror and flip are the ISP's, applied to its output, so the main and sub
+ * channels turn together. The tuning file carries its own flip_en/mirror_en
+ * and every tuning load (power-on, and each style change such as day/night)
+ * writes those back, so once userspace has set either control the driver
+ * reapplies both after each load. They also go into the misc attributes, so
+ * that the ISP's own re-initialisation keeps them. Until either control is
+ * written the tuning file's orientation stands.
+ */
+static int ak_cam_apply_flip(struct ak_cam_dev *dev)
+{
+	AK_ISP_MISC_ATTR misc;
+	int ret;
+
+	if (!dev->flip_set)
+		return 0;
+	ret = ak_isp_vo_get_misc_attr(&misc);
+	if (ret)
+		return ret;
+	misc.mirror_en = dev->hflip;
+	misc.flip_en = dev->vflip;
+	ret = ak_isp_vo_set_misc_attr(&misc);
+	if (ret)
+		return ret;
+	return ak_isp_set_flip_mirror(dev->vflip, dev->hflip);
+}
+
 static int ak_cam_power_on(struct ak_cam_dev *dev)
 {
 	int sensor_interface = DVP_INTERFACE;
@@ -576,6 +603,9 @@ static int ak_cam_power_on(struct ak_cam_dev *dev)
 	if (ret)
 		goto err_power;
 	ret = ak_isp_prepare(dev->dev);
+	if (ret)
+		goto err_isp;
+	ret = ak_cam_apply_flip(dev);
 	if (ret)
 		goto err_isp;
 	ret = v4l2_subdev_call(dev->sensor, video, cropcap, &cropcap);
@@ -745,6 +775,8 @@ static int ak_cam_set_tuning_style(void *context, unsigned int style)
 	ak_cam_stop_capture(dev);
 	disable_irq(dev->irq);
 	ret = ak_isp_apply_tuning_style(style);
+	if (!ret)
+		ret = ak_cam_apply_flip(dev);
 	if (resume && !ret) {
 		mutex_lock(&dev->stream_lock);
 		resume_ret = ispdrv_set_isp_resume();
@@ -1417,10 +1449,25 @@ static struct video_device ak_cam_videodev = {
  * platform driver
  * ------------------------------------------------------------------------- */
 
+/* Called with dev->mutex held: it is every node's video_device lock. */
 static int ak_cam_set_ctrl(struct v4l2_ctrl *ctrl)
 {
-	if (ctrl->id == V4L2_CID_AUTO_WHITE_BALANCE)
+	struct ak_cam_dev *dev = container_of(ctrl->handler, struct ak_cam_dev,
+					      controls);
+
+	switch (ctrl->id) {
+	case V4L2_CID_AUTO_WHITE_BALANCE:
 		return ak_isp_set_awb_auto(ctrl->val);
+	case V4L2_CID_HFLIP:
+	case V4L2_CID_VFLIP:
+		if (ctrl->id == V4L2_CID_HFLIP)
+			dev->hflip = ctrl->val;
+		else
+			dev->vflip = ctrl->val;
+		dev->flip_set = true;
+		/* Powered off, it is applied at the next power-on. */
+		return dev->users ? ak_cam_apply_flip(dev) : 0;
+	}
 	return -EINVAL;
 }
 
@@ -1636,9 +1683,13 @@ static int ak_cam_probe(struct platform_device *pdev)
 	ret = v4l2_device_register(&pdev->dev, &dev->v4l2_dev);
 	if (ret)
 		goto err_put_clk;
-	v4l2_ctrl_handler_init(&dev->controls, 1);
+	v4l2_ctrl_handler_init(&dev->controls, 3);
 	awb = v4l2_ctrl_new_std(&dev->controls, &ak_cam_ctrl_ops,
 			      V4L2_CID_AUTO_WHITE_BALANCE, 0, 1, 1, 1);
+	v4l2_ctrl_new_std(&dev->controls, &ak_cam_ctrl_ops,
+			  V4L2_CID_HFLIP, 0, 1, 1, 0);
+	v4l2_ctrl_new_std(&dev->controls, &ak_cam_ctrl_ops,
+			  V4L2_CID_VFLIP, 0, 1, 1, 0);
 	if (dev->controls.error) {
 		ret = dev->controls.error;
 		goto err_v4l2;
