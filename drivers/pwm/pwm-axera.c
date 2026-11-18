@@ -71,6 +71,9 @@ void timer_clk_enable(struct pwm_chip *chip, struct pwm_device *pwm)
 {
 	unsigned int val;
 	struct axera_pwm_chip *our_chip = to_axera_pwm_chip(chip);
+
+	if (!our_chip->clk_base)
+		return;
 	val = (1 << our_chip->clk_eb_offset[pwm->hwpwm]);
 	/*set clk_eb_1_set register*/
 	writel(val, our_chip->clk_eb_addr_offset + our_chip->clk_base + 0xB0);
@@ -83,6 +86,8 @@ void timer_clk_disable(struct pwm_chip *chip, struct pwm_device *pwm)
 	unsigned int val;
 	struct axera_pwm_chip *our_chip = to_axera_pwm_chip(chip);
 
+	if (!our_chip->clk_base)
+		return;
 	val = (1 << our_chip->clk_eb_offset[pwm->hwpwm]);
 	/*set clk_eb_1_clr register*/
 	writel(val, our_chip->clk_eb_addr_offset + our_chip->clk_base + 0xB4);
@@ -342,6 +347,13 @@ static int pwm_axera_probe(struct platform_device *pdev)
 #else
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 1);
 
+	/*
+	 * AX620U ("axera,ax620x-pwm") names no clock-register window: its
+	 * channel clocks stay as the bootloader set them up (24 MHz).
+	 */
+	if (!res && of_device_is_compatible(dev->of_node, "axera,ax620x-pwm"))
+		goto no_clk_regs;
+
 	if (!res) {
 		pr_err("get res failed.\n");
 		return -ENODATA;
@@ -400,6 +412,7 @@ static int pwm_axera_probe(struct platform_device *pdev)
 	/*clk_eb_0_set register*/
 	writel(val, chip->clk_glb_eb_addr_offset + chip->clk_base + 0xAC);
 	/* pclk default open, not open*/
+no_clk_regs:
 #endif
 
 	/* global reset */
@@ -507,6 +520,7 @@ static SIMPLE_DEV_PM_OPS(pwm_axera_pm_ops, pwm_axera_suspend, pwm_axera_resume);
 
 static const struct of_device_id axera_pwm_matches[] = {
 	{.compatible = "axera,ax620e-pwm"},
+	{.compatible = "axera,ax620x-pwm"},
 	{},
 };
 
