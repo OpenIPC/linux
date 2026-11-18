@@ -357,18 +357,26 @@ static int loopback_bind(struct usb_configuration *c, struct usb_function *f)
 	return 0;
 }
 
+static void udisp_release(struct f_loopback *loop);
+
 static void lb_free_func(struct usb_function *f)
 {
 	struct f_lb_opts *opts;
+	struct f_loopback *loop = func_to_loop(f);
 
 	opts = container_of(f->fi, struct f_lb_opts, func_inst);
 
 	mutex_lock(&opts->lock);
 	opts->refcnt--;
+	if (opts->ctx == loop)
+		opts->ctx = NULL;
 	mutex_unlock(&opts->lock);
 
+	/* stop the worker before the function object it runs on is freed */
+	udisp_release(loop);
+
 	usb_free_all_descriptors(f);
-	kfree(func_to_loop(f));
+	kfree(loop);
 }
 
 #define CONFIG_USB_VENDOR_RX_BUFSIZE 512
@@ -728,15 +736,24 @@ int draw_a_frame(void *ctx, udisp_frame_t *jf, void *scr)
 	void *src = jf->buf;
 	void *dst = scr;
 	u32 size = jf->hd.payload_total;
+	u32 pixels = size / 2;
+
+	/* nothing maps a display into screen_base: frames go out via procfs */
+	if (!dst)
+		return -ENODEV;
 
 	switch (jf->hd.type) {
 	case UDISP_TYPE_RGB888:
 		memcpy(dst, src, size);
 		break;
 	case UDISP_TYPE_RGB565:
+		/* decode exactly the received pixels, within rgb888x_buf */
+		if (!pixels || pixels * 4 > sizeof(loop->rgb888x_buf.buf))
+			return -EINVAL;
 		rgb565_decode_rgb888x((u32 *)loop->rgb888x_buf.buf,
-				      (const u16 *)src, 0, 0, 479, 479, 480);
-		memcpy(dst, loop->rgb888x_buf.buf, size * 2);
+				      (const u16 *)src, 0, 0, pixels - 1, 0,
+				      pixels);
+		memcpy(dst, loop->rgb888x_buf.buf, pixels * 4);
 		break;
 	default:
 		DEBUG_LOG("%s: unsupported type=%d\n", __func__, jf->hd.type);
@@ -1427,19 +1444,8 @@ static const struct config_item_type lb_func_type = {
 	.ct_owner = THIS_MODULE,
 };
 
-static void lb_free_instance(struct usb_function_instance *fi)
+static void udisp_release(struct f_loopback *loop)
 {
-	struct f_lb_opts *lb_opts;
-	struct f_loopback *loop;
-
-	lb_opts = container_of(fi, struct f_lb_opts, func_inst);
-	loop = lb_opts->ctx;
-
-	if (!loop) {
-		pr_warn("%s: loop context is NULL\n", __func__);
-		goto free_opts;
-	}
-
 	DEBUG_LOG("%s: cleaning up resources\n", __func__);
 
 	if (!IS_ERR_OR_NULL(loop->work_thread)) {
@@ -1460,8 +1466,14 @@ static void lb_free_instance(struct usb_function_instance *fi)
 
 	if (gp_loop == loop)
 		gp_loop = NULL;
+}
 
-free_opts:
+static void lb_free_instance(struct usb_function_instance *fi)
+{
+	struct f_lb_opts *lb_opts;
+
+	lb_opts = container_of(fi, struct f_lb_opts, func_inst);
+	/* the function (and its resources) went away in lb_free_func() */
 	kfree(lb_opts);
 }
 
