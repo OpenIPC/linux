@@ -23,7 +23,15 @@
 #include <linux/nfs_fs_sb.h>
 #include <linux/nfs_mount.h>
 
+#ifdef CONFIG_AX_DEBUG_BOOT_TIME
+#include <linux/soc/axera/chip_reg.h>
+#include "../drivers/soc/axera/riscv/ax_riscv_debug.h"
+#endif
+
 #include "do_mounts.h"
+
+#define AX_DUMMY_SW4_ADDR	0x2340200
+#define RISCV_LOAD_ROOTFS_DONE	BIT(0)
 
 int __initdata rd_doload;	/* 1 = load RAM disk, 0 = don't load */
 
@@ -427,7 +435,7 @@ retry:
 out:
 	put_page(page);
 }
- 
+
 #ifdef CONFIG_ROOT_NFS
 
 #define NFSROOT_TIMEOUT_MIN	5
@@ -500,6 +508,17 @@ void __init change_floppy(char *fmt, ...)
 
 void __init mount_root(void)
 {
+#ifdef CONFIG_AX_DEBUG_BOOT_TIME
+	void *timer_base;
+	void *iram0_base;
+
+	timer_base = ioremap(TIMER64_0_BASE, 0x40);
+	iram0_base = ioremap(DEBUG_REG_BASE, 0x100);
+	writel(readl(timer_base), iram0_base + 0x28); // mount root start
+	iounmap(timer_base);
+	iounmap(iram0_base);
+#endif
+
 #ifdef CONFIG_ROOT_NFS
 	if (ROOT_DEV == Root_NFS) {
 		if (mount_nfs_root())
@@ -538,6 +557,14 @@ void __init mount_root(void)
 void __init prepare_namespace(void)
 {
 	int is_floppy;
+#ifdef CONFIG_AX_RISCV_LOAD_ROOTFS
+	void *sw4_addr;
+#ifdef CONFIG_AX_DEBUG_BOOT_TIME
+	void *timer_base;
+	void *iram0_base;
+#endif
+	int i;
+#endif
 
 	if (root_delay) {
 		printk(KERN_INFO "Waiting %d sec before mounting root device...\n",
@@ -555,6 +582,31 @@ void __init prepare_namespace(void)
 	wait_for_device_probe();
 
 	md_run_setup();
+
+#ifdef CONFIG_AX_RISCV_LOAD_ROOTFS
+	sw4_addr = ioremap(AX_DUMMY_SW4_ADDR, 0x10);
+#ifdef CONFIG_AX_DEBUG_BOOT_TIME
+	timer_base = ioremap(TIMER64_0_BASE, 0x40);
+	iram0_base = ioremap(DEBUG_REG_BASE, 0x100);
+	writel(readl(timer_base), iram0_base + STAMP_MOUNT_START_WAIT_OFFSET);
+#endif
+	for (i = 0; i < 3000; i++) {
+		if (readl(sw4_addr) & RISCV_LOAD_ROOTFS_DONE) {
+			break;
+		}
+		msleep(1);
+	}
+	if (i == 3000) {
+		riscv_debug_log_print();
+		pr_err("wait riscv load rootfs fail\n");
+	}
+#ifdef CONFIG_AX_DEBUG_BOOT_TIME
+	writel(readl(timer_base), iram0_base + STAMP_MOUNT_END_WAIT_OFFSET);
+	iounmap(iram0_base);
+	iounmap(timer_base);
+#endif
+	iounmap(sw4_addr);
+#endif
 
 	if (saved_root_name[0]) {
 		root_device_name = saved_root_name;

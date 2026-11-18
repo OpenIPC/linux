@@ -91,6 +91,20 @@ DEFINE_EVENT(udc_log_gadget, usb_gadget_wakeup,
 	TP_ARGS(g, ret)
 );
 
+/// SIPEED EDIT ///
+/**
+ * https://patches.linaro.org/project/linux-usb/list/?series=205060
+ * Message ID 	1679694482-16430-2-git-send-email-quic_eserrao@quicinc.com
+ * Series 	Add function suspend/resume and remote wakeup support
+ * 
+ * [v13,1/6] usb: gadget: Properly configure the device for remote wakeup
+ */
+DEFINE_EVENT(udc_log_gadget, usb_gadget_set_remote_wakeup,
+	TP_PROTO(struct usb_gadget *g, int ret),
+	TP_ARGS(g, ret)
+);
+/// SIPEED EDIT END ///
+
 DEFINE_EVENT(udc_log_gadget, usb_gadget_set_selfpowered,
 	TP_PROTO(struct usb_gadget *g, int ret),
 	TP_ARGS(g, ret)

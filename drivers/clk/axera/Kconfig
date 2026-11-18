@@ -1,0 +1,13 @@
+config COMMON_CLK_AXERA
+	bool
+	help
+	  Axera SoCs' clock support.
+
+config COMMON_CLK_AX620E
+	bool "Clock driver for Axera AX620E"
+	depends on ARCH_AXERA || COMPILE_TEST
+	select COMMON_CLK_AXERA
+	default ARCH_AXERA
+	help
+	  This driver supports Axera AX620E basic clocks.
+

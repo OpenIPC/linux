@@ -92,10 +92,16 @@ static int do_config(struct usb_configuration *c)
 	struct hidg_func_node *e, *n;
 	int status = 0;
 
+/// SIPEED EDIT ///
+	// if (gadget_is_otg(c->cdev->gadget)) {
+	// 	c->descriptors = otg_desc;
+	// 	c->bmAttributes |= USB_CONFIG_ATT_WAKEUP;
+	// }
+	c->bmAttributes |= USB_CONFIG_ATT_WAKEUP;
 	if (gadget_is_otg(c->cdev->gadget)) {
 		c->descriptors = otg_desc;
-		c->bmAttributes |= USB_CONFIG_ATT_WAKEUP;
 	}
+/// SIPEED EDIT END ///
 
 	list_for_each_entry(e, &hidg_func_list, node) {
 		e->f = usb_get_function(e->fi);
@@ -185,6 +191,11 @@ static int hid_bind(struct usb_composite_dev *cdev)
 
 	usb_composite_overwrite_options(cdev, &coverwrite);
 	dev_info(&gadget->dev, DRIVER_DESC ", version: " DRIVER_VERSION "\n");
+
+/// SIPEED EDIT ///
+	usb_gadget_set_selfpowered(gadget, true);
+	usb_gadget_set_remote_wakeup(gadget, true);
+/// SIPEED EDIT END ///
 
 	return 0;
 

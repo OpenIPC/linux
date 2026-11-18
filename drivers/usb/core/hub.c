@@ -1072,7 +1072,12 @@ static void hub_activate(struct usb_hub *hub, enum hub_activation_type type)
 						"LS/FS devices and hubs may not work under this hub\n");
 				}
 			}
+#ifdef CONFIG_USB_HOST_RESUME_TIME_OPT_AXERA
+			if (hdev->parent)
+				hub_power_on(hub, true);
+#else
 			hub_power_on(hub, true);
+#endif
 		} else {
 			hub_power_on(hub, true);
 		}
@@ -1229,8 +1234,13 @@ static void hub_activate(struct usb_hub *hub, enum hub_activation_type type)
 					msecs_to_jiffies(delay));
 			device_unlock(&hdev->dev);
 			return;		/* Continues at init3: below */
+#ifdef CONFIG_USB_HOST_RESUME_TIME_OPT_AXERA
+		} else if (hdev->parent || type != HUB_RESET_RESUME) {
+			msleep(delay);
+#else
 		} else {
 			msleep(delay);
+#endif
 		}
 	}
  init3:
@@ -3383,7 +3393,6 @@ static int finish_port_resume(struct usb_device *udev)
 			goto retry_reset_resume;
 		}
 	}
-
 	if (status) {
 		dev_dbg(&udev->dev, "gone after usb resume? status %d\n",
 				status);

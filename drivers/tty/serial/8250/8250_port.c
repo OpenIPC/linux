@@ -90,8 +90,9 @@ static const struct serial8250_config uart_config[] = {
 		.name		= "16550A",
 		.fifo_size	= 16,
 		.tx_loadsz	= 16,
-		.fcr		= UART_FCR_ENABLE_FIFO | UART_FCR_R_TRIG_10,
-		.rxtrig_bytes	= {1, 4, 8, 14},
+		.fcr		= UART_FCR_ENABLE_FIFO | UART_FCR_R_TRIG_10 |
+				  UART_FCR_T_TRIG_11,
+		.rxtrig_bytes	= {1, 16, 32, 62},
 		.flags		= UART_CAP_FIFO,
 	},
 	[PORT_CIRRUS] = {
@@ -191,7 +192,9 @@ static const struct serial8250_config uart_config[] = {
 		.name		= "U6_16550A",
 		.fifo_size	= 64,
 		.tx_loadsz	= 64,
-		.fcr		= UART_FCR_ENABLE_FIFO | UART_FCR_R_TRIG_10,
+		.fcr		= UART_FCR_ENABLE_FIFO | UART_FCR_R_TRIG_10 |
+				  UART_FCR_T_TRIG_11,
+		.rxtrig_bytes	= {1, 16, 32, 62},
 		.flags		= UART_CAP_FIFO | UART_CAP_AFE,
 	},
 	[PORT_TEGRA] = {
@@ -1861,14 +1864,21 @@ int serial8250_handle_irq(struct uart_port *port, unsigned int iir)
 	unsigned char status;
 	unsigned long flags;
 	struct uart_8250_port *up = up_to_u8250p(port);
-
+	char sysrq_flags = 0;
 	if (iir & UART_IIR_NO_INT)
 		return 0;
 
 	spin_lock_irqsave(&port->lock, flags);
 
 	status = serial_port_in(port, UART_LSR);
-
+	if(status & UART_LSR_BI) {
+	    sysrq_flags = UART_LSR_BI;
+	} else {
+	    sysrq_flags = 0;
+	}
+	status = serial_port_in(port, UART_LSR);
+	if(sysrq_flags == UART_LSR_BI)
+		status |= UART_LSR_BI;
 	if (status & (UART_LSR_DR | UART_LSR_BI)) {
 		if (!up->dma || handle_rx_dma(up, iir))
 			status = serial8250_rx_chars(up, status);
@@ -2372,10 +2382,18 @@ dont_test_tx_en:
 	 * Request DMA channels for both RX and TX.
 	 */
 	if (up->dma) {
-		retval = serial8250_request_dma(up);
-		if (retval) {
-			pr_warn_ratelimited("%s - failed to request DMA\n",
-					    port->name);
+		const char *msg = NULL;
+
+		if (uart_console(port))
+			msg = "forbid DMA for kernel console";
+		else {
+			retval = serial8250_request_dma(up);
+			if (retval) {
+				msg = "failed to request DMA";
+			}
+		}
+		if (msg) {
+			dev_warn_ratelimited(port->dev, "%s\n", msg);
 			up->dma = NULL;
 		}
 	}
@@ -2638,6 +2656,62 @@ static unsigned int serial8250_get_baud_rate(struct uart_port *port,
 				  port->uartclk / 16 / UART_DIV_MAX,
 				  port->uartclk);
 }
+
+/*
+ * Note in order to avoid the tty port mutex deadlock don't use the next method
+ * within the uart port callbacks. Primarily it's supposed to be utilized to
+ * handle a sudden reference clock rate change.
+ */
+void serial8250_update_uartclk(struct uart_port *port, unsigned int uartclk)
+{
+	struct uart_8250_port *up = up_to_u8250p(port);
+	struct tty_port *tport = &port->state->port;
+	unsigned int baud, quot, frac = 0;
+	struct ktermios *termios;
+	struct tty_struct *tty;
+	unsigned long flags;
+
+	tty = tty_port_tty_get(tport);
+	if (!tty) {
+		mutex_lock(&tport->mutex);
+		port->uartclk = uartclk;
+		mutex_unlock(&tport->mutex);
+		return;
+	}
+
+	down_write(&tty->termios_rwsem);
+	mutex_lock(&tport->mutex);
+
+	if (port->uartclk == uartclk)
+		goto out_lock;
+
+	port->uartclk = uartclk;
+
+	if (!tty_port_initialized(tport))
+		goto out_lock;
+
+	termios = &tty->termios;
+
+	baud = serial8250_get_baud_rate(port, termios, NULL);
+	quot = serial8250_get_divisor(port, baud, &frac);
+
+	serial8250_rpm_get(up);
+	spin_lock_irqsave(&port->lock, flags);
+
+	uart_update_timeout(port, termios->c_cflag, baud);
+
+	serial8250_set_divisor(port, baud, quot, frac);
+	serial_port_out(port, UART_LCR, up->lcr);
+
+	spin_unlock_irqrestore(&port->lock, flags);
+	serial8250_rpm_put(up);
+
+out_lock:
+	mutex_unlock(&tport->mutex);
+	up_write(&tty->termios_rwsem);
+	tty_kref_put(tty);
+}
+EXPORT_SYMBOL_GPL(serial8250_update_uartclk);
 
 void
 serial8250_do_set_termios(struct uart_port *port, struct ktermios *termios,

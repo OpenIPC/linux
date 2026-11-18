@@ -7,9 +7,11 @@
 #include <linux/kern_levels.h>
 #include <linux/linkage.h>
 #include <linux/cache.h>
+#include <linux/ax_printk.h>
 
 extern const char linux_banner[];
 extern const char linux_proc_banner[];
+extern const char ax_proc_banner[];
 
 #define PRINTK_MAX_SINGLE_HEADER_LEN 2
 

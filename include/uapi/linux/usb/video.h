@@ -304,7 +304,11 @@ struct uvc_processing_unit_descriptor {
 	__u8  iProcessing;
 } __attribute__((__packed__));
 
+#ifdef CONFIG_UVC_H264
+#define UVC_DT_PROCESSING_UNIT_SIZE(n)			(10+(n))
+#else
 #define UVC_DT_PROCESSING_UNIT_SIZE(n)			(9+(n))
+#endif
 
 /* 3.7.2.6. Extension Unit Descriptor */
 struct uvc_extension_unit_descriptor {
@@ -340,6 +344,9 @@ struct UVC_EXTENSION_UNIT_DESCRIPTOR(p, n) {		\
 	__u8  bmControls[n];				\
 	__u8  iExtension;				\
 } __attribute__ ((packed))
+#ifdef CONFIG_UVC_H264
+DECLARE_UVC_EXTENSION_UNIT_DESCRIPTOR(1,2);
+#endif
 
 /* 3.8.2.2. Video Control Interrupt Endpoint Descriptor */
 struct uvc_control_endpoint_descriptor {
@@ -566,5 +573,64 @@ struct UVC_FRAME_MJPEG(n) {				\
 	__u32 dwFrameInterval[n];			\
 } __attribute__ ((packed))
 
+#ifdef CONFIG_UVC_H264
+/* 3.1.1  Frame Based Payload Video Format Descriptor */
+struct uvc_frame_based_format_desc {
+	__u8  bLength;
+	__u8  bDescriptorType;
+	__u8  bDescriptorSubType;
+	__u8  bFormatIndex;
+	__u8  bNumFrameDescriptors;
+	__u8  guidFormat[16];
+	__u8  bBitsPerPixel;
+	__u8  bDefaultFrameIndex;
+	__u8  bAspectRatioX;
+	__u8  bAspectRatioY;
+	__u8  bmInterfaceFlags;
+	__u8  bCopyProtect;
+	__u8  bVariableSize;
+} __attribute__((__packed__));
+
+#define UVC_DT_FRAME_BASED_FORMAT_SIZE		28
+
+/* 3.1.2  Frame Based Payload Frame Descriptor */
+struct uvc_frame_based_frame_desc {
+	__u8  bLength;
+	__u8  bDescriptorType;
+	__u8  bDescriptorSubType;
+	__u8  bFrameIndex;
+	__u8  bmCapabilities;
+	__u16 wWidth;
+	__u16 wHeight;
+	__u32 dwMinBitRate;
+	__u32 dwMaxBitRate;
+	__u32 dwDefaultFrameInterval;
+	__u8  bFrameIntervalType;
+	__u32 dwBytesPerLine;
+	__u32 dwFrameInterval[];
+} __attribute__((__packed__));
+
+#define UVC_DT_FRAME_BASED_FRAME_SIZE(n)			(26+4*(n))
+
+#define UVC_FRAME_BASED(n) \
+	uvc_frame_based_desc##n
+
+#define DECLARE_UVC_FRAME_BASED(n)			\
+struct UVC_FRAME_BASED(n) {				\
+	__u8  bLength;					\
+	__u8  bDescriptorType;				\
+	__u8  bDescriptorSubType;			\
+	__u8  bFrameIndex;				\
+	__u8  bmCapabilities;				\
+	__u16 wWidth;					\
+	__u16 wHeight;					\
+	__u32 dwMinBitRate;				\
+	__u32 dwMaxBitRate;				\
+	__u32 dwDefaultFrameInterval;			\
+	__u8  bFrameIntervalType;			\
+	__u32 dwBytesPerLine;			\
+	__u32 dwFrameInterval[n];			\
+} __attribute__ ((packed))
+#endif
 #endif /* __LINUX_USB_VIDEO_H */
 

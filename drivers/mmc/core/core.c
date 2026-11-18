@@ -63,6 +63,79 @@ static const unsigned freqs[] = { 400000, 300000, 200000, 100000 };
 bool use_spi_crc = 1;
 module_param(use_spi_crc, bool, 0);
 
+#if IS_ENABLED(CONFIG_MMC_SDHCI_AXERA)
+#include <linux/gpio.h>
+
+#define PINMUX_SD_FUNCTION_BASE  0x104F1000
+#define SD_PIN_DATA0  (0xC)
+#define SD_PIN_DATA1  (0x18)
+#define SD_PIN_DATA2  (0x3C)
+#define SD_PIN_DATA3  (0x48)
+#define SD_PIN_CMD  (0x30)
+#define SD_PIN_CLK  (0x24)
+
+void axera_set_sd_pin(struct mmc_host *mmc, int power_status);
+
+/* mode = 1 pull up , mode = 0 pull down*/
+static void set_sd_pad_state(int mode)
+{
+	u32 val;
+	void __iomem *addr = NULL;
+	u8 pad_state;
+
+	if(mode) { /* pull up */
+		pad_state = 0x2;
+	} else { /* pull down */
+		pad_state = 0x1;
+	}
+
+	addr = ioremap(PINMUX_SD_FUNCTION_BASE, 0x50);
+
+	val = readl(addr + SD_PIN_CMD);
+	val &= ~GENMASK(7,6);
+	val |= (pad_state << 6);
+	writel(val, addr + SD_PIN_CMD);
+
+	val = readl(addr + SD_PIN_DATA0);
+	val &= ~GENMASK(7,6);
+	val |= (pad_state << 6);
+	writel(val, addr + SD_PIN_DATA0);
+
+	val = readl(addr + SD_PIN_DATA1);
+	val &= ~GENMASK(7,6);
+	val |= (pad_state << 6);
+	writel(val, addr + SD_PIN_DATA1);
+
+	val = readl(addr + SD_PIN_DATA2);
+	val &= ~GENMASK(7,6);
+	val |= (pad_state << 6);
+	writel(val, addr + SD_PIN_DATA2);
+
+	val = readl(addr + SD_PIN_DATA3);
+	val &= ~GENMASK(7,6);
+	val |= (pad_state << 6);
+	writel(val, addr + SD_PIN_DATA3);
+
+	iounmap(addr);
+}
+
+void axera_set_sd_pin(struct mmc_host *mmc, int power_status)
+{
+
+	if ((mmc->caps2 & MMC_CAP2_NO_SD))
+		return;
+
+	if (power_status) { //power on sd
+		pr_debug("power on sd, set sd pin\n");
+		set_sd_pad_state(1);
+	} else { // power off sd
+		pr_debug("power off sd, set sd pin\n");
+		set_sd_pad_state(0);
+	}
+}
+EXPORT_SYMBOL_GPL(axera_set_sd_pin);
+#endif
+
 static int mmc_schedule_delayed_work(struct delayed_work *work,
 				     unsigned long delay)
 {
@@ -1648,6 +1721,9 @@ void mmc_power_up(struct mmc_host *host, u32 ocr)
 	if (host->ios.power_mode == MMC_POWER_ON)
 		return;
 
+#if IS_ENABLED(CONFIG_MMC_SDHCI_AXERA)
+	axera_set_sd_pin(host, 1);
+#endif
 	mmc_pwrseq_pre_power_on(host);
 
 	host->ios.vdd = fls(ocr) - 1;
@@ -1691,19 +1767,27 @@ void mmc_power_off(struct mmc_host *host)
 	/* Set initial state and call mmc_set_ios */
 	mmc_set_initial_state(host);
 
+#if IS_ENABLED(CONFIG_MMC_SDHCI_AXERA)
+	axera_set_sd_pin(host, 0);
+#endif
+#if IS_ENABLED(CONFIG_MMC_SDHCI_AXERA)
+	if ((host->caps2 & MMC_CAP2_NO_SD)) //if it is not SD card
+		mdelay(1);
+#else
 	/*
 	 * Some configurations, such as the 802.11 SDIO card in the OLPC
 	 * XO-1.5, require a short delay after poweroff before the card
 	 * can be successfully turned on again.
 	 */
 	mmc_delay(1);
+#endif
 }
 
 void mmc_power_cycle(struct mmc_host *host, u32 ocr)
 {
 	mmc_power_off(host);
-	/* Wait at least 1 ms according to SD spec */
-	mmc_delay(1);
+	/* Wait at least 1 ms according to SD spec, the dcdc will affect the power down time. */
+	mmc_delay(100);
 	mmc_power_up(host, ocr);
 }
 
@@ -2665,6 +2749,12 @@ void mmc_rescan(struct work_struct *work)
 			break;
 		if (freqs[i] <= host->f_min)
 			break;
+#if IS_ENABLED(CONFIG_MMC_SDHCI_AXERA)
+		if ((!(host->caps2 & MMC_CAP2_NO_SD)) && (host->caps & MMC_CAP_NEEDS_POLL)) {
+			pr_debug("only try 400k clk\n");
+			break;
+		}
+#endif
 	}
 	mmc_release_host(host);
 
@@ -2688,6 +2778,19 @@ void mmc_start_host(struct mmc_host *host)
 	mmc_gpiod_request_cd_irq(host);
 	_mmc_detect_change(host, 0, false);
 }
+
+#if IS_ENABLED(CONFIG_MMC_SDHCI_AXERA)
+void __mmc_stop_host(struct mmc_host *host)
+{
+	if (host->slot.cd_irq >= 0) {
+		mmc_gpio_set_cd_wake(host, false);
+		disable_irq(host->slot.cd_irq);
+	}
+
+	host->rescan_disable = 1;
+	cancel_delayed_work_sync(&host->detect);
+}
+#endif
 
 void mmc_stop_host(struct mmc_host *host)
 {

@@ -1,0 +1,19 @@
+EXTRA_CFLAGS +=  $(O)/include/generated
+
+obj-$(CONFIG_AX_HWINFO)	              += ax_hwinfo/
+obj-$(CONFIG_AX_BWLIMITER)            += bwlimiter/
+obj-$(CONFIG_ARCH_AXERA)              += pinmux/
+obj-$(CONFIG_AXERA_DW_APB_TIMER)      += apb_timer/
+obj-$(CONFIG_AXERA_PERIPH_TIMER32)    += timer32/
+obj-$(CONFIG_AXERA_WAKE_TIMER)        += wake_timer/
+obj-y       += slp_stat/
+obj-$(CONFIG_AXERA_HRTIMER)           += axera_hrtimer/
+obj-$(CONFIG_AXERA_OS_MEM)            += os_mem/
+obj-$(CONFIG_AXERA_SYS_MAP)           += sysmap/
+obj-$(CONFIG_AX_GZIPD)                += gzipd/
+obj-$(CONFIG_AXERA_RISCV_DRV)         += riscv/
+obj-$(CONFIG_AXERA_OSAL)              += ../../../../../osal/linux/kernel/
+obj-$(CONFIG_AXERA_BUILDIN_PRVDRV)    += ../../../../../osdrv/private_drv2kernel/
+obj-$(CONFIG_AXERA_DISPLAY_DUMMY)     += display_dummy/
+obj-$(CONFIG_AXERA_MEMORY_DUMP)       += memory_dump/
+obj-y                                 += axera_mem_recycle/

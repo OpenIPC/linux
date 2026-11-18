@@ -200,6 +200,18 @@ config SPI_DESIGNWARE
 	help
 	  general driver for SPI controller core from DesignWare
 
+config SPI_AXERA
+	tristate "AXERA SPI controller core support"
+	help
+	  general driver for SPI controller core from AXERA
+
+config SPI_POWER_OPTIMIZATION
+	tristate "SPI clk autogate for Power dissipation"
+	depends on SPI_AXERA || SPI_DESIGNWARE
+	default y
+	help
+	  open clk autogate for DW SPI and AXERA SPI
+
 config SPI_DW_PCI
 	tristate "PCI interface driver for DW SPI core"
 	depends on SPI_DESIGNWARE && PCI
@@ -208,9 +220,34 @@ config SPI_DW_MID_DMA
 	bool "DMA support for DW SPI controller on Intel MID platform"
 	depends on SPI_DW_PCI && DW_DMAC_PCI
 
+config APB_SPI_DW_DMA
+	bool "DMA support for DW APB SPI controller on Axera platform"
+
+config SPI_DW_DMA
+	bool "DMA support for DW SPI controller on Axera platform"
+
 config SPI_DW_MMIO
 	tristate "Memory-mapped io interface driver for DW SPI core"
 	depends on SPI_DESIGNWARE
+
+config SPI_AXERA_MMIO
+	tristate "Memory-mapped io interface driver for AXERA SPI core"
+	depends on SPI_AXERA
+
+config SPI_AXERA_SLV
+	tristate "SUPPORT AXERA SPI SLV"
+	help
+	  support spi slv for axera
+
+config SPI_AXERA_SLV_RAW
+	tristate "SUPPORT AXERA SPI SLV RAW Driver"
+	help
+	  support spi slv raw driver for axera
+
+config SPI_AXERA_MODULE
+	tristate "AXERA SPI module"
+	help
+	  general module for SPI controller core from AXERA
 
 config SPI_DLN2
        tristate "Diolan DLN-2 USB SPI adapter"
@@ -764,6 +801,11 @@ config SPI_SPIDEV
 	help
 	  This supports user mode SPI protocol drivers.
 
+config SPI_AXERA_SPIDEV
+	tristate "User mode AXERA SPI device driver support"
+	help
+	  This supports user mode AXERA SPI protocol drivers.
+
 	  Note that this application programming interface is EXPERIMENTAL
 	  and hence SUBJECT TO CHANGE WITHOUT NOTICE while it stabilizes.
 
@@ -815,6 +857,10 @@ config SPI_SLAVE_SYSTEM_CONTROL
 	  SPI slave handler to allow remote control of system reboot, power
 	  off, halt, and suspend.
 
+config SPI_SLAVE_TEST
+	tristate "SPI slave test"
+	help
+	  spi slave test
 endif # SPI_SLAVE
 
 endif # SPI

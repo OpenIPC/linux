@@ -889,6 +889,35 @@ static struct usb_function_instance *ecm_alloc_inst(void)
 	return &opts->func_inst;
 }
 
+/// SIPEED EDIT ///
+/**
+ * https://patches.linaro.org/project/linux-usb/list/?series=205060
+ * Message ID 	1679694482-16430-7-git-send-email-quic_eserrao@quicinc.com
+ * Series 	Add function suspend/resume and remote wakeup support
+ * 
+ * [v13,6/6] usb: gadget: f_ecm: Add suspend/resume and remote wakeup support
+ */
+static void ecm_suspend(struct usb_function *f)
+{
+	struct f_ecm *ecm = func_to_ecm(f);
+	struct usb_composite_dev *cdev = ecm->port.func.config->cdev;
+
+	DBG(cdev, "ECM Suspend\n");
+
+	gether_suspend(&ecm->port);
+}
+
+static void ecm_resume(struct usb_function *f)
+{
+	struct f_ecm *ecm = func_to_ecm(f);
+	struct usb_composite_dev *cdev = ecm->port.func.config->cdev;
+
+	DBG(cdev, "ECM Resume\n");
+
+	gether_resume(&ecm->port);
+}
+/// SIPEED EDIT END ///
+
 static void ecm_free(struct usb_function *f)
 {
 	struct f_ecm *ecm;
@@ -956,6 +985,18 @@ static struct usb_function *ecm_alloc(struct usb_function_instance *fi)
 	ecm->port.func.setup = ecm_setup;
 	ecm->port.func.disable = ecm_disable;
 	ecm->port.func.free_func = ecm_free;
+
+/// SIPEED EDIT ///
+	/**
+	 * https://patches.linaro.org/project/linux-usb/list/?series=205060
+	 * Message ID 	1679694482-16430-7-git-send-email-quic_eserrao@quicinc.com
+	 * Series 	Add function suspend/resume and remote wakeup support
+	 * 
+	 * [v13,6/6] usb: gadget: f_ecm: Add suspend/resume and remote wakeup support
+	 */
+	ecm->port.func.suspend = ecm_suspend;
+	ecm->port.func.resume = ecm_resume;
+/// SIPEED EDIT END ///
 
 	return &ecm->port.func;
 }

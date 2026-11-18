@@ -138,6 +138,12 @@ static int mmc_decode_csd(struct mmc_card *card)
 			csd->erase_size = UNSTUFF_BITS(resp, 39, 7) + 1;
 			csd->erase_size <<= csd->write_blkbits - 9;
 		}
+#if IS_ENABLED(CONFIG_MMC_SDHCI_AXERA)
+		if (UNSTUFF_BITS(resp, 13, 1)) {
+			mmc_card_set_readonly(card);
+		}
+#endif
+
 		break;
 	case 1:
 		/*
@@ -1156,7 +1162,13 @@ out:
 static int mmc_sd_suspend(struct mmc_host *host)
 {
 	int err;
-
+	if (!(host->caps & MMC_CAP_AGGRESSIVE_PM)) {
+		mmc_claim_host(host);
+		mmc_release_host(host);
+		pm_runtime_disable(&host->card->dev);
+		pm_runtime_set_suspended(&host->card->dev);
+		return 0;
+	}
 	err = _mmc_sd_suspend(host);
 	if (!err) {
 		pm_runtime_disable(&host->card->dev);
@@ -1236,6 +1248,21 @@ static int mmc_sd_hw_reset(struct mmc_host *host)
 	return mmc_sd_init_card(host, host->card->ocr, host->card);
 }
 
+#if IS_ENABLED(CONFIG_MMC_SDHCI_AXERA)
+void __mmc_stop_host(struct mmc_host *host);
+
+static int mmc_sd_shutdown(struct mmc_host *host)
+{
+	__mmc_stop_host(host);
+
+	mmc_claim_host(host);
+	mmc_power_off(host);
+	mmc_release_host(host);
+
+	return 0;
+}
+#endif
+
 static const struct mmc_bus_ops mmc_sd_ops = {
 	.remove = mmc_sd_remove,
 	.detect = mmc_sd_detect,
@@ -1244,7 +1271,11 @@ static const struct mmc_bus_ops mmc_sd_ops = {
 	.suspend = mmc_sd_suspend,
 	.resume = mmc_sd_resume,
 	.alive = mmc_sd_alive,
+#if IS_ENABLED(CONFIG_MMC_SDHCI_AXERA)
+	.shutdown = mmc_sd_shutdown,
+#else
 	.shutdown = mmc_sd_suspend,
+#endif
 	.hw_reset = mmc_sd_hw_reset,
 };
 

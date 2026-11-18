@@ -945,3 +945,14 @@ config MMC_SDHCI_OMAP
 	  If you have a controller with this interface, say Y or M here.
 
 	  If unsure, say N.
+
+config MMC_SDHCI_AXERA
+	tristate "SDHCI support for the AXERA SD/SDIO/eMMC controller"
+	depends on MMC_SDHCI_PLTFM
+	depends on OF
+	help
+	  This selects the AXERA SD/SDIO/eMMC driver.
+
+	  If you have a controller with this interface, say Y or M here.
+
+	  If unsure, say N.

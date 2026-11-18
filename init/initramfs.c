@@ -603,6 +603,7 @@ static int __init populate_rootfs(void)
 {
 	/* Load the built in initramfs */
 	char *err = unpack_to_rootfs(__initramfs_start, __initramfs_size);
+	int ret;
 	if (err)
 		panic("%s", err); /* Failed to decompress INTERNAL initramfs */
 	/* If available load the bootloader supplied initrd */
@@ -649,6 +650,13 @@ static int __init populate_rootfs(void)
 	 * us a chance to load before device_initcalls.
 	 */
 	load_default_modules();
+
+        /* auto mknod console */
+	ret = ksys_mknod((const char __user __force *) "/dev/console",
+			S_IFCHR | S_IRUSR | S_IWUSR,
+			new_encode_dev(MKDEV(5, 1)));
+	if (ret < 0)
+		pr_err("rootfs mknod dev err!\n");
 
 	return 0;
 }

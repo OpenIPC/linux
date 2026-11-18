@@ -134,6 +134,13 @@ extern int i2c_transfer(struct i2c_adapter *adap, struct i2c_msg *msgs,
 /* Unlocked flavor */
 extern int __i2c_transfer(struct i2c_adapter *adap, struct i2c_msg *msgs,
 			  int num);
+/* Transfer num messages in poll mode */
+extern int i2c_transfer_poll(struct i2c_adapter *adap, struct i2c_msg *msgs,
+			int num);
+extern int i2c_master_recv_poll(const struct i2c_client *client,
+				  char *buf, int count);
+extern int i2c_master_send_poll(const struct i2c_client *client,
+				  const char *buf, int count);
 
 /* This is the very generalized SMBus access routine. You probably do not
    want to use this, though; one of the functions below may be much easier,
@@ -608,9 +615,15 @@ struct i2c_bus_recovery_info {
 	/* gpio recovery */
 	struct gpio_desc *scl_gpiod;
 	struct gpio_desc *sda_gpiod;
+
+	struct pinctrl *pinctrl;
+	struct pinctrl_state *pins_default;
+	struct pinctrl_state *pins_gpio;
+
 };
 
 int i2c_recover_bus(struct i2c_adapter *adap);
+int i2c_recover_bus_lock(struct i2c_adapter *adap);
 
 /* Generic recovery routines */
 int i2c_generic_scl_recovery(struct i2c_adapter *adap);

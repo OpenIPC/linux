@@ -762,4 +762,14 @@ config CRYPTO_DEV_CCREE
 
 source "drivers/crypto/hisilicon/Kconfig"
 
+menuconfig CRYPTO_DEV_AXERA
+	tristate "axera cryptographic engine driver"
+	help
+	  This driver interfaces with the axera cryptographic engines. It currently
+	  accelerates DES, 3DES and AES block ciphers in ECB and CBC mode, as well
+	  as SHA1, SHA224, SHA256 and SHA512 hash algorithms for both basic hash
+	  and HMAC. Additionally, it accelerates RSA and TRNG operations.
+
+source "drivers/crypto/axera/Kconfig"
+
 endif # CRYPTO_HW

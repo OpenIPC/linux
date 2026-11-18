@@ -163,6 +163,12 @@ config FB_TFT_ST7789V
 
 	  Say Y if you have such a display that utilizes this controller.
 
+config FB_TFT_ST7789P3
+	tristate "FB driver for the ST7789P3 LCD Controller"
+	depends on FB_TFT
+	help
+		Generic Framebuffer support for ST7789P3
+
 config FB_TFT_TINYLCD
 	tristate "FB driver for tinylcd.com display"
 	depends on FB_TFT
@@ -198,6 +204,25 @@ config FB_TFT_WATTEROTT
 	depends on FB_TFT
 	help
 	  Generic Framebuffer support for WATTEROTT
+
+config FB_TFT_GC9307
+	tristate "FB driver for the GC9307 LCD Controller"
+	depends on FB_TFT
+	help
+	  Generic Framebuffer support for GC9307
+
+config FB_TFT_JD9853
+	tristate "FB driver for the JD9853 LCD Controller"
+	depends on FB_TFT
+	help
+	  Generic Framebuffer support for JD9853
+
+config FB_TFT_JD9853_HKC_2_01
+	tristate "FB driver for the JD9853 HKC 2.01 LCD panel"
+	depends on FB_TFT
+	help
+	  Framebuffer support for HKC2.01 QD020KS011-1 240x296 panels
+	  using the JD9853 LCD controller.
 
 config FB_FLEX
 	tristate "Generic FB driver for TFT LCD displays"

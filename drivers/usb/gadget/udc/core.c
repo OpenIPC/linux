@@ -273,7 +273,12 @@ int usb_ep_queue(struct usb_ep *ep,
 {
 	int ret = 0;
 
+#ifndef CONFIG_ARCH_AXERA
 	if (WARN_ON_ONCE(!ep->enabled && ep->address)) {
+#else
+	if (!ep->enabled && ep->address) {
+		printk("Warn: %s disabled\n", ep->name);
+#endif
 		ret = -ESHUTDOWN;
 		goto out;
 	}
@@ -505,6 +510,42 @@ out:
 	return ret;
 }
 EXPORT_SYMBOL_GPL(usb_gadget_wakeup);
+
+/// SIPEED EDIT ///
+/**
+ * https://patches.linaro.org/project/linux-usb/list/?series=205060
+ * Message ID 	1679694482-16430-2-git-send-email-quic_eserrao@quicinc.com
+ * Series 	Add function suspend/resume and remote wakeup support 
+ *
+ * [v13,1/6] usb: gadget: Properly configure the device for remote wakeup
+ */
+/**
+ * usb_gadget_set_remote_wakeup - configures the device remote wakeup feature.
+ * @gadget:the device being configured for remote wakeup
+ * @set:value to be configured.
+ *
+ * set to one to enable remote wakeup feature and zero to disable it.
+ *
+ * returns zero on success, else negative errno.
+ */
+int usb_gadget_set_remote_wakeup(struct usb_gadget *gadget, int set)
+{
+	int ret = 0;
+
+	if (!gadget->ops->set_remote_wakeup) {
+		ret = -EOPNOTSUPP;
+		goto out;
+	}
+
+	ret = gadget->ops->set_remote_wakeup(gadget, set);
+
+out:
+	trace_usb_gadget_set_remote_wakeup(gadget, ret);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(usb_gadget_set_remote_wakeup);
+/// SIPEED EDIT END ///
 
 /**
  * usb_gadget_set_selfpowered - sets the device selfpowered feature.

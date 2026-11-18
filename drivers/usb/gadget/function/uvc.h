@@ -11,6 +11,26 @@
 
 #include <linux/list.h>
 #include <linux/mutex.h>
+#include <linux/wait.h>
+#include <linux/workqueue.h>
+
+#ifdef CONFIG_UVC_H264
+#define UVC_EVENT_FIRST			(V4L2_EVENT_PRIVATE_START + 0)
+#define UVC_EVENT_CONNECT		(V4L2_EVENT_PRIVATE_START + 0)
+#define UVC_EVENT_DISCONNECT		(V4L2_EVENT_PRIVATE_START + 1)
+#define UVC_EVENT_STREAMON		(V4L2_EVENT_PRIVATE_START + 2)
+#define UVC_EVENT_STREAMOFF		(V4L2_EVENT_PRIVATE_START + 3)
+#define UVC_EVENT_SETUP			(V4L2_EVENT_PRIVATE_START + 4)
+#define UVC_EVENT_DATA			(V4L2_EVENT_PRIVATE_START + 5)
+#define UVC_EVENT_LAST			(V4L2_EVENT_PRIVATE_START + 5)
+
+
+#define UVCIOC_SEND_RESPONSE		_IOW('U', 1, struct uvc_request_data)
+
+#define UVC_INTF_CONTROL		0
+#define UVC_INTF_STREAMING		1
+#endif
+
 #include <linux/spinlock.h>
 #include <linux/usb/composite.h>
 #include <linux/videodev2.h>
@@ -64,7 +84,11 @@ extern unsigned int uvc_gadget_trace_param;
  * Driver specific constants
  */
 
+#ifdef CONFIG_ARCH_AXERA
+#define UVC_NUM_REQUESTS			64
+#else
 #define UVC_NUM_REQUESTS			4
+#endif
 #define UVC_MAX_REQUEST_SIZE			64
 #define UVC_MAX_EVENTS				4
 
@@ -72,7 +96,10 @@ extern unsigned int uvc_gadget_trace_param;
  * Structures
  */
 
-struct uvc_video {
+struct uvc_video{
+#ifdef CONFIG_UVC_H264
+	struct uvc_device *uvc;
+#endif
 	struct usb_ep *ep;
 
 	/* Frame parameters */
@@ -82,6 +109,10 @@ struct uvc_video {
 	unsigned int height;
 	unsigned int imagesize;
 	struct mutex mutex;	/* protects frame parameters */
+#ifdef CONFIG_UVC_H264
+	unsigned int num_sgs; /* record base */
+	__u8 *sg_buf;
+#endif
 
 	/* Requests */
 	unsigned int req_size;
@@ -89,6 +120,10 @@ struct uvc_video {
 	__u8 *req_buffer[UVC_NUM_REQUESTS];
 	struct list_head req_free;
 	spinlock_t req_lock;
+	bool is_enabled;
+	atomic_t queued;
+	atomic_t callbacks;
+	wait_queue_head_t req_wait;
 
 	void (*encode) (struct usb_request *req, struct uvc_video *video,
 			struct uvc_buffer *buf);
@@ -99,12 +134,19 @@ struct uvc_video {
 
 	struct uvc_video_queue queue;
 	unsigned int fid;
+#ifdef CONFIG_ARCH_AXERA
+	u32 metadata_stc;
+	u16 metadata_sof;
+#endif
 };
 
 enum uvc_state {
 	UVC_STATE_DISCONNECTED,
 	UVC_STATE_CONNECTED,
 	UVC_STATE_STREAMING,
+	UVC_STATE_STOP_PENDING,
+	UVC_STATE_DRAINING,
+	UVC_STATE_STOP_FAILED,
 };
 
 struct uvc_device {
@@ -113,6 +155,13 @@ struct uvc_device {
 	enum uvc_state state;
 	struct usb_function func;
 	struct uvc_video video;
+	spinlock_t state_lock;
+	struct delayed_work stop_work;
+	unsigned int stop_generation;
+	bool stop_pending;
+	bool disconnect_pending;
+	bool requests_retained;
+	unsigned int delayed_status_count;
 
 	/* Descriptors */
 	struct {

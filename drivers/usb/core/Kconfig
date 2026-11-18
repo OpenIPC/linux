@@ -83,6 +83,13 @@ config USB_OTG_FSM
 	  Implements OTG Finite State Machine as specified in On-The-Go
 	  and Embedded Host Supplement to the USB Revision 2.0 Specification.
 
+config USB_HOST_RESUME_TIME_OPT_AXERA
+	tristate "Optimize the usb host resume taking a long time"
+	default n
+	help
+	  skip the root hub sleep, skip the re-enumeration process.
+	  It is only supported under the condition of continuous power.
+
 config USB_LEDS_TRIGGER_USBPORT
 	tristate "USB port LED trigger"
 	depends on USB && LEDS_TRIGGERS

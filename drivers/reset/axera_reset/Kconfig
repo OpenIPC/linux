@@ -1,0 +1,7 @@
+config AXERA_RESET_AX620E
+	tristate "AX620E Reset Driver"
+	depends on HAS_IOMEM
+	select MFD_SYSCON
+	default ARCH_AXERA
+	help
+	  Build the AX620E  reset driver.

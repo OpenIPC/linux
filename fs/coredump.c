@@ -738,7 +738,7 @@ void do_coredump(const siginfo_t *siginfo)
 		 */
 		if (!uid_eq(inode->i_uid, current_fsuid()))
 			goto close_fail;
-		if ((inode->i_mode & 0677) != 0600)
+		if ((inode->i_mode & 0600) != 0600)
 			goto close_fail;
 		if (!(cprm.file->f_mode & FMODE_CAN_WRITE))
 			goto close_fail;

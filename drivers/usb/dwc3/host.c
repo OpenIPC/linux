@@ -11,6 +11,9 @@
 
 #include "core.h"
 
+#ifdef CONFIG_USB_DWC3_AXERA
+#include "dwc3-axera.h"
+#endif
 static int dwc3_host_get_irq(struct dwc3 *dwc)
 {
 	struct platform_device	*dwc3_pdev = to_platform_device(dwc->dev);
@@ -46,12 +49,19 @@ out:
 
 int dwc3_host_init(struct dwc3 *dwc)
 {
-	struct property_entry	props[3];
+#ifdef CONFIG_USB_DWC3_AXERA
+	struct property_entry	props[5];
+#else
+	struct property_entry	props[4];
+#endif
 	struct platform_device	*xhci;
 	int			ret, irq;
 	struct resource		*res;
 	struct platform_device	*dwc3_pdev = to_platform_device(dwc->dev);
 	int			prop_idx = 0;
+#ifdef CONFIG_USB_DWC3_AXERA
+	axera_usb_host_init(dwc);
+#endif
 
 	irq = dwc3_host_get_irq(dwc);
 	if (irq < 0)
@@ -105,6 +115,12 @@ int dwc3_host_init(struct dwc3 *dwc)
 	if (dwc->revision <= DWC3_REVISION_300A)
 		props[prop_idx++].name = "quirk-broken-port-ped";
 
+#ifdef CONFIG_USB_DWC3_AXERA
+	if (device_property_read_bool(dwc->dev, "usb2-only-mode")){
+		props[prop_idx++] = PROPERTY_ENTRY_BOOL("usb2-only-mode");
+		dev_info(dwc->dev, "usb2.0-only mode\n");
+	}
+#endif
 	if (prop_idx) {
 		ret = platform_device_add_properties(xhci, props);
 		if (ret) {

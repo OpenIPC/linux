@@ -2341,7 +2341,9 @@ int hcd_bus_resume(struct usb_device *rhdev, pm_message_t msg)
 		usb_hub_for_each_child(rhdev, port1, udev) {
 			if (udev->state != USB_STATE_NOTATTACHED &&
 					!udev->port_is_suspended) {
+#ifndef CONFIG_USB_HOST_RESUME_TIME_OPT_AXERA
 				usleep_range(10000, 11000);	/* TRSMRCY */
+#endif
 				break;
 			}
 		}

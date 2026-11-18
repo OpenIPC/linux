@@ -1,0 +1,15 @@
+#ifndef __CHIP_REG_H__
+#define __CHIP_REG_H__
+
+#define TIMER64_0_BASE					(0x4820000)
+#define COMM_SYS_GLB_SW_RST_0_SET			(0x2340058)
+#define COMM_SYS_GLB_DUMMY_SW12				(0x234022C)
+#define RISCV_RESET_SET_VAL				(0x10000)
+
+#define SYS_IRAM_BASE					(0x0)
+#define DEBUG_REG_BASE					(SYS_IRAM_BASE + 0x900)
+
+#define STAMP_MOUNT_START_WAIT_OFFSET			0x70
+#define STAMP_MOUNT_END_WAIT_OFFSET			0x74
+
+#endif

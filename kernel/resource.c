@@ -318,6 +318,81 @@ int release_resource(struct resource *old)
 
 EXPORT_SYMBOL(release_resource);
 
+static int find_reserved_res(struct resource **res, resource_size_t start, resource_size_t end,
+			       unsigned long flags, unsigned long desc)
+{
+	struct resource *p;
+
+	if (!res)
+		return -EINVAL;
+	if (start >= end)
+		return -EINVAL;
+
+	read_lock(&resource_lock);
+	for (p = iomem_resource.child; p; p = next_resource(p, false)) {
+		/* If we passed the resource we are looking for, stop */
+		if (p->start > end) {
+			p = NULL;
+			break;
+		}
+
+		/* Skip until we find a range that matches what we look for */
+		if (p->end < start)
+			continue;
+
+		if ((p->flags & flags) != flags)
+			continue;
+		if ((desc != IORES_DESC_NONE) && (desc != p->desc))
+			continue;
+		if (strcmp(p->name, "reserved") != 0)
+			continue;
+
+		/* Found a match, break */
+		break;
+	}
+
+	if (p) {
+		*res = p;
+	}
+
+	read_unlock(&resource_lock);
+	return p ? 0 : -ENODEV;
+}
+
+int release_reserved_area_info(phys_addr_t start, phys_addr_t end)
+{
+	int ret;
+	struct resource *res;
+	unsigned long flags;
+
+	start = PAGE_ALIGN((unsigned long)start);
+	end = ((unsigned long)end & PAGE_MASK);
+
+	flags = IORESOURCE_MEM | IORESOURCE_BUSY;
+	ret = find_reserved_res(&res, start, end, flags, IORES_DESC_NONE);
+	if (ret != 0) {
+#ifdef CONFIG_PHYS_ADDR_T_64BIT
+		printk("cannot find reserved arexa 0x%llx - 0x%llx\n", start, end);
+#else
+		printk("cannot find reserved arexa 0x%x - 0x%x\n", start, end);
+#endif
+		return ret;
+	}
+
+	if (res->start == start && res->end == (end - 1))
+		release_resource(res);
+
+	write_lock(&resource_lock);
+	if (res->start == start && res->end > (end -1))
+		res->start = end;
+	else if (res->start < start && res->end == (end - 1))
+		res->end = start - 1;
+	write_unlock(&resource_lock);
+
+	return 0;
+}
+EXPORT_SYMBOL(release_reserved_area_info);
+
 /**
  * Finds the lowest iomem resource that covers part of [start..end].  The
  * caller must specify start, end, flags, and desc (which may be

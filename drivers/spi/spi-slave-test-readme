@@ -1,0 +1,96 @@
+1.spi-slave-test.c配置依赖如下:
+a.
+--- a/linux-4.19.125/arch/arm64/configs/axera_AX630C_emmc_arm64_k419_defconfig
++++ b/linux-4.19.125/arch/arm64/configs/axera_AX630C_emmc_arm64_k419_defconfig
+@@ -1496,7 +1496,7 @@ CONFIG_SPI_DESIGNWARE=y
+ CONFIG_SPI_POWER_OPTIMIZATION=y
+ CONFIG_SPI_DW_DMA=y
+ CONFIG_SPI_DW_MMIO=y
+-# CONFIG_SPI_AXERA_SLV is not set
++CONFIG_SPI_AXERA_SLV=y
+ # CONFIG_SPI_AXERA_SLV_RAW is not set
+ # CONFIG_SPI_AXERA_MODULE is not set
+ # CONFIG_SPI_GPIO is not set
+@@ -1516,7 +1516,10 @@ CONFIG_SPI_DW_MMIO=y
+ CONFIG_SPI_AXERA_SPIDEV=y
+ # CONFIG_SPI_LOOPBACK_TEST is not set
+ # CONFIG_SPI_TLE62X0 is not set
+-# CONFIG_SPI_SLAVE is not set
++CONFIG_SPI_SLAVE=y
++# CONFIG_SPI_SLAVE_TIME is not set
++# CONFIG_SPI_SLAVE_SYSTEM_CONTROL is not set
++CONFIG_SPI_SLAVE_TEST=m
+
+b.
+/* spi slv test driver */
+&spi_slv {
+	status = "okay";
+	stream-gpio = <&ax_gpio1 4 0>;//spi-axera-slv.c中做了个gpio同步处理，可以自行适配删减更改
+	slave {
+		compatible = "spi-slave";
+		reg = <0>;
+		spi-max-frequency = <25000000>;
+	};
+};
+c.配置pinmux
+diff --git a/projects/AX630C_fastemmc_arm64_k419/pinmux/AX630C_AX620V200_DEMO_pinmux.h b/projects/AX630C_fastemmc_arm64_k419/pinmux/AX630C_AX620V200_DEMO_pinmux.h
+index 5c63619..88e87b4 100644
+--- a/projects/AX630C_fastemmc_arm64_k419/pinmux/AX630C_AX620V200_DEMO_pinmux.h
++++ b/projects/AX630C_fastemmc_arm64_k419/pinmux/AX630C_AX620V200_DEMO_pinmux.h
+@@ -1,14 +1,14 @@
+-0x0230000C, 0x00040003,  /* PadName = VI_D0                Fuction = I2S0_DIN0 */
+-0x02300018, 0x00040003,  /* PadName = VI_D1                Fuction = I2S0_SCLK */
+-0x02300024, 0x00040003,  /* PadName = VI_D2                Fuction = I2S0_DOUT */
+-0x02300030, 0x00040003,  /* PadName = VI_D3                Fuction = I2S0_MCLK */
+-0x0230003C, 0x00000003,  /* PadName = VI_D4                Fuction = VI_D4 */
+-0x02300048, 0x00000003,  /* PadName = VI_D5                Fuction = VI_D5 */
+-0x02300054, 0x00000003,  /* PadName = VI_D6                Fuction = VI_D6 */
+-0x02300060, 0x00000003,  /* PadName = VI_D7                Fuction = VI_D7 */
+-0x0230006C, 0x00000003,  /* PadName = VI_D8                Fuction = VI_D8 */
+-0x02300078, 0x00000003,  /* PadName = VI_D9                Fuction = VI_D9 */
+-0x02300084, 0x00040003,  /* PadName = VI_CLK0              Fuction = I2S0_LRCK */
++0x0230000C, 0x00020003,  /* PadName = VI_D0                Fuction = SPI_M1_MOSI */
++0x02300018, 0x00020003,  /* PadName = VI_D1                Fuction = SPI_M1_MISO */
++0x02300024, 0x00060003,  /* PadName = VI_D2                Fuction = GPIO0_A2 */
++0x02300030, 0x00000003,  /* PadName = VI_D3                Fuction = VI_D3 */
++0x0230003C, 0x00020003,  /* PadName = VI_D4                Fuction = SPI_M1_SCLK */
++0x02300048, 0x00020003,  /* PadName = VI_D5                Fuction = SPI_S_D3 */
++0x02300054, 0x00020003,  /* PadName = VI_D6                Fuction = SPI_S_D1 */
++0x02300060, 0x00020003,  /* PadName = VI_D7                Fuction = SPI_S_D0 */
++0x0230006C, 0x00020003,  /* PadName = VI_D8                Fuction = SPI_S_CS */
++0x02300078, 0x00020003,  /* PadName = VI_D9                Fuction = SPI_S_D2 */
++0x02300084, 0x00020003,  /* PadName = VI_CLK0              Fuction = SPI_S_SCLK */
+ 0x0230400C, 0x00000083,  /* PadName = I2C0_SCL             Fuction = I2C0_SCL */
+ 0x02304018, 0x00000083,  /* PadName = I2C0_SDA             Fuction = I2C0_SDA */
+ 0x02304024, 0x00010083,  /* PadName = I2C1_SCL             Fuction = SPI_M2_SCLK */
+@@ -67,12 +67,12 @@
+ 0x104F2030, 0x00010083,  /* PadName = SDIO_CMD             Fuction = I2C2_SDA */
+ 0x104F203C, 0x00010083,  /* PadName = SDIO_DAT2            Fuction = I2C4_SCL */
+ 0x104F2048, 0x00010083,  /* PadName = SDIO_DAT3            Fuction = I2C4_SDA */
+-0x0230A00C, 0x00000003,  /* PadName = CDTX_L0N             Fuction = CDTX_L0N */
+-0x0230A018, 0x00000003,  /* PadName = CDTX_L0P             Fuction = CDTX_L0P */
+-0x0230A024, 0x00000003,  /* PadName = CDTX_L1N             Fuction = CDTX_L1N */
++0x0230A00C, 0x00020003,  /* PadName = CDTX_L0N             Fuction = SPI_M0_SCLK */
++0x0230A018, 0x00020003,  /* PadName = CDTX_L0P             Fuction = SPI_M0_MISO */
++0x0230A024, 0x00060003,  /* PadName = CDTX_L1N             Fuction = GPIO2_A12 */
+ 0x0230A030, 0x00000003,  /* PadName = CDTX_L1P             Fuction = CDTX_L1P */
+ 0x0230A03C, 0x00000003,  /* PadName = CDTX_L2N             Fuction = CDTX_L2N */
+-0x0230A048, 0x00000003,  /* PadName = CDTX_L2P             Fuction = CDTX_L2P */
++0x0230A048, 0x00020003,  /* PadName = CDTX_L2P             Fuction = SPI_M0_MOSI */
+ 0x0230A054, 0x00000003,  /* PadName = CDTX_L3N             Fuction = CDTX_L3N */
+ 0x0230A060, 0x00000003,  /* PadName = CDTX_L3P             Fuction = CDTX_L3P */
+ 0x0230A06C, 0x00000003,  /* PadName = CDTX_L4N             Fuction = CDTX_L4N */
+
+2.spi-slave-test.c功能介绍
+主要是起了个线程,去做read数据的操作,默认读数据的阈值是16个字节,依赖master发送数据
+a.master配置如下,CONFIG_SPI_AXERA_SPIDEV=y,生成/dev/spidev0.0
+&spi0 {
+       status = "okay";
+       spidev_user@0 {
+               status = "okay";
+               compatible = "axera,spidev";
+               reg = <0>;
+               spi-max-frequency = <26000000>;
+       };
+};
+b.测试命令:./spidev_test -D /dev/spidev0.0 -p "1234567890123456" -v 发送1次会来一次read fifo满中断

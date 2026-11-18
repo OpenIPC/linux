@@ -20,6 +20,7 @@
 
 #ifndef	__STMMAC_PTP_H__
 #define	__STMMAC_PTP_H__
+#include "stmmac.h"
 
 #define PTP_XGMAC_OFFSET	0xd00
 #define	PTP_GMAC4_OFFSET	0xb00
@@ -69,4 +70,10 @@
 #define	PTP_SSIR_SSINC_MASK		0xff
 #define	GMAC4_PTP_SSIR_SSINC_SHIFT	16
 
+#ifdef CONFIG_DWMAC_AXERA
+//void stmmac_ptp_clk_disable(struct stmmac_priv *priv);
+void ax_reset_phy(struct platform_device *pdev, void *private);
+void ax_shutdown_phy(struct platform_device *pdev, void *private);
+void ax_reset_emac(struct platform_device *pdev, void *private);
+#endif
 #endif	/* __STMMAC_PTP_H__ */

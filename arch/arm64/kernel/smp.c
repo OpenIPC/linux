@@ -66,6 +66,8 @@
 DEFINE_PER_CPU_READ_MOSTLY(int, cpu_number);
 EXPORT_PER_CPU_SYMBOL(cpu_number);
 
+extern void axera_crash_save_cpu(struct pt_regs *regs, int cpu);
+
 /*
  * as from 2.5, kernels no longer have an init_tasks structure
  * so we need some other way of telling a new secondary core
@@ -835,7 +837,9 @@ static void ipi_cpu_crash_stop(unsigned int cpu, struct pt_regs *regs)
 {
 #ifdef CONFIG_KEXEC_CORE
 	crash_save_cpu(regs, cpu);
-
+#ifdef CONFIG_AXERA_MEMORY_DUMP
+	axera_crash_save_cpu(regs, cpu);
+#endif
 	atomic_dec(&waiting_for_crash_ipi);
 
 	local_irq_disable();

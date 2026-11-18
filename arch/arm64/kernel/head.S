@@ -44,6 +44,10 @@
 
 #include "efi-header.S"
 
+#ifdef CONFIG_AX_DEBUG_BOOT_TIME
+#include <linux/soc/axera/chip_reg.h>
+#endif
+
 #define __PHYS_OFFSET	(KERNEL_START - TEXT_OFFSET)
 
 #if (TEXT_OFFSET & 0xfff) != 0
@@ -114,6 +118,12 @@ pe_header:
 	 *  x19/x20    __primary_switch()         callee preserved temp registers
 	 */
 ENTRY(stext)
+#ifdef CONFIG_AX_DEBUG_BOOT_TIME
+	mov x10, #(DEBUG_REG_BASE + 0x20)          // set iram addr
+	mov x11, #TIMER64_0_BASE      // set tmr addrs
+	ldr x12, [x11]           // read tmr to x12
+	str x12, [x10]           // write tmr to iram
+#endif
 	bl	preserve_boot_args
 	bl	el2_setup			// Drop to EL1, w0=cpu_boot_mode
 	adrp	x23, __PHYS_OFFSET

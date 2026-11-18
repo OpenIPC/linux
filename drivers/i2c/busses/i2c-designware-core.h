@@ -68,6 +68,8 @@
 #define DW_IC_SDA_HOLD		0x7c
 #define DW_IC_TX_ABRT_SOURCE	0x80
 #define DW_IC_ENABLE_STATUS	0x9c
+#define DW_IC_FS_SPKLEN		0xa0
+#define DW_IC_HS_SPKLEN		0xa4
 #define DW_IC_CLR_RESTART_DET	0xa8
 #define DW_IC_COMP_PARAM_1	0xf4
 #define DW_IC_COMP_VERSION	0xf8
@@ -227,7 +229,9 @@ struct dw_i2c_dev {
 	void __iomem		*base;
 	struct completion	cmd_complete;
 	struct clk		*clk;
+	struct clk		*pclk;
 	struct reset_control	*rst;
+	struct reset_control	*prst;
 	struct i2c_client		*slave;
 	u32			(*get_clk_rate_khz) (struct dw_i2c_dev *dev);
 	struct dw_pci_controller *controller;
@@ -271,7 +275,12 @@ struct dw_i2c_dev {
 	int			(*init)(struct dw_i2c_dev *dev);
 	int			mode;
 	struct i2c_bus_recovery_info rinfo;
+	u32			i2c_id;
+	bool			i2c_probe_status;
+	u32			poll_mode;
+	spinlock_t		lock;
 };
+extern void __iomem *i2c_clk_reg;
 
 #define ACCESS_SWAP		0x00000001
 #define ACCESS_16BIT		0x00000002
@@ -322,3 +331,9 @@ extern void i2c_dw_remove_lock_support(struct dw_i2c_dev *dev);
 static inline int i2c_dw_probe_lock_support(struct dw_i2c_dev *dev) { return 0; }
 static inline void i2c_dw_remove_lock_support(struct dw_i2c_dev *dev) {}
 #endif
+
+#ifndef CONFIG_PM
+int ax_i2c_prepare_hardware(struct device *dev);
+int ax_i2c_unprepare_hardware(struct device *dev);
+#endif
+void ax_i2c_clk(int ax_clk_id, bool on);

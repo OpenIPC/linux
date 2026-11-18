@@ -39,7 +39,11 @@ static void i2c_gpio_setsda_val(void *data, int state)
 {
 	struct i2c_gpio_private_data *priv = data;
 
+#ifdef CONFIG_ARCH_AXERA
+	gpiod_direction_output(priv->sda, state);
+#else
 	gpiod_set_value_cansleep(priv->sda, state);
+#endif
 }
 
 /*
@@ -52,21 +56,36 @@ static void i2c_gpio_setscl_val(void *data, int state)
 {
 	struct i2c_gpio_private_data *priv = data;
 
+#ifdef CONFIG_ARCH_AXERA
+	gpiod_direction_output(priv->scl, state);
+#else
 	gpiod_set_value_cansleep(priv->scl, state);
+#endif
 }
 
 static int i2c_gpio_getsda(void *data)
 {
 	struct i2c_gpio_private_data *priv = data;
 
+#ifdef CONFIG_ARCH_AXERA
+	gpiod_direction_input(priv->sda);
 	return gpiod_get_value_cansleep(priv->sda);
+#else
+	return gpiod_get_value_cansleep(priv->sda);
+
+#endif
 }
 
 static int i2c_gpio_getscl(void *data)
 {
 	struct i2c_gpio_private_data *priv = data;
 
+#ifdef CONFIG_ARCH_AXERA
+	gpiod_direction_input(priv->scl);
 	return gpiod_get_value_cansleep(priv->scl);
+#else
+	return gpiod_get_value_cansleep(priv->scl);
+#endif
 }
 
 #ifdef CONFIG_I2C_GPIO_FAULT_INJECTOR

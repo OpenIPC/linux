@@ -85,6 +85,21 @@ do {									\
 #define SS_WRITE_ERROR				0x030c02
 #define SS_WRITE_PROTECTED			0x072700
 
+// ### SIPEED EDIT ###
+/* Some used profiles from MMC-3 */
+#define MMC_PROFILE_NONE		0x0000
+#define MMC_PROFILE_CD_ROM		0x0008
+#define MMC_PROFILE_DVD_ROM		0x0010
+
+/*
+ * Maximum number of sectors of CD with MSF addressing.
+ * A bit paranoid value is calculated based on standard
+ * and store_cdrom_address() implementation.
+ * It is assumed that bigger images will be handled as DVD.
+ */
+#define CD_MAX_MSF_SECTORS	((255 * 59 * 74) - (2 * 75))
+// ### SIPEED EDIT END ###
+
 #define SK(x)		((u8) ((x) >> 16))	/* Sense Key byte, etc. */
 #define ASC(x)		((u8) ((x) >> 8))
 #define ASCQ(x)		((u8) (x))
@@ -120,6 +135,10 @@ struct fsg_lun {
 	const char	*name;		/* "lun.name" */
 	const char	**name_pfx;	/* "function.name" */
 	char		inquiry_string[INQUIRY_STRING_LEN];
+	// ### SIPEED EDIT ###
+	unsigned int	cd_as_dvd:1; /* Handle big CD as DVD if cdrom == 1 */
+	char		inquiry_string_cdrom[INQUIRY_STRING_LEN];
+	// ### SIPEED EDIT END ###
 };
 
 static inline bool fsg_lun_is_open(struct fsg_lun *curlun)
@@ -177,6 +196,15 @@ static inline u32 get_unaligned_be24(u8 *buf)
 	return 0xffffff & (u32) get_unaligned_be32(buf - 1);
 }
 
+// ### SIPEED EDIT ###
+static inline void put_unaligned_be24(const u32 val, u8 *p)
+{
+	*p++ = val >> 16;
+	*p++ = val >> 8;
+	*p++ = val;
+}
+// ### SIPEED EDIT END ###
+
 static inline struct fsg_lun *fsg_lun_from_dev(struct device *dev)
 {
 	return container_of(dev, struct fsg_lun, dev);
@@ -224,5 +252,12 @@ ssize_t fsg_store_removable(struct fsg_lun *curlun, const char *buf,
 			    size_t count);
 ssize_t fsg_store_inquiry_string(struct fsg_lun *curlun, const char *buf,
 				 size_t count);
+// ### SIPEED EDIT ###
+ssize_t fsg_show_inquiry_string_cdrom(struct fsg_lun *curlun, char *buf);
+ssize_t fsg_store_inquiry_string_cdrom(struct fsg_lun *curlun, const char *buf,
+				 size_t count);
+ssize_t fsg_store_forced_eject(struct fsg_lun *curlun, struct rw_semaphore *filesem,
+			       const char *buf, size_t count);
+// ### SIPEED EDIT END ###
 
 #endif /* USB_STORAGE_COMMON_H */

@@ -1,0 +1,37 @@
+# axera kernel debugging configs
+
+### Kernel Memory Leak Detector (KMEMLEAK)
+CONFIG_DEBUG_KMEMLEAK=y
+
+### The Kernel Address Sanitizer (KASAN)
+CONFIG_KASAN=y
+
+### The Kernel Concurrency Sanitizer (KCSAN)
+CONFIG_KCSAN=y
+
+### The Undefined Behavior Sanitizer - UBSAN
+CONFIG_UBSAN=y
+CONFIG_UBSAN_SANITIZE_ALL=y
+
+### Slub Debug
+# DO NOT support slub debug by default, because it conflicts with KASAN
+# CONFIG_SLUB=y
+# CONFIG_SLUB_DEBUG=y
+# CONFIG_SLUB_DEBUG_ON=y
+
+### lockdep
+CONFIG_PROVE_LOCKING=y
+CONFIG_DEBUG_LOCK_ALLOC=y
+CONFIG_LOCK_STAT=y
+CONFIG_DEBUG_LOCKDEP=y
+CONFIG_DEBUG_SPINLOCK=y
+CONFIG_DEBUG_MUTEXES=y
+CONFIG_DEBUG_ATOMIC_SLEEP=y
+CONFIG_DEBUG_LOCKING_API_SELFTESTS=y
+
+### Stack overflow check
+CONFIG_SCHED_STACK_END_CHECK=y
+
+### disable stack frame check
+CONFIG_FRAME_WARN=0
+

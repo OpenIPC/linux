@@ -1,0 +1,60 @@
+// AXERA : AX620E clk
+ /*
+  * DTS file for AXERA : AX620E RESET
+  *
+  * Copyright (C) 2023 AXERA Copyright, Inc.
+  */
+
+        cpu_clk: cpu_clk@1900000 {
+            compatible = "axera,ax620x-cpu-clk", "syscon";
+            reg = <0x0 0x1900000 0x0 0x10000>;
+            #clock-cells = <1>;
+        };
+
+        common_clk: common_clk@2340000 {
+            compatible = "axera,ax620x-common-clk", "syscon";
+            reg = <0x0 0x2340000 0x0 0x10000>;
+            #clock-cells = <1>;
+        };
+
+        dispc_clk: dispc_clk@4600000 {
+            compatible = "axera,ax620x-dispc-clk", "syscon";
+            reg = <0x0 0x4600000 0x0 0x10000>;
+            #clock-cells = <1>;
+        };
+
+        flash_clk: flash_clk@10030000 {
+            compatible = "axera,ax620x-flash-clk", "syscon";
+            reg = <0x0 0x10030000 0x0 0x10000>;
+            #clock-cells = <1>;
+        };
+
+        isp_clk: isp_clk@2500000 {
+            compatible = "axera,ax620x-isp-clk", "syscon";
+            reg = <0x0 0x2500000 0x0 0x10000>;
+            #clock-cells = <1>;
+        };
+
+        mm_clk: mm_clk@4430000 {
+            compatible = "axera,ax620x-mm-clk", "syscon";
+            reg = <0x0 0x4430000 0x0 0x10000>;
+            #clock-cells = <1>;
+        };
+
+        periph_clk: periph_clk@4870000 {
+            compatible = "axera,ax620x-periph-clk", "syscon";
+            reg = <0x0 0x4870000 0x0 0x10000>;
+            #clock-cells = <1>;
+        };
+
+        vpu_clk: vpu_clk@4030000 {
+            compatible = "axera,ax620x-vpu-clk", "syscon";
+            reg = <0x0 0x4030000 0x0 0x10000>;
+            #clock-cells = <1>;
+        };
+
+        pllc_clk: pllc_clk@2210000 {
+            compatible = "axera,ax620x-pllc-clk", "syscon";
+            reg = <0x0 0x2210000 0x0 0x10000>;
+            #clock-cells = <1>;
+        };

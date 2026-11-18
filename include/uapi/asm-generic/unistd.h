@@ -736,9 +736,14 @@ __SYSCALL(__NR_statx,     sys_statx)
 __SC_COMP(__NR_io_pgetevents, sys_io_pgetevents, compat_sys_io_pgetevents)
 #define __NR_rseq 293
 __SYSCALL(__NR_rseq, sys_rseq)
+/* kernel/axprintk.c */
+#define __NR_axsyslog 449
+__SYSCALL(__NR_axsyslog, sys_axsyslog)
+#define __NR_ax_local_clock 450
+__SYSCALL(__NR_ax_local_clock, sys_ax_local_clock)
 
 #undef __NR_syscalls
-#define __NR_syscalls 294
+#define __NR_syscalls 451
 
 /*
  * 32 bit systems traditionally used different

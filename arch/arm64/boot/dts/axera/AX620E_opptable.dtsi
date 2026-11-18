@@ -1,0 +1,503 @@
+/ {
+	/*
+	aclk_top_dfs:aclk_top_dfs {
+		compatible = "operating-points-v2";
+		aclk-top-24 {
+			opp-hz = /bits/ 64 <24000000>;
+		};
+		aclk-top-624 {
+			opp-hz = /bits/ 64 <624000000>;
+		};
+		aclk-top-700 {
+			opp-hz = /bits/ 64 <700000000>;
+		};
+		aclk-top-750 {
+			opp-hz = /bits/ 64 <750000000>;
+		};
+		aclk-top-800 {
+			opp-hz = /bits/ 64 <800000000>;
+		};
+	};
+	*/
+
+	cpu_opp_table: cpu_opp_table {
+		compatible = "operating-points-v2";
+		opp-shared;
+
+		opp00 {
+			opp-hz = /bits/ 64 <24000000>;
+		};
+		opp01 {
+			opp-hz = /bits/ 64 <208000000>;
+		};
+		opp02 {
+			opp-hz = /bits/ 64 <500000000>;
+		};
+		opp03 {
+			opp-hz = /bits/ 64 <800000000>;
+		};
+		opp04 {
+			opp-hz = /bits/ 64 <1200000000>;
+		};
+	};
+
+	aclk_cpu_top_dfs:aclk_cpu_top_dfs {
+		compatible = "operating-points-v2";
+		aclk-cpu-top-24 {
+			opp-hz = /bits/ 64 <24000000>;
+		};
+		aclk-cpu-top-208 {
+			opp-hz = /bits/ 64 <208000000>;
+		};
+		aclk-cpu-top-312 {
+			opp-hz = /bits/ 64 <312000000>;
+		};
+		aclk-cpu-top-416 {
+			opp-hz = /bits/ 64 <416000000>;
+		};
+		aclk-cpu-top-500 {
+			opp-hz = /bits/ 64 <500000000>;
+		};
+		aclk-cpu-top-533 {
+			opp-hz = /bits/ 64 <533333333>;
+		};
+	};
+
+	aclk_isp_top_dfs:aclk_isp_top_dfs {
+		compatible = "operating-points-v2";
+		aclk-isp-top-24 {
+			opp-hz = /bits/ 64 <24000000>;
+		};
+		aclk-isp-top-208 {
+			opp-hz = /bits/ 64 <208000000>;
+		};
+		aclk-isp-top-312 {
+			opp-hz = /bits/ 64 <312000000>;
+		};
+		aclk-isp-top-416 {
+			opp-hz = /bits/ 64 <416000000>;
+		};
+		aclk-isp-top-500 {
+			opp-hz = /bits/ 64 <500000000>;
+		};
+		aclk-isp-top-533 {
+			opp-hz = /bits/ 64 <533333333>;
+		};
+	};
+
+	aclk_vpu_top_dfs:aclk_vpu_top_dfs {
+		compatible = "operating-points-v2";
+		aclk-vpu-top-24 {
+			opp-hz = /bits/ 64 <24000000>;
+		};
+		aclk-vpu-top-208 {
+			opp-hz = /bits/ 64 <208000000>;
+		};
+		aclk-vpu-top-312 {
+			opp-hz = /bits/ 64 <312000000>;
+		};
+		aclk-vpu-top-416 {
+			opp-hz = /bits/ 64 <416000000>;
+		};
+		aclk-vpu-top-500 {
+			opp-hz = /bits/ 64 <500000000>;
+		};
+		aclk-vpu-top-533 {
+			opp-hz = /bits/ 64 <533333333>;
+		};
+	};
+
+	aclk_ocm_top_dfs:aclk_ocm_top_dfs {
+		compatible = "operating-points-v2";
+		aclk-ocm-top-24 {
+			opp-hz = /bits/ 64 <24000000>;
+		};
+		aclk-ocm-top-208 {
+			opp-hz = /bits/ 64 <208000000>;
+		};
+		aclk-ocm-top-312 {
+			opp-hz = /bits/ 64 <312000000>;
+		};
+		aclk-ocm-top-416 {
+			opp-hz = /bits/ 64 <416000000>;
+		};
+		aclk-ocm-top-500 {
+			opp-hz = /bits/ 64 <500000000>;
+		};
+		aclk-ocm-top-533 {
+			opp-hz = /bits/ 64 <533333333>;
+		};
+	};
+
+	aclk_nn_top_dfs:aclk_nn_top_dfs {
+		compatible = "operating-points-v2";
+		aclk-nn-top-24 {
+			opp-hz = /bits/ 64 <24000000>;
+		};
+		aclk-nn-top-208 {
+			opp-hz = /bits/ 64 <208000000>;
+		};
+		aclk-nn-top-312 {
+			opp-hz = /bits/ 64 <312000000>;
+		};
+		aclk-nn-top-416 {
+			opp-hz = /bits/ 64 <416000000>;
+		};
+		aclk-nn-top-500 {
+			opp-hz = /bits/ 64 <500000000>;
+		};
+		aclk-nn-top-533 {
+			opp-hz = /bits/ 64 <533333333>;
+		};
+	};
+
+	aclk_mm_top_dfs:aclk_mm_top_dfs {
+		compatible = "operating-points-v2";
+		aclk-mm-top-24 {
+			opp-hz = /bits/ 64 <24000000>;
+		};
+		aclk-mm-top-208 {
+			opp-hz = /bits/ 64 <208000000>;
+		};
+		aclk-mm-top-312 {
+			opp-hz = /bits/ 64 <312000000>;
+		};
+		aclk-mm-top-416 {
+			opp-hz = /bits/ 64 <416000000>;
+		};
+		aclk-mm-top-500 {
+			opp-hz = /bits/ 64 <500000000>;
+		};
+		aclk-mm-top-533 {
+			opp-hz = /bits/ 64 <533333333>;
+		};
+	};
+
+	clk_isp_mm_dfs:aclk_isp_mm_dfs {
+		compatible = "operating-points-v2";
+		clk-isp-mm-100 {
+			opp-hz = /bits/ 64 <100000000>;
+		};
+		clk-isp-mm-156 {
+			opp-hz = /bits/ 64 <156000000>;
+		};
+		clk-isp-mm-250 {
+			opp-hz = /bits/ 64 <250000000>;
+		};
+		clk-isp-mm-312 {
+			opp-hz = /bits/ 64 <312000000>;
+		};
+		clk-isp-mm-416 {
+			opp-hz = /bits/ 64 <416000000>;
+		};
+	};
+
+	pclk_top_dfs:pclk_top_dfs {
+		compatible = "operating-points-v2";
+		pclk-top-24 {
+			opp-hz = /bits/ 64 <24000000>;
+		};
+		pclk-top-100 {
+			opp-hz = /bits/ 64 <100000000>;
+		};
+		pclk-top-156 {
+			opp-hz = /bits/ 64 <156000000>;
+		};
+		pclk-top-208 {
+			opp-hz = /bits/ 64 <208000000>;
+		};
+	};
+
+	vpp_dfs:vpp_dfs {
+		compatible = "operating-points-v2";
+		vpp-24 {
+			opp-hz = /bits/ 64 <24000000>;
+		};
+		vpp-208 {
+			opp-hz = /bits/ 64 <208000000>;
+		};
+		vpp-312 {
+			opp-hz = /bits/ 64 <312000000>;
+		};
+		vpp-416 {
+			opp-hz = /bits/ 64 <416000000>;
+		};
+		vpp-500 {
+			opp-hz = /bits/ 64 <500000000>;
+		};
+		vpp-533 {
+			opp-hz = /bits/ 64 <533333333>;
+		};
+	};
+
+	tdp_dfs:tdp_dfs {
+		compatible = "operating-points-v2";
+		tdp-24 {
+			opp-hz = /bits/ 64 <24000000>;
+		};
+		tdp-208 {
+			opp-hz = /bits/ 64 <208000000>;
+		};
+		tdp-312 {
+			opp-hz = /bits/ 64 <312000000>;
+		};
+		tdp-416 {
+			opp-hz = /bits/ 64 <416000000>;
+		};
+		tdp-500 {
+			opp-hz = /bits/ 64 <500000000>;
+		};
+		tdp-533 {
+			opp-hz = /bits/ 64 <533333333>;
+		};
+	};
+
+	gdc_dfs:gdc_dfs {
+		compatible = "operating-points-v2";
+		gdc-24 {
+			opp-hz = /bits/ 64 <24000000>;
+		};
+		gdc-208 {
+			opp-hz = /bits/ 64 <208000000>;
+		};
+		gdc-312 {
+			opp-hz = /bits/ 64 <312000000>;
+		};
+		gdc-416 {
+			opp-hz = /bits/ 64 <416000000>;
+		};
+		gdc-500 {
+			opp-hz = /bits/ 64 <500000000>;
+		};
+		gdc-533 {
+			opp-hz = /bits/ 64 <533333333>;
+		};
+	};
+
+	vo0_dfs: vo0_dfs {
+		compatible = "operating-points-v2";
+
+		vo-24 {
+			opp-hz = /bits/ 64 <24000000>;
+		};
+
+		vo-208 {
+			opp-hz = /bits/ 64 <208000000>;
+		};
+
+		vo-312 {
+			opp-hz = /bits/ 64 <312000000>;
+		};
+
+		vo-416 {
+			opp-hz = /bits/ 64 <416000000>;
+		};
+
+		vo-500 {
+			opp-hz = /bits/ 64 <500000000>;
+		};
+
+		vo-533 {
+			opp-hz = /bits/ 64 <533333333>;
+		};
+	};
+
+	ddr_dfs_table: ddr_dfs_table {
+		compatible = "operating-points-v2";
+		ddr-3200 {
+			opp-hz = /bits/ 64 <3200>;
+		};
+		ddr-1600 {
+			opp-hz = /bits/ 64 <1600>;
+		};
+	};
+
+	vo1_dfs: vo1_dfs {
+		compatible = "operating-points-v2";
+
+		vo-24 {
+			opp-hz = /bits/ 64 <24000000>;
+		};
+
+		vo-208 {
+			opp-hz = /bits/ 64 <208000000>;
+		};
+
+		vo-312 {
+			opp-hz = /bits/ 64 <312000000>;
+		};
+
+		vo-416 {
+			opp-hz = /bits/ 64 <416000000>;
+		};
+
+		vo-500 {
+			opp-hz = /bits/ 64 <500000000>;
+		};
+
+		vo-533 {
+			opp-hz = /bits/ 64 <533333333>;
+		};
+	};
+	venc_dfs:venc_dfs {
+		compatible = "operating-points-v2";
+		venc-208 {
+			opp-hz = /bits/ 64 <208000000>;
+		};
+		venc-312 {
+			opp-hz = /bits/ 64 <312000000>;
+		};
+		venc-375 {
+			opp-hz = /bits/ 64 <375000000>;
+		};
+		venc-416 {
+			opp-hz = /bits/ 64 <416000000>;
+		};
+		venc-500 {
+			opp-hz = /bits/ 64 <500000000>;
+		};
+		venc-533 {
+			opp-hz = /bits/ 64 <533333333>;
+		};
+	};
+	jenc_dfs:jenc_dfs {
+		compatible = "operating-points-v2";
+		jenc-208 {
+			opp-hz = /bits/ 64 <208000000>;
+		};
+		jenc-312 {
+			opp-hz = /bits/ 64 <312000000>;
+		};
+		jenc-375 {
+			opp-hz = /bits/ 64 <375000000>;
+		};
+		jenc-416 {
+			opp-hz = /bits/ 64 <416000000>;
+		};
+		jenc-500 {
+			opp-hz = /bits/ 64 <500000000>;
+		};
+		jenc-533 {
+			opp-hz = /bits/ 64 <533333333>;
+		};
+	};
+	vdec_dfs:vdec_dfs {
+		compatible = "operating-points-v2";
+		vdec-208 {
+			opp-hz = /bits/ 64 <208000000>;
+		};
+		vdec-312 {
+			opp-hz = /bits/ 64 <312000000>;
+		};
+		vdec-375 {
+			opp-hz = /bits/ 64 <375000000>;
+		};
+		vdec-416 {
+			opp-hz = /bits/ 64 <416000000>;
+		};
+		vdec-500 {
+			opp-hz = /bits/ 64 <500000000>;
+		};
+		vdec-533 {
+			opp-hz = /bits/ 64 <533333333>;
+		};
+	};
+
+	npu_opp_table: npu_opp_table {
+		compatible = "operating-points-v2";
+		opp_800 {
+			opp-hz = /bits/ 64 <800000000>;
+		};
+		opp_594 {
+			opp-hz = /bits/ 64 <594000000>;
+		};
+		opp_500 {
+			opp-hz = /bits/ 64 <500000000>;
+		};
+		opp_416 {
+			opp-hz = /bits/ 64 <416000000>;
+		};
+		opp_24 {
+			opp-hz = /bits/ 64 <24000000>;
+		};
+	};
+	ive_dfs:ive_dfs {
+		compatible = "operating-points-v2";
+		ive-24 {
+			opp-hz = /bits/ 64 <24000000>;
+		};
+		ive-208 {
+			opp-hz = /bits/ 64 <208000000>;
+		};
+		ive-312 {
+			opp-hz = /bits/ 64 <312000000>;
+		};
+		ive-416 {
+			opp-hz = /bits/ 64 <416000000>;
+		};
+		ive-500 {
+			opp-hz = /bits/ 64 <500000000>;
+		};
+		ive-533 {
+			opp-hz = /bits/ 64 <533333333>;
+		};
+	};
+
+	isp_top_table:isp_top_opp_table{
+		compatible = "operating-points-v2";
+		opp-24000000 {
+			opp-hz = /bits/ 64 <24000000>;
+		};
+		opp-156000000 {
+			opp-hz = /bits/ 64 <156000000>;
+		};
+		opp-208000000 {
+			opp-hz = /bits/ 64 <208000000>;
+		};
+		opp-250000000 {
+			opp-hz = /bits/ 64 <250000000>;
+		};
+		opp-312000000 {
+			opp-hz = /bits/ 64 <312000000>;
+		};
+		opp-416000000 {
+			opp-hz = /bits/ 64 <416000000>;
+		};
+	};
+	isp_axi_table:isp_axi_opp_table{
+		compatible = "operating-points-v2";
+		opp-24000000 {
+			opp-hz = /bits/ 64 <24000000>;
+		};
+		opp-208000000 {
+			opp-hz = /bits/ 64 <208000000>;
+		};
+		opp-312000000 {
+			opp-hz = /bits/ 64 <312000000>;
+		};
+		opp-416000000 {
+			opp-hz = /bits/ 64 <416000000>;
+		};
+		opp-500000000 {
+			opp-hz = /bits/ 64 <500000000>;
+		};
+		opp-533000000 {
+			opp-hz = /bits/ 64 <533333333>;
+		};
+	};
+	isp_ir_table:isp_ir_opp_table{
+		compatible = "operating-points-v2";
+		opp-100000000 {
+			opp-hz = /bits/ 64 <100000000>;
+		};
+		opp-208000000 {
+			opp-hz = /bits/ 64 <208000000>;
+		};
+		opp-250000000 {
+			opp-hz = /bits/ 64 <250000000>;
+		};
+		opp-297000000 {
+			opp-hz = /bits/ 64 <297000000>;
+		};
+	};
+};

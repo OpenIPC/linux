@@ -169,6 +169,9 @@ static int stmmac_mdio_read(struct mii_bus *bus, int phyaddr, int phyreg)
 	int data;
 	u32 value = MII_BUSY;
 
+#ifdef CONFIG_DWMAC_AXERA_HAPS
+	priv->clk_csr = 0;
+#endif
 	value |= (phyaddr << priv->hw->mii.addr_shift)
 		& priv->hw->mii.addr_mask;
 	value |= (phyreg << priv->hw->mii.reg_shift) & priv->hw->mii.reg_mask;
@@ -211,6 +214,9 @@ static int stmmac_mdio_write(struct mii_bus *bus, int phyaddr, int phyreg,
 	u32 v;
 	u32 value = MII_BUSY;
 
+#ifdef CONFIG_DWMAC_AXERA_HAPS
+	priv->clk_csr = 0;
+#endif
 	value |= (phyaddr << priv->hw->mii.addr_shift)
 		& priv->hw->mii.addr_mask;
 	value |= (phyreg << priv->hw->mii.reg_shift) & priv->hw->mii.reg_mask;
@@ -248,6 +254,9 @@ int stmmac_mdio_reset(struct mii_bus *bus)
 	struct stmmac_priv *priv = netdev_priv(ndev);
 	unsigned int mii_address = priv->hw->mii.addr;
 	struct stmmac_mdio_bus_data *data = priv->plat->mdio_bus_data;
+#ifdef CONFIG_DWMAC_AXERA
+	int ret = 0;
+#endif
 
 #ifdef CONFIG_OF
 	if (priv->device->of_node) {
@@ -272,8 +281,15 @@ int stmmac_mdio_reset(struct mii_bus *bus)
 				return 0;
 		}
 
+#ifndef CONFIG_DWMAC_AXERA
 		gpio_direction_output(data->reset_gpio,
 				      data->active_low ? 1 : 0);
+#else
+		ret = gpio_direction_output(data->reset_gpio,
+				      data->active_low ? 1 : 0);
+		if(ret)
+			return 0;
+#endif
 		if (data->delays[0])
 			msleep(DIV_ROUND_UP(data->delays[0], 1000));
 

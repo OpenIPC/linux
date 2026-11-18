@@ -8,6 +8,7 @@
  * Copyright (C) 2007 MontaVista Software Inc.
  * Copyright (C) 2009 Provigent Ltd.
  */
+#include "linux/spinlock.h"
 #include <linux/delay.h>
 #include <linux/err.h>
 #include <linux/errno.h>
@@ -19,8 +20,14 @@
 #include <linux/module.h>
 #include <linux/pm_runtime.h>
 #include <linux/reset.h>
+#include <linux/pinctrl/consumer.h>
+#include <linux/iopoll.h>
+#include <linux/i2c.h>
 
+#include "../i2c-core.h"
 #include "i2c-designware-core.h"
+
+static u32 i2c_dw_read_clear_intrbits(struct dw_i2c_dev *dev);
 
 static void i2c_dw_configure_fifo_master(struct dw_i2c_dev *dev)
 {
@@ -230,6 +237,202 @@ static void i2c_dw_xfer_init(struct dw_i2c_dev *dev)
 	dw_writel(dev, DW_IC_INTR_MASTER_MASK, DW_IC_INTR_MASK);
 }
 
+#ifdef CONFIG_AX_RISCV_SUPPORT
+#include "linux/soc/axera/chip_reg.h"
+static int ax_get_riscv_use_status(struct dw_i2c_dev *dev)
+{
+	u32 *regs, status;
+	// riscv i2c status, dummy_sw12, bit[7:0], 1 is using
+	regs = (u32 *)ioremap(COMM_SYS_GLB_DUMMY_SW12, 4);
+	status = *regs & BIT(dev->i2c_id);
+	iounmap((void *)regs);
+
+	return status;
+}
+#endif
+
+static int i2c_dw_xfer_poll(struct i2c_adapter *adap, struct i2c_msg *msgs, int num_msgs)
+{
+	struct dw_i2c_dev *dev = i2c_get_adapdata(adap);
+	int msg_wrt_idx, msg_itr_lmt, buf_len, data_idx, ret = -1, all_buf_len = 0;
+	int cmd = 0, status;
+	u8 *buf;
+
+	#ifdef CONFIG_AX_RISCV_SUPPORT
+	if (!dev->i2c_probe_status) {
+		if (!ax_get_riscv_use_status(dev)) {
+			ret = i2c_dw_set_timings_master(dev);
+			if (ret)
+				return ret;
+
+			ret = dev->init(dev);
+			if (ret)
+				return ret;
+			dev->i2c_probe_status = true;
+		} else {
+			dev_err(dev->dev, "%s busy, risc-v using\n", dev_name(dev->dev));
+			return EBUSY;
+		}
+	}
+	#endif
+
+	#ifndef CONFIG_PM
+	ax_i2c_prepare_hardware(&adap->dev);
+	#endif
+
+	dev_dbg(dev->dev, "%s: msgs: %d\n", __func__, num_msgs);
+
+	pm_runtime_get_sync(dev->dev);
+
+	dev->msgs = msgs;
+	dev->msgs_num = num_msgs;
+	dev->msg_write_idx = 0;
+	dev->abort_source = 0;
+	disable_irq_nosync(dev->irq);
+	i2c_dw_xfer_init(dev);
+
+	/* Initiate messages read/write transaction */
+	for (msg_wrt_idx = 0; msg_wrt_idx < num_msgs; msg_wrt_idx++) {
+		buf = msgs[msg_wrt_idx].buf;
+		buf_len = msgs[msg_wrt_idx].len;
+		all_buf_len += buf_len;
+		data_idx = 0;
+		for (msg_itr_lmt = buf_len; msg_itr_lmt > 0; msg_itr_lmt--) {
+			if (msg_wrt_idx == num_msgs - 1 && msg_itr_lmt == 1)
+				cmd |= BIT(9);
+			if (msgs[msg_wrt_idx].flags & I2C_M_RD) {
+				dw_writel(dev, cmd | 0x100, DW_IC_DATA_CMD);
+				ret = readl_poll_timeout_atomic(dev->base + DW_IC_INTR_STAT, status,
+						status & DW_IC_INTR_RX_FULL, 1, 500000);
+				if (ret) {
+					dev->abort_source = dw_readl(dev, DW_IC_TX_ABRT_SOURCE);
+					/* none ack */
+					if (dev->abort_source & (GENMASK(2,0) | BIT(18))) {
+						goto nodetect;
+					}
+					dev_err(dev->dev, "%s-%d rx full timeout status %d dev->abort_source %d\n",
+							__FUNCTION__, __LINE__, status, dev->abort_source);
+					goto end;
+				}
+				*buf++ = dw_readl(dev, DW_IC_DATA_CMD);
+			} else {
+				dw_writel(dev, *buf++ | cmd, DW_IC_DATA_CMD);
+				/* detect is err */
+				ret = readl_poll_timeout_atomic(dev->base + DW_IC_INTR_STAT, status,
+				       status & DW_IC_INTR_TX_EMPTY, 1, 500000);
+				if (ret) {
+					dev_err(dev->dev, "%s-%d tx empty timeout\n", __FUNCTION__, __LINE__);
+					goto end;
+				}
+			}
+		}
+	}
+	if (!msg_itr_lmt) {
+		ret = readl_poll_timeout_atomic(dev->base + DW_IC_INTR_STAT, status,
+			status & DW_IC_INTR_STOP_DET, 1, 500000);
+		if (ret) {
+			dev_err(dev->dev, "%s-%d stop detect timeout\n", __FUNCTION__, __LINE__);
+		}
+	}
+end:
+	if (status & DW_IC_INTR_TX_ABRT) {
+		dev_err(dev->dev, "%s-%d DW_IC_INTR_TX_ABRT msg_wrt_idx %d\n", __FUNCTION__, __LINE__, msg_wrt_idx);
+		dev->abort_source = dw_readl(dev, DW_IC_TX_ABRT_SOURCE);
+		dw_readl(dev, DW_IC_CLR_TX_ABRT);
+		ret = i2c_dw_handle_tx_abort(dev);
+	}
+nodetect:
+	i2c_dw_read_clear_intrbits(dev);
+	i2c_dw_disable_int(dev);
+	enable_irq(dev->irq);
+
+	pm_runtime_mark_last_busy(dev->dev);
+	pm_runtime_put_autosuspend(dev->dev);
+
+#ifndef CONFIG_PM
+	ax_i2c_unprepare_hardware(&adap->dev);
+#endif
+	return msg_wrt_idx;
+}
+
+/**
+ * i2c_transfer_poll - execute a single or combined I2C message
+ * @adap: Handle to I2C bus
+ * @msgs: One or more messages to execute before STOP is issued to
+ *	terminate the operation; each message begins with a START.
+ * @num: Number of messages to be executed.
+ *
+ * Returns negative errno, else the number of messages executed.
+ *
+ * Note that there is no requirement that each message be sent to
+ * the same slave address, although that is the most common model.
+ */
+int i2c_transfer_poll(struct i2c_adapter *adap, struct i2c_msg *msgs, int num)
+{
+	struct dw_i2c_dev *dev = i2c_get_adapdata(adap);
+	int ret;
+	unsigned long flags;
+
+	if (WARN_ON(!msgs || num < 1))
+		return -EINVAL;
+
+	spin_lock_irqsave(&dev->lock, flags);
+	ret = i2c_dw_xfer_poll(adap, msgs, num);
+	spin_unlock_irqrestore(&dev->lock, flags);
+	return ret;
+}
+EXPORT_SYMBOL(i2c_transfer_poll);
+
+static inline int i2c_transfer_buffer_flags_poll(const struct i2c_client *client, char *buf,
+			      int count, u16 flags)
+{
+	int ret;
+	struct i2c_msg msg = {
+		.addr = client->addr,
+		.flags = flags | (client->flags & I2C_M_TEN),
+		.len = count,
+		.buf = buf,
+	};
+
+	ret = i2c_transfer_poll(client->adapter, &msg, 1);
+
+	/*
+	 * If everything went ok (i.e. 1 msg transferred), return #bytes
+	 * transferred, else error code.
+	 */
+	return (ret == 1) ? count : ret;
+}
+
+/**
+ * i2c_master_recv_poll - issue a single I2C message in master receive mode
+ * @client: Handle to slave device
+ * @buf: Where to store data read from slave
+ * @count: How many bytes to read, must be less than 64k since msg.len is u16
+ *
+ * Returns negative errno, or else the number of bytes read.
+ */
+int i2c_master_recv_poll(const struct i2c_client *client,
+				  char *buf, int count)
+{
+	return i2c_transfer_buffer_flags_poll(client, buf, count, I2C_M_RD);
+}
+EXPORT_SYMBOL(i2c_master_recv_poll);
+
+/**
+ * i2c_master_send_poll - issue a single I2C message in master transmit mode
+ * @client: Handle to slave device
+ * @buf: Data that will be written to the slave
+ * @count: How many bytes to write, must be less than 64k since msg.len is u16
+ *
+ * Returns negative errno, or else the number of bytes written.
+ */
+int i2c_master_send_poll(const struct i2c_client *client,
+				  const char *buf, int count)
+{
+	return i2c_transfer_buffer_flags_poll(client, (char *)buf, count, 0);
+}
+EXPORT_SYMBOL(i2c_master_send_poll);
+
 /*
  * Initiate (and continue) low level master read/write transaction.
  * This function is only called from i2c_dw_isr, and pumping i2c_msg
@@ -422,6 +625,31 @@ i2c_dw_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
 	struct dw_i2c_dev *dev = i2c_get_adapdata(adap);
 	int ret;
 
+	if (dev->poll_mode) {
+		return i2c_transfer_poll(adap, msgs, num);
+	}
+	#ifdef CONFIG_AX_RISCV_SUPPORT
+	if (!dev->i2c_probe_status) {
+		if (!ax_get_riscv_use_status(dev)) {
+			ret = i2c_dw_set_timings_master(dev);
+			if (ret)
+				return ret;
+
+			ret = dev->init(dev);
+			if (ret)
+				return ret;
+			dev->i2c_probe_status = true;
+		} else {
+			dev_err(dev->dev, "%s busy, risc-v using\n", dev_name(dev->dev));
+			return EBUSY;
+		}
+	}
+	#endif
+
+#ifndef CONFIG_PM
+	ax_i2c_prepare_hardware(&adap->dev);
+#endif
+
 	dev_dbg(dev->dev, "%s: msgs: %d\n", __func__, num);
 
 	pm_runtime_get_sync(dev->dev);
@@ -497,6 +725,10 @@ done:
 done_nolock:
 	pm_runtime_mark_last_busy(dev->dev);
 	pm_runtime_put_autosuspend(dev->dev);
+
+#ifndef CONFIG_PM
+	ax_i2c_unprepare_hardware(&adap->dev);
+#endif
 
 	return ret;
 }
@@ -632,16 +864,16 @@ static void i2c_dw_prepare_recovery(struct i2c_adapter *adap)
 	struct dw_i2c_dev *dev = i2c_get_adapdata(adap);
 
 	i2c_dw_disable(dev);
+	ax_i2c_clk(dev->i2c_id, false);
 	reset_control_assert(dev->rst);
-	i2c_dw_prepare_clk(dev, false);
 }
 
 static void i2c_dw_unprepare_recovery(struct i2c_adapter *adap)
 {
 	struct dw_i2c_dev *dev = i2c_get_adapdata(adap);
 
-	i2c_dw_prepare_clk(dev, true);
 	reset_control_deassert(dev->rst);
+	ax_i2c_clk(dev->i2c_id, true);
 	i2c_dw_init_master(dev);
 }
 
@@ -650,15 +882,17 @@ static int i2c_dw_init_recovery_info(struct dw_i2c_dev *dev)
 	struct i2c_bus_recovery_info *rinfo = &dev->rinfo;
 	struct i2c_adapter *adap = &dev->adapter;
 	struct gpio_desc *gpio;
-	int r;
 
-	gpio = devm_gpiod_get(dev->dev, "scl", GPIOD_OUT_HIGH);
-	if (IS_ERR(gpio)) {
-		r = PTR_ERR(gpio);
-		if (r == -ENOENT || r == -ENOSYS)
-			return 0;
-		return r;
+	rinfo->pinctrl = devm_pinctrl_get(dev->dev);
+	if (IS_ERR_OR_NULL(rinfo->pinctrl)) {
+		rinfo->pinctrl = NULL;
+		dev_info(dev->dev, "can't get pinctrl, bus recovery not supported\n");
 	}
+
+	gpio = devm_gpiod_get_optional(dev->dev, "scl", GPIOD_OUT_HIGH);
+	if (IS_ERR_OR_NULL(gpio))
+		return PTR_ERR_OR_ZERO(gpio);
+
 	rinfo->scl_gpiod = gpio;
 
 	gpio = devm_gpiod_get_optional(dev->dev, "sda", GPIOD_IN);
@@ -693,6 +927,18 @@ int i2c_dw_probe(struct dw_i2c_dev *dev)
 	if (ret)
 		return ret;
 
+#ifdef CONFIG_AX_RISCV_SUPPORT
+	if (!ax_get_riscv_use_status(dev)) {
+		dev->i2c_probe_status = true;
+		ret = i2c_dw_set_timings_master(dev);
+		if (ret)
+			return ret;
+
+		ret = dev->init(dev);
+		if (ret)
+			return ret;
+	}
+#else
 	ret = i2c_dw_set_timings_master(dev);
 	if (ret)
 		return ret;
@@ -700,6 +946,7 @@ int i2c_dw_probe(struct dw_i2c_dev *dev)
 	ret = dev->init(dev);
 	if (ret)
 		return ret;
+#endif
 
 	snprintf(adap->name, sizeof(adap->name),
 		 "Synopsys DesignWare I2C adapter");
@@ -739,6 +986,10 @@ int i2c_dw_probe(struct dw_i2c_dev *dev)
 	if (ret)
 		dev_err(dev->dev, "failure adding adapter: %d\n", ret);
 	pm_runtime_put_noidle(dev->dev);
+
+#ifndef CONFIG_PM
+	ax_i2c_unprepare_hardware(&adap->dev);
+#endif
 
 	return ret;
 }

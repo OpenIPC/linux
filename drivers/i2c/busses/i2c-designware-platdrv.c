@@ -33,9 +33,23 @@
 
 #include "i2c-designware-core.h"
 
+#define PERI_SYS_BASE			0x4870000
+#define PERI_SYS_BASE_LEN		0x100
+#define I2C_CLK_SOURCE			208000000	/*208M*/
+#define CLK_MUX_0_SET			0xA8	/*clk source set,bit3-4,00 24m,01,50m,10 156m,11 208m*/
+#define CLK_MUX_0_CLR			0xAC
+#define CLK_SOURCE_BIT			GENMASK(4, 3)
+#define CLK_EB_1_SET			0xB8	/*clk set,bit8 - 15*/
+#define CLK_EB_1_CLR			0xBC
+#define CLK_I2C_BIT(x)			BIT(8 + x)
+#define CLK_EB_2_SET			0xC0	/*pclk set,bit17 - 24*/
+#define CLK_EB_2_CLR			0xC4
+#define PCLK_I2C_BIT(x)			BIT(17 + x)
+void __iomem *i2c_clk_reg;
+static int source_set_flag;
 static u32 i2c_dw_get_clk_rate_khz(struct dw_i2c_dev *dev)
 {
-	return clk_get_rate(dev->clk)/1000;
+	return I2C_CLK_SOURCE / 1000;
 }
 
 #ifdef CONFIG_ACPI
@@ -173,6 +187,9 @@ static void i2c_dw_configure_master(struct dw_i2c_dev *dev)
 	dev->mode = DW_IC_MASTER;
 
 	switch (t->bus_freq_hz) {
+	case 50000:
+		dev->master_cfg |= DW_IC_CON_SPEED_STD;
+		break;
 	case 100000:
 		dev->master_cfg |= DW_IC_CON_SPEED_STD;
 		break;
@@ -225,6 +242,17 @@ static void dw_i2c_plat_pm_cleanup(struct dw_i2c_dev *dev)
 		pm_runtime_put_noidle(dev->dev);
 }
 
+void ax_i2c_clk(int ax_clk_id, bool on)
+{
+	if (on) {
+		writel(PCLK_I2C_BIT(ax_clk_id), i2c_clk_reg + CLK_EB_2_SET);
+		writel(CLK_I2C_BIT(ax_clk_id), i2c_clk_reg + CLK_EB_1_SET);
+	} else {
+		writel(PCLK_I2C_BIT(ax_clk_id), i2c_clk_reg + CLK_EB_2_CLR);
+		writel(CLK_I2C_BIT(ax_clk_id), i2c_clk_reg + CLK_EB_1_CLR);
+	}
+}
+
 static int dw_i2c_plat_probe(struct platform_device *pdev)
 {
 	struct dw_i2c_platform_data *pdata = dev_get_platdata(&pdev->dev);
@@ -233,7 +261,9 @@ static int dw_i2c_plat_probe(struct platform_device *pdev)
 	struct i2c_timings *t;
 	u32 acpi_speed;
 	struct resource *mem;
-	int i, irq, ret;
+	int i, irq, ret, clk_id;
+	u64 clk_khz;
+
 	static const int supported_speeds[] = {
 		0, 100000, 400000, 1000000, 3400000
 	};
@@ -254,15 +284,30 @@ static int dw_i2c_plat_probe(struct platform_device *pdev)
 	dev->dev = &pdev->dev;
 	dev->irq = irq;
 	platform_set_drvdata(pdev, dev);
-
-	dev->rst = devm_reset_control_get_optional_exclusive(&pdev->dev, NULL);
-	if (IS_ERR(dev->rst)) {
-		if (PTR_ERR(dev->rst) == -EPROBE_DEFER)
-			return -EPROBE_DEFER;
-	} else {
-		reset_control_deassert(dev->rst);
+	ret = device_property_read_u32(&pdev->dev, "poll_mode", &dev->poll_mode);
+	if (ret) {
+		dev->poll_mode = 0;
 	}
+	spin_lock_init(&dev->lock);
+	/* Optional interface clock */
+	device_property_read_u32(&pdev->dev, "ax_clk_id", &clk_id);
+	dev->i2c_id = clk_id;
+	if (source_set_flag == 0) {
+		i2c_clk_reg = ioremap(PERI_SYS_BASE, PERI_SYS_BASE_LEN);
+		writel(CLK_SOURCE_BIT, i2c_clk_reg + CLK_MUX_0_SET);
+		source_set_flag = 1;
+	}
+	dev->prst = devm_reset_control_get_optional_exclusive(&pdev->dev, "prst");
+	if (IS_ERR(dev->prst))
+		return PTR_ERR(dev->prst);
 
+	dev->rst = devm_reset_control_get_optional_exclusive(&pdev->dev, "rst");
+	if (IS_ERR(dev->rst))
+		return PTR_ERR(dev->rst);
+	reset_control_deassert(dev->prst);
+	reset_control_deassert(dev->rst);
+
+	ax_i2c_clk(clk_id, true);
 	t = &dev->timings;
 	if (pdata)
 		t->bus_freq_hz = pdata->i2c_scl_freq;
@@ -297,7 +342,7 @@ static int dw_i2c_plat_probe(struct platform_device *pdev)
 	/*
 	 * Only standard mode at 100kHz, fast mode at 400kHz,
 	 * fast mode plus at 1MHz and high speed mode at 3.4MHz are supported.
-	 */
+
 	if (t->bus_freq_hz != 100000 && t->bus_freq_hz != 400000 &&
 	    t->bus_freq_hz != 1000000 && t->bus_freq_hz != 3400000) {
 		dev_err(&pdev->dev,
@@ -306,6 +351,7 @@ static int dw_i2c_plat_probe(struct platform_device *pdev)
 		ret = -EINVAL;
 		goto exit_reset;
 	}
+	 */
 
 	ret = i2c_dw_probe_lock_support(dev);
 	if (ret)
@@ -316,20 +362,16 @@ static int dw_i2c_plat_probe(struct platform_device *pdev)
 	else
 		i2c_dw_configure_master(dev);
 
-	dev->clk = devm_clk_get(&pdev->dev, NULL);
-	if (!i2c_dw_prepare_clk(dev, true)) {
-		u64 clk_khz;
+	dev->get_clk_rate_khz = i2c_dw_get_clk_rate_khz;
+	clk_khz = I2C_CLK_SOURCE / 1000;
 
-		dev->get_clk_rate_khz = i2c_dw_get_clk_rate_khz;
-		clk_khz = dev->get_clk_rate_khz(dev);
-
-		if (!dev->sda_hold_time && t->sda_hold_ns)
-			dev->sda_hold_time =
-				div_u64(clk_khz * t->sda_hold_ns + 500000, 1000000);
-	}
-
+	if (!dev->sda_hold_time && t->sda_hold_ns)
+		dev->sda_hold_time = div_u64(clk_khz * t->sda_hold_ns + 500000, 1000000);
 	dw_i2c_set_fifo_size(dev, pdev->id);
-
+	if ((t->bus_freq_hz >= 400000) && (t->bus_freq_hz <= 1000000))
+		writel((I2C_CLK_SOURCE  * 5) / 100000000, dev->base + DW_IC_FS_SPKLEN);
+	else if (t->bus_freq_hz > 1000000)
+		writel(I2C_CLK_SOURCE  / 100000000, dev->base + DW_IC_HS_SPKLEN);
 	adap = &dev->adapter;
 	adap->owner = THIS_MODULE;
 	adap->class = I2C_CLASS_DEPRECATED;
@@ -350,8 +392,8 @@ static int dw_i2c_plat_probe(struct platform_device *pdev)
 
 	if (dev->pm_disabled)
 		pm_runtime_get_noresume(&pdev->dev);
-
 	pm_runtime_enable(&pdev->dev);
+	pm_runtime_irq_safe(&pdev->dev);
 
 	if (dev->mode == DW_IC_SLAVE)
 		ret = i2c_dw_probe_slave(dev);
@@ -366,8 +408,10 @@ static int dw_i2c_plat_probe(struct platform_device *pdev)
 exit_probe:
 	dw_i2c_plat_pm_cleanup(dev);
 exit_reset:
-	if (!IS_ERR_OR_NULL(dev->rst))
+	if (!IS_ERR_OR_NULL(dev->rst)) {
 		reset_control_assert(dev->rst);
+		reset_control_assert(dev->prst);
+	}
 	return ret;
 }
 
@@ -434,11 +478,23 @@ static int dw_i2c_plat_suspend(struct device *dev)
 {
 	struct dw_i2c_dev *i_dev = dev_get_drvdata(dev);
 
+#ifdef CONFIG_AX_RISCV_SUPPORT
+	if (!i_dev->i2c_probe_status)
+		return 0;
+	else {
+		if (i_dev->pm_disabled)
+			return 0;
+
+		i_dev->disable(i_dev);
+		ax_i2c_clk(i_dev->i2c_id, false);
+	}
+#else
 	if (i_dev->pm_disabled)
 		return 0;
 
 	i_dev->disable(i_dev);
-	i2c_dw_prepare_clk(i_dev, false);
+	ax_i2c_clk(i_dev->i2c_id, false);
+#endif
 
 	return 0;
 }
@@ -447,10 +503,21 @@ static int dw_i2c_plat_resume(struct device *dev)
 {
 	struct dw_i2c_dev *i_dev = dev_get_drvdata(dev);
 
+#ifdef CONFIG_AX_RISCV_SUPPORT
+	if (!i_dev->i2c_probe_status)
+		return 0;
+	else {
+		if (!i_dev->pm_disabled)
+			ax_i2c_clk(i_dev->i2c_id, true);
+
+		i_dev->init(i_dev);
+	}
+#else
 	if (!i_dev->pm_disabled)
-		i2c_dw_prepare_clk(i_dev, true);
+		ax_i2c_clk(i_dev->i2c_id, true);
 
 	i_dev->init(i_dev);
+#endif
 
 	return 0;
 }
@@ -465,6 +532,21 @@ static const struct dev_pm_ops dw_i2c_dev_pm_ops = {
 #define DW_I2C_DEV_PMOPS (&dw_i2c_dev_pm_ops)
 #else
 #define DW_I2C_DEV_PMOPS NULL
+int ax_i2c_prepare_hardware(struct device *dev)
+{
+	struct dw_i2c_dev *i_dev = dev_get_drvdata(dev);
+	ax_i2c_clk(i_dev->i2c_id, true);
+
+	return 0;
+}
+
+int ax_i2c_unprepare_hardware(struct device *dev)
+{
+	struct dw_i2c_dev *i_dev = dev_get_drvdata(dev);
+	ax_i2c_clk(i_dev->i2c_id, false);
+
+	return 0;
+}
 #endif
 
 /* Work with hotplug and coldplug */

@@ -29,6 +29,21 @@
 #include <asm/tlbflush.h>
 #include <asm/pgalloc.h>
 
+#if defined CONFIG_AXERA_ISP_IMAGE_MEM_RECYCLE || defined CONFIG_AXERA_CMM_MEM_RECYCLE
+static int ax_in_mem_ignore_range(const phys_addr_t paddr)
+{
+#ifdef CONFIG_AXERA_ISP_IMAGE_MEM_RECYCLE
+	if (ax_in_isp_image_mem_range(paddr))
+		return 1;
+#endif
+#ifdef CONFIG_AXERA_CMM_MEM_RECYCLE
+	if(ax_in_cmm_mem_range(paddr))
+		return 1;
+#endif
+	return 0;
+}
+#endif
+
 static void __iomem *__ioremap_caller(phys_addr_t phys_addr, size_t size,
 				      pgprot_t prot, void *caller)
 {
@@ -55,6 +70,9 @@ static void __iomem *__ioremap_caller(phys_addr_t phys_addr, size_t size,
 	/*
 	 * Don't allow RAM to be mapped.
 	 */
+#if defined CONFIG_AXERA_ISP_IMAGE_MEM_RECYCLE || defined CONFIG_AXERA_CMM_MEM_RECYCLE
+	if (!ax_in_mem_ignore_range(phys_addr))
+#endif
 	if (WARN_ON(pfn_valid(__phys_to_pfn(phys_addr))))
 		return NULL;
 

@@ -1,0 +1,1 @@
+obj-y += slp_stat.o

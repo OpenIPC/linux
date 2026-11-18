@@ -663,6 +663,10 @@ struct fb_info *fbtft_framebuffer_alloc(struct fbtft_display *display,
 	int txbuflen = display->txbuflen;
 	unsigned int bpp = display->bpp;
 	unsigned int fps = display->fps;
+	// ### SIPEED EDIT ###
+	u32 fps_dt = 0;
+	bool fps_force_immediate = false;
+	// ### SIPEED EDIT END ###
 	int vmem_size, i;
 	const s16 *init_sequence = display->init_sequence;
 	char *gamma = display->gamma;
@@ -708,6 +712,12 @@ struct fb_info *fbtft_framebuffer_alloc(struct fbtft_display *display,
 		display->buswidth = pdata->display.buswidth;
 	if (pdata->display.regwidth)
 		display->regwidth = pdata->display.regwidth;
+	// ### SIPEED EDIT ###
+	if (dev->of_node &&
+	    of_property_read_u32(dev->of_node, "fps", &fps_dt) == 0 &&
+	    fps_dt == 0)
+		fps_force_immediate = true;
+	// ### SIPEED EDIT END ###
 
 	display->debug |= debug;
 	fbtft_expand_debug_value(&display->debug);
@@ -767,7 +777,12 @@ struct fb_info *fbtft_framebuffer_alloc(struct fbtft_display *display,
 	fbops->fb_setcolreg =      fbtft_fb_setcolreg;
 	fbops->fb_blank     =      fbtft_fb_blank;
 
-	fbdefio->delay =           HZ / fps;
+	// ### SIPEED EDIT ###
+	if (fps_force_immediate)
+		fbdefio->delay = 0;
+	else
+		fbdefio->delay = HZ / fps;
+	// ### SIPEED EDIT END ###
 	fbdefio->deferred_io =     fbtft_deferred_io;
 	fb_deferred_io_init(info);
 
@@ -974,7 +989,10 @@ int fbtft_register_framebuffer(struct fb_info *fb_info)
 		 "%s frame buffer, %dx%d, %d KiB video memory%s, fps=%lu%s\n",
 		 fb_info->fix.id, fb_info->var.xres, fb_info->var.yres,
 		 fb_info->fix.smem_len >> 10, text1,
-		 HZ / fb_info->fbdefio->delay, text2);
+		 // ### SIPEED EDIT ###
+		 fb_info->fbdefio->delay ? (HZ / fb_info->fbdefio->delay) : 0,
+		 text2);
+		 // ### SIPEED EDIT END ###
 
 #ifdef CONFIG_FB_BACKLIGHT
 	/* Turn on backlight if available */

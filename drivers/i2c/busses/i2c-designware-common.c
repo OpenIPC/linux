@@ -214,7 +214,7 @@ int i2c_dw_set_sda_hold(struct dw_i2c_dev *dev)
 
 void __i2c_dw_disable(struct dw_i2c_dev *dev)
 {
-	int timeout = 100;
+	int timeout = 1000;
 
 	do {
 		__i2c_dw_disable_nowait(dev);
@@ -230,7 +230,10 @@ void __i2c_dw_disable(struct dw_i2c_dev *dev)
 		 * transfer supported by the driver (for 400KHz this is
 		 * 25us) as described in the DesignWare I2C databook.
 		 */
-		usleep_range(25, 250);
+		if (dev->poll_mode)
+			udelay(3);
+		else
+			usleep_range(3, 25);
 	} while (timeout--);
 
 	dev_warn(dev->dev, "timeout in disabling adapter\n");
@@ -246,19 +249,6 @@ unsigned long i2c_dw_clk_rate(struct dw_i2c_dev *dev)
 		return 0;
 	return dev->get_clk_rate_khz(dev);
 }
-
-int i2c_dw_prepare_clk(struct dw_i2c_dev *dev, bool prepare)
-{
-	if (IS_ERR(dev->clk))
-		return PTR_ERR(dev->clk);
-
-	if (prepare)
-		return clk_prepare_enable(dev->clk);
-
-	clk_disable_unprepare(dev->clk);
-	return 0;
-}
-EXPORT_SYMBOL_GPL(i2c_dw_prepare_clk);
 
 int i2c_dw_acquire_lock(struct dw_i2c_dev *dev)
 {

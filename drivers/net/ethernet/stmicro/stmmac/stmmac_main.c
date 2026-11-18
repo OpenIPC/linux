@@ -45,6 +45,7 @@
 #include <linux/seq_file.h>
 #endif /* CONFIG_DEBUG_FS */
 #include <linux/net_tstamp.h>
+#include <linux/udp.h>
 #include <net/pkt_cls.h>
 #include "stmmac_ptp.h"
 #include "stmmac.h"
@@ -58,7 +59,11 @@
 #define	TSO_MAX_BUFF_SIZE	(SZ_16K - 1)
 
 /* Module parameters */
+#ifdef CONFIG_DWMAC_AXERA
+#define TX_TIMEO	200000
+#else
 #define TX_TIMEO	5000
+#endif
 static int watchdog = TX_TIMEO;
 module_param(watchdog, int, 0644);
 MODULE_PARM_DESC(watchdog, "Transmit timeout in milliseconds (default 5s)");
@@ -74,7 +79,11 @@ MODULE_PARM_DESC(phyaddr, "Physical device address");
 #define STMMAC_TX_THRESH	(DMA_TX_SIZE / 4)
 #define STMMAC_RX_THRESH	(DMA_RX_SIZE / 4)
 
+#ifdef CONFIG_DWMAC_AXERA
+static int flow_ctrl = FLOW_AUTO;
+#else
 static int flow_ctrl = FLOW_OFF;
+#endif
 module_param(flow_ctrl, int, 0644);
 MODULE_PARM_DESC(flow_ctrl, "Flow control ability [on/off]");
 
@@ -598,10 +607,14 @@ static int stmmac_hwtstamp_ioctl(struct net_device *dev, struct ifreq *ifr)
 			/* PTP v1, UDP, any kind of event packet */
 			config.rx_filter = HWTSTAMP_FILTER_PTP_V1_L4_EVENT;
 			/* take time stamp for all event messages */
+#ifdef CONFIG_DWMAC_AXERA
+			snap_type_sel = PTP_TCR_SNAPTYPSEL_1;
+#else
 			if (xmac)
 				snap_type_sel = PTP_GMAC4_TCR_SNAPTYPSEL_1;
 			else
 				snap_type_sel = PTP_TCR_SNAPTYPSEL_1;
+#endif
 
 			ptp_over_ipv4_udp = PTP_TCR_TSIPV4ENA;
 			ptp_over_ipv6_udp = PTP_TCR_TSIPV6ENA;
@@ -633,10 +646,14 @@ static int stmmac_hwtstamp_ioctl(struct net_device *dev, struct ifreq *ifr)
 			config.rx_filter = HWTSTAMP_FILTER_PTP_V2_L4_EVENT;
 			ptp_v2 = PTP_TCR_TSVER2ENA;
 			/* take time stamp for all event messages */
+#ifdef CONFIG_DWMAC_AXERA
+			snap_type_sel = PTP_TCR_SNAPTYPSEL_1;
+#else
 			if (xmac)
 				snap_type_sel = PTP_GMAC4_TCR_SNAPTYPSEL_1;
 			else
 				snap_type_sel = PTP_TCR_SNAPTYPSEL_1;
+#endif
 
 			ptp_over_ipv4_udp = PTP_TCR_TSIPV4ENA;
 			ptp_over_ipv6_udp = PTP_TCR_TSIPV6ENA;
@@ -670,10 +687,14 @@ static int stmmac_hwtstamp_ioctl(struct net_device *dev, struct ifreq *ifr)
 			config.rx_filter = HWTSTAMP_FILTER_PTP_V2_EVENT;
 			ptp_v2 = PTP_TCR_TSVER2ENA;
 			/* take time stamp for all event messages */
+#ifdef CONFIG_DWMAC_AXERA
+			snap_type_sel = PTP_TCR_SNAPTYPSEL_1;
+#else
 			if (xmac)
 				snap_type_sel = PTP_GMAC4_TCR_SNAPTYPSEL_1;
 			else
 				snap_type_sel = PTP_TCR_SNAPTYPSEL_1;
+#endif
 
 			ptp_over_ipv4_udp = PTP_TCR_TSIPV4ENA;
 			ptp_over_ipv6_udp = PTP_TCR_TSIPV6ENA;
@@ -840,6 +861,9 @@ static void stmmac_adjust_link(struct net_device *dev)
 	struct stmmac_priv *priv = netdev_priv(dev);
 	struct phy_device *phydev = dev->phydev;
 	bool new_state = false;
+#ifdef CONFIG_DWMAC_AXERA_HAPS
+	int reg;
+#endif
 
 	if (!phydev)
 		return;
@@ -859,9 +883,15 @@ static void stmmac_adjust_link(struct net_device *dev)
 				ctrl |= priv->hw->link.duplex;
 			priv->oldduplex = phydev->duplex;
 		}
+
 		/* Flow Control operation */
+#ifdef CONFIG_DWMAC_AXERA
+		/*enbale flow control even though link partner don't advertise flow contrl capbility.*/
+		stmmac_mac_flow_ctrl(priv, phydev->duplex);
+#else
 		if (phydev->pause)
 			stmmac_mac_flow_ctrl(priv, phydev->duplex);
+#endif
 
 		if (phydev->speed != priv->speed) {
 			new_state = true;
@@ -903,6 +933,18 @@ static void stmmac_adjust_link(struct net_device *dev)
 	if (new_state && netif_msg_link(priv))
 		phy_print_status(phydev);
 
+#ifdef CONFIG_DWMAC_AXERA_HAPS
+	//set emac controller  1000M, for haps test
+	#pragma message("----EMAC_HAPS_TEST----")
+	if (priv->plat->interface == PHY_INTERFACE_MODE_GMII && new_state && netif_msg_link(priv))
+		if (phydev->link) {
+			//printk("set emac controller 1000M speed, for haps test\n");
+			reg = readl(priv->ioaddr);
+			reg &= (~(1 << 15));
+			reg &= (~(1 << 14));
+			writel(reg, priv->ioaddr + 0);
+		}
+#endif
 	mutex_unlock(&priv->lock);
 
 	if (phydev->is_pseudo_fixed_link)
@@ -986,6 +1028,11 @@ static int stmmac_init_phy(struct net_device *dev)
 
 		return PTR_ERR(phydev);
 	}
+
+#ifdef CONFIG_DWMAC_AXERA
+	/*enable flow control advretise in PHY*/
+	phydev->advertising |= (ADVERTISED_Pause | ADVERTISED_Asym_Pause);
+#endif
 
 	/* Stop Advertising 1000BASE Capability if interface is not GMII */
 	if ((interface == PHY_INTERFACE_MODE_MII) ||
@@ -1452,6 +1499,19 @@ static void dma_free_tx_skbufs(struct stmmac_priv *priv, u32 queue)
 
 	for (i = 0; i < DMA_TX_SIZE; i++)
 		stmmac_free_tx_buffer(priv, queue, i);
+}
+
+/**
+ * stmmac_free_tx_skbufs - free TX skb buffers
+ * @priv: private structure
+ */
+static void stmmac_free_tx_skbufs(struct stmmac_priv *priv)
+{
+	u32 tx_queue_cnt = priv->plat->tx_queues_to_use;
+	u32 queue;
+
+	for (queue = 0; queue < tx_queue_cnt; queue++)
+		dma_free_tx_skbufs(priv, queue);
 }
 
 /**
@@ -2248,10 +2308,19 @@ static void stmmac_tx_timer(struct timer_list *t)
 	struct stmmac_priv *priv = tx_q->priv_data;
 	struct stmmac_channel *ch;
 
-	ch = &priv->channel[tx_q->queue_index];
+#ifdef CONFIG_DWMAC_AXERA
+	int budget = 64;
+	u32 chan;
 
+	ch = &priv->channel[tx_q->queue_index];
+	chan = ch->index;
+	if (ch->has_tx)
+		stmmac_tx_clean(priv, budget, chan);
+#else
+	ch = &priv->channel[tx_q->queue_index];
 	if (likely(napi_schedule_prep(&ch->napi)))
 		__napi_schedule(&ch->napi);
+#endif
 }
 
 /**
@@ -2599,6 +2668,9 @@ static int stmmac_open(struct net_device *dev)
 	u32 chan;
 	int ret;
 
+#ifdef CONFIG_DWMAC_AXERA
+	ax_reset_phy(to_platform_device(priv->device), priv->plat->bsp_priv);
+#endif
 	if (priv->hw->pcs != STMMAC_PCS_RGMII &&
 	    priv->hw->pcs != STMMAC_PCS_TBI &&
 	    priv->hw->pcs != STMMAC_PCS_RTBI) {
@@ -2617,6 +2689,9 @@ static int stmmac_open(struct net_device *dev)
 
 	priv->dma_buf_sz = STMMAC_ALIGN(buf_sz);
 	priv->rx_copybreak = STMMAC_RX_COPYBREAK;
+#ifdef CONFIG_DWMAC_AXERA
+	dma_set_mask(priv->device, DMA_BIT_MASK(48));
+#endif
 
 	ret = alloc_dma_desc_resources(priv);
 	if (ret < 0) {
@@ -2724,6 +2799,10 @@ static int stmmac_release(struct net_device *dev)
 		phy_disconnect(dev->phydev);
 	}
 
+#ifdef CONFIG_DWMAC_AXERA
+	ax_shutdown_phy(to_platform_device(priv->device), priv->plat->bsp_priv);
+#endif
+
 	stmmac_stop_all_queues(priv);
 
 	stmmac_disable_all_queues(priv);
@@ -2826,17 +2905,26 @@ static netdev_tx_t stmmac_tso_xmit(struct sk_buff *skb, struct net_device *dev)
 	struct stmmac_priv *priv = netdev_priv(dev);
 	int nfrags = skb_shinfo(skb)->nr_frags;
 	u32 queue = skb_get_queue_mapping(skb);
-	unsigned int first_entry, des;
+	unsigned int first_entry, tx_packets;
+	int tmp_pay_len = 0, first_tx;
 	struct stmmac_tx_queue *tx_q;
-	int tmp_pay_len = 0;
+	u8 proto_hdr_len, hdr;
+	bool set_ic;
 	u32 pay_len, mss;
-	u8 proto_hdr_len;
+	dma_addr_t des;
 	int i;
 
 	tx_q = &priv->tx_queue[queue];
+	first_tx = tx_q->cur_tx;
 
 	/* Compute header lengths */
-	proto_hdr_len = skb_transport_offset(skb) + tcp_hdrlen(skb);
+	if (skb_shinfo(skb)->gso_type & SKB_GSO_UDP_L4) {
+		proto_hdr_len = skb_transport_offset(skb) + sizeof(struct udphdr);
+		hdr = sizeof(struct udphdr);
+	} else {
+		proto_hdr_len = skb_transport_offset(skb) + tcp_hdrlen(skb);
+		hdr = tcp_hdrlen(skb);
+	}
 
 	/* Desc availability based on threshold should be enough safe */
 	if (unlikely(stmmac_tx_avail(priv, queue) <
@@ -2866,8 +2954,8 @@ static netdev_tx_t stmmac_tso_xmit(struct sk_buff *skb, struct net_device *dev)
 	}
 
 	if (netif_msg_tx_queued(priv)) {
-		pr_info("%s: tcphdrlen %d, hdr_len %d, pay_len %d, mss %d\n",
-			__func__, tcp_hdrlen(skb), proto_hdr_len, pay_len, mss);
+		pr_info("%s: hdrlen %d, hdr_len %d, pay_len %d, mss %d\n",
+			__func__, hdr, proto_hdr_len, pay_len, mss);
 		pr_info("\tskb->len %d, skb->data_len %d\n", skb->len,
 			skb->data_len);
 	}
@@ -2921,6 +3009,28 @@ static netdev_tx_t stmmac_tso_xmit(struct sk_buff *skb, struct net_device *dev)
 	/* Only the last descriptor gets to point to the skb. */
 	tx_q->tx_skbuff[tx_q->cur_tx] = skb;
 
+	/* Manage tx mitigation */
+	tx_packets = (tx_q->cur_tx + 1) - first_tx;
+	tx_q->tx_count_frames += tx_packets;
+
+	if ((skb_shinfo(skb)->tx_flags & SKBTX_HW_TSTAMP) && priv->hwts_tx_en)
+		set_ic = true;
+	else if (!priv->tx_coal_frames)
+		set_ic = false;
+	else if (tx_packets > priv->tx_coal_frames)
+		set_ic = true;
+	else if ((tx_q->tx_count_frames % priv->tx_coal_frames) < tx_packets)
+		set_ic = true;
+	else
+		set_ic = false;
+
+	if (set_ic) {
+		desc = &tx_q->dma_tx[tx_q->cur_tx];
+		tx_q->tx_count_frames = 0;
+		stmmac_set_tx_ic(priv, desc);
+		priv->xstats.tx_set_ic_bit++;
+	}
+
 	/* We've used all descriptors we need for this skb, however,
 	 * advance cur_tx so that it references a fresh descriptor.
 	 * ndo_start_xmit will fill this descriptor the next time it's
@@ -2938,18 +3048,6 @@ static netdev_tx_t stmmac_tso_xmit(struct sk_buff *skb, struct net_device *dev)
 	priv->xstats.tx_tso_frames++;
 	priv->xstats.tx_tso_nfrags += nfrags;
 
-	/* Manage tx mitigation */
-	tx_q->tx_count_frames += nfrags + 1;
-	if (likely(priv->tx_coal_frames > tx_q->tx_count_frames) &&
-	    !(priv->synopsys_id >= DWMAC_CORE_4_00 &&
-	    (skb_shinfo(skb)->tx_flags & SKBTX_HW_TSTAMP) &&
-	    priv->hwts_tx_en)) {
-		stmmac_tx_timer_arm(priv, queue);
-	} else {
-		tx_q->tx_count_frames = 0;
-		stmmac_set_tx_ic(priv, desc);
-		priv->xstats.tx_set_ic_bit++;
-	}
 
 	skb_tx_timestamp(skb);
 
@@ -2965,7 +3063,7 @@ static netdev_tx_t stmmac_tso_xmit(struct sk_buff *skb, struct net_device *dev)
 			proto_hdr_len,
 			pay_len,
 			1, tx_q->tx_skbuff_dma[first_entry].last_segment,
-			tcp_hdrlen(skb) / 4, (skb->len - proto_hdr_len));
+			hdr / 4, (skb->len - proto_hdr_len));
 
 	/* If context desc is used to change MSS */
 	if (mss_desc) {
@@ -3025,6 +3123,7 @@ static netdev_tx_t stmmac_xmit(struct sk_buff *skb, struct net_device *dev)
 	int i, csum_insertion = 0, is_jumbo = 0;
 	u32 queue = skb_get_queue_mapping(skb);
 	int nfrags = skb_shinfo(skb)->nr_frags;
+	int gso = skb_shinfo(skb)->gso_type;
 	int entry;
 	unsigned int first_entry;
 	struct dma_desc *desc, *first;
@@ -3039,7 +3138,9 @@ static netdev_tx_t stmmac_xmit(struct sk_buff *skb, struct net_device *dev)
 
 	/* Manage oversized TCP frames for GMAC4 device */
 	if (skb_is_gso(skb) && priv->tso) {
-		if (skb_shinfo(skb)->gso_type & (SKB_GSO_TCPV4 | SKB_GSO_TCPV6))
+		if (gso & (SKB_GSO_TCPV4 | SKB_GSO_TCPV6))
+			return stmmac_tso_xmit(skb, dev);
+		if (priv->plat->has_gmac4 && (gso & SKB_GSO_UDP_L4))
 			return stmmac_tso_xmit(skb, dev);
 	}
 
@@ -3573,9 +3674,12 @@ static int stmmac_napi_poll(struct napi_struct *napi, int budget)
  */
 static void stmmac_tx_timeout(struct net_device *dev)
 {
-	struct stmmac_priv *priv = netdev_priv(dev);
-
+	//struct stmmac_priv *priv = netdev_priv(dev);
+#if 0
 	stmmac_global_err(priv);
+#else
+	printk("transmission timeout, we can debug now!!!!\n");
+#endif
 }
 
 /**
@@ -3861,11 +3965,13 @@ static u16 stmmac_select_queue(struct net_device *dev, struct sk_buff *skb,
 			       struct net_device *sb_dev,
 			       select_queue_fallback_t fallback)
 {
-	if (skb_shinfo(skb)->gso_type & (SKB_GSO_TCPV4 | SKB_GSO_TCPV6)) {
+	int gso = skb_shinfo(skb)->gso_type;
+
+	if (gso & (SKB_GSO_TCPV4 | SKB_GSO_TCPV6 | SKB_GSO_UDP_L4)) {
 		/*
-		 * There is no way to determine the number of TSO
+		 * There is no way to determine the number of TSO/USO
 		 * capable Queues. Let's use always the Queue 0
-		 * because if TSO is supported then at least this
+		 * because if TSO/USO is supported then at least this
 		 * one will be capable.
 		 */
 		return 0;
@@ -4139,6 +4245,9 @@ static void stmmac_reset_subtask(struct stmmac_priv *priv)
 
 	set_bit(STMMAC_DOWN, &priv->state);
 	dev_close(priv->dev);
+#ifdef CONFIG_DWMAC_AXERA
+	ax_reset_emac(to_platform_device(priv->device), priv->plat->bsp_priv);
+#endif
 	dev_open(priv->dev);
 	clear_bit(STMMAC_DOWN, &priv->state);
 	clear_bit(STMMAC_RESETING, &priv->state);
@@ -4345,6 +4454,10 @@ int stmmac_dvr_probe(struct device *device,
 
 	if ((priv->plat->tso_en) && (priv->dma_cap.tsoen)) {
 		ndev->hw_features |= NETIF_F_TSO | NETIF_F_TSO6;
+		if (priv->plat->has_gmac4) {
+			ndev->hw_features |= NETIF_F_GSO_UDP_L4;
+			dev_info(priv->device, "USO feature enabled\n");
+		}
 		priv->tso = true;
 		dev_info(priv->device, "TSO feature enabled\n");
 	}
@@ -4616,10 +4729,16 @@ int stmmac_resume(struct device *dev)
 
 	netif_device_attach(ndev);
 
+#ifdef CONFIG_DWMAC_AXERA
+	if (ndev->phydev)
+		phy_start(ndev->phydev);
+#endif
+
 	mutex_lock(&priv->lock);
 
 	stmmac_reset_queues_param(priv);
 
+	stmmac_free_tx_skbufs(priv);
 	stmmac_clear_descriptors(priv);
 
 	stmmac_hw_setup(ndev, false);
@@ -4632,8 +4751,12 @@ int stmmac_resume(struct device *dev)
 
 	mutex_unlock(&priv->lock);
 
+#ifndef CONFIG_DWMAC_AXERA
 	if (ndev->phydev)
 		phy_start(ndev->phydev);
+#endif
+
+	dev_info(dev, "axera emac resume success!\n");
 
 	return 0;
 }

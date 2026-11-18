@@ -853,6 +853,8 @@ source "arch/arm/mach-zx/Kconfig"
 
 source "arch/arm/mach-zynq/Kconfig"
 
+source "arch/arm/mach-axera/Kconfig"
+
 # ARMv7-M architecture
 config ARCH_EFM32
 	bool "Energy Micro efm32"

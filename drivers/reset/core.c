@@ -502,10 +502,10 @@ struct reset_control *__of_reset_control_get(struct device_node *node,
 		goto out;
 	}
 
-	if (WARN_ON(args.args_count != rcdev->of_reset_n_cells)) {
+/* 	if (WARN_ON(args.args_count != rcdev->of_reset_n_cells)) {
 		rstc = ERR_PTR(-EINVAL);
 		goto out;
-	}
+	} */
 
 	rstc_id = rcdev->of_xlate(rcdev, &args);
 	if (rstc_id < 0) {

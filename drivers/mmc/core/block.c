@@ -96,6 +96,11 @@ static int max_devices;
 static DEFINE_IDA(mmc_blk_ida);
 static DEFINE_IDA(mmc_rpmb_ida);
 
+#if IS_ENABLED(CONFIG_MMC_SDHCI_AXERA)
+static unsigned int card_busy_num;
+static unsigned int card_busy_status;
+#endif
+
 /*
  * There is one mmc_blk_data per slot.
  */
@@ -129,6 +134,9 @@ struct mmc_blk_data {
 	unsigned int	part_curr;
 	struct device_attribute force_ro;
 	struct device_attribute power_ro_lock;
+#if IS_ENABLED(CONFIG_MMC_SDHCI_AXERA)
+	struct device_attribute card_busy_status;
+#endif
 	int	area_type;
 
 	/* debugfs files (only in main mmc_blk_data) */
@@ -476,6 +484,9 @@ static int card_busy_detect(struct mmc_card *card, unsigned int timeout_ms,
 			dev_err(mmc_dev(card->host),
 				"Card stuck in wrong state! %s status: %#x\n",
 				 __func__, status);
+#if IS_ENABLED(CONFIG_MMC_SDHCI_AXERA)
+			card_busy_num++;
+#endif
 			return -ETIMEDOUT;
 		}
 
@@ -485,7 +496,9 @@ static int card_busy_detect(struct mmc_card *card, unsigned int timeout_ms,
 		 * indication and the card state.
 		 */
 	} while (!mmc_blk_in_tran_state(status));
-
+#if IS_ENABLED(CONFIG_MMC_SDHCI_AXERA)
+	card_busy_num = 0;
+#endif
 	return err;
 }
 
@@ -1637,13 +1650,28 @@ static int mmc_blk_fix_state(struct mmc_card *card, struct request *req)
 	struct mmc_blk_request *brq = &mqrq->brq;
 	unsigned int timeout = mmc_blk_data_timeout_ms(card->host, &brq->data);
 	int err;
+#if IS_ENABLED(CONFIG_MMC_SDHCI_AXERA)
+	static unsigned long err_timeout = 0;
+#endif
 
 	mmc_retune_hold_now(card->host);
 
 	mmc_blk_send_stop(card, timeout);
-
+#if IS_ENABLED(CONFIG_MMC_SDHCI_AXERA)
+	if (card_busy_num > 0 && card_busy_status == 1) {
+		bool done = time_after(jiffies, err_timeout);
+		if (done) {
+			err = card_busy_detect(card, timeout, NULL);
+			err_timeout = jiffies + msecs_to_jiffies(10000);
+		} else {
+			err = -ETIMEDOUT;
+		}
+	} else {
+		err = card_busy_detect(card, timeout, NULL);
+	}
+#else
 	err = card_busy_detect(card, timeout, NULL);
-
+#endif
 	mmc_retune_release(card->host);
 
 	return err;
@@ -2873,6 +2901,51 @@ static void mmc_blk_remove_debugfs(struct mmc_card *card,
 
 #endif /* CONFIG_DEBUG_FS */
 
+#if IS_ENABLED(CONFIG_MMC_SDHCI_AXERA)
+
+static ssize_t card_busy_status_show(struct device *dev, struct device_attribute *attr,
+			     char *buf)
+{
+	int ret;
+	struct mmc_blk_data *md = mmc_blk_get(dev_to_disk(dev));
+
+	ret = snprintf(buf, PAGE_SIZE, "%d\n", card_busy_num);
+
+	mmc_blk_put(md);
+	return ret;
+}
+
+static ssize_t card_busy_status_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	if (sysfs_streq(buf, "0")) {
+		card_busy_status = 0;
+		card_busy_num = 0;
+	} else if (sysfs_streq(buf, "1")) {
+		card_busy_status = 1;
+	} else {
+		dev_err(dev, "unsupported command:%s\n", buf);
+		return -EINVAL;
+	}
+	return count;
+}
+
+static int mmc_ax_add_debug_node(struct mmc_blk_data *md)
+{
+	int ret;
+	md->card_busy_status.show = card_busy_status_show;
+	md->card_busy_status.store = card_busy_status_store;
+	sysfs_attr_init(&md->card_busy_status.attr);
+	md->card_busy_status.attr.name = "card_busy_status";
+	md->card_busy_status.attr.mode = S_IRUGO | S_IWUSR;
+	ret = device_create_file(disk_to_dev(md->disk), &md->card_busy_status);
+	if (ret) {
+		pr_err("axera cread mmc card_busy_status failed");
+	}
+	return ret;
+}
+#endif
+
 static int mmc_blk_probe(struct mmc_card *card)
 {
 	struct mmc_blk_data *md, *part_md;
@@ -2918,7 +2991,9 @@ static int mmc_blk_probe(struct mmc_card *card)
 
 	/* Add two debugfs entries */
 	mmc_blk_add_debugfs(card, md);
-
+#if IS_ENABLED(CONFIG_MMC_SDHCI_AXERA)
+	mmc_ax_add_debug_node(md);
+#endif
 	pm_runtime_set_autosuspend_delay(&card->dev, 3000);
 	pm_runtime_use_autosuspend(&card->dev);
 

@@ -256,6 +256,21 @@ remap_area_supersections(unsigned long virt, unsigned long pfn,
 }
 #endif
 
+#if defined CONFIG_AXERA_ISP_IMAGE_MEM_RECYCLE || defined CONFIG_AXERA_CMM_MEM_RECYCLE
+static int ax_in_mem_ignore_range(const phys_addr_t paddr)
+{
+#ifdef CONFIG_AXERA_ISP_IMAGE_MEM_RECYCLE
+	if (ax_in_isp_image_mem_range(paddr))
+		return 1;
+#endif
+#ifdef CONFIG_AXERA_CMM_MEM_RECYCLE
+	if(ax_in_cmm_mem_range(paddr))
+		return 1;
+#endif
+	return 0;
+}
+#endif
+
 static void __iomem * __arm_ioremap_pfn_caller(unsigned long pfn,
 	unsigned long offset, size_t size, unsigned int mtype, void *caller)
 {
@@ -300,6 +315,9 @@ static void __iomem * __arm_ioremap_pfn_caller(unsigned long pfn,
 	 * Don't allow RAM to be mapped with mismatched attributes - this
 	 * causes problems with ARMv6+
 	 */
+#if defined CONFIG_AXERA_ISP_IMAGE_MEM_RECYCLE || defined CONFIG_AXERA_CMM_MEM_RECYCLE
+	if (!ax_in_mem_ignore_range(paddr))
+#endif
 	if (WARN_ON(pfn_valid(pfn) && mtype != MT_MEMORY_RW))
 		return NULL;
 

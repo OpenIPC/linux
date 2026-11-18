@@ -414,3 +414,6 @@
 397	common	statx			sys_statx
 398	common	rseq			sys_rseq
 399	common	io_pgetevents		sys_io_pgetevents
+# skip to keep consistent with kernel-5.15
+449	common	axsyslog		sys_axsyslog
+450	common	ax_local_clock		sys_ax_local_clock

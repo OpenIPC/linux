@@ -1278,6 +1278,16 @@ config SMSC_SCH311X_WDT
 	  To compile this driver as a module, choose M here: the
 	  module will be called sch311x_wdt.
 
+config AX_WATCHDOG
+         tristate "Axera watchdog"
+         depends on HAS_IOMEM
+         select WATCHDOG_CORE
+         help
+           Say Y here if to include support for the Axera watchdog timer
+           found in many chips.
+           To compile this driver as a module, choose M here: the
+           module will be called ax_wdt.
+
 config SMSC37B787_WDT
 	tristate "Winbond SMsC37B787 Watchdog Timer"
 	depends on X86

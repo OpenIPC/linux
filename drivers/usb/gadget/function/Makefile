@@ -11,6 +11,10 @@ usb_f_acm-y			:= f_acm.o
 obj-$(CONFIG_USB_F_ACM)		+= usb_f_acm.o
 usb_f_ss_lb-y			:= f_loopback.o f_sourcesink.o
 obj-$(CONFIG_USB_F_SS_LB)	+= usb_f_ss_lb.o
+### SIPEED EDIT ###
+f_udisp_drv-y			:= f_udisp.o f_sourcesink.o
+obj-$(CONFIG_USB_F_UDISP)	+= f_udisp_drv.o
+### SIPEED EDIT END ###
 obj-$(CONFIG_USB_U_SERIAL)	+= u_serial.o
 usb_f_serial-y			:= f_serial.o
 obj-$(CONFIG_USB_F_SERIAL)	+= usb_f_serial.o

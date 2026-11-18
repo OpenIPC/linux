@@ -169,6 +169,7 @@ machine-$(CONFIG_ARCH_EBSA110)		+= ebsa110
 machine-$(CONFIG_ARCH_EFM32)		+= efm32
 machine-$(CONFIG_ARCH_EP93XX)		+= ep93xx
 machine-$(CONFIG_ARCH_EXYNOS)		+= exynos
+machine-$(CONFIG_ARCH_AXERA)		+= axera
 machine-$(CONFIG_ARCH_FOOTBRIDGE)	+= footbridge
 machine-$(CONFIG_ARCH_GEMINI)		+= gemini
 machine-$(CONFIG_ARCH_HIGHBANK)		+= highbank
@@ -340,15 +341,15 @@ $(INSTALL_TARGETS):
 	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $@
 
 %.dtb: | scripts
-	$(Q)$(MAKE) $(build)=$(boot)/dts MACHINE=$(MACHINE) $(boot)/dts/$@
+	$(Q)$(MAKE) $(build)=$(boot)/dts/axera MACHINE=$(MACHINE) $(boot)/dts/axera/$@
 
 PHONY += dtbs dtbs_install
 
 dtbs: prepare scripts
-	$(Q)$(MAKE) $(build)=$(boot)/dts
+	$(Q)$(MAKE) $(build)=$(boot)/dts/axera
 
 dtbs_install:
-	$(Q)$(MAKE) $(dtbinst)=$(boot)/dts
+	$(Q)$(MAKE) $(dtbinst)=$(boot)/dts/axera
 
 PHONY += vdso_install
 vdso_install:

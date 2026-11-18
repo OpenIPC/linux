@@ -1,0 +1,617 @@
+// SPDX-License-Identifier: GPL-2.0
+/**************************************************************************************************
+ *
+ * Copyright (c) 2019-2024 Axera Semiconductor Co., Ltd. All Rights Reserved.
+ *
+ * This dts file is the property of Axera Semiconductor Co., Ltd. and
+ * may not be copied or distributed in any isomorphic form without the prior
+ * written consent of Axera Semiconductor Co., Ltd.
+ *
+ **************************************************************************************************/
+
+/dts-v1/;
+#include "AX620Q_fastnand_arm32_k419.dtsi"
+/ {
+	memory@40000000 {
+		device_type = "memory";
+		reg = <0x0 0x40000000 0x0 0x40000000>;
+	};
+	reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+#ifdef SUPPORT_RISCV
+		riscv_reserved: riscv_memreserved {
+			reg = <RISCV_RESERVED_START_HI RISCV_RESERVED_START_LO RISCV_RESERVED_SIZE_HI RISCV_RESERVED_SIZE_LO>;
+		};
+#endif
+#ifdef SUPPORT_RISCV_LOG_MEM
+		riscv_log_reserved: riscv_log_memreserved {
+			reg = <RISCV_LOG_MEM_RESERVED_START_HI RISCV_LOG_MEM_RESERVED_START_LO RISCV_LOG_MEM_RESERVED_SIZE_HI RISCV_LOG_MEM_RESERVED_SIZE_LO>;
+			no-map;
+		};
+#endif
+#ifdef SUPPORT_ISP_IMAGE
+		isp_image_reserved: isp_image_memreserved {
+			compatible = "axera, isp_image";
+			reg = <ISP_IMAGE_RESERVED_START_HI ISP_IMAGE_RESERVED_START_LO ISP_IMAGE_RESERVED_SIZE_HI ISP_IMAGE_RESERVED_SIZE_LO>;
+		};
+#endif
+#ifdef SUPPORT_RAMDISK_HEADER
+		ramdisk_header_reserved: ramdisk_header_memreserved {
+			reg = <RAMDISK_HEADER_RESERVED_START_HI RAMDISK_HEADER_RESERVED_START_LO RAMDISK_HEADER_RESERVED_SIZE_HI RAMDISK_HEADER_RESERVED_SIZE_LO>;
+		};
+#endif
+#ifdef SUPPORT_MODEL_DATA
+		model_data_reserved: model_data_memreserved {
+			reg = <MODEL_DATA_RESERVED_START_HI MODEL_DATA_RESERVED_START_LO MODEL_DATA_RESERVED_SIZE_HI MODEL_DATA_RESERVED_SIZE_LO>;
+		};
+#endif
+
+#ifdef SUPPORT_RAMDISK
+		ramdisk_mem@140000000 {
+			compatible = "axera, ramdisk";
+			reg = <0x0 RAMDISK_START_ADDR 0x0 RAMDISK_SIZE>;
+			addr = <0x0 RAMDISK_START_ADDR>;
+			size = <RAMDISK_SIZE>;
+			no-map;
+		};
+#endif
+	};
+
+	chosen {
+		bootargs = BOOTARGS;
+	};
+
+	sound {
+		status = "okay";
+		compatible = "simple-audio-card";
+		simple-audio-card,name = "Axera Audio";
+		simple-audio-card,widgets =
+			"Microphone", "Mic Jack";
+		simple-audio-card,routing =
+			"AMIC", "Mic Jack";
+		#address-cells = <1>;
+		#size-cells = <0>;
+	/*	simple-audio-card,dai-link@0 {
+			format = "i2s";
+			cpu {
+				sound-dai = <&i2s_mst0>;
+			};
+			codec {
+				sound-dai = <&es7243l>;
+				system-clock-frequency = <12288000>;
+			};
+		};
+		simple-audio-card,dai-link@1 {
+			format = "i2s";
+			cpu {
+				sound-dai = <&i2s_mst0>;
+			};
+			codec {
+				sound-dai = <&es8156>;
+				system-clock-frequency = <12288000>;
+			};
+		};
+		simple-audio-card,dai-link@0 {
+			format = "i2s";
+			bitclock-master = <&codec_m2>;
+			frame-master = <&codec_m2>;
+			cpu {
+				sound-dai = <&i2s_slv0>;
+			};
+			codec_m2: codec {
+				sound-dai = <&es7243l>;
+				system-clock-frequency = <12288000>;
+			};
+		};
+		simple-audio-card,dai-link@1 {
+			format = "i2s";
+			bitclock-master = <&codec_m3>;
+			frame-master = <&codec_m3>;
+			cpu {
+				sound-dai = <&i2s_slv0>;
+			};
+			codec_m3: codec {
+				sound-dai = <&es8156>;
+				system-clock-frequency = <12288000>;
+			};
+		};
+		simple-audio-card,dai-link@0 {
+			format = "dsp_b";
+			cpu {
+				sound-dai = <&i2s_tdm_mst0>;
+				dai-tdm-slot-num = <2>;
+				dai-tdm-slot-width = <32>;
+				dai-tdm-slot-rx-mask = <1 1>;
+			};
+			codec {
+				sound-dai = <&es7243l>;
+				system-clock-frequency = <12288000>;
+			};
+		};
+		simple-audio-card,dai-link@0 {
+			format = "dsp_b";
+			bitclock-master = <&codec_m5>;
+			frame-master = <&codec_m5>;
+			cpu {
+				sound-dai = <&i2s_tdm_slv0>;
+				dai-tdm-slot-num = <2>;
+				dai-tdm-slot-width = <32>;
+				dai-tdm-slot-rx-mask = <1 1>;
+			};
+			codec_m5: codec {
+				sound-dai = <&es7243l>;
+				system-clock-frequency = <12288000>;
+			};
+		};*/
+		simple-audio-card,dai-link@0 {
+			format = "i2s";
+			bitclock-master = <&codec_m6>;
+			frame-master = <&codec_m6>;
+			capture-only;
+			cpu {
+				sound-dai = <&i2s_inner_slv0>;
+			};
+			codec_m6: codec {
+				sound-dai = <&audio_codec>;
+				system-clock-frequency = <12288000>;
+			};
+		};
+		simple-audio-card,dai-link@1 {
+			format = "i2s";
+			playback-only;
+			cpu {
+				sound-dai = <&i2s_inner_mst0>;
+			};
+			codec {
+				sound-dai = <&audio_codec>;
+				system-clock-frequency = <12288000>;
+			};
+		};
+	};
+
+	axera_logctl {
+		compatible = "axera,logctl";
+		config = "/etc/ax_syslog.conf";
+		logstate = /bits/ 8 <1 1>;
+		loglevel = /bits/ 8 <4 4>;
+	};
+
+	extcon_usb: extcon_usb {
+		compatible = "linux,extcon-usb-gpio";
+		id-gpio = <&ax_gpio1 2 0>; /* GPIO1_A2 */
+		status = "okay";
+	};
+
+};
+&i2c1 {
+	#address-cells = <0x1>;
+	#size-cells = <0x0>;
+	status = "disabled";
+	es7243l: es7243l@16 {
+		compatible = "es7243l_MicArray_0";
+		reg = <0x16>;
+		#sound-dai-cells = <0>;
+	};
+	es8156: es8156@9 {
+		compatible = "everest,es8156";
+		reg = <0x9>;
+		#sound-dai-cells = <0>;
+	};
+};
+
+&i2c6 {
+	status = "okay";
+};
+
+&ax_uart0 {
+	status = "okay";
+};
+
+&wdt0 {
+	status = "okay";
+};
+
+&wdt2 {
+	status = "okay";
+};
+
+#if 1
+/* for sd */
+&sd{
+	sdhci-caps-mask = <0x7 0x00200000>;
+	bus-width = <4>;
+	max-frequency = <200000000>;
+	cap-sd-highspeed;
+	no-sdio;
+	no-mmc;
+	disable-wp;
+#if 1
+	broken-cd;
+#else
+	cd-gpios = <&ax_gpio1 11 0>;
+	cd-inverted;
+	cd-debounce-delay-ms = <300>;
+#endif
+
+	cdns,phy-input-delay-sd-highspeed = <2>;
+	cdns,phy-input-delay-legacy = <3>;
+	cdns,phy-input-delay-sd-uhs-sdr12 = <3>;
+	cdns,phy-input-delay-sd-uhs-sdr25 = <2>;
+	cdns,phy-input-delay-sd-uhs-sdr50 = <1>;
+	cdns,phy-input-delay-sd-uhs-ddr50 = <1>;
+	cdns,phy-dll-delay-sdclk = <0>;
+
+	status = "okay";
+};
+#else
+/* for sdio */
+&sd{
+	sdhci-caps-mask = <0x7 0x00200000>;
+	bus-width = <4>;
+	max-frequency = <200000000>;
+	cap-sd-highspeed;
+	no-sd;
+	no-mmc;
+	disable-wp;
+
+	cdns,phy-input-delay-sd-highspeed = <2>;
+	cdns,phy-input-delay-legacy = <3>;
+	cdns,phy-input-delay-sd-uhs-sdr12 = <3>;
+	cdns,phy-input-delay-sd-uhs-sdr25 = <2>;
+	cdns,phy-input-delay-sd-uhs-sdr50 = <0>;
+	cdns,phy-input-delay-sd-uhs-ddr50 = <0>;
+	cdns,phy-dll-delay-sdclk = <0>;
+
+	status = "disabled";
+};
+#endif
+
+&sdio{
+	sdhci-caps-mask = <0x7 0x00200000>;
+	bus-width = <4>;
+	max-frequency = <200000000>;
+	cap-sd-highspeed;
+	no-sd;
+	no-mmc;
+	disable-wp;
+	cdns,phy-input-delay-sd-highspeed = <2>;
+	cdns,phy-input-delay-legacy = <3>;
+	cdns,phy-input-delay-sd-uhs-sdr12 = <3>;
+	cdns,phy-input-delay-sd-uhs-sdr25 = <2>;
+	cdns,phy-input-delay-sd-uhs-sdr50 = <0>;
+	cdns,phy-input-delay-sd-uhs-ddr50 = <0>;
+	cdns,phy-dll-delay-sdclk = <0>;
+	status = "disabled";
+};
+
+&usb {
+	status = "okay";
+};
+
+&usb2 {
+	dr_mode = "otg";
+	extcon = <&extcon_usb>;
+};
+
+&ax_gpio2 {
+	status = "okay";
+};
+
+&spi4 {
+	status = "okay";
+	spi_nand@0 {
+		compatible = "spi-nand";
+		reg = <0>;
+		rx-sample-delay-ns = <6>;
+		spi-max-frequency = <104000000>;
+		spi-tx-bus-width = <4>;
+		spi-rx-bus-width = <4>;
+	};
+};
+
+&audio_codec {
+	gpio-mic-rp = <&ax_gpio1 7 0>; /* GPIO1_A7 */
+	gpio-mic-rn = <&ax_gpio1 6 0>; /* GPIO1_A6 */
+	gpio-mic-ln = <&ax_gpio1 5 0>; /* GPIO1_A5 */
+	gpio-mic-lp = <&ax_gpio1 4 0>; /* GPIO1_A4 */
+	gpio-pa-speaker = <&ax_gpio1 12 0>;
+	status = "okay";
+};
+&i2s_inner_mst0 {
+	status = "okay";
+	/*i2s - pad0*/
+	i2s-m-aec-cycle-sel = <0>;    /*23-22*/
+	i2s-m-aec-sclk-sel = <0>;     /*21*/
+	i2s-inner-codec-en = <1>;     /*20*/
+	i2s-exter-codec-en = <0>;     /*19*/
+	i2s-m-exter-codec-en = <0>;   /*18*/
+	i2s-exter-codec-mst = <0>;    /*17*/
+	i2s-m-exter-codec-mst = <0>;  /*16*/
+	iis-out-tdm-en = <0>;         /*15*/
+	iis-m-out-tdm-en = <0>;       /*14*/
+	i2s-m-rx0-sel = <0>;          /*13*/
+	i2s-m-rx1-sel = <0>;          /*12-11*/
+	i2s-s-rx0-sel = <0>;          /*10-9*/
+	i2s-s-rx1-sel = <2>;          /*8-7*/
+	i2s-s-sclk-sel = <0>;         /*6-5*/
+	tdm-m-rx-sel = <0>;           /*4-3*/
+	tdm-s-rx-sel = <0>;           /*2-1*/
+	tdm-s-sclk-sel = <0>;         /*0*/
+};
+
+&i2s_inner_slv0 {
+	status = "okay";
+	/*i2s - pad0*/
+	i2s-m-aec-cycle-sel = <0>;    /*23-22*/
+	i2s-m-aec-sclk-sel = <0>;     /*21*/
+	i2s-inner-codec-en = <1>;     /*20*/
+	i2s-exter-codec-en = <0>;     /*19*/
+	i2s-m-exter-codec-en = <0>;   /*18*/
+	i2s-exter-codec-mst = <0>;    /*17*/
+	i2s-m-exter-codec-mst = <0>;  /*16*/
+	iis-out-tdm-en = <0>;         /*15*/
+	iis-m-out-tdm-en = <0>;       /*14*/
+	i2s-m-rx0-sel = <0>;          /*13*/
+	i2s-m-rx1-sel = <0>;          /*12-11*/
+	i2s-s-rx0-sel = <0>;          /*10-9*/
+	i2s-s-rx1-sel = <2>;          /*8-7*/
+	i2s-s-sclk-sel = <0>;         /*6-5*/
+	tdm-m-rx-sel = <0>;           /*4-3*/
+	tdm-s-rx-sel = <0>;           /*2-1*/
+	tdm-s-sclk-sel = <0>;         /*0*/
+};
+
+&i2s_mst0 {
+	status = "disabled";
+	/*i2s - pad0*/
+	i2s-m-aec-cycle-sel = <0>;    /*23-22*/
+	i2s-m-aec-sclk-sel = <0>;     /*21*/
+	i2s-inner-codec-en = <0>;     /*20*/
+	i2s-exter-codec-en = <1>;     /*19*/
+	i2s-m-exter-codec-en = <0>;   /*18*/
+	i2s-exter-codec-mst = <1>;    /*17*/
+	i2s-m-exter-codec-mst = <0>;  /*16*/
+	iis-out-tdm-en = <0>;         /*15*/
+	iis-m-out-tdm-en = <0>;       /*14*/
+	i2s-m-rx0-sel = <0>;          /*13*/
+	i2s-m-rx1-sel = <2>;          /*12-11*/
+	i2s-s-rx0-sel = <0>;          /*10-9*/
+	i2s-s-rx1-sel = <0>;          /*8-7*/
+	i2s-s-sclk-sel = <0>;         /*6-5*/
+	tdm-m-rx-sel = <0>;           /*4-3*/
+	tdm-s-rx-sel = <0>;           /*2-1*/
+	tdm-s-sclk-sel = <0>;         /*0*/
+};
+
+&i2s_slv0 {
+	status = "disabled";
+	/*i2s - pad0*/
+	i2s-m-aec-cycle-sel = <0>;    /*23-22*/
+	i2s-m-aec-sclk-sel = <0>;     /*21*/
+	i2s-inner-codec-en = <0>;     /*20*/
+	i2s-exter-codec-en = <1>;     /*19*/
+	i2s-m-exter-codec-en = <0>;   /*18*/
+	i2s-exter-codec-mst = <0>;    /*17*/
+	i2s-m-exter-codec-mst = <0>;  /*16*/
+	iis-out-tdm-en = <0>;         /*15*/
+	iis-m-out-tdm-en = <0>;       /*14*/
+	i2s-m-rx0-sel = <0>;          /*13*/
+	i2s-m-rx1-sel = <0>;          /*12-11*/
+	i2s-s-rx0-sel = <1>;          /*10-9*/
+	i2s-s-rx1-sel = <3>;          /*8-7*/
+	i2s-s-sclk-sel = <1>;         /*6-5*/
+	tdm-m-rx-sel = <0>;           /*4-3*/
+	tdm-s-rx-sel = <0>;           /*2-1*/
+	tdm-s-sclk-sel = <0>;         /*0*/
+};
+
+&i2s_tdm_mst0 {
+	status = "disabled";
+	/*i2s - pad0*/
+	i2s-m-aec-cycle-sel = <0>;    /*23-22*/
+	i2s-m-aec-sclk-sel = <0>;     /*21*/
+	i2s-inner-codec-en = <0>;     /*20*/
+	i2s-exter-codec-en = <1>;     /*19*/
+	i2s-m-exter-codec-en = <0>;   /*18*/
+	i2s-exter-codec-mst = <1>;    /*17*/
+	i2s-m-exter-codec-mst = <0>;  /*16*/
+	iis-out-tdm-en = <1>;         /*15*/
+	iis-m-out-tdm-en = <0>;       /*14*/
+	i2s-m-rx0-sel = <0>;          /*13*/
+	i2s-m-rx1-sel = <0>;          /*12-11*/
+	i2s-s-rx0-sel = <0>;          /*10-9*/
+	i2s-s-rx1-sel = <0>;          /*8-7*/
+	i2s-s-sclk-sel = <0>;         /*6-5*/
+	tdm-m-rx-sel = <0>;           /*4-3*/
+	tdm-s-rx-sel = <0>;           /*2-1*/
+	tdm-s-sclk-sel = <0>;         /*0*/
+};
+
+&i2s_tdm_slv0 {
+	status = "disabled";
+	/*i2s - pad0*/
+	i2s-m-aec-cycle-sel = <0>;    /*23-22*/
+	i2s-m-aec-sclk-sel = <0>;     /*21*/
+	i2s-inner-codec-en = <0>;     /*20*/
+	i2s-exter-codec-en = <1>;     /*19*/
+	i2s-m-exter-codec-en = <0>;   /*18*/
+	i2s-exter-codec-mst = <0>;    /*17*/
+	i2s-m-exter-codec-mst = <0>;  /*16*/
+	iis-out-tdm-en = <0>;         /*15*/
+	iis-m-out-tdm-en = <0>;       /*14*/
+	i2s-m-rx0-sel = <0>;          /*13*/
+	i2s-m-rx1-sel = <0>;          /*12-11*/
+	i2s-s-rx0-sel = <0>;          /*10-9*/
+	i2s-s-rx1-sel = <0>;          /*8-7*/
+	i2s-s-sclk-sel = <0>;         /*6-5*/
+	tdm-m-rx-sel = <0>;           /*4-3*/
+	tdm-s-rx-sel = <0>;           /*2-1*/
+	tdm-s-sclk-sel = <0>;         /*0*/
+};
+
+
+#if 0
+&eth0 {
+	status = "okay";
+
+	phy-handle = <&phy0>;
+	phy-mode = "rgmii";
+	phy-rst-gpio = <&ax_gpio1 27 0>; /* GPIO1_A27 */
+
+	mdio {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "snps,dwmac-mdio";
+		phy0: jl2xxx-phy@1 {
+			compatible = "ethernet-phy-id937c.4030";
+			jl2xxx,led-enable = <JL2XXX_LED_CTRL_EN>;
+			jl2xxx,led-mode = <JL2XXX_CFG_LED_MODE>;
+			jl2xxx,led-period = <JL2XXX_GLOBAL_PERIOD_MS>;
+			jl2xxx,led-on = <JL2XXX_GLOBAL_ON_MS>;
+			jl2xxx,led-polarity = <JL2XXX_LED_POLARITY>;
+			jl2xxx,patch-enable = <JL2XXX_PATCH_CTRL_EN>;
+			jl2xxx,rgmii-enable = <JL2XXX_RGMII_CTRL_EN>;
+			jl2xxx,rgmii-tx-delay = <JL2XXX_RGMII_TX_DLY_2NS>;
+			jl2xxx,rgmii-rx-delay = <JL2XXX_RGMII_RX_DLY_2NS>;
+			jl2xxx,clk-enable = <JL2XXX_CLK_CTRL_EN>;
+			jl2xxx,fld-enable = <JL2XXX_FLD_CTRL_EN>;
+			jl2xxx,fld-delay = <JL2XXX_FLD_DELAY>;
+			jl2xxx,wol-enable = <JL2XXX_WOL_CTRL_EN>;
+			jl2xxx,interrupt-enable = <JL2XXX_INTR_CTRL_EN>;
+			jl2xxx,downshift-enable = <JL2XXX_DSFT_CTRL_EN>;
+			jl2xxx,downshift-count = <JL2XXX_DSFT_AN_CNT>;
+			jl2xxx,work_mode-enable = <JL2XXX_WORK_MODE_CTRL_EN>;
+			jl2xxx,work_mode-mode = <JL2XXX_WOEK_MODE_MODE>;
+			jl2xxx,lpbk-enable = <JL2XXX_LPBK_CTRL_EN>;
+			jl2xxx,lpbk-mode = <JL2XXX_LPBK_MODE>;
+			jl2xxx,slew_rate-enable = <JL2XXX_SLEW_RATE_CTRL_EN>;
+			jl2xxx,rxc_out-enable = <JL2XXX_RXC_OUT_CTRL_EN>;
+			reg = <1>;
+		};
+	};
+};
+#else
+&eth0 {
+	status = "okay";
+
+	phy-handle = <&phy0>;
+	phy-mode = "rmii";
+	axera-ephy,led0-mode = <EPHY_LED_SPEED>;
+	axera-ephy,led0-enable;
+	axera-ephy,led1-mode = <EPHY_LED_LINK>;
+	axera-ephy,led1-enable;
+	axera-ephy,led-polarity = <EPHY_LED_HIGH_ACTIVE>;
+	mdio {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "snps,dwmac-mdio";
+		phy0: axera-ephy@1 {
+			device_tpye = "ethernet-phy";
+			compatible = "ethernet-phy-id0044.1400";
+			reg = <1>;
+		};
+	};
+};
+#endif
+
+&pwm0 {
+	status = "okay";
+};
+
+&pwm1 {
+	status = "okay";
+};
+
+&pwm2 {
+	status = "okay";
+};
+
+&deb_gpio_lp {
+	lp-status = <41 1>; /* use db_gpio41 as wakeup source */
+	status = "okay";
+};
+
+
+&i2c0 {
+	status = "okay";
+};
+
+&i2c2 {
+	status = "okay";
+};
+
+&ax_perf_bm {
+	status = "okay";
+};
+
+&ax_firewall {
+	status = "okay";
+};
+
+&ddr_dfs {
+       status = "okay";
+};
+
+&bwlimiter {
+	status = "okay";
+};
+
+&ive {
+	status = "okay";
+};
+
+&vdec {
+	status = "okay";
+};
+
+&venc {
+	status = "okay";
+	max-venc-chn-num = <16>;/* range:[1,AX_MAX_VENC_CHN_NUM]*/
+};
+
+&jenc {
+	status = "okay";
+};
+&tdp {
+	status = "okay";
+};
+&gdc {
+	status = "okay";
+};
+&vpp {
+	status = "okay";
+};
+&axera_rtc_pwr {
+        status = "okay";
+};
+
+&vo0 {
+	status = "okay";
+};
+
+&dma {
+	status = "okay";
+};
+
+&dma_per {
+	status = "okay";
+};
+
+&cmm {
+	cmmpool = CMM_ARGS;
+};
+&axera_pmu {
+	status = "okay";
+};
+
+&panel0 {
+	status = "disabled";
+};
+
+#ifdef SUPPORT_RISCV
+&riscv {
+	status = "okay";
+};
+#endif

@@ -2054,6 +2054,7 @@ extern void free_highmem_page(struct page *page);
 
 extern void adjust_managed_page_count(struct page *page, long count);
 extern void mem_init_print_info(const char *str);
+extern int release_reserved_area_info(phys_addr_t start, phys_addr_t end);
 
 extern void reserve_bootmem_region(phys_addr_t start, phys_addr_t end);
 
@@ -2811,6 +2812,12 @@ void __init setup_nr_node_ids(void);
 #else
 static inline void setup_nr_node_ids(void) {}
 #endif
+
+#ifdef CONFIG_AXERA_CMM_MEM_RECYCLE
+int ax_in_cmm_mem_range(const phys_addr_t paddr);
+#endif
+int ax_in_isp_image_mem_range(const phys_addr_t paddr);
+void ax_free_isp_image_mem(const phys_addr_t addr_start, const unsigned int size);
 
 #endif /* __KERNEL__ */
 #endif /* _LINUX_MM_H */

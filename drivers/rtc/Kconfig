@@ -1818,4 +1818,11 @@ config RTC_DRV_GOLDFISH
 	  Goldfish is a code name for the virtual platform developed by Google
 	  for Android emulation.
 
+config RTC_DRV_AXERA
+         bool "AXERA AXI RTC"
+         depends on ARCH_AXERA
+         help
+           RTC (Realtime Clock) driver for the clock inbuilt into the
+           Axera AX620E SoCs.
+
 endif # RTC_CLASS

@@ -52,6 +52,22 @@ static int i2c_dw_init_slave(struct dw_i2c_dev *dev)
 		dw_writel(dev, dev->sda_hold_time, DW_IC_SDA_HOLD);
 
 	i2c_dw_configure_fifo_slave(dev);
+
+	/* Enforce disabled interrupts (due to HW issues) */
+	i2c_dw_disable_int(dev);
+
+	/* Clear interrupts */
+	dw_readl(dev, DW_IC_CLR_INTR);
+
+	/* Enable the adapter */
+	__i2c_dw_enable(dev);
+
+	/* Dummy read to avoid the register getting stuck on Bay Trail */
+	dw_readl(dev, DW_IC_ENABLE_STATUS);
+
+	/* enable interrupts */
+	dw_writel(dev, DW_IC_INTR_SLAVE_MASK, DW_IC_INTR_MASK);
+
 	i2c_dw_release_lock(dev);
 
 	return 0;

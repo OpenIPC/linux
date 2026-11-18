@@ -70,6 +70,19 @@ dwc3_gadget_generic_cmd_string(u8 cmd)
 		return "Set Endpoint NRDY";
 	case DWC3_DGCMD_RUN_SOC_BUS_LOOPBACK:
 		return "Run SoC Bus Loopback Test";
+
+/// SIPEED EDIT ///
+	/**
+	 * https://patches.linaro.org/project/linux-usb/list/?series=205060
+	 * Message ID 	1679694482-16430-5-git-send-email-quic_eserrao@quicinc.com
+	 * Series 	Add function suspend/resume and remote wakeup support
+	 *
+	 * [v13,4/6] usb: dwc3: Add function suspend and function wakeup support
+	 */
+	case DWC3_DGCMD_DEV_NOTIFICATION:
+		return "Device Notification";
+/// SIPEED EDIT END ///
+
 	default:
 		return "UNKNOWN";
 	}

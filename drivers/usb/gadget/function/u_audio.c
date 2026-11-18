@@ -43,6 +43,12 @@ struct uac_rtd_params {
 	unsigned max_psize;	/* MaxPacketSize of endpoint */
 	struct uac_req *ureq;
 
+	// ### SIPEED EDIT ###
+	struct usb_request *req_fback; /* Feedback endpoint request */
+	unsigned int ffback; /* Real frequency reported by feedback endpoint */
+	bool fb_ep_enabled; /* if the ep is enabled */
+	// ### SIPEED EDIT END ###
+
 	spinlock_t lock;
 };
 
@@ -76,6 +82,40 @@ static const struct snd_pcm_hardware uac_pcm_hardware = {
 	.periods_min = MIN_PERIODS,
 };
 
+// ### SIPEED EDIT ###
+static void u_audio_set_fback_frequency(enum usb_device_speed speed,
+					struct usb_ep *out_ep,
+					unsigned int freq, void *buf)
+{
+	const struct usb_endpoint_descriptor *ep_desc;
+	u64 ff;
+	unsigned int shift;
+
+	if (speed == USB_SPEED_FULL) {
+		/*
+		 * Full-speed feedback endpoints report frequency
+		 * in samples/microframe
+		 * Format is encoded in Q10.10 left-justified in the 24 bits,
+		 * so that it has a Q10.14 format.
+		 */
+		shift = 14;
+	} else {
+		/*
+		 * High-speed feedback endpoints report frequency
+		 * in samples/microframe.
+		 * Format is encoded in Q12.13 fitted into four bytes so that
+		 * the binary point is located between the second and the third
+		 * byte format (that is Q16.16)
+		 */
+		ep_desc = out_ep->desc;
+		shift = 13 + (ep_desc->bInterval - 1);
+	}
+
+	ff = DIV_ROUND_UP_ULL((u64)freq << shift, 1000);
+	*(__le32 *)buf = cpu_to_le32((u32)ff);
+}
+// ### SIPEED EDIT END ###
+
 static void u_audio_iso_complete(struct usb_ep *ep, struct usb_request *req)
 {
 	unsigned pending;
@@ -88,9 +128,16 @@ static void u_audio_iso_complete(struct usb_ep *ep, struct usb_request *req)
 	struct uac_rtd_params *prm = ur->pp;
 	struct snd_uac_chip *uac = prm->uac;
 
+	// ### SIPEED EDIT ###
 	/* i/f shutting down */
-	if (!prm->ep_enabled || req->status == -ESHUTDOWN)
+	if (!prm->ep_enabled) {
+		usb_ep_free_request(ep, req);
 		return;
+	}
+
+	if (req->status == -ESHUTDOWN)
+		return;
+	// ### SIPEED EDIT END ###
 
 	/*
 	 * We can't really do much about bad xfers.
@@ -181,6 +228,42 @@ exit:
 	if (usb_ep_queue(ep, req, GFP_ATOMIC))
 		dev_err(uac->card->dev, "%d Error!\n", __LINE__);
 }
+
+// ### SIPEED EDIT ###
+static void u_audio_iso_fback_complete(struct usb_ep *ep,
+				       struct usb_request *req)
+{
+	struct uac_rtd_params *prm = req->context;
+	struct snd_uac_chip *uac = prm->uac;
+	struct g_audio *audio_dev = uac->audio_dev;
+	int status = req->status;
+
+	/* i/f shutting down */
+	if (!prm->fb_ep_enabled) {
+		kfree(req->buf);
+		usb_ep_free_request(ep, req);
+		return;
+	}
+
+	if (req->status == -ESHUTDOWN)
+		return;
+
+	/*
+	 * We can't really do much about bad xfers.
+	 * Afterall, the ISOCH xfers could fail legitimately.
+	 */
+	if (status)
+		pr_debug("%s: iso_complete status(%d) %d/%d\n",
+			__func__, status, req->actual, req->length);
+
+	u_audio_set_fback_frequency(audio_dev->gadget->speed,
+				    audio_dev->out_ep,
+				    prm->ffback, req->buf);
+
+	if (usb_ep_queue(ep, req, GFP_ATOMIC))
+		dev_err(uac->card->dev, "%d Error!\n", __LINE__);
+}
+// ### SIPEED EDIT END ###
 
 static int uac_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 {
@@ -344,31 +427,61 @@ static inline void free_ep(struct uac_rtd_params *prm, struct usb_ep *ep)
 	if (!prm->ep_enabled)
 		return;
 
-	prm->ep_enabled = false;
-
 	audio_dev = uac->audio_dev;
 	params = &audio_dev->params;
 
+	// ### SIPEED EDIT ###
 	for (i = 0; i < params->req_number; i++) {
 		if (prm->ureq[i].req) {
-			usb_ep_dequeue(ep, prm->ureq[i].req);
-			usb_ep_free_request(ep, prm->ureq[i].req);
+			if (usb_ep_dequeue(ep, prm->ureq[i].req))
+				usb_ep_free_request(ep, prm->ureq[i].req);
+			/*
+			 * A successfully dequeued request is released by its
+			 * completion callback after ep_enabled is cleared below.
+			 */
 			prm->ureq[i].req = NULL;
 		}
 	}
+
+	prm->ep_enabled = false;
+	// ### SIPEED EDIT END ###
 
 	if (usb_ep_disable(ep))
 		dev_err(uac->card->dev, "%s:%d Error!\n", __func__, __LINE__);
 }
 
+// ### SIPEED EDIT ###
+static inline void free_ep_fback(struct uac_rtd_params *prm, struct usb_ep *ep)
+{
+	struct snd_uac_chip *uac = prm->uac;
+
+	if (!prm->fb_ep_enabled)
+		return;
+
+	if (prm->req_fback) {
+		if (usb_ep_dequeue(ep, prm->req_fback)) {
+			kfree(prm->req_fback->buf);
+			usb_ep_free_request(ep, prm->req_fback);
+		}
+		prm->req_fback = NULL;
+	}
+
+	prm->fb_ep_enabled = false;
+
+	if (usb_ep_disable(ep))
+		dev_err(uac->card->dev, "%s:%d Error!\n", __func__, __LINE__);
+}
+// ### SIPEED EDIT END ###
 
 int u_audio_start_capture(struct g_audio *audio_dev)
 {
 	struct snd_uac_chip *uac = audio_dev->uac;
 	struct usb_gadget *gadget = audio_dev->gadget;
 	struct device *dev = &gadget->dev;
-	struct usb_request *req;
-	struct usb_ep *ep;
+	// ### SIPEED EDIT ###
+	struct usb_request *req, *req_fback;
+	struct usb_ep *ep, *ep_fback;
+	// ### SIPEED EDIT END ###
 	struct uac_rtd_params *prm;
 	struct uac_params *params = &audio_dev->params;
 	int req_len, i;
@@ -401,6 +514,44 @@ int u_audio_start_capture(struct g_audio *audio_dev)
 			dev_err(dev, "%s:%d Error!\n", __func__, __LINE__);
 	}
 
+	// ### SIPEED EDIT ###
+	ep_fback = audio_dev->in_ep_fback;
+	if (!ep_fback)
+		return 0;
+
+	/* Setup feedback endpoint */
+	config_ep_by_speed(gadget, &audio_dev->func, ep_fback);
+	prm->fb_ep_enabled = true;
+	usb_ep_enable(ep_fback);
+	req_len = ep_fback->maxpacket;
+
+	req_fback = usb_ep_alloc_request(ep_fback, GFP_ATOMIC);
+	if (req_fback == NULL)
+		return -ENOMEM;
+
+	prm->req_fback = req_fback;
+	req_fback->zero = 0;
+	req_fback->context = prm;
+	req_fback->length = req_len;
+	req_fback->complete = u_audio_iso_fback_complete;
+
+	req_fback->buf = kzalloc(req_len, GFP_ATOMIC);
+	if (!req_fback->buf)
+		return -ENOMEM;
+
+	/*
+	 * Configure the feedback endpoint's reported frequency.
+	 * Always start with original frequency since its deviation can't
+	 * be measured at start of playback.
+	 */
+	prm->ffback = params->c_srate;
+	u_audio_set_fback_frequency(audio_dev->gadget->speed, ep,
+				    prm->ffback, req_fback->buf);
+
+	if (usb_ep_queue(ep_fback, req_fback, GFP_ATOMIC))
+		dev_err(dev, "%s:%d Error!\n", __func__, __LINE__);
+	// ### SIPEED EDIT END ###
+
 	return 0;
 }
 EXPORT_SYMBOL_GPL(u_audio_start_capture);
@@ -409,6 +560,10 @@ void u_audio_stop_capture(struct g_audio *audio_dev)
 {
 	struct snd_uac_chip *uac = audio_dev->uac;
 
+	// ### SIPEED EDIT ###
+	if (audio_dev->in_ep_fback)
+		free_ep_fback(&uac->c_prm, audio_dev->in_ep_fback);
+	// ### SIPEED EDIT END ###
 	free_ep(&uac->c_prm, audio_dev->out_ep);
 }
 EXPORT_SYMBOL_GPL(u_audio_stop_capture);

@@ -426,6 +426,55 @@ int usb_interface_id(struct usb_configuration *config,
 }
 EXPORT_SYMBOL_GPL(usb_interface_id);
 
+/// SIPEED EDIT ///
+/**
+ * https://patches.linaro.org/project/linux-usb/list/?series=205060
+ * Message ID 	1679694482-16430-4-git-send-email-quic_eserrao@quicinc.com
+ * Series 	Add function suspend/resume and remote wakeup support
+ * 
+ * [v13,3/6] usb: gadget: Add function wakeup support
+ */
+/**
+ * usb_func_wakeup - sends function wake notification to the host.
+ * @func: function that sends the remote wakeup notification.
+ *
+ * Applicable to devices operating at enhanced superspeed when usb
+ * functions are put in function suspend state and armed for function
+ * remote wakeup. On completion, function wake notification is sent. If
+ * the device is in low power state it tries to bring the device to active
+ * state before sending the wake notification. Since it is a synchronous
+ * call, caller must take care of not calling it in interrupt context.
+ * For devices operating at lower speeds  returns negative errno.
+ *
+ * Returns zero on success, else negative errno.
+ */
+int usb_func_wakeup(struct usb_function *func)
+{
+	struct usb_gadget	*gadget = func->config->cdev->gadget;
+	int			id;
+
+	if (!gadget->ops->func_wakeup)
+		return -EOPNOTSUPP;
+
+	if (!func->func_wakeup_armed) {
+		// ERROR(func->config->cdev, "not armed for func remote wakeup\n");
+		return -EINVAL;
+	}
+
+	for (id = 0; id < MAX_CONFIG_INTERFACES; id++)
+		if (func->config->interface[id] == func)
+			break;
+
+	if (id == MAX_CONFIG_INTERFACES) {
+		ERROR(func->config->cdev, "Invalid function\n");
+		return -EINVAL;
+	}
+
+	return gadget->ops->func_wakeup(gadget, id);
+}
+EXPORT_SYMBOL_GPL(usb_func_wakeup);
+/// SIPEED EDIT END ///
+
 static u8 encode_bMaxPower(enum usb_device_speed speed,
 		struct usb_configuration *c)
 {
@@ -446,6 +495,28 @@ static u8 encode_bMaxPower(enum usb_device_speed speed,
 		 */
 		return min(val, 900U) / 8;
 }
+
+/// SIPEED EDIT ///
+/**
+ * https://patches.linaro.org/project/linux-usb/list/?series=205060
+ * Message ID 	1679694482-16430-2-git-send-email-quic_eserrao@quicinc.com
+ * Series 	Add function suspend/resume and remote wakeup support
+ * 
+ * [v13,1/6] usb: gadget: Properly configure the device for remote wakeup
+ */
+void check_remote_wakeup_config(struct usb_gadget *g,
+				struct usb_configuration *c)
+{
+	if (USB_CONFIG_ATT_WAKEUP & c->bmAttributes) {
+		/* Reset the rw bit if gadget is not capable of it */
+		if (!g->wakeup_capable && g->ops->set_remote_wakeup) {
+			WARN(c->cdev, "Clearing wakeup bit for config c.%d\n",
+			     c->bConfigurationValue);
+			c->bmAttributes &= ~USB_CONFIG_ATT_WAKEUP;
+		}
+	}
+}
+/// SIPEED EDIT END ///
 
 static int config_buf(struct usb_configuration *config,
 		enum usb_device_speed speed, void *buf, u8 type)
@@ -745,6 +816,18 @@ static void reset_config(struct usb_composite_dev *cdev)
 		if (f->disable)
 			f->disable(f);
 
+/// SIPEED EDIT ///
+		/**
+		 * https://patches.linaro.org/project/linux-usb/list/?series=205060
+		 * Message ID 	1679694482-16430-6-git-send-email-quic_eserrao@quicinc.com
+		 * Series 	Add function suspend/resume and remote wakeup support
+		 *
+		 * [v13,5/6] usb: gadget: Handle function suspend feature selector
+		 */
+		/* Section 9.1.1.6, disable remote wakeup when device is reset */
+		f->func_wakeup_armed = false;
+/// SIPEED EDIT END ///
+
 		bitmap_zero(f->endpoints, 32);
 	}
 	cdev->config = NULL;
@@ -846,6 +929,21 @@ static int set_config(struct usb_composite_dev *cdev,
 		power = min(power, 500U);
 	else
 		power = min(power, 900U);
+
+/// SIPEED EDIT ///
+	/**
+	 * https://patches.linaro.org/project/linux-usb/list/?series=205060
+	 * Message ID 	1679694482-16430-2-git-send-email-quic_eserrao@quicinc.com
+	 * Series 	Add function suspend/resume and remote wakeup support
+	 * 
+	 * [v13,1/6] usb: gadget: Properly configure the device for remote wakeup
+	 */
+	if (USB_CONFIG_ATT_WAKEUP & c->bmAttributes)
+		usb_gadget_set_remote_wakeup(gadget, 1);
+	else
+		usb_gadget_set_remote_wakeup(gadget, 0);
+/// SIPEED EDIT END ///
+
 done:
 	if (power <= USB_SELF_POWER_VBUS_MAX_DRAW)
 		usb_gadget_set_selfpowered(gadget);
@@ -955,6 +1053,13 @@ int usb_add_config(struct usb_composite_dev *cdev,
 				i, f->name, f);
 		}
 	}
+
+/// SIPEED EDIT ///
+	if (status == 0 && cdev->gadget->ops->set_remote_wakeup) {
+		cdev->gadget->ops->set_remote_wakeup(cdev->gadget,
+			!!(config->bmAttributes & USB_CONFIG_ATT_WAKEUP));
+	}
+/// SIPEED EDIT END ///
 
 	/* set_alt(), or next bind(), sets up ep->claimed as needed */
 	usb_ep_autoconfig_reset(cdev->gadget);
@@ -1787,9 +1892,33 @@ composite_setup(struct usb_gadget *gadget, const struct usb_ctrlrequest *ctrl)
 		f = cdev->config->interface[intf];
 		if (!f)
 			break;
-		status = f->get_status ? f->get_status(f) : 0;
-		if (status < 0)
-			break;
+
+/// SIPEED EDIT ///
+		/**
+		 * https://patches.linaro.org/project/linux-usb/list/?series=205060
+		 * Message ID 	1679694482-16430-6-git-send-email-quic_eserrao@quicinc.com
+		 * Series 	Add function suspend/resume and remote wakeup support
+		 *
+		 * [v13,5/6] usb: gadget: Handle function suspend feature selector
+		 */
+		/* Section 9.1.1.6, disable remote wakeup when device is reset */
+		// status = f->get_status ? f->get_status(f) : 0;
+		// if (status < 0)
+		// 	break;
+		if (f->get_status) {
+			status = f->get_status(f);
+			if (status < 0)
+				break;
+		} else {
+			/* Set D0 and D1 bits based on func wakeup capability */
+			if (f->config->bmAttributes & USB_CONFIG_ATT_WAKEUP) {
+				status |= USB_INTRF_STAT_FUNC_RW_CAP;
+				if (f->func_wakeup_armed)
+					status |= USB_INTRF_STAT_FUNC_RW;
+			}
+		}
+/// SIPEED EDIT END ///
+
 		put_unaligned_le16(status & 0x0000ffff, req->buf);
 		break;
 	/*
@@ -1811,8 +1940,56 @@ composite_setup(struct usb_gadget *gadget, const struct usb_ctrlrequest *ctrl)
 			if (!f)
 				break;
 			value = 0;
-			if (f->func_suspend)
+
+/// SIPEED EDIT ///
+			/**
+			 * https://patches.linaro.org/project/linux-usb/list/?series=205060
+			 * Message ID 	1679694482-16430-6-git-send-email-quic_eserrao@quicinc.com
+			 * Series 	Add function suspend/resume and remote wakeup support
+			 *
+			 * [v13,5/6] usb: gadget: Handle function suspend feature selector
+			 */
+			// if (f->func_suspend)
+			// 	value = f->func_suspend(f, w_index >> 8);
+			if (f->func_suspend) {
 				value = f->func_suspend(f, w_index >> 8);
+			/* SetFeature(FUNCTION_SUSPEND) */
+			} else if (ctrl->bRequest == USB_REQ_SET_FEATURE) {
+				if (!(f->config->bmAttributes &
+				      USB_CONFIG_ATT_WAKEUP) &&
+				     (w_index & USB_INTRF_FUNC_SUSPEND_RW))
+					break;
+
+				f->func_wakeup_armed = !!(w_index &
+							  USB_INTRF_FUNC_SUSPEND_RW);
+
+				if (w_index & USB_INTRF_FUNC_SUSPEND_LP) {
+					if (f->suspend && !f->func_suspended) {
+						f->suspend(f);
+						f->func_suspended = true;
+					}
+				/*
+				 * Handle cases where host sends function resume
+				 * through SetFeature(FUNCTION_SUSPEND) but low power
+				 * bit reset
+				 */
+				} else {
+					if (f->resume && f->func_suspended) {
+						f->resume(f);
+						f->func_suspended = false;
+					}
+				}
+			/* ClearFeature(FUNCTION_SUSPEND) */
+			} else if (ctrl->bRequest == USB_REQ_CLEAR_FEATURE) {
+				f->func_wakeup_armed = false;
+
+				if (f->resume && f->func_suspended) {
+					f->resume(f);
+					f->func_suspended = false;
+				}
+			}
+/// SIPEED EDIT END ///
+
 			if (value < 0) {
 				ERROR(cdev,
 				      "func_suspend() returned error %d\n",
@@ -2288,8 +2465,27 @@ void composite_resume(struct usb_gadget *gadget)
 		cdev->driver->resume(cdev);
 	if (cdev->config) {
 		list_for_each_entry(f, &cdev->config->functions, list) {
+
+/// SIPEED EDIT ///
+			/**
+			 * https://patches.linaro.org/project/linux-usb/list/?series=205060
+			 * Message ID 	1679694482-16430-6-git-send-email-quic_eserrao@quicinc.com
+			 * Series 	Add function suspend/resume and remote wakeup support
+			 *
+			 * [v13,5/6] usb: gadget: Handle function suspend feature selector
+			 */
+			// if (f->resume)
+			// 	f->resume(f);
 			if (f->resume)
-				f->resume(f);
+			/*
+			 * Check for func_suspended flag to see if the function is
+			 * in USB3 FUNCTION_SUSPEND state. In this case resume is
+			 * done via FUNCTION_SUSPEND feature selector.
+			 */
+			if (f->resume && !f->func_suspended)
+ 				f->resume(f);
+/// SIPEED EDIT END ///
+
 		}
 
 		maxpower = cdev->config->MaxPower ?

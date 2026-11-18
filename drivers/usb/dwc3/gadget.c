@@ -26,8 +26,11 @@
 #include "core.h"
 #include "gadget.h"
 #include "io.h"
+#ifdef CONFIG_USB_DWC3_AXERA
+#include "dwc3-axera.h"
+#endif
 
-#define DWC3_ALIGN_FRAME(d)	(((d)->frame_number + (d)->interval) \
+#define DWC3_ALIGN_FRAME(d, n)	(((d)->frame_number + (d)->interval * (n)) \
 					& ~((d)->interval - 1))
 
 /**
@@ -254,7 +257,67 @@ int dwc3_send_gadget_generic_command(struct dwc3 *dwc, unsigned cmd, u32 param)
 	return ret;
 }
 
-static int __dwc3_gadget_wakeup(struct dwc3 *dwc);
+/// SIPEED EDIT ///
+/**
+ * https://patches.linaro.org/project/linux-usb/list/?series=205060
+ * Message ID 	1679694482-16430-3-git-send-email-quic_eserrao@quicinc.com
+ * Series 	Add function suspend/resume and remote wakeup support
+ *
+ * [v13,2/6] usb: dwc3: Add remote wakeup handling
+ */
+// static int __dwc3_gadget_wakeup(struct dwc3 *dwc);
+static int __dwc3_gadget_wakeup(struct dwc3 *dwc, bool async);
+/// SIPEED EDIT END ///
+
+/// SIPEED EDIT ///
+/**
+ * https://patches.linaro.org/project/linux-usb/list/?series=205060
+ * Message ID 	1679694482-16430-5-git-send-email-quic_eserrao@quicinc.com
+ * Series 	Add function suspend/resume and remote wakeup support
+ *
+ * [v13,4/6] usb: dwc3: Add function suspend and function wakeup support
+ */
+static void dwc3_resume_gadget(struct dwc3 *dwc);
+
+static int dwc3_gadget_func_wakeup(struct usb_gadget *g, int intf_id)
+{
+	struct  dwc3		*dwc = gadget_to_dwc(g);
+	unsigned long		flags;
+	int			ret;
+	int			link_state;
+
+	if (!dwc->wakeup_configured) {
+		// dev_err(dwc->dev, "remote wakeup not configured\n");
+		return -EINVAL;
+	}
+
+	spin_lock_irqsave(&dwc->lock, flags);
+	/*
+	 * If the link is in U3, signal for remote wakeup and wait for the
+	 * link to transition to U0 before sending device notification.
+	 */
+	link_state = dwc3_gadget_get_link_state(dwc);
+	if (link_state == DWC3_LINK_STATE_U3) {
+		ret = __dwc3_gadget_wakeup(dwc, false);
+		if (ret) {
+			spin_unlock_irqrestore(&dwc->lock, flags);
+			return -EINVAL;
+		}
+		dwc3_resume_gadget(dwc);
+		dwc->link_state = DWC3_LINK_STATE_U0;
+	}
+
+	ret = dwc3_send_gadget_generic_command(dwc, DWC3_DGCMD_DEV_NOTIFICATION,
+					       DWC3_DGCMDPAR_DN_FUNC_WAKE |
+					       DWC3_DGCMDPAR_INTF_SEL(intf_id));
+	if (ret)
+		dev_err(dwc->dev, "function remote wakeup failed, ret:%d\n", ret);
+
+	spin_unlock_irqrestore(&dwc->lock, flags);
+
+	return ret;
+}
+/// SIPEED EDIT END ///
 
 /**
  * dwc3_send_gadget_ep_cmd - issue an endpoint command
@@ -270,7 +333,7 @@ int dwc3_send_gadget_ep_cmd(struct dwc3_ep *dep, unsigned cmd,
 {
 	const struct usb_endpoint_descriptor *desc = dep->endpoint.desc;
 	struct dwc3		*dwc = dep->dwc;
-	u32			timeout = 1000;
+	u32			timeout = 10000;
 	u32			saved_config = 0;
 	u32			reg;
 
@@ -311,7 +374,19 @@ int dwc3_send_gadget_ep_cmd(struct dwc3_ep *dep, unsigned cmd,
 				dwc->link_state == DWC3_LINK_STATE_U3);
 
 		if (unlikely(needs_wakeup)) {
-			ret = __dwc3_gadget_wakeup(dwc);
+
+/// SIPEED EDIT ///
+/**
+ * https://patches.linaro.org/project/linux-usb/list/?series=205060
+ * Message ID 	1679694482-16430-3-git-send-email-quic_eserrao@quicinc.com
+ * Series 	Add function suspend/resume and remote wakeup support
+ *
+ * [v13,2/6] usb: dwc3: Add remote wakeup handling
+ */
+			// ret = __dwc3_gadget_wakeup(dwc);
+			ret = __dwc3_gadget_wakeup(dwc, false);
+/// SIPEED EDIT END ///
+
 			dev_WARN_ONCE(dwc->dev, ret, "wakeup failed --> %d\n",
 					ret);
 		}
@@ -688,13 +763,16 @@ out:
 	return 0;
 }
 
-static void dwc3_stop_active_transfer(struct dwc3_ep *dep, bool force,
+static int dwc3_stop_active_transfer(struct dwc3_ep *dep, bool force,
 		bool interrupt);
-static void dwc3_remove_requests(struct dwc3 *dwc, struct dwc3_ep *dep)
+static int dwc3_remove_requests(struct dwc3 *dwc, struct dwc3_ep *dep)
 {
 	struct dwc3_request		*req;
+	int				ret;
 
-	dwc3_stop_active_transfer(dep, true, false);
+	ret = dwc3_stop_active_transfer(dep, true, false);
+	if (ret < 0)
+		return ret;
 
 	/* - giveback all requests to gadget driver */
 	while (!list_empty(&dep->started_list)) {
@@ -714,6 +792,8 @@ static void dwc3_remove_requests(struct dwc3 *dwc, struct dwc3_ep *dep)
 
 		dwc3_gadget_giveback(dep, req, -ESHUTDOWN);
 	}
+
+	return 0;
 }
 
 /**
@@ -730,10 +810,13 @@ static int __dwc3_gadget_ep_disable(struct dwc3_ep *dep)
 {
 	struct dwc3		*dwc = dep->dwc;
 	u32			reg;
+	int			ret;
 
 	trace_dwc3_gadget_ep_disable(dep);
 
-	dwc3_remove_requests(dwc, dep);
+	ret = dwc3_remove_requests(dwc, dep);
+	if (ret < 0)
+		return ret;
 
 	/* make sure HW endpoint isn't stalled */
 	if (dep->flags & DWC3_EP_STALL)
@@ -1258,9 +1341,12 @@ static int __dwc3_gadget_kick_transfer(struct dwc3_ep *dep)
 		 * here and stop, unmap, free and del each of the linked
 		 * requests instead of what we do now.
 		 */
-		if (req->trb)
-			memset(req->trb, 0, sizeof(struct dwc3_trb));
-		dwc3_gadget_del_and_unmap_request(dep, req, ret);
+		 if (ret != -EAGAIN) {
+			if (req->trb)
+				memset(req->trb, 0, sizeof(struct dwc3_trb));
+
+			dwc3_gadget_del_and_unmap_request(dep, req, ret);
+		}
 		return ret;
 	}
 
@@ -1277,15 +1363,29 @@ static int __dwc3_gadget_get_frame(struct dwc3 *dwc)
 
 static void __dwc3_gadget_start_isoc(struct dwc3_ep *dep)
 {
-	if (list_empty(&dep->pending_list)) {
-		dev_info(dep->dwc->dev, "%s: ran out of requests\n",
-				dep->name);
+	int i;
+	int ret;
+	const struct usb_endpoint_descriptor *desc = dep->endpoint.desc;
+	if (list_empty(&dep->pending_list) && list_empty(&dep->started_list)) {
 		dep->flags |= DWC3_EP_PENDING_REQUEST;
 		return;
 	}
 
-	dep->frame_number = DWC3_ALIGN_FRAME(dep);
-	__dwc3_gadget_kick_transfer(dep);
+	for(i = 0; i < 50; i += 1) {
+		int future_interval = i + 1;
+		if (desc->bInterval < 3) {
+			future_interval += 3 - desc->bInterval;
+		}
+		dep->frame_number = DWC3_ALIGN_FRAME(dep, future_interval);
+		ret = __dwc3_gadget_kick_transfer(dep);
+		if (ret != -EAGAIN) {
+			break;
+		}
+	}
+
+	if (ret == -EAGAIN) {
+		dwc3_stop_active_transfer(dep, true, true);
+	}
 }
 
 static int __dwc3_gadget_ep_queue(struct dwc3_ep *dep, struct dwc3_request *req)
@@ -1417,7 +1517,9 @@ static int dwc3_gadget_ep_dequeue(struct usb_ep *ep,
 		}
 		if (r == req) {
 			/* wait until it is processed */
-			dwc3_stop_active_transfer(dep, true, true);
+			ret = dwc3_stop_active_transfer(dep, true, true);
+			if (ret < 0)
+				goto out0;
 
 			if (!r->trb)
 				goto out0;
@@ -1428,8 +1530,13 @@ static int dwc3_gadget_ep_dequeue(struct usb_ep *ep,
 			else
 				goto out1;
 		}
+#ifdef CONFIG_USB_DWC3_AXERA
+		/* fix Segmentation fault for uvc*/
+		mdelay(10);
+#else
 		dev_err(dwc->dev, "request %pK was not queued to %s\n",
 				request, ep->name);
+#endif
 		ret = -EINVAL;
 		goto out0;
 	}
@@ -1562,6 +1669,31 @@ static const struct usb_ep_ops dwc3_gadget_ep_ops = {
 
 /* -------------------------------------------------------------------------- */
 
+/// SIPEED EDIT ///
+/**
+ * https://patches.linaro.org/project/linux-usb/list/?series=205060
+ * Message ID 	1679694482-16430-3-git-send-email-quic_eserrao@quicinc.com
+ * Series 	Add function suspend/resume and remote wakeup support
+ *
+ * [v13,2/6] usb: dwc3: Add remote wakeup handling
+ */
+static void dwc3_gadget_enable_linksts_evts(struct dwc3 *dwc, bool set)
+{
+	u32 reg;
+
+	// if (DWC3_VER_IS_PRIOR(DWC3, 250A))
+	// 	return;
+
+	reg = dwc3_readl(dwc->regs, DWC3_DEVTEN);
+	if (set)
+		reg |= DWC3_DEVTEN_ULSTCNGEN;
+	else
+		reg &= ~DWC3_DEVTEN_ULSTCNGEN;
+
+	dwc3_writel(dwc->regs, DWC3_DEVTEN, reg);
+}
+/// SIPEED EDIT END ///
+
 static int dwc3_gadget_get_frame(struct usb_gadget *g)
 {
 	struct dwc3		*dwc = gadget_to_dwc(g);
@@ -1569,7 +1701,18 @@ static int dwc3_gadget_get_frame(struct usb_gadget *g)
 	return __dwc3_gadget_get_frame(dwc);
 }
 
-static int __dwc3_gadget_wakeup(struct dwc3 *dwc)
+/// SIPEED EDIT ///
+/**
+ * https://patches.linaro.org/project/linux-usb/list/?series=205060
+ * Message ID 	1679694482-16430-3-git-send-email-quic_eserrao@quicinc.com
+ * Series 	Add function suspend/resume and remote wakeup support
+ *
+ * [v13,2/6] usb: dwc3: Add remote wakeup handling
+ */
+// static int __dwc3_gadget_wakeup(struct dwc3 *dwc)
+static int __dwc3_gadget_wakeup(struct dwc3 *dwc, bool async)
+/// SIPEED EDIT END ///
+
 {
 	int			retries;
 
@@ -1577,6 +1720,12 @@ static int __dwc3_gadget_wakeup(struct dwc3 *dwc)
 	u32			reg;
 
 	u8			link_state;
+
+/// SIPEED EDIT ///
+	/* --- Backport: only if config declared & host armed remote-wakeup --- */
+	// if (!dwc->wakeup_configured || !dwc->gadget.wakeup_armed)
+	//     return -EINVAL;
+/// SIPEED EDIT END ///
 
 	/*
 	 * According to the Databook Remote wakeup request should
@@ -1598,9 +1747,33 @@ static int __dwc3_gadget_wakeup(struct dwc3 *dwc)
 		return -EINVAL;
 	}
 
+/// SIPEED EDIT ///
+	/**
+	 * https://patches.linaro.org/project/linux-usb/list/?series=205060
+	 * Message ID 	1679694482-16430-3-git-send-email-quic_eserrao@quicinc.com
+	 * Series 	Add function suspend/resume and remote wakeup support
+	 *
+	 * [v13,2/6] usb: dwc3: Add remote wakeup handling
+	 */
+	if (async)
+		dwc3_gadget_enable_linksts_evts(dwc, true);
+/// SIPEED EDIT END ///
+
 	ret = dwc3_gadget_set_link_state(dwc, DWC3_LINK_STATE_RECOV);
 	if (ret < 0) {
 		dev_err(dwc->dev, "failed to put link in Recovery\n");
+
+/// SIPEED EDIT ///
+		/**
+		 * https://patches.linaro.org/project/linux-usb/list/?series=205060
+		 * Message ID 	1679694482-16430-3-git-send-email-quic_eserrao@quicinc.com
+		 * Series 	Add function suspend/resume and remote wakeup support
+		 *
+		 * [v13,2/6] usb: dwc3: Add remote wakeup handling
+		 */
+		dwc3_gadget_enable_linksts_evts(dwc, false);
+/// SIPEED EDIT END ///
+
 		return ret;
 	}
 
@@ -1611,6 +1784,24 @@ static int __dwc3_gadget_wakeup(struct dwc3 *dwc)
 		reg &= ~DWC3_DCTL_ULSTCHNGREQ_MASK;
 		dwc3_writel(dwc->regs, DWC3_DCTL, reg);
 	}
+
+/// SIPEED EDIT ///
+	/**
+	 * https://patches.linaro.org/project/linux-usb/list/?series=205060
+	 * Message ID 	1679694482-16430-3-git-send-email-quic_eserrao@quicinc.com
+	 * State 	New
+	 * Headers 	show
+	 * Series 	Add function suspend/resume and remote wakeup support
+	 *
+	 * [v13,2/6] usb: dwc3: Add remote wakeup handling
+	 */
+	/*
+	 * Since link status change events are enabled we will receive
+	 * an U0 event when wakeup is successful. So bail out.
+	 */
+	if (async)
+		return 0;
+/// SIPEED EDIT END ///
 
 	/* poll until Link State changes to ON */
 	retries = 20000;
@@ -1637,12 +1828,65 @@ static int dwc3_gadget_wakeup(struct usb_gadget *g)
 	unsigned long		flags;
 	int			ret;
 
+/// SIPEED EDIT ///
+	/**
+	 * https://patches.linaro.org/project/linux-usb/list/?series=205060
+	 * Message ID 	1679694482-16430-3-git-send-email-quic_eserrao@quicinc.com
+	 * Series 	Add function suspend/resume and remote wakeup support
+	 *
+	 * [v13,2/6] usb: dwc3: Add remote wakeup handling
+	 */
+	if (!dwc->wakeup_configured) {
+		// dev_err(dwc->dev, "remote wakeup not configured\n");
+		return -EINVAL;
+	}
+/// SIPEED EDIT END ///
+
 	spin_lock_irqsave(&dwc->lock, flags);
-	ret = __dwc3_gadget_wakeup(dwc);
+
+/// SIPEED EDIT ///
+	/**
+	 * https://patches.linaro.org/project/linux-usb/list/?series=205060
+	 * Message ID 	1679694482-16430-3-git-send-email-quic_eserrao@quicinc.com
+	 * Series 	Add function suspend/resume and remote wakeup support
+	 *
+	 * [v13,2/6] usb: dwc3: Add remote wakeup handling
+	 */
+	// ret = __dwc3_gadget_wakeup(dwc);
+	if (!dwc->gadget.wakeup_armed) {
+		// dev_err(dwc->dev, "not armed for remote wakeup\n");
+		spin_unlock_irqrestore(&dwc->lock, flags);
+		return -EINVAL;
+	}
+	ret = __dwc3_gadget_wakeup(dwc, true);
+/// SIPEED EDIT END ///
+
 	spin_unlock_irqrestore(&dwc->lock, flags);
 
 	return ret;
 }
+
+/// SIPEED EDIT ///
+/**
+ * https://patches.linaro.org/project/linux-usb/list/?series=205060
+ * Message ID 	1679694482-16430-3-git-send-email-quic_eserrao@quicinc.com
+ * Series 	Add function suspend/resume and remote wakeup support
+ *
+ * [v13,2/6] usb: dwc3: Add remote wakeup handling
+ */
+static int dwc3_gadget_set_remote_wakeup(struct usb_gadget *g, int set)
+{
+	struct dwc3		*dwc = gadget_to_dwc(g);
+	unsigned long		flags;
+
+	spin_lock_irqsave(&dwc->lock, flags);
+	dwc->wakeup_configured = !!set;
+	spin_unlock_irqrestore(&dwc->lock, flags);
+
+	return 0;
+}
+/// SIPEED EDIT END ///
+
 
 static int dwc3_gadget_set_selfpowered(struct usb_gadget *g,
 		int is_selfpowered)
@@ -2001,9 +2245,50 @@ static void dwc3_gadget_set_speed(struct usb_gadget *g,
 	spin_unlock_irqrestore(&dwc->lock, flags);
 }
 
+/// SIPEED EDIT ///
+// static int dwc3_gadget_set_remote_wakeup(struct usb_gadget *g, int set)
+// {
+//     struct dwc3 *dwc = gadget_to_dwc(g);
+//     unsigned long flags;
+
+//     spin_lock_irqsave(&dwc->lock, flags);
+//     dwc->wakeup_configured = set ? 1 : 0;
+//     spin_unlock_irqrestore(&dwc->lock, flags);
+//     return 0;
+// }
+
+// static int dwc3_gadget_func_wakeup(struct usb_gadget *g, u8 config_index)
+// {
+//     return dwc3_gadget_wakeup(g);
+// }
+/// SIPEED EDIT END ///
+
 static const struct usb_gadget_ops dwc3_gadget_ops = {
 	.get_frame		= dwc3_gadget_get_frame,
 	.wakeup			= dwc3_gadget_wakeup,
+
+/// SIPEED EDIT ///
+	/**
+	 * https://patches.linaro.org/project/linux-usb/list/?series=205060
+	 * Message ID 	1679694482-16430-3-git-send-email-quic_eserrao@quicinc.com
+	 * Series 	Add function suspend/resume and remote wakeup support
+	 *
+	 * [v13,2/6] usb: dwc3: Add remote wakeup handling
+	 */
+	.set_remote_wakeup	= dwc3_gadget_set_remote_wakeup,
+/// SIPEED EDIT END ///
+
+/// SIPEED EDIT ///
+	/**
+	 * https://patches.linaro.org/project/linux-usb/list/?series=205060
+	 * Message ID 	1679694482-16430-5-git-send-email-quic_eserrao@quicinc.com
+	 * Series 	Add function suspend/resume and remote wakeup support
+	 *
+	 * [v13,4/6] usb: dwc3: Add function suspend and function wakeup support
+	 */
+	.func_wakeup		= dwc3_gadget_func_wakeup,
+/// SIPEED EDIT END ///
+
 	.set_selfpowered	= dwc3_gadget_set_selfpowered,
 	.pullup			= dwc3_gadget_pullup,
 	.udc_start		= dwc3_gadget_start,
@@ -2381,6 +2666,12 @@ static void dwc3_gadget_endpoint_transfer_in_progress(struct dwc3_ep *dep,
 
 	dwc3_gadget_ep_cleanup_completed_requests(dep, event, status);
 
+	if (usb_endpoint_xfer_isoc(dep->endpoint.desc) &&
+		list_empty(&dep->started_list) &&
+		(list_empty(&dep->pending_list) || status == -EXDEV)) {
+			stop = true;
+	}
+
 	if (stop)
 		dwc3_stop_active_transfer(dep, true, true);
 
@@ -2502,7 +2793,7 @@ static void dwc3_reset_gadget(struct dwc3 *dwc)
 	}
 }
 
-static void dwc3_stop_active_transfer(struct dwc3_ep *dep, bool force,
+static int dwc3_stop_active_transfer(struct dwc3_ep *dep, bool force,
 	bool interrupt)
 {
 	struct dwc3 *dwc = dep->dwc;
@@ -2512,7 +2803,7 @@ static void dwc3_stop_active_transfer(struct dwc3_ep *dep, bool force,
 
 	if ((dep->flags & DWC3_EP_END_TRANSFER_PENDING) ||
 	    !dep->resource_index)
-		return;
+		return 0;
 
 	/*
 	 * NOTICE: We are violating what the Databook says about the
@@ -2551,13 +2842,21 @@ static void dwc3_stop_active_transfer(struct dwc3_ep *dep, bool force,
 	cmd |= DWC3_DEPCMD_PARAM(dep->resource_index);
 	memset(&params, 0, sizeof(params));
 	ret = dwc3_send_gadget_ep_cmd(dep, cmd, &params);
-	WARN_ON_ONCE(ret);
+	if (ret < 0) {
+		dev_err(dwc->dev,
+			"%s: END_TRANSFER failed (%d), retaining resource %u and requests\n",
+			dep->name, ret, dep->resource_index);
+		WARN_ON_ONCE(1);
+		return ret;
+	}
 	dep->resource_index = 0;
 
 	if (dwc3_is_usb31(dwc) || dwc->revision < DWC3_REVISION_310A) {
 		dep->flags |= DWC3_EP_END_TRANSFER_PENDING;
 		udelay(100);
 	}
+
+	return 0;
 }
 
 static void dwc3_clear_stall_all_ep(struct dwc3 *dwc)
@@ -2597,6 +2896,19 @@ static void dwc3_gadget_disconnect_interrupt(struct dwc3 *dwc)
 
 	dwc->gadget.speed = USB_SPEED_UNKNOWN;
 	dwc->setup_packet_pending = false;
+
+/// SIPEED EDIT ///
+	/**
+	 * https://patches.linaro.org/project/linux-usb/list/?series=205060
+	 * Message ID 	1679694482-16430-3-git-send-email-quic_eserrao@quicinc.com
+	 * Series 	Add function suspend/resume and remote wakeup support
+	 *
+	 * [v13,2/6] usb: dwc3: Add remote wakeup handling
+	*/
+	dwc->gadget.wakeup_armed = false;
+	dwc3_gadget_enable_linksts_evts(dwc, false);
+/// SIPEED EDIT END ///
+
 	usb_gadget_set_state(&dwc->gadget, USB_STATE_NOTATTACHED);
 
 	dwc->connected = false;
@@ -2645,6 +2957,19 @@ static void dwc3_gadget_reset_interrupt(struct dwc3 *dwc)
 	reg &= ~DWC3_DCTL_TSTCTRL_MASK;
 	dwc3_writel(dwc->regs, DWC3_DCTL, reg);
 	dwc->test_mode = false;
+
+/// SIPEED EDIT ///
+	/**
+	 * https://patches.linaro.org/project/linux-usb/list/?series=205060
+	 * Message ID 	1679694482-16430-3-git-send-email-quic_eserrao@quicinc.com
+	 * Series 	Add function suspend/resume and remote wakeup support
+	 *
+	 * [v13,2/6] usb: dwc3: Add remote wakeup handling
+	 */
+	dwc->gadget.wakeup_armed = false;
+	dwc3_gadget_enable_linksts_evts(dwc, false);
+/// SIPEED EDIT END ///
+
 	dwc3_clear_stall_all_ep(dwc);
 
 	/* Reset device address to zero */
@@ -2776,7 +3101,18 @@ static void dwc3_gadget_conndone_interrupt(struct dwc3 *dwc)
 	 */
 }
 
-static void dwc3_gadget_wakeup_interrupt(struct dwc3 *dwc)
+/// SIPEED EDIT ///
+/**
+ * https://patches.linaro.org/project/linux-usb/list/?series=205060
+ * Message ID 	1679694482-16430-3-git-send-email-quic_eserrao@quicinc.com
+ * Series 	Add function suspend/resume and remote wakeup support
+ *
+ * [v13,2/6] usb: dwc3: Add remote wakeup handling
+ */
+// static void dwc3_gadget_wakeup_interrupt(struct dwc3 *dwc)
+static void dwc3_gadget_wakeup_interrupt(struct dwc3 *dwc, unsigned int evtinfo)
+/// SIPEED EDIT END ///
+
 {
 	/*
 	 * TODO take core out of low power mode when that's
@@ -2788,6 +3124,18 @@ static void dwc3_gadget_wakeup_interrupt(struct dwc3 *dwc)
 		dwc->gadget_driver->resume(&dwc->gadget);
 		spin_lock(&dwc->lock);
 	}
+
+/// SIPEED EDIT ///
+	/**
+	 * https://patches.linaro.org/project/linux-usb/list/?series=205060
+	 * Message ID 	1679694482-16430-3-git-send-email-quic_eserrao@quicinc.com
+	 * Series 	Add function suspend/resume and remote wakeup support
+	 *
+	 * [v13,2/6] usb: dwc3: Add remote wakeup handling
+	 */
+	dwc->link_state = evtinfo & DWC3_LINK_STATE_MASK;
+/// SIPEED EDIT END ///
+
 }
 
 static void dwc3_gadget_linksts_change_interrupt(struct dwc3 *dwc,
@@ -2869,6 +3217,23 @@ static void dwc3_gadget_linksts_change_interrupt(struct dwc3 *dwc,
 	}
 
 	switch (next) {
+
+/// SIPEED EDIT ///
+	/**
+	 * https://patches.linaro.org/project/linux-usb/list/?series=205060
+	 * Message ID 	1679694482-16430-3-git-send-email-quic_eserrao@quicinc.com
+	 * Series 	Add function suspend/resume and remote wakeup support
+	 *
+	 * [v13,2/6] usb: dwc3: Add remote wakeup handling
+	 */
+	case DWC3_LINK_STATE_U0:
+		if (dwc->gadget.wakeup_armed) {
+			dwc3_gadget_enable_linksts_evts(dwc, false);
+			dwc3_resume_gadget(dwc);
+		}
+	break;
+/// SIPEED EDIT END ///
+
 	case DWC3_LINK_STATE_U1:
 		if (dwc->speed == USB_SPEED_SUPER)
 			dwc3_suspend_gadget(dwc);
@@ -2937,7 +3302,19 @@ static void dwc3_gadget_interrupt(struct dwc3 *dwc,
 		dwc3_gadget_conndone_interrupt(dwc);
 		break;
 	case DWC3_DEVICE_EVENT_WAKEUP:
-		dwc3_gadget_wakeup_interrupt(dwc);
+
+/// SIPEED EDIT ///
+		/**
+		 * https://patches.linaro.org/project/linux-usb/list/?series=205060
+		 * Message ID 	1679694482-16430-3-git-send-email-quic_eserrao@quicinc.com
+		 * Series 	Add function suspend/resume and remote wakeup support
+		 *
+		 * [v13,2/6] usb: dwc3: Add remote wakeup handling
+		 */
+		// dwc3_gadget_wakeup_interrupt(dwc);
+		dwc3_gadget_wakeup_interrupt(dwc, event->event_info);
+/// SIPEED EDIT END ///
+
 		break;
 	case DWC3_DEVICE_EVENT_HIBER_REQ:
 		if (dev_WARN_ONCE(dwc->dev, !dwc->has_hibernation,
@@ -3134,6 +3511,7 @@ out:
 	return irq;
 }
 
+
 /**
  * dwc3_gadget_init - initializes gadget related registers
  * @dwc: pointer to our controller context structure
@@ -3144,6 +3522,10 @@ int dwc3_gadget_init(struct dwc3 *dwc)
 {
 	int ret;
 	int irq;
+
+#ifdef CONFIG_USB_DWC3_AXERA
+	axera_usb_device_init(dwc);
+#endif
 
 	irq = dwc3_gadget_get_irq(dwc);
 	if (irq < 0) {
@@ -3181,6 +3563,17 @@ int dwc3_gadget_init(struct dwc3 *dwc)
 	dwc->gadget.speed		= USB_SPEED_UNKNOWN;
 	dwc->gadget.sg_supported	= true;
 	dwc->gadget.name		= "dwc3-gadget";
+
+/// SIPEED EDIT ///
+	/**
+	 * https://patches.linaro.org/project/linux-usb/list/?series=205060
+	 * Message ID 	1679694482-16430-3-git-send-email-quic_eserrao@quicinc.com
+	 * Series 	Add function suspend/resume and remote wakeup support
+	 *
+	 * [v13,2/6] usb: dwc3: Add remote wakeup handling
+	 */
+	dwc->gadget.wakeup_capable	= true;
+/// SIPEED EDIT END ///
 
 	/*
 	 * FIXME We might be setting max_speed to <SUPER, however versions

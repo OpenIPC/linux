@@ -471,6 +471,9 @@ stmmac_probe_config_dt(struct platform_device *pdev, const char **mac)
 
 	if (of_device_is_compatible(np, "snps,dwmac-4.00") ||
 	    of_device_is_compatible(np, "snps,dwmac-4.10a") ||
+#ifdef CONFIG_DWMAC_AXERA
+		of_device_is_compatible(np, "axera,dwmac-4.10a") ||
+#endif
 	    of_device_is_compatible(np, "snps,dwmac-4.20a")) {
 		plat->has_gmac4 = 1;
 		plat->has_gmac = 0;
@@ -526,6 +529,7 @@ stmmac_probe_config_dt(struct platform_device *pdev, const char **mac)
 		return ERR_PTR(rc);
 	}
 
+#ifndef CONFIG_DWMAC_AXERA
 	/* clock setup */
 	plat->stmmac_clk = devm_clk_get(&pdev->dev,
 					STMMAC_RESOURCE_NAME);
@@ -554,14 +558,16 @@ stmmac_probe_config_dt(struct platform_device *pdev, const char **mac)
 		plat->clk_ptp_rate = clk_get_rate(plat->clk_ptp_ref);
 		dev_dbg(&pdev->dev, "PTP rate %d\n", plat->clk_ptp_rate);
 	}
+#endif
 
 	plat->stmmac_rst = devm_reset_control_get(&pdev->dev,
 						  STMMAC_RESOURCE_NAME);
 	if (IS_ERR(plat->stmmac_rst)) {
 		if (PTR_ERR(plat->stmmac_rst) == -EPROBE_DEFER)
 			goto error_hw_init;
-
+#ifndef CONFIG_DWMAC_AXERA
 		dev_info(&pdev->dev, "no reset control found\n");
+#endif
 		plat->stmmac_rst = NULL;
 	}
 
@@ -569,8 +575,10 @@ stmmac_probe_config_dt(struct platform_device *pdev, const char **mac)
 
 error_hw_init:
 	clk_disable_unprepare(plat->pclk);
+#ifndef CONFIG_DWMAC_AXERA
 error_pclk_get:
 	clk_disable_unprepare(plat->stmmac_clk);
+#endif
 
 	return ERR_PTR(-EPROBE_DEFER);
 }

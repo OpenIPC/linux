@@ -147,8 +147,24 @@ static int dmaengine_pcm_set_runtime_hwparams(struct snd_pcm_substream *substrea
 
 	ret = dma_get_slave_caps(chan, &dma_caps);
 	if (ret == 0) {
-		if (dma_caps.cmd_pause && dma_caps.cmd_resume)
-			hw.info |= SNDRV_PCM_INFO_PAUSE | SNDRV_PCM_INFO_RESUME;
+		if (dma_caps.cmd_pause && dma_caps.cmd_resume) {
+			/* Phenomenon: Audio suspend/resume failure when using DMA
+			* Reason 1:The suspend calls the SNDRV_PCM_INFO_PAUSE, and resume calls SNDRV_PCM_TRIGGER_START.
+			*          The calling process does not correspond, resulting in resume failure.
+			* Reason 2:The tinyalsa used currently does not support suspend/resume. If this code is not commented
+			*          out, the SNDRV_ PCM_ IOCTL_ RESUME won't be called in resume process, but SNDRV_PCM_TRIGGER_START
+			*          is called. Thus the status of DMA is "pause" in suspend process. Does not correspond to "start"
+			*          in resume process. Then variable "state.residue" is abnormal (always equal to buf_size).
+			*   PS 1  :The standard alsa-lib supports suspend/resume. The SNDRV_ PCM_ IOCTL_ RESUME will be call by
+			*          snd_pcm_resume() in resume process. Thus this code needs to be released when using alsa-lib.
+			*   PS 2  :when disable pause/resume, dmaengine_terminate_async() will be called in suspend process and
+			*          dmaengine_pcm_prepare_and_submit() will be called in resume process. Then work normally.
+			*   PS 3  :The reason of working normally with CPU is the process of suspend/stop is the same one, and
+			*          the process of resume/start is the same one in dwc-pcm.c
+			*
+			*/
+			/* hw.info |= SNDRV_PCM_INFO_PAUSE | SNDRV_PCM_INFO_RESUME; */
+		}
 		if (dma_caps.residue_granularity <= DMA_RESIDUE_GRANULARITY_SEGMENT)
 			hw.info |= SNDRV_PCM_INFO_BATCH;
 

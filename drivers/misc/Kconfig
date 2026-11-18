@@ -513,6 +513,18 @@ config MISC_RTSX
 	tristate
 	default MISC_RTSX_PCI || MISC_RTSX_USB
 
+
+config LT6911_MANAGE
+	tristate "NanoKVM-Pro LT6911UXC HDMI Module Management"
+	default n
+
+config LT7911_MANAGE
+	tristate "NanoKVM-Pro LT7911D HDMI Module Management"
+	depends on I2C && GPIOLIB && PROC_FS
+	select FW_LOADER
+	select REGMAP_I2C
+	default n
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"

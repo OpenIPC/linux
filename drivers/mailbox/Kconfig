@@ -15,6 +15,13 @@ config ARM_MHU
 	  The controller has 3 mailbox channels, the last of which can be
 	  used in Secure mode only.
 
+config AXERA_MAILBOX
+	tristate "AXERA Mailbox"
+	depends on OF
+	help
+	  Say Y here if you want to build the AXERA controller driver,
+	  which provides unidirectional mailboxes between processing elements.
+
 config IMX_MBOX
 	tristate "i.MX Mailbox"
 	depends on ARCH_MXC || COMPILE_TEST

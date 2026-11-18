@@ -134,6 +134,12 @@ config U_SERIAL_CONSOLE
 	help
 	   It supports the serial gadget can be used as a console.
 
+config UVC_H264
+	bool "Support H.264 encoding and decoding under the UVC protocol"
+	depends on USB_CONFIGFS_F_UVC
+	help
+	   This module is used to support H.264 encoding and decoding under the UVC protocol.
+
 source "drivers/usb/gadget/udc/Kconfig"
 
 #
@@ -151,6 +157,11 @@ config USB_F_ACM
 
 config USB_F_SS_LB
 	tristate
+
+### SIPEED EDIT ###
+config USB_F_UDISP
+	tristate
+### SIPEED EDIT END ###
 
 config USB_U_SERIAL
 	tristate
@@ -355,6 +366,18 @@ config USB_CONFIGFS_F_LB_SS
 	  USB peripheral controller driver.  Then you can use host-side
 	  test software, like the "usbtest" driver, to put your hardware
 	  and its driver through a basic set of functional tests.
+
+### SIPEED EDIT ###
+config USB_CONFIGFS_F_UDISP
+	tristate "USB Display Function (UDISP)"
+	depends on USB_CONFIGFS
+	depends on !USB_CONFIGFS_F_LB_SS
+	select USB_F_UDISP
+	help
+	  The USB Display Function (UDISP) allows a USB device to present
+	  itself as a display device to the host. This can be useful for
+	  applications that require a virtual display over USB.
+### SIPEED EDIT END ###
 
 config USB_CONFIGFS_F_FS
 	bool "Function filesystem (FunctionFS)"

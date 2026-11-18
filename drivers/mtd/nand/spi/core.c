@@ -19,6 +19,17 @@
 #include <linux/spi/spi.h>
 #include <linux/spi/spi-mem.h>
 
+//#define SPINAND_WRITE_READ_BACK_CHECK
+#ifdef SPINAND_WRITE_READ_BACK_CHECK
+//#define SPINAND_WRITE_READ_BACK_BUF_DUMP
+#define SPINAND_2KPAGE_SIZE	(2048)
+#define SPINAND_4KPAGE_SIZE	(4096)
+#define SPINAND_MAIN_SIZE	(SPINAND_2KPAGE_SIZE)
+#define SPINAND_OOB_SIZE	(128)
+static u8 nand_page_data[SPINAND_MAIN_SIZE] = {0};
+static u8 nand_oob_data[SPINAND_OOB_SIZE] = {0};
+#endif
+
 static void spinand_cache_op_adjust_colum(struct spinand_device *spinand,
 					  const struct nand_page_io_req *req,
 					  u16 *column)
@@ -428,6 +439,11 @@ out:
 	if (s)
 		*s = status;
 
+	if (status & STATUS_BUSY) {
+		dev_err(&spinand->spimem->spi->dev,
+			"%s: status=0x%x (err = %d)\n", __func__, status, -ETIMEDOUT);
+	}
+
 	return status & STATUS_BUSY ? -ETIMEDOUT : 0;
 }
 
@@ -463,10 +479,18 @@ static int spinand_lock_block(struct spinand_device *spinand, u8 lock)
 
 static int spinand_check_ecc_status(struct spinand_device *spinand, u8 status)
 {
+	int ret;
 	struct nand_device *nand = spinand_to_nand(spinand);
 
 	if (spinand->eccinfo.get_status)
-		return spinand->eccinfo.get_status(spinand, status);
+	{
+		ret = spinand->eccinfo.get_status(spinand, status);
+		if (ret) {
+			dev_err(&spinand->spimem->spi->dev,
+				"%s: spinand->eccinfo.get_status = 0x%x (err = %d)\n", __func__, status, ret);
+		}
+		return ret;
+	}
 
 	switch (status & STATUS_ECC_MASK) {
 	case STATUS_ECC_NO_BITFLIPS:
@@ -478,12 +502,18 @@ static int spinand_check_ecc_status(struct spinand_device *spinand, u8 status)
 		 * fixed, so let's return the maximum possible value so that
 		 * wear-leveling layers move the data immediately.
 		 */
+		dev_info(&spinand->spimem->spi->dev,
+			"%s: status = 0x%x (ret = %d)\n", __func__, status, nand->eccreq.strength);
 		return nand->eccreq.strength;
 
 	case STATUS_ECC_UNCOR_ERROR:
+		dev_err(&spinand->spimem->spi->dev,
+			"%s: status = 0x%x (err = %d)\n", __func__, status, -EBADMSG);
 		return -EBADMSG;
 
 	default:
+		dev_err(&spinand->spimem->spi->dev,
+			"%s: status = 0x%x (err = %d)\n", __func__, status, -EINVAL);
 		break;
 	}
 
@@ -499,15 +529,27 @@ static int spinand_read_page(struct spinand_device *spinand,
 
 	ret = spinand_load_page_op(spinand, req);
 	if (ret)
+	{
+		dev_err(&spinand->spimem->spi->dev,
+			"%s: spinand_load_page_op (err = %d)\n", __func__, ret);
 		return ret;
+	}
 
 	ret = spinand_wait(spinand, &status);
 	if (ret < 0)
+	{
+		dev_err(&spinand->spimem->spi->dev,
+			"%s: spinand_wait (err = %d)\n", __func__, ret);
 		return ret;
+	}
 
 	ret = spinand_read_from_cache_op(spinand, req);
 	if (ret)
+	{
+		dev_err(&spinand->spimem->spi->dev,
+			"%s: spinand_read_from_cache_op (err = %d)\n", __func__, ret);
 		return ret;
+	}
 
 	if (!ecc_enabled)
 		return 0;
@@ -523,19 +565,35 @@ static int spinand_write_page(struct spinand_device *spinand,
 
 	ret = spinand_write_enable_op(spinand);
 	if (ret)
+	{
+		dev_err(&spinand->spimem->spi->dev,
+			"%s: spinand_write_enable_op (err = %d)\n", __func__, ret);
 		return ret;
+	}
 
 	ret = spinand_write_to_cache_op(spinand, req);
 	if (ret)
+	{
+		dev_err(&spinand->spimem->spi->dev,
+			"%s: spinand_write_to_cache_op (err = %d)\n", __func__, ret);
 		return ret;
+	}
 
 	ret = spinand_program_op(spinand, req);
 	if (ret)
+	{
+		dev_err(&spinand->spimem->spi->dev,
+			"%s: spinand_program_op (err = %d)\n", __func__, ret);
 		return ret;
+	}
 
 	ret = spinand_wait(spinand, &status);
 	if (!ret && (status & STATUS_PROG_FAILED))
+	{
+		dev_err(&spinand->spimem->spi->dev,
+			"%s: spinand_wait status=0x%x (err = %d)\n", __func__, status, -EIO);
 		ret = -EIO;
+	}
 
 	return ret;
 }
@@ -559,17 +617,31 @@ static int spinand_mtd_read(struct mtd_info *mtd, loff_t from,
 	nanddev_io_for_each_page(nand, from, ops, &iter) {
 		ret = spinand_select_target(spinand, iter.req.pos.target);
 		if (ret)
+		{
+			dev_err(&spinand->spimem->spi->dev,
+				"%s: spinand_select_target (err = %d)\n", __func__, ret);
 			break;
+		}
 
 		ret = spinand_ecc_enable(spinand, enable_ecc);
 		if (ret)
+		{
+			dev_err(&spinand->spimem->spi->dev,
+				"%s: spinand_ecc_enable (err = %d)\n", __func__, ret);
 			break;
+		}
 
 		ret = spinand_read_page(spinand, &iter.req, enable_ecc);
 		if (ret < 0 && ret != -EBADMSG)
+		{
+			dev_err(&spinand->spimem->spi->dev,
+				"%s: spinand_read_page (err = %d)\n", __func__, ret);
 			break;
+		}
 
 		if (ret == -EBADMSG) {
+			dev_err(&spinand->spimem->spi->dev,
+				"%s: spinand_read_page (err = %d)\n", __func__, ret);
 			ecc_failed = true;
 			mtd->ecc_stats.failed++;
 		} else {
@@ -585,7 +657,11 @@ static int spinand_mtd_read(struct mtd_info *mtd, loff_t from,
 	mutex_unlock(&spinand->lock);
 
 	if (ecc_failed && !ret)
+	{
 		ret = -EBADMSG;
+		dev_err(&spinand->spimem->spi->dev,
+			"%s: ecc_failed = %d (err = %d)\n", __func__, ecc_failed, ret);
+	}
 
 	return ret ? ret : max_bitflips;
 }
@@ -596,6 +672,12 @@ static int spinand_mtd_write(struct mtd_info *mtd, loff_t to,
 	struct spinand_device *spinand = mtd_to_spinand(mtd);
 	struct nand_device *nand = mtd_to_nanddev(mtd);
 	struct nand_io_iter iter;
+#ifdef SPINAND_WRITE_READ_BACK_CHECK
+	struct nand_io_iter iter_rx;
+	u32 * txbuf = NULL;
+	u32 * rxbuf = NULL;
+	int rd_cnt;
+#endif
 	bool enable_ecc = false;
 	int ret = 0;
 
@@ -607,15 +689,79 @@ static int spinand_mtd_write(struct mtd_info *mtd, loff_t to,
 	nanddev_io_for_each_page(nand, to, ops, &iter) {
 		ret = spinand_select_target(spinand, iter.req.pos.target);
 		if (ret)
+		{
+			dev_err(&spinand->spimem->spi->dev,
+				"%s: spinand_select_target (err = %d)\n", __func__, ret);
 			break;
+		}
 
 		ret = spinand_ecc_enable(spinand, enable_ecc);
 		if (ret)
+		{
+			dev_err(&spinand->spimem->spi->dev,
+				"%s: spinand_ecc_enable (err = %d)\n", __func__, ret);
 			break;
+		}
 
 		ret = spinand_write_page(spinand, &iter.req);
 		if (ret)
+		{
+			dev_err(&spinand->spimem->spi->dev,
+				"%s: spinand_write_page (err = %d)\n", __func__, ret);
 			break;
+		}
+#ifdef SPINAND_WRITE_READ_BACK_CHECK
+		memcpy((void *)&iter_rx.req.pos, (void *)&iter.req.pos, sizeof(struct nand_pos));
+		iter_rx.req.dataoffs = iter.req.dataoffs;
+		iter_rx.req.datalen = iter.req.datalen;
+		iter_rx.req.databuf.in = (void *)&nand_page_data[0];
+		iter_rx.req.ooboffs = iter.req.ooboffs;
+		iter_rx.req.ooblen = iter.req.ooblen;
+		iter_rx.req.oobbuf.in = (void *)&nand_oob_data[0];
+		iter_rx.req.mode = iter.req.mode;
+		for (rd_cnt = 0; rd_cnt < 3; rd_cnt++) {
+			if ((iter.req.datalen > SPINAND_MAIN_SIZE) || (iter.req.ooblen > SPINAND_OOB_SIZE)) {
+				dev_err(&spinand->spimem->spi->dev,
+					"========== %dst retry: iter.req.datalen %d, iter.req.ooblen %d ==========\n",
+						rd_cnt + 1, iter.req.datalen, iter.req.ooblen);
+				break;
+			}
+
+			memset((void *)&nand_page_data[0], 0, SPINAND_MAIN_SIZE);
+			memset((void *)&nand_oob_data[0], 0, SPINAND_OOB_SIZE);
+			ret = spinand_read_page(spinand, &iter_rx.req, enable_ecc);
+			if (ret < 0 && ret != -EBADMSG) {
+				dev_err(&spinand->spimem->spi->dev,
+					"========== %dst retry: read back ret=%d ==========\n", rd_cnt + 1, ret);
+				break;
+			}
+
+			if (0 == memcmp(iter.req.databuf.out, (void *)&nand_page_data[0], iter.req.datalen)) {
+				if (0 == rd_cnt) {
+					/*dev_info(&spinand->spimem->spi->dev,
+						"%dst retry: %d bytes read back compare pass\n", rd_cnt + 1, iter.req.datalen);*/
+					break;
+				}
+				else {
+					dev_err(&spinand->spimem->spi->dev,
+						"%dst retry: %d bytes read back compare pass\n", rd_cnt + 1, iter.req.datalen);
+				}
+			}
+			else {
+				txbuf = (u32 *)iter.req.databuf.out;
+				rxbuf = (u32 *)iter_rx.req.databuf.in;
+				dev_err(&spinand->spimem->spi->dev,
+					"========== %dst retry: txbuf[0]=0x%x, rxbuf[0]=0x%x ==========\n", rd_cnt + 1, *txbuf, *rxbuf);
+#ifdef SPINAND_WRITE_READ_BACK_BUF_DUMP
+				dev_err(&spinand->spimem->spi->dev, "============ WR BUF DUMP =============\n");
+				print_hex_dump(KERN_ERR, "\t", DUMP_PREFIX_OFFSET, 32, 1, iter.req.databuf.out, iter.req.datalen, 0);
+				dev_err(&spinand->spimem->spi->dev, "========== RD BACK BUF DUMP ==========\n");
+				print_hex_dump(KERN_ERR, "\t", DUMP_PREFIX_OFFSET, 32, 1, (void *)iter_rx.req.databuf.in, iter.req.datalen, 0);
+				dev_err(&spinand->spimem->spi->dev, "======================================\n");
+#endif
+			}
+		}
+#endif
 
 		ops->retlen += iter.req.datalen;
 		ops->oobretlen += iter.req.ooblen;
@@ -664,7 +810,7 @@ static int spinand_mtd_block_isbad(struct mtd_info *mtd, loff_t offs)
 static int spinand_markbad(struct nand_device *nand, const struct nand_pos *pos)
 {
 	struct spinand_device *spinand = nand_to_spinand(nand);
-	u8 marker[2] = { };
+	u8 marker[2] = {0xAA, 0xAA};
 	struct nand_page_io_req req = {
 		.pos = *pos,
 		.ooboffs = 0,
@@ -708,19 +854,35 @@ static int spinand_erase(struct nand_device *nand, const struct nand_pos *pos)
 
 	ret = spinand_select_target(spinand, pos->target);
 	if (ret)
+	{
+		dev_err(&spinand->spimem->spi->dev,
+			"%s: spinand_select_target (err = %d)\n", __func__, ret);
 		return ret;
+	}
 
 	ret = spinand_write_enable_op(spinand);
 	if (ret)
+	{
+		dev_err(&spinand->spimem->spi->dev,
+			"%s: spinand_write_enable_op (err = %d)\n", __func__, ret);
 		return ret;
+	}
 
 	ret = spinand_erase_op(spinand, pos);
 	if (ret)
+	{
+		dev_err(&spinand->spimem->spi->dev,
+			"%s: spinand_erase_op (err = %d)\n", __func__, ret);
 		return ret;
+	}
 
 	ret = spinand_wait(spinand, &status);
 	if (!ret && (status & STATUS_ERASE_FAILED))
+	{
+		dev_err(&spinand->spimem->spi->dev,
+			"%s: spinand_wait status=0x%x (err = %d)\n", __func__, status, -EIO);
 		ret = -EIO;
+	}
 
 	return ret;
 }
@@ -760,9 +922,12 @@ static const struct nand_ops spinand_ops = {
 };
 
 static const struct spinand_manufacturer *spinand_manufacturers[] = {
+	&gigadevice_spinand_manufacturer,
 	&macronix_spinand_manufacturer,
 	&micron_spinand_manufacturer,
 	&winbond_spinand_manufacturer,
+	&esmt_spinand_manufacturer,
+	&fmsh_spinand_manufacturer,
 };
 
 static int spinand_manufacturer_detect(struct spinand_device *spinand)
@@ -776,7 +941,7 @@ static int spinand_manufacturer_detect(struct spinand_device *spinand)
 			spinand->manufacturer = spinand_manufacturers[i];
 			return 0;
 		} else if (ret < 0) {
-			return ret;
+			continue;
 		}
 	}
 

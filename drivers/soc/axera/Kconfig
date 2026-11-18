@@ -1,0 +1,259 @@
+config  AX_HWINFO
+	tristate "AX HWINFO Driver"
+	help
+		This enable HWINFO driver.
+
+config AXERA_OSAL
+	tristate "axera osal module api"
+	default y
+	help
+		To use the axera platform, you need to enable this option to support the axera module Driver
+
+config  AX_BWLIMITER
+	tristate "AX BW Limiter Driver"
+	help
+		This enable BW Limiter driver.
+
+config  AXERA_SYS_MAP
+	tristate "AXERA_SYS_MAP"
+	default y
+	help
+		Driver for map the ddr space at the user space.
+		Map support cached type and uncached type memory map.
+
+config AXERA_DW_APB_TIMER
+	tristate "axera apb timer"
+ 	default m
+
+config AXERA_PERIPH_TIMER32
+	tristate "axera timer32"
+ 	default m
+
+config AXERA_WAKE_TIMER
+	tristate "axera wake timer"
+ 	default y
+
+config AXERA_SLEEP_STATE
+	tristate "axera slp state"
+ 	default y
+
+config AXERA_HRTIMER
+	tristate "axera hrtimer"
+ 	default y
+
+config AXERA_OS_MEM
+	tristate "axera os memory"
+	default y
+
+config  AXERA_MEMORY_DUMP
+	tristate "AXERA_MEMORY_DUMP"
+	select CRASH_CORE
+	default n
+	help
+		This enable  AXERA_MEMORY_DUMP.
+
+config  AX_GZIPD
+	tristate "AX GZIPD Driver"
+	help
+		This enable AXERA GZIPD driver.
+
+config AXERA_DISPLAY_DUMMY
+	tristate "axera display dummy"
+	depends on DRM=n
+	default y
+
+config AXERA_RISCV_DRV
+	tristate "integrates riscv driver to linux kernel"
+	help
+		This integrates ax_riscv driver to linux kernel.
+	default y
+
+config AX_RISCV_LOAD_ROOTFS
+	bool "riscv load rootfs"
+	depends on AXERA_RISCV_DRV=y
+	help
+		This enable riscv load rootfs.
+	default n
+
+config AXERA_BUILDIN_PRVDRV
+	bool "integrates ax private driver to linux kernel"
+	help
+		This integrates ax private driver to linux kernel.
+	default n
+
+config AXERA_BUILDIN_PRVDRV_CMM
+	bool "integrates ax_cmm driver to linux kernel"
+	depends on AXERA_BUILDIN_PRVDRV=y
+	help
+		This integrates ax_cmm driver to linux kernel.
+	default n
+
+config AXERA_BUILDIN_PRVDRV_SYS
+	bool "integrates ax_sys driver to linux kernel"
+	depends on AXERA_BUILDIN_PRVDRV=y
+	help
+		This integrates ax_sys driver to linux kernel.
+	default n
+
+config AXERA_BUILDIN_PRVDRV_POOL
+	bool "integrates ax_pool driver to linux kernel"
+	depends on AXERA_BUILDIN_PRVDRV=y
+	help
+		This integrates ax_pool driver to linux kernel.
+	default n
+
+config AXERA_BUILDIN_PRVDRV_BASE
+	bool "integrates ax_base driver to linux kernel"
+	depends on AXERA_BUILDIN_PRVDRV=y
+	help
+		This integrates ax_base driver to linux kernel.
+	default n
+
+config AXERA_BUILDIN_PRVDRV_MIPI_RX
+	bool "integrates ax_mipi_rx driver to linux kernel"
+	depends on AXERA_BUILDIN_PRVDRV=y
+	help
+		This integrates ax_mipi_rx driver to linux kernel.
+	default n
+
+config AXERA_BUILDIN_PRVDRV_MIPI_SWITCH
+	bool "integrates ax_mipi_switch driver to linux kernel"
+	depends on AXERA_BUILDIN_PRVDRV=y
+	help
+		This integrates ax_mipi_switch driver to linux kernel.
+	default n
+
+config AXERA_BUILDIN_PRVDRV_NPU
+	bool "integrates ax_npu driver to linux kernel"
+	depends on AXERA_BUILDIN_PRVDRV=y
+	help
+		This integrates ax_npu driver to linux kernel.
+	default n
+
+config AXERA_BUILDIN_PRVDRV_VO
+	bool "integrates ax_vo driver to linux kernel"
+	depends on AXERA_BUILDIN_PRVDRV=y
+	help
+		This integrates ax_vo driver to linux kernel.
+	default n
+
+config AXERA_BUILDIN_PRVDRV_IVPS
+	bool "integrates ax_ivps driver to linux kernel"
+	depends on AXERA_BUILDIN_PRVDRV=y
+	help
+		This integrates ax_ivps driver to linux kernel.
+	default n
+
+config AXERA_BUILDIN_PRVDRV_VPP
+	bool "integrates ax_vpp driver to linux kernel"
+	depends on AXERA_BUILDIN_PRVDRV=y
+	help
+		This integrates ax_vpp driver to linux kernel.
+	default n
+
+config AXERA_BUILDIN_PRVDRV_GDC
+	bool "integrates ax_gdc driver to linux kernel"
+	depends on AXERA_BUILDIN_PRVDRV=y
+	help
+		This integrates ax_gdc driver to linux kernel.
+	default n
+
+config AXERA_BUILDIN_PRVDRV_TDP
+	bool "integrates ax_tdp driver to linux kernel"
+	depends on AXERA_BUILDIN_PRVDRV=y
+	help
+		This integrates ax_tdp driver to linux kernel.
+	default n
+
+config AXERA_BUILDIN_PRVDRV_ISP
+	bool "integrates ax_isp driver to linux kernel"
+	depends on AXERA_BUILDIN_PRVDRV=y
+	help
+		This integrates ax_isp driver to linux kernel.
+	default n
+
+config AXERA_BUILDIN_PRVDRV_VCODEC
+	bool "integrates vcodec driver to linux kernel"
+	depends on AXERA_BUILDIN_PRVDRV=y
+	help
+		This integrates vcodec driver to linux kernel.
+	default n
+
+config AXERA_BUILDIN_PRVDRV_JENC
+	bool "integrates ax_jenc driver to linux kernel"
+	depends on AXERA_BUILDIN_PRVDRV=y && AXERA_BUILDIN_PRVDRV_VCODEC=y
+	help
+		This integrates ax_jenc driver to linux kernel.
+	default n
+
+config AXERA_BUILDIN_PRVDRV_VENC
+	bool "integrates ax_venc driver to linux kernel"
+	depends on AXERA_BUILDIN_PRVDRV=y && AXERA_BUILDIN_PRVDRV_VCODEC=y
+	help
+		This integrates ax_venc driver to linux kernel.
+	default n
+
+config AXERA_BUILDIN_PRVDRV_VDEC
+	bool "integrates ax_vdec driver to linux kernel"
+	depends on AXERA_BUILDIN_PRVDRV=y && AXERA_BUILDIN_PRVDRV_VCODEC=y
+	help
+		This integrates ax_vdec driver to linux kernel.
+	default n
+
+config AXERA_BUILDIN_PRVDRV_IVE
+	bool "integrates ax_ive driver to linux kernel"
+	depends on AXERA_BUILDIN_PRVDRV=y
+	help
+		This integrates ax_ive driver to linux kernel.
+	default n
+
+config AXERA_BUILDIN_PRVDRV_AVS
+	bool "integrates ax_avs driver to linux kernel"
+	depends on AXERA_BUILDIN_PRVDRV=y
+	help
+		This integrates ax_avs driver to linux kernel.
+	default n
+
+config AXERA_BUILDIN_PRVDRV_DDR_DFS
+	bool "integrates ax_ddr_dfs driver to linux kernel"
+	depends on AXERA_BUILDIN_PRVDRV=y
+	help
+		This integrates ax_ddr_dfs driver to linux kernel.
+	default n
+
+config AXERA_BUILDIN_PRVDRV_AUDIO
+	bool "integrates ax_audio driver to linux kernel"
+	depends on AXERA_BUILDIN_PRVDRV=y
+	help
+		This integrates ax_audio driver to linux kernel.
+	default n
+
+config AXERA_BUILDIN_PRVDRV_VFB
+	bool "integrates ax_vfb driver to linux kernel"
+	depends on AXERA_BUILDIN_PRVDRV=y
+	help
+		This integrates ax_vfb driver to linux kernel.
+	default n
+
+config AX_DEBUG_BOOT_TIME
+	bool "AX BOOT TIME DEBUG"
+	help
+		This enable AXERA BOOT TIME DEBUG.
+
+config AXERA_ISP_IMAGE_MEM_RECYCLE
+	bool "recycle ISP image memory in fast boot mode"
+	default n
+	help
+	  If this is set, the memory of ISP image will be recycle to use after system boot.
+
+config AXERA_CMM_MEM_RECYCLE
+	bool "recycle CMM memory to OS"
+	default n
+	help
+	  If this is set, the memory of CMM can be recycle to OS.
+
+config AX_RISCV_SUPPORT
+	bool "for fast project"
+	default n
+	help
+	  for fast project.

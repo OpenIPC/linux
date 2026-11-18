@@ -1884,14 +1884,19 @@ static int mmc_sleep(struct mmc_host *host)
 	struct mmc_command cmd = {};
 	struct mmc_card *card = host->card;
 	unsigned int timeout_ms = DIV_ROUND_UP(card->ext_csd.sa_timeout, 10000);
+	bool use_r1b_resp;
 	int err;
 
+	/* pr_info("%s: %s enter\n", mmc_hostname(host), __FUNCTION__); */
 	/* Re-tuning can't be done once the card is deselected */
 	mmc_retune_hold(host);
 
 	err = mmc_deselect_cards(host);
-	if (err)
+	if (err) {
+		pr_err("%s: cmd7 deselect fail\n", mmc_hostname(host));
 		goto out_release;
+	}
+	 /* pr_info("%s: cmd7 deselect succ\n", mmc_hostname(host)); */
 
 	cmd.opcode = MMC_SLEEP_AWAKE;
 	cmd.arg = card->rca << 16;
@@ -1908,14 +1913,19 @@ static int mmc_sleep(struct mmc_host *host)
 	if (!(host->caps & MMC_CAP_NEED_RSP_BUSY) && host->max_busy_timeout &&
 	    (timeout_ms > host->max_busy_timeout)) {
 		cmd.flags = MMC_RSP_R1 | MMC_CMD_AC;
+		use_r1b_resp = false;
 	} else {
 		cmd.flags = MMC_RSP_R1B | MMC_CMD_AC;
 		cmd.busy_timeout = timeout_ms;
+		use_r1b_resp = true;
 	}
 
 	err = mmc_wait_for_cmd(host, &cmd, 0);
-	if (err)
+	if (err) {
+		pr_err("%s: cmd5 sleep fail\n", mmc_hostname(host));
 		goto out_release;
+	}
+	/* pr_info("%s: cmd5 sleep succ\n", mmc_hostname(host)); */
 
 	/*
 	 * If the host does not wait while the card signals busy, then we will
@@ -1923,11 +1933,79 @@ static int mmc_sleep(struct mmc_host *host)
 	 * SEND_STATUS command to poll the status because that command (and most
 	 * others) is invalid while the card sleeps.
 	 */
-	if (!cmd.busy_timeout || !(host->caps & MMC_CAP_WAIT_WHILE_BUSY))
+	if ((!cmd.busy_timeout || !(host->caps & MMC_CAP_WAIT_WHILE_BUSY)) && !use_r1b_resp) {
+		pr_info("%s: timeout_ms=%d, ext_csd.sa_timeout=0x%x\n", mmc_hostname(host), timeout_ms, card->ext_csd.sa_timeout);
 		mmc_delay(timeout_ms);
+	}
 
 out_release:
 	mmc_retune_release(host);
+	pr_info("%s: %s ret=%d\n", mmc_hostname(host), __FUNCTION__, err);
+	return err;
+}
+
+static int mmc_awake(struct mmc_host *host)
+{
+	struct mmc_command cmd = {};
+	struct mmc_card *card = host->card;
+	unsigned int timeout_ms = DIV_ROUND_UP(card->ext_csd.sa_timeout, 10000);
+	bool use_r1b_resp;
+	int err;
+
+	/* pr_info("%s: %s enter\n", mmc_hostname(host), __FUNCTION__); */
+	/* Re-tuning can't be done once the card is deselected */
+	mmc_retune_hold(host);
+
+	cmd.opcode = MMC_SLEEP_AWAKE;
+	cmd.arg = card->rca << 16;
+	cmd.arg &= ~(1 << 15);
+
+	/*
+	 * If the max_busy_timeout of the host is specified, validate it against
+	 * the sleep cmd timeout. A failure means we need to prevent the host
+	 * from doing hw busy detection, which is done by converting to a R1
+	 * response instead of a R1B. Note, some hosts requires R1B, which also
+	 * means they are on their own when it comes to deal with the busy
+	 * timeout.
+	 */
+	if (!(host->caps & MMC_CAP_NEED_RSP_BUSY) && host->max_busy_timeout &&
+	    (timeout_ms > host->max_busy_timeout)) {
+		cmd.flags = MMC_RSP_R1 | MMC_CMD_AC;
+		use_r1b_resp = false;
+	} else {
+		cmd.flags = MMC_RSP_R1B | MMC_CMD_AC;
+		cmd.busy_timeout = timeout_ms;
+		use_r1b_resp = true;
+	}
+
+	err = mmc_wait_for_cmd(host, &cmd, 0);
+	if (err) {
+		pr_err("%s: cmd5 awake fail\n", mmc_hostname(host));
+		goto out_release;
+	}
+	/* pr_info("%s: cmd5 awake succ\n", mmc_hostname(host)); */
+
+	/*
+	 * If the host does not wait while the card signals busy, then we will
+	 * will have to wait the sleep/awake timeout.  Note, we cannot use the
+	 * SEND_STATUS command to poll the status because that command (and most
+	 * others) is invalid while the card sleeps.
+	 */
+	if ((!cmd.busy_timeout || !(host->caps & MMC_CAP_WAIT_WHILE_BUSY)) && !use_r1b_resp) {
+		pr_info("%s: timeout_ms=%d, ext_csd.sa_timeout=0x%x\n", mmc_hostname(host), timeout_ms, card->ext_csd.sa_timeout);
+		mmc_delay(timeout_ms);
+	}
+
+	err = mmc_select_card(host->card);
+	if (err) {
+		pr_err("%s: cmd7 select fail\n", mmc_hostname(host));
+		goto out_release;
+	}
+	/* pr_info("%s: cmd7 select succ\n", mmc_hostname(host)) */
+
+out_release:
+	mmc_retune_release(host);
+	/* pr_info("%s: %s ret=%d\n", mmc_hostname(host), __FUNCTION__, err); */
 	return err;
 }
 
@@ -2033,7 +2111,10 @@ static int _mmc_suspend(struct mmc_host *host, bool is_suspend)
 		err = mmc_deselect_cards(host);
 
 	if (!err) {
-		mmc_power_off(host);
+#if IS_ENABLED(CONFIG_MMC_SDHCI_AXERA)
+		if (!mmc_card_keep_power(host))
+#endif
+			mmc_power_off(host);
 		mmc_card_set_suspended(host->card);
 	}
 out:
@@ -2070,8 +2151,15 @@ static int _mmc_resume(struct mmc_host *host)
 	if (!mmc_card_suspended(host->card))
 		goto out;
 
-	mmc_power_up(host, host->card->ocr);
-	err = mmc_init_card(host, host->card->ocr, host->card);
+#if IS_ENABLED(CONFIG_MMC_SDHCI_AXERA)
+	if (!mmc_card_keep_power(host)) {
+#endif
+		mmc_power_up(host, host->card->ocr);
+		err = mmc_init_card(host, host->card->ocr, host->card);
+#if IS_ENABLED(CONFIG_MMC_SDHCI_AXERA)
+	} else
+		err = mmc_awake(host);
+#endif
 	mmc_card_clr_suspended(host->card);
 
 out:

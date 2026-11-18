@@ -20,6 +20,10 @@ struct f_hid_opts {
 	int				minor;
 	unsigned char			subclass;
 	unsigned char			protocol;
+	// ### SIPEED EDIT ###
+	unsigned char			no_out_endpoint;
+	unsigned char			wakeup_on_write;
+	// ### SIPEED EDIT END ###
 	unsigned short			report_length;
 	unsigned short			report_desc_length;
 	unsigned char			*report_desc;

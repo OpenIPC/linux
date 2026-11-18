@@ -41,6 +41,8 @@
 #define SPI_NOR_MAX_ID_LEN	6
 #define SPI_NOR_MAX_ADDR_WIDTH	4
 
+#define SPI_NOR_WRITE_ENABLE_FOR_VOLATILE_STATUS_REGISTER
+
 struct flash_info {
 	char		*name;
 
@@ -163,6 +165,17 @@ static inline int write_sr(struct spi_nor *nor, u8 val)
 	nor->cmd_buf[0] = val;
 	return nor->write_reg(nor, SPINOR_OP_WRSR, nor->cmd_buf, 1);
 }
+
+#ifdef SPI_NOR_WRITE_ENABLE_FOR_VOLATILE_STATUS_REGISTER
+/*
+ * Set write enable latch with Write Enable for volatile status register command.
+ * Returns negative if error occurred.
+ */
+static inline int write_enable_volatile(struct spi_nor *nor)
+{
+	return nor->write_reg(nor, SPINOR_OP_WRENVSR, NULL, 0);
+}
+#endif
 
 /*
  * Set write enable latch with Write Enable command.
@@ -582,7 +595,11 @@ static int write_sr_and_check(struct spi_nor *nor, u8 status_new, u8 mask)
 {
 	int ret;
 
+#ifdef SPI_NOR_WRITE_ENABLE_FOR_VOLATILE_STATUS_REGISTER
+	write_enable_volatile(nor);
+#else
 	write_enable(nor);
+#endif
 	ret = write_sr(nor, status_new);
 	if (ret)
 		return ret;
@@ -995,7 +1012,8 @@ static const struct flash_info spi_nor_ids[] = {
 	{ "en25p64",    INFO(0x1c2017, 0, 64 * 1024,  128, 0) },
 	{ "en25q64",    INFO(0x1c3017, 0, 64 * 1024,  128, SECT_4K) },
 	{ "en25qh32",   INFO(0x1c7016, 0, 64 * 1024,   64, 0) },
-	{ "en25qh128",  INFO(0x1c7018, 0, 64 * 1024,  256, 0) },
+	{ "en25qh128",  INFO(0x1c7018, 0, 64 * 1024,  256,
+			SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ | SPI_NOR_HAS_LOCK | SPI_NOR_SKIP_SFDP) },
 	{ "en25qh256",  INFO(0x1c7019, 0, 64 * 1024,  512, 0) },
 	{ "en25s64",	INFO(0x1c3817, 0, 64 * 1024,  128, SECT_4K) },
 
@@ -1241,7 +1259,7 @@ static const struct flash_info spi_nor_ids[] = {
 	},
 	{ "w25q80", INFO(0xef5014, 0, 64 * 1024,  16, SECT_4K) },
 	{ "w25q80bl", INFO(0xef4014, 0, 64 * 1024,  16, SECT_4K) },
-	{ "w25q128", INFO(0xef4018, 0, 64 * 1024, 256, SECT_4K) },
+	{ "w25q128", INFO(0xef4018, 0, 64 * 1024, 256, SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ) },
 	{ "w25q256", INFO(0xef4019, 0, 64 * 1024, 512, SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ) },
 	{ "w25m512jv", INFO(0xef7119, 0, 64 * 1024, 1024,
 			SECT_4K | SPI_NOR_QUAD_READ | SPI_NOR_DUAL_READ) },
@@ -1263,6 +1281,7 @@ static const struct flash_info spi_nor_ids[] = {
 	/* XMC (Wuhan Xinxin Semiconductor Manufacturing Corp.) */
 	{ "XM25QH64A", INFO(0x207017, 0, 64 * 1024, 128, SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ) },
 	{ "XM25QH128A", INFO(0x207018, 0, 64 * 1024, 256, SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ) },
+	{ "XM25QH128AHIG", INFO(0x204018, 0, 64 * 1024, 256, SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ) },
 	{ },
 };
 
@@ -1525,7 +1544,11 @@ static int write_sr_cr(struct spi_nor *nor, u8 *sr_cr)
 {
 	ssize_t ret;
 
+#ifdef SPI_NOR_WRITE_ENABLE_FOR_VOLATILE_STATUS_REGISTER
+	write_enable_volatile(nor);
+#else
 	write_enable(nor);
+#endif
 
 	ret = nor->write_reg(nor, SPINOR_OP_WRSR, sr_cr, 2);
 	if (ret < 0) {
@@ -1586,6 +1609,7 @@ static int spansion_quad_enable(struct spi_nor *nor)
 	return 0;
 }
 
+#if !defined (CONFIG_ARCH_AX620E) || !defined (CONFIG_AX_RISCV_LOAD_ROOTFS)
 /**
  * spansion_no_read_cr_quad_enable() - set QE bit in Configuration Register.
  * @nor:	pointer to a 'struct spi_nor'
@@ -1615,6 +1639,7 @@ static int spansion_no_read_cr_quad_enable(struct spi_nor *nor)
 
 	return write_sr_cr(nor, sr_cr);
 }
+#endif
 
 /**
  * spansion_read_cr_quad_enable() - set QE bit in Configuration Register.
@@ -2319,7 +2344,11 @@ static int spi_nor_parse_bfpt(struct spi_nor *nor,
 
 	case BFPT_DWORD15_QER_SR2_BIT1_BUGGY:
 	case BFPT_DWORD15_QER_SR2_BIT1_NO_RD:
+#if defined (CONFIG_ARCH_AX620E) && defined (CONFIG_AX_RISCV_LOAD_ROOTFS)
+		params->quad_enable = spansion_read_cr_quad_enable;
+#else
 		params->quad_enable = spansion_no_read_cr_quad_enable;
+#endif
 		break;
 
 	case BFPT_DWORD15_QER_SR1_BIT6:
@@ -2730,9 +2759,40 @@ static int spi_nor_setup(struct spi_nor *nor, const struct flash_info *info,
 	return 0;
 }
 
+#if defined (CONFIG_MTD_SPI_NOR_FORCE_UNLOCK)
+static int spi_nor_protect_process(struct spi_nor *nor)
+{
+	int ret;
+	u8 sr, cr;
+
+	ret = nor->read_reg(nor, SPINOR_OP_RDSR, &sr, 1);
+	if (ret < 0) {
+		pr_err("error %d reading SR\n", (int)ret);
+		return ret;
+	}
+
+	ret = nor->read_reg(nor, SPINOR_OP_RDCR, &cr, 1);
+	if (ret < 0) {
+		pr_err("error %d reading CR\n", ret);
+		return ret;
+	}
+
+	pr_info("%s: sr=0x%x, cr=0x%x\n", __func__, sr, cr);
+	if (sr & (SR_BP0 | SR_BP1 | SR_BP2 | SR_TB | SR_SRWD)) {
+		pr_err("%s: need disable protect\n", __func__);
+		return 1;
+	}
+
+	return 0;
+}
+#endif
+
 static int spi_nor_init(struct spi_nor *nor)
 {
 	int err;
+#if defined (CONFIG_MTD_SPI_NOR_FORCE_UNLOCK)
+	int need_disable_proctect = spi_nor_protect_process(nor);
+#endif
 
 	/*
 	 * Atmel, SST, Intel/Numonyx, and others serial NOR tend to power up
@@ -2741,8 +2801,15 @@ static int spi_nor_init(struct spi_nor *nor)
 	if (JEDEC_MFR(nor->info) == SNOR_MFR_ATMEL ||
 	    JEDEC_MFR(nor->info) == SNOR_MFR_INTEL ||
 	    JEDEC_MFR(nor->info) == SNOR_MFR_SST ||
+#if defined (CONFIG_MTD_SPI_NOR_FORCE_UNLOCK)
+	    need_disable_proctect == 1 ||
+#endif
 	    nor->info->flags & SPI_NOR_HAS_LOCK) {
+#ifdef SPI_NOR_WRITE_ENABLE_FOR_VOLATILE_STATUS_REGISTER
+		write_enable_volatile(nor);
+#else
 		write_enable(nor);
+#endif
 		write_sr(nor, 0);
 		spi_nor_wait_till_ready(nor);
 	}

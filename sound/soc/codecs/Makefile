@@ -70,12 +70,19 @@ snd-soc-da7219-objs := da7219.o da7219-aad.o
 snd-soc-da732x-objs := da732x.o
 snd-soc-da9055-objs := da9055.o
 snd-soc-dmic-objs := dmic.o
+### SIPEED EDIT ###
+snd-soc-dummy-codec-objs := dummy-codec.o
+### SIPEED EDIT END ###
 snd-soc-es7134-objs := es7134.o
 snd-soc-es7241-objs := es7241.o
 snd-soc-es8316-objs := es8316.o
 snd-soc-es8328-objs := es8328.o
 snd-soc-es8328-i2c-objs := es8328-i2c.o
 snd-soc-es8328-spi-objs := es8328-spi.o
+snd-soc-es7210-objs := es7210.o
+snd-soc-es7243l-objs := es7243l.o
+snd-soc-es8156-objs := es8156.o
+snd-soc-es8311-objs := es8311.o
 snd-soc-gtm601-objs := gtm601.o
 snd-soc-hdac-hdmi-objs := hdac_hdmi.o
 snd-soc-ics43432-objs := ics43432.o
@@ -330,12 +337,19 @@ obj-$(CONFIG_SND_SOC_DA7219)	+= snd-soc-da7219.o
 obj-$(CONFIG_SND_SOC_DA732X)	+= snd-soc-da732x.o
 obj-$(CONFIG_SND_SOC_DA9055)	+= snd-soc-da9055.o
 obj-$(CONFIG_SND_SOC_DMIC)	+= snd-soc-dmic.o
+### SIPEED EDIT ###
+obj-$(CONFIG_SND_SOC_DUMMY_CODEC)	+= snd-soc-dummy-codec.o
+### SIPEED EDIT END ###
 obj-$(CONFIG_SND_SOC_ES7134)	+= snd-soc-es7134.o
 obj-$(CONFIG_SND_SOC_ES7241)	+= snd-soc-es7241.o
 obj-$(CONFIG_SND_SOC_ES8316)    += snd-soc-es8316.o
 obj-$(CONFIG_SND_SOC_ES8328)	+= snd-soc-es8328.o
 obj-$(CONFIG_SND_SOC_ES8328_I2C)+= snd-soc-es8328-i2c.o
 obj-$(CONFIG_SND_SOC_ES8328_SPI)+= snd-soc-es8328-spi.o
+obj-$(CONFIG_SND_SOC_ES7210)	+= snd-soc-es7210.o
+obj-$(CONFIG_SND_SOC_ES7243L)	+= snd-soc-es7243l.o
+obj-$(CONFIG_SND_SOC_ES8156)	+= snd-soc-es8156.o
+obj-$(CONFIG_SND_SOC_ES8311)	+= snd-soc-es8311.o
 obj-$(CONFIG_SND_SOC_GTM601)    += snd-soc-gtm601.o
 obj-$(CONFIG_SND_SOC_HDAC_HDMI) += snd-soc-hdac-hdmi.o
 obj-$(CONFIG_SND_SOC_ICS43432)	+= snd-soc-ics43432.o

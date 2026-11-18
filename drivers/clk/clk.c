@@ -1893,9 +1893,11 @@ static int clk_core_set_rate_nolock(struct clk_core *core,
 
 	rate = clk_core_req_round_rate_nolock(core, req_rate);
 
+#if 0
 	/* bail early if nothing to do */
 	if (rate == clk_core_get_rate_nolock(core))
 		return 0;
+#endif
 
 	/* fail on a direct rate set of a protected provider */
 	if (clk_core_rate_is_protected(core))

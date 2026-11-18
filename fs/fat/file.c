@@ -301,6 +301,11 @@ static long fat_fallocate(struct file *file, int mode,
 			if (err)
 				goto error;
 		}
+	#if defined(CONFIG_AX_MC)
+		inode->i_size = offset + len;
+		MSDOS_I(inode)->mmu_private = inode->i_size;
+		fat_update_inode(inode);
+	#endif
 	} else {
 		if ((offset + len) <= i_size_read(inode))
 			goto error;

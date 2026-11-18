@@ -17,7 +17,11 @@ struct uvc_video;
 int uvcg_video_pump(struct uvc_video *video);
 
 int uvcg_video_enable(struct uvc_video *video, int enable);
-
+int uvcg_video_stop(struct uvc_video *video);
+#ifdef CONFIG_UVC_H264
+int uvcg_video_init(struct uvc_video *video, struct uvc_device *uvc);
+#else
 int uvcg_video_init(struct uvc_video *video);
+#endif
 
 #endif /* __UVC_VIDEO_H__ */

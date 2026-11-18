@@ -587,7 +587,11 @@ _request_firmware(const struct firmware **firmware_p, const char *name,
 	ret = fw_get_filesystem_firmware(device, fw->priv);
 	if (ret) {
 		if (!(opt_flags & FW_OPT_NO_WARN))
+#ifdef CONFIG_ARCH_AXERA
+			dev_dbg(device,
+#else
 			dev_warn(device,
+#endif
 				 "Direct firmware load for %s failed with error %d\n",
 				 name, ret);
 		ret = firmware_fallback_sysfs(fw, name, device, opt_flags, ret);
