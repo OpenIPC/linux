@@ -418,6 +418,7 @@ static int lotus_fmc100_spinor_probe_device(struct lotus_fmc_spinor *spinor)
 			spinor->chipsize_mask = spinor->chipsize - 1;
 
 			spinor->drv = spinor_get_driver(id, sizeof(id));
+			spinor->mid = id[0];
 
 			if (spinor->chipsize >= SZ_32M)
 				spinor->addr_cycle = 4;
@@ -448,12 +449,145 @@ static int lotus_fmc100_spinor_probe_device(struct lotus_fmc_spinor *spinor)
 	return 0;
 }
 
+/*
+ * Remove whatever write protection the part was left with, as OpenIPC's
+ * U-Boot does (fmc100_global_unlock): a bootloader that does not -- the
+ * vendor's, kept when a camera is converted -- leaves Winbond's per-block
+ * locks on after the vendor firmware has set WPS (non-volatile), and every
+ * erase and write to the overlay then "succeeds" while the part discards
+ * it. Only the protection bits are cleared: SRP0/BP4..BP0 (SR1), CMP/SRP1
+ * (SR2) and WPS (SR3); QE, the OTP LB bits and the read-only bits stay.
+ */
+#define SNOR_OP_RDSR3		0x15
+#define SNOR_OP_WRSR2		0x31
+#define SNOR_OP_WRSR3		0x11
+#define SNOR_OP_RDSR2_W		0x35	/* Winbond RDSR2; Macronix EQIO */
+#define SNOR_OP_RDCR_MX		0x15	/* Macronix RDCR */
+#define SNOR_OP_GBULK		0x98	/* global block/sector unlock */
+#define SNOR_MID_MXIC		0xc2
+#define SNOR_SR1_CLEAR		0xfc	/* SRP0 | BP4..BP0 */
+#define SNOR_SR2_CLEAR		0x41	/* CMP | SRP1 */
+#define SNOR_SR3_WPS		0x04
+#define SNOR_SR1_WARN		0x7c	/* BP4..BP0 */
+#define SNOR_SR2_WARN		0x40	/* CMP */
+#define SNOR_MXIC_SR_CLEAR	0xbc	/* SRWD | BP3..BP0; bit 6 is QE */
+#define SNOR_MXIC_SR_WARN	0x3c
+/* GLOBAL_CFG bit 11: the controller drives WP# low (GLOBAL_CFG_DEF sets
+ * it), so a part with SRP0 set ignores every status register write. */
+#define LOTUS_FMC100_GLOBAL_CFG_WP_EN	(1 << 11)
+
+static u8 lotus_fmc100_spinor_rdreg(struct flash_regop *regop, u8 cmd)
+{
+	u8 val = 0xff;
+	struct flash_regop_info info = {0};
+
+	info.priv = regop->priv;
+	info.cmd = cmd;
+	info.nr_cmd = 1;
+	info.buf = &val;
+	info.sz_buf = 1;
+	regop->read_reg(&info);
+	return val;
+}
+
+static void lotus_fmc100_spinor_wrcmd(struct lotus_fmc_spinor *spinor, u8 cmd,
+				      u8 *val)
+{
+	struct flash_regop *regop = spinor->regop;
+	struct flash_regop_info info = {0};
+
+	spinor->drv->write_enable(regop);
+	info.priv = regop->priv;
+	info.cmd = cmd;
+	info.nr_cmd = 1;
+	info.buf = val;
+	info.sz_buf = val ? 1 : 0;
+	regop->write_reg(&info);
+	regop->wait_device_ready(regop);
+}
+
+static void lotus_fmc100_spinor_global_unlock(struct lotus_fmc_spinor *spinor,
+					      u8 mid)
+{
+	struct flash_regop *regop = spinor->regop;
+	struct flash_regop_info info = {0};
+	u32 cfg;
+	u8 sr1, sr2, sr3, v;
+
+	cfg = lotus_fmc_read(spinor->host, LOTUS_FMC100_GLOBAL_CFG);
+	if (cfg & LOTUS_FMC100_GLOBAL_CFG_WP_EN)
+		lotus_fmc_write(spinor->host, cfg & ~LOTUS_FMC100_GLOBAL_CFG_WP_EN,
+				LOTUS_FMC100_GLOBAL_CFG);
+
+	if (mid == SNOR_MID_MXIC) {
+		/* one status register; 0x35/0x15/0x11 mean other things */
+		sr1 = lotus_fmc100_spinor_rdreg(regop, SPINOR_OP_RDSR);
+		lotus_fmc100_spinor_wrcmd(spinor, SNOR_OP_GBULK, NULL);
+		if (sr1 != 0xff && (sr1 & SNOR_MXIC_SR_CLEAR)) {
+			v = sr1 & ~SNOR_MXIC_SR_CLEAR;
+			pr_info("unlocked SR 0x%02x -> 0x%02x\n", sr1, v);
+			lotus_fmc100_spinor_wrcmd(spinor, SPINOR_OP_WRSR, &v);
+		}
+		sr1 = lotus_fmc100_spinor_rdreg(regop, SPINOR_OP_RDSR);
+		sr2 = 0;
+		sr3 = 0;
+		if (sr1 != 0xff && (sr1 & SNOR_MXIC_SR_WARN))
+			goto locked;
+		goto out;
+	}
+
+	sr1 = lotus_fmc100_spinor_rdreg(regop, SPINOR_OP_RDSR);
+	sr2 = lotus_fmc100_spinor_rdreg(regop, SNOR_OP_RDSR2_W);
+	sr3 = lotus_fmc100_spinor_rdreg(regop, SNOR_OP_RDSR3);
+
+	/* With WPS set the per-block lock bits protect the array; they power
+	 * up locked, and only the global unlock clears them, while WPS is
+	 * still set. */
+	if (sr3 != 0xff && (sr3 & SNOR_SR3_WPS)) {
+		lotus_fmc100_spinor_wrcmd(spinor, SNOR_OP_GBULK, NULL);
+		v = sr3 & ~SNOR_SR3_WPS;
+		pr_info("unlocked SR3 0x%02x -> 0x%02x (WPS)\n", sr3, v);
+		lotus_fmc100_spinor_wrcmd(spinor, SNOR_OP_WRSR3, &v);
+	}
+	if (sr1 != 0xff && (sr1 & SNOR_SR1_CLEAR)) {
+		v = sr1 & ~SNOR_SR1_CLEAR;
+		pr_info("unlocked SR1 0x%02x -> 0x%02x\n", sr1, v);
+		lotus_fmc100_spinor_wrcmd(spinor, SPINOR_OP_WRSR, &v);
+	}
+	if (sr2 != 0xff && (sr2 & SNOR_SR2_CLEAR)) {
+		v = sr2 & ~SNOR_SR2_CLEAR;
+		pr_info("unlocked SR2 0x%02x -> 0x%02x\n", sr2, v);
+		lotus_fmc100_spinor_wrcmd(spinor, SNOR_OP_WRSR2, &v);
+	}
+
+	/* the writes cannot report a refusal: read the protection back */
+	sr1 = lotus_fmc100_spinor_rdreg(regop, SPINOR_OP_RDSR);
+	sr2 = lotus_fmc100_spinor_rdreg(regop, SNOR_OP_RDSR2_W);
+	sr3 = lotus_fmc100_spinor_rdreg(regop, SNOR_OP_RDSR3);
+	if ((sr1 != 0xff && (sr1 & SNOR_SR1_WARN)) ||
+	    (sr2 != 0xff && (sr2 & SNOR_SR2_WARN)) ||
+	    (sr3 != 0xff && (sr3 & SNOR_SR3_WPS)))
+		goto locked;
+	goto out;
+locked:
+	pr_warn("still protected (SR1=0x%02x SR2=0x%02x SR3=0x%02x), erase and write will be discarded\n",
+		sr1, sr2, sr3);
+out:
+	/* an opcode the part does not have would leave WEL set */
+	info.priv = regop->priv;
+	info.cmd = SPINOR_OP_WRDI;
+	info.nr_cmd = 1;
+	regop->write_reg(&info);
+}
+
 static void lotus_fmc100_spinor_chip_init(struct lotus_fmc_spinor *spinor)
 {
 	int nrchip;
 
 	for (nrchip = 0; nrchip < spinor->nr_chips; nrchip++) {
 		lotus_fmc100_spinor_select_chip(spinor, nrchip);
+
+		lotus_fmc100_spinor_global_unlock(spinor, spinor->mid);
 
 		if (spinor->addr_cycle >= 4)
 			spinor->drv->entry_4addr(spinor->regop);
