@@ -585,14 +585,16 @@ static ssize_t ax_bw_limiter_create_write(struct file *file, const char __user *
 	u32 en;
 	SUB_SYS_BW_LIMITERS sub_sys_bw;
 
-	if (count > 32) {
+	/* room for the terminator sscanf() needs */
+	if (count >= sizeof(kbuf)) {
 		BW_LOG_ERR("invalid parameter\n");
-		return -1;
+		return -EINVAL;
 	}
 
 	if (copy_from_user(kbuf, buffer, count)) {
 		return -EFAULT;
 	}
+	kbuf[count] = '\0';
 
 	if (sscanf(kbuf, "%d %u", (int *)&sub_sys_bw, &en) != 2) {
 		BW_LOG_ERR("invalid parameter\n");
