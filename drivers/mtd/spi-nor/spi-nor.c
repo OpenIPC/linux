@@ -41,7 +41,9 @@
 #define SPI_NOR_MAX_ID_LEN	6
 #define SPI_NOR_MAX_ADDR_WIDTH	4
 
+#ifdef CONFIG_MTD_SPI_NOR_WRENVSR
 #define SPI_NOR_WRITE_ENABLE_FOR_VOLATILE_STATUS_REGISTER
+#endif
 
 struct flash_info {
 	char		*name;
