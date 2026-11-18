@@ -9,3 +9,47 @@ config AXERA_VPU
 	  Turn on the AX630C Hantro VENC, JENC, and VDEC clocks and resets
 	  and switch their muxes across the vendor OPP rates.
 	  The vendor command-queue driver is not in the public SDK.
+
+config AXERA_OSAL
+	bool "Axera OSAL (AX_OSAL_* kernel API for the vendor media modules)"
+	depends on ARCH_AXERA
+	select AXERA_OS_MEM
+	select SRCU
+	help
+	  The operating system abstraction layer Axera's closed media
+	  modules (ax_sys, ax_cmm, ax_pool, ax_npu, ax_ivps, ...) link
+	  against. Built in, as in the vendor kernel, together with
+	  /proc/ax_proc.
+
+config AX_HWINFO
+	bool "Axera hardware info (/proc/ax_proc/{chip_type,board_id,uid})"
+	depends on ARCH_AXERA
+
+config AX_BWLIMITER
+	bool "Axera DDR bandwidth limiter"
+	depends on ARCH_AXERA
+
+config AXERA_SYS_MAP
+	bool "Axera /dev/ax_sysmap DDR mapping for user space"
+	depends on ARCH_AXERA
+
+config AXERA_DW_APB_TIMER
+	tristate "Axera DW APB timer channels"
+	depends on ARCH_AXERA
+
+config AXERA_PERIPH_TIMER32
+	tristate "Axera peripheral timer32"
+	depends on ARCH_AXERA
+
+config AXERA_HRTIMER
+	bool "Axera DW-timer based ax_hrtimer"
+	depends on ARCH_AXERA
+
+config AXERA_OS_MEM
+	bool "Axera per-module kernel memory accounting (ax_os_mem_*)"
+	depends on ARCH_AXERA
+
+config AXERA_DISPLAY_DUMMY
+	bool "Axera display stubs (ax_display_register) without DRM"
+	depends on ARCH_AXERA && DRM=n
+	default y
