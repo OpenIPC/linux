@@ -225,6 +225,21 @@ config GPIO_DAVINCI
 	help
 	  Say yes here to enable GPIO support for TI Davinci/Keystone SoCs.
 
+config GPIO_AXERA
+	tristate "Axera APB GPIO driver"
+	depends on ARCH_AXERA || COMPILE_TEST
+	select GPIO_GENERIC
+	select GPIOLIB_IRQCHIP
+	help
+	  Say Y or M here to build support for the Axera AX620E
+	  ("axera,ax-apb-gpio") GPIO block.
+
+config GPIO_LP_AXERA
+	bool "Axera debounced GPIO low-power wakeup driver"
+	depends on GPIO_AXERA
+	help
+	  Axera "axera, deb-gpio-lp" wakeup source.
+
 config GPIO_DWAPB
 	tristate "Synopsys DesignWare APB GPIO driver"
 	select GPIO_GENERIC
