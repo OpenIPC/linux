@@ -3674,12 +3674,9 @@ static int stmmac_napi_poll(struct napi_struct *napi, int budget)
  */
 static void stmmac_tx_timeout(struct net_device *dev)
 {
-	//struct stmmac_priv *priv = netdev_priv(dev);
-#if 0
+	struct stmmac_priv *priv = netdev_priv(dev);
+
 	stmmac_global_err(priv);
-#else
-	printk("transmission timeout, we can debug now!!!!\n");
-#endif
 }
 
 /**
