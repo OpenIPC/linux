@@ -303,7 +303,13 @@ static int dw_spi_transfer_one(struct spi_controller *master,
 
 	dws->dma_mapped = 0;
 	spin_lock_irqsave(&dws->buf_lock, flags);
-	if (master->can_dma && master->can_dma(master, spi, transfer)) {
+	/*
+	 * Axera's APB SSI DMA moves whole 16/32-bit words, so the SDK widens
+	 * the frame size of DMA transfers to match.  Only for that DMA: any
+	 * other can_dma() user (Intel MID) keeps the requested word size.
+	 */
+	if (IS_ENABLED(CONFIG_APB_SPI_DW_DMA) &&
+	    master->can_dma && master->can_dma(master, spi, transfer)) {
 		if (0 == (transfer->len % sizeof(u32))) {
 			transfer->bits_per_word = 32;
 			dws->n_bytes = 4;
