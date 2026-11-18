@@ -239,3 +239,8 @@ const struct smp_operations ax620x_smp_ops __initconst = {
 };
 
 CPU_METHOD_OF_DECLARE(axera_smp_ax620x, "spin-table", &ax620x_smp_ops);
+/*
+ * AX620U ("axera,ax620x") devicetrees name the same holding-pen release
+ * (/cpus/secondary-boot-reg) by its own enable-method.
+ */
+CPU_METHOD_OF_DECLARE(axera_smp_ax620u, "axera,ax620x-smp", &ax620x_smp_ops);

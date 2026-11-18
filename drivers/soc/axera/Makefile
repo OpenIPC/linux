@@ -17,3 +17,4 @@ obj-$(CONFIG_AXERA_BUILDIN_PRVDRV)    += ../../../../../osdrv/private_drv2kernel
 obj-$(CONFIG_AXERA_DISPLAY_DUMMY)     += display_dummy/
 obj-$(CONFIG_AXERA_MEMORY_DUMP)       += memory_dump/
 obj-y                                 += axera_mem_recycle/
+obj-$(CONFIG_AXERA_AX620U_COMPAT)     += ax620u/

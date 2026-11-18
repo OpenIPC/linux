@@ -258,6 +258,14 @@ config AX_RISCV_SUPPORT
 	help
 	  for fast project.
 
+config AXERA_AX620U_COMPAT
+	bool "AX620U vendor-module compatibility exports"
+	help
+	  Exports the few symbols Axera's closed AX620U kernel modules
+	  (ax_rtc, ax_hwinfo) import from the AX620U vendor kernel and the
+	  AX620E SDK kernel does not provide: ax_special_rtc_lock/unlock and
+	  read_adc_value.
+
 config AXERA_AX620E_PINMUX
 	bool "AX620E/AX620Q/AX630C board pinmux tables"
 	depends on ARCH_AXERA

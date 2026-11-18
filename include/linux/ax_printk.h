@@ -5,6 +5,17 @@
 #include <linux/linkage.h>
 #include <linux/types.h>
 
+#ifdef CONFIG_AXERA_AX620U_COMPAT
+/*
+ * The closed AX620U modules call ax_printk/ax_vprintk with printk's own
+ * signature (fmt first). drivers/soc/axera/ax620u provides those; the
+ * SDK's AXLOG entry points (id, tag, level, fmt) keep working in-tree
+ * under these names.
+ */
+#define ax_printk axlog_printk
+#define ax_vprintk axlog_vprintk
+#endif
+
 enum{
     AX_KERN_EMERG	= 0,
     AX_KERN_ALERT	= 1,

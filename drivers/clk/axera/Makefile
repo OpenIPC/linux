@@ -4,3 +4,4 @@
 #
 obj-$(CONFIG_COMMON_CLK_AXERA) += clk.o
 obj-$(CONFIG_COMMON_CLK_AX620E) += clk-ax620e.o
+obj-$(CONFIG_COMMON_CLK_AX620U) += clk-ax620u.o
