@@ -229,7 +229,7 @@ static int hisi_spi_rtc_write_reg(struct hisi_spi_rtc *hr, u8 reg, u8 val)
  * match value) and return them as seconds since the epoch.
  */
 static int hisi_spi_rtc_read_fields(struct hisi_spi_rtc *hr, u8 s_reg,
-				    u64 *secs)
+				    u64 *secs, bool *valid)
 {
 	u8 s, m, h, dl, dh, s2;
 	int ret;
@@ -247,18 +247,25 @@ static int hisi_spi_rtc_read_fields(struct hisi_spi_rtc *hr, u8 s_reg,
 	if (s != s2)
 		return -EAGAIN;	/* a carry happened while reading */
 
+	/*
+	 * Hours 24 ... 31 and minutes or seconds 60 ... 63 do not exist: the
+	 * register content is not a time (a lost battery), however it folds.
+	 */
+	if (valid)
+		*valid = (h & 0x1f) <= 23 && (m & 0x3f) <= 59 && (s & 0x3f) <= 59;
+
 	*secs = ((u64)(dl | dh << 8) * 24 + (h & 0x1f)) * 3600 +
 		(m & 0x3f) * 60 + (s & 0x3f);
 	return 0;
 }
 
 static int hisi_spi_rtc_write_fields(struct hisi_spi_rtc *hr, u8 ms_reg,
-				     u64 secs)
+				     u64 secs, u8 ticks)
 {
 	u32 tod, days = div_u64_rem(secs, 86400, &tod);
 	int ret;
 
-	ret = hisi_spi_rtc_write_reg(hr, ms_reg, 0);
+	ret = hisi_spi_rtc_write_reg(hr, ms_reg, ticks);
 	ret = ret ?: hisi_spi_rtc_write_reg(hr, ms_reg + 1, tod % 60);
 	ret = ret ?: hisi_spi_rtc_write_reg(hr, ms_reg + 2, tod / 60 % 60);
 	ret = ret ?: hisi_spi_rtc_write_reg(hr, ms_reg + 3, tod / 3600);
@@ -309,7 +316,8 @@ static int hisi_spi_rtc_latch(struct hisi_spi_rtc *hr)
 	return ret;
 }
 
-static int hisi_spi_rtc_read_secs(struct hisi_spi_rtc *hr, u64 *secs)
+static int hisi_spi_rtc_read_secs(struct hisi_spi_rtc *hr, u64 *secs,
+				  bool *valid)
 {
 	int i, ret = -EAGAIN;
 
@@ -321,7 +329,7 @@ static int hisi_spi_rtc_read_secs(struct hisi_spi_rtc *hr, u64 *secs)
 	}
 
 	for (i = 0; i < HISI_SPI_RTC_READ_RETRIES && ret == -EAGAIN; i++)
-		ret = hisi_spi_rtc_read_fields(hr, RTC_S_COUNT, secs);
+		ret = hisi_spi_rtc_read_fields(hr, RTC_S_COUNT, secs, valid);
 
 	return ret;
 }
@@ -329,12 +337,15 @@ static int hisi_spi_rtc_read_secs(struct hisi_spi_rtc *hr, u64 *secs)
 static int hisi_spi_rtc_read_time(struct device *dev, struct rtc_time *tm)
 {
 	struct hisi_spi_rtc *hr = dev_get_drvdata(dev);
+	bool valid = true;
 	u64 secs;
 	int ret;
 
-	ret = hisi_spi_rtc_read_secs(hr, &secs);
+	ret = hisi_spi_rtc_read_secs(hr, &secs, &valid);
 	if (ret)
 		return ret;
+	if (!valid)
+		return -EINVAL;
 
 	rtc_time64_to_tm(secs, tm);
 	return 0;
@@ -355,7 +366,7 @@ static int hisi_spi_rtc_wait_loaded(struct hisi_spi_rtc *hr, u64 want)
 
 	do {
 		expired = time_after(jiffies, timeout);
-		ret = hisi_spi_rtc_read_secs(hr, &secs);
+		ret = hisi_spi_rtc_read_secs(hr, &secs, NULL);
 		if (ret && ret != -EAGAIN)
 			return ret;
 		if (!ret && secs >= want && secs <= want + 2)
@@ -367,7 +378,7 @@ static int hisi_spi_rtc_wait_loaded(struct hisi_spi_rtc *hr, u64 want)
 	return -ETIMEDOUT;
 }
 
-static int hisi_spi_rtc_load(struct hisi_spi_rtc *hr, u64 secs)
+static int hisi_spi_rtc_load(struct hisi_spi_rtc *hr, u64 secs, u8 ticks)
 {
 	int ret;
 
@@ -377,7 +388,7 @@ static int hisi_spi_rtc_load(struct hisi_spi_rtc *hr, u64 secs)
 		return ret;
 
 	/* The counter and the load value share the field layout */
-	ret = hisi_spi_rtc_write_fields(hr, RTC_LR_10MS, secs);
+	ret = hisi_spi_rtc_write_fields(hr, RTC_LR_10MS, secs, ticks);
 	if (ret)
 		return ret;
 
@@ -407,16 +418,35 @@ static int hisi_spi_rtc_set_time(struct device *dev, struct rtc_time *tm)
 {
 	struct hisi_spi_rtc *hr = dev_get_drvdata(dev);
 	u64 secs = rtc_tm_to_time64(tm);
+	ktime_t first = 0;
 	int i, ret = -ETIMEDOUT;
 
 	/*
 	 * A load request that follows the previous one too closely is
 	 * dropped silently (RTC_LORD.load clears, the counter keeps its
-	 * value). Keep the requests apart and repeat a dropped one.
+	 * value). Keep the requests apart and repeat a dropped one. The
+	 * first request loads the time handed in, as set_offset_nsec
+	 * expects. A repeat loads it plus the time since the first request,
+	 * in the 10 ms ticks of the counter, or the clock would run late by
+	 * that time. The register writes and the wait inside the load are
+	 * the same for every request and are part of set_offset_nsec.
 	 */
 	for (i = 0; i < HISI_SPI_RTC_LOAD_RETRIES && ret == -ETIMEDOUT; i++) {
+		u64 want = secs;
+		u32 ticks = 0;
+
 		hisi_spi_rtc_load_gap(hr);
-		ret = hisi_spi_rtc_load(hr, secs);
+		if (!i)
+			first = ktime_get();
+		else
+			ticks = div_u64(ktime_ms_delta(ktime_get(), first), 10);
+
+		want += ticks / 100;
+		/* a day count above 65535 would wrap to day 0 in the registers */
+		if (want > hr->rtc->range_max)
+			return -ERANGE;
+
+		ret = hisi_spi_rtc_load(hr, want, ticks % 100);
 	}
 
 	return ret;
@@ -429,7 +459,7 @@ static int hisi_spi_rtc_read_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 	u64 secs;
 	int ret;
 
-	ret = hisi_spi_rtc_read_fields(hr, RTC_MR_S, &secs);
+	ret = hisi_spi_rtc_read_fields(hr, RTC_MR_S, &secs, NULL);
 	ret = ret ?: hisi_spi_rtc_read_reg(hr, RTC_IMSC, &imsc);
 	ret = ret ?: hisi_spi_rtc_read_reg(hr, RTC_MSC_INT, &st);
 	if (ret)
@@ -457,7 +487,7 @@ static int hisi_spi_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 
 	ret = hisi_spi_rtc_write_reg(hr, RTC_IMSC, 0);
 	ret = ret ?: hisi_spi_rtc_write_fields(hr, RTC_MR_10MS,
-					       rtc_tm_to_time64(&alrm->time));
+					       rtc_tm_to_time64(&alrm->time), 0);
 	ret = ret ?: hisi_spi_rtc_write_reg(hr, RTC_INT_CLR, 1);
 	if (ret)
 		return ret;
@@ -589,7 +619,7 @@ static int hisi_spi_rtc_setup(struct hisi_spi_rtc *hr)
 	ret = ret ?: hisi_spi_rtc_write_reg(hr, RTC_INT_CLR, 1);
 	ret = ret ?: hisi_spi_rtc_write_reg(hr, RTC_CLK, 0);
 	/* the match value is not defined after a power-up of the macro */
-	ret = ret ?: hisi_spi_rtc_write_fields(hr, RTC_MR_10MS, 0);
+	ret = ret ?: hisi_spi_rtc_write_fields(hr, RTC_MR_10MS, 0, 0);
 	if (ret) {
 		dev_err(hr->dev, "RTC does not answer on the SPI bridge: %d\n", ret);
 		return ret;
@@ -715,7 +745,6 @@ static int hisi_spi_rtc_probe(struct platform_device *pdev)
 		return PTR_ERR(hr->rtc);
 
 	hr->rtc->ops = &hisi_spi_rtc_ops;
-	hr->rtc->range_min = 0;
 	hr->rtc->range_max = 65536ULL * 86400 - 1;
 	/*
 	 * The time handed to set_time starts to run when the load request is
@@ -729,10 +758,6 @@ static int hisi_spi_rtc_probe(struct platform_device *pdev)
 
 	ret = hisi_spi_rtc_set_divider(hr);
 	ret = ret ?: hisi_spi_rtc_setup(hr);
-	if (ret)
-		return ret;
-
-	ret = devm_add_action_or_reset(dev, hisi_spi_rtc_mask_irq, hr);
 	if (ret)
 		return ret;
 
@@ -751,7 +776,10 @@ static int hisi_spi_rtc_probe(struct platform_device *pdev)
 		 * handler returns IRQ_NONE when the RTC did not raise it. A
 		 * handler of the other source that is not oneshot makes the
 		 * request fail with -EBUSY: the clock still works without
-		 * the alarm, so do not fail the probe for it.
+		 * the alarm, so do not fail the probe for it. This only helps
+		 * when the RTC probes second: if it gets the line first, the
+		 * other source is the one that gets -EBUSY, unless it is
+		 * oneshot and shared too.
 		 */
 		ret = devm_request_threaded_irq(dev, irq, NULL, hisi_spi_rtc_irq,
 						IRQF_ONESHOT | IRQF_SHARED,
@@ -765,6 +793,15 @@ static int hisi_spi_rtc_probe(struct platform_device *pdev)
 		else
 			alarm = true;
 	}
+
+	/*
+	 * Registered after the interrupt request, so that it runs before the
+	 * interrupt is freed: an armed alarm that fires after the free would
+	 * leave a level interrupt that nothing handles, on a shared line.
+	 */
+	ret = devm_add_action_or_reset(dev, hisi_spi_rtc_mask_irq, hr);
+	if (ret)
+		return ret;
 
 	if (alarm && device_property_read_bool(dev, "wakeup-source")) {
 		ret = devm_device_init_wakeup(dev);
