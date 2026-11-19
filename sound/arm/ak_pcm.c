@@ -935,6 +935,10 @@ static int akpcm_playback_open(struct snd_pcm_substream *substream)
 	struct snd_akpcm *akpcm = snd_pcm_substream_chip(substream);
 	struct snd_pcm_runtime *runtime = substream->runtime;
 
+	/* no codec registered (see akpcm_reboot_notify) */
+	if (!akpcm->ops)
+		return -ENODEV;
+
 	akpcm->playbacksubstrm = substream;
 	runtime->hw = akpcm_playback_hardware;
 	dac_clock = 0;
@@ -961,6 +965,10 @@ static int akpcm_capture_open(struct snd_pcm_substream *substream)
 {
 	struct snd_akpcm *akpcm = snd_pcm_substream_chip(substream);
 	struct snd_pcm_runtime *runtime = substream->runtime;
+
+	/* no codec registered (see akpcm_reboot_notify) */
+	if (!akpcm->ops)
+		return -ENODEV;
 	
 	akpcm->capturesubstrm = substream;
 	runtime->hw = akpcm_capture_hardware;	
@@ -1395,7 +1403,12 @@ static int akpcm_reboot_notify(struct notifier_block *nb,
 
 	mutex_lock(&reboot_lock);
 
-	if (!reboot_info)
+	/*
+	 * The card registers without a codec when the board's DT leaves the
+	 * codec off (the HeimVision PE3020-W): then there are no ops to close
+	 * with, and reboot would oops on them.
+	 */
+	if (!reboot_info || !reboot_info->ops)
 		goto out;
 	
 	akpcm = reboot_info;
