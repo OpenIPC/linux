@@ -347,7 +347,7 @@ static int hisi_femac_poll(struct napi_struct *napi, int budget)
 
 static irqreturn_t hisi_femac_interrupt(int irq, void *dev_id)
 {
-	int ints;
+	int ints, ena;
 	struct net_device *dev = (struct net_device *)dev_id;
 	struct hisi_femac_priv *priv = netdev_priv(dev);
 
@@ -355,14 +355,23 @@ static irqreturn_t hisi_femac_interrupt(int irq, void *dev_id)
 	if (READ_ONCE(priv->suspended))
 		return IRQ_NONE;
 
-	ints = readl(priv->glb_base + GLB_IRQ_RAW);
+	/*
+	 * The line is shared: only claim events that are raised and enabled,
+	 * and nothing at all while the port is closed (close clears the
+	 * port enable and leaves the event enables as they are).
+	 */
+	ena = readl(priv->glb_base + GLB_IRQ_ENA);
+	if ((ena & (IRQ_ENA_ALL | IRQ_ENA_PORT0)) !=
+	    (IRQ_ENA_ALL | IRQ_ENA_PORT0))
+		return IRQ_NONE;
 
-	if (likely(ints & DEF_INT_MASK)) {
-		writel(ints & DEF_INT_MASK,
-		       priv->glb_base + GLB_IRQ_RAW);
-		hisi_femac_irq_disable(priv, DEF_INT_MASK);
-		napi_schedule(&priv->napi);
-	}
+	ints = readl(priv->glb_base + GLB_IRQ_RAW) & ena;
+	if (!(ints & DEF_INT_MASK))
+		return IRQ_NONE;
+
+	writel(ints & DEF_INT_MASK, priv->glb_base + GLB_IRQ_RAW);
+	hisi_femac_irq_disable(priv, DEF_INT_MASK);
+	napi_schedule(&priv->napi);
 
 	return IRQ_HANDLED;
 }
