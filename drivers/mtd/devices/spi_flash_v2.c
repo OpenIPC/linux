@@ -852,6 +852,8 @@ static struct flash_info __devinitdata common_spi_flash_data[] = {
 	{"gd25q256c", 0xc84019, 0, 65536, 512, SECT_64K, 4, 3},
 	/* Micron */
 	{"N25q256", 0x20BA19, 0, 65536, 512, SECT_64K, 4, 4},
+    /* XMC */
+    {"xm25qh64a", 0x207017, 0, 65536, 128, SECT_64K, 3, 3},
 #else
     /* winbond */
     {"w25q32bv", 0xef4016, 0, 4096, 1024, SECT_4K, 3, 1},
@@ -864,6 +866,8 @@ static struct flash_info __devinitdata common_spi_flash_data[] = {
     /* eon */
     {"en25q128", 0x1c3018, 0, 4096, 4096, SECT_4K, 3, 3},
     {"en25qh256", 0x1c7019, 0, 4096, 8192, SECT_4K, 4, 3},
+    /* XMC */
+    {"xm25qh64a", 0x207017, 0, 4096, 2048, SECT_4K, 3, 3},
 #endif
 #if 0                           //ratbert
     /* Atmel -- some are (confusingly) marketed as "DataFlash" */
