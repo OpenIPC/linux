@@ -40,7 +40,9 @@ description: |
   part of the board setup and is not done by the RTC driver. If another
   handler of the line is not compatible with a shared, oneshot threaded
   handler, the driver registers the clock without the alarm and without
-  wakeup instead of failing.
+  wakeup instead of failing. This works only when the RTC probes after the
+  other source: an RTC that gets the line first takes it with a shared,
+  oneshot handler, and the other source needs the same to share it.
 
   The data sheets describe no crystal, oscillator or battery selection that a
   board has to choose, so the node has no properties for them. The crystal
