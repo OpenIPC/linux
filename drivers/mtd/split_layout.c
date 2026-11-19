@@ -39,10 +39,14 @@
 #define SPLIT_FW_START		(SPLIT_BOOT_SIZE + SPLIT_ENV_SIZE)
 #define SPLIT_BLOCK		0x10000ULL
 
+/* where the fixed-slot layout keeps its rootfs: after a 2 MiB kernel slot */
+#define FIXED_ROOTFS_START	(SPLIT_FW_START + 0x200000ULL)
+
 #define UIMAGE_HDR_SIZE		64
 #define UIMAGE_MAGIC		0x27051956
 #define SQUASHFS_MAGIC_LE	0x73717368	/* "hsqs" */
 #define SQUASHFS_SB_READ	48		/* through bytes_used */
+#define SQUASHFS_SB_SIZE	96		/* struct squashfs_super_block */
 
 static u64 split_round(u64 x)
 {
@@ -73,6 +77,45 @@ static u32 le32_at(const u8 *p)
 	return p[0] | (p[1] << 8) | (p[2] << 16) | ((u32)p[3] << 24);
 }
 
+static u16 le16_at(const u8 *p)
+{
+	return p[0] | (p[1] << 8);
+}
+
+/*
+ * The squashfs superblock at off, as squashfs_fill_super() will judge it
+ * (version 4.0, a block size of 4K-1M that matches its log) and inside the
+ * chip: its bytes_used, 0 when it is none, -errno when reading failed. A
+ * bare magic is not enough: the root is mounted from whatever this accepts,
+ * and a root= naming the bootloader's partition gives way to it.
+ */
+static s64 split_squashfs_at(struct mtd_info *mtd, u64 off)
+{
+	u8 sb[SQUASHFS_SB_READ];
+	u32 block_size;
+	u16 block_log;
+	u64 used;
+	int err;
+
+	if (off + SPLIT_BLOCK > mtd->size)
+		return 0;
+	err = split_read(mtd, off, sizeof(sb), sb);
+	if (err)
+		return err;
+	if (le32_at(sb) != SQUASHFS_MAGIC_LE ||
+	    le16_at(sb + 28) != 4 || le16_at(sb + 30) != 0)
+		return 0;
+	block_size = le32_at(sb + 12);
+	block_log = le16_at(sb + 22);
+	if (block_log < 12 || block_log > 20 || block_size != 1U << block_log)
+		return 0;
+	/* bytes_used: 64 bits, so a corrupt high word cannot wrap past the chip */
+	used = le32_at(sb + 40) | ((u64)le32_at(sb + 44) << 32);
+	if (used < SQUASHFS_SB_SIZE || used > mtd->size - off)
+		return 0;
+	return used;
+}
+
 /*
  * Where the kernel image ends and the rootfs starts, and where the rootfs
  * ends, when the firmware area holds this layout; -ENOENT when it does not.
@@ -80,7 +123,7 @@ static u32 le32_at(const u8 *p)
 static int split_find(struct mtd_info *mtd, u64 *rootfs, u64 *data)
 {
 	u8 buf[UIMAGE_HDR_SIZE];
-	u64 used;
+	s64 used, fixed;
 	int err;
 
 	if (mtd->type != MTD_NORFLASH || !mtd->erasesize ||
@@ -97,15 +140,26 @@ static int split_find(struct mtd_info *mtd, u64 *rootfs, u64 *data)
 	if (*rootfs + SPLIT_BLOCK > mtd->size)
 		return -ENOENT;
 
-	err = split_read(mtd, *rootfs, SQUASHFS_SB_READ, buf);
-	if (err)
-		return err;
-	if (le32_at(buf) != SQUASHFS_MAGIC_LE)
+	used = split_squashfs_at(mtd, *rootfs);
+	if (used < 0)
+		return used;
+	if (!used)
 		return -ENOENT;
-	/* bytes_used: 64 bits, so a corrupt high word cannot wrap past the chip */
-	used = le32_at(buf + 40) | ((u64)le32_at(buf + 44) << 32);
-	if (!used || used > mtd->size - *rootfs)
-		return -ENOENT;
+
+	/*
+	 * A squashfs right after the kernel that runs on over the fixed rootfs
+	 * slot, where another superblock starts: a fixed-slot image over an
+	 * older split one, whose stale squashfs the slot's own has overwritten.
+	 * The fixed slots are what the bootloader boots then.
+	 */
+	if (*rootfs < FIXED_ROOTFS_START &&
+	    *rootfs + used > FIXED_ROOTFS_START) {
+		fixed = split_squashfs_at(mtd, FIXED_ROOTFS_START);
+		if (fixed < 0)
+			return fixed;
+		if (fixed)
+			return -ENOENT;
+	}
 	*data = split_round(*rootfs + used);
 	if (*data > mtd->size)
 		return -ENOENT;
