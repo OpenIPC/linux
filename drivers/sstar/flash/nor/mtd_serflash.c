@@ -22,6 +22,7 @@
 #include <linux/version.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
+#include <linux/mtd/split_layout.h>
 #include <linux/slab.h>
 #include <linux/clk.h>
 #include <linux/clk-provider.h>
@@ -505,6 +506,18 @@ static int serflash_probe(struct platform_device *pdev)
                 flash->mtd.name, (unsigned int)flash->mtd.size, (unsigned int)flash->mtd.size / (1024 * 1024),
                 (unsigned int)flash->mtd.erasesize, flash->mtd.numeraseregions);
     platform_set_drvdata(pdev, &flash->mtd);
+
+    /* firmware.bin at 0x50000: its own partitions, not the command line's */
+    {
+        int split = mtd_split_layout_register(&flash->mtd);
+
+        if (!split)
+            return 0;
+        if (split < 0)
+            printk(KERN_WARNING "split NOR layout not registered (%d), "
+                   "taking the command line's partitions\n", split);
+    }
+
     return mtd_device_register(&flash->mtd, NULL, 0);
 out:
     if (flash)
