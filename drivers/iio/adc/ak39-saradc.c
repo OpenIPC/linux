@@ -9,6 +9,12 @@
  * (on AIN0 on the HeimVision PE3020-W, where the stock 3.4 kernel offered it
  * as /sys/kernel/ain/ain0) can decide day and night.
  *
+ * Pads: on the EV330 / EV300 pin controller AIN0 is not shared with a GPIO,
+ * so it needs no pin state; AIN1 shares GPIO 5 (function 5 in
+ * ak_ev330_pinctrl.c), and a board that wires something to it gives this
+ * node a pinctrl-0 selecting that function, which the driver core applies
+ * before probe.
+ *
  * Licensed under GPLv2.
  */
 
