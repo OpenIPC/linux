@@ -39,3 +39,12 @@
 &mmc1 {
 	status = "disabled";
 };
+
+/*
+ * The photocell is on AIN0: the stock 3.4 firmware reads it as
+ * /sys/kernel/ain/ain0, about 3000 in light and 35-41 covered
+ * (OpenIPC/builder#234). Here it is in_voltage0_input, in mV.
+ */
+&saradc {
+	status = "okay";
+};

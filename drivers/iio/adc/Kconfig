@@ -118,6 +118,17 @@ config AD799X
 	  To compile this driver as a module, choose M here: the module will be
 	  called ad799x.
 
+config AK39_SARADC
+	tristate "Anyka AK39 SAR ADC general-purpose inputs"
+	depends on ARCH_AK && (MACH_AK39EV330 || AK3918_FAMILY)
+	help
+	  Say yes here for the AIN0 and AIN1 inputs of the Anyka AK39 SoCs'
+	  SAR-ADC1 as IIO channels (in_voltageN_input, in millivolts), for
+	  instance a camera's photocell.
+
+	  To compile this driver as a module, choose M here: the module will
+	  be called ak39-saradc.
+
 config AT91_ADC
 	tristate "Atmel AT91 ADC"
 	depends on ARCH_AT91

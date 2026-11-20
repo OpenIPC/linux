@@ -128,12 +128,18 @@ EXPORT_SYMBOL(adc1_read_channel);
 
 /*
  * ADC1 initialization: sets up clock/sample-rate, leaves ADC1 powered off.
+ * Each consumer (ADC keys, battery, the IIO driver) calls it at probe, so it
+ * takes the readers' lock: a reset in the middle of another consumer's
+ * sample would hand that consumer a wrong value.
  */
 int adc1_init(void)
 {
 	unsigned long samplerate, adc1_clk, clkdiv;
 	unsigned long spl_cycle, spl_hold, spl_wait;
+	unsigned long flags;
 	u32 val;
+
+	spin_lock_irqsave(&adc1_lock, flags);
 
 	/* reset adc1 */
 	val = __raw_readl(RESET_CTRL_REG);
@@ -197,6 +203,7 @@ int adc1_init(void)
 	/* leave powered off; readers power on/off around each sample */
 	power_off_adc1();
 
+	spin_unlock_irqrestore(&adc1_lock, flags);
 	return 0;
 }
 EXPORT_SYMBOL(adc1_init);
