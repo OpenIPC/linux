@@ -128,6 +128,7 @@ struct hisi_femac_priv {
 	spinlock_t irq_lock;
 	/* The clock is off and the interface was already closed by suspend */
 	bool suspended;
+	struct work_struct reset_work;
 };
 
 static void hisi_femac_irq_enable(struct hisi_femac_priv *priv, int irqs)
@@ -640,6 +641,35 @@ static netdev_tx_t hisi_femac_net_xmit(struct sk_buff *skb,
 	return NETDEV_TX_OK;
 }
 
+/* Called with all TX queues frozen, so with the TX lock held */
+static void hisi_femac_tx_timeout(struct net_device *dev, unsigned int txqueue)
+{
+	struct hisi_femac_priv *priv = netdev_priv(dev);
+
+	netdev_warn(dev, "transmit timeout, %u frames in flight\n",
+		    priv->tx_fifo_used_cnt);
+	dev->stats.tx_errors++;
+
+	/*
+	 * A completion that was missed leaves the queue stopped. Reclaim what
+	 * is done and let the stack try again, xmit copes with a queue that
+	 * is still full.
+	 */
+	hisi_femac_xmit_reclaim_locked(dev);
+	if (priv->tx_fifo_used_cnt) {
+		/*
+		 * Frames are still in flight after the time out, so the
+		 * hardware does not complete them and waking the queue would
+		 * only stop it again. Reset the port, which needs to sleep
+		 * and so cannot be done here.
+		 */
+		schedule_work(&priv->reset_work);
+		return;
+	}
+	hisi_femac_irq_enable(priv, IRQ_INT_TX_PER_PACKET);
+	netif_wake_queue(dev);
+}
+
 static int hisi_femac_set_mac_address(struct net_device *dev, void *p)
 {
 	struct hisi_femac_priv *priv = netdev_priv(dev);
@@ -779,6 +809,7 @@ static const struct net_device_ops hisi_femac_netdev_ops = {
 	.ndo_open		= hisi_femac_net_open,
 	.ndo_stop		= hisi_femac_net_close,
 	.ndo_start_xmit		= hisi_femac_net_xmit,
+	.ndo_tx_timeout		= hisi_femac_tx_timeout,
 	.ndo_eth_ioctl		= phy_do_ioctl_running,
 	.ndo_set_mac_address	= hisi_femac_set_mac_address,
 	.ndo_set_rx_mode	= hisi_femac_net_set_rx_mode,
@@ -857,6 +888,23 @@ static void hisi_femac_port_init(struct hisi_femac_priv *priv)
 
 	val = (HW_RX_FIFO_DEPTH << RX_DEPTH_OFFSET) | HW_TX_FIFO_DEPTH;
 	writel(val, priv->port_base + QLEN_SET);
+}
+
+/* Stop the port and start it again, as a suspend and resume would */
+static void hisi_femac_reset_work(struct work_struct *work)
+{
+	struct hisi_femac_priv *priv = container_of(work,
+					struct hisi_femac_priv, reset_work);
+	struct net_device *dev = priv->ndev;
+
+	rtnl_lock();
+	if (netif_running(dev) && !priv->suspended) {
+		netdev_err(dev, "the transmitter does not complete frames, resetting the port\n");
+		hisi_femac_net_close(dev);
+		hisi_femac_port_init(priv);
+		hisi_femac_net_open(dev);
+	}
+	rtnl_unlock();
 }
 
 static int hisi_femac_drv_probe(struct platform_device *pdev)
@@ -949,6 +997,7 @@ static int hisi_femac_drv_probe(struct platform_device *pdev)
 	ndev->ethtool_ops = &hisi_femac_ethtools_ops;
 	netif_napi_add_weight(ndev, &priv->napi, hisi_femac_poll,
 			      FEMAC_POLL_WEIGHT);
+	INIT_WORK(&priv->reset_work, hisi_femac_reset_work);
 
 	hisi_femac_port_init(priv);
 
@@ -996,6 +1045,7 @@ static void hisi_femac_drv_remove(struct platform_device *pdev)
 	struct hisi_femac_priv *priv = netdev_priv(ndev);
 
 	unregister_netdev(ndev);
+	cancel_work_sync(&priv->reset_work);
 	netif_napi_del(&priv->napi);
 
 	phy_disconnect(ndev->phydev);
@@ -1021,6 +1071,12 @@ static int hisi_femac_drv_suspend(struct platform_device *pdev,
 	if (priv->suspended)
 		return 0;
 
+	/*
+	 * The reset work takes the rtnl lock and looks at the suspended flag,
+	 * so the close and the flag are set under the same lock. The work is
+	 * cancelled after the lock is released: it would wait for it.
+	 */
+	rtnl_lock();
 	if (netif_running(ndev))
 		hisi_femac_net_close(ndev);
 	/* Also an interface that is down must not be opened without a clock */
@@ -1031,6 +1087,8 @@ static int hisi_femac_drv_suspend(struct platform_device *pdev,
 	 * devices on it: the handler leaves the block alone while suspended.
 	 */
 	WRITE_ONCE(priv->suspended, true);
+	rtnl_unlock();
+	cancel_work_sync(&priv->reset_work);
 	synchronize_irq(ndev->irq);
 	clk_disable_unprepare(priv->clk);
 
