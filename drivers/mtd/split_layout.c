@@ -29,6 +29,8 @@
 #include <linux/mtd/partitions.h>
 #include <linux/mtd/split_layout.h>
 
+#include "mtdcore.h"
+
 #define SPLIT_BOOT_SIZE		0x40000ULL
 #define SPLIT_ENV_SIZE		0x10000ULL
 #define SPLIT_FW_START		(SPLIT_BOOT_SIZE + SPLIT_ENV_SIZE)
@@ -187,6 +189,14 @@ int mtd_split_layout_register(struct mtd_info *master)
 	}
 	kfree(parts);
 	if (err == -ENODEV && mtd_split_del_parts(master))
+		err = -EBUSY;
+	/*
+	 * A table that could not be copied registers master itself in place of
+	 * its partitions (mtd_device_parse_register()), and the caller's
+	 * fallback would add it a second time: it goes too.
+	 */
+	if (err == -ENODEV && device_is_registered(&master->dev) &&
+	    del_mtd_device(master))
 		err = -EBUSY;
 	/* none of the table left, or -EBUSY: some of it still on master */
 	if (err)
