@@ -198,7 +198,8 @@ static void hisi_femac_get_phy_addr(struct hisi_femac_mdio_data *data,
 		return;
 	}
 
-	addr = of_mdio_parse_addr(&data->bus->dev, child);
+	addr = of_mdio_parse_addr(data->bus->parent, child);
+	of_node_put(child);
 	if (addr < 0) {
 		dev_err(data->bus->parent, "get PHY address failed!\n");
 		return;
