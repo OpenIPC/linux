@@ -186,7 +186,7 @@ static void hisi_femac_phy_reset(struct hisi_femac_mdio_data *data)
 	hisi_femac_sleep_us(data->phy_reset_delays[POST_DELAY]);
 }
 
-static void hisi_femac_get_phy_addr(struct hisi_femac_mdio_data *data,
+static bool hisi_femac_get_phy_addr(struct hisi_femac_mdio_data *data,
 				    struct device_node *np)
 {
 	struct device_node *child = NULL;
@@ -195,17 +195,19 @@ static void hisi_femac_get_phy_addr(struct hisi_femac_mdio_data *data,
 	child = of_get_next_available_child(np, NULL);
 	if (!child) {
 		dev_err(data->bus->parent, "No valid PHY device node!\n");
-		return;
+		return false;
 	}
 
 	addr = of_mdio_parse_addr(data->bus->parent, child);
 	of_node_put(child);
 	if (addr < 0) {
 		dev_err(data->bus->parent, "get PHY address failed!\n");
-		return;
+		return false;
 	}
 
 	data->phy_addr = addr;
+
+	return true;
 }
 
 static inline bool hisi_femac_use_fephy(struct hisi_femac_mdio_data *data)
@@ -228,6 +230,13 @@ static int hisi_femac_fephy_reset(struct hisi_femac_mdio_data *data)
 	val &= ~BIT_MASK_FEPHY_ADDR;
 	val |= data->phy_addr;
 	writel(val, data->fephy_iobase);
+
+	/*
+	 * A missing reset makes the pulse below do nothing: say so. The clock
+	 * is optional, some chips have none for the PHY.
+	 */
+	if (!data->fephy_rst)
+		dev_warn(data->bus->parent, "the internal PHY has no reset in the device tree, it is not reset\n");
 
 	ret = clk_prepare_enable(data->fephy_clk);
 	if (ret)
@@ -403,6 +412,7 @@ static int hisi_femac_mdio_probe(struct platform_device *pdev)
 	const struct hisi_femac_mdio_variant *variant;
 	struct hisi_femac_mdio_data *data;
 	struct resource *res;
+	bool have_phy;
 	int ret;
 
 	bus = devm_mdiobus_alloc_size(&pdev->dev, sizeof(*data));
@@ -479,7 +489,7 @@ static int hisi_femac_mdio_probe(struct platform_device *pdev)
 		goto err_out_disable_clk;
 	}
 
-	hisi_femac_get_phy_addr(data, np);
+	have_phy = hisi_femac_get_phy_addr(data, np);
 	variant = device_get_match_data(&pdev->dev);
 	data->fephy_addr_only = data->fephy_iobase && variant &&
 				variant->fephy_addr_only;
@@ -487,19 +497,39 @@ static int hisi_femac_mdio_probe(struct platform_device *pdev)
 		data->fephy_iobase, data->fephy_rst, data->fephy_clk,
 		hisi_femac_use_fephy(data), data->phy_addr);
 
+	/* Without a PHY address there is no PHY to program or to trim */
 	ret = 0;
-	if (data->fephy_addr_only)
-		hisi_femac_fephy_write_addr(data);
-	else if (hisi_femac_use_fephy(data))
-		ret = hisi_femac_fephy_reset_and_trim(data);
-	else
-		hisi_femac_fephy_set_phy_addr(data);
+	if (have_phy) {
+		if (data->fephy_addr_only)
+			hisi_femac_fephy_write_addr(data);
+		else if (hisi_femac_use_fephy(data))
+			ret = hisi_femac_fephy_reset_and_trim(data);
+		else
+			hisi_femac_fephy_set_phy_addr(data);
+	}
 	if (ret)
 		goto err_out_disable_clk;
 
 	ret = of_mdiobus_register(bus, np);
 	if (ret)
 		goto err_out_disable_clk;
+
+	/*
+	 * The internal PHY of the address-only chips has no reset or clock
+	 * line in the device tree and is only given its address above, so
+	 * check that it answers there instead of assuming that the boot
+	 * loader left it running. The same for the PHY that is reset and
+	 * trimmed above, in case that did not bring it up. An external PHY
+	 * is left alone: it may still be held in reset by the MAC.
+	 */
+	if (have_phy && (data->fephy_addr_only || hisi_femac_use_fephy(data))) {
+		int id = mdiobus_read(bus, data->phy_addr, MII_PHYSID1);
+
+		if (id < 0 || id == 0xffff)
+			dev_warn(&pdev->dev,
+				 "no PHY answers at address %u (ID1 %d)\n",
+				 data->phy_addr, id);
+	}
 
 	platform_set_drvdata(pdev, bus);
 
