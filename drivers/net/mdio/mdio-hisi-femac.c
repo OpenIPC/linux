@@ -217,19 +217,26 @@ static inline bool hisi_femac_use_fephy(struct hisi_femac_mdio_data *data)
 			!(readl(data->fephy_iobase) & BIT_FEPHY_SEL) : false);
 }
 
-static int hisi_femac_fephy_reset(struct hisi_femac_mdio_data *data)
+static void hisi_femac_fephy_write_addr(struct hisi_femac_mdio_data *data,
+					u32 addr)
 {
 	u32 val;
+
+	val = readl(data->fephy_iobase);
+	val &= ~BIT_MASK_FEPHY_ADDR;
+	val |= addr;
+	writel(val, data->fephy_iobase);
+}
+
+static int hisi_femac_fephy_reset(struct hisi_femac_mdio_data *data)
+{
 	int ret;
 
 	/* disable MDCK clock to make sure FEPHY reset success */
 	clk_disable_unprepare(data->clk);
 	data->clk_on = false;
 
-	val = readl(data->fephy_iobase);
-	val &= ~BIT_MASK_FEPHY_ADDR;
-	val |= data->phy_addr;
-	writel(val, data->fephy_iobase);
+	hisi_femac_fephy_write_addr(data, data->phy_addr);
 
 	/*
 	 * A missing reset makes the pulse below do nothing: say so. The clock
@@ -376,33 +383,12 @@ static int hisi_femac_fephy_reset_and_trim(struct hisi_femac_mdio_data *data)
 	return 0;
 }
 
-/*
- * The Hi3520DV200 internal PHY answers at the address in bits 4:0 of its
- * control register, which is 0 after power-on. Only the bootloader's network
- * code sets it, so a kernel booted without it finds no PHY. This SoC has no
- * festa trim data, and its PHY is not a festa, so only the address is set.
- */
-static void hisi_femac_fephy_write_addr(struct hisi_femac_mdio_data *data)
-{
-	u32 val;
-
-	val = readl(data->fephy_iobase);
-	val &= ~BIT_MASK_FEPHY_ADDR;
-	val |= data->phy_addr;
-	writel(val, data->fephy_iobase);
-}
-
 static void hisi_femac_fephy_set_phy_addr(struct hisi_femac_mdio_data *data)
 {
-	u32 val;
-
 	if (!data->fephy_iobase)
 		return;
 
-	val = readl(data->fephy_iobase);
-	val &= ~BIT_MASK_FEPHY_ADDR;
-	val |= (data->phy_addr + 1);
-	writel(val, data->fephy_iobase);
+	hisi_femac_fephy_write_addr(data, data->phy_addr + 1);
 }
 
 static int hisi_femac_mdio_probe(struct platform_device *pdev)
@@ -500,12 +486,21 @@ static int hisi_femac_mdio_probe(struct platform_device *pdev)
 	/* Without a PHY address there is no PHY to program or to trim */
 	ret = 0;
 	if (have_phy) {
-		if (data->fephy_addr_only)
-			hisi_femac_fephy_write_addr(data);
-		else if (hisi_femac_use_fephy(data))
+		if (data->fephy_addr_only) {
+			/*
+			 * The Hi3520DV200 internal PHY answers at the address
+			 * in bits 4:0 of its control register, which is 0
+			 * after power-on. Only the bootloader's network code
+			 * sets it, so a kernel booted without it finds no PHY.
+			 * This SoC has no festa trim data, and its PHY is not
+			 * a festa, so only the address is set.
+			 */
+			hisi_femac_fephy_write_addr(data, data->phy_addr);
+		} else if (hisi_femac_use_fephy(data)) {
 			ret = hisi_femac_fephy_reset_and_trim(data);
-		else
+		} else {
 			hisi_femac_fephy_set_phy_addr(data);
+		}
 	}
 	if (ret)
 		goto err_out_disable_clk;
