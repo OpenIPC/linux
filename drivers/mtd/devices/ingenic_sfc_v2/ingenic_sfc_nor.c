@@ -26,6 +26,7 @@
 #include <linux/mutex.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
+#include <linux/mtd/split_layout.h>
 #include <linux/kernel.h>
 #include <linux/slab.h>
 #include <asm/uaccess.h>
@@ -975,11 +976,23 @@ int ingenic_sfc_nor_probe(struct sfc_flash *flash)
 		}
 	}
 
-	ret = mtd_device_parse_register(&flash->mtd, NULL, NULL, NULL, 0);
+	/* firmware.bin at 0x50000: its own partitions, not the command line's */
+	ret = mtd_split_layout_register(&flash->mtd);
+	if (ret == -EBUSY) {
+		/* partitions of flash->mtd are still listed, so flash stays */
+		dev_err(flash->dev, "split NOR layout left partitions behind\n");
+		return ret;
+	}
+	if (ret < 0)
+		dev_warn(flash->dev, "split NOR layout not registered (%d), "
+			 "taking the command line's partitions\n", ret);
 	if (ret) {
-		ret = -ENODEV;
-		dev_err(flash->dev, "Failed to parse register!\n");
-		goto err_parse_register;
+		ret = mtd_device_parse_register(&flash->mtd, NULL, NULL, NULL, 0);
+		if (ret) {
+			ret = -ENODEV;
+			dev_err(flash->dev, "Failed to parse register!\n");
+			goto err_parse_register;
+		}
 	}
 
 	flash->attr_group = &sfc_norflash_info_attr_group;
