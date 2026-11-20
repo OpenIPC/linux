@@ -114,13 +114,13 @@ static int split_find(struct mtd_info *mtd, u64 *rootfs, u64 *data)
 }
 
 /* The root is the "rootfs" just registered, as MTD_ROOTFS_ROOT_DEV does it. */
-static void split_set_root(struct mtd_info *r)
+static void split_set_root(int index)
 {
-	ROOT_DEV = MKDEV(MTD_BLOCK_MAJOR, r->index);
+	ROOT_DEV = MKDEV(MTD_BLOCK_MAJOR, index);
 	root_dev_from_flash = true;
 	/* split_find() only accepts a rootfs that opens with squashfs */
 	root_dev_flash_fstype = "squashfs";
-	printk(KERN_NOTICE "split NOR layout: root on mtdblock%d\n", r->index);
+	printk(KERN_NOTICE "split NOR layout: root on mtdblock%d\n", index);
 }
 
 int mtd_split_layout_register(struct mtd_info *master)
@@ -131,7 +131,7 @@ int mtd_split_layout_register(struct mtd_info *master)
 #endif
 	struct mtd_partition *parts;
 	u64 rootfs, data;
-	int n = 0, i = 0, err;
+	int n = 0, i = 0, err, root;
 
 	err = split_find(master, &rootfs, &data);
 	if (err == -ENOENT)
@@ -183,7 +183,7 @@ int mtd_split_layout_register(struct mtd_info *master)
 	 * only when every partition of it is there, on this flash.
 	 */
 	while (!err && i < n) {
-		if (!mtd_split_part(master, parts[i].name))
+		if (mtd_split_part(master, parts[i].name) < 0)
 			err = -ENODEV;
 		i++;
 	}
@@ -201,7 +201,10 @@ int mtd_split_layout_register(struct mtd_info *master)
 	/* none of the table left, or -EBUSY: some of it still on master */
 	if (err)
 		return err;
-	split_set_root(mtd_split_part(master, "rootfs"));
+	/* gone since the check above only if something deleted it: no root then */
+	root = mtd_split_part(master, "rootfs");
+	if (root >= 0)
+		split_set_root(root);
 	return 0;
 }
 EXPORT_SYMBOL_GPL(mtd_split_layout_register);
