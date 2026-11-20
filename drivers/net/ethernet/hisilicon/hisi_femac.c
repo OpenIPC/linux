@@ -5,10 +5,12 @@
  * Copyright (c) 2016 HiSilicon Technologies Co., Ltd.
  */
 
+#include <linux/bitfield.h>
 #include <linux/circ_buf.h>
 #include <linux/clk.h>
 #include <linux/etherdevice.h>
 #include <linux/interrupt.h>
+#include <linux/linkmode.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <linux/of_mdio.h>
@@ -35,9 +37,16 @@
 #define BIT_CNTR_RDCLR_EN		BIT(27)
 #define BIT_CNTR_CLR_ALL		BIT(26)
 #define BIT_CNTR_ROLL_DIS		BIT(25)
+#define FC_LEVEL			0x0348
+#define FC_QLIMIT_DOWN_MASK		GENMASK(5, 0)
+#define FC_QLIMIT_UP_MASK		GENMASK(13, 8)
+#define FC_QLIMIT_ENA			BIT(14)
+#define FC_QLIMIT_DOWN			8	/* the reset values */
+#define FC_QLIMIT_UP			5
 #define RX_COALESCE_SET			0x0340
 #define RX_COALESCED_FRAME_OFFSET	24
 #define RX_COALESCED_FRAMES		8
+#define RX_COALESCED_FRAMES_MAX		31
 #define RX_COALESCED_TIMER		0x74
 #define QLEN_SET			0x0344
 #define RX_DEPTH_OFFSET			8
@@ -192,6 +201,15 @@ struct hisi_femac_priv {
 	struct reset_control *mac_rst;
 	struct reset_control *phy_rst;
 	u32 phy_reset_delays[DELAYS_NUM];
+	u32 rx_coalesce_frames;
+	/*
+	 * Pause settings of ethtool -A and what is in effect. Written with
+	 * phydev->lock held, which also serializes the writes of the registers
+	 * with adjust_link(): the PHY is stopped whenever port_init() runs.
+	 */
+	bool pause_autoneg;
+	bool tx_pause;
+	bool tx_pause_on;
 	u32 link_status;
 
 	struct device *dev;
@@ -348,6 +366,58 @@ static void hisi_femac_xmit_reclaim(struct net_device *dev)
 	netif_tx_unlock(dev);
 }
 
+/*
+ * The MAC sends a pause frame when the receive queue fills up, if both the
+ * pause transmit enable (MAC_SET[18], on after reset) and the traffic
+ * control of the queue (FC_LEVEL.qlimit_ena, off after reset) are set. The
+ * thresholds of the queue are written as well, with their reset values. The
+ * MAC does not look at the link: the caller decides whether to send them.
+ */
+static void hisi_femac_write_tx_pause(struct hisi_femac_priv *priv, bool on)
+{
+	u32 val;
+
+	val = readl(priv->port_base + MAC_SET);
+	if (on)
+		val |= BIT_PAUSE_EN;
+	else
+		val &= ~BIT_PAUSE_EN;
+	writel(val, priv->port_base + MAC_SET);
+
+	val = readl(priv->port_base + FC_LEVEL);
+	val &= ~(FC_QLIMIT_DOWN_MASK | FC_QLIMIT_UP_MASK | FC_QLIMIT_ENA);
+	val |= FIELD_PREP(FC_QLIMIT_DOWN_MASK, FC_QLIMIT_DOWN) |
+	       FIELD_PREP(FC_QLIMIT_UP_MASK, FC_QLIMIT_UP);
+	if (on)
+		val |= FC_QLIMIT_ENA;
+	writel(val, priv->port_base + FC_LEVEL);
+
+	priv->tx_pause_on = on;
+}
+
+/*
+ * Decide whether the MAC may send pause frames: never without a full duplex
+ * link, with pause autonegotiation on a negotiated link only if the result
+ * of the negotiation says so, and otherwise as ethtool -A asked. Called with
+ * phydev->lock held, from adjust_link() and from set_pauseparam().
+ */
+static void hisi_femac_update_tx_pause(struct hisi_femac_priv *priv)
+{
+	struct phy_device *phy = priv->ndev->phydev;
+	bool tx = false;
+	bool rx;
+
+	if (phy->link && phy->duplex == DUPLEX_FULL) {
+		if (priv->pause_autoneg && phy->autoneg == AUTONEG_ENABLE)
+			phy_get_pause(phy, &tx, &rx);
+		else
+			tx = priv->tx_pause;
+	}
+
+	if (tx != priv->tx_pause_on)
+		hisi_femac_write_tx_pause(priv, tx);
+}
+
 static void hisi_femac_adjust_link(struct net_device *dev)
 {
 	struct hisi_femac_priv *priv = netdev_priv(dev);
@@ -367,6 +437,8 @@ static void hisi_femac_adjust_link(struct net_device *dev)
 		priv->link_status = status;
 		phy_print_status(phy);
 	}
+
+	hisi_femac_update_tx_pause(priv);
 }
 
 static void hisi_femac_rx_refill(struct hisi_femac_priv *priv)
@@ -1055,7 +1127,92 @@ static void hisi_femac_get_pause_stats(struct net_device *dev,
 	mutex_unlock(&priv->stats_lock);
 }
 
+/*
+ * The MAC can send pause frames, and there is no documented control for
+ * honoring received ones, so only the transmit side is offered: it is
+ * advertised to the link partner (Asym_Pause without Pause) and resolved
+ * against the partner's advertisement after every negotiation, or forced
+ * with "autoneg off". rx is reported as off although the MAC may honor
+ * received pause frames, and refused when asked for. The setting is kept in
+ * the private data and applied again when the link comes up, so it survives
+ * a power loss of the block.
+ */
+static void hisi_femac_get_pauseparam(struct net_device *dev,
+				      struct ethtool_pauseparam *pause)
+{
+	struct hisi_femac_priv *priv = netdev_priv(dev);
+
+	pause->autoneg = priv->pause_autoneg &&
+			 dev->phydev->autoneg == AUTONEG_ENABLE;
+	pause->rx_pause = 0;
+	pause->tx_pause = priv->tx_pause;
+}
+
+static int hisi_femac_set_pauseparam(struct net_device *dev,
+				     struct ethtool_pauseparam *pause)
+{
+	struct hisi_femac_priv *priv = netdev_priv(dev);
+	struct phy_device *phy = dev->phydev;
+
+	if (pause->rx_pause)
+		return -EOPNOTSUPP;
+	if (pause->autoneg && phy->autoneg != AUTONEG_ENABLE)
+		return -EINVAL;
+
+	mutex_lock(&phy->lock);
+	priv->pause_autoneg = pause->autoneg;
+	priv->tx_pause = pause->tx_pause;
+	hisi_femac_update_tx_pause(priv);
+	mutex_unlock(&phy->lock);
+
+	/* Restarts the negotiation if the advertisement changed */
+	phy_set_asym_pause(phy, false, pause->autoneg && pause->tx_pause);
+
+	return 0;
+}
+
+/*
+ * Only the frame count of the multi-packet RX interrupt is configurable in
+ * a known unit; the aging timer counts main clock cycles / 256 and the
+ * clock rate is not known to the clock driver, so it stays at its default.
+ * The value is written by port_init() as well, so it survives a power loss.
+ */
+static int hisi_femac_get_coalesce(struct net_device *dev,
+				   struct ethtool_coalesce *ec,
+				   struct kernel_ethtool_coalesce *kernel_coal,
+				   struct netlink_ext_ack *extack)
+{
+	struct hisi_femac_priv *priv = netdev_priv(dev);
+
+	ec->rx_max_coalesced_frames = priv->rx_coalesce_frames;
+
+	return 0;
+}
+
+static int hisi_femac_set_coalesce(struct net_device *dev,
+				   struct ethtool_coalesce *ec,
+				   struct kernel_ethtool_coalesce *kernel_coal,
+				   struct netlink_ext_ack *extack)
+{
+	struct hisi_femac_priv *priv = netdev_priv(dev);
+
+	if (ec->rx_max_coalesced_frames < 1 ||
+	    ec->rx_max_coalesced_frames > RX_COALESCED_FRAMES_MAX) {
+		NL_SET_ERR_MSG_FMT(extack, "rx-frames must be 1 to %d",
+				   RX_COALESCED_FRAMES_MAX);
+		return -EINVAL;
+	}
+
+	priv->rx_coalesce_frames = ec->rx_max_coalesced_frames;
+	writel(RX_COALESCED_TIMER |
+	       (priv->rx_coalesce_frames << RX_COALESCED_FRAME_OFFSET),
+	       priv->port_base + RX_COALESCE_SET);
+
+	return 0;
+}
+
 static const struct ethtool_ops hisi_femac_ethtools_ops = {
+	.supported_coalesce_params = ETHTOOL_COALESCE_RX_MAX_FRAMES,
 	.get_link		= ethtool_op_get_link,
 	.get_ts_info		= ethtool_op_get_ts_info,
 	.get_link_ksettings	= phy_ethtool_get_link_ksettings,
@@ -1065,6 +1222,11 @@ static const struct ethtool_ops hisi_femac_ethtools_ops = {
 	.get_ethtool_stats	= hisi_femac_get_ethtool_stats,
 	.get_eth_mac_stats	= hisi_femac_get_eth_mac_stats,
 	.get_pause_stats	= hisi_femac_get_pause_stats,
+	.nway_reset		= phy_ethtool_nway_reset,
+	.get_pauseparam		= hisi_femac_get_pauseparam,
+	.set_pauseparam		= hisi_femac_set_pauseparam,
+	.get_coalesce		= hisi_femac_get_coalesce,
+	.set_coalesce		= hisi_femac_set_coalesce,
 };
 
 static const struct net_device_ops hisi_femac_netdev_ops = {
@@ -1157,9 +1319,11 @@ static void hisi_femac_port_init(struct hisi_femac_priv *priv)
 	/* A read does not clear the counters, and they wrap, whatever was left */
 	val &= ~(BIT_CNTR_RDCLR_EN | BIT_CNTR_CLR_ALL | BIT_CNTR_ROLL_DIS);
 	writel(val, priv->port_base + MAC_SET);
+	/* The link is not up: adjust_link() turns it on if wanted */
+	hisi_femac_write_tx_pause(priv, false);
 
 	val = RX_COALESCED_TIMER |
-		(RX_COALESCED_FRAMES << RX_COALESCED_FRAME_OFFSET);
+		(priv->rx_coalesce_frames << RX_COALESCED_FRAME_OFFSET);
 	writel(val, priv->port_base + RX_COALESCE_SET);
 
 	val = (HW_RX_FIFO_DEPTH << RX_DEPTH_OFFSET) | HW_TX_FIFO_DEPTH;
@@ -1305,6 +1469,17 @@ static int hisi_femac_drv_probe(struct platform_device *pdev)
 			 ndev->dev_addr);
 	}
 
+	priv->rx_coalesce_frames = RX_COALESCED_FRAMES;
+	/*
+	 * No pause frames unless asked for with ethtool -A: the driver never
+	 * sent any. The MAC can only send them, so that is all that is
+	 * advertised (nothing, until tx is turned on), whatever the PHY
+	 * advertised by default.
+	 */
+	phy_support_asym_pause(phy);
+	linkmode_set_pause(phy->advertising, false, false);
+	priv->pause_autoneg = true;
+	priv->tx_pause = false;
 	u64_stats_init(&priv->tx_syncp);
 	u64_stats_init(&priv->rx_syncp);
 	mutex_init(&priv->stats_lock);
@@ -1436,8 +1611,8 @@ static int hisi_femac_drv_resume(struct platform_device *pdev)
 	WRITE_ONCE(priv->suspended, false);
 	if (priv->phy_rst)
 		hisi_femac_phy_reset(priv);
-	if (netif_running(ndev))
-		hisi_femac_port_init(priv);
+	/* Also when down: the settings must be back before the next open */
+	hisi_femac_port_init(priv);
 	/*
 	 * The counters may have been cleared by the power loss, also if down.
 	 * Read them after port_init() has fixed their mode bits.
