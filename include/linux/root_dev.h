@@ -20,4 +20,20 @@ enum {
 
 extern dev_t ROOT_DEV;
 
+/*
+ * Set when the flash itself names the root filesystem (the "rootfs" of the
+ * split NOR layout, see drivers/mtd/split_layout.c): a root= naming an MTD
+ * device -- whatever layout the bootloader believes in -- then gives way to it.
+ */
+extern bool root_dev_from_flash;
+
+/*
+ * The filesystem the flash root holds, from its magic ("squashfs", "jffs2"),
+ * or NULL when it is none of those. mount_root() mounts the flash root as
+ * this type alone: the bootloader's rootfstype= gave way with its root=, and
+ * trying every type in turn on a root that would not mount ran yaffs2 over a
+ * NOR partition, which BUG()s instead of failing.
+ */
+extern const char *root_dev_flash_fstype;
+
 #endif

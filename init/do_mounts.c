@@ -15,6 +15,7 @@
 #include <linux/tty.h>
 #include <linux/suspend.h>
 #include <linux/root_dev.h>
+#include <linux/mtd/mtd.h>	/* MTD_BLOCK_MAJOR */
 #include <linux/security.h>
 #include <linux/delay.h>
 #include <linux/genhd.h>
@@ -40,6 +41,12 @@ int __initdata rd_doload;	/* 1 = load RAM disk, 0 = don't load */
 int root_mountflags = MS_RDONLY | MS_SILENT;
 static char * __initdata root_device_name;
 static char __initdata saved_root_name[64];
+
+/* Set when the split NOR layout found the root (drivers/mtd/split_layout.c). */
+bool root_dev_from_flash;
+const char *root_dev_flash_fstype;
+/* The flash root, once prepare_namespace() has let it win over root=. */
+static dev_t __initdata flash_root;
 static int root_wait;
 
 dev_t ROOT_DEV;
@@ -538,9 +545,36 @@ void __init mount_root(void)
 
 		if (err < 0)
 			pr_emerg("Failed to create /dev/root: %d\n", err);
+		/*
+		 * The flash root is mounted as the filesystem it holds, not as
+		 * every one the kernel knows in turn: a damaged squashfs then
+		 * ends in "VFS: Unable to mount root fs", where trying the rest
+		 * ran yaffs2 over the NOR partition and that BUG()s. Only for
+		 * that device: an initrd's linuxrc may have chosen another root,
+		 * and the initrd itself is mounted through the same names.
+		 */
+		if (flash_root && ROOT_DEV == flash_root && root_dev_flash_fstype)
+			root_fs_names = (char *)root_dev_flash_fstype;
+
 		mount_block_root("/dev/root", root_mountflags);
 	}
 #endif
+}
+
+/*
+ * Whether root= leaves the root to the flash: no root= at all, or one naming
+ * an MTD device, by name ("mtd...", "/dev/mtdblockN") or by number ("31:N",
+ * or its hex encoding).
+ */
+static bool __init root_names_flash(char *name)
+{
+	if (!name[0] || !strncmp(name, "mtd", 3) ||
+	    !strncmp(name, "/dev/mtdblock", 13))
+		return true;
+	if (!strncmp(name, "/dev/", 5) || !strncmp(name, "PARTUUID=", 9) ||
+	    !strncmp(name, "ubi", 3))
+		return false;
+	return MAJOR(name_to_dev_t(name)) == MTD_BLOCK_MAJOR;
 }
 
 /*
@@ -566,6 +600,22 @@ void __init prepare_namespace(void)
 	wait_for_device_probe();
 
 	md_run_setup();
+
+	/*
+	 * The bootloader's root= and rootfstype= describe its idea of the flash.
+	 * When the kernel found the root filesystem on the flash itself, those
+	 * give way for an MTD root; a root elsewhere (NFS, an SD card, a RAM disk)
+	 * is the bootloader's to choose.
+	 */
+	if (root_dev_from_flash && root_names_flash(saved_root_name)) {
+		if (saved_root_name[0])
+			printk(KERN_NOTICE "VFS: root=%s ignored, the flash names its own root\n",
+			       saved_root_name);
+		saved_root_name[0] = '\0';
+		root_fs_names = NULL;
+		/* mount_root() mounts it as the type it holds. */
+		flash_root = ROOT_DEV;
+	}
 
 	if (saved_root_name[0]) {
 		root_device_name = saved_root_name;
