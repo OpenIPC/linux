@@ -28,6 +28,7 @@
 #include <linux/mutex.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
+#include <linux/mtd/split_layout.h>
 
 
 #include <asm/uaccess.h>
@@ -1245,11 +1246,25 @@ static int __init jz_sfc_probe(struct platform_device *pdev)
 
 	printk(KERN_INFO "JZ SFC Controller for SFC channel %d driver register\n",flash->chnl);
 
-	ret = mtd_device_parse_register(&flash->mtd, NULL , NULL, NULL, 0);
+	/* firmware.bin at 0x50000: its own partitions, not the command line's */
+	ret = mtd_split_layout_register(&flash->mtd);
+	if (ret == -EBUSY) {
+		/*
+		 * Partitions of flash->mtd are still listed: the probe goes on as
+		 * registered, so the driver stays bound to them and its flash.
+		 */
+		dev_err(&pdev->dev, "split NOR layout left partitions behind\n");
+		ret = 0;
+	} else if (ret < 0)
+		dev_warn(&pdev->dev, "split NOR layout not registered (%d), "
+			 "taking the command line's partitions\n", ret);
 	if (ret) {
-		kfree(flash);
-		dev_set_drvdata(flash->dev, NULL);
-		return -ENODEV;
+		ret = mtd_device_parse_register(&flash->mtd, NULL , NULL, NULL, 0);
+		if (ret) {
+			kfree(flash);
+			dev_set_drvdata(flash->dev, NULL);
+			return -ENODEV;
+		}
 	}
 	printk("SPI NOR MTD LOAD OK\n");
 
