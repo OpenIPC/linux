@@ -690,16 +690,17 @@ int add_mtd_partitions(struct mtd_info *master,
  * success past a partition it could not add, and takes its root from it
  * rather than from whichever MTD device a global name lookup finds first.
  */
-struct mtd_info *mtd_split_part(struct mtd_info *master, const char *name)
+int mtd_split_part(struct mtd_info *master, const char *name)
 {
 	struct mtd_part *slave;
-	struct mtd_info *found = NULL;
+	int found = -ENODEV;
 
+	/* the index, read under the lock: a pointer could be freed under it */
 	mutex_lock(&mtd_partitions_mutex);
 	list_for_each_entry(slave, &mtd_partitions, list)
 		if (slave->master == master && !strcmp(slave->mtd.name, name) &&
 		    device_is_registered(&slave->mtd.dev)) {
-			found = &slave->mtd;
+			found = slave->mtd.index;
 			break;
 		}
 	mutex_unlock(&mtd_partitions_mutex);
