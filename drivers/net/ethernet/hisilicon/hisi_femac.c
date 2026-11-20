@@ -10,6 +10,7 @@
 #include <linux/etherdevice.h>
 #include <linux/interrupt.h>
 #include <linux/module.h>
+#include <linux/mutex.h>
 #include <linux/of_mdio.h>
 #include <linux/of_net.h>
 #include <linux/platform_device.h>
@@ -30,6 +31,9 @@
 #define MAX_FRAME_SIZE			1600
 #define MAX_FRAME_SIZE_MASK		GENMASK(10, 0)
 #define BIT_PAUSE_EN			BIT(18)
+#define BIT_CNTR_RDCLR_EN		BIT(27)
+#define BIT_CNTR_CLR_ALL		BIT(26)
+#define BIT_CNTR_ROLL_DIS		BIT(25)
 #define RX_COALESCE_SET			0x0340
 #define RX_COALESCED_FRAME_OFFSET	24
 #define RX_COALESCED_FRAMES		8
@@ -88,6 +92,76 @@
 #define MAX_UNICAST_ADDRESSES		2
 #define MAX_MULTICAST_ADDRESSES		(MAX_MAC_FILTER_NUM - \
 					MAX_UNICAST_ADDRESSES)
+/*
+ * Port statistics counters, 32 bit, not cleared by a read and wrapping
+ * (MAC_SET[27:25] are kept at 0). Offsets are those of the FEMAC register
+ * description.
+ */
+enum hisi_femac_stat_id {
+	HF_RX_OCTS,
+	HF_RX_PKTS,
+	HF_RX_BROADPKTS,
+	HF_RX_MULTPKTS,
+	HF_RX_UNIPKTS,
+	HF_RX_ERRPKTS,
+	HF_RX_CRCERR_PKTS,
+	HF_RX_LENERR_PKTS,
+	HF_RX_OCRCERR_PKTS,
+	HF_RX_PAUSE_PKTS,
+	HF_RX_FIFO_OVERFLOW,
+	HF_TX_PKTS,
+	HF_TX_BROADPKTS,
+	HF_TX_MULTPKTS,
+	HF_TX_UNIPKTS,
+	HF_TX_OCTS,
+	HF_TX_PAUSE_PKTS,
+	HF_TX_RETRYCNT,
+	HF_TX_COLCNT,
+	HF_TX_LATE_COL,
+	HF_TX_COL_OK,
+	HF_TX_EXCESS_COL,
+	HF_STAT_NUM
+};
+
+static const struct hisi_femac_stat {
+	char name[ETH_GSTRING_LEN];
+	u16 offset;
+} hisi_femac_stats[HF_STAT_NUM] = {
+	/* bytes of correct and error frames, without the preamble */
+	[HF_RX_OCTS] = { "rx_octets_incl_errors", 0x0608 },
+	/* all received frames, good or bad */
+	[HF_RX_PKTS] = { "rx_frames_all", 0x0610 },
+	/* the next three are frames of valid length and without CRC error */
+	[HF_RX_BROADPKTS] = { "rx_broadcast", 0x0614 },
+	[HF_RX_MULTPKTS] = { "rx_multicast", 0x0618 },
+	[HF_RX_UNIPKTS] = { "rx_unicast", 0x061c },
+	/* CRC errors, short and long frames, error TX frames */
+	[HF_RX_ERRPKTS] = { "rx_error_frames", 0x0620 },
+	/* valid length, but a CRC or an alignment error */
+	[HF_RX_CRCERR_PKTS] = { "rx_crc_or_align_errors", 0x0624 },
+	[HF_RX_LENERR_PKTS] = { "rx_length_errors", 0x0628 },
+	[HF_RX_OCRCERR_PKTS] = { "rx_odd_nibble_crc_errors", 0x062c },
+	[HF_RX_PAUSE_PKTS] = { "rx_pause_frames", 0x0630 },
+	[HF_RX_FIFO_OVERFLOW] = { "rx_fifo_overflows", 0x0634 },
+	/* configured TX frames, without those discarded on timeout */
+	[HF_TX_PKTS] = { "tx_frames_configured", 0x0780 },
+	[HF_TX_BROADPKTS] = { "tx_broadcast", 0x0784 },
+	[HF_TX_MULTPKTS] = { "tx_multicast", 0x0788 },
+	[HF_TX_UNIPKTS] = { "tx_unicast", 0x078c },
+	/* includes retransmitted and error frames, without the preamble */
+	[HF_TX_OCTS] = { "tx_octets_incl_retries", 0x0790 },
+	[HF_TX_PAUSE_PKTS] = { "tx_pause_frames", 0x0794 },
+	[HF_TX_RETRYCNT] = { "tx_retries", 0x0798 },
+	[HF_TX_COLCNT] = { "tx_collisions", 0x079c },
+	[HF_TX_LATE_COL] = { "tx_late_collisions", 0x07a0 },
+	[HF_TX_COL_OK] = { "tx_collided_ok", 0x07a4 },
+	/* discarded after more than 15 retransmissions */
+	[HF_TX_EXCESS_COL] = { "tx_excess_collisions", 0x07a8 },
+};
+
+/* A counter wraps after 4 GiB (6 minutes at 100 Mbit/s): read at least once a minute */
+#define STATS_POLL_PERIOD		(60 * HZ)
+
 /* software tx and rx queue number, should be power of 2 */
 #define TXQ_NUM				64
 #define RXQ_NUM				128
@@ -131,7 +205,60 @@ struct hisi_femac_priv {
 	/* The clock is off and the interface was already closed by suspend */
 	bool suspended;
 	struct work_struct reset_work;
+
+	/* 64 bit sums of the 32 bit port counters, see hisi_femac_stats_update() */
+	struct mutex stats_lock;
+	struct delayed_work stats_work;
+	u64 stats[HF_STAT_NUM];
+	u32 stats_last[HF_STAT_NUM];
 };
+
+/* Add what the counters gained since the last call, with wrap detection */
+static void hisi_femac_stats_update(struct hisi_femac_priv *priv)
+{
+	u32 cur;
+	int i;
+
+	for (i = 0; i < HF_STAT_NUM; i++) {
+		cur = readl(priv->port_base + hisi_femac_stats[i].offset);
+		priv->stats[i] += (u32)(cur - priv->stats_last[i]);
+		priv->stats_last[i] = cur;
+	}
+}
+
+/*
+ * Start counting from the present hardware values. The port soft reset clears
+ * the counters (measured on the Hi3520D V100; the data sheet does not say),
+ * so this runs after every reset of the port and wherever the block may have
+ * lost its state (probe, resume). Called with stats_lock held.
+ */
+static void hisi_femac_stats_baseline_locked(struct hisi_femac_priv *priv)
+{
+	int i;
+
+	for (i = 0; i < HF_STAT_NUM; i++)
+		priv->stats_last[i] =
+			readl(priv->port_base + hisi_femac_stats[i].offset);
+}
+
+static void hisi_femac_stats_baseline(struct hisi_femac_priv *priv)
+{
+	mutex_lock(&priv->stats_lock);
+	hisi_femac_stats_baseline_locked(priv);
+	mutex_unlock(&priv->stats_lock);
+}
+
+static void hisi_femac_stats_work(struct work_struct *work)
+{
+	struct hisi_femac_priv *priv = container_of(to_delayed_work(work),
+					struct hisi_femac_priv, stats_work);
+
+	mutex_lock(&priv->stats_lock);
+	hisi_femac_stats_update(priv);
+	mutex_unlock(&priv->stats_lock);
+
+	schedule_delayed_work(&priv->stats_work, STATS_POLL_PERIOD);
+}
 
 static void hisi_femac_irq_enable(struct hisi_femac_priv *priv, int irqs)
 {
@@ -513,7 +640,15 @@ static int hisi_femac_net_open(struct net_device *dev)
 {
 	struct hisi_femac_priv *priv = netdev_priv(dev);
 
+	/*
+	 * The soft reset clears the statistics counters: add what they counted
+	 * since the last poll first, and start from zero after it.
+	 */
+	mutex_lock(&priv->stats_lock);
+	hisi_femac_stats_update(priv);
 	hisi_femac_port_reset(priv);
+	hisi_femac_stats_baseline_locked(priv);
+	mutex_unlock(&priv->stats_lock);
 	hisi_femac_set_hw_mac_addr(priv, dev->dev_addr);
 	hisi_femac_rx_refill(priv);
 
@@ -528,6 +663,8 @@ static int hisi_femac_net_open(struct net_device *dev)
 
 	writel(IRQ_ENA_PORT0_MASK, priv->glb_base + GLB_IRQ_RAW);
 	hisi_femac_irq_enable(priv, IRQ_ENA_ALL | IRQ_ENA_PORT0 | DEF_INT_MASK);
+
+	schedule_delayed_work(&priv->stats_work, STATS_POLL_PERIOD);
 
 	return 0;
 }
@@ -558,6 +695,11 @@ static int hisi_femac_net_close(struct net_device *dev)
 	netif_carrier_off(dev);
 	napi_disable(&priv->napi);
 	netif_tx_disable(dev);
+
+	cancel_delayed_work_sync(&priv->stats_work);
+	mutex_lock(&priv->stats_lock);
+	hisi_femac_stats_update(priv);
+	mutex_unlock(&priv->stats_lock);
 
 	hisi_femac_free_skb_rings(priv);
 
@@ -800,11 +942,86 @@ static void hisi_femac_net_set_rx_mode(struct net_device *dev)
 	}
 }
 
+static int hisi_femac_get_sset_count(struct net_device *dev, int sset)
+{
+	if (sset != ETH_SS_STATS)
+		return -EOPNOTSUPP;
+
+	return HF_STAT_NUM;
+}
+
+static void hisi_femac_get_strings(struct net_device *dev, u32 sset, u8 *data)
+{
+	int i;
+
+	if (sset != ETH_SS_STATS)
+		return;
+
+	for (i = 0; i < HF_STAT_NUM; i++)
+		ethtool_puts(&data, hisi_femac_stats[i].name);
+}
+
+/* The ethtool core does not call these while the device is detached (suspended) */
+static void hisi_femac_get_ethtool_stats(struct net_device *dev,
+					 struct ethtool_stats *stats,
+					 u64 *data)
+{
+	struct hisi_femac_priv *priv = netdev_priv(dev);
+
+	mutex_lock(&priv->stats_lock);
+	hisi_femac_stats_update(priv);
+	memcpy(data, priv->stats, sizeof(priv->stats));
+	mutex_unlock(&priv->stats_lock);
+}
+
+/*
+ * Only the fields that the registers define the same way are filled in. The
+ * hardware CRC counter also holds alignment errors and the alignment counter
+ * is "odd nibble and CRC error", so FrameCheckSequenceErrors and
+ * AlignmentErrors stay unset; see rx_crc_or_align_errors and
+ * rx_odd_nibble_crc_errors in ethtool -S.
+ */
+static void hisi_femac_get_eth_mac_stats(struct net_device *dev,
+					 struct ethtool_eth_mac_stats *stats)
+{
+	struct hisi_femac_priv *priv = netdev_priv(dev);
+	u64 *st = priv->stats;
+
+	mutex_lock(&priv->stats_lock);
+	hisi_femac_stats_update(priv);
+	stats->FramesTransmittedOK = st[HF_TX_BROADPKTS] + st[HF_TX_MULTPKTS] +
+				     st[HF_TX_UNIPKTS];
+	stats->LateCollisions = st[HF_TX_LATE_COL];
+	stats->FramesAbortedDueToXSColls = st[HF_TX_EXCESS_COL];
+	stats->MulticastFramesXmittedOK = st[HF_TX_MULTPKTS];
+	stats->BroadcastFramesXmittedOK = st[HF_TX_BROADPKTS];
+	stats->MulticastFramesReceivedOK = st[HF_RX_MULTPKTS];
+	stats->BroadcastFramesReceivedOK = st[HF_RX_BROADPKTS];
+	mutex_unlock(&priv->stats_lock);
+}
+
+static void hisi_femac_get_pause_stats(struct net_device *dev,
+				       struct ethtool_pause_stats *stats)
+{
+	struct hisi_femac_priv *priv = netdev_priv(dev);
+
+	mutex_lock(&priv->stats_lock);
+	hisi_femac_stats_update(priv);
+	stats->tx_pause_frames = priv->stats[HF_TX_PAUSE_PKTS];
+	stats->rx_pause_frames = priv->stats[HF_RX_PAUSE_PKTS];
+	mutex_unlock(&priv->stats_lock);
+}
+
 static const struct ethtool_ops hisi_femac_ethtools_ops = {
 	.get_link		= ethtool_op_get_link,
 	.get_ts_info		= ethtool_op_get_ts_info,
 	.get_link_ksettings	= phy_ethtool_get_link_ksettings,
 	.set_link_ksettings	= phy_ethtool_set_link_ksettings,
+	.get_sset_count		= hisi_femac_get_sset_count,
+	.get_strings		= hisi_femac_get_strings,
+	.get_ethtool_stats	= hisi_femac_get_ethtool_stats,
+	.get_eth_mac_stats	= hisi_femac_get_eth_mac_stats,
+	.get_pause_stats	= hisi_femac_get_pause_stats,
 };
 
 static const struct net_device_ops hisi_femac_netdev_ops = {
@@ -893,6 +1110,8 @@ static void hisi_femac_port_init(struct hisi_femac_priv *priv)
 	val = readl(priv->port_base + MAC_SET);
 	val &= ~MAX_FRAME_SIZE_MASK;
 	val |= MAX_FRAME_SIZE;
+	/* A read does not clear the counters, and they wrap, whatever was left */
+	val &= ~(BIT_CNTR_RDCLR_EN | BIT_CNTR_CLR_ALL | BIT_CNTR_ROLL_DIS);
 	writel(val, priv->port_base + MAC_SET);
 
 	val = RX_COALESCED_TIMER |
@@ -1042,6 +1261,9 @@ static int hisi_femac_drv_probe(struct platform_device *pdev)
 			 ndev->dev_addr);
 	}
 
+	mutex_init(&priv->stats_lock);
+	INIT_DELAYED_WORK(&priv->stats_work, hisi_femac_stats_work);
+
 	ndev->watchdog_timeo = 6 * HZ;
 	ndev->priv_flags |= IFF_UNICAST_FLT;
 	ndev->netdev_ops = &hisi_femac_netdev_ops;
@@ -1051,6 +1273,7 @@ static int hisi_femac_drv_probe(struct platform_device *pdev)
 	INIT_WORK(&priv->reset_work, hisi_femac_reset_work);
 
 	hisi_femac_port_init(priv);
+	hisi_femac_stats_baseline(priv);
 
 	ret = hisi_femac_init_tx_and_rx_queues(priv);
 	if (ret)
@@ -1080,6 +1303,7 @@ static int hisi_femac_drv_probe(struct platform_device *pdev)
 out_free_irq:
 	devm_free_irq(dev, ndev->irq, ndev);
 out_disconnect_phy:
+	mutex_destroy(&priv->stats_lock);
 	netif_napi_del(&priv->napi);
 	phy_disconnect(phy);
 out_disable_clk:
@@ -1102,6 +1326,7 @@ static void hisi_femac_drv_remove(struct platform_device *pdev)
 	phy_disconnect(ndev->phydev);
 	/* The shared interrupt must not run once the clock is off */
 	devm_free_irq(priv->dev, ndev->irq, ndev);
+	mutex_destroy(&priv->stats_lock);
 	/* The clock was already disabled if a resume failed */
 	if (!priv->suspended)
 		clk_disable_unprepare(priv->clk);
@@ -1165,11 +1390,15 @@ static int hisi_femac_drv_resume(struct platform_device *pdev)
 	WRITE_ONCE(priv->suspended, false);
 	if (priv->phy_rst)
 		hisi_femac_phy_reset(priv);
-
-	if (netif_running(ndev)) {
+	if (netif_running(ndev))
 		hisi_femac_port_init(priv);
+	/*
+	 * The counters may have been cleared by the power loss, also if down.
+	 * Read them after port_init() has fixed their mode bits.
+	 */
+	hisi_femac_stats_baseline(priv);
+	if (netif_running(ndev))
 		hisi_femac_net_open(ndev);
-	}
 	netif_device_attach(ndev);
 
 	return 0;
