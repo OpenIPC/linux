@@ -25,6 +25,7 @@
 #include <linux/of_device.h>
 #include <linux/of_irq.h>
 #include <linux/spinlock.h>
+#include <linux/mtd/split_layout.h>
 
 #define FHA_SUCCESS                 0
 #define FHA_FAIL                    -1
@@ -2165,12 +2166,24 @@ static int  ak_spiflash_probe(struct spi_device *spi)
      * use readonly partitions for writeprotected sectors (BP2..BP0).
     * cdh:must use ,here mount rootfs block
     */
+    /* firmware.bin at 0x50000: its own partitions, not the command line's */
+    ret = mtd_split_layout_register(ak_mtd_info);
+    if (ret == 0)
+        goto partitioned;
+    /* -EBUSY: partitions of the flash are still listed, so it stays */
+    if (ret == -EBUSY)
+        return ret;
+    if (ret < 0)
+        pr_warn("split NOR layout not registered (%d), taking the "
+                "command line's partitions\n", ret);
+
     ret = mtd_device_parse_register(ak_mtd_info, NULL, NULL, NULL, 0);
     if (ret) {
         printk("Add root MTD device failed\n");
         goto err_probe_flash_exit;
     }
 
+partitioned:
     g_spiflash_flag = 1;
 
     pr_info("Init AK SPI Flash finish.\n");
