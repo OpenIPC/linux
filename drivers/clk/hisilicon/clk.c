@@ -71,6 +71,7 @@ struct hisi_clock_data *hisi_clk_init(struct device_node *np,
 	struct hisi_clock_data *clk_data;
 	struct clk **clk_table;
 	void __iomem *base;
+	int ret;
 
 	base = of_iomap(np, 0);
 	if (!base) {
@@ -80,7 +81,7 @@ struct hisi_clock_data *hisi_clk_init(struct device_node *np,
 
 	clk_data = kzalloc_obj(*clk_data);
 	if (!clk_data)
-		goto err;
+		goto err_unmap;
 
 	clk_data->base = base;
 	clk_table = kzalloc_objs(*clk_table, nr_clks);
@@ -89,10 +90,19 @@ struct hisi_clock_data *hisi_clk_init(struct device_node *np,
 
 	clk_data->clk_data.clks = clk_table;
 	clk_data->clk_data.clk_num = nr_clks;
-	of_clk_add_provider(np, of_clk_src_onecell_get, &clk_data->clk_data);
+	ret = of_clk_add_provider(np, of_clk_src_onecell_get, &clk_data->clk_data);
+	if (ret) {
+		pr_err("%pOF: failed to add the clock provider: %d\n", np, ret);
+		goto err_table;
+	}
+
 	return clk_data;
+err_table:
+	kfree(clk_table);
 err_data:
 	kfree(clk_data);
+err_unmap:
+	iounmap(base);
 err:
 	return NULL;
 }
