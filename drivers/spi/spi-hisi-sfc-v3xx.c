@@ -1311,6 +1311,22 @@ static int hisi_sfc_v3xx_probe(struct platform_device *pdev)
 		return dev_err_probe(dev, -EINVAL, "missing \"clocks\" property of the HISFC350\n");
 
 	/*
+	 * The legacy nodes carry no clock: this driver neither enables the
+	 * controller clock nor selects its source (the clock driver of the
+	 * SoC may enable the gate for such a node, the source stays as the
+	 * boot loader left it). Say so where the user will see it. The
+	 * binding allows no clock on a node that lists only the SoC
+	 * compatible, so the advice is to convert the node; the Hi3520D V200
+	 * has no other description yet, so there is nothing to convert to.
+	 */
+	if (!clk && dev_of_node(dev)) {
+		if (device_is_compatible(dev, "hisilicon,hi3520dv200-sfc"))
+			dev_info(dev, "the binding of this SoC describes no clock: the driver does not control the controller clock, which stays as the boot loader left it\n");
+		else
+			dev_warn(dev, "no \"clocks\" property: the driver does not control the controller clock, convert the node to the hisilicon,hisfc350 form with the flash window, the clock and the reset\n");
+	}
+
+	/*
 	 * Pulse the controller reset with the clock running, so that no
 	 * register state of the boot loader or of an earlier driver is left.
 	 * Nodes without a reset (the Hi3520D V200, ACPI) keep their state.
@@ -1335,6 +1351,9 @@ static int hisi_sfc_v3xx_probe(struct platform_device *pdev)
 
 	version = readl(host->regbase + HISI_SFC_V3XX_VERSION);
 	dev_dbg(dev, "VERSION register 0x%x\n", version);
+	if (!host->data->hisfc350 && (!version || version == 0xffffffff))
+		dev_warn(dev, "VERSION register reads 0x%x: no controller, clock off or in reset, expect failing flash accesses\n",
+			 version);
 	if (host->data->hisfc350) {
 		if (!version || version == 0xffffffff)
 			return dev_err_probe(dev, -ENODEV,
