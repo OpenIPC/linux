@@ -1,0 +1,153 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/spi/hisilicon,hifmc100.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: HiSilicon flash memory controller (FMC, hifmc100)
+
+maintainers:
+  - Dylan Corrales <deathcamel58@gmail.com>
+
+description: |
+  Flash controller of the HiSilicon IP camera and NVR SoCs that came after the
+  HISFC350 (see hisilicon,hisfc350): one block for SPI NOR and SPI NAND flash
+  on two chip selects (SFC_CS0N, SFC_CS1N). The SDK calls the IP "hifmc100"
+  and its version register (offset 0xbc) reads 0x100 on every SoC listed here,
+  so the register cannot tell the SoCs apart: the SoC-specific compatible
+  documents the SoC, "hisilicon,hifmc100" is the IP level fallback that
+  follows it (a node needs both). Adding a SoC with this IP is an entry in
+  the list below and a device tree node.
+
+  The controller runs flash commands in two ways: register mode, in which the
+  opcode, address and up to 4 KiB of data (kept in a buffer that appears at
+  the start of the "memory" resource) are sent as one operation, and DMA mode,
+  in which it moves data between the flash and DDR. There is no register that
+  maps the flash into the "memory" resource (only its first 4 KiB + 256 bytes
+  are used), the size of that resource differs between the SoCs (64 KiB,
+  16 MiB, or 64 MiB at 0x58000000 on the Hi3518E V200 generation).
+
+  The SPI clock is the controller clock divided by two (single transfer rate;
+  by four in double transfer rate mode, which the driver does not use): there
+  is no other divider, so spi-max-frequency of a flash node does not change it
+  and the clock rate has to be set with assigned-clock-rates or
+  assigned-clock-parents. Some of the clock selects of the SoCs (198 or
+  297 MHz on the Hi3516C V300, 300 and 360 MHz on the Hi3516E V200 and V300)
+  are only valid for the double transfer rate mode according to the data
+  sheets. Flash reads with two or four address lines (1-2-2, 1-4-4) need
+  spi-tx-bus-width next to spi-rx-bus-width, because the SPI core counts the
+  address phase as a transmit phase; the driver writes on one line only.
+
+  The pad mux and pad configuration of the flash pins (on the Hi3516E V200
+  the SFC pins are shared with the eMMC and SDIO1 pins) are not described by
+  this binding and not programmed by the driver: they must be set up before
+  the controller is probed, by the boot loader or by a pinctrl node of the
+  board; the driver warns when no flash answers the status register read.
+  The controller has two chip selects, the driver uses chip select 0 only:
+  the register description of the operation configuration register in some
+  of the data sheets calls the chip select field invalid for DMA operations,
+  their DMA procedures tell to set it, and the driver uses DMA for flash
+  reads and page programs. Nothing was verified on a flash on chip select 1,
+  so a flash node with another reg value is not accepted, and neither is
+  cs-gpios (the controller only has its own chip select lines).
+
+  The MTD device of a flash node is named after the node's "label" property,
+  or after the SPI device (spiB.0, B being the bus number of the controller)
+  when there is none. Boot loaders that pass the partitions as
+  "mtdparts=<name>:..." on the kernel command line (the HiSilicon SDK U-Boot
+  and OpenIPC's U-Boot use "hi_sfc") only match an MTD device of that name,
+  so a board that boots with such a command line needs label = "hi_sfc"
+  on its flash node, as with the HISFC350 controller driver.
+
+  The controller also drives SPI NAND flash, which the driver does not
+  support. A node that lists "hisilicon,hisi-fmc" or "hisilicon,fmc-spi-nand"
+  is the vendor description of a controller with both flash types, it is not
+  handled by this binding. The nodes of the earlier SPI NOR driver of this
+  controller ("hisilicon,fmc-spi-nor", see mtd/hisilicon,fmc-spi-nor.txt, an
+  SPI_HISI_SFC device) are not described by this binding either; they stay
+  with that driver and its text binding until their device trees are
+  converted to this one.
+
+allOf:
+  - $ref: spi-controller.yaml#
+
+properties:
+  compatible:
+    items:
+      - enum:
+          - hisilicon,hi3516cv200-fmc
+          - hisilicon,hi3516cv300-fmc
+          - hisilicon,hi3516dv300-fmc
+          - hisilicon,hi3516ev200-fmc
+          - hisilicon,hi3516ev300-fmc
+          - hisilicon,hi3518ev200-fmc
+          - hisilicon,hi3536dv100-fmc
+      - const: hisilicon,hifmc100
+
+  reg:
+    items:
+      - description: Controller registers
+      - description: Memory space of the controller (at least 8 KiB), the
+          first 4 KiB + 256 bytes are the buffer of the register mode
+
+  reg-names:
+    items:
+      - const: control
+      - const: memory
+
+  clocks:
+    maxItems: 1
+    description: Controller clock (the FMC gate and select of the CRG)
+
+  resets:
+    maxItems: 1
+    description: Controller soft reset
+
+  interrupts:
+    maxItems: 1
+    description: Operation completion interrupt (not used by the driver)
+
+  num-cs:
+    const: 1
+
+  cs-gpios: false
+
+patternProperties:
+  "@[0-9a-f]+$":
+    type: object
+    properties:
+      reg:
+        items:
+          - maximum: 0
+
+required:
+  - compatible
+  - reg
+  - reg-names
+  - clocks
+
+unevaluatedProperties: false
+
+examples:
+  - |
+    #include <dt-bindings/clock/hi3516ev200-clock.h>
+
+    spi@10000000 {
+        compatible = "hisilicon,hi3516ev200-fmc", "hisilicon,hifmc100";
+        reg = <0x10000000 0x1000>, <0x14000000 0x10000>;
+        reg-names = "control", "memory";
+        clocks = <&crg HI3516EV200_FMC_CLK>;
+        assigned-clocks = <&crg HI3516EV200_FMC_CLK>;
+        assigned-clock-rates = <100000000>;
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        flash@0 {
+            compatible = "jedec,spi-nor";
+            reg = <0>;
+            label = "hi_sfc";
+            spi-max-frequency = <50000000>;
+            spi-rx-bus-width = <2>;
+            spi-tx-bus-width = <2>;
+        };
+    };
