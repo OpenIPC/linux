@@ -77,7 +77,7 @@
 		};
 
 		sys_ctrl: system-controller@12020000 {
-			compatible = "hisilicon,hi3516cv300-sys", "syscon";
+			compatible = "hisilicon,hi3516cv300-sysctrl", "syscon";
 			reg = <0x12020000 0x1000>;
 			#clock-cells = <1>;
 		};
@@ -103,10 +103,6 @@
 			compatible = "arm,sp804", "arm,primecell";
 			reg = <0x12000000 0x1000>;
 			interrupts = <3>;
-			/* SP804 driver in 6.x uses clk_get_rate() which returns 0
-			 * if the clock provider isn't fully initialized when timer
-			 * inits at start_kernel. clock-frequency overrides. */
-			clock-frequency = <3000000>;
 			clocks = <&sys_ctrl HI3516CV300_TIME00_CLK>,
 			       <&sys_ctrl HI3516CV300_TIME01_CLK>,
 			       <&crg_ctrl HI3516CV300_APB_CLK>;
