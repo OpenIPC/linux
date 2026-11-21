@@ -102,6 +102,20 @@ config MTD_PARSER_IMAGETAG
 	  This driver adds support for parsing a partition with an Image Tag
 	  header and creates up to two partitions, kernel and rootfs.
 
+config MTD_PARSER_OPENIPC_UIMAGE
+	tristate "OpenIPC uImage firmware partition parser"
+	depends on MTD_OF_PARTS
+	help
+	  This provides a partition parser for OpenIPC firmware partitions
+	  containing a legacy U-Boot uImage followed by a SquashFS root
+	  filesystem aligned to the next 64 KiB boundary. It creates kernel,
+	  rootfs and optional rootfs_data subpartitions.
+
+	  Build this into the kernel (=y) when mounting rootfs directly from
+	  the parsed partition without an initramfs. Fixed-slot images without
+	  SquashFS directly after the uImage are not split, leaving parent
+	  partitions intact.
+
 config MTD_AFS_PARTS
 	tristate "ARM Firmware Suite partition parsing"
 	depends on (ARM || ARM64)
