@@ -1,0 +1,82 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/clock/hisilicon,hi3516ev200-crg.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: HiSilicon Hi3516E V200 and Hi3516E V300 Clock and Reset Generator (CRG)
+
+maintainers:
+  - Dylan Corrales <deathcamel58@gmail.com>
+
+description: |
+  The CRG of the Hi3516E V200 and the Hi3516E V300 provides the PLLs, the
+  CPU, DDR and bus clock selection, the peripheral clock gates and selects,
+  and the peripheral soft resets. The two chips have the same register map
+  as far as the Hi3516E V300 data sheet (Issue 00B06) and the vendor code
+  for the Hi3516E V200 tell, but there is no data sheet register chapter
+  for the Hi3516E V200 and a few bits differ, so each chip has its own
+  compatible and neither falls back to the other.
+
+  Reset specifiers have two cells: the register offset from the CRG base and
+  the bit number. A set bit holds the peripheral in reset, for example
+  <&crg 0x16c 0> is the soft reset of the Ethernet MAC. Only the soft reset
+  bits of the peripherals are valid: a specifier that names another register
+  or bit is rejected. The ARM core, DDR and DDR test resets are not available.
+
+  The clock identifiers are in include/dt-bindings/clock/hi3516ev200-clock.h.
+  The SP804 timer count clock selects are in the system controller, see
+  Documentation/devicetree/bindings/arm/hisilicon/controller/sysctrl.yaml.
+
+properties:
+  compatible:
+    oneOf:
+      - items:
+          - enum:
+              - hisilicon,hi3516ev200-crg
+              - hisilicon,hi3516ev300-crg
+          - const: syscon
+      - enum:
+          - hisilicon,hi3516ev200-crg
+          - hisilicon,hi3516ev300-crg
+      - description:
+          Names used by device trees written for the vendor kernel, matched
+          by the driver for compatibility, with and without the syscon.
+        items:
+          - enum:
+              - hisilicon,hi3516ev200-clock
+              - hisilicon,hi3516ev300-clock
+          - const: syscon
+        deprecated: true
+      - description:
+          The same deprecated names alone, as the former binding allowed.
+        enum:
+          - hisilicon,hi3516ev200-clock
+          - hisilicon,hi3516ev300-clock
+        deprecated: true
+
+  reg:
+    maxItems: 1
+
+  '#clock-cells':
+    const: 1
+
+  '#reset-cells':
+    const: 2
+
+required:
+  - compatible
+  - reg
+  - '#clock-cells'
+  - '#reset-cells'
+
+additionalProperties: false
+
+examples:
+  - |
+    clock-controller@12010000 {
+        compatible = "hisilicon,hi3516ev300-crg", "syscon";
+        reg = <0x12010000 0x1000>;
+        #clock-cells = <1>;
+        #reset-cells = <2>;
+    };
