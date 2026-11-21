@@ -17,6 +17,92 @@
 
 / {
 	compatible = "hisilicon,hi3516cv100";
+
+	/*
+	 * Fixed clocks for what the consumers below need until the V1 CRG has
+	 * a driver (see &crg_ctrl). The 3 MHz and APB clocks carry the names
+	 * that the SP804 count clock selects of the system controller, which
+	 * the Hi3516C V200 clock driver registers for this chip too, take as
+	 * their parents.
+	 */
+	clk_24m: clock-24m {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <24000000>;
+	};
+
+	clk_50m: clock-50m {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <50000000>;
+	};
+
+	clk_3m: clock-3m {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <3000000>;
+		clock-output-names = "3m";
+	};
+
+	/* a stand-in rate: the V1 APB clock is a divider of the PLL setting */
+	clk_apb: clock-apb {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <49500000>;
+		clock-output-names = "apb";
+	};
+};
+
+/*
+ * The V1 CRG register map is not the V2 one that hi3516cv200.dtsi describes
+ * (no CPU and bus select, no UART select, other SFC and MMC selects, the
+ * Ethernet clock and reset bits at 0xcc instead of 0xec), so the Hi3516C V200 clock driver must not
+ * gate, select or reset V1 registers by their V2 meaning. It matches the
+ * inherited compatible, so the node is disabled: no CRG clock provider and
+ * no reset controller exist on this chip until it has a driver of its own,
+ * and its consumers get the clocks that they had before that driver was
+ * rebuilt from fixed clocks (the UART at 24 MHz and the Ethernet at 50 MHz)
+ * or none (the SPI, FMC and I2C nodes). The system controller stays: the
+ * SP804 count clock selects in SC_CTRL have the same bits on V1, and the
+ * driver reads them back.
+ */
+&crg_ctrl {
+	status = "disabled";
+};
+
+&dual_timer0 {
+	clocks = <&sys_ctrl HI3516CV200_TIME0_0_CLK>,
+		 <&sys_ctrl HI3516CV200_TIME0_1_CLK>,
+		 <&clk_apb>;
+};
+
+&dual_timer1 {
+	clocks = <&sys_ctrl HI3516CV200_TIME1_2_CLK>,
+		 <&sys_ctrl HI3516CV200_TIME1_3_CLK>,
+		 <&clk_apb>;
+};
+
+&uart0 {
+	clocks = <&clk_24m>;
+};
+
+&uart1 {
+	clocks = <&clk_24m>;
+};
+
+&uart2 {
+	clocks = <&clk_24m>;
+};
+
+&mdio {
+	clocks = <&clk_50m>;
+};
+
+/* there is no reset controller; the reset is optional for the driver */
+&hisi_femac {
+	clocks = <&clk_50m>;
+	/delete-property/ resets;
+	/delete-property/ reset-names;
 };
 
 /*
