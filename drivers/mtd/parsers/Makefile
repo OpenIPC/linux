@@ -8,6 +8,7 @@ ofpart-y				+= ofpart_core.o
 ofpart-$(CONFIG_MTD_OF_PARTS_BCM4908)	+= ofpart_bcm4908.o
 ofpart-$(CONFIG_MTD_OF_PARTS_LINKSYS_NS)+= ofpart_linksys_ns.o
 obj-$(CONFIG_MTD_PARSER_IMAGETAG)	+= parser_imagetag.o
+obj-$(CONFIG_MTD_PARSER_OPENIPC_UIMAGE)	+= parser_openipc_uimage.o
 obj-$(CONFIG_MTD_AFS_PARTS)		+= afs.o
 obj-$(CONFIG_MTD_PARSER_TPLINK_SAFELOADER)	+= tplink_safeloader.o
 obj-$(CONFIG_MTD_PARSER_TRX)		+= parser_trx.o
