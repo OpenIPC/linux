@@ -4,7 +4,9 @@
 
 #include <linux/delay.h>
 #include <linux/io.h>
+#include <linux/errno.h>
 #include <linux/module.h>
+#include <linux/mutex.h>
 #include <linux/spinlock.h>
 
 #include <mach/ak_adc1.h>
@@ -207,3 +209,131 @@ int adc1_init(void)
 	return 0;
 }
 EXPORT_SYMBOL(adc1_init);
+
+/*
+ * AK3918EV300.
+ *
+ * The EV330 reader above reads 0 mV on an EV300: on this silicon the
+ * sample is not left in SAR_IF_SMP_DAT continuously, and the inputs have
+ * an analog enable the EV330 code never touches. The sequence below is the
+ * one a PE3020-W owner traced and tested on the camera (OpenIPC/builder#234),
+ * reading 2999 mV lit and 38-42 mV with the photocell covered, as the stock
+ * firmware's /sys/kernel/ain/ain0 does:
+ *
+ *  AD_DA_CLK1     +0x0C  bits 2:0 divider (7: 12 MHz / 8 = 1.5 MHz), bit 3
+ *                        the converter clock
+ *  RESET_CTRL     +0x20  bit 30 releases the converter
+ *  SAR_IF_CFG     +0x5C  bit 0 starts a conversion, bits 7:5 select the
+ *                        input (bit 5 AIN0), bits 10:8 format (1), bits
+ *                        21:14 wait (1)
+ *  SAR_TIMING     +0x60  1500 | 18 << 16
+ *  SAR_IF_SMP_DAT +0x68  bits 11:0 the sample
+ *  SAR_IF_STATUS  +0x6C  bit 0 ready; written 0 to clear
+ *  ANALOG_CTRL2   +0xA0  bit 0 powers the analog block down, bit 3 off
+ *                        selects the 3.0 V reference, bit 5 enables AIN0
+ *
+ * Register read-modify-writes take adc1_lock, as the EV330 path does; a
+ * conversion holds adc1_ev300_mutex across its poll, which sleeps.
+ */
+#define EV300_CLK_DIV_MASK	0x7
+#define EV300_CLK_EN		(1 << 3)
+#define EV300_ADC_RESET		(1 << 30)
+#define EV300_CFG_TRIGGER	(1 << 0)
+#define EV300_CFG_IRQ_MASK	(0xf << 1)
+#define EV300_CFG_CHANNEL_MASK	(0x7 << 5)
+#define EV300_CFG_AIN0		(1 << 5)
+#define EV300_CFG_FORMAT_MASK	(0x7 << 8)
+#define EV300_CFG_WAIT_MASK	(0xff << 14)
+#define EV300_CFG_IDLE		((1 << 8) | (1 << 14))
+#define EV300_TIMING_MASK	0x00ffffff
+#define EV300_TIMING		(1500 | (18 << 16))
+#define EV300_STATUS_READY	(1 << 0)
+#define EV300_ACR_POWER_DOWN	(1 << 0)
+#define EV300_ACR_REF_EXT	(1 << 3)
+#define EV300_ACR_AIN0		(1 << 5)
+#define EV300_POLL_US		250
+#define EV300_TIMEOUT_US	50000
+
+/* AK_ADDR() is a pointer on some machines and an integer on others. */
+#define EV300_REG(r)		((void __iomem *)(r))
+
+static DEFINE_MUTEX(adc1_ev300_mutex);
+
+static void ev300_update(void __iomem *reg, u32 mask, u32 val)
+{
+	unsigned long flags;
+	u32 v;
+
+	spin_lock_irqsave(&adc1_lock, flags);
+	v = __raw_readl(reg);
+	__raw_writel((v & ~mask) | (val & mask), reg);
+	spin_unlock_irqrestore(&adc1_lock, flags);
+}
+
+static void ev300_idle(void)
+{
+	ev300_update(EV300_REG(SAR_IF_CFG_REG), EV300_CFG_TRIGGER | EV300_CFG_CHANNEL_MASK,
+		     0);
+	ev300_update(EV300_REG(SAR_ANALOG_CTRL2_REG),
+		     EV300_ACR_POWER_DOWN | EV300_ACR_AIN0, EV300_ACR_POWER_DOWN);
+	ev300_update(EV300_REG(SAR_IF_INT_STATUS_REG), EV300_STATUS_READY, 0);
+}
+
+int adc1_ev300_init(void)
+{
+	mutex_lock(&adc1_ev300_mutex);
+	/* The clock: off, the 1.5 MHz divider, on. */
+	ev300_update(EV300_REG(AD_DA_CLK1_REG), EV300_CLK_EN, 0);
+	ev300_update(EV300_REG(AD_DA_CLK1_REG), EV300_CLK_DIV_MASK, EV300_CLK_DIV_MASK);
+	ev300_update(EV300_REG(AD_DA_CLK1_REG), EV300_CLK_EN, EV300_CLK_EN);
+	ev300_update(EV300_REG(RESET_CTRL_REG), EV300_ADC_RESET, EV300_ADC_RESET);
+	ev300_update(EV300_REG(SAR_TIMING_CFG_REG), EV300_TIMING_MASK, EV300_TIMING);
+	ev300_update(EV300_REG(SAR_IF_CFG_REG),
+		     EV300_CFG_TRIGGER | EV300_CFG_IRQ_MASK |
+		     EV300_CFG_CHANNEL_MASK | EV300_CFG_FORMAT_MASK |
+		     EV300_CFG_WAIT_MASK, EV300_CFG_IDLE);
+	/* Powered down between conversions, on the 3.0 V reference. */
+	ev300_update(EV300_REG(SAR_ANALOG_CTRL2_REG),
+		     EV300_ACR_POWER_DOWN | EV300_ACR_REF_EXT | EV300_ACR_AIN0,
+		     EV300_ACR_POWER_DOWN);
+	ev300_update(EV300_REG(SAR_IF_INT_STATUS_REG), EV300_STATUS_READY, 0);
+	mutex_unlock(&adc1_ev300_mutex);
+	return 0;
+}
+EXPORT_SYMBOL(adc1_ev300_init);
+
+int adc1_ev300_read(int channel, unsigned int *millivolts)
+{
+	unsigned int waited = 0;
+	int ret = 0;
+	u32 raw;
+
+	if (channel != AK_ADC1_AD0 || !millivolts)
+		return -EINVAL;
+
+	mutex_lock(&adc1_ev300_mutex);
+	ev300_update(EV300_REG(SAR_ANALOG_CTRL2_REG),
+		     EV300_ACR_POWER_DOWN | EV300_ACR_AIN0, EV300_ACR_AIN0);
+	ev300_update(EV300_REG(SAR_IF_CFG_REG), EV300_CFG_CHANNEL_MASK, EV300_CFG_AIN0);
+	/* A ready left from before would be read as this conversion's. */
+	ev300_update(EV300_REG(SAR_IF_INT_STATUS_REG), EV300_STATUS_READY, 0);
+	ev300_update(EV300_REG(SAR_IF_CFG_REG), EV300_CFG_TRIGGER, EV300_CFG_TRIGGER);
+
+	while (!(__raw_readl(SAR_IF_INT_STATUS_REG) & EV300_STATUS_READY)) {
+		if (waited >= EV300_TIMEOUT_US) {
+			ret = -ETIMEDOUT;
+			break;
+		}
+		usleep_range(EV300_POLL_US, EV300_POLL_US + 50);
+		waited += EV300_POLL_US;
+	}
+	raw = __raw_readl(SAR_IF_SMP_DAT_REG) & 0xfff;
+	/* Down again whatever happened, so the next read starts clean. */
+	ev300_idle();
+	mutex_unlock(&adc1_ev300_mutex);
+
+	if (!ret)
+		*millivolts = raw * AK_ADC1_EV300_VREF / 4096;
+	return ret;
+}
+EXPORT_SYMBOL(adc1_ev300_read);
