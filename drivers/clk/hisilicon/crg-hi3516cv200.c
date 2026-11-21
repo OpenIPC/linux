@@ -420,8 +420,6 @@ err_provider:
 }
 
 CLK_OF_DECLARE_DRIVER(hi3518ev200_crg, "hisilicon,hi3518ev200-crg", hi3516cv200_crg_clk_init);
-/* deprecated alias, still used by hi3516cv200.dtsi until the device tree patch of this series */
-CLK_OF_DECLARE_DRIVER(hi3518ev20x_crg, "hisilicon,hi3518ev20x-clock", hi3516cv200_crg_clk_init);
 
 /* ---------------- sys controller block (sysctrl@20050000) ---------------- */
 
@@ -479,9 +477,6 @@ static void __init hi3516cv200_sysctrl_clk_init(struct device_node *np)
 
 CLK_OF_DECLARE(hi3518ev200_sysctrl, "hisilicon,hi3518ev200-sysctrl",
 	       hi3516cv200_sysctrl_clk_init);
-/* deprecated alias, as above */
-CLK_OF_DECLARE(hi3518ev20x_sysctrl, "hisilicon,hi3518ev20x-sysctrl",
-	       hi3516cv200_sysctrl_clk_init);
 
 /* ---------------- platform driver (reset controller) ---------------- */
 
@@ -493,7 +488,6 @@ static int hi3516cv200_crg_probe(struct platform_device *pdev)
 
 static const struct of_device_id hi3516cv200_crg_match_table[] = {
 	{ .compatible = "hisilicon,hi3518ev200-crg" },
-	{ .compatible = "hisilicon,hi3518ev20x-clock" },	/* deprecated alias */
 	{ }
 };
 MODULE_DEVICE_TABLE(of, hi3516cv200_crg_match_table);
