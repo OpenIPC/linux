@@ -20,6 +20,7 @@
 #include <linux/clk.h>
 #include <linux/iopoll.h>
 #include <linux/kernel.h>
+#include <linux/ktime.h>
 #include <linux/module.h>
 #include <linux/of_address.h>
 #include <linux/of_mdio.h>
@@ -49,6 +50,7 @@
 #define REG_WR_DONE		0x3053
 #define BIT_CFG_DONE		BIT(0)
 #define BIT_CFG_ACK		BIT(1)
+#define CFG_ACK_TIMEOUT_MS	500
 #define REG_DEF_ATE		0x3057
 #define BIT_AUTOTRIM_DONE	BIT(0)
 
@@ -112,6 +114,18 @@ struct hisi_femac_mdio_data {
 static int hisi_femac_mdio_wait_ready(struct hisi_femac_mdio_data *data)
 {
 	u32 val;
+	int ret;
+
+	/*
+	 * A transfer finishes within about 70 us. Spin for that time: a
+	 * sleeping poll rounds up to the next tick on a kernel without high
+	 * resolution timers (10 ms at HZ=100), which makes every transfer
+	 * 10 ms long. Sleep only when the transfer takes longer.
+	 */
+	ret = readl_poll_timeout_atomic(data->membase + MDIO_RWCTRL, val,
+					val & MDIO_RW_FINISH, 2, 200);
+	if (!ret)
+		return 0;
 
 	return readl_poll_timeout(data->membase + MDIO_RWCTRL, val,
 				  val & MDIO_RW_FINISH, 20, 10000);
@@ -309,13 +323,31 @@ static void hisi_femac_fephy_use_default_trim(struct hisi_femac_mdio_data *data)
 	mdelay(5);
 }
 
+static int hisi_femac_fephy_wait_cfg_ack(struct hisi_femac_mdio_data *data)
+{
+	ktime_t timeout = ktime_add_ms(ktime_get(), CFG_ACK_TIMEOUT_MS);
+	int val;
+
+	do {
+		usleep_range(100, 150);
+		val = fephy_expanded_read(data->bus, data->phy_addr,
+					  REG_WR_DONE);
+		if (val < 0)
+			return val;
+		if (val & BIT_CFG_ACK)
+			return 0;
+	} while (ktime_before(ktime_get(), timeout));
+
+	return -ETIMEDOUT;
+}
+
 static void hisi_femac_fephy_trim(struct hisi_femac_mdio_data *data)
 {
 	const struct hisi_femac_trim_layout *layout;
 	struct mii_bus *bus = data->bus;
 	u32 phy_addr = data->phy_addr;
-	int timeout = 3000;
 	u32 val;
+	int ret;
 	u8 ld_set;
 	u8 ldo_set;
 	u8 r_tuning;
@@ -354,13 +386,12 @@ static void hisi_femac_fephy_trim(struct hisi_femac_mdio_data *data)
 	val = val | BIT_CFG_DONE;
 	fephy_expanded_write(bus, phy_addr, REG_WR_DONE, val);
 
-	do {
-		usleep_range(100, 150);
-		val = fephy_expanded_read(bus, phy_addr, REG_WR_DONE);
-		val &= BIT_CFG_ACK;
-	} while (!val && --timeout);
-	if (!timeout)
+	ret = hisi_femac_fephy_wait_cfg_ack(data);
+	if (ret == -ETIMEDOUT)
 		dev_err(data->bus->parent, "festa PHY 0x3053 wait bit CFG_ACK timeout!\n");
+	else if (ret)
+		dev_err(data->bus->parent, "festa PHY 0x3053 read failed while waiting for CFG_ACK: %pe\n",
+			ERR_PTR(ret));
 
 	mdelay(5);
 
