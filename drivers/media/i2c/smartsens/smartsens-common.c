@@ -13,6 +13,7 @@
 #include <linux/gpio/consumer.h>
 #include <linux/i2c.h>
 #include <linux/kernel.h>
+#include <linux/math.h>
 #include <linux/math64.h>
 #include <linux/module.h>
 #include <linux/pm_runtime.h>
@@ -133,8 +134,13 @@ static unsigned int smartsens_max_gain(const struct smartsens_desc *desc)
 
 static int smartsens_set_flip(struct v4l2_subdev *sd, int hflip, int vflip)
 {
-	u8 val = 0;
+	u8 val;
+	int ret;
 
+	ret = smartsens_read_reg(sd, SMARTSENS_REG_MIRROR_FLIP, &val);
+	if (ret)
+		return ret;
+	val &= ~0x66;
 	if (hflip)
 		val |= 0x06;
 	if (vflip)
@@ -152,6 +158,9 @@ static int smartsens_set_test_pattern(struct v4l2_subdev *sd, s32 val)
 static int smartsens_set_exposure(struct v4l2_subdev *sd, s32 lines)
 {
 	int ret;
+
+	if (to_smartsens_sensor(sd)->desc->half_line_exposure)
+		lines *= 2;
 
 	ret = smartsens_write_reg(sd, SMARTSENS_REG_EXP_H, (lines >> 12) & 0x0f);
 	if (ret)
@@ -186,6 +195,8 @@ static int smartsens_set_again(struct v4l2_subdev *sd, s32 index)
 	if (index < 0 || index >= desc->again_lut_size)
 		return -EINVAL;
 	reg_code = desc->again_lut[index].reg_code;
+	if (desc->write_gain)
+		return desc->write_gain(sd, reg_code);
 	if (desc->sc1a4t_again_layout) {
 		ret = smartsens_write_reg(sd, SMARTSENS_REG_AGAIN_FINE,
 					  reg_code & 0xff);
@@ -724,6 +735,10 @@ static int smartsens_parse_fwnode(struct device *dev,
 		sensor->secondary_i2c_addr = sec_addr;
 	}
 
+	if (!sensor->desc->num_slave_seqs &&
+	    (sensor->frame_sync_slave || sensor->secondary_i2c_addr))
+		return -EINVAL;
+
 	endpoint = fwnode_graph_get_next_endpoint(dev_fwnode(dev), NULL);
 	if (!endpoint)
 		return -ENOTCONN;
@@ -823,10 +838,11 @@ static int smartsens_init_controls(struct smartsens_sensor *sensor)
 					       desc->pixel_rate);
 	if (sensor->pixel_rate)
 		sensor->pixel_rate->flags |= V4L2_CTRL_FLAG_READ_ONLY;
-	sensor->test_pattern = v4l2_ctrl_new_std_menu_items(
-		&sensor->ctrls, &smartsens_ctrl_ops, V4L2_CID_TEST_PATTERN,
-		ARRAY_SIZE(smartsens_test_pattern_menu) - 1, 0, 0,
-		smartsens_test_pattern_menu);
+	if (!desc->no_test_pattern)
+		v4l2_ctrl_new_std_menu_items(&sensor->ctrls, &smartsens_ctrl_ops,
+					     V4L2_CID_TEST_PATTERN,
+					     ARRAY_SIZE(smartsens_test_pattern_menu) - 1,
+					     0, 0, smartsens_test_pattern_menu);
 
 	if (sensor->ctrls.error) {
 		ret = sensor->ctrls.error;
@@ -842,6 +858,8 @@ int smartsens_probe(struct i2c_client *client,
 {
 	struct device *dev = &client->dev;
 	struct smartsens_sensor *sensor;
+	unsigned long rate = desc->xvclk_rate ?: SMARTSENS_XVCLK_RATE;
+	unsigned long actual;
 	unsigned int i;
 	int ret;
 
@@ -879,12 +897,19 @@ int smartsens_probe(struct i2c_client *client,
 	if (IS_ERR(sensor->mclk))
 		return dev_err_probe(dev, PTR_ERR(sensor->mclk),
 				     "failed to get xvclk\n");
-	ret = clk_set_rate(sensor->mclk, SMARTSENS_XVCLK_RATE);
-	if (!ret && clk_get_rate(sensor->mclk) != SMARTSENS_XVCLK_RATE)
-		ret = -ERANGE;
+	ret = clk_set_rate(sensor->mclk, rate);
 	if (ret)
 		return dev_err_probe(dev, ret,
-				     "failed to set xvclk to 24MHz\n");
+				     "failed to set xvclk to %lu Hz\n", rate);
+
+	actual = clk_get_rate(sensor->mclk);
+	if (!actual || abs_diff(actual, rate) > rate / 50)
+		return dev_err_probe(dev, -ERANGE,
+				     "xvclk %lu Hz out of range (want %lu Hz)\n",
+				     actual, rate);
+	if (actual != rate)
+		dev_warn(dev, "xvclk running at %lu Hz (requested %lu Hz)\n",
+			 actual, rate);
 
 	sensor->reset_gpio = devm_gpiod_get_optional(dev, "reset",
 						     GPIOD_OUT_HIGH);

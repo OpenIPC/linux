@@ -45,3 +45,59 @@ config VIDEO_SC2337P
 
 	  To compile this driver as a module, choose M here: the module
 	  will be called sensor_sc2337p.
+
+config VIDEO_SC1346
+	tristate "SmartSens SC1346 sensor support"
+	depends on I2C && VIDEO_DEV && OF
+	select MEDIA_CONTROLLER
+	select VIDEO_V4L2_SUBDEV_API
+	select V4L2_FWNODE
+	select VIDEO_SMARTSENS_COMMON
+	help
+	  Say Y here to enable the V4L2 driver for the SmartSens SC1346
+	  1280x720 CMOS image sensor with a MIPI CSI-2 interface.
+
+	  To build this driver as a module, choose M here. The module
+	  will be called sensor_sc1346.
+
+config VIDEO_SC200AI
+	tristate "SmartSens SC200AI sensor support"
+	depends on I2C && VIDEO_DEV && OF
+	select MEDIA_CONTROLLER
+	select VIDEO_V4L2_SUBDEV_API
+	select V4L2_FWNODE
+	select VIDEO_SMARTSENS_COMMON
+	help
+	  Say Y here to enable the V4L2 driver for the SmartSens SC200AI
+	  1920x1080 CMOS image sensor with a MIPI CSI-2 interface.
+
+	  To build this driver as a module, choose M here. The module
+	  will be called sensor_sc200ai.
+
+config VIDEO_SC2310
+	tristate "SmartSens SC2310 sensor support"
+	depends on I2C && VIDEO_DEV && OF
+	select MEDIA_CONTROLLER
+	select VIDEO_V4L2_SUBDEV_API
+	select V4L2_FWNODE
+	select VIDEO_SMARTSENS_COMMON
+	help
+	  Say Y here to enable the V4L2 driver for the SmartSens SC2310
+	  1920x1080 CMOS image sensor with a MIPI CSI-2 interface.
+
+	  To build this driver as a module, choose M here. The module
+	  will be called sensor_sc2310.
+
+config VIDEO_SC2331
+	tristate "SmartSens SC2331 sensor support"
+	depends on I2C && VIDEO_DEV && OF
+	select MEDIA_CONTROLLER
+	select VIDEO_V4L2_SUBDEV_API
+	select V4L2_FWNODE
+	select VIDEO_SMARTSENS_COMMON
+	help
+	  Say Y here to enable the V4L2 driver for the SmartSens SC2331
+	  1920x1080 CMOS image sensor with a MIPI CSI-2 interface.
+
+	  To build this driver as a module, choose M here. The module
+	  will be called sensor_sc2331.

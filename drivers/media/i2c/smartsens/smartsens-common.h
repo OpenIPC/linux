@@ -55,6 +55,10 @@ struct smartsens_desc {
 	size_t again_lut_size;
 	u32 max_again;
 	bool sc1a4t_again_layout;
+	bool half_line_exposure;
+	bool no_test_pattern;
+	u32 xvclk_rate;
+	int (*write_gain)(struct v4l2_subdev *sd, u32 code);
 	const struct regval_list *stream_on;
 	const struct regval_list *stream_off;
 	const struct regval_list * const *primary_seqs;
@@ -93,7 +97,6 @@ struct smartsens_sensor {
 	struct v4l2_ctrl *vblank;
 	struct v4l2_ctrl *hblank;
 	struct v4l2_ctrl *pixel_rate;
-	struct v4l2_ctrl *test_pattern;
 };
 
 static inline struct smartsens_sensor *to_smartsens_sensor(struct v4l2_subdev *sd)

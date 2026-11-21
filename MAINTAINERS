@@ -11080,6 +11080,7 @@ S:	Maintained
 F:	Documentation/devicetree/bindings/media/i2c/smartsens,sc2336.yaml
 F:	Documentation/devicetree/bindings/media/i2c/soi,jxf23.yaml
 F:	Documentation/devicetree/bindings/media/i2c/superpix,sp140a.yaml
+F:	drivers/media/i2c/smartsens/
 
 IMAGIS TOUCHSCREEN DRIVER
 M:	Markuss Broks <markuss.broks@gmail.com>
