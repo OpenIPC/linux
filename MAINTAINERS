@@ -11502,6 +11502,12 @@ S:	Maintained
 F:	Documentation/devicetree/bindings/gpio/hisilicon,ascend910-gpio.yaml
 F:	drivers/gpio/gpio-hisi.c
 
+HISILICON HI3516EV200 CRG DRIVER
+M:	Dylan Corrales <deathcamel58@gmail.com>
+L:	linux-arm-kernel@lists.infradead.org (moderated for non-subscribers)
+S:	Maintained
+F:	Documentation/devicetree/bindings/clock/hisilicon,hi3516ev200-crg.yaml
+
 HISILICON HI3520D USB 2.0 PHY DRIVER
 M:	Dylan Corrales <deathcamel58@gmail.com>
 S:	Maintained
@@ -29261,8 +29267,8 @@ F:	arch/arm/boot/dts/hisilicon/hi3516ev*.dts*
 F:	arch/arm/boot/dts/hisilicon/hi3518ev*.dts*
 F:	arch/arm/mach-hibvt/
 F:	Documentation/devicetree/bindings/arm/hisilicon/hisilicon-bvt.yaml
-F:	Documentation/devicetree/bindings/clock/hisilicon,hi3516ev200-clock.yaml
 F:	Documentation/devicetree/bindings/clock/hisilicon,hi3518ev200-crg.yaml
+F:	Documentation/devicetree/bindings/clock/hisilicon,hibvt-clock.yaml
 F:	Documentation/devicetree/bindings/i2c/hisilicon,hibvt-i2c.yaml
 F:	drivers/clk/hisilicon/clk-hi3516ev*.c
 F:	drivers/clk/hisilicon/clk-hi3518ev*.c

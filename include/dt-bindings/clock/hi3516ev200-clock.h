@@ -84,7 +84,46 @@
 #define HI3516EV200_USB2_PHY_PLL_CLK    85
 #define HI3516EV200_USB2_PHY_XO_CLK     86
 
+/*
+ * Identifiers added with the hisilicon,hi3516ev200-crg and
+ * hisilicon,hi3516ev300-crg providers. Identifiers above that this header
+ * has always had keep their number; a clock that the data sheet does not have
+ * is no longer provided by the driver (see crg-hi3516ev200.c).
+ */
+#define HI3516EV200_FIXED_54M       90
+#define HI3516EV200_FIXED_360M      91
+#define HI3516EV200_FIXED_450M      92
+/* Same number as HI3516EV200_FIXED_112M: the data sheet rate is 112.5 MHz */
+#define HI3516EV200_FIXED_112M5     12
 
+#define HI3516EV200_APLL_CLK        100
+#define HI3516EV200_VPLL_CLK        101
+#define HI3516EV200_APLL_VCO_CLK    118	/* VCO, divided by the module clocks */
+#define HI3516EV200_VPLL_VCO_CLK    119
+#define HI3516EV200_A7_MUX          102
+#define HI3516EV200_DDR_MUX         103
+#define HI3516EV200_SYSCFG_MUX      104
+#define HI3516EV200_UART1_MUX       105
+#define HI3516EV200_UART2_MUX       106
+#define HI3516EV200_PWM_MUX         107
+/* HI3516EV200_SYSAXI_CLK and HI3516EV200_SYSAPB_CLK are the bus selects */
+#define HI3516EV200_UART0_MUX       HI3516EV200_UART_MUX
+#define HI3516EV200_ETH_CORE_MUX    HI3516EV200_ETH_MUX
+
+#define HI3516EV200_PWM_CLK         110
+#define HI3516EV200_OTP_CLK         111
+#define HI3516EV200_LSADC_CLK       112
+#define HI3516EV200_ETH_FEPHY_CLK   113
+#define HI3516EV200_SPACC_CLK       114
+#define HI3516EV200_KLAD_CLK        115
+#define HI3516EV200_RSA_CLK         116
+#define HI3516EV200_TRNG_CLK        117
+
+/* hisilicon,hi3516ev200-sysctrl, hisilicon,hi3516ev300-sysctrl */
+#define HI3516EV200_TIMER0          0
+#define HI3516EV200_TIMER1          1
+#define HI3516EV200_TIMER2          2
+#define HI3516EV200_TIMER3          3
 
 #define HI3516EV200_NR_CLKS         256
 #define HI3516EV200_NR_RSTS         256

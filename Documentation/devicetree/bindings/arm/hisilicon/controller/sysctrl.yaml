@@ -24,13 +24,23 @@ description: |
   HiP01     system controller   --> hisilicon,hip01-sysctrl
   Hi6220    system controller   --> hisilicon,hi6220-sysctrl
   Hi3519    system controller   --> hisilicon,hi3519-sysctrl
+  Hi3516E V200 and V300 system controller --> hisilicon,hi3516ev200-sysctrl,
+                                              hisilicon,hi3516ev300-sysctrl
+
+  The system controller of the Hi3516E V200 and the Hi3516E V300 also holds
+  the count clock selects of the SP804 timers (SC_CTRL bits 16 to 19), which
+  are clocks with the identifiers HI3516EV200_TIMER0 to HI3516EV200_TIMER3 of
+  include/dt-bindings/clock/hi3516ev200-clock.h. Its #clock-cells is 1.
 
 allOf:
   - if:
       properties:
         compatible:
           contains:
-            const: hisilicon,hi6220-sysctrl
+            enum:
+              - hisilicon,hi6220-sysctrl
+              - hisilicon,hi3516ev200-sysctrl
+              - hisilicon,hi3516ev300-sysctrl
     then:
       required:
         - '#clock-cells'
@@ -47,6 +57,12 @@ properties:
       - items:
           - const: hisilicon,hip01-sysctrl
           - const: hisilicon,sysctrl
+      - items:
+          - enum:
+              - hisilicon,hi3516ev200-sysctrl
+              - hisilicon,hi3516ev300-sysctrl
+          - const: hisilicon,sysctrl
+          - const: syscon
 
   reg:
     maxItems: 1

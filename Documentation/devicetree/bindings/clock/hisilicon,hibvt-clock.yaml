@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
 %YAML 1.2
 ---
-$id: http://devicetree.org/schemas/clock/hisilicon,hi3516ev200-clock.yaml#
+$id: http://devicetree.org/schemas/clock/hisilicon,hibvt-clock.yaml#
 $schema: http://devicetree.org/meta-schemas/core.yaml#
 
 title: HiSilicon BVT SoC Clock/Reset Generator (CRG)
@@ -13,11 +13,12 @@ description: |
   The CRG (Clock/Reset Generator) provides clock and reset control for
   all peripherals on HiSilicon BVT IP camera SoCs.
 
+  The Hi3516E V200 and Hi3516E V300 have their own binding,
+  hisilicon,hi3516ev200-crg.yaml.
+
 properties:
   compatible:
     enum:
-      - hisilicon,hi3516ev200-clock
-      - hisilicon,hi3516ev300-clock
       - hisilicon,hi3518ev300-clock
       - hisilicon,hi3516dv200-clock
       - hisilicon,hi3516dv300-clock
@@ -42,7 +43,7 @@ additionalProperties: false
 examples:
   - |
     clock@12010000 {
-        compatible = "hisilicon,hi3516ev300-clock";
+        compatible = "hisilicon,hi3518ev300-clock";
         reg = <0x12010000 0x1000>;
         #clock-cells = <1>;
         #reset-cells = <2>;
