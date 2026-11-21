@@ -1,0 +1,21 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+/*
+ * HiSilicon Hi3536D V100 demo board (DEMB): a minimal reference board file
+ * after the vendor demo-board device tree, with one DDR3L x16 device of 4 Gbit
+ * (512 MiB, the largest size the 16 bit DDR3 port of the SoC takes) at
+ * 0x80000000 and UART0 as the console. A production board that fits less
+ * memory, or other devices, needs its own board file. The Hi3536E boards use
+ * the same SoC file.
+ */
+
+/dts-v1/;
+#include "hi3536dv100.dtsi"
+
+/ {
+	model = "HiSilicon Hi3536D V100 DEMB Board";
+
+	memory@80000000 {
+		device_type = "memory";
+		reg = <0x80000000 0x20000000>;
+	};
+};
