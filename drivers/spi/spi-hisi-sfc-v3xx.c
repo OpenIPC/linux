@@ -582,6 +582,13 @@ static int hisi_sfc_v3xx_generic_exec_op(struct hisi_sfc_v3xx_host *host,
 		synchronize_irq(host->irq);
 		WRITE_ONCE(host->completion, NULL);
 
+		/*
+		 * Completed after the wait gave up and before the interrupt
+		 * was masked: a late wakeup, not a missing interrupt.
+		 */
+		if (ret == -ETIMEDOUT && completion_done(&done))
+			ret = 0;
+
 		if (ret == -ETIMEDOUT && host->data->hisfc350) {
 			/*
 			 * No interrupt. If the command finished anyway take the
