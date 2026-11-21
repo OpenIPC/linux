@@ -13,12 +13,15 @@ config COMMON_CLK_HI3520DV100
 	  device trees do not use it.
 
 config COMMON_CLK_HI3516CV300
-	tristate "HI3516CV300 Clock Driver"
+	bool "Hi3516C V300 / Hi3516E V100 Clock and Reset Driver"
 	depends on ARCH_HISI || ARCH_HISI_BVT || COMPILE_TEST
 	select RESET_HISI
-	default ARCH_HISI
+	default ARCH_HI3516CV300
 	help
-	  Build the clock driver for hi3516cv300.
+	  Build the clock and reset driver for the CRG and the system
+	  controller clocks of the Hi3516C V300 and the Hi3516E V100.
+	  The SP804 timer is probed before the platform drivers, so the
+	  clocks are registered early and the driver cannot be a module.
 
 config COMMON_CLK_HI3516CV200
 	bool "Hi3516C V200 / Hi3518E V20x Clock and Reset Driver"
