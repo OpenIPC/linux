@@ -445,6 +445,23 @@ config SPI_GXP
 	  This enables support for the driver for GXP bus attached SPI
 	  controllers.
 
+config SPI_HISI_FMC
+	tristate "HiSilicon FMC SPI NOR Flash Controller"
+	depends on ARCH_HISI_BVT || COMPILE_TEST
+	depends on HAS_DMA
+	depends on HAS_IOMEM
+	depends on SPI_MEM
+	help
+	  This enables support for the HiSilicon flash memory controller
+	  (FMC, "hifmc100") of the Hi3518E V200, Hi3516C V200/V300, Hi3516E,
+	  Hi3516A/D, Hi3519 and Hi3536 SoC families, for SPI NOR flash. It
+	  binds the "hisilicon,hifmc100" nodes; the nodes of the
+	  "hisilicon,fmc-spi-nor" name stay with the SPI_HISI_SFC driver of
+	  the spi-nor controllers.
+
+	  This driver can also be built as a module. If so, the module
+	  will be called spi-hisi-fmc.
+
 config SPI_HISI_KUNPENG
 	tristate "HiSilicon SPI Controller for Kunpeng SoCs"
 	depends on (ARM64 && ACPI) || COMPILE_TEST
