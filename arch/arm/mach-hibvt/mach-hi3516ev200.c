@@ -33,7 +33,10 @@ void hi35xx_set_cpu(unsigned int cpu, bool enable)
     unsigned int regval;
     void __iomem *crg_base;
 
-    np = of_find_compatible_node(NULL, NULL, "hisilicon,hi3516ev200-clock");
+	np = of_find_compatible_node(NULL, NULL, "hisilicon,hi3516ev200-crg");
+	if (!np)
+		np = of_find_compatible_node(NULL, NULL,
+					     "hisilicon,hi3516ev200-clock");
     if (!np) {
         pr_err("failed to find hisilicon clock node\n");
         return;
