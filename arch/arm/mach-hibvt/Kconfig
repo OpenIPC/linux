@@ -198,6 +198,9 @@ config ARCH_HI3536DV100
 	depends on ARCH_MULTI_V7
 	select HAVE_ARM_ARCH_TIMER
 	select PINCTRL
+	select COMMON_CLK_HI3536DV100
+	select ARCH_HAS_RESET_CONTROLLER
+	select RESET_CONTROLLER
 	help
 		Support for Hisilicon Hi3536DV100 Soc family.
 
