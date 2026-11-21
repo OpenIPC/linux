@@ -61,9 +61,7 @@
 	};
 
 	clock: clock@12010000 {
-		compatible = "hisilicon,hi3516ev200-clock", "syscon";
-		#address-cells = <1>;
-		#size-cells = <1>;
+		compatible = "hisilicon,hi3516ev200-crg", "syscon";
 		#clock-cells = <1>;
 		#reset-cells = <2>;
 		reg = <0x12010000 0x1000>;
@@ -125,7 +123,8 @@
 		    status = "okay";
 		};
 		sysctrl: system-controller@12020000 {
-			compatible = "hisilicon,sysctrl";
+			compatible = "hisilicon,hi3516ev200-sysctrl",
+				     "hisilicon,sysctrl", "syscon";
 			reg = <0x12020000 0x1000>;
 			reboot-offset = <0x4>;
 			#clock-cells = <1>;
