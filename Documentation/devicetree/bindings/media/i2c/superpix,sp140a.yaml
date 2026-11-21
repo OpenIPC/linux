@@ -1,0 +1,95 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/media/i2c/superpix,sp140a.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: SuperPix SP140A image sensor
+
+maintainers:
+  - Difan Zhang <alex@osqdu.org>
+
+properties:
+  compatible:
+    const: superpix,sp140a
+
+  reg:
+    maxItems: 1
+
+  clocks:
+    maxItems: 1
+
+  clock-names:
+    const: xvclk
+
+  avdd-supply:
+    description: Analog supply.
+
+  dovdd-supply:
+    description: I/O supply.
+
+  dvdd-supply:
+    description: Digital core supply.
+
+  reset-gpios:
+    maxItems: 1
+
+  pwdn-gpios:
+    maxItems: 1
+
+  port:
+    $ref: /schemas/graph.yaml#/$defs/port-base
+    additionalProperties: false
+
+    properties:
+      endpoint:
+        $ref: /schemas/media/video-interfaces.yaml#
+        unevaluatedProperties: false
+
+        properties:
+          data-lanes:
+            items:
+              - const: 1
+
+          link-frequencies:
+            maxItems: 1
+            items:
+              const: 360000000
+
+        required:
+          - data-lanes
+          - link-frequencies
+
+    required:
+      - endpoint
+
+required:
+  - compatible
+  - reg
+  - clocks
+  - clock-names
+  - port
+
+additionalProperties: false
+
+examples:
+  - |
+    i2c {
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        sensor@3c {
+            compatible = "superpix,sp140a";
+            reg = <0x3c>;
+            clocks = <&sensor_clk>;
+            clock-names = "xvclk";
+
+            port {
+                endpoint {
+                    data-lanes = <1>;
+                    link-frequencies = /bits/ 64 <360000000>;
+                    remote-endpoint = <&csi_in>;
+                };
+            };
+        };
+    };
