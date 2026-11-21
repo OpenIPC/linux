@@ -11502,6 +11502,14 @@ S:	Maintained
 F:	Documentation/devicetree/bindings/gpio/hisilicon,ascend910-gpio.yaml
 F:	drivers/gpio/gpio-hisi.c
 
+HISILICON HI3516CV300 CRG DRIVER
+M:	Dylan Corrales <deathcamel58@gmail.com>
+L:	linux-arm-kernel@lists.infradead.org (moderated for non-subscribers)
+S:	Maintained
+F:	Documentation/devicetree/bindings/clock/hisilicon,hi3516cv300-crg.yaml
+F:	drivers/clk/hisilicon/crg-hi3516cv300.c
+F:	include/dt-bindings/clock/hi3516cv300-clock.h
+
 HISILICON HI3516EV200 CRG DRIVER
 M:	Dylan Corrales <deathcamel58@gmail.com>
 L:	linux-arm-kernel@lists.infradead.org (moderated for non-subscribers)

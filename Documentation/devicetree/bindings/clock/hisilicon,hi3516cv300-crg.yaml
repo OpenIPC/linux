@@ -1,0 +1,120 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/clock/hisilicon,hi3516cv300-crg.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: HiSilicon Hi3516C V300 / Hi3516E V100 Clock and Reset Generator (CRG) and system controller
+
+maintainers:
+  - Dylan Corrales <deathcamel58@gmail.com>
+
+description: |
+  The CRG of the Hi3516C V300 and the Hi3516E V100 ARM926EJ-S IP camera SoCs
+  provides the three PLLs, the CPU, DDR and system APB clock selects, the
+  module clock selects, the peripheral clock gates and the peripheral soft
+  resets. Both SoCs are described by one data sheet with one CRG register
+  map and one chip ID (SC_SYSID 0x3516_C300), so the Hi3516C V300 compatibles
+  are the fallback of the Hi3516E V100 ones. The SP804 timer count clock
+  selects live in the system controller, which has its own compatible and
+  provides those clocks.
+
+  The PLLs and the CPU, DDR and system APB clock selects are read only: the
+  boot loader programs them (a switch needs the PLL lock and the handshake
+  bits of PERI_CRG55). The clock driver reads them back, the fixed module
+  clocks are dividers of the decoded VPLL and EPLL outputs and of the
+  crystal, and it says so when a PLL is not locked, bypassed, powered down or
+  not at the output of the data sheet clock tree. The system
+  controller registers are write protected by SC_LOCKEN, so the timer count
+  clock selects are read only as well. The module clock selects and the
+  Ethernet interface selects of PERI_CRG59 (core clock, RMII clock source and
+  the clock output to the PHY) are writable clock muxes, so that a board can
+  choose them with assigned-clock-parents instead of relying on the boot
+  loader. Nothing is written unless a device tree asks for it. The clock
+  core reports the select it reads, and the select of the Ethernet core clock
+  is 99 MHz after reset but may hold 54 MHz when a boot loader has used the
+  network, so a board that needs one of the two sets it explicitly.
+
+  The hisilicon,hi3516cv300-sys compatible is the name that the vendor device
+  trees use for the system controller; it is deprecated and accepted for the
+  existing device trees.
+
+  Reset specifiers have two cells: the register offset from the CRG base and
+  the bit number. A set bit holds the peripheral in reset, for example
+  <&crg 0xec 0> is the soft reset of the Ethernet MAC. Only the soft reset
+  bits that the data sheet lists are valid: a specifier that names another
+  register or bit is rejected. The ARM core, DDR test and PLL spread spectrum
+  modulator resets are not available.
+
+  See include/dt-bindings/clock/hi3516cv300-clock.h for the clock identifiers.
+
+properties:
+  compatible:
+    oneOf:
+      - items:
+          - const: hisilicon,hi3516ev100-crg
+          - const: hisilicon,hi3516cv300-crg
+      - const: hisilicon,hi3516cv300-crg
+      - items:
+          - const: hisilicon,hi3516ev100-sysctrl
+          - const: hisilicon,hi3516cv300-sysctrl
+          - const: syscon
+      - items:
+          - const: hisilicon,hi3516cv300-sysctrl
+          - const: syscon
+      - items:
+          - const: hisilicon,hi3516cv300-sys
+          - const: syscon
+        deprecated: true
+
+  reg:
+    maxItems: 1
+
+  '#clock-cells':
+    const: 1
+
+  '#reset-cells':
+    const: 2
+
+required:
+  - compatible
+  - reg
+  - '#clock-cells'
+
+allOf:
+  - if:
+      properties:
+        compatible:
+          contains:
+            const: hisilicon,hi3516cv300-crg
+    then:
+      required:
+        - '#reset-cells'
+    else:
+      properties:
+        '#reset-cells': false
+
+additionalProperties: false
+
+examples:
+  - |
+    clock-controller@12010000 {
+        compatible = "hisilicon,hi3516cv300-crg";
+        reg = <0x12010000 0x1000>;
+        #clock-cells = <1>;
+        #reset-cells = <2>;
+    };
+
+    system-controller@12020000 {
+        compatible = "hisilicon,hi3516cv300-sysctrl", "syscon";
+        reg = <0x12020000 0x1000>;
+        #clock-cells = <1>;
+    };
+
+  - |
+    clock-controller@12010000 {
+        compatible = "hisilicon,hi3516ev100-crg", "hisilicon,hi3516cv300-crg";
+        reg = <0x12010000 0x1000>;
+        #clock-cells = <1>;
+        #reset-cells = <2>;
+    };
