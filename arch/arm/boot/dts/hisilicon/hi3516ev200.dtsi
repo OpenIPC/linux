@@ -269,30 +269,18 @@
 			reset-names = "mac";
 		};
 
-		fmc: flash-memory-controller@10000000 {
-			compatible = "hisilicon,hisi-fmc";
+		fmc: spi@10000000 {
+			compatible = "hisilicon,hi3516ev200-fmc",
+				     "hisilicon,hifmc100";
 			reg = <0x10000000 0x1000>, <0x14000000 0x10000>;
 			reg-names = "control", "memory";
 			clocks = <&clock HI3516EV200_FMC_CLK>;
-			max-dma-size = <0x2000>;
+			assigned-clocks = <&clock HI3516EV200_FMC_CLK>;
+			assigned-clock-rates = <24000000>;
+			resets = <&clock 0x144 0>;
 			#address-cells = <1>;
 			#size-cells = <0>;
-
-			hisfc:spi-nor@0 {
-					compatible = "hisilicon,fmc-spi-nor";
-					assigned-clocks = <&clock HI3516EV200_FMC_CLK>;
-					assigned-clock-rates = <24000000>;
-					#address-cells = <1>;
-					#size-cells = <0>;
-			};
-
-			hisnfc:spi-nand@0 {
-					compatible = "hisilicon,fmc-spi-nand";
-					assigned-clocks = <&clock HI3516EV200_FMC_CLK>;
-					assigned-clock-rates = <24000000>;
-					#address-cells = <1>;
-					#size-cells = <0>;
-			};
+			status = "disabled";
 		};
 
 		iocfg_ctrl: iocfg-controller@100c0000 {
