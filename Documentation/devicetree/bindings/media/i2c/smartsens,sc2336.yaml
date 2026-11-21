@@ -4,7 +4,7 @@
 $id: http://devicetree.org/schemas/media/i2c/smartsens,sc2336.yaml#
 $schema: http://devicetree.org/meta-schemas/core.yaml#
 
-title: SmartSens SC1A4T, SC2336, SC2336P and SC2337P 2MP MIPI CSI-2 Sensors
+title: SmartSens MIPI CSI-2 image sensors
 
 maintainers:
   - Paul Cercueil <paul@crapouillou.net>
@@ -12,7 +12,11 @@ maintainers:
 properties:
   compatible:
     enum:
+      - smartsens,sc1346
       - smartsens,sc1a4t
+      - smartsens,sc200ai
+      - smartsens,sc2310
+      - smartsens,sc2331
       - smartsens,sc2336
       - smartsens,sc2336p
       - smartsens,sc2337p
@@ -76,8 +80,12 @@ properties:
             maxItems: 1
             items:
               enum:
+                - 112500000
+                - 180000000
+                - 185625000
                 - 198000000
                 - 360000000
+                - 371250000
 
         required:
           - data-lanes
@@ -90,8 +98,24 @@ allOf:
   - if:
       properties:
         compatible:
-          contains:
-            const: smartsens,sc1a4t
+          enum:
+            - smartsens,sc1346
+    then:
+      properties:
+        port:
+          properties:
+            endpoint:
+              properties:
+                data-lanes:
+                  maxItems: 1
+                link-frequencies:
+                  items:
+                    const: 112500000
+  - if:
+      properties:
+        compatible:
+          enum:
+            - smartsens,sc1a4t
     then:
       properties:
         port:
@@ -103,7 +127,46 @@ allOf:
                 link-frequencies:
                   items:
                     const: 360000000
-    else:
+  - if:
+      properties:
+        compatible:
+          enum:
+            - smartsens,sc2331
+    then:
+      properties:
+        port:
+          properties:
+            endpoint:
+              properties:
+                data-lanes:
+                  minItems: 2
+                link-frequencies:
+                  items:
+                    const: 180000000
+  - if:
+      properties:
+        compatible:
+          enum:
+            - smartsens,sc2310
+    then:
+      properties:
+        port:
+          properties:
+            endpoint:
+              properties:
+                data-lanes:
+                  minItems: 2
+                link-frequencies:
+                  items:
+                    const: 185625000
+  - if:
+      properties:
+        compatible:
+          enum:
+            - smartsens,sc2336
+            - smartsens,sc2336p
+            - smartsens,sc2337p
+    then:
       properties:
         port:
           properties:
@@ -114,6 +177,34 @@ allOf:
                 link-frequencies:
                   items:
                     const: 198000000
+  - if:
+      properties:
+        compatible:
+          enum:
+            - smartsens,sc200ai
+    then:
+      properties:
+        port:
+          properties:
+            endpoint:
+              properties:
+                data-lanes:
+                  minItems: 2
+                link-frequencies:
+                  items:
+                    enum: [185625000, 371250000]
+  - if:
+      properties:
+        compatible:
+          enum:
+            - smartsens,sc1346
+            - smartsens,sc200ai
+            - smartsens,sc2310
+            - smartsens,sc2331
+    then:
+      properties:
+        smartsens,frame-sync-slave: false
+        smartsens,secondary-i2c-addr: false
 
 required:
   - compatible
