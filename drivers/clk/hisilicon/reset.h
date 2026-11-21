@@ -8,14 +8,25 @@
 
 #include <linux/err.h>
 #include <linux/spinlock_types.h>
+#include <linux/types.h>
 
 struct device_node;
 struct hisi_reset_controller;
+
+/* the resets of one register: bit n of @mask is the reset at bit n of @offset */
+struct hisi_reset_bits {
+	u32 offset;
+	u32 mask;
+};
 
 #ifdef CONFIG_RESET_CONTROLLER
 struct hisi_reset_controller *hisi_reset_init(struct platform_device *pdev);
 struct hisi_reset_controller *hisi_reset_init_shared(struct platform_device *pdev,
 						     spinlock_t *lock);
+struct hisi_reset_controller *hisi_reset_init_checked(struct platform_device *pdev,
+						      spinlock_t *lock,
+						      const struct hisi_reset_bits *bits,
+						      size_t num_bits);
 void hisi_reset_exit(struct hisi_reset_controller *rstc);
 #else
 static inline
@@ -27,6 +38,15 @@ struct hisi_reset_controller *hisi_reset_init(struct platform_device *pdev)
 static inline
 struct hisi_reset_controller *hisi_reset_init_shared(struct platform_device *pdev,
 						     spinlock_t *lock)
+{
+	return ERR_PTR(-ENODEV);
+}
+
+static inline
+struct hisi_reset_controller *hisi_reset_init_checked(struct platform_device *pdev,
+						      spinlock_t *lock,
+						      const struct hisi_reset_bits *bits,
+						      size_t num_bits)
 {
 	return ERR_PTR(-ENODEV);
 }
