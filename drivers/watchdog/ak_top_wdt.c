@@ -27,6 +27,8 @@
 #include <linux/bitops.h>
 #include <linux/uaccess.h>
 #include <linux/reboot.h>
+#include <linux/timer.h>
+#include <linux/jiffies.h>
 
 #include <mach/map.h>
 #include <linux/platform_device.h>
@@ -50,6 +52,18 @@ static unsigned int now_heartbeat = 0;
 #define MODULE_WDT_CFG2 (AK_VA_SYSCTRL + 0Xe8)
 
 static unsigned long in_use;
+
+/*
+ * The vendor U-Boot arms this watchdog on every boot and leaves it running
+ * into the kernel. Until userspace opens /dev/watchdog nothing would feed
+ * it, so the camera reset in the middle of boot (55-60 s after U-Boot
+ * started, on an oQo ICF001, AK3918AV100N), or for good on an image whose
+ * userspace never takes the device. As mainline's watchdog core does for a
+ * WDOG_HW_RUNNING watchdog, the driver feeds it from a timer until the first
+ * open, and from then on whoever holds the device owns it.
+ */
+static struct timer_list boot_feed_timer;
+static bool boot_feeding;
 static atomic_t in_write = ATOMIC_INIT(0);
 static DEFINE_SPINLOCK(wdt_lock);
 
@@ -69,7 +83,7 @@ void wdt_enable(void)
 {
     u32 regval;
     
-    unsigned int cfg_val = (unsigned int)def_heartbeat;
+    unsigned int cfg_val = (unsigned int)now_heartbeat;
     spin_lock(&wdt_lock);   
     /* configure the watchdog time*/
     regval = __raw_readl(MODULE_WDT_CFG1);
@@ -124,9 +138,35 @@ void wdt_keepalive(unsigned int heartbeat)
     spin_unlock(&wdt_lock);
 }
 
+/* Bit 0 of CFG2 reads back as the enable bit; ak_watchdog_resume relies on it. */
+static bool wdt_hw_running(void)
+{
+    return __raw_readl(MODULE_WDT_CFG2) & 0x1;
+}
+
+static unsigned long boot_feed_interval(void)
+{
+    return max_t(unsigned long, heartbeat * HZ / 2, HZ / 2);
+}
+
+static void boot_feed(unsigned long unused)
+{
+    wdt_keepalive(def_heartbeat);
+    mod_timer(&boot_feed_timer, jiffies + boot_feed_interval());
+}
+
+static void boot_feed_stop(void)
+{
+    if (boot_feeding) {
+        del_timer_sync(&boot_feed_timer);
+        boot_feeding = false;
+    }
+}
+
 static int ak_wdt_disable_nb(struct notifier_block *n, unsigned long state,
     void *cmd)
 {
+        boot_feed_stop();
         wdt_disable();
         return NOTIFY_DONE;
 }
@@ -208,7 +248,7 @@ static ssize_t ak_wdt_write(struct file *file, const char *data, size_t len,
                 atomic_set(&in_write, 0);
             }
         }
-        wdt_keepalive(def_heartbeat);
+        wdt_keepalive(now_heartbeat);
     }
 
     return len;
@@ -224,6 +264,10 @@ static int ak_wdt_open(struct inode *inode, struct file *file)
 {
     if (test_and_set_bit(0, &in_use))
         return -EBUSY;
+
+    /* Userspace owns the watchdog from here: a close without the magic 'V'
+     * leaves it to expire, as it always has. */
+    boot_feed_stop();
     
     if (nowayout)
         __module_get(THIS_MODULE);
@@ -290,12 +334,24 @@ static int ak_watchdog_probe(struct platform_device *pdev)
              "Could not read linein-detect property\n");
     } 
 
+    if (heartbeat == 0 || heartbeat > MAX_FEED_DOG)
+        heartbeat = 10;
     def_heartbeat = heartbeat * WATCH_DOG_1_SECOND_SET;
     now_heartbeat = heartbeat * WATCH_DOG_1_SECOND_SET;
+
+    setup_timer(&boot_feed_timer, boot_feed, 0);
+    if (wdt_hw_running()) {
+        pr_info("ak_wdt: running at boot, fed by the kernel until /dev/watchdog is opened\n");
+        boot_feeding = true;
+        boot_feed(0);
+    }
     
     ret = misc_register(&ak_wdt_miscdev);
     if(ret) {
         pr_info("%s reg miscdev failed.\n", __func__);
+        /* A failed probe gets no remove: undo what it started. */
+        boot_feed_stop();
+        unregister_reboot_notifier(&ak_wdt_nb);
         ret = -ENOENT;
     }
     
@@ -311,6 +367,7 @@ static int ak_watchdog_probe(struct platform_device *pdev)
 static int ak_watchdog_remove(struct platform_device *pdev)
 {
     unregister_reboot_notifier(&ak_wdt_nb);
+    boot_feed_stop();
 
     misc_deregister(&ak_wdt_miscdev);
 
@@ -321,6 +378,7 @@ static int ak_watchdog_remove(struct platform_device *pdev)
 
 static uint32_t wdt_cfg1;
 static uint32_t wdt_cfg2;
+static bool wdt_boot_feeding;
 
 /**
  * @brief ak_watchdog_suspend
@@ -333,6 +391,9 @@ static int ak_watchdog_suspend(struct platform_device *pdev,
 {
     wdt_cfg1 = __raw_readl(MODULE_WDT_CFG1);
     wdt_cfg2 = __raw_readl(MODULE_WDT_CFG2);
+
+    wdt_boot_feeding = boot_feeding;
+    boot_feed_stop();
 
     /* turn it off */
     wdt_disable();
@@ -358,6 +419,11 @@ static int ak_watchdog_resume(struct platform_device *pdev)
     wdt_cfg2 &= 1;
     wdt_cfg2 |= (0xaaUL << 24);
     __raw_writel(wdt_cfg2, MODULE_WDT_CFG2);
+
+    if (wdt_boot_feeding) {
+        boot_feeding = true;
+        boot_feed(0);
+    }
 
     pr_info("watchdog resume %sabled\n", (wdt_cfg2 & 1)? "en": "dis");
     return 0;
