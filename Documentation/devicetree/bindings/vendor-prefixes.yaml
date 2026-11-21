@@ -1388,6 +1388,8 @@ patternProperties:
     description: Shenzhen SoChip Technology Co., Ltd.
   "^socionext,.*":
     description: Socionext Inc.
+  "^soi,.*":
+    description: Silicon Optronics, Inc.
   "^solidrun,.*":
     description: SolidRun
   "^solomon,.*":
@@ -1451,6 +1453,8 @@ patternProperties:
     description: Sun Microsystems, Inc
   "^supermicro,.*":
     description: Super Micro Computer, Inc.
+  "^superpix,.*":
+    description: SuperPix Micro Technology, Inc.
   "^swir,.*":
     description: Sierra Wireless
   "^syna,.*":

@@ -11073,6 +11073,18 @@ M:	Stanislaw Gruszka <stf_xl@wp.pl>
 S:	Maintained
 F:	drivers/usb/atm/ueagle-atm.c
 
+IMAGE SENSORS FOR INGENIC T23 CAMERAS
+M:	Difan Zhang <alex@osqdu.org>
+L:	linux-media@vger.kernel.org
+S:	Maintained
+F:	Documentation/devicetree/bindings/media/i2c/smartsens,sc2336.yaml
+F:	Documentation/devicetree/bindings/media/i2c/soi,jxf23.yaml
+F:	Documentation/devicetree/bindings/media/i2c/superpix,sp140a.yaml
+F:	drivers/media/i2c/jxf23.c
+F:	drivers/media/i2c/sensor-regmap.*
+F:	drivers/media/i2c/smartsens/
+F:	drivers/media/i2c/sp140a.c
+
 IMAGIS TOUCHSCREEN DRIVER
 M:	Markuss Broks <markuss.broks@gmail.com>
 S:	Maintained
