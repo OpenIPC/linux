@@ -31,6 +31,18 @@ config COMMON_CLK_HI3516CV200
 	  The SP804 timer is probed before the platform drivers, so the
 	  clocks are registered early and the driver cannot be a module.
 
+config COMMON_CLK_HI3536DV100
+	bool "Hi3536D V100 / Hi3536E Clock and Reset Driver"
+	depends on ARCH_HISI || ARCH_HISI_BVT || COMPILE_TEST
+	select RESET_HISI
+	default ARCH_HI3536DV100
+	help
+	  Build the clock and reset driver for the CRG and the system
+	  controller clocks of the HiSilicon Hi3536D V100 and the Hi3536E.
+	  The SP804 timer is the only tick source of these SoCs and is
+	  probed before the platform drivers, so the clocks are registered
+	  early and the driver cannot be a module.
+
 config COMMON_CLK_HI3516AV100
 	tristate "HI3516AV100 / Hi3516DV100 Clock Driver"
 	depends on ARCH_HISI || ARCH_HISI_BVT || COMPILE_TEST
