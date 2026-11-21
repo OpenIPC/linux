@@ -224,7 +224,7 @@ static void hisi_femac_fephy_write_addr(struct hisi_femac_mdio_data *data,
 
 	val = readl(data->fephy_iobase);
 	val &= ~BIT_MASK_FEPHY_ADDR;
-	val |= addr;
+	val |= addr & BIT_MASK_FEPHY_ADDR;
 	writel(val, data->fephy_iobase);
 }
 
@@ -388,6 +388,11 @@ static void hisi_femac_fephy_set_phy_addr(struct hisi_femac_mdio_data *data)
 	if (!data->fephy_iobase)
 		return;
 
+	/*
+	 * Move the internal PHY to the next address so it does not answer at
+	 * the address of the external PHY. The field is 5 bits wide, so the
+	 * next address after 31 is 0.
+	 */
 	hisi_femac_fephy_write_addr(data, data->phy_addr + 1);
 }
 
