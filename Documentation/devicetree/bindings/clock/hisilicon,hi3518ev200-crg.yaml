@@ -17,10 +17,6 @@ description: |
   of the Hi3516C V200 ones. The SP804 timer count clock selects live in the
   system controller, which has its own compatible and provides those clocks.
 
-  The hisilicon,hi3518ev20x-clock and hisilicon,hi3518ev20x-sysctrl
-  compatibles name no chip and are deprecated; they are accepted for the
-  existing device trees.
-
   Reset specifiers have two cells: the register offset from the CRG base and
   the bit number. A set bit holds the peripheral in reset.
 
@@ -33,8 +29,6 @@ properties:
           - const: hisilicon,hi3516cv200-crg
           - const: hisilicon,hi3518ev200-crg
       - const: hisilicon,hi3518ev200-crg
-      - const: hisilicon,hi3518ev20x-clock
-        deprecated: true
       - items:
           - const: hisilicon,hi3516cv200-sysctrl
           - const: hisilicon,hi3518ev200-sysctrl
@@ -42,10 +36,6 @@ properties:
       - items:
           - const: hisilicon,hi3518ev200-sysctrl
           - const: syscon
-      - items:
-          - const: hisilicon,hi3518ev20x-sysctrl
-          - const: syscon
-        deprecated: true
 
   reg:
     maxItems: 1
@@ -66,9 +56,7 @@ allOf:
       properties:
         compatible:
           contains:
-            enum:
-              - hisilicon,hi3518ev200-crg
-              - hisilicon,hi3518ev20x-clock
+            const: hisilicon,hi3518ev200-crg
     then:
       required:
         - '#reset-cells'
