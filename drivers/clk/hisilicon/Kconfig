@@ -124,14 +124,27 @@ config STUB_CLK_HI3660
 	  Build the Hisilicon Hi3660 stub clock driver.
 
 config COMMON_CLK_HI3516EV200
-	bool "Hi3516EV200 Clock Driver"
+	bool "Hi3516E V200 and V300 Clock and Reset Driver"
 	depends on ARCH_HISI_BVT || COMPILE_TEST
-	default ARCH_HI3516EV200
+	select RESET_HISI
+	default ARCH_HI3516EV200 || ARCH_HI3516EV300
+	help
+	  Build the clock and reset driver for the CRG and the system
+	  controller clocks of the HiSilicon Hi3516E V200 and Hi3516E V300.
+	  It provides the PLLs, the CPU, DDR and bus clocks, the peripheral
+	  clock gates and selects, the SP804 count clock selects and the
+	  peripheral soft resets. The SP804 timers can need it before platform
+	  drivers run, so it is built in.
 
 config COMMON_CLK_HI3516EV300
-	bool "Hi3516EV300 Clock Driver"
+	bool "Hi3516E V300 Clock Driver"
 	depends on ARCH_HISI_BVT || COMPILE_TEST
+	select COMMON_CLK_HI3516EV200
 	default ARCH_HI3516EV300
+	help
+	  The Hi3516E V300 uses the same driver as the Hi3516E V200. This
+	  option is kept so that a configuration that has it set keeps its
+	  clock driver; it selects COMMON_CLK_HI3516EV200.
 
 config COMMON_CLK_HI3518EV300
 	bool "Hi3518EV300 Clock Driver"
