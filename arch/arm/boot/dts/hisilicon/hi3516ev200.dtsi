@@ -92,18 +92,6 @@
 		interrupt-parent = <&gic>;
 		ranges;
 
-		clk_3m: clk_3m {
-			compatible = "fixed-clock";
-			#clock-cells = <0>;
-			clock-frequency = <3000000>;
-		};
-
-		clk_apb: clk_apb {
-			compatible = "fixed-clock";
-			#clock-cells = <0>;
-			clock-frequency = <50000000>;
-		};
-
 		pmu {
 			compatible = "arm,cortex-a7-pmu";
 			interrupts = <0 58 4>;
@@ -142,17 +130,21 @@
 				/* timer0 & timer1 */
 				interrupts = <0 5 4>;
 				reg = <0x12000000 0x1000>;
-				clocks = <&clk_3m>, <&clk_3m>, <&clk_apb>;
+				clocks = <&sysctrl HI3516EV200_TIMER0>,
+					 <&sysctrl HI3516EV200_TIMER1>,
+					 <&clock HI3516EV200_SYSAPB_CLK>;
 				clock-names = "timer00", "timer01", "apb_pclk";
 				status = "disabled";
 			};
 
 			dual_timer1: dual_timer@12001000 {
-				compatible = "arm,sp805", "arm,primecell5";
+				compatible = "arm,sp804", "arm,primecell";
 				/* timer2 & timer3 */
 				interrupts = <0 6 4>;
 				reg = <0x12001000 0x1000>;
-				clocks = <&clk_3m>, <&clk_3m>, <&clk_apb>;
+				clocks = <&sysctrl HI3516EV200_TIMER2>,
+					 <&sysctrl HI3516EV200_TIMER3>,
+					 <&clock HI3516EV200_SYSAPB_CLK>;
 				clock-names = "timer10", "timer11", "apb_pclk";
 				status = "okay";
 			};
@@ -161,8 +153,9 @@
 				compatible = "arm,pl011", "arm,primecell";
 				reg = <0x12040000 0x1000>;
 				interrupts = <0 7 4>;
-				clocks = <&clock HI3516EV200_UART0_CLK>;
-				clock-names = "apb_pclk";
+				clocks = <&clock HI3516EV200_UART0_CLK>,
+					 <&clock HI3516EV200_SYSAPB_CLK>;
+				clock-names = "uartclk", "apb_pclk";
 				status = "disabled";
 			};
 
@@ -170,8 +163,9 @@
 				compatible = "arm,pl011", "arm,primecell";
 				reg = <0x12041000 0x1000>;
 				interrupts = <0 8 4>;
-				clocks = <&clock HI3516EV200_UART1_CLK>;
-				clock-names = "apb_pclk";
+				clocks = <&clock HI3516EV200_UART1_CLK>,
+					 <&clock HI3516EV200_SYSAPB_CLK>;
+				clock-names = "uartclk", "apb_pclk";
 				dmas = <&hiedmacv310_0 19 19>, <&hiedmacv310_0 18 18>;
 				dma-names = "tx","rx";
 				status = "disabled";
@@ -181,8 +175,9 @@
 				compatible = "arm,pl011", "arm,primecell";
 				reg = <0x12042000 0x1000>;
 				interrupts = <0 9 4>;
-				clocks = <&clock HI3516EV200_UART2_CLK>;
-				clock-names = "apb_pclk";
+				clocks = <&clock HI3516EV200_UART2_CLK>,
+					 <&clock HI3516EV200_SYSAPB_CLK>;
+				clock-names = "uartclk", "apb_pclk";
 				dmas = <&hiedmacv310_0 21 21>, <&hiedmacv310_0 20 20>;
 				dma-names = "tx","rx";
 				status = "disabled";
@@ -214,42 +209,45 @@
 			status = "disabled";
 		};
 
-        spi_bus0: spi@12070000 {
-            compatible = "arm,pl022", "arm,primecell";
-            arm,primecell-periphid = <0x00800022>;
-            reg = <0x12070000 0x1000>;
-            interrupts = <0 14 4>;
-            clocks = <&clock HI3516EV200_SPI0_CLK>;
-            clock-names = "apb_pclk";
-            #address-cells = <1>;
-            #size-cells = <0>;
-            dmas = <&hiedmacv310_0 27 27>, <&hiedmacv310_0 26 26>;
-            dma-names = "tx","rx";
-            status = "disabled";
-        };
+		spi_bus0: spi@12070000 {
+			compatible = "arm,pl022", "arm,primecell";
+			arm,primecell-periphid = <0x00800022>;
+			reg = <0x12070000 0x1000>;
+			interrupts = <0 14 4>;
+			clocks = <&clock HI3516EV200_SPI0_CLK>,
+				 <&clock HI3516EV200_SYSAPB_CLK>;
+			clock-names = "sspclk", "apb_pclk";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			dmas = <&hiedmacv310_0 27 27>, <&hiedmacv310_0 26 26>;
+			dma-names = "tx","rx";
+			status = "disabled";
+		};
 
-        spi_bus1: spi@12071000 {
-            compatible = "arm,pl022", "arm,primecell";
-            arm,primecell-periphid = <0x00800022>;
-            reg = <0x12071000 0x1000>, <0x12028000 0x4>;
-            interrupts = <0 15 4>;
-            clocks = <&clock HI3516EV200_SPI1_CLK>;
-            clock-names = "apb_pclk";
-            #address-cells = <1>;
-            #size-cells = <0>;
-            num-cs = <2>;
-            hisi,spi_cs_sb = <2>;
-            hisi,spi_cs_mask_bit = <0x4>;//0100
-            dmas = <&hiedmacv310_0 29 29>, <&hiedmacv310_0 28 28>;
-            dma-names = "tx","rx";
-            status = "disabled";
-        };
+		spi_bus1: spi@12071000 {
+			compatible = "arm,pl022", "arm,primecell";
+			arm,primecell-periphid = <0x00800022>;
+			reg = <0x12071000 0x1000>, <0x12028000 0x4>;
+			interrupts = <0 15 4>;
+			clocks = <&clock HI3516EV200_SPI1_CLK>,
+				 <&clock HI3516EV200_SYSAPB_CLK>;
+			clock-names = "sspclk", "apb_pclk";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			num-cs = <2>;
+			hisi,spi_cs_sb = <2>;
+			hisi,spi_cs_mask_bit = <0x4>;//0100
+			dmas = <&hiedmacv310_0 29 29>, <&hiedmacv310_0 28 28>;
+			dma-names = "tx","rx";
+			status = "disabled";
+		};
 
 		mdio0: mdio@10041100 {
 			compatible = "hisilicon,hisi-femac-mdio";
 			reg = <0x10041100 0x10>,<0x12028024 0x4>;
-			clocks = <&clock HI3516EV200_ETH0_CLK>;
-			clock-names = "mdio";
+			clocks = <&clock HI3516EV200_ETH0_CLK>,
+				 <&clock HI3516EV200_ETH_FEPHY_CLK>;
+			clock-names = "mdio", "phy";
 			resets = <&clock 0x16c 3>;
 			reset-names = "internal-phy";
 			#address-cells = <1>;
@@ -262,6 +260,8 @@
 			reg = <0x10040000 0x1000>,<0x10041300 0x200>;
 			interrupts = <0 33 4>;
 			clocks = <&clock HI3516EV200_ETH0_CLK>;
+			assigned-clocks = <&clock HI3516EV200_ETH_MUX>;
+			assigned-clock-parents = <&clock HI3516EV200_FIXED_100M>;
 			resets = <&clock 0x16c 0>;
 			reset-names = "mac";
 		};
