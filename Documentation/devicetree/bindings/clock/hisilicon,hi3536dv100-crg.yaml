@@ -1,0 +1,87 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/clock/hisilicon,hi3536dv100-crg.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: HiSilicon Hi3536D V100 Clock and Reset Generator (CRG) and system controller
+
+maintainers:
+  - Dylan Corrales <deathcamel58@gmail.com>
+
+description: |
+  The CRG of the Hi3536D V100, the single Cortex-A7 NVR decoder SoC (marked
+  Hi3536DRBCV100), provides six PLLs, the CPU, DDR and bus clock selects, the
+  module clock selects, the peripheral clock gates and the peripheral soft
+  resets. The Hi3536E (marked Hi3536ERBCV100) reports the same SCSYSID
+  (0x3536D100) and is described by the same compatible: it is known to differ
+  from the Hi3536D V100 in the PLL and DDR setup of its boot code and in
+  SC_SYSID0 (offset 0xee0 of the system controller, reported as 0x02000000
+  by the OpenIPC U-Boot, where a Hi3536D V100 reads 0x01000000), and no data
+  sheet of it exists, so nothing else is known about its clock tree. Nothing
+  available shows a difference in its register map (the driver reads the PLLs
+  and does not depend on their values), so it has no compatible of its own: one
+  goes in front of this one when a register dump shows a clock tree difference.
+
+  The SP804 timer count clock selects live in the system controller, which
+  has its own compatible and provides those clocks.
+
+  Reset specifiers have two cells: the register offset from the CRG base and
+  the bit number. A set bit holds the peripheral in reset, for example
+  <&crg 0xc4 0> is the soft reset of the Ethernet MAC. A specifier that names
+  a register or a bit that is not a listed reset is rejected.
+
+  See include/dt-bindings/clock/hi3536dv100-clock.h for the clock identifiers
+  and the reset bits.
+
+properties:
+  compatible:
+    oneOf:
+      - const: hisilicon,hi3536dv100-crg
+      - items:
+          - const: hisilicon,hi3536dv100-sysctrl
+          - const: syscon
+
+  reg:
+    maxItems: 1
+
+  '#clock-cells':
+    const: 1
+
+  '#reset-cells':
+    const: 2
+
+required:
+  - compatible
+  - reg
+  - '#clock-cells'
+
+allOf:
+  - if:
+      properties:
+        compatible:
+          contains:
+            const: hisilicon,hi3536dv100-crg
+    then:
+      required:
+        - '#reset-cells'
+    else:
+      properties:
+        '#reset-cells': false
+
+additionalProperties: false
+
+examples:
+  - |
+    clock-controller@12040000 {
+        compatible = "hisilicon,hi3536dv100-crg";
+        reg = <0x12040000 0x1000>;
+        #clock-cells = <1>;
+        #reset-cells = <2>;
+    };
+
+    system-controller@12050000 {
+        compatible = "hisilicon,hi3536dv100-sysctrl", "syscon";
+        reg = <0x12050000 0x1000>;
+        #clock-cells = <1>;
+    };

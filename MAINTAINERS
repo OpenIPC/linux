@@ -11508,6 +11508,13 @@ S:	Maintained
 F:	Documentation/devicetree/bindings/phy/hisilicon,hi3520dv100-usb2-phy.yaml
 F:	drivers/phy/hisilicon/phy-hi3520d-usb2.c
 
+HISILICON HI3536D SOC SUPPORT
+M:	Dylan Corrales <deathcamel58@gmail.com>
+L:	linux-arm-kernel@lists.infradead.org (moderated for non-subscribers)
+S:	Maintained
+F:	Documentation/devicetree/bindings/clock/hisilicon,hi3536dv100-crg.yaml
+F:	include/dt-bindings/clock/hi3536dv*-clock.h
+
 HISILICON HIGH PERFORMANCE RSA ENGINE DRIVER (HPRE)
 M:	Zhiqi Song <songzhiqi1@huawei.com>
 M:	Longfang Liu <liulongfang@huawei.com>
