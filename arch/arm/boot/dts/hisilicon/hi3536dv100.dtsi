@@ -1,0 +1,86 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+/*
+ * HiSilicon Hi3536D V100 SoC (NVR decoder, one Cortex-A7, GIC-400, DDR at
+ * 0x80000000). The Hi3536E reports the same SCSYSID and is described by this
+ * file too: the OpenIPC U-Boot sets other CPU and DDR PLL values for it and
+ * reports SC_SYSID0 as 0x02000000 (a Hi3536D V100 board reads 0x01000000),
+ * nothing else is known.
+ *
+ * Addresses and interrupts are those of the Hi3536D V100 data sheet (address
+ * space mapping of chapter 2 and the interrupt table of chapter 3.4, where an
+ * interrupt bit n is SPI n - 32). This file describes only the blocks that
+ * have a binding and a driver and whose clocks and resets the CRG provides:
+ * the other blocks (flash controller, Ethernet, SATA, USB, DMA, media) follow
+ * with their drivers, using the clock identifiers and reset bits of
+ * hi3536dv100-clock.h.
+ *
+ * The Cortex-A7 generic timer is not described: no document gives the
+ * frequency of its counter input, and on a Hi3536D V100 board CNTFRQ reads 0
+ * and the counter stays at 0, so the SP804 timer is the only tick source.
+ */
+
+#include <dt-bindings/clock/hi3536dv100-clock.h>
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+
+/ {
+	compatible = "hisilicon,hi3536dv100";
+	#address-cells = <1>;
+	#size-cells = <1>;
+	interrupt-parent = <&gic>;
+	chosen { };
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		cpu@0 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a7";
+			reg = <0>;
+		};
+	};
+
+	/* interrupt bit 86 (A7_PMUIRQ) */
+	pmu {
+		compatible = "arm,cortex-a7-pmu";
+		interrupts = <GIC_SPI 54 IRQ_TYPE_LEVEL_HIGH>;
+	};
+
+	/* the GICC window is 0x2000 as in every GIC-400, the vendor tree maps 0x100 */
+	gic: interrupt-controller@10301000 {
+		compatible = "arm,cortex-a7-gic";
+		reg = <0x10301000 0x1000>,	/* distributor */
+		      <0x10302000 0x2000>;	/* CPU interface */
+		#interrupt-cells = <3>;
+		interrupt-controller;
+	};
+
+	/* SC_SYSRES is write protected by SC_LOCKEN */
+	reboot {
+		compatible = "syscon-reboot";
+		regmap = <&sysctrl>;
+		offset = <0x04>;	/* SC_SYSRES */
+		mask = <0x1>;
+	};
+
+	soc {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "simple-bus";
+		ranges;
+
+		crg: clock-controller@12040000 {
+			compatible = "hisilicon,hi3536dv100-crg";
+			reg = <0x12040000 0x1000>;
+			#clock-cells = <1>;
+			#reset-cells = <2>;
+		};
+
+		/* SC_CTRL, SC_SYSRES (0x04), SC_SYSSTAT (0x8c), SC_SYSID0..3 (0xee0) */
+		sysctrl: system-controller@12050000 {
+			compatible = "hisilicon,hi3536dv100-sysctrl", "syscon";
+			reg = <0x12050000 0x1000>;
+			#clock-cells = <1>;
+		};
+	};
+};
