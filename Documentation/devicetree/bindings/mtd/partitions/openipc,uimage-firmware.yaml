@@ -1,0 +1,54 @@
+# SPDX-License-Identifier: GPL-2.0-only OR BSD-2-Clause
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/mtd/partitions/openipc,uimage-firmware.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: OpenIPC uImage Firmware Partition
+
+description: |
+  OpenIPC NOR flash images pack a legacy U-Boot uImage followed by a SquashFS
+  root filesystem aligned to the next 64 KiB boundary inside a single firmware
+  partition. Because the kernel and rootfs boundary depends on the image sizes
+  rather than fixed offsets, subpartitions are discovered from the uImage and
+  SquashFS headers at runtime, exposing kernel, rootfs and optional
+  rootfs_data partitions.
+
+maintainers:
+  - Difan Zhang <alex@osqdu.org>
+
+allOf:
+  - $ref: partition.yaml#
+
+properties:
+  compatible:
+    const: openipc,uimage-firmware
+
+required:
+  - compatible
+
+unevaluatedProperties: false
+
+examples:
+  - |
+    partitions {
+        compatible = "fixed-partitions";
+        #address-cells = <1>;
+        #size-cells = <1>;
+
+        partition@0 {
+            label = "boot";
+            reg = <0x000000 0x040000>;
+        };
+
+        partition@40000 {
+            label = "env";
+            reg = <0x040000 0x010000>;
+        };
+
+        partition@50000 {
+            compatible = "openipc,uimage-firmware";
+            reg = <0x050000 0x0>;
+            label = "firmware";
+        };
+    };
