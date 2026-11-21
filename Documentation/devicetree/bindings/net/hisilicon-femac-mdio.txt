@@ -17,7 +17,8 @@ Example:
 mdio: mdio@10091100 {
 	compatible = "hisilicon,hisi-femac-mdio";
 	reg = <0x10091100 0x10>;
-	clocks = <&crg HI3516CV300_MDIO_CLK>;
+	clocks = <&crg HI3516CV300_ETH_CLK>;
+	clock-names = "mdio";
 	#address-cells = <1>;
 	#size-cells = <0>;
 
