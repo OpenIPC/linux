@@ -40,5 +40,7 @@ properties:
           - const: hisilicon,hi3516dv200
       - items:
           - const: hisilicon,hi3516dv300
+      - items:
+          - const: hisilicon,hi3536dv100
 
 additionalProperties: true
