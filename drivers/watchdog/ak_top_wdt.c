@@ -349,6 +349,9 @@ static int ak_watchdog_probe(struct platform_device *pdev)
     ret = misc_register(&ak_wdt_miscdev);
     if(ret) {
         pr_info("%s reg miscdev failed.\n", __func__);
+        /* A failed probe gets no remove: undo what it started. */
+        boot_feed_stop();
+        unregister_reboot_notifier(&ak_wdt_nb);
         ret = -ENOENT;
     }
     
