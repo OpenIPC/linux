@@ -17337,6 +17337,13 @@ F:	Documentation/i2c/busses/i2c-ocores.rst
 F:	drivers/i2c/busses/i2c-ocores.c
 F:	include/linux/platform_data/i2c-ocores.h
 
+OPENIPC UIMAGE FIRMWARE PARTITION PARSER
+M:	Difan Zhang <alex@osqdu.org>
+L:	linux-mtd@lists.infradead.org
+S:	Maintained
+F:	Documentation/devicetree/bindings/mtd/partitions/openipc,uimage-firmware.yaml
+F:	drivers/mtd/parsers/parser_openipc_uimage.c
+
 OPENRISC ARCHITECTURE
 M:	Jonas Bonn <jonas@southpole.se>
 M:	Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>
