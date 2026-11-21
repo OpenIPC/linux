@@ -871,6 +871,15 @@ static int hisi_sfc_v3xx_dma_chunk(struct hisi_sfc_v3xx_host *host,
 	synchronize_irq(host->irq);
 	WRITE_ONCE(host->completion, NULL);
 
+	/*
+	 * The done interrupt may have been handled after the wait gave up and
+	 * before it was masked (synchronize_irq() waited for the handler to
+	 * return). That is a late wakeup, not a missing interrupt: the
+	 * transfer is over, so take it as the success it is.
+	 */
+	if (ret && completion_done(&done))
+		ret = 0;
+
 	if (ret) {
 		/*
 		 * The engine has no abort. Wait for it to finish before
