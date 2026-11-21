@@ -16,7 +16,7 @@
 	};
 
 	chosen {
-		bootargs = "console=ttyS1,115200n8 root=/dev/mtdblock3 rootfstype=squashfs init=/init";
+		bootargs = "console=ttyS1,115200n8 root=/dev/mtdblock4 rootfstype=squashfs init=/init";
 		stdout-path = "serial1:115200n8";
 	};
 
@@ -147,18 +147,9 @@
 			};
 
 			partition@50000 {
-				label = "kernel";
-				reg = <0x050000 0x200000>;
-			};
-
-			partition@250000 {
-				label = "rootfs";
-				reg = <0x250000 0x500000>;
-			};
-
-			partition@750000 {
-				label = "rootfs_data";
-				reg = <0x750000 0x0b0000>;
+				compatible = "openipc,uimage-firmware";
+				reg = <0x050000 0x0>;
+				label = "firmware";
 			};
 		};
 	};
