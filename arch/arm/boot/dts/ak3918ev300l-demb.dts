@@ -6,8 +6,12 @@
  * kernel 4.4.282), where that differs from the EVB:
  *
  * - two sensor candidates, 0x30 with its reset on GPIO 19 and 0x32 with its
- *   reset on GPIO 18, both active low and neither with a power-down line
- *   (the EVB: one sensor at 0x30, GPIO 18 its power-down);
+ *   reset on GPIO 18, both active low (the EVB: one sensor at 0x30);
+ * - GPIO 18 also the 0x30 sensor's power-down, active low, as on the EVB and
+ *   in the stock device tree of a V380 PTZ (hwname V380E6_G1). Both nodes
+ *   name the pin, and each sensor driver claims it with devm_gpio_request():
+ *   the node that probes first holds it, and one that fails its ID read
+ *   gives it back for the other;
  * - the TF card's power switch on GPIO 98 (pad 98 muxed from SYS_RSTN_OUT),
  *   active low, and its card detect on GPIO 37 (the EVB: 50 and 9; both
  *   wirings occur among the SDK's boards);
@@ -33,7 +37,7 @@
 
 &sensor0 {
 	reset-gpio = <&gpio XGPIO_019 1>;
-	pwdn-gpio = <&gpio 0xffff 1>;
+	pwdn-gpio = <&gpio XGPIO_018 1>;
 };
 
 &i2c0 {
