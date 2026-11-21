@@ -999,7 +999,7 @@ static ssize_t hisi_sfc_v3xx_dirmap_read(struct spi_mem_dirmap_desc *desc,
 		return ret;
 
 	/* The window read sends the address in the mode of GLB_CFG too */
-	hisi_sfc_v3xx_set_addr_mode(host, desc->info.op_tmpl.addr.nbytes);
+	hisi_sfc_v3xx_set_addr_mode(host, dm->addr_nbytes);
 
 	val = readl(host->regbase + HISI_SFC_V3XX_BUS_CFG1);
 	writel((val & ~mask) | dm->bus_cfg, host->regbase + HISI_SFC_V3XX_BUS_CFG1);
