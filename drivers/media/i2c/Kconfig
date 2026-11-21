@@ -710,6 +710,35 @@ config VIDEO_VGXY61
 
 source "drivers/media/i2c/ccs/Kconfig"
 source "drivers/media/i2c/et8ek8/Kconfig"
+
+config VIDEO_SENSOR_REGMAP
+	tristate
+	select REGMAP_I2C
+	select V4L2_FWNODE
+	select V4L2_CCI_I2C
+
+config VIDEO_JXF23
+	tristate "Silicon Optronics JXF23, JXF37PA, JXF38P and JXH63P sensors"
+	depends on I2C && OF
+	select VIDEO_SENSOR_REGMAP
+	help
+	  Say Y here to enable the V4L2 driver for Silicon Optronics JXF23,
+	  JXF37PA, JXF38P and JXH63P image sensors.
+
+	  To build this driver as a module, choose M here. The module
+	  will be called jxf23.
+
+config VIDEO_SP140A
+	tristate "SuperPix SP140A sensor"
+	depends on I2C && OF
+	select VIDEO_SENSOR_REGMAP
+	help
+	  Say Y here to enable the V4L2 driver for the SuperPix SP140A
+	  1280x720 CMOS sensor with a single-lane MIPI CSI-2 interface.
+
+	  To build this driver as a module, choose M here. The module
+	  will be called sp140a.
+
 source "drivers/media/i2c/smartsens/Kconfig"
 
 endif
