@@ -21,6 +21,8 @@ struct hisi_reset_controller {
 	spinlock_t	own_lock;	/* used when the caller passes no lock */
 	spinlock_t	*lock;		/* protects the reset register updates */
 	void __iomem	*membase;
+	const struct hisi_reset_bits *bits;	/* valid resets, NULL: any */
+	size_t		num_bits;
 	struct reset_controller_dev	rcdev;
 };
 
@@ -28,11 +30,35 @@ struct hisi_reset_controller {
 #define to_hisi_reset_controller(rcdev)  \
 	container_of(rcdev, struct hisi_reset_controller, rcdev)
 
+/*
+ * A controller with a table of valid resets only accepts a specifier that
+ * names one of them exactly: the cells are compared before they are masked
+ * into the reset ID, so an out of range value cannot alias a valid one.
+ */
+static bool hisi_reset_valid(const struct hisi_reset_controller *rstc,
+			     u32 offset, u32 bit)
+{
+	size_t i;
+
+	if (!rstc->bits)
+		return true;
+
+	for (i = 0; i < rstc->num_bits; i++)
+		if (rstc->bits[i].offset == offset)
+			return bit < 32 && (rstc->bits[i].mask & BIT(bit));
+
+	return false;
+}
+
 static int hisi_reset_of_xlate(struct reset_controller_dev *rcdev,
 			const struct of_phandle_args *reset_spec)
 {
+	struct hisi_reset_controller *rstc = to_hisi_reset_controller(rcdev);
 	u32 offset;
 	u8 bit;
+
+	if (!hisi_reset_valid(rstc, reset_spec->args[0], reset_spec->args[1]))
+		return -EINVAL;
 
 	offset = (reset_spec->args[0] << HISI_RESET_OFFSET_SHIFT)
 		& HISI_RESET_OFFSET_MASK;
@@ -89,35 +115,55 @@ static const struct reset_control_ops hisi_reset_ops = {
 };
 
 /**
- * hisi_reset_init_shared - register a reset controller on the CRG of @pdev
+ * hisi_reset_init_checked - register a reset controller that validates resets
  * @pdev: platform device of the CRG
  * @lock: lock that also protects the other users of the same registers (the
  *	  gate and mux clocks), or NULL to use a private one
+ * @bits: the resets that exist, one entry per register, or NULL to accept any
+ *	  register offset and bit like hisi_reset_init_shared()
+ * @num_bits: number of entries in @bits
  *
  * Reset bits share registers with clock gates, so both must update them under
- * the same lock.
+ * the same lock. With @bits, a reset specifier whose register offset or bit is
+ * not listed is rejected with -EINVAL when the consumer looks it up, so a
+ * device tree cannot make the controller write a register or a bit that is
+ * not a reset, or lies outside the register block.
  *
  * Return: the controller, or an ERR_PTR() with the reason of the failure.
  */
-struct hisi_reset_controller *hisi_reset_init_shared(struct platform_device *pdev,
-						     spinlock_t *lock)
+struct hisi_reset_controller *hisi_reset_init_checked(struct platform_device *pdev,
+						      spinlock_t *lock,
+						      const struct hisi_reset_bits *bits,
+						      size_t num_bits)
 {
 	struct hisi_reset_controller *rstc;
+	struct resource *res;
+	size_t i;
 	int ret;
 
 	rstc = devm_kzalloc(&pdev->dev, sizeof(*rstc), GFP_KERNEL);
 	if (!rstc)
 		return ERR_PTR(-ENOMEM);
 
-	rstc->membase = devm_platform_ioremap_resource(pdev, 0);
+	rstc->membase = devm_platform_get_and_ioremap_resource(pdev, 0, &res);
 	if (IS_ERR(rstc->membase))
 		return ERR_CAST(rstc->membase);
+
+	for (i = 0; bits && i < num_bits; i++) {
+		if ((u64)bits[i].offset + sizeof(u32) > resource_size(res)) {
+			dev_err(&pdev->dev, "reset register %#x is outside the %pR block\n",
+				bits[i].offset, res);
+			return ERR_PTR(-EINVAL);
+		}
+	}
 
 	if (!lock) {
 		spin_lock_init(&rstc->own_lock);
 		lock = &rstc->own_lock;
 	}
 	rstc->lock = lock;
+	rstc->bits = bits;
+	rstc->num_bits = bits ? num_bits : 0;
 	rstc->rcdev.owner = THIS_MODULE;
 	rstc->rcdev.ops = &hisi_reset_ops;
 	rstc->rcdev.of_node = pdev->dev.of_node;
@@ -130,6 +176,24 @@ struct hisi_reset_controller *hisi_reset_init_shared(struct platform_device *pde
 	}
 
 	return rstc;
+}
+EXPORT_SYMBOL_GPL(hisi_reset_init_checked);
+
+/**
+ * hisi_reset_init_shared - register a reset controller on the CRG of @pdev
+ * @pdev: platform device of the CRG
+ * @lock: lock that also protects the other users of the same registers (the
+ *	  gate and mux clocks), or NULL to use a private one
+ *
+ * Accepts any register offset and bit in a reset specifier, see
+ * hisi_reset_init_checked() for a controller that validates them.
+ *
+ * Return: the controller, or an ERR_PTR() with the reason of the failure.
+ */
+struct hisi_reset_controller *hisi_reset_init_shared(struct platform_device *pdev,
+						     spinlock_t *lock)
+{
+	return hisi_reset_init_checked(pdev, lock, NULL, 0);
 }
 EXPORT_SYMBOL_GPL(hisi_reset_init_shared);
 
