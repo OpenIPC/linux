@@ -812,6 +812,16 @@ static int hisi_sfc_v3xx_dirmap_create(struct spi_mem_dirmap_desc *desc)
  * register takes the byte count minus one (vendor driver, data sheet is
  * silent), so the byte after the chunk is poisoned beforehand to notice an
  * engine that writes one byte too many.
+ *
+ * chip_offset is the offset within the flash of dm->cs. That is what
+ * BUS_DMA_FLASH_SADDR takes together with the chip select bit of
+ * BUS_DMA_CTRL, not an offset within the AHB window of the node (the window
+ * of chip select 0 starts half way into it). The data sheet only says "DMA
+ * flash start address"; the vendor driver passes the offset within the chip:
+ * it subtracts the size of a flash before it moves on to the next one and
+ * sets the chip select bit for that one. Only chip select 1 ran on hardware,
+ * where the offset within the chip and within the window are equal, so the
+ * chip-relative reading is unverified for chip select 0.
  */
 #define HISI_SFC_V3XX_DMA_CHUNK		4096
 #define HISI_SFC_V3XX_DMA_ALIGN		256
@@ -846,7 +856,7 @@ static bool hisi_sfc_v3xx_dma_usable(const struct hisi_sfc_v3xx_host *host)
 
 static int hisi_sfc_v3xx_dma_chunk(struct hisi_sfc_v3xx_host *host,
 				   struct hisi_sfc_v3xx_dirmap *dm,
-				   u64 flash_addr, size_t len)
+				   u64 chip_offset, size_t len)
 {
 	DECLARE_COMPLETION_ONSTACK(done);
 	u8 *buf = host->dma_buf;
@@ -860,7 +870,7 @@ static int hisi_sfc_v3xx_dma_chunk(struct hisi_sfc_v3xx_host *host,
 	WRITE_ONCE(host->completion, &done);
 	writel(HISI_SFC_V3XX_INT_MASK_DMA_DONE, host->regbase + HISI_SFC_V3XX_INT_MASK);
 	writel(host->dma_handle, host->regbase + HISI_SFC_V3XX_BUS_DMA_MEM_SADDR);
-	writel(flash_addr, host->regbase + HISI_SFC_V3XX_BUS_DMA_FLASH_SADDR);
+	writel(chip_offset, host->regbase + HISI_SFC_V3XX_BUS_DMA_FLASH_SADDR);
 	writel(len - 1, host->regbase + HISI_SFC_V3XX_BUS_DMA_LEN);
 	writel(HISI_SFC_V3XX_BUS_DMA_AHB_CTRL_INCR_ALL,
 	       host->regbase + HISI_SFC_V3XX_BUS_DMA_AHB_CTRL);
@@ -924,13 +934,13 @@ static int hisi_sfc_v3xx_dma_chunk(struct hisi_sfc_v3xx_host *host,
 }
 
 /*
- * len must be a multiple of HISI_SFC_V3XX_DMA_ALIGN, flash_addr aligned to it.
+ * len must be a multiple of HISI_SFC_V3XX_DMA_ALIGN, chip_offset aligned to it.
  * Returns the number of bytes read, which is less than len if the engine was
  * given up on, or a negative error.
  */
 static ssize_t hisi_sfc_v3xx_dma_read(struct hisi_sfc_v3xx_host *host,
 				      struct hisi_sfc_v3xx_dirmap *dm,
-				      u64 flash_addr, size_t len, u8 *buf)
+				      u64 chip_offset, size_t len, u8 *buf)
 {
 	size_t done = 0;
 
@@ -938,13 +948,13 @@ static ssize_t hisi_sfc_v3xx_dma_read(struct hisi_sfc_v3xx_host *host,
 		size_t n = min_t(size_t, len - done, HISI_SFC_V3XX_DMA_CHUNK);
 		int ret;
 
-		ret = hisi_sfc_v3xx_dma_chunk(host, dm, flash_addr, n);
+		ret = hisi_sfc_v3xx_dma_chunk(host, dm, chip_offset, n);
 		if (ret)
 			return ret;
 
 		memcpy(buf + done, host->dma_buf, n);
 		done += n;
-		flash_addr += n;
+		chip_offset += n;
 		cond_resched();
 
 		/* The engine was given up on (late done interrupt): the caller finishes */
@@ -1000,7 +1010,14 @@ static ssize_t hisi_sfc_v3xx_dirmap_read(struct spi_mem_dirmap_desc *desc,
 	if (host->stuck)
 		return -EIO;
 
-	/* Never read past the mapped window */
+	/*
+	 * Offset within the flash of this chip select. The mapped window of the
+	 * chip select starts at its offset 0, so the window reads and the bus
+	 * DMA (which takes the offset within the chip as well) use the same
+	 * value, whatever chip select it is.
+	 *
+	 * Never read past the mapped window.
+	 */
 	flash_addr = desc->info.offset + offs;
 	if (flash_addr >= dm->win_size)
 		return -EINVAL;
