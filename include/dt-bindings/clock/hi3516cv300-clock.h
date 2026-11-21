@@ -2,47 +2,58 @@
 /*
  * Copyright (c) 2016 HiSilicon Technologies Co., Ltd.
  *
- * Hi3516CV300 clock IDs — kept aligned with the vendor BSP so its
- * 3.18-era DT (arch/arm/boot/dts/hisilicon/hi3516cv300{.dtsi,-demb.dts})
- * compiles unchanged against the modern crg-hi3516cv300.c driver.
+ * Clock identifiers of the CRG and system controller of the Hi3516C V300
+ * and the Hi3516E V100 (ARM926EJ-S / ARMv5TE). Both SoCs have the same CRG
+ * register description; see hisilicon,hi3516cv300-crg.yaml.
+ *
+ * The identifiers that the vendor device trees use keep their values, except
+ * the removed ones listed below, and the file name and the HI3516CV300_
+ * prefix are the ones the device trees and the clock driver already use.
+ * Reset specifiers are the raw register offset and bit number of a soft
+ * reset bit that the data sheet lists; the CRG driver rejects any other.
  */
 
 #ifndef __DTS_HI3516CV300_CLOCK_H
 #define __DTS_HI3516CV300_CLOCK_H
 
+/*
+ * Identifiers 3, 4, 9, 14, 20, 23 and 26 to 28 (fixed 12, 15, 44, 75, 150,
+ * 200, 300, 396 and 400 MHz clocks that no select of the CRG offers), 61
+ * (Ethernet MACIF gate, there is no such bit) and 64 (USB2 gate, it sat at
+ * a soft reset bit) were defined by earlier versions of this header. No
+ * working clock was ever behind them, so they are removed instead of being
+ * kept as names that return an error: a device tree that still uses one
+ * fails to build. The numbers are not reused, and neither are the unused
+ * HI3516CV300_CRG_NR_RSTS and HI3516CV300_SYS_NR_RSTS.
+ */
+
 /* fixed rate clocks */
 #define HI3516CV300_FIXED_3M		1
 #define HI3516CV300_FIXED_6M		2
-#define HI3516CV300_FIXED_12M		3
-#define HI3516CV300_FIXED_15M		4
 #define HI3516CV300_FIXED_24M		5
 #define HI3516CV300_FIXED_25M		6
 #define HI3516CV300_FIXED_27M		7
 #define HI3516CV300_FIXED_37P125M	8
-#define HI3516CV300_FIXED_44M		9
 #define HI3516CV300_FIXED_49P5M		10
 #define HI3516CV300_FIXED_50M		11
 #define HI3516CV300_FIXED_54M		12
 #define HI3516CV300_FIXED_74P25M	13
-#define HI3516CV300_FIXED_75M		14
 #define HI3516CV300_FIXED_83P3M		15
 #define HI3516CV300_FIXED_99M		16
 #define HI3516CV300_FIXED_100M		17
 #define HI3516CV300_FIXED_125M		18
 #define HI3516CV300_FIXED_148P5M	19
-#define HI3516CV300_FIXED_150M		20
 #define HI3516CV300_FIXED_166P6M	21
 #define HI3516CV300_FIXED_198M		22
-#define HI3516CV300_FIXED_200M		23
 #define HI3516CV300_FIXED_250M		24
 #define HI3516CV300_FIXED_297M		25
-#define HI3516CV300_FIXED_300M		26
-#define HI3516CV300_FIXED_396M		27
-#define HI3516CV300_FIXED_400M		28
 /* RMII reference clock input of the Ethernet pad, 50 MHz */
 #define HI3516CV300_FIXED_RMII_PAD	29
 
-/* mux clocks */
+/*
+ * mux clocks (parent of gates); MMC0 and MMC1 are SDIO0 and SDIO1, MMC2 is
+ * the eMMC controller and MMC3 is SDIO2
+ */
 #define HI3516CV300_APB_CLK		30
 #define HI3516CV300_UART_MUX		31
 #define HI3516CV300_FMC_MUX		32
@@ -77,10 +88,8 @@
 #define HI3516CV300_MMC2_CLK		58
 #define HI3516CV300_MMC3_CLK		59
 #define HI3516CV300_ETH_CLK		60
-#define HI3516CV300_ETH_MACIF_CLK	61
 #define HI3516CV300_USB2_BUS_CLK	62
 #define HI3516CV300_UTMI0_CLK		63
-#define HI3516CV300_USB2_CLK		64
 #define HI3516CV300_DMAC_CLK		65
 #define HI3516CV300_SENSOR_CLK		66
 #define HI3516CV300_MIPI_CLK		67
@@ -115,7 +124,6 @@
 #define HI3516CV300_DDR_MUX		94
 
 #define HI3516CV300_CRG_NR_CLKS		128
-#define HI3516CV300_CRG_NR_RSTS		0x120
 
 /* sys controller clocks (timers) */
 #define HI3516CV300_TIME00_CLK		1
@@ -123,6 +131,5 @@
 #define HI3516CV300_TIME10_CLK		3
 #define HI3516CV300_TIME11_CLK		4
 
-#define HI3516CV300_SYS_NR_CLKS		10
-#define HI3516CV300_SYS_NR_RSTS		0x10
+#define HI3516CV300_SYS_NR_CLKS		8
 #endif /* __DTS_HI3516CV300_CLOCK_H */
