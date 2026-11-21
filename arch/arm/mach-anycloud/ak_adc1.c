@@ -14,6 +14,15 @@
 static DEFINE_SPINLOCK(adc1_lock);
 
 /*
+ * Set under adc1_lock once the EV300 reader owns the converter (see
+ * adc1_ev300_init()). The EV330 reader below reads 0 on that silicon, and
+ * its register writes -- channel enables, power, a reset in adc1_init() --
+ * would land in the middle of an EV300 conversion, so from then on it
+ * leaves the hardware alone.
+ */
+static bool adc1_ev300_owned;
+
+/*
  * config saradc clk
  * div: SARADC CLK = 12MHz/(div+1); div is always 2 in practice.
  */
@@ -104,6 +113,12 @@ unsigned long adc1_read_channel(int channel)
 	unsigned long flags;
 
 	spin_lock_irqsave(&adc1_lock, flags);
+	if (adc1_ev300_owned) {
+		spin_unlock_irqrestore(&adc1_lock, flags);
+		pr_warn_once("ak_adc1: the EV330 reader does not work on an "
+			     "EV300; read the IIO device instead\n");
+		return 0;
+	}
 
 	power_on_adc1();
 	enable_adc1_channel(channel);
@@ -142,6 +157,10 @@ int adc1_init(void)
 	u32 val;
 
 	spin_lock_irqsave(&adc1_lock, flags);
+	if (adc1_ev300_owned) {
+		spin_unlock_irqrestore(&adc1_lock, flags);
+		return -EBUSY;
+	}
 
 	/* reset adc1 */
 	val = __raw_readl(RESET_CTRL_REG);
@@ -233,9 +252,14 @@ EXPORT_SYMBOL(adc1_init);
  *                        selects the 3.0 V reference, bit 5 enables AIN0
  *
  * Register read-modify-writes take adc1_lock, as the EV330 path does; a
- * conversion holds adc1_ev300_mutex across its poll, which sleeps.
+ * conversion holds adc1_ev300_mutex across its poll, which sleeps. Once
+ * initialised, this path owns the converter: the EV330 reader and its
+ * adc1_init() stand back (adc1_ev300_owned), and AD_DA_CLK1 bit 31, which
+ * the EV330 reader closes after each sample, is opened before every
+ * conversion.
  */
 #define EV300_CLK_DIV_MASK	0x7
+#define EV300_CLK_POWER_OFF	(1 << 31)	/* the EV330 reader's gate */
 #define EV300_CLK_EN		(1 << 3)
 #define EV300_ADC_RESET		(1 << 30)
 #define EV300_CFG_TRIGGER	(1 << 0)
@@ -281,7 +305,14 @@ static void ev300_idle(void)
 
 int adc1_ev300_init(void)
 {
+	unsigned long flags;
+
 	mutex_lock(&adc1_ev300_mutex);
+	spin_lock_irqsave(&adc1_lock, flags);
+	adc1_ev300_owned = true;
+	spin_unlock_irqrestore(&adc1_lock, flags);
+	/* An EV330-style consumer that probed first leaves the gate shut. */
+	ev300_update(EV300_REG(AD_DA_CLK1_REG), EV300_CLK_POWER_OFF, 0);
 	/* The clock: off, the 1.5 MHz divider, on. */
 	ev300_update(EV300_REG(AD_DA_CLK1_REG), EV300_CLK_EN, 0);
 	ev300_update(EV300_REG(AD_DA_CLK1_REG), EV300_CLK_DIV_MASK, EV300_CLK_DIV_MASK);
@@ -312,6 +343,7 @@ int adc1_ev300_read(int channel, unsigned int *millivolts)
 		return -EINVAL;
 
 	mutex_lock(&adc1_ev300_mutex);
+	ev300_update(EV300_REG(AD_DA_CLK1_REG), EV300_CLK_POWER_OFF, 0);
 	ev300_update(EV300_REG(SAR_ANALOG_CTRL2_REG),
 		     EV300_ACR_POWER_DOWN | EV300_ACR_AIN0, EV300_ACR_AIN0);
 	ev300_update(EV300_REG(SAR_IF_CFG_REG), EV300_CFG_CHANNEL_MASK, EV300_CFG_AIN0);
