@@ -334,12 +334,15 @@ static int sfc_do_erase(struct sfc_flash *flash, uint32_t addr, uint32_t flash_e
 	/* set Index */
 	switch (flash_erase_size)
 	{
+		case 0x1000:
 		case 0x8000:
 			xfer.cmd_index = NOR_ERASE_WRITE_ENABLE_32K;
 			break;
 		case 0x10000:
 			xfer.cmd_index = NOR_ERASE_WRITE_ENABLE_64K;
 			break;
+		default:
+			return -EINVAL;
 	}
 
 	/* set addr */
@@ -744,6 +747,15 @@ static const struct attribute_group sfc_norflash_info_attr_group = {
  */
 static void params_to_cdt(struct spi_nor_info *params, struct sfc_cdt *cdt)
 {
+	struct spi_nor_cmd_info erase = params->sector_erase_32k;
+
+	/* Reuse the small-erase CDT slots without changing burner parameters.
+	 * A table entry advertising 4KiB requires the standard sector command;
+	 * the callback steps by that same erase_size, never by 32KiB.
+	 */
+	if (params->erase_size == 0x1000)
+		erase.cmd = SPINOR_OP_BE_4K;
+
 	/* 4.nor singleRead */
 	MK_CMD(cdt[NOR_READ_STANDARD], params->read_standard, 0, ROW_ADDR, ENABLE);
 
@@ -762,7 +774,7 @@ static void params_to_cdt(struct spi_nor_info *params, struct sfc_cdt *cdt)
 
 	/* 8. nor erase */
 	MK_CMD(cdt[NOR_ERASE_WRITE_ENABLE_32K], params->wr_en, 1, DEFAULT_ADDRMODE, DISABLE);
-	MK_CMD(cdt[NOR_ERASE_32K], params->sector_erase_32k, 1, ROW_ADDR, DISABLE);
+	MK_CMD(cdt[NOR_ERASE_32K], erase, 1, ROW_ADDR, DISABLE);
 	MK_ST(cdt[NOR_ERASE_FINISH_32K], params->busy, 0, DEFAULT_ADDRMODE, 0, ENABLE, DISABLE, TM_STD_SPI);
 
 	MK_CMD(cdt[NOR_ERASE_WRITE_ENABLE_64K], params->wr_en, 1, DEFAULT_ADDRMODE, DISABLE);
