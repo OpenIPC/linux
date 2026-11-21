@@ -31,6 +31,12 @@
 
 #define FIQ_START		    PLATFORM_FIQ_BASE
 #define MAX_FTINTC010_NR	2
-#define NR_IRQS             PLATFORM_INTERRUPTS
+/*
+ * GPIO pin interrupts (gpio-ftgpio010): one per pin of the two FTGPIO010
+ * banks, numbered after the interrupt controller's own.
+ */
+#define GM_GPIO_IRQ_BASE    PLATFORM_INTERRUPTS
+#define GM_GPIO_NR_IRQS     64
+#define NR_IRQS             (PLATFORM_INTERRUPTS + GM_GPIO_NR_IRQS)
 
 #endif /* __GM_PLATFORM_IRQS_HEADER__ */

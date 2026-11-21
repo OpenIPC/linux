@@ -16,6 +16,10 @@
 #include <linux/slab.h>
 #include <linux/interrupt.h>
 #include <linux/platform_device.h>
+#include <linux/irq.h>
+#include <linux/spinlock.h>
+#include <asm/mach/irq.h>
+#include <asm/div64.h>
 
 #include <mach/platform/gpio.h>
 #include <mach/ftpmu010.h>
@@ -48,6 +52,8 @@ struct gm_gpio_chip {
 	void __iomem *start_vaddr;
 	struct resource *res;
 	int irq;
+	int irq_base;		/* first pin interrupt, 0 when there are none */
+	spinlock_t lock;	/* interrupt register read-modify-write */
 	struct gpio_chip gc;
 	struct platform_device *platform_dev;
 	int id;
@@ -180,6 +186,8 @@ static int gm_gpio_to_irq(struct gpio_chip *gc, unsigned pin)
 		return -1;
 	}
 
+	if (chip->irq_base)
+		return chip->irq_base + pin;
 	return chip->irq;
 }
 
@@ -288,6 +296,193 @@ static int gm_int_unmask(struct gpio_chip *gc, unsigned pin)
 }
 
 /*
+ * Hardware debounce: a pin's input must stay stable for one debounce step
+ * before the controller takes it. The step is the APB clock divided by the
+ * bank's prescaler (24 bits), which all 32 pins of the bank share, so the
+ * bank has one debounce time: the last non-zero request sets it for every
+ * debounced pin. debounce is in microseconds; 0 turns it off for the pin.
+ */
+static int gm_gpio_set_debounce(struct gpio_chip *gc, unsigned pin,
+				unsigned debounce)
+{
+	struct gm_gpio_chip *chip = container_of(gc, struct gm_gpio_chip, gc);
+	unsigned long flags;
+	u32 val;
+
+	if (debounce) {
+		u64 div = (u64)APB_CLK_IN * debounce;
+
+		do_div(div, 1000000);
+		if (div == 0)
+			div = 1;
+		if (div > 0xffffff)
+			return -EINVAL;
+		iowrite32((u32)div, chip->start_vaddr + GM_GPIO010_BOUNCEPERSCALE);
+	}
+
+	spin_lock_irqsave(&chip->lock, flags);
+	val = ioread32(chip->start_vaddr + GM_GPIO010_BOUNCEENABLE);
+	if (debounce)
+		val |= 1 << pin;
+	else
+		val &= ~(1 << pin);
+	iowrite32(val, chip->start_vaddr + GM_GPIO010_BOUNCEENABLE);
+	spin_unlock_irqrestore(&chip->lock, flags);
+
+	return 0;
+}
+
+#ifdef GM_GPIO_IRQ_BASE
+/*
+ * Pin interrupts. The bank's interrupt line is shared by its 32 pins; each
+ * pin gets its own Linux interrupt (GM_GPIO_IRQ_BASE + gpio number), so
+ * request_irq() and the sysfs "edge" file work per pin. The controller
+ * does edge (rising, falling, both) and level (high, low) triggers in
+ * hardware.
+ */
+static void gm_gpio_irq_rmw(struct gm_gpio_chip *chip, u32 reg, u32 bit,
+			    int set)
+{
+	unsigned long flags;
+	u32 val;
+
+	spin_lock_irqsave(&chip->lock, flags);
+	val = ioread32(chip->start_vaddr + reg);
+	if (set)
+		val |= bit;
+	else
+		val &= ~bit;
+	iowrite32(val, chip->start_vaddr + reg);
+	spin_unlock_irqrestore(&chip->lock, flags);
+}
+
+static u32 gm_gpio_irq_bit(struct irq_data *d)
+{
+	struct gm_gpio_chip *chip = irq_data_get_irq_chip_data(d);
+
+	return 1 << (d->irq - chip->irq_base);
+}
+
+static void gm_gpio_irq_ack(struct irq_data *d)
+{
+	struct gm_gpio_chip *chip = irq_data_get_irq_chip_data(d);
+
+	iowrite32(gm_gpio_irq_bit(d), chip->start_vaddr + GM_GPIO010_INTRCLEAR);
+}
+
+static void gm_gpio_irq_mask(struct irq_data *d)
+{
+	struct gm_gpio_chip *chip = irq_data_get_irq_chip_data(d);
+
+	gm_gpio_irq_rmw(chip, GM_GPIO010_INTRENABLE, gm_gpio_irq_bit(d), 0);
+}
+
+static void gm_gpio_irq_unmask(struct irq_data *d)
+{
+	struct gm_gpio_chip *chip = irq_data_get_irq_chip_data(d);
+	u32 bit = gm_gpio_irq_bit(d);
+
+	gm_gpio_irq_rmw(chip, GM_GPIO010_INTRMASK, bit, 0);
+	gm_gpio_irq_rmw(chip, GM_GPIO010_INTRENABLE, bit, 1);
+}
+
+static int gm_gpio_irq_set_type(struct irq_data *d, unsigned int type)
+{
+	struct gm_gpio_chip *chip = irq_data_get_irq_chip_data(d);
+	u32 bit = gm_gpio_irq_bit(d);
+	int level, both = 0, low = 0;
+
+	switch (type & IRQ_TYPE_SENSE_MASK) {
+	case IRQ_TYPE_EDGE_BOTH:
+		level = 0;
+		both = 1;
+		break;
+	case IRQ_TYPE_EDGE_RISING:
+		level = 0;
+		break;
+	case IRQ_TYPE_EDGE_FALLING:
+		level = 0;
+		low = 1;
+		break;
+	case IRQ_TYPE_LEVEL_HIGH:
+		level = 1;
+		break;
+	case IRQ_TYPE_LEVEL_LOW:
+		level = 1;
+		low = 1;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	gm_gpio_irq_rmw(chip, GM_GPIO010_INTRTRIGGER, bit, level);
+	gm_gpio_irq_rmw(chip, GM_GPIO010_INTRBOTH, bit, both);
+	gm_gpio_irq_rmw(chip, GM_GPIO010_INTRRISENEG, bit, low);
+	__irq_set_handler_locked(d->irq, level ? handle_level_irq : handle_edge_irq);
+
+	/* a trigger change can latch a stale event */
+	iowrite32(bit, chip->start_vaddr + GM_GPIO010_INTRCLEAR);
+	return 0;
+}
+
+static struct irq_chip gm_gpio_irq_chip = {
+	.name		= "ftgpio010",
+	.irq_ack	= gm_gpio_irq_ack,
+	.irq_mask	= gm_gpio_irq_mask,
+	.irq_unmask	= gm_gpio_irq_unmask,
+	.irq_set_type	= gm_gpio_irq_set_type,
+};
+
+static void gm_gpio_irq_handler(unsigned int irq, struct irq_desc *desc)
+{
+	struct gm_gpio_chip *chip = irq_desc_get_handler_data(desc);
+	struct irq_chip *parent = irq_desc_get_chip(desc);
+	u32 pending;
+
+	chained_irq_enter(parent, desc);
+	pending = ioread32(chip->start_vaddr + GM_GPIO010_INTRMASKEDSTATE);
+	while (pending) {
+		int pin = __ffs(pending);
+
+		pending &= ~(1 << pin);
+		generic_handle_irq(chip->irq_base + pin);
+	}
+	chained_irq_exit(parent, desc);
+}
+
+static void gm_gpio_irq_init(struct gm_gpio_chip *chip)
+{
+	int pin;
+
+	if (chip->id < 0 ||
+	    (chip->id + 1) * GM_GPIO_NR_PIN_PER_PORT > GM_GPIO_NR_IRQS)
+		return;
+
+	chip->irq_base = GM_GPIO_IRQ_BASE + chip->id * GM_GPIO_NR_PIN_PER_PORT;
+
+	for (pin = 0; pin < GM_GPIO_NR_PIN_PER_PORT; pin++) {
+		int irq = chip->irq_base + pin;
+
+		irq_set_chip_and_handler(irq, &gm_gpio_irq_chip,
+					 handle_edge_irq);
+		irq_set_chip_data(irq, chip);
+		set_irq_flags(irq, IRQF_VALID);
+	}
+
+	irq_set_handler_data(chip->irq, chip);
+	irq_set_chained_handler(chip->irq, gm_gpio_irq_handler);
+
+	printk(KERN_INFO "%s: pin interrupts %d-%d, debounce clock %u Hz\n",
+	       chip->name, chip->irq_base,
+	       chip->irq_base + GM_GPIO_NR_PIN_PER_PORT - 1, APB_CLK_IN);
+}
+#else
+static inline void gm_gpio_irq_init(struct gm_gpio_chip *chip)
+{
+}
+#endif /* GM_GPIO_IRQ_BASE */
+
+/*
  *  init chip->gc
  */
 static void gm_gpio_setup(struct gm_gpio_chip *chip)
@@ -301,6 +496,7 @@ static void gm_gpio_setup(struct gm_gpio_chip *chip)
 	gc->get = gm_gpio_get_value;
 	gc->set = gm_gpio_set_value;
 	gc->to_irq = gm_gpio_to_irq;
+	gc->set_debounce = gm_gpio_set_debounce;
 	gc->int_clr = gm_int_clr;
 	gc->int_setup = gm_int_setup;
 	gc->int_enable = gm_int_enable;
@@ -504,6 +700,7 @@ static int ftgpio010_probe(struct platform_device *pdev)
 
 	chip->platform_dev = pdev;
 	chip->id = pdev->id;
+	spin_lock_init(&chip->lock);
 
 	//bind related fields to gpio_chip
 	gm_gpio_setup(chip);
@@ -516,6 +713,8 @@ static int ftgpio010_probe(struct platform_device *pdev)
 		printk("%s fail: gpiochip_add not OK\n", __FUNCTION__);
 		goto err_gpioadd;
 	}
+
+	gm_gpio_irq_init(chip);
 
 	printk(KERN_INFO "probe %s OK, at 0x%p\n", chip->name, chip->start_vaddr);
 
