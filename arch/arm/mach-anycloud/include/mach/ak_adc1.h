@@ -14,6 +14,7 @@
 #define SAR_THRESHOLD_REG	(AK_VA_SYSCTRL + 0x64)
 #define SAR_IF_SMP_DAT_REG	(AK_VA_SYSCTRL + 0x68)
 #define SAR_IF_INT_STATUS_REG	(AK_VA_SYSCTRL + 0x6C)
+#define SAR_ANALOG_CTRL2_REG	(AK_VA_SYSCTRL + 0xA0)	/* EV300 */
 
 #define ADC1_MAIN_CLK		(12000000)
 #define ADC1_DEFAULT_CLK	(1500000)	/* BAT channel only works at 1.5MHz */
@@ -27,6 +28,15 @@
 
 int adc1_init(void);
 unsigned long adc1_read_channel(int channel);
+
+/*
+ * AK3918EV300: one conversion at a time, started and polled, 12 bits
+ * against a 3.0 V reference. AIN0 only, the one input whose analog enable
+ * is known. Sleeps; -ETIMEDOUT if the converter never says ready.
+ */
+#define AK_ADC1_EV300_VREF	(3000)	/* mV */
+int adc1_ev300_init(void);
+int adc1_ev300_read(int channel, unsigned int *millivolts);
 
 #define adc1_read_bat()		adc1_read_channel(AK_ADC1_AD0)
 #define adc1_read_ad5()		adc1_read_channel(AK_ADC1_AD1)

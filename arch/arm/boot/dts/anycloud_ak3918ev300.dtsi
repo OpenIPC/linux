@@ -12,6 +12,8 @@
  *  - the SPI controller drives the flash chip select itself: GPIO 25 is
  *    muxed to SPI0 CS (ak39-gpio.c, ePIN_AS_SPI1 on pins 25-26), there is no
  *    chip-select GPIO.
+ *
+ * And, found on a camera rather than in the SDK, SAR-ADC1 (below).
  */
 
 / {
@@ -26,6 +28,15 @@
 
 &i2c0 {
 	compatible = "anyka,ak3918ev300-i2c";
+};
+
+/*
+ * SAR-ADC1 converts differently here: started and polled, 12 bits against a
+ * 3.0 V reference, with an analog enable per input (ak_adc1.c). The EV330
+ * reader reads 0 mV on this silicon (OpenIPC/builder#234).
+ */
+&saradc {
+	compatible = "anyka,ak3918ev300-sar-adc";
 };
 
 &i2c1 {
