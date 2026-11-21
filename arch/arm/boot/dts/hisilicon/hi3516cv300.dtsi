@@ -308,7 +308,7 @@
 			compatible = "hisilicon,inno_usb2_phy";
 			reg = <0x12030000 0x1000>, <0x120d0000 0x1000>,
 				<0x12010000 0x1000>, <0x12020000 0x1000>;
-			clocks = <&crg_ctrl HI3516CV300_USB2_BUS_CLK>;
+			clocks = <&crg_ctrl HI3516CV300_USB2_PHY_CLK>;
 			clock-names = "ref_clk";
 			#phy-cells = <0>;
 			resets = <&crg_ctrl 0xb8 13>, <&crg_ctrl 0xb8 17>;
@@ -326,8 +326,9 @@
 			 compatible = "generic-ehci";
 			 reg = <0x10120000 0x10000>;
 			 interrupts = <15>;
-			 clocks = <&crg_ctrl HI3516CV300_USB2_CLK>;
-			 clock-names = "clk";
+			 clocks = <&crg_ctrl HI3516CV300_USB2_BUS_CLK>,
+				  <&crg_ctrl HI3516CV300_USB2_HST_PHY_CLK>,
+				  <&crg_ctrl HI3516CV300_UTMI0_CLK>;
 			 status = "disabled";
 		 };
 
@@ -335,8 +336,9 @@
 			 compatible = "generic-ohci";
 			 reg = <0x10110000 0x10000>;
 			 interrupts = <16>;
-			 clocks = <&crg_ctrl HI3516CV300_USB2_CLK>;
-			 clock-names = "clk";
+			 clocks = <&crg_ctrl HI3516CV300_USB2_BUS_CLK>,
+				  <&crg_ctrl HI3516CV300_USB2_OHCI48M_CLK>,
+				  <&crg_ctrl HI3516CV300_USB2_OHCI12M_CLK>;
 			 status = "disabled";
 		 };
 
@@ -344,8 +346,9 @@
 			 compatible = "hiudc";
 			 reg = <0x10130000 0x40000>;
 			 interrupts = <10>;
-			 clocks = <&crg_ctrl HI3516CV300_USB2_CLK>;
-			 clock-names = "clk";
+			 clocks = <&crg_ctrl HI3516CV300_USB2_BUS_CLK>,
+				  <&crg_ctrl HI3516CV300_USB2_OTG_UTMI_CLK>;
+			 clock-names = "clk", "utmi";
 			 status = "disabled";
 		 };
 
