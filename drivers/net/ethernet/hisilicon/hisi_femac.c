@@ -397,9 +397,11 @@ static void hisi_femac_write_tx_pause(struct hisi_femac_priv *priv, bool on)
 
 /*
  * Decide whether the MAC may send pause frames: never without a full duplex
- * link, with pause autonegotiation on a negotiated link only if the result
- * of the negotiation says so, and otherwise as ethtool -A asked. Called with
- * phydev->lock held, from adjust_link() and from set_pauseparam().
+ * link, with pause autonegotiation on a negotiated link only if tx is on and
+ * the result of the negotiation says so (tx off stays off, whatever
+ * "ethtool -s advertise" put into the advertisement), and otherwise as
+ * ethtool -A asked. Called with phydev->lock held, from adjust_link() and
+ * from set_pauseparam().
  */
 static void hisi_femac_update_tx_pause(struct hisi_femac_priv *priv)
 {
@@ -408,10 +410,12 @@ static void hisi_femac_update_tx_pause(struct hisi_femac_priv *priv)
 	bool rx;
 
 	if (phy->link && phy->duplex == DUPLEX_FULL) {
-		if (priv->pause_autoneg && phy->autoneg == AUTONEG_ENABLE)
+		if (priv->pause_autoneg && phy->autoneg == AUTONEG_ENABLE) {
 			phy_get_pause(phy, &tx, &rx);
-		else
+			tx &= priv->tx_pause;
+		} else {
 			tx = priv->tx_pause;
+		}
 	}
 
 	if (tx != priv->tx_pause_on)
