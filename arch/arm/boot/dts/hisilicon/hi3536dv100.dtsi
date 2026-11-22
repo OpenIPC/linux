@@ -10,8 +10,8 @@
  * space mapping of chapter 2 and the interrupt table of chapter 3.4, where an
  * interrupt bit n is SPI n - 32). This file describes only the blocks that
  * have a binding and a driver and whose clocks and resets the CRG provides:
- * the other blocks (flash controller, Ethernet, DMA, media) follow with
- * their drivers, using the clock identifiers and reset bits of
+ * the other blocks (flash controller, DMA, media) follow with their
+ * drivers, using the clock identifiers and reset bits of
  * hi3536dv100-clock.h.
  *
  * The Cortex-A7 generic timer is not described: no document gives the
@@ -74,6 +74,59 @@
 		#size-cells = <1>;
 		compatible = "simple-bus";
 		ranges;
+
+		/*
+		 * The Fast Ethernet MAC (hisi-femac) with the MDIO controller, the
+		 * internal FE PHY and the global MAC registers at +0x1300. The clock
+		 * muxes are programmed here instead of relying on the boot loader:
+		 * MII pads (the internal PHY is MII only) and the 54 MHz MAC core
+		 * clock. The MDIO controller owns the PHY clock and the PHY reset;
+		 * the internal/external PHY select (MISC_CTRL25 bit 5) is not set
+		 * by this node, the MDIO driver handles it.
+		 * A board that wires an external PHY replaces the PHY node, the
+		 * phy-mode and the interface mux.
+		 */
+		eth0: ethernet@10010000 {
+			compatible = "hisilicon,hi3536dv100-femac",
+				     "hisilicon,hisi-femac-v2";
+			reg = <0x10010000 0x1000>, <0x10011300 0x200>;
+			interrupts = <GIC_SPI 11 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&crg HI3536DV100_ETH_CLK>;
+			resets = <&crg 0xc4 0>;
+			reset-names = "mac";
+			assigned-clocks = <&crg HI3536DV100_ETH_IF_MUX>,
+					  <&crg HI3536DV100_ETH_CORE_MUX>;
+			assigned-clock-parents = <&crg HI3536DV100_MII_PAD_CLK>,
+						 <&crg HI3536DV100_FIXED_54M>;
+			phy-mode = "mii";
+			phy-handle = <&phy0>;
+			status = "disabled";
+		};
+
+		/*
+		 * MDIO, then the control register of the internal PHY (MISC_CTRL25:
+		 * bit 5 clear selects the internal PHY, bits 4:0 are its address) and its
+		 * trim value (FEPHY_TRIM). The resets are PERI_CRG49 bit 3 (external
+		 * PHY) and bit 9 (internal PHY); the driver resets and trims the
+		 * internal PHY at probe time.
+		 */
+		mdio: mdio@10011100 {
+			compatible = "hisilicon,hisi-femac-mdio";
+			reg = <0x10011100 0x10>, <0x12120064 0x4>, <0x12121000 0x4>;
+			clocks = <&crg HI3536DV100_ETH_CLK>,
+				 <&crg HI3536DV100_ETH_FEPHY_CLK>;
+			clock-names = "mdio", "phy";
+			resets = <&crg 0xc4 3>, <&crg 0xc4 9>;
+			reset-names = "external-phy", "internal-phy";
+			hisilicon,phy-reset-delays-us = <10000 20000 150000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "disabled";
+
+			phy0: ethernet-phy@1 {
+				reg = <1>;
+			};
+		};
 
 		/*
 		 * AHCI SATA controller with one port. The clocks and resets are
