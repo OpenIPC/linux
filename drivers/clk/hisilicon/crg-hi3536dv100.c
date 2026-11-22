@@ -673,7 +673,7 @@ static void __init hi3536dv100_fill_holes(struct hisi_clock_data *clk_data, int 
 			clk_data->clk_data.clks[i] = ERR_PTR(-ENOENT);
 }
 
-/* undo hisi_clk_init() */
+/* undo hisi_clk_init(), the provider is removed first */
 static void __init hi3536dv100_clk_free(struct device_node *np,
 					struct hisi_clock_data *clk_data)
 {
@@ -683,8 +683,63 @@ static void __init hi3536dv100_clk_free(struct device_node *np,
 	kfree(clk_data);
 }
 
+/* the groups of hi3536dv100_crg_clk_init() registered so far, in order */
+enum hi3536dv100_crg_stage {
+	HI3536DV100_STAGE_NONE,
+	HI3536DV100_STAGE_FIXED_RATE,
+	HI3536DV100_STAGE_PLLS,
+	HI3536DV100_STAGE_FIXED_FACTOR,
+	HI3536DV100_STAGE_SYSBUS,
+	HI3536DV100_STAGE_CORE_MUX,
+	HI3536DV100_STAGE_MUX,
+};
+
+/*
+ * Take the clocks back in reverse order. The provider goes first, so that no
+ * consumer can look up a clock that is being unregistered.
+ */
+static void __init hi3536dv100_crg_unwind(struct device_node *np,
+					  struct hisi_clock_data *clk_data,
+					  enum hi3536dv100_crg_stage stage)
+{
+	of_clk_del_provider(np);
+
+	switch (stage) {
+	case HI3536DV100_STAGE_MUX:
+		hisi_clk_unregister_mux(hi3536dv100_mux_clks,
+					ARRAY_SIZE(hi3536dv100_mux_clks), clk_data);
+		fallthrough;
+	case HI3536DV100_STAGE_CORE_MUX:
+		hisi_clk_unregister_mux(hi3536dv100_core_mux_clks,
+					ARRAY_SIZE(hi3536dv100_core_mux_clks), clk_data);
+		fallthrough;
+	case HI3536DV100_STAGE_SYSBUS:
+		clk_unregister_fixed_rate(clk_data->clk_data.clks[HI3536DV100_FIXED_202P5M]);
+		fallthrough;
+	case HI3536DV100_STAGE_FIXED_FACTOR:
+		hisi_clk_unregister_fixed_factor(hi3536dv100_fixed_factor_clks,
+						 ARRAY_SIZE(hi3536dv100_fixed_factor_clks),
+						 clk_data);
+		fallthrough;
+	case HI3536DV100_STAGE_PLLS:
+		hi3536dv100_unregister_plls(clk_data, ARRAY_SIZE(hi3536dv100_plls));
+		fallthrough;
+	case HI3536DV100_STAGE_FIXED_RATE:
+		hisi_clk_unregister_fixed_rate(hi3536dv100_fixed_rate_clks,
+					       ARRAY_SIZE(hi3536dv100_fixed_rate_clks),
+					       clk_data);
+		fallthrough;
+	case HI3536DV100_STAGE_NONE:
+		break;
+	}
+
+	/* the provider is gone already: deleting it again does nothing */
+	hi3536dv100_clk_free(np, clk_data);
+}
+
 static void __init hi3536dv100_crg_clk_init(struct device_node *np)
 {
+	enum hi3536dv100_crg_stage stage = HI3536DV100_STAGE_NONE;
 	struct hisi_clock_data *clk_data;
 
 	clk_data = hisi_clk_init(np, HI3536DV100_CRG_NR_CLKS);
@@ -694,24 +749,30 @@ static void __init hi3536dv100_crg_clk_init(struct device_node *np)
 	/* each helper cleans up after itself when its own group fails */
 	if (hisi_clk_register_fixed_rate(hi3536dv100_fixed_rate_clks,
 					 ARRAY_SIZE(hi3536dv100_fixed_rate_clks), clk_data))
-		goto err_provider;
+		goto err;
+	stage = HI3536DV100_STAGE_FIXED_RATE;
 	if (hi3536dv100_register_plls(clk_data))
-		goto err_fixed_rate;
+		goto err;
+	stage = HI3536DV100_STAGE_PLLS;
 	if (hisi_clk_register_fixed_factor(hi3536dv100_fixed_factor_clks,
 					   ARRAY_SIZE(hi3536dv100_fixed_factor_clks),
 					   clk_data))
-		goto err_plls;
+		goto err;
+	stage = HI3536DV100_STAGE_FIXED_FACTOR;
 	if (hi3536dv100_register_sysbus_clk(np, clk_data))
-		goto err_fixed_factor;
+		goto err;
+	stage = HI3536DV100_STAGE_SYSBUS;
 	if (hisi_clk_register_mux(hi3536dv100_core_mux_clks,
 				  ARRAY_SIZE(hi3536dv100_core_mux_clks), clk_data))
-		goto err_sysbus;
+		goto err;
+	stage = HI3536DV100_STAGE_CORE_MUX;
 	if (hisi_clk_register_mux(hi3536dv100_mux_clks,
 				  ARRAY_SIZE(hi3536dv100_mux_clks), clk_data))
-		goto err_core_mux;
+		goto err;
+	stage = HI3536DV100_STAGE_MUX;
 	if (hisi_clk_register_gate(hi3536dv100_gate_clks,
 				   ARRAY_SIZE(hi3536dv100_gate_clks), clk_data))
-		goto err_mux;
+		goto err;
 
 	hi3536dv100_fill_holes(clk_data, HI3536DV100_CRG_NR_CLKS);
 	hi3536dv100_check_core_selects(np, clk_data);
@@ -720,27 +781,10 @@ static void __init hi3536dv100_crg_clk_init(struct device_node *np)
 
 	return;
 
-err_mux:
-	hisi_clk_unregister_mux(hi3536dv100_mux_clks,
-				ARRAY_SIZE(hi3536dv100_mux_clks), clk_data);
-err_core_mux:
-	hisi_clk_unregister_mux(hi3536dv100_core_mux_clks,
-				ARRAY_SIZE(hi3536dv100_core_mux_clks), clk_data);
-err_sysbus:
-	clk_unregister_fixed_rate(clk_data->clk_data.clks[HI3536DV100_FIXED_202P5M]);
-err_fixed_factor:
-	hisi_clk_unregister_fixed_factor(hi3536dv100_fixed_factor_clks,
-					 ARRAY_SIZE(hi3536dv100_fixed_factor_clks),
-					 clk_data);
-err_plls:
-	hi3536dv100_unregister_plls(clk_data, ARRAY_SIZE(hi3536dv100_plls));
-err_fixed_rate:
-	hisi_clk_unregister_fixed_rate(hi3536dv100_fixed_rate_clks,
-				       ARRAY_SIZE(hi3536dv100_fixed_rate_clks), clk_data);
-err_provider:
+err:
 	pr_err("%pOF: failed to register all clocks\n", np);
 	/* no provider at all is better than one with missing clocks */
-	hi3536dv100_clk_free(np, clk_data);
+	hi3536dv100_crg_unwind(np, clk_data, stage);
 }
 
 CLK_OF_DECLARE_DRIVER(hi3536dv100_crg, "hisilicon,hi3536dv100-crg", hi3536dv100_crg_clk_init);
