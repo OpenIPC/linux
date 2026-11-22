@@ -1174,18 +1174,40 @@ err:
     return -EINVAL;
 }
 
+/*
+ * Every clock clock_gettime() serves, as musl asks this one first and takes
+ * its answer: it filled in CLOCK_REALTIME only and said 0 for the rest, so
+ * CLOCK_MONOTONIC came back as whatever the caller's buffer held (busybox
+ * ping showed one round trip, 1546003 ms, for every packet). The reply is
+ * the uapi layout, two 64-bit fields, not timespec64, whose 32-bit tv_nsec
+ * left four bytes of kernel stack in the caller's upper half.
+ */
 SYSCALL_DEFINE2(clock_gettime64, const clockid_t, which_clock,
     struct __kernel_timespec __user *, tp)
 {
+    struct k_clock *kc = clockid_to_kclock(which_clock);
     struct timespec64 now;
+    struct timespec kernel_tp;
+    s64 reply[2];
+    int error;
 
-    if(which_clock == CLOCK_REALTIME) {
-        getnstimeofday64(&now);
+    BUILD_BUG_ON(sizeof(reply) != sizeof(*tp));
+    if (!kc)
+        return -EINVAL;
 
-        if (copy_to_user(tp, &now, sizeof(*tp))) {
-            return -EFAULT;
-        }
+    if (which_clock == CLOCK_REALTIME) {
+        getnstimeofday64(&now);         /* past 2038 */
+    } else {
+        error = kc->clock_get(which_clock, &kernel_tp);
+        if (error)
+            return error;
+        now = timespec_to_timespec64(kernel_tp);
     }
+
+    reply[0] = now.tv_sec;
+    reply[1] = now.tv_nsec;
+    if (copy_to_user(tp, reply, sizeof(reply)))
+        return -EFAULT;
 
     return 0;
 }
