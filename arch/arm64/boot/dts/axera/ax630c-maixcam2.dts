@@ -1,0 +1,200 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+/*
+ * Sipeed MaixCAM2 (AX630C): 32 GB eMMC, TF slot, internal 10/100 EPHY,
+ * UART0 console. Board details from Sipeed's 4.19 SDK devicetree
+ * (AX630C_emmc_arm64_k419_sipeed_maixcam2.dts); only what the 5.15
+ * drivers here support is ported. Wi-Fi (AIC8800 on SDIO), the display
+ * panel, touch and audio are not enabled. The media blocks are described
+ * for the closed Axera 5.15 media modules (ax630c-media.dtsi).
+ *
+ * Boot: no ATF. The first stage enters U-Boot at EL1 and parks CPU1 on the
+ * spin-table mailbox, as on ax620e-xm-ipc.dts. U-Boot fixes up the memory
+ * node from the board's DRAM size (0.5 to 4 GiB variants).
+ */
+
+/dts-v1/;
+
+#include "ax620e.dtsi"
+#include "ax630c-media.dtsi"
+#include <dt-bindings/input/linux-event-codes.h>
+#include <dt-bindings/phy/axera-dt-phy.h>
+
+/delete-node/ &{/psci};
+
+/ {
+	model = "Sipeed MaixCAM2";
+	compatible = "sipeed,maixcam2", "axera,ax630c", "axera,ax620e";
+
+	aliases {
+		mmc0 = &emmc;
+		mmc1 = &sd;
+		mmc2 = &sdio;
+	};
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+
+	memory@40000000 {
+		device_type = "memory";
+		reg = <0x0 0x40000000 0x0 0x40000000>;
+	};
+
+	reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		/* LPDDR4 retrain window, written by the first stage. */
+		ddr-retrain@40000000 {
+			reg = <0x0 0x40000000 0x0 0x1000>;
+			no-map;
+		};
+	};
+
+	/* The PSCI SYSTEM_RESET of the vendor ATF is not there either. */
+	reboot {
+		compatible = "syscon-reboot";
+		regmap = <&common_reset>;
+		offset = <0xa8>;
+		mask = <0x1>;
+		value = <0x1>;
+		priority = <192>;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+		pinctrl-names = "default";
+		pinctrl-0 = <&led_pins>;
+
+		led-0 {
+			label = "sys-heartbeat";
+			gpios = <&gpio0 6 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "activity";
+		};
+	};
+
+	gpio-keys {
+		compatible = "gpio-keys";
+		pinctrl-names = "default";
+		pinctrl-0 = <&key_pins>;
+
+		key-user {
+			label = "User Key";
+			linux,code = <KEY_DISPLAYTOGGLE>;
+			gpios = <&gpio3 2 GPIO_ACTIVE_LOW>;
+			debounce-interval = <10>;
+		};
+	};
+};
+
+&cpu0 {
+	enable-method = "spin-table";
+	cpu-release-addr = <0x0 0x023400dc>;
+};
+
+&cpu1 {
+	enable-method = "spin-table";
+	cpu-release-addr = <0x0 0x023400dc>;
+};
+
+/* The DSI panel output; DPU lite has nothing attached. */
+&vo0 {
+	status = "okay";
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&eth0 {
+	phy-mode = "rmii";
+	phy-handle = <&ephy>;
+	axera-ephy,led0-mode = <EPHY_LED_SPEED>;
+	axera-ephy,led0-enable;
+	axera-ephy,led1-mode = <EPHY_LED_LINK>;
+	axera-ephy,led1-enable;
+	axera-ephy,led-polarity = <EPHY_LED_LOW_ACTIVE>;
+	status = "okay";
+
+	mdio {
+		compatible = "snps,dwmac-mdio";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		ephy: ethernet-phy@1 {
+			compatible = "ethernet-phy-id0044.1400";
+			reg = <1>;
+		};
+	};
+};
+
+/*
+ * The SDK also sets hw-reset (GPIO2_A23) and HS400; the 5.15 Cadence
+ * driver has no hw-reset property and HS200 is what ax630c.dts runs.
+ */
+&emmc {
+	max-frequency = <200000000>;
+	bus-width = <8>;
+	no-sdio;
+	no-sd;
+	non-removable;
+	disable-wp;
+	cap-mmc-highspeed;
+	mmc-hs200-1_8v;
+	sdhci-caps-mask = <0x2 0x03200000>;
+	cdns,phy-input-delay-sd-highspeed = <2>;
+	cdns,phy-input-delay-legacy = <4>;
+	cdns,phy-input-delay-sd-uhs-sdr12 = <1>;
+	cdns,phy-input-delay-sd-uhs-sdr25 = <2>;
+	cdns,phy-input-delay-sd-uhs-sdr50 = <1>;
+	cdns,phy-input-delay-sd-uhs-ddr50 = <2>;
+	cdns,phy-input-delay-mmc-highspeed = <2>;
+	cdns,phy-input-delay-mmc-ddr = <2>;
+	cdns,phy-dll-delay-sdclk = <45>;
+	cdns,phy-dll-delay-sdclk-hsmmc = <31>;
+	cdns,phy-dll-delay-strobe = <18>;
+	fixed-emmc-driver-type = <4>;
+	status = "okay";
+};
+
+/* TF slot. The card-detect pad is not wired to the controller. */
+&sd {
+	bus-width = <4>;
+	max-frequency = <200000000>;
+	sdhci-caps-mask = <0x7 0x00200000>;
+	cap-sd-highspeed;
+	sd-uhs-sdr12;
+	sd-uhs-sdr25;
+	sd-uhs-sdr50;
+	sd-uhs-ddr50;
+	sd-uhs-sdr104;
+	no-sdio;
+	no-mmc;
+	disable-wp;
+	broken-cd;
+	cdns,phy-input-delay-sd-highspeed = <2>;
+	cdns,phy-input-delay-legacy = <3>;
+	cdns,phy-input-delay-sd-uhs-sdr12 = <3>;
+	cdns,phy-input-delay-sd-uhs-sdr25 = <2>;
+	cdns,phy-input-delay-sd-uhs-sdr50 = <1>;
+	cdns,phy-input-delay-sd-uhs-ddr50 = <1>;
+	cdns,phy-dll-delay-sdclk = <0>;
+	status = "okay";
+};
+
+&pinctrl {
+	led_pins: led-pins {
+		pins = "VI_D6";
+		function = "GPIO0_A6";
+		drive-strength = <3>;
+		input-schmitt-disable;
+	};
+
+	key_pins: key-pins {
+		pins = "GPIO3_A2";
+		function = "GPIO3_A2";
+		drive-strength = <3>;
+		input-schmitt-enable;
+	};
+};
