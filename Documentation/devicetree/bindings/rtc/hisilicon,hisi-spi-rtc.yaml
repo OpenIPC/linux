@@ -30,7 +30,7 @@ description: |
         V200 and Hi3516C V200.
     V3: V2 with a battery under-voltage interrupt behind a global interrupt
         enable, and a 5 MHz limit of the bridge clock. Hi3516A V200,
-        Hi3516A V300, Hi3516C V300, Hi3516E V100, Hi3519 V101.
+        Hi3516A V300, Hi3516C V300, Hi3516E V100, Hi3519 V101, Hi3536D V100.
 
   The alarm interrupt line is shared with another source on some SoCs: VIC
   line 2 with the debug UART interrupt (COMMRX) on Hi3518, Hi3518E V100 and
@@ -90,6 +90,7 @@ properties:
               - hisilicon,hi3516cv300-rtc
               - hisilicon,hi3516ev100-rtc
               - hisilicon,hi3519v101-rtc
+              - hisilicon,hi3536dv100-rtc
           - const: hisilicon,hisi-spi-rtc-v3
       - items:
           - enum:
