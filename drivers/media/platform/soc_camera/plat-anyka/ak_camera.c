@@ -480,8 +480,8 @@ static int ak_videobuf_setup(struct videobuf_queue *vq, unsigned int *count,
 	*size = bytes_per_line * icd->user_height;
 	//printk(KERN_ERR "%s size:%u, bytes_per_line:%d, icd->user_height:%d\n", __func__, *size, bytes_per_line, icd->user_height);
 
-	/* dma_alloc_from_coherent() rounds each buffer up to a whole order. */
-	if (((size_t)AK_CAM_VO_BUFFERS << (get_order(*size) + PAGE_SHIFT)) >
+	/* dma_alloc_from_coherent() takes each buffer's whole pages. */
+	if ((size_t)AK_CAM_VO_BUFFERS * PAGE_ALIGN(*size) >
 	    pcdev->pool_bytes)
 		return -ENOMEM;
 

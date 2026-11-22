@@ -26,6 +26,8 @@ struct dma_coherent_mem {
 	int		size;
 	int		flags;
 	unsigned long	*bitmap;
+	/* first page of every allocation: a run ends at the next one */
+	unsigned long	*starts;
 	spinlock_t	spinlock;
 	struct dma_coherent_owner owner[DMA_COHERENT_OWNERS];
 };
@@ -79,6 +81,9 @@ static int dma_init_coherent_memory(phys_addr_t phys_addr, dma_addr_t device_add
 	dma_mem->bitmap = kzalloc(bitmap_size, GFP_KERNEL);
 	if (!dma_mem->bitmap)
 		goto out;
+	dma_mem->starts = kzalloc(bitmap_size, GFP_KERNEL);
+	if (!dma_mem->starts)
+		goto out;
 
 	dma_mem->virt_base = mem_base;
 	dma_mem->device_base = device_addr;
@@ -95,6 +100,10 @@ static int dma_init_coherent_memory(phys_addr_t phys_addr, dma_addr_t device_add
 	return DMA_MEMORY_IO;
 
 out:
+	if (dma_mem) {
+		kfree(dma_mem->bitmap);
+		kfree(dma_mem->starts);
+	}
 	kfree(dma_mem);
 	if (mem_base)
 		iounmap(mem_base);
@@ -107,6 +116,7 @@ static void dma_release_coherent_memory(struct dma_coherent_mem *mem)
 		return;
 	iounmap(mem->virt_base);
 	kfree(mem->bitmap);
+	kfree(mem->starts);
 	kfree(mem);
 }
 
@@ -157,18 +167,26 @@ void *dma_mark_declared_memory_occupied(struct device *dev,
 {
 	struct dma_coherent_mem *mem = dev->dma_mem;
 	unsigned long flags;
-	int pos, err;
+	int pos, pages, err = 0;
 
 	size += device_addr & ~PAGE_MASK;
+	pages = PAGE_ALIGN(size) >> PAGE_SHIFT;
 
 	if (!mem)
 		return ERR_PTR(-EINVAL);
 
 	spin_lock_irqsave(&mem->spinlock, flags);
 	pos = (device_addr - mem->device_base) >> PAGE_SHIFT;
-	err = bitmap_allocate_region(mem->bitmap, pos, get_order(size));
-	if (!err)
-		dma_coherent_account(mem, dev, 1UL << get_order(size), false);
+	if (!pages) {
+		err = -EINVAL;
+	} else if (pos + pages > mem->size ||
+		   find_next_bit(mem->bitmap, pos + pages, pos) < pos + pages) {
+		err = -EBUSY;
+	} else {
+		bitmap_set(mem->bitmap, pos, pages);
+		__set_bit(pos, mem->starts);
+		dma_coherent_account(mem, dev, pages, false);
+	}
 	spin_unlock_irqrestore(&mem->spinlock, flags);
 
 	if (err != 0)
@@ -196,9 +214,9 @@ int dma_alloc_from_coherent(struct device *dev, ssize_t size,
 				       dma_addr_t *dma_handle, void **ret)
 {
 	struct dma_coherent_mem *mem;
-	int order = get_order(size);
+	int pages = PAGE_ALIGN(size) >> PAGE_SHIFT;
 	unsigned long flags;
-	int pageno;
+	unsigned long pageno;
 
 	if (!dev)
 		return 0;
@@ -209,19 +227,30 @@ int dma_alloc_from_coherent(struct device *dev, ssize_t size,
 	*ret = NULL;
 	spin_lock_irqsave(&mem->spinlock, flags);
 
-	if (unlikely(size > (mem->size << PAGE_SHIFT)))
+	if (unlikely(size > (mem->size << PAGE_SHIFT) || pages <= 0))
 		goto err;
 
-	pageno = bitmap_find_free_region(mem->bitmap, mem->size, order);
-	if (unlikely(pageno < 0))
+	/*
+	 * Exactly the pages asked for, page aligned, where the first run of
+	 * them is free. A naturally aligned 1 << order run, as upstream takes,
+	 * spends 4 MiB on a 2.4 MB frame: the 24 MiB EV200 video pool then
+	 * holds 1280x720 capture and encoding, but not 1280x960, which needs
+	 * 22.5 MB of it in exact sizes and 28 MiB in whole orders. Nothing
+	 * the pool serves needs more than page alignment (ak-venc: 8 bytes).
+	 */
+	pageno = bitmap_find_next_zero_area(mem->bitmap, mem->size, 0,
+					    pages, 0);
+	if (unlikely(pageno >= mem->size))
 		goto err;
+	bitmap_set(mem->bitmap, pageno, pages);
+	__set_bit(pageno, mem->starts);
 
 	/*
 	 * Memory was found in the per-device area.
 	 */
 	*dma_handle = mem->device_base + (pageno << PAGE_SHIFT);
 	*ret = mem->virt_base + (pageno << PAGE_SHIFT);
-	dma_coherent_account(mem, dev, 1UL << order, false);
+	dma_coherent_account(mem, dev, pages, false);
 	memset(*ret, 0, size);
 	spin_unlock_irqrestore(&mem->spinlock, flags);
 
@@ -258,11 +287,22 @@ int dma_release_from_coherent(struct device *dev, int order, void *vaddr)
 	if (mem && vaddr >= mem->virt_base && vaddr <
 		   (mem->virt_base + (mem->size << PAGE_SHIFT))) {
 		int page = (vaddr - mem->virt_base) >> PAGE_SHIFT;
-		unsigned long flags;
+		unsigned long flags, end, last;
 
 		spin_lock_irqsave(&mem->spinlock, flags);
-		bitmap_release_region(mem->bitmap, page, order);
-		dma_coherent_account(mem, dev, 1UL << order, true);
+		if (WARN_ON_ONCE(!test_bit(page, mem->starts))) {
+			spin_unlock_irqrestore(&mem->spinlock, flags);
+			return 1;
+		}
+		/* the run is the allocation's: up to the next start or hole */
+		last = min_t(unsigned long, mem->size, page + (1UL << order));
+		for (end = page + 1; end < last; end++)
+			if (!test_bit(end, mem->bitmap) ||
+			    test_bit(end, mem->starts))
+				break;
+		bitmap_clear(mem->bitmap, page, end - page);
+		__clear_bit(page, mem->starts);
+		dma_coherent_account(mem, dev, end - page, true);
 		spin_unlock_irqrestore(&mem->spinlock, flags);
 		return 1;
 	}
@@ -270,26 +310,21 @@ int dma_release_from_coherent(struct device *dev, int order, void *vaddr)
 }
 EXPORT_SYMBOL(dma_release_from_coherent);
 
-/* dma_alloc_from_coherent() takes a naturally aligned run of 1 << order pages,
+/* dma_alloc_from_coherent() takes the first free run of the pages it needs,
  * so a free total does not predict whether a request can be served; the
- * largest such run does. Caller holds mem->spinlock. */
+ * longest free run does. Caller holds mem->spinlock. */
 static unsigned long dma_coherent_largest_free(struct dma_coherent_mem *mem)
 {
-	unsigned long pages = mem->size;
-	int order;
+	unsigned long pos = 0, largest = 0;
 
-	for (order = get_order(pages << PAGE_SHIFT); order >= 0; order--) {
-		unsigned long run = 1UL << order;
-		unsigned long pos;
+	while ((pos = find_next_zero_bit(mem->bitmap, mem->size, pos)) <
+	       mem->size) {
+		unsigned long end = find_next_bit(mem->bitmap, mem->size, pos);
 
-		if (run > pages)
-			continue;
-		for (pos = 0; pos + run <= pages; pos += run)
-			if (find_next_bit(mem->bitmap, pos + run, pos) >=
-			    pos + run)
-				return run;
+		largest = max(largest, end - pos);
+		pos = end;
 	}
-	return 0;
+	return largest;
 }
 
 static ssize_t dma_coherent_pool_show(struct device *dev,
