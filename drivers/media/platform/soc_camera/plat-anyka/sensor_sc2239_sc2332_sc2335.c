@@ -300,11 +300,18 @@ static int sc2239_init(const AK_ISP_SENSOR_INIT_PARA *para)
 		int const width = __i2c_read (0x3208) << 8 | __i2c_read (0x3209);
 		int const height = __i2c_read (0x320a) << 8 | __i2c_read (0x320b);
 
+		int hts, vts;
+
 		/* the list may have changed both; the caches hold the old */
 		_reg_frame_hts = 0;
 		_reg_frame_vts = 0;
-		_pclk = __get_frame_hts () * __get_frame_vts () *
-			SENSOR_DVP_BASE_FPS;
+		hts = __get_frame_hts ();
+		vts = __get_frame_vts ();
+		if (hts > 0 && vts > 0)
+			_pclk = hts * vts * SENSOR_DVP_BASE_FPS;
+		else
+			pr_err("sc2xxx: HTS %d, VTS %d after the tuning's list; frame rates assume %d Hz\n",
+			       hts, vts, _pclk);
 		if (width > 0 && height > 0) {
 			_output_width = width;
 			_output_height = height;
@@ -384,7 +391,8 @@ static int sc2239_get_mclk(void) {
 
 static int __get_fps (void) {
 
-	int const fps = _pclk / (__get_frame_hts () * __get_frame_vts ());
+	int const frame = __get_frame_hts () * __get_frame_vts ();
+	int const fps = frame > 0 ? _pclk / frame : MAX_FPS;
 	/// 读取实时的帧率。
 	//printk ("<0> FPS=%d\r\n", fps);
 	return fps;
@@ -476,6 +484,9 @@ static int __set_fps (const int fps) {
 
 	int vts = 0;
 	/// FPS = PCLK / FRAMEW / FRAMEH
+	/* no line length to count with: the list's frame length stays */
+	if (fps <= 0 || __get_frame_hts () <= 0)
+		return 0;
 	vts = _pclk;
 	vts /= __get_frame_hts ();
 	vts /= fps;
