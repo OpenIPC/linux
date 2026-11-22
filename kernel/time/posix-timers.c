@@ -1180,7 +1180,9 @@ err:
  * CLOCK_MONOTONIC came back as whatever the caller's buffer held (busybox
  * ping showed one round trip, 1546003 ms, for every packet). The reply is
  * the uapi layout, two 64-bit fields, not timespec64, whose 32-bit tv_nsec
- * left four bytes of kernel stack in the caller's upper half.
+ * left four bytes of kernel stack in the caller's upper half. The clocks
+ * that count from 1970 come from their 64-bit sources, so their seconds
+ * do not wrap in 2038; the others are small, and their k_clock serves.
  */
 SYSCALL_DEFINE2(clock_gettime64, const clockid_t, which_clock,
     struct __kernel_timespec __user *, tp)
@@ -1191,13 +1193,20 @@ SYSCALL_DEFINE2(clock_gettime64, const clockid_t, which_clock,
     s64 reply[2];
     int error;
 
-    BUILD_BUG_ON(sizeof(reply) != sizeof(*tp));
     if (!kc)
         return -EINVAL;
 
-    if (which_clock == CLOCK_REALTIME) {
-        getnstimeofday64(&now);         /* past 2038 */
-    } else {
+    switch (which_clock) {
+    case CLOCK_REALTIME:
+        getnstimeofday64(&now);
+        break;
+    case CLOCK_REALTIME_COARSE:
+        now = current_kernel_time64();
+        break;
+    case CLOCK_TAI:
+        now = ktime_to_timespec64(ktime_get_clocktai());
+        break;
+    default:
         error = kc->clock_get(which_clock, &kernel_tp);
         if (error)
             return error;
