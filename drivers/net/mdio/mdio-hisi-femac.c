@@ -305,7 +305,7 @@ static inline int fephy_expanded_write(struct mii_bus *bus, int phy_addr,
 
 static void hisi_femac_fephy_use_default_trim(struct hisi_femac_mdio_data *data)
 {
-	unsigned short val;
+	int val;
 	int timeout = 3;
 
 	dev_dbg(data->bus->parent, "No OTP data, festa PHY uses default ATE parameters\n");
@@ -314,10 +314,15 @@ static void hisi_femac_fephy_use_default_trim(struct hisi_femac_mdio_data *data)
 		msleep(250);
 		val = fephy_expanded_read(data->bus, data->phy_addr,
 					  REG_DEF_ATE);
+		if (val < 0)
+			break;
 		val &= BIT_AUTOTRIM_DONE;
 	} while (!val && --timeout);
 
-	if (!timeout)
+	if (val < 0)
+		dev_err(data->bus->parent, "festa PHY 0x3057 read failed while waiting for autotrim done: %pe\n",
+			ERR_PTR(val));
+	else if (!timeout)
 		dev_err(data->bus->parent, "festa PHY wait autotrim done timeout!\n");
 
 	mdelay(5);
