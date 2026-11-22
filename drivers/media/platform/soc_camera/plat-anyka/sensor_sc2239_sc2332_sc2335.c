@@ -27,6 +27,8 @@
 #define SENSOR_SC2239_ID        0x2239 ///< 序列号适配
 #define SENSOR_SC2335_ID        0x2335
 #define SENSOR_SC2332_ID        0x2332
+/* defined at the end; __probe_id() names its tuning before that */
+static AK_ISP_SENSOR_CB _callback;
 static  u32 _SENSOR_ID =        0; ///< 数值为 0 表示未检测到，当检测到某一款 SENSOR 时此值将固定为一个非 0 的值。
 
 #define SENSOR_MCLK             24
@@ -38,8 +40,22 @@ static  u32 _SENSOR_ID =        0; ///< 数值为 0 表示未检测到，当检�
 #define SENSOR_VALID_OFFSET_X	0
 #define SENSOR_VALID_OFFSET_Y	0
 #define SENSOR_BUS_TYPE         BUS_TYPE_RAW
+#ifdef CONFIG_MACH_AK3918EV200
+/*
+ * EV200 has no MIPI receiver: ak-cam takes DVP only. The sensor's DVP
+ * output is whatever the tuning's register list programs (an AK3918EV201
+ * camera's sc2335 one: 1280x960 from the middle of the array, VTS 1000),
+ * so the output size and the timing are read back once it has run, and
+ * the pixel clock is taken as that timing at SENSOR_DVP_BASE_FPS, as
+ * sensor_sc1345.c does. The rate the list really runs at is unchecked.
+ */
+#define SENSOR_DVP              1
+#define SENSOR_IO_INTERFACE     DVP_INTERFACE
+#else
+#define SENSOR_DVP              0
 #define SENSOR_IO_INTERFACE     MIPI_INTERFACE
-//#define SENSOR_IO_INTERFACE   DVP_INTERFACE
+#endif
+#define SENSOR_DVP_BASE_FPS     30
 #define SENSOR_IO_LEVEL         SENSOR_IO_LEVEL_1V8
 
 #define OV_MAX(a, b)            (((a) < (b) ) ?  (b) : (a))
@@ -54,10 +70,13 @@ static  u32 _SENSOR_ID =        0; ///< 数值为 0 表示未检测到，当检�
 #define MIPI_2LANE      2
 
 #define PCLK_FREQ  (74250000)
+static int _pclk = PCLK_FREQ;
+static int _output_width = SENSOR_OUTPUT_WIDTH;
+static int _output_height = SENSOR_OUTPUT_HEIGHT;
 
 static int _target_frame_vts = 0; ///< 缓存帧长设置，用于限制曝光与帧长大于曝光的逻辑。
 static int _target_exp_ctrl = 0;
-static int _reg_frame_hts = 0;
+static int _reg_frame_hts = -1; /* -1: not read; 0 is a value, and IRQ time is no time for I2C */
 
 /**
  * 通过 I2C 总线读取一个数据。
@@ -152,7 +171,7 @@ static int __get_frame_half_hts (void) {
 
 	/// 该参数初始化导入配置以后不会再修改，因此可以通过变量缓存。
 
-	if (0 == _reg_frame_hts) {
+	if (_reg_frame_hts < 0) {
 		_reg_frame_hts = __i2c_read (0x320c) << 8 | __i2c_read (0x320d);
 		if (SENSOR_SC2239_ID == _SENSOR_ID || SENSOR_SC2332_ID == _SENSOR_ID) {
 			/// SC2239 比较特别，从该寄存器读出来的值是一行的宽度，\n
@@ -172,10 +191,10 @@ static int __get_frame_half_hts (void) {
 /**
  * 获取帧高。
  */
-static int _reg_frame_vts = 0; ///< 缓冲帧高参数，避免 I2C 频繁读取造成效率下降。
+static int _reg_frame_vts = -1; ///< 缓冲帧高参数，避免 I2C 频繁读取造成效率下降。
 static int __get_frame_vts (void) {
 
-	if (0 == _reg_frame_vts) {
+	if (_reg_frame_vts < 0) {
 		_reg_frame_vts = __i2c_read (0x320e) << 8 | __i2c_read (0x320f);
 	}
 
@@ -277,33 +296,67 @@ static int sc2239_init(const AK_ISP_SENSOR_INIT_PARA *para)
         preg_info++;
 	}
 
+	if (SENSOR_DVP) {
+		int const width = __i2c_read (0x3208) << 8 | __i2c_read (0x3209);
+		int const height = __i2c_read (0x320a) << 8 | __i2c_read (0x320b);
+
+		int hts, vts;
+
+		/* the list may have changed both; the caches hold the old */
+		_reg_frame_hts = -1;
+		_reg_frame_vts = -1;
+		hts = __get_frame_hts ();
+		vts = __get_frame_vts ();
+		if (hts > 0 && vts > 0)
+			_pclk = hts * vts * SENSOR_DVP_BASE_FPS;
+		else
+			pr_err("sc2xxx: HTS %d, VTS %d after the tuning's list; frame rates assume %d Hz\n",
+			       hts, vts, _pclk);
+		if (width > 0 && height > 0) {
+			_output_width = width;
+			_output_height = height;
+		}
+	}
+
 	return 0;
 }
 
 /**
  * 匹配 UCODE 并对应 ID 转换。
+ *
+ * The part it finds names its ISP tuning, /etc/sensor/sc2335.conf and the
+ * like, as the F2x driver does: one driver, three sensors.
  */
 static int __probe_id (void) {
 
     int const ucode = __read_ucode ();
+    const char *name = NULL;
 
     /// 对应适配设备 ID。
 	switch (ucode) {
 		case SENSOR_SC2239_UCODE:
 			_SENSOR_ID = SENSOR_SC2239_ID;
+			name = "sc2239";
 			break;
 
 		case SENSOR_SC2335_UCODE:
 			_SENSOR_ID = SENSOR_SC2335_ID;
+			name = "sc2335";
 			break;
 
         case SENSOR_SC2332_UCODE:
             _SENSOR_ID = SENSOR_SC2332_ID;
+            name = "sc2332";
             break;
            
 		default:
 			break;
 	}
+
+	/* a full name table leaves it on the fallback tuning: say so */
+	if (name && ispdrv_register_sensor_name(&_callback, name))
+		pr_err("sc2xxx: no room to name %s, its /etc/sensor tuning is not read\n",
+		       name);
 
     return _SENSOR_ID;
 }
@@ -326,8 +379,8 @@ static int __read_id (void) {
 
 static int sc2239_get_resolution(int *width, int *height)
 {
-	*width = SENSOR_OUTPUT_WIDTH;
-	*height = SENSOR_OUTPUT_HEIGHT;
+	*width = _output_width;
+	*height = _output_height;
 
 	return 0;
 }
@@ -338,7 +391,8 @@ static int sc2239_get_mclk(void) {
 
 static int __get_fps (void) {
 
-	int const fps = PCLK_FREQ / (__get_frame_hts () * __get_frame_vts ());
+	int const frame = __get_frame_hts () * __get_frame_vts ();
+	int const fps = frame > 0 ? _pclk / frame : MAX_FPS;
 	/// 读取实时的帧率。
 	//printk ("<0> FPS=%d\r\n", fps);
 	return fps;
@@ -430,7 +484,10 @@ static int __set_fps (const int fps) {
 
 	int vts = 0;
 	/// FPS = PCLK / FRAMEW / FRAMEH
-	vts = PCLK_FREQ;
+	/* no line length to count with: the list's frame length stays */
+	if (fps <= 0 || __get_frame_hts () <= 0)
+		return 0;
+	vts = _pclk;
 	vts /= __get_frame_hts ();
 	vts /= fps;
 
