@@ -25,6 +25,7 @@ properties:
           - enum:
               - brcm,iproc-ahci
               - hisilicon,hi3520dv100-ahci
+              - hisilicon,hi3536dv100-ahci
               - marvell,armada-8k-ahci
               - marvell,berlin2-ahci
               - marvell,berlin2q-ahci
@@ -166,9 +167,32 @@ allOf:
             - clocks
             - resets
         else:
-          properties:
-            resets:
-              maxItems: 1
+          if:
+            properties:
+              compatible:
+                contains:
+                  const: hisilicon,hi3536dv100-ahci
+          then:
+            properties:
+              clocks:
+                items:
+                  - description: bus clock gate
+                  - description: port 0 RX clock gate
+                  - description: port 0 TX clock gate
+                  - description: alive clock gate
+              resets:
+                items:
+                  - description: AHCI bus reset
+                  - description: alive clock reset
+                  - description: port 0 RX reset
+                  - description: controller (port 0) reset
+            required:
+              - clocks
+              - resets
+          else:
+            properties:
+              resets:
+                maxItems: 1
 
 unevaluatedProperties: false
 
@@ -236,5 +260,27 @@ examples:
         sata-port@1 {
             reg = <1>;
             phys = <&sata_phy 1>;
+        };
+    };
+  - |
+    #include <dt-bindings/clock/hi3536dv100-clock.h>
+    #include <dt-bindings/interrupt-controller/arm-gic.h>
+
+    sata@10030000 {
+        compatible = "hisilicon,hi3536dv100-ahci", "generic-ahci";
+        reg = <0x10030000 0x10000>;
+        interrupts = <GIC_SPI 17 IRQ_TYPE_LEVEL_HIGH>;
+        clocks = <&crg HI3536DV100_SATA_BUS_CLK>,
+                 <&crg HI3536DV100_SATA_RX0_CLK>,
+                 <&crg HI3536DV100_SATA_TX0_CLK>,
+                 <&crg HI3536DV100_SATA_CKO_ALIVE_CLK>;
+        resets = <&crg 0xb4 8>, <&crg 0xb4 9>, <&crg 0xb4 10>,
+                 <&crg 0xb4 11>;
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        sata-port@0 {
+            reg = <0>;
+            phys = <&sata_phy 0>;
         };
     };
