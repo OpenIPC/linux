@@ -231,6 +231,19 @@ static inline bool hisi_femac_use_fephy(struct hisi_femac_mdio_data *data)
 			!(readl(data->fephy_iobase) & BIT_FEPHY_SEL) : false);
 }
 
+/*
+ * The FEPHY IO select (bit 5 of the control register) connects the MAC either
+ * to the internal PHY or to the external PHY pins. Nothing in the device tree
+ * says which one the board uses, and this driver does not set the bit: it
+ * follows what an earlier boot stage left in it. Only the boot loader of a
+ * board with an external PHY is expected to set it.
+ */
+static inline bool hisi_femac_fephy_io_external(struct hisi_femac_mdio_data *data)
+{
+	return data->fephy_iobase && !data->fephy_addr_only &&
+	       (readl(data->fephy_iobase) & BIT_FEPHY_SEL);
+}
+
 static void hisi_femac_fephy_write_addr(struct hisi_femac_mdio_data *data,
 					u32 addr)
 {
@@ -560,6 +573,18 @@ static int hisi_femac_mdio_probe(struct platform_device *pdev)
 			dev_warn(&pdev->dev,
 				 "no PHY answers at address %u (ID1 %d)\n",
 				 data->phy_addr, id);
+	} else if (have_phy && hisi_femac_fephy_io_external(data)) {
+		/*
+		 * The select is at "external", as an earlier boot stage left
+		 * it: the internal PHY was not reset, trimmed or given its
+		 * address above. Only say so. The PHY is not read here to
+		 * second-guess the select: an external PHY may still be held
+		 * in reset by the MAC, so one that does not answer yet is not
+		 * a sign of a problem, and the device tree does not say which
+		 * PHY the board has.
+		 */
+		dev_info(&pdev->dev,
+			 "the FEPHY IO select (bit 5 of the control register) is set to the external PHY, as left by the boot loader; the internal PHY is not reset or trimmed\n");
 	}
 
 	platform_set_drvdata(pdev, bus);
