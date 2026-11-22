@@ -10,7 +10,7 @@
  * space mapping of chapter 2 and the interrupt table of chapter 3.4, where an
  * interrupt bit n is SPI n - 32). This file describes only the blocks that
  * have a binding and a driver and whose clocks and resets the CRG provides:
- * the other blocks (flash controller, Ethernet, SATA, DMA, media) follow with
+ * the other blocks (flash controller, Ethernet, DMA, media) follow with
  * their drivers, using the clock identifiers and reset bits of
  * hi3536dv100-clock.h.
  *
@@ -74,6 +74,55 @@
 		#size-cells = <1>;
 		compatible = "simple-bus";
 		ranges;
+
+		/*
+		 * AHCI SATA controller with one port. The clocks and resets are
+		 * those of PERI_CRG45, the PHY registers inside its window belong
+		 * to the PHY node. The PI register may read 0xf: the sub-node of
+		 * the port limits the implemented ports to port 0.
+		 */
+		sata: sata@10030000 {
+			compatible = "hisilicon,hi3536dv100-ahci", "generic-ahci";
+			reg = <0x10030000 0x10000>;
+			interrupts = <GIC_SPI 17 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&crg HI3536DV100_SATA_BUS_CLK>,
+				 <&crg HI3536DV100_SATA_RX0_CLK>,
+				 <&crg HI3536DV100_SATA_TX0_CLK>,
+				 <&crg HI3536DV100_SATA_CKO_ALIVE_CLK>;
+			resets = <&crg 0xb4 8>, <&crg 0xb4 9>, <&crg 0xb4 10>,
+				 <&crg 0xb4 11>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "disabled";
+
+			sata-port@0 {
+				reg = <0>;
+				phys = <&sata_phy 0>;
+			};
+		};
+
+		/*
+		 * The PHY registers inside the AHCI window. The reference clock
+		 * is 100 MHz, set here instead of relying on the boot loader
+		 * (the register reads 100 MHz after a reset). The PHY pulses
+		 * the four controller resets that it shares with the AHCI node.
+		 */
+		sata_phy: phy@100300a0 {
+			compatible = "hisilicon,hi3536dv100-sata-phy";
+			reg = <0x100300a0 0x1c>, <0x10030100 0x80>;
+			reg-names = "ctrl", "ports";
+			#phy-cells = <1>;
+			clocks = <&crg HI3536DV100_SATA_PHY_REF_CLK>;
+			clock-names = "ref";
+			assigned-clocks = <&crg HI3536DV100_SATA_REF_MUX>;
+			assigned-clock-parents = <&crg HI3536DV100_FIXED_100M>;
+			resets = <&crg 0xb0 1>, <&crg 0xb4 8>, <&crg 0xb4 9>,
+				 <&crg 0xb4 10>, <&crg 0xb4 11>;
+			reset-names = "lane", "ctrl-bus", "ctrl-alive",
+				      "ctrl-rx0", "ctrl-sata0";
+			hisilicon,misc-ctrl = <&misc>;
+			status = "disabled";
+		};
 
 		/*
 		 * USB 2.0 host: one OHCI and one EHCI on two ports (the OHCI is the
@@ -238,8 +287,8 @@
 
 		/*
 		 * MISC_CTRL: the USB 2.0 control words and PHY registers (offset
-		 * 0x8000) now, the SATA and FE PHY controls and the DDR master
-		 * priorities later.
+		 * 0x8000) and the SATA PHY parameters now, the FE PHY controls and
+		 * the DDR master priorities later.
 		 */
 		misc: syscon@12120000 {
 			compatible = "hisilicon,hi3536dv100-misc-ctrl", "syscon", "simple-mfd";
