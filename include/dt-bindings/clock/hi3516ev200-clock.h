@@ -33,6 +33,12 @@
  * FIXED_540M (25), FIXED_750M (27), FIXED_1000M (28), FIXED_1500M (29),
  * MMC2_MUX (36), MMC2_CLK (52) and USB2_MUX (80). They are gone and their
  * numbers are not reused.
+ *
+ * The counts HI3516EV200_NR_CLKS and HI3516EV200_NR_RSTS (256 each) are gone
+ * too, and so are HI3516EV300_NR_CLKS and HI3516EV300_NR_RSTS (256 each) of
+ * hi3516ev300-clock.h. They were not identifiers: the driver sizes its clock
+ * table itself, and a reset is named by the register offset and the bit of the
+ * specifier, not by a number from these headers.
  */
 
 /* fixed rates */
