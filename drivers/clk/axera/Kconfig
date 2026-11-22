@@ -13,14 +13,14 @@ config COMMON_CLK_AX620E
 
 
 config COMMON_CLK_AX620U
-	bool "Clock provider for Axera AX620U (axera,ax620x)"
+	bool "Clock driver for Axera AX620U (axera,ax620x)"
 	depends on ARCH_AXERA || COMPILE_TEST
+	select COMMON_CLK_AXERA
 	help
-	  Clock provider for the AX620U ("axera,ax620x") camera SoC, a
-	  different die from AX620E with its own clock register map. Every
-	  clock index of its nine syscon clock blocks resolves to a
-	  fixed-rate, always-on clock (rate from "axera,stub-rate" on the
-	  block, default 24 MHz): the hardware is left exactly as the
-	  bootloader configured it, gating and rate changes are no-ops.
+	  Clock driver for the AX620U ("axera,ax620x") camera SoC, a
+	  different die from AX620E with its own clock register map: the
+	  muxes, gates and dividers of its eight syscon clock blocks, with
+	  the stock AX620U kernel's clock names and IDs. The PLLs are
+	  fixed-rate, as the first stage programs them.
 	  Say N to COMMON_CLK_AX620E when enabling this, both bind the
 	  same compatibles.
