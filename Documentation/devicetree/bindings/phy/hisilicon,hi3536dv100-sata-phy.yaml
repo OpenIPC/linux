@@ -1,0 +1,123 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/phy/hisilicon,hi3536dv100-sata-phy.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: HiSilicon Hi3536D V100 SATA PHY
+
+maintainers:
+  - Dylan Corrales <deathcamel58@gmail.com>
+
+description:
+  The SATA PHY of the HiSilicon AHCI controller of the Hi3536D V100, which
+  has one port. It is configured through registers inside the register window
+  of the AHCI controller (the global PHY control registers and the per-port
+  FIFOTH, PHYCTL1 and PHYCTL registers) and through MISC_CTRL, and has a
+  reference clock and a reset line of its own in PERI_CRG44. One node provides
+  one PHY per port, selected by the port number; the number of ports is the
+  size of the "ports" window divided by 0x80. An AHCI node references the PHY
+  of a port from its sata-port@N sub-node. The compatible is named after the
+  silicon revision; the Hi3520D V100 PHY has other registers and its own
+  binding.
+
+  The reference clock is a gate behind a clock select of the CRG (25 MHz or
+  100 MHz); the node selects the parent with assigned-clocks and
+  assigned-clock-parents. The clocks of the controller itself (PERI_CRG45)
+  belong to the AHCI node. Its four resets are shared between the AHCI node,
+  which releases them before it initializes the PHY, and this node, which
+  pulses them while it initializes the PHY (the vendor sequence resets the
+  controller, then the PHY, and releases the PHY first); a boot loader that ran
+  SATA leaves them released, so without the pulse the controller would never
+  be reset. The PHY releases them again before it returns, so the AHCI node
+  finds them as it released them.
+
+properties:
+  compatible:
+    const: hisilicon,hi3536dv100-sata-phy
+
+  reg:
+    items:
+      - description:
+          Global PHY control registers (SATA_PHY_CTL0 to SATA_OOB_CTL)
+      - description:
+          Per-port register blocks, 0x80 bytes per port starting at the first
+          port
+
+  reg-names:
+    items:
+      - const: ctrl
+      - const: ports
+
+  '#phy-cells':
+    const: 1
+    description: Port number, 0 to the number of ports minus 1
+
+  clocks:
+    items:
+      - description: PHY reference clock gate (PERI_CRG44 bit 0)
+
+  clock-names:
+    items:
+      - const: ref
+
+  assigned-clocks:
+    maxItems: 1
+
+  assigned-clock-parents:
+    maxItems: 1
+
+  resets:
+    items:
+      - description: PHY lane reset (PERI_CRG44 bit 1)
+      - description: Controller bus reset (PERI_CRG45 bit 8), shared
+      - description: Controller alive clock reset (PERI_CRG45 bit 9), shared
+      - description: Controller RX0 reset (PERI_CRG45 bit 10), shared
+      - description: Controller port 0 reset (PERI_CRG45 bit 11), shared
+
+  reset-names:
+    items:
+      - const: lane
+      - const: ctrl-bus
+      - const: ctrl-alive
+      - const: ctrl-rx0
+      - const: ctrl-sata0
+
+  hisilicon,misc-ctrl:
+    $ref: /schemas/types.yaml#/definitions/phandle
+    description:
+      MISC_CTRL syscon (hisilicon,hi3536dv100-misc-ctrl), whose register at
+      offset 0x58 takes the analog PHY parameters.
+
+required:
+  - compatible
+  - reg
+  - reg-names
+  - '#phy-cells'
+  - clocks
+  - clock-names
+  - resets
+  - reset-names
+  - hisilicon,misc-ctrl
+
+additionalProperties: false
+
+examples:
+  - |
+    #include <dt-bindings/clock/hi3536dv100-clock.h>
+
+    phy@100300a0 {
+        compatible = "hisilicon,hi3536dv100-sata-phy";
+        reg = <0x100300a0 0x1c>, <0x10030100 0x80>;
+        reg-names = "ctrl", "ports";
+        #phy-cells = <1>;
+        clocks = <&crg HI3536DV100_SATA_PHY_REF_CLK>;
+        clock-names = "ref";
+        assigned-clocks = <&crg HI3536DV100_SATA_REF_MUX>;
+        assigned-clock-parents = <&crg HI3536DV100_FIXED_100M>;
+        resets = <&crg 0xb0 1>, <&crg 0xb4 8>, <&crg 0xb4 9>,
+                 <&crg 0xb4 10>, <&crg 0xb4 11>;
+        reset-names = "lane", "ctrl-bus", "ctrl-alive", "ctrl-rx0",
+                      "ctrl-sata0";
+        hisilicon,misc-ctrl = <&misc>;
+    };
