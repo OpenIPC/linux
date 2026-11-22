@@ -27,6 +27,7 @@
 #define SENSOR_SC2239_ID        0x2239 ///< 序列号适配
 #define SENSOR_SC2335_ID        0x2335
 #define SENSOR_SC2332_ID        0x2332
+static AK_ISP_SENSOR_CB _callback;
 static  u32 _SENSOR_ID =        0; ///< 数值为 0 表示未检测到，当检测到某一款 SENSOR 时此值将固定为一个非 0 的值。
 
 #define SENSOR_MCLK             24
@@ -282,6 +283,9 @@ static int sc2239_init(const AK_ISP_SENSOR_INIT_PARA *para)
 
 /**
  * 匹配 UCODE 并对应 ID 转换。
+ *
+ * The part it finds names its ISP tuning, /etc/sensor/sc2335.conf and the
+ * like, as the F2x driver does: one driver, three sensors.
  */
 static int __probe_id (void) {
 
@@ -291,14 +295,17 @@ static int __probe_id (void) {
 	switch (ucode) {
 		case SENSOR_SC2239_UCODE:
 			_SENSOR_ID = SENSOR_SC2239_ID;
+			ispdrv_register_sensor_name(&_callback, "sc2239");
 			break;
 
 		case SENSOR_SC2335_UCODE:
 			_SENSOR_ID = SENSOR_SC2335_ID;
+			ispdrv_register_sensor_name(&_callback, "sc2335");
 			break;
 
         case SENSOR_SC2332_UCODE:
             _SENSOR_ID = SENSOR_SC2332_ID;
+            ispdrv_register_sensor_name(&_callback, "sc2332");
             break;
            
 		default:
