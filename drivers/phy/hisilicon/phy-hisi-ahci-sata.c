@@ -157,7 +157,7 @@
 #define SATA_PORT_FIFOTH_CHECK_MASK	GENMASK_U32(13, 0)
 #define SATA_PORT_PHYCTL_CHECK_MASK	(BIT_U32(28) | GENMASK_U32(24, 0))
 
-/* Size of the "ctrl" window: up to and including SATA_OOB_CTL */
+/* Size of the Hi3520D "ctrl" window: up to and including SATA_OOB_CTL */
 #define SATA_CTRL_WINDOW_MIN_SIZE	(SATA_OOB_CTL + sizeof(u32))
 
 /*
@@ -177,21 +177,33 @@
  */
 #define SATA_PHY_RESET_DELAY_MS		20
 
+struct hisi_ahci_sata_phy;
+
 /**
- * struct hisi_ahci_sata_phy_cfg - PHY tuning values of one SoC
+ * struct hisi_ahci_sata_phy_cfg - register layout and tuning values of one SoC
+ * @ctrl_size:	smallest size of the "ctrl" register window
+ * @get_resources: look up the resources of the variant at probe time
+ * @power_on:	set the options of the SoC before the PHY reset is released
+ * @program:	write the PHY registers that all ports share
+ * @check:	read back the shared registers and warn about a difference
+ * @fifoth:	SATA_PORT_FIFOTH value
+ * @fifoth_check: bits of FIFOTH that the read-back compares
+ * @portctl:	SATA_PORT_PHYCTL reference value; a board may set TX_BOOST,
+ *		TX_ATTEN and RX_EQ_VAL per port, the rest is fixed
+ * @portctl_check: bits of PHYCTL that the read-back compares
+ * @gen2_bits:	bits of PHYCTL that select 3 Gbit/s
  * @ctll:	SATA_PHY0_CTLL value
  * @ctlh:	SATA_PHY0_CTLH value, without MPLL_CK_OFF
  * @oob:	SATA_OOB_CTL value
- * @fifoth:	SATA_PORT_FIFOTH value
- * @periphctrl3:	reference value of the PHY bits of the system controller
+ * @periphctrl3: reference value of the PHY bits of the system controller
  *		PERIPHCTRL3 (bits 9:0)
- * @portctl:	SATA_PORT_PHYCTL reference value; a board may set TX_BOOST,
- *		TX_ATTEN and RX_EQ_VAL per port, the rest is fixed
  *
  * The tuning cannot be read back from the hardware (the registers reset to
  * other values), so it is match data. The number of ports comes from the size
  * of the "ports" register window in the device tree. A SoC with this register
- * layout needs one more instance of this structure and a compatible.
+ * layout needs one more instance of this structure and a compatible; a SoC
+ * with other registers also needs its own hooks. @ctll, @ctlh, @oob and
+ * @periphctrl3 belong to the Hi3520D V100 hooks.
  *
  * The values are the Hi3520D vendor kernel's 3 Gbit/s ones (the data sheet
  * has other PHYCTL values, 0x0e262709 for 1.5 Gbit/s and 0x0e662709 for 3
@@ -202,47 +214,21 @@
  * bring the link up on the tested board.
  */
 struct hisi_ahci_sata_phy_cfg {
+	size_t ctrl_size;
+	int (*get_resources)(struct hisi_ahci_sata_phy *priv);
+	int (*power_on)(struct hisi_ahci_sata_phy *priv);
+	void (*program)(struct hisi_ahci_sata_phy *priv);
+	void (*check)(const struct hisi_ahci_sata_phy *priv);
+	u32 fifoth;
+	u32 fifoth_check;
+	u32 portctl;
+	u32 portctl_check;
+	u32 gen2_bits;
 	u32 ctll;
 	u32 ctlh;
 	u32 oob;
-	u32 fifoth;
 	u32 periphctrl3;
-	u32 portctl;
 };
-
-/* CTLL 0x880ec888, CTLH 0x2521, OOB 0x84060c15, FIFOTH 0x3f24, PHYCTL 0x0e676706 */
-static const struct hisi_ahci_sata_phy_cfg hi3520dv100_cfg = {
-	.ctll = FIELD_PREP_CONST(SATA_PHY_CTLL_MPLL_PRESCALE, 2) |
-		FIELD_PREP_CONST(SATA_PHY_CTLL_MPLL_NCY, 4) |
-		FIELD_PREP_CONST(SATA_PHY_CTLL_MPLL_PROP_CTL, 7) |
-		FIELD_PREP_CONST(SATA_PHY_CTLL_TX_LVL, 0x0c) |
-		FIELD_PREP_CONST(SATA_PHY_CTLL_LOS_LVL, 0x11) |
-		FIELD_PREP_CONST(SATA_PHY_CTLL_ACJT_LVL, 2),
-	.ctlh = SATA_PHY_CTLH_USE_REFCLK_ALT | SATA_PHY_CTLH_MPLL_SS_EN |
-		FIELD_PREP_CONST(SATA_PHY_CTLH_CKO_WORD_CON, 2) |
-		FIELD_PREP_CONST(SATA_PHY_CTLH_CKO_ALIVE_CON, 1) |
-		SATA_PHY_CTLH_WIDE_XFACE,
-	.oob = SATA_OOB_CTL_VALID |
-	       FIELD_PREP_CONST(SATA_OOB_CTL_MIN_COMWAKE, 0x04) |
-	       FIELD_PREP_CONST(SATA_OOB_CTL_MAX_COMWAKE, 0x06) |
-	       FIELD_PREP_CONST(SATA_OOB_CTL_MIN_COMINIT, 0x0c) |
-	       FIELD_PREP_CONST(SATA_OOB_CTL_MAX_COMINIT, 0x15),
-	.fifoth = SATA_PORT_FIFOTH_BYPASS_ALL |
-		  FIELD_PREP_CONST(SATA_PORT_FIFOTH_DMAC_RXFIFO_TH, 0x12) |
-		  FIELD_PREP_CONST(SATA_PORT_FIFOTH_LINK_RXFIFO_TH, 4),
-	.periphctrl3 = 0,
-	.portctl = SATA_PORT_PHYCTL_CALIBRATED | SATA_PORT_PHYCTL_SPD_CHG_ACK |
-		   SATA_PORT_PHYCTL_DP_RDY | SATA_PORT_PHYCTL_GEN2_EN |
-		   FIELD_PREP_CONST(SATA_PORT_PHYCTL_LOS_CTL, 2) |
-		   FIELD_PREP_CONST(SATA_PORT_PHYCTL_RX_DPLL_MODE, 3) |
-		   FIELD_PREP_CONST(SATA_PORT_PHYCTL_RX_EQ_VAL, 5) |
-		   SATA_PORT_PHYCTL_RX_TERM_EN |
-		   FIELD_PREP_CONST(SATA_PORT_PHYCTL_TX_EDGERATE, 1) |
-		   SATA_PORT_PHYCTL_TX_CKO_EN | SATA_PORT_PHYCTL_RX_ALIGN_EN |
-		   FIELD_PREP_CONST(SATA_PORT_PHYCTL_TX_BOOST, 6),
-};
-
-struct hisi_ahci_sata_phy;
 
 /**
  * struct hisi_ahci_sata_port - one PHY, the PHY of one port
@@ -292,7 +278,7 @@ static u32 hisi_ahci_sata_phy_portctl(const struct hisi_ahci_sata_phy *priv,
 				      unsigned int port)
 {
 	return priv->portctl[port] |
-	       (priv->port[port].gen2 ? SATA_PORT_PHYCTL_GEN2_EN : 0);
+	       (priv->port[port].gen2 ? priv->cfg->gen2_bits : 0);
 }
 
 static void hisi_ahci_sata_phy_check_reg(const struct hisi_ahci_sata_phy *priv,
@@ -303,8 +289,20 @@ static void hisi_ahci_sata_phy_check_reg(const struct hisi_ahci_sata_phy *priv,
 
 	if ((val ^ want) & mask)
 		dev_warn(priv->dev,
-			 "%s reads back 0x%08x, wrote 0x%08x (compared under 0x%08x); are the AHCI controller resets released?\n",
+			 "%s reads back 0x%08x, expected 0x%08x (compared under 0x%08x); are the AHCI controller resets released?\n",
 			 name, val, want, mask);
+}
+
+static void hisi_ahci_sata_phy_check_ctrl_hi3520dv100(const struct hisi_ahci_sata_phy *priv)
+{
+	hisi_ahci_sata_phy_check_reg(priv, "PHY0_CTLL",
+				     priv->ctrl + SATA_PHY0_CTLL,
+				     priv->cfg->ctll, U32_MAX);
+	hisi_ahci_sata_phy_check_reg(priv, "PHY0_CTLH",
+				     priv->ctrl + SATA_PHY0_CTLH,
+				     priv->cfg->ctlh, SATA_PHY_CTLH_CHECK_MASK);
+	hisi_ahci_sata_phy_check_reg(priv, "OOB_CTL", priv->ctrl + SATA_OOB_CTL,
+				     priv->cfg->oob, U32_MAX);
 }
 
 /*
@@ -317,14 +315,7 @@ static void hisi_ahci_sata_phy_check(const struct hisi_ahci_sata_phy *priv)
 {
 	unsigned int i;
 
-	hisi_ahci_sata_phy_check_reg(priv, "PHY0_CTLL",
-				     priv->ctrl + SATA_PHY0_CTLL,
-				     priv->cfg->ctll, U32_MAX);
-	hisi_ahci_sata_phy_check_reg(priv, "PHY0_CTLH",
-				     priv->ctrl + SATA_PHY0_CTLH,
-				     priv->cfg->ctlh, SATA_PHY_CTLH_CHECK_MASK);
-	hisi_ahci_sata_phy_check_reg(priv, "OOB_CTL", priv->ctrl + SATA_OOB_CTL,
-				     priv->cfg->oob, U32_MAX);
+	priv->cfg->check(priv);
 
 	for (i = 0; i < priv->nports; i++) {
 		void __iomem *port = priv->ports + i * SATA_PORT_STRIDE;
@@ -332,12 +323,51 @@ static void hisi_ahci_sata_phy_check(const struct hisi_ahci_sata_phy *priv)
 		hisi_ahci_sata_phy_check_reg(priv, "PORT_FIFOTH",
 					     port + SATA_PORT_FIFOTH,
 					     priv->cfg->fifoth,
-					     SATA_PORT_FIFOTH_CHECK_MASK);
+					     priv->cfg->fifoth_check);
 		hisi_ahci_sata_phy_check_reg(priv, "PORT_PHYCTL",
 					     port + SATA_PORT_PHYCTL,
 					     hisi_ahci_sata_phy_portctl(priv, i),
-					     SATA_PORT_PHYCTL_CHECK_MASK);
+					     priv->cfg->portctl_check);
 	}
+}
+
+/* Power the PHY up and leave the test modes: do not trust earlier state */
+static int hisi_ahci_sata_phy_power_on_hi3520dv100(struct hisi_ahci_sata_phy *priv)
+{
+	int ret;
+
+	ret = regmap_update_bits(priv->sysctrl, SYSCTRL_PERIPHCTRL25,
+				 SYSCTRL_PERIPHCTRL25_PDDQ |
+				 SYSCTRL_PERIPHCTRL25_TEST, 0);
+	if (ret)
+		return ret;
+
+	return regmap_update_bits(priv->sysctrl, SYSCTRL_PERIPHCTRL3,
+				  SYSCTRL_PERIPHCTRL3_PHY_MASK,
+				  priv->cfg->periphctrl3);
+}
+
+/* One PHY control set serves all ports; the MPLL is off during CTLL */
+static void hisi_ahci_sata_phy_program_hi3520dv100(struct hisi_ahci_sata_phy *priv)
+{
+	writel(priv->cfg->ctlh | SATA_PHY_CTLH_MPLL_CK_OFF,
+	       priv->ctrl + SATA_PHY0_CTLH);
+	writel(priv->cfg->ctll, priv->ctrl + SATA_PHY0_CTLL);
+	writel(priv->cfg->ctlh, priv->ctrl + SATA_PHY0_CTLH);
+	writel(priv->cfg->oob, priv->ctrl + SATA_OOB_CTL);
+}
+
+static int hisi_ahci_sata_phy_get_resources_hi3520dv100(struct hisi_ahci_sata_phy *priv)
+{
+	struct device *dev = priv->dev;
+
+	priv->sysctrl = syscon_regmap_lookup_by_phandle(dev->of_node,
+							"hisilicon,sysctrl");
+	if (IS_ERR(priv->sysctrl))
+		return dev_err_probe(dev, PTR_ERR(priv->sysctrl),
+				     "cannot get the system controller\n");
+
+	return 0;
 }
 
 static int hisi_ahci_sata_phy_do_init(struct hisi_ahci_sata_phy *priv)
@@ -345,15 +375,7 @@ static int hisi_ahci_sata_phy_do_init(struct hisi_ahci_sata_phy *priv)
 	unsigned int i;
 	int ret;
 
-	/* Power the PHY up and leave the test modes: do not trust earlier state */
-	ret = regmap_update_bits(priv->sysctrl, SYSCTRL_PERIPHCTRL25,
-				 SYSCTRL_PERIPHCTRL25_PDDQ |
-				 SYSCTRL_PERIPHCTRL25_TEST, 0);
-	if (ret)
-		return ret;
-	ret = regmap_update_bits(priv->sysctrl, SYSCTRL_PERIPHCTRL3,
-				 SYSCTRL_PERIPHCTRL3_PHY_MASK,
-				 priv->cfg->periphctrl3);
+	ret = priv->cfg->power_on(priv);
 	if (ret)
 		return ret;
 
@@ -362,12 +384,7 @@ static int hisi_ahci_sata_phy_do_init(struct hisi_ahci_sata_phy *priv)
 		return ret;
 	msleep(SATA_PHY_RESET_DELAY_MS);
 
-	/* One PHY control set serves all ports; the MPLL is off during CTLL */
-	writel(priv->cfg->ctlh | SATA_PHY_CTLH_MPLL_CK_OFF,
-	       priv->ctrl + SATA_PHY0_CTLH);
-	writel(priv->cfg->ctll, priv->ctrl + SATA_PHY0_CTLL);
-	writel(priv->cfg->ctlh, priv->ctrl + SATA_PHY0_CTLH);
-	writel(priv->cfg->oob, priv->ctrl + SATA_OOB_CTL);
+	priv->cfg->program(priv);
 
 	for (i = 0; i < priv->nports; i++) {
 		void __iomem *port = priv->ports + i * SATA_PORT_STRIDE;
@@ -555,8 +572,9 @@ static int hisi_ahci_sata_phy_read_tuning(struct device *dev, const char *name,
 /*
  * Build the PHYCTL value of every port: the reference value of the SoC with
  * the optional per-port TX_BOOST, TX_ATTEN and RX_EQ_VAL of the device tree.
- * GEN2_EN selects the link speed and is not part of the tuning: the driver
- * owns it, so it is cleared here and set by hisi_ahci_sata_phy_portctl().
+ * The speed bits (GEN2_EN) select the link speed and are not part of the
+ * tuning: the driver owns them, so they are cleared here and set by
+ * hisi_ahci_sata_phy_portctl().
  */
 static int hisi_ahci_sata_phy_get_portctl(struct device *dev,
 					  const struct hisi_ahci_sata_phy_cfg *cfg,
@@ -586,7 +604,7 @@ static int hisi_ahci_sata_phy_get_portctl(struct device *dev,
 		return ret;
 
 	for (i = 0; i < nports; i++) {
-		u32 val = cfg->portctl & ~(SATA_PORT_PHYCTL_GEN2_EN |
+		u32 val = cfg->portctl & ~(cfg->gen2_bits |
 					   SATA_PORT_PHYCTL_TX_BOOST |
 					   SATA_PORT_PHYCTL_TX_ATTEN |
 					   SATA_PORT_PHYCTL_RX_EQ_VAL);
@@ -632,7 +650,7 @@ static int hisi_ahci_sata_phy_probe(struct platform_device *pdev)
 		return -EINVAL;
 
 	priv->ctrl = hisi_ahci_sata_phy_map(pdev, "ctrl",
-					    SATA_CTRL_WINDOW_MIN_SIZE, NULL);
+					    priv->cfg->ctrl_size, NULL);
 	if (IS_ERR(priv->ctrl))
 		return PTR_ERR(priv->ctrl);
 
@@ -653,11 +671,9 @@ static int hisi_ahci_sata_phy_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
-	priv->sysctrl = syscon_regmap_lookup_by_phandle(dev->of_node,
-							"hisilicon,sysctrl");
-	if (IS_ERR(priv->sysctrl))
-		return dev_err_probe(dev, PTR_ERR(priv->sysctrl),
-				     "cannot get the system controller\n");
+	ret = priv->cfg->get_resources(priv);
+	if (ret)
+		return ret;
 
 	priv->rst = devm_reset_control_get_exclusive(dev, NULL);
 	if (IS_ERR(priv->rst))
@@ -682,6 +698,46 @@ static int hisi_ahci_sata_phy_probe(struct platform_device *pdev)
 
 	return PTR_ERR_OR_ZERO(provider);
 }
+
+/* CTLL 0x880ec888, CTLH 0x2521, OOB 0x84060c15, FIFOTH 0x3f24, PHYCTL 0x0e676706 */
+static const struct hisi_ahci_sata_phy_cfg hi3520dv100_cfg = {
+	.ctrl_size = SATA_CTRL_WINDOW_MIN_SIZE,
+	.get_resources = hisi_ahci_sata_phy_get_resources_hi3520dv100,
+	.power_on = hisi_ahci_sata_phy_power_on_hi3520dv100,
+	.program = hisi_ahci_sata_phy_program_hi3520dv100,
+	.check = hisi_ahci_sata_phy_check_ctrl_hi3520dv100,
+	.fifoth_check = SATA_PORT_FIFOTH_CHECK_MASK,
+	.portctl_check = SATA_PORT_PHYCTL_CHECK_MASK,
+	.gen2_bits = SATA_PORT_PHYCTL_GEN2_EN,
+	.ctll = FIELD_PREP_CONST(SATA_PHY_CTLL_MPLL_PRESCALE, 2) |
+		FIELD_PREP_CONST(SATA_PHY_CTLL_MPLL_NCY, 4) |
+		FIELD_PREP_CONST(SATA_PHY_CTLL_MPLL_PROP_CTL, 7) |
+		FIELD_PREP_CONST(SATA_PHY_CTLL_TX_LVL, 0x0c) |
+		FIELD_PREP_CONST(SATA_PHY_CTLL_LOS_LVL, 0x11) |
+		FIELD_PREP_CONST(SATA_PHY_CTLL_ACJT_LVL, 2),
+	.ctlh = SATA_PHY_CTLH_USE_REFCLK_ALT | SATA_PHY_CTLH_MPLL_SS_EN |
+		FIELD_PREP_CONST(SATA_PHY_CTLH_CKO_WORD_CON, 2) |
+		FIELD_PREP_CONST(SATA_PHY_CTLH_CKO_ALIVE_CON, 1) |
+		SATA_PHY_CTLH_WIDE_XFACE,
+	.oob = SATA_OOB_CTL_VALID |
+	       FIELD_PREP_CONST(SATA_OOB_CTL_MIN_COMWAKE, 0x04) |
+	       FIELD_PREP_CONST(SATA_OOB_CTL_MAX_COMWAKE, 0x06) |
+	       FIELD_PREP_CONST(SATA_OOB_CTL_MIN_COMINIT, 0x0c) |
+	       FIELD_PREP_CONST(SATA_OOB_CTL_MAX_COMINIT, 0x15),
+	.fifoth = SATA_PORT_FIFOTH_BYPASS_ALL |
+		  FIELD_PREP_CONST(SATA_PORT_FIFOTH_DMAC_RXFIFO_TH, 0x12) |
+		  FIELD_PREP_CONST(SATA_PORT_FIFOTH_LINK_RXFIFO_TH, 4),
+	.periphctrl3 = 0,
+	.portctl = SATA_PORT_PHYCTL_CALIBRATED | SATA_PORT_PHYCTL_SPD_CHG_ACK |
+		   SATA_PORT_PHYCTL_DP_RDY | SATA_PORT_PHYCTL_GEN2_EN |
+		   FIELD_PREP_CONST(SATA_PORT_PHYCTL_LOS_CTL, 2) |
+		   FIELD_PREP_CONST(SATA_PORT_PHYCTL_RX_DPLL_MODE, 3) |
+		   FIELD_PREP_CONST(SATA_PORT_PHYCTL_RX_EQ_VAL, 5) |
+		   SATA_PORT_PHYCTL_RX_TERM_EN |
+		   FIELD_PREP_CONST(SATA_PORT_PHYCTL_TX_EDGERATE, 1) |
+		   SATA_PORT_PHYCTL_TX_CKO_EN | SATA_PORT_PHYCTL_RX_ALIGN_EN |
+		   FIELD_PREP_CONST(SATA_PORT_PHYCTL_TX_BOOST, 6),
+};
 
 static const struct of_device_id hisi_ahci_sata_phy_of_match[] = {
 	{ .compatible = "hisilicon,hi3520dv100-sata-phy",
