@@ -602,9 +602,66 @@ static void __init hi3516ev200_fill_holes(struct hisi_clock_data *clk_data, int 
 			clk_data->clk_data.clks[i] = ERR_PTR(-ENOENT);
 }
 
+/* the groups of hi3516ev200_crg_clk_init() registered so far, in order */
+enum hi3516ev200_crg_stage {
+	HI3516EV200_STAGE_NONE,
+	HI3516EV200_STAGE_FIXED_RATE,
+	HI3516EV200_STAGE_PLLS,
+	HI3516EV200_STAGE_FIXED_FACTOR,
+	HI3516EV200_STAGE_CORE_MUX,
+	HI3516EV200_STAGE_MUX,
+	HI3516EV200_STAGE_GATE,
+};
+
+/*
+ * Take the clocks back in reverse order. The provider goes first, so that no
+ * consumer can look up a clock that is being unregistered.
+ */
+static void __init hi3516ev200_crg_unwind(struct device_node *np,
+					  struct hisi_clock_data *clk_data,
+					  enum hi3516ev200_crg_stage stage)
+{
+	of_clk_del_provider(np);
+
+	switch (stage) {
+	case HI3516EV200_STAGE_GATE:
+		hisi_clk_unregister_gate(hi3516ev200_gate_clks,
+					 ARRAY_SIZE(hi3516ev200_gate_clks), clk_data);
+		fallthrough;
+	case HI3516EV200_STAGE_MUX:
+		hisi_clk_unregister_mux(hi3516ev200_mux_clks,
+					ARRAY_SIZE(hi3516ev200_mux_clks), clk_data);
+		fallthrough;
+	case HI3516EV200_STAGE_CORE_MUX:
+		hisi_clk_unregister_mux(hi3516ev200_core_mux_clks,
+					ARRAY_SIZE(hi3516ev200_core_mux_clks), clk_data);
+		fallthrough;
+	case HI3516EV200_STAGE_FIXED_FACTOR:
+		hisi_clk_unregister_fixed_factor(hi3516ev200_fixed_factor_clks,
+						 ARRAY_SIZE(hi3516ev200_fixed_factor_clks),
+						 clk_data);
+		fallthrough;
+	case HI3516EV200_STAGE_PLLS:
+		hi3516ev200_unregister_plls(clk_data, ARRAY_SIZE(hi3516ev200_plls));
+		fallthrough;
+	case HI3516EV200_STAGE_FIXED_RATE:
+		hisi_clk_unregister_fixed_rate(hi3516ev200_fixed_rate_clks,
+					       ARRAY_SIZE(hi3516ev200_fixed_rate_clks),
+					       clk_data);
+		fallthrough;
+	case HI3516EV200_STAGE_NONE:
+		break;
+	}
+
+	iounmap(clk_data->base);
+	kfree(clk_data->clk_data.clks);
+	kfree(clk_data);
+}
+
 static void __init hi3516ev200_crg_clk_init(struct device_node *np,
 					    const struct hi3516ev200_crg_chip *chip)
 {
+	enum hi3516ev200_crg_stage stage = HI3516EV200_STAGE_NONE;
 	struct hisi_clock_data *clk_data;
 
 	clk_data = hisi_clk_init(np, HI3516EV200_CRG_NR_CLKS);
@@ -614,24 +671,30 @@ static void __init hi3516ev200_crg_clk_init(struct device_node *np,
 	/* each helper cleans up after itself when its own group fails */
 	if (hisi_clk_register_fixed_rate(hi3516ev200_fixed_rate_clks,
 					 ARRAY_SIZE(hi3516ev200_fixed_rate_clks), clk_data))
-		goto err_provider;
+		goto err;
+	stage = HI3516EV200_STAGE_FIXED_RATE;
 	if (hi3516ev200_register_plls(clk_data))
-		goto err_fixed_rate;
+		goto err;
+	stage = HI3516EV200_STAGE_PLLS;
 	if (hisi_clk_register_fixed_factor(hi3516ev200_fixed_factor_clks,
 					   ARRAY_SIZE(hi3516ev200_fixed_factor_clks),
 					   clk_data))
-		goto err_plls;
+		goto err;
+	stage = HI3516EV200_STAGE_FIXED_FACTOR;
 	if (hisi_clk_register_mux(hi3516ev200_core_mux_clks,
 				  ARRAY_SIZE(hi3516ev200_core_mux_clks), clk_data))
-		goto err_fixed_factor;
+		goto err;
+	stage = HI3516EV200_STAGE_CORE_MUX;
 	if (hisi_clk_register_mux(hi3516ev200_mux_clks,
 				  ARRAY_SIZE(hi3516ev200_mux_clks), clk_data))
-		goto err_core_mux;
+		goto err;
+	stage = HI3516EV200_STAGE_MUX;
 	if (hisi_clk_register_gate(hi3516ev200_gate_clks,
 				   ARRAY_SIZE(hi3516ev200_gate_clks), clk_data))
-		goto err_mux;
+		goto err;
+	stage = HI3516EV200_STAGE_GATE;
 	if (hisi_clk_register_gate(chip->extra_gates, chip->num_extra_gates, clk_data))
-		goto err_gate;
+		goto err;
 
 	hi3516ev200_fill_holes(clk_data, HI3516EV200_CRG_NR_CLKS);
 	pr_info("%pOF: %s CRG\n", np, chip->name);
@@ -640,31 +703,10 @@ static void __init hi3516ev200_crg_clk_init(struct device_node *np,
 
 	return;
 
-err_gate:
-	hisi_clk_unregister_gate(hi3516ev200_gate_clks,
-				 ARRAY_SIZE(hi3516ev200_gate_clks), clk_data);
-err_mux:
-	hisi_clk_unregister_mux(hi3516ev200_mux_clks,
-				ARRAY_SIZE(hi3516ev200_mux_clks), clk_data);
-err_core_mux:
-	hisi_clk_unregister_mux(hi3516ev200_core_mux_clks,
-				ARRAY_SIZE(hi3516ev200_core_mux_clks), clk_data);
-err_fixed_factor:
-	hisi_clk_unregister_fixed_factor(hi3516ev200_fixed_factor_clks,
-					 ARRAY_SIZE(hi3516ev200_fixed_factor_clks),
-					 clk_data);
-err_plls:
-	hi3516ev200_unregister_plls(clk_data, ARRAY_SIZE(hi3516ev200_plls));
-err_fixed_rate:
-	hisi_clk_unregister_fixed_rate(hi3516ev200_fixed_rate_clks,
-				       ARRAY_SIZE(hi3516ev200_fixed_rate_clks), clk_data);
-err_provider:
+err:
 	pr_err("%pOF: failed to register all clocks\n", np);
 	/* no provider at all is better than one with missing clocks */
-	of_clk_del_provider(np);
-	iounmap(clk_data->base);
-	kfree(clk_data->clk_data.clks);
-	kfree(clk_data);
+	hi3516ev200_crg_unwind(np, clk_data, stage);
 }
 
 static void __init hi3516ev200_crg_init(struct device_node *np)
