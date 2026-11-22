@@ -1158,6 +1158,13 @@ static int hisi_femac_set_pauseparam(struct net_device *dev,
 		return -EOPNOTSUPP;
 	if (pause->autoneg && phy->autoneg != AUTONEG_ENABLE)
 		return -EINVAL;
+	/*
+	 * tx without rx is the asymmetric pause, which the PHY has to support
+	 * to advertise it. Without autonegotiation nothing is advertised, and
+	 * the MAC sends pause frames as asked whatever the PHY supports.
+	 */
+	if (pause->autoneg && !phy_validate_pause(phy, pause))
+		return -EINVAL;
 
 	mutex_lock(&phy->lock);
 	priv->pause_autoneg = pause->autoneg;
