@@ -102,7 +102,8 @@ config MDIO_HISI_FEMAC
 	depends on HAS_IOMEM && OF_MDIO
 	help
 	  This module provides a driver for the MDIO busses found in the
-	  Hisilicon SoC that have an Fast Ethernet MAC.
+	  Hisilicon SoC that have an Fast Ethernet MAC. The FEMAC network
+	  driver (HISI_FEMAC) needs it to find its PHY and selects it.
 
 config MDIO_I2C
 	tristate

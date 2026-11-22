@@ -28,6 +28,7 @@ config HIX5HD2_GMAC
 config HISI_FEMAC
 	tristate "Hisilicon Fast Ethernet MAC device support"
 	depends on HAS_IOMEM
+	select MDIO_HISI_FEMAC if OF_MDIO
 	select PHYLIB
 	select RESET_CONTROLLER
 	help
@@ -36,6 +37,11 @@ config HISI_FEMAC
 	  ports at 10/100 Mbps in full-duplex or half-duplex mode.
 	  The FEMAC exchanges data with the CPU, and supports
 	  the energy efficient Ethernet (EEE).
+
+	  The FEMAC finds its PHY through the MDIO bus controller of the
+	  SoC, which is a separate platform device with its own driver,
+	  MDIO_HISI_FEMAC. Without that driver the probe of the FEMAC stays
+	  deferred for good, so it is selected here whenever OF_MDIO is set.
 
 config HISI_HIGMAC
 	tristate "Hisilicon Gigabit Ethernet MAC (HiGMAC) support"
