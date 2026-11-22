@@ -11528,6 +11528,7 @@ M:	Dylan Corrales <deathcamel58@gmail.com>
 L:	linux-arm-kernel@lists.infradead.org (moderated for non-subscribers)
 S:	Maintained
 F:	Documentation/devicetree/bindings/clock/hisilicon,hi3536dv100-crg.yaml
+F:	Documentation/devicetree/bindings/mfd/hisilicon,hi3536dv100-misc-ctrl.yaml
 F:	arch/arm/boot/dts/hisilicon/hi3536dv*.dts*
 F:	drivers/clk/hisilicon/crg-hi3536dv*.c
 F:	include/dt-bindings/clock/hi3536dv*-clock.h
