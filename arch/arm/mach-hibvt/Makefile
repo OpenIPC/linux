@@ -21,7 +21,9 @@ obj-$(CONFIG_ARCH_HI3531A) += mach-hi3531a.o
 obj-$(CONFIG_ARCH_HI3556AV100) += mach-hi3556av100.o
 obj-$(CONFIG_ARCH_HI3519AV100) += mach-hi3519av100.o
 
-obj-$(CONFIG_CACHE_L2X0)   += l2cache.o
+# l2cache.c needs REG_BASE_L2CACHE, which only the Hi3531A headers define;
+# Hi3531A selects CACHE_L2X0.
+obj-$(CONFIG_ARCH_HI3531A) += l2cache.o
 
 obj-$(CONFIG_SMP)	+= platsmp.o
 ccflags-y += -I$(srctree)/arch/arm/mach-hibvt/include
