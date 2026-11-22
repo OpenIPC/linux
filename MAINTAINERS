@@ -11537,6 +11537,7 @@ HISILICON HI3536D USB 2.0 PHY DRIVER
 M:	Dylan Corrales <deathcamel58@gmail.com>
 S:	Maintained
 F:	Documentation/devicetree/bindings/phy/hisilicon,hi3536dv100-usb2-phy.yaml
+F:	drivers/phy/hisilicon/phy-hi3536d-usb2.c
 
 HISILICON HIGH PERFORMANCE RSA ENGINE DRIVER (HPRE)
 M:	Zhiqi Song <songzhiqi1@huawei.com>
