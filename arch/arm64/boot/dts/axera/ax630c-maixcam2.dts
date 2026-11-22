@@ -100,10 +100,6 @@
 	status = "okay";
 };
 
-&wdt0 {
-	status = "okay";
-};
-
 &eth0 {
 	phy-mode = "rmii";
 	phy-handle = <&ephy>;
