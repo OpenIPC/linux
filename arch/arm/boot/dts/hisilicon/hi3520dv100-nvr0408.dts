@@ -39,12 +39,18 @@
  */
 &sfc {
 	status = "okay";
+	/*
+	 * 112.5 MHz, so the SPI clock is 56.25 MHz: above the 50 MHz of the
+	 * plain 03h read of the MX25L12835F. spi-nor reads with the fast read
+	 * opcodes of the SFDP tables (see the bus widths of the flash), keep
+	 * them when changing the flash or the bus widths.
+	 */
+	assigned-clock-parents = <&crg HI3520DV100_FIXED_112P5M>;
 
 	flash@1 {
 		compatible = "jedec,spi-nor";
 		reg = <1>;
 		label = "hi_sfc";
-		spi-max-frequency = <50000000>;
 		spi-rx-bus-width = <2>;
 	};
 };
