@@ -1,0 +1,58 @@
+/*
+ * An AK3918EV300L camera with two SC1346 sensors on one MIPI input behind a
+ * switch: the SDK's EVB_CAM_SC1346_SWITCHCIS wiring
+ * (EVB_CBDM_AK3918EV300L_DUAL_SC1346_V1.0.0.dts), as the stock device tree
+ * of such a camera has it (vendor kernel 4.4.282 of 2024-04-10, the same
+ * build as ak3918ev300l-demb's modules; OpenIPC/majestic#380). Where it
+ * differs from ak3918ev300l-demb:
+ *
+ * - the switch's select line on GPIO 17 (cis0-switch-sel-gpio), and PWM0 as
+ *   the ISP's "general" PWM (gen-pwm-sel), which it drives to alternate the
+ *   two sensors. ak_isp uses both only with multi_cis_switch=1;
+ * - PWM0 on pad 16, so the state LED, also on pad 16, is off;
+ * - no power-down line for the 0x30 sensor: GPIO 18 is the second sensor's
+ *   reset here;
+ * - the sensor clock pad (csi0_sclk) at drive 2 and the I2C 0 pads at drive
+ *   1, both with slew control, as the stock tree sets them; the EVB leaves
+ *   them at drive 0.
+ *
+ * The sensor modules set the two sensors' addresses at probe (addr0, addr1),
+ * so the camera nodes keep the EVB's 0x30 and 0x32.
+ */
+
+#include "ak3918ev300l-demb.dts"
+
+&sensor0 {
+	pwdn-gpio = <&gpio 0xffff 1>;
+};
+
+&vi0 {
+	cis0-switch-sel-gpio = <&gpio XGPIO_017 0>;
+
+	gen-pwm-sel {
+		pwm-names = "general_pwm0";
+		pwms = <&pwm0 0 4166666>;
+	};
+};
+
+&pwm0_pins {
+	anyka,pins = <XGPIO_016>;
+	anyka,function = <XGPIO_016_FUNC_PWM0>;
+};
+
+&pwm0_pins_idle {
+	anyka,pins = <XGPIO_016>;
+	anyka,function = <XGPIO_016_FUNC_GPIO16>;
+};
+
+&leds {
+	status = "disable";
+};
+
+&csi0_sclk_pin {
+	anyka,pull = <0x1010210>;
+};
+
+&i2c0_pins {
+	anyka,pull = <0x1010110>;
+};
