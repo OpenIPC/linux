@@ -40,7 +40,9 @@ static const struct ata_port_info ahci_port_info_nolpm = {
 /*
  * The PHY of the Hi3520D V100 ignores the speed limit field of SControl; its
  * link speed is selected through phy_set_speed(), in Mbit/s, which has to
- * happen before the hard reset that applies libata's speed limit. libata keeps
+ * happen before the hard reset that applies libata's speed limit. The Hi3536D
+ * V100 uses the same hook for its PHY, whose speed bits work the same way;
+ * whether that PHY ignores SControl too is not known. libata keeps
  * sata_spd_limit non-zero (UINT_MAX without a limit), so the speed is never 0;
  * the clamp keeps the table index valid regardless.
  */
@@ -128,6 +130,8 @@ static const struct of_device_id ahci_of_match[] = {
 	{ .compatible = "ibm,476gtr-ahci", },
 	{ .compatible = "hisilicon,hisi-ahci", },
 	{ .compatible = "hisilicon,hi3520dv100-ahci",
+	  .data = &ahci_hi3520dv100_port_info },
+	{ .compatible = "hisilicon,hi3536dv100-ahci",
 	  .data = &ahci_hi3520dv100_port_info },
 	{ .compatible = "cavium,octeon-7130-ahci", },
 	{ /* sentinel */ }
