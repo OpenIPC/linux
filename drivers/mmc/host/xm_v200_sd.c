@@ -1,5 +1,5 @@
 /*
- * SD card slot of Xiongmai's V200 series (XM530V200, XM533, XM535)
+ * SD card slot of Xiongmai's V200 series (XM530V200, XM533, XM535, XM232)
  * for the arasan driver.
  *
  * Their vendor sdio0_sd.ko / sdio1_sd.ko cannot be used here: the arasan
@@ -52,6 +52,8 @@ struct xm_sd_chip {
 	unsigned int clk_pad, cmd_pad, data_pad[4];
 	unsigned int cd_pad;
 	u32 mux;			/* the pads' controller function */
+	u32 data_bits;			/* more bits on the command and data pads */
+	u32 cd_val;			/* the card detect pad's value, if not 8 mA */
 	u32 drive_default;		/* drive bits for a value out of range */
 	unsigned int clk_phase_reg;
 	u32 clk_phase_default;
@@ -98,6 +100,18 @@ static const struct xm_sd_chip xm_sd_chips[] = {
 		.pad_2a0 = 2,
 		.rst_reg = 0x108, .rst_val = 0x5d101000,
 	},
+	{	/* sdio0_sd.ko of an X6S-WEQ-H (XM232W1), V5.03.C01 */
+		.name = "xm232", .slot = 0,
+		.base = 0x50000000, .irq = 51,
+		.clk_pad = 160, .cmd_pad = 161, .data_pad = { 162, 163, 164, 165 },
+		.cd_pad = 166,
+		.mux = GPIO_MUX1_EN, .drive_default = GPIO_DRIVE_4MA,
+		.data_bits = 0x10, .cd_val = 0x10 | GPIO_MUX1_EN,
+		.clk_phase_reg = 0xc30, .clk_phase_default = 8,
+		.clk_phase_reg2 = 0xc38,
+		.data_phase_reg = 0xca0, .data_phase_default = 0,
+		.rst_reg = 0x108, .rst_val = 0x5d101000,
+	},
 };
 
 static char *chip = CONFIG_XM530_MACHINE_NAME;
@@ -120,7 +134,7 @@ module_param(clk_phase, int, S_IRUGO);
 module_param(data_phase, int, S_IRUGO);
 module_param(detect_gpio, int, S_IRUGO);
 module_param(hw_reset, int, S_IRUGO);
-MODULE_PARM_DESC(chip, "xm530v200, xm533 or xm535d1/d2/w1");
+MODULE_PARM_DESC(chip, "xm530v200, xm533, xm535d1/d2/w1 or xm232");
 MODULE_PARM_DESC(pdn, "card power pad, active low; negative: active high; 0: none");
 
 static const struct xm_sd_chip *xm_sd;
@@ -154,7 +168,7 @@ static void xm_sd_power(bool on)
 static void xm_sd_powerup(void)
 {
 	const struct xm_sd_chip *c = xm_sd;
-	u32 data = xm_sd_drive(sdiocur) | c->mux;
+	u32 data = xm_sd_drive(sdiocur) | c->mux | c->data_bits;
 	u32 clkpad = xm_sd_drive(clk) | c->mux;
 	int i;
 
@@ -189,7 +203,8 @@ static void xm_sd_powerup(void)
 	 * controller's card detect is all there is, and its pad is always muxed.
 	 */
 	if (detect)
-		writel(GPIO_DRIVE_8MA | c->mux, xm_pads + XM_PAD(c->cd_pad));
+		writel(c->cd_val ? c->cd_val : GPIO_DRIVE_8MA | c->mux,
+		       xm_pads + XM_PAD(c->cd_pad));
 
 	if (c->pad_2a0 == 1 ||
 	    (c->pad_2a0 == 2 && (readl(xm_pads + 0x2a0) & GPIO_MUX1_EN)))
