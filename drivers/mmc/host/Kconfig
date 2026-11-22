@@ -22,11 +22,11 @@ config MMC_SD
 	  in the xm platform.
 
 config MMC_XM_V200_SD
-	tristate "SD card slot of the XM530V200, XM533 and XM535"
+	tristate "SD card slot of the XM530V200, XM533, XM535 and XM232"
 	depends on MMC_ARASAN && ARCH_XM530
 	help
 	  Registers the SD card slot of Xiongmai's V200-series
-	  parts (XM530V200, XM533, XM535) with the arasan driver, and
+	  parts (XM530V200, XM533, XM535, XM232) with the arasan driver, and
 	  powers it up as their vendor sdio0_sd/sdio1_sd modules do.
 	  Those modules cannot be loaded on this kernel: their platform
 	  data is laid out for their own kernel's arasan driver.
