@@ -51,6 +51,13 @@
 		compatible = "jedec,spi-nor";
 		reg = <1>;
 		label = "hi_sfc";
+		/*
+		 * The rating of the 1-2-2 read of the MX25L12835F, the slowest
+		 * fast read the node selects. The controller cannot divide its
+		 * clock, so this does not lower the 56.25 MHz SPI clock: the
+		 * driver only warns if that clock ever exceeds it.
+		 */
+		spi-max-frequency = <84000000>;
 		spi-rx-bus-width = <2>;
 		spi-tx-bus-width = <2>;
 	};
