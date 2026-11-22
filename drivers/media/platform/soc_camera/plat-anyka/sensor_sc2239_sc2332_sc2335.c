@@ -76,7 +76,7 @@ static int _output_height = SENSOR_OUTPUT_HEIGHT;
 
 static int _target_frame_vts = 0; ///< 缓存帧长设置，用于限制曝光与帧长大于曝光的逻辑。
 static int _target_exp_ctrl = 0;
-static int _reg_frame_hts = 0;
+static int _reg_frame_hts = -1; /* -1: not read; 0 is a value, and IRQ time is no time for I2C */
 
 /**
  * 通过 I2C 总线读取一个数据。
@@ -171,7 +171,7 @@ static int __get_frame_half_hts (void) {
 
 	/// 该参数初始化导入配置以后不会再修改，因此可以通过变量缓存。
 
-	if (0 == _reg_frame_hts) {
+	if (_reg_frame_hts < 0) {
 		_reg_frame_hts = __i2c_read (0x320c) << 8 | __i2c_read (0x320d);
 		if (SENSOR_SC2239_ID == _SENSOR_ID || SENSOR_SC2332_ID == _SENSOR_ID) {
 			/// SC2239 比较特别，从该寄存器读出来的值是一行的宽度，\n
@@ -191,10 +191,10 @@ static int __get_frame_half_hts (void) {
 /**
  * 获取帧高。
  */
-static int _reg_frame_vts = 0; ///< 缓冲帧高参数，避免 I2C 频繁读取造成效率下降。
+static int _reg_frame_vts = -1; ///< 缓冲帧高参数，避免 I2C 频繁读取造成效率下降。
 static int __get_frame_vts (void) {
 
-	if (0 == _reg_frame_vts) {
+	if (_reg_frame_vts < 0) {
 		_reg_frame_vts = __i2c_read (0x320e) << 8 | __i2c_read (0x320f);
 	}
 
@@ -303,8 +303,8 @@ static int sc2239_init(const AK_ISP_SENSOR_INIT_PARA *para)
 		int hts, vts;
 
 		/* the list may have changed both; the caches hold the old */
-		_reg_frame_hts = 0;
-		_reg_frame_vts = 0;
+		_reg_frame_hts = -1;
+		_reg_frame_vts = -1;
 		hts = __get_frame_hts ();
 		vts = __get_frame_vts ();
 		if (hts > 0 && vts > 0)
