@@ -1,0 +1,134 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/phy/hisilicon,hi3536dv100-usb2-phy.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: HiSilicon Hi3536D V100 USB 2.0 PHY
+
+maintainers:
+  - Dylan Corrales <deathcamel58@gmail.com>
+
+description: |
+  The two-port USB 2.0 PHY of the Hi3536D V100 (the Hi3536E reports the same
+  system identification and is described the same way). The PHY registers are
+  not a block of their own: they appear as a window at offset 0x8000 of the
+  MISC_CTRL register block ("bus access mode" of MISC_CTRL21), next to the
+  USB control words MISC_CTRL20 and MISC_CTRL21. The PHY node must be a
+  child of the MISC_CTRL node (hisilicon,hi3536dv100-misc-ctrl), whose regmap
+  holds all of them. The tuning values are not properties: the data sheet
+  describes the pre-emphasis switch, amplitude and pre-emphasis strength
+  registers and the vendor driver programs one fixed set for every board.
+
+  The PHY is released from reset and clocked through PERI_CRG46 (USB 2.0
+  controller clocks and resets) and PERI_CRG47 (PHY reference clock and
+  resets) of the clock and reset generator. The controller bus reset
+  (PERI_CRG46 bit 12) belongs to the PHY node because the start sequence
+  releases it together with the UTMI and HST_PHY resets, after the PHY
+  itself. The clock source select of PERI_CRG46 bit 20 (PHY output or CRG
+  provided 48 MHz, free and UTMI clocks) is not described; the clock driver
+  reports it.
+
+  The EHCI and OHCI controllers use the PHY through the generic "phys"
+  property. The PHY driver programs everything the start sequence depends on
+  and does not rely on the boot loader: the board dependent bits of
+  MISC_CTRL20 (power enable polarity and sharing) are described by the two
+  properties below, and the fused trim value of MISC_CTRL20 is copied to the
+  PHY port registers.
+
+properties:
+  compatible:
+    const: hisilicon,hi3536dv100-usb2-phy
+
+  '#phy-cells':
+    const: 0
+
+  clocks:
+    items:
+      - description: PHY reference clock gate (PERI_CRG47 bit 0)
+      - description: Controller bus clock gate (PERI_CRG46 bit 0)
+      - description: OHCI 48 MHz clock gate (PERI_CRG46 bit 1)
+      - description: OHCI 12 MHz clock gate (PERI_CRG46 bit 2)
+      - description: HST_PHY clock gate (PERI_CRG46 bit 4)
+      - description: UTMI port 0 clock gate (PERI_CRG46 bit 5)
+      - description: UTMI port 1 clock gate (PERI_CRG46 bit 6)
+
+  clock-names:
+    items:
+      - const: ref
+      - const: bus
+      - const: ohci48m
+      - const: ohci12m
+      - const: hst-phy
+      - const: utmi0
+      - const: utmi1
+
+  resets:
+    items:
+      - description: Controller bus reset (PERI_CRG46 bit 12)
+      - description: UTMI port 0 reset (PERI_CRG46 bit 13)
+      - description: UTMI port 1 reset (PERI_CRG46 bit 14)
+      - description: HST_PHY reset (PERI_CRG46 bit 16)
+      - description: PHY reset (PERI_CRG47 bit 1)
+      - description: PHY port 0 TREQ reset (PERI_CRG47 bit 2)
+      - description: PHY port 1 TREQ reset (PERI_CRG47 bit 3)
+      - description: PHY test reset (PERI_CRG47 bit 4)
+
+  reset-names:
+    items:
+      - const: bus
+      - const: utmi0
+      - const: utmi1
+      - const: hst-phy
+      - const: phy
+      - const: port0-treq
+      - const: port1-treq
+      - const: test
+
+  hisilicon,power-enable-active-low:
+    type: boolean
+    description:
+      The USB power switch of the board is enabled by a low level of the
+      power enable signal. Without this property the signal is active high,
+      which is the reset value of MISC_CTRL20.
+
+  hisilicon,shared-power-enable:
+    type: boolean
+    description:
+      Both ports of the board use the one power enable signal of port 0
+      (MISC_CTRL20 usb2_host_pwr_merge). Without this property each port has
+      its own signal, which is the reset value.
+
+required:
+  - compatible
+  - '#phy-cells'
+  - clocks
+  - clock-names
+  - resets
+  - reset-names
+
+additionalProperties: false
+
+examples:
+  - |
+    #include <dt-bindings/clock/hi3536dv100-clock.h>
+
+    /* A child of the MISC_CTRL syscon node, see hisilicon,hi3536dv100-misc-ctrl.yaml */
+    usb-phy {
+        compatible = "hisilicon,hi3536dv100-usb2-phy";
+        #phy-cells = <0>;
+        clocks = <&crg HI3536DV100_USB2_PHY_CLK>,
+                 <&crg HI3536DV100_USB2_BUS_CLK>,
+                 <&crg HI3536DV100_USB2_OHCI48M_CLK>,
+                 <&crg HI3536DV100_USB2_OHCI12M_CLK>,
+                 <&crg HI3536DV100_USB2_HST_PHY_CLK>,
+                 <&crg HI3536DV100_USB2_UTMI0_CLK>,
+                 <&crg HI3536DV100_USB2_UTMI1_CLK>;
+        clock-names = "ref", "bus", "ohci48m", "ohci12m", "hst-phy",
+                      "utmi0", "utmi1";
+        resets = <&crg 0xb8 12>, <&crg 0xb8 13>, <&crg 0xb8 14>,
+                 <&crg 0xb8 16>, <&crg 0xbc 1>, <&crg 0xbc 2>,
+                 <&crg 0xbc 3>, <&crg 0xbc 4>;
+        reset-names = "bus", "utmi0", "utmi1", "hst-phy", "phy",
+                      "port0-treq", "port1-treq", "test";
+    };
