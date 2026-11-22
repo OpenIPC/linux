@@ -187,6 +187,22 @@
 			status = "disabled";
 		};
 
+		/*
+		 * The RTC macro sits behind an SPI bridge whose divider the driver
+		 * derives from the system APB clock (the bridge clock is 5 MHz at
+		 * most). The alarm interrupt is bit 37 of the interrupt table. The
+		 * macro has its own supply pin (AVDD_BAT) and a 32.768 kHz crystal,
+		 * so a board enables the node when it fits them.
+		 */
+		rtc: rtc@120b0000 {
+			compatible = "hisilicon,hi3536dv100-rtc",
+				     "hisilicon,hisi-spi-rtc-v3";
+			reg = <0x120b0000 0x1000>;
+			interrupts = <GIC_SPI 5 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&crg HI3536DV100_SYSAPB_CLK>;
+			status = "disabled";
+		};
+
 		gpio0: gpio@12150000 {
 			compatible = "arm,pl061", "arm,primecell";
 			reg = <0x12150000 0x1000>;
