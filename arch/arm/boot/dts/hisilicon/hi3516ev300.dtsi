@@ -170,6 +170,7 @@
 
 			uart0: uart@12040000 {
 				compatible = "arm,pl011", "arm,primecell";
+				arm,primecell-periphid = <0x00241011>;
 				reg = <0x12040000 0x1000>;
 				interrupts = <0 7 4>;
 				clocks = <&clock HI3516EV200_UART0_CLK>,
@@ -180,6 +181,7 @@
 
 			uart1: uart@12041000 {
 				compatible = "arm,pl011", "arm,primecell";
+				arm,primecell-periphid = <0x00241011>;
 				reg = <0x12041000 0x1000>;
 				interrupts = <0 8 4>;
 				clocks = <&clock HI3516EV200_UART1_CLK>,
@@ -219,6 +221,7 @@
 
 			uart2: uart@12042000 {
 				compatible = "arm,pl011", "arm,primecell";
+				arm,primecell-periphid = <0x00241011>;
 				reg = <0x12042000 0x1000>;
 				interrupts = <0 9 4>;
 				clocks = <&clock HI3516EV200_UART2_CLK>,
