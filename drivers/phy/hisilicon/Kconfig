@@ -72,9 +72,10 @@ config PHY_HISI_AHCI_SATA
 	help
 	  Support for the SATA PHY of the HiSilicon AHCI controller, which
 	  is configured through registers inside the controller's register
-	  window and a reset bit of the clock and reset generator. The
-	  controller itself is driven by the generic platform AHCI driver
-	  (SATA_AHCI_PLATFORM). Only the Hi3520D V100 is supported so far.
+	  window, a reset bit of the clock and reset generator and options
+	  outside the controller. The controller itself is driven by the
+	  generic platform AHCI driver (SATA_AHCI_PLATFORM). The Hi3520D
+	  V100 and the Hi3536D V100 are supported.
 
 config PHY_HIX5HD2_SATA
 	tristate "HIX5HD2 SATA PHY Driver"

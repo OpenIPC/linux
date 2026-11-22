@@ -17,9 +17,12 @@
  *
  * The register descriptions show the same layout on the Hi3520D, Hi3515A and
  * Hi3515C; whether the tuning values of those SoCs are the same is not known,
- * and only the Hi3520D V100 is supported and tested. The Hi3520D V300 and
- * Hi3535 have the PHY registers at other offsets with other fields and need
- * separate register definitions. Register and field names follow the
+ * and only the Hi3520D V100 is supported and tested. The Hi3536D V100 is
+ * supported by its own match data (see below); it was tested on one board
+ * with the controller resets released by the boot loader, see the comment of
+ * that variant.
+ * The Hi3520D V300 and Hi3535 have the PHY registers at other offsets with
+ * other fields and need separate register definitions. Register and field names follow the
  * Hi3520D V100 register description (SATA block). The sequence and the values
  * come from the GPL vendor BSP (drivers/ata/ahci_sys.c and CONFIG_HI_SATA,
  * 3 Gbit/s mode) and from the ahci_hi3520dv200 glue driver.
@@ -50,10 +53,20 @@
  * CTLL is written: the data sheet allows changing the MPLL parameters only
  * while the MPLL is off, and the registers may still hold values from an
  * earlier boot stage or kernel. The final CTLH write switches it on again.
+ *
+ * The Hi3536D V100 has one port and other global PHY registers (SATA_PHY_CTL0,
+ * SATA_PHY_CTL1 and SATA_OOB_CTL at 0xa0, 0xa4 and 0xb8 of the AHCI window,
+ * and PHYCTL1 per port), a PHY reference clock and a PHY lane reset in
+ * PERI_CRG44, and the analog PHY parameters behind MISC_CTRL22 (0x58 of
+ * MISC_CTRL), a register that the data sheet does not describe. Its sequence
+ * comes from the vendor kernel (phy-hi3536dv100-sata.c) and the data sheet
+ * (SATA, operating mode configuration); the differences are described at the
+ * hooks of that variant.
  */
 
 #include <linux/bitfield.h>
 #include <linux/bits.h>
+#include <linux/clk.h>
 #include <linux/delay.h>
 #include <linux/err.h>
 #include <linux/io.h>
@@ -73,9 +86,21 @@
 #define SATA_PHY0_CTLH			0x08
 #define SATA_OOB_CTL			0x1c
 
+/*
+ * Hi3536D V100 "ctrl" window, offsets from SATA_PHY_CTL0 (0xa0 in the AHCI
+ * window). SATA_PHY_RST_BACK_MASK and SATA_PHY_CTL2 are not in the data sheet
+ * (the vendor driver writes them, a Hi3536D has no second PHY).
+ */
+#define HI3536D_PHY_CTL0		0x00
+#define HI3536D_PHY_CTL1		0x04
+#define HI3536D_PHY_RST_BACK_MASK	0x0c
+#define HI3536D_PHY_CTL2		0x10
+#define HI3536D_OOB_CTL			0x18
+
 /* "ports" window, per port, 0x80 apart */
 #define SATA_PORT_STRIDE		0x80
 #define SATA_PORT_FIFOTH		0x44
+#define SATA_PORT_PHYCTL1		0x48
 #define SATA_PORT_PHYCTL		0x74
 
 /* SATA_PHY0_CTLL: analog PHY parameters */
@@ -136,6 +161,56 @@
 #define SATA_PORT_PHYCTL_TX_ATTEN	GENMASK(6, 4)
 #define SATA_PORT_PHYCTL_TX_BOOST	GENMASK(3, 0)
 
+/* Hi3536D V100 PHY control registers */
+#define HI3536D_PHY_CTL0_RESET		0xc9802780	/* not written */
+#define HI3536D_PHY_CTL1_DATA_INVERT	BIT(3)
+#define HI3536D_PHY_RST_BACK_ALL	GENMASK(7, 4)	/* reset-back mask of the four lanes */
+#define HI3536D_PHY_RST_BACK_PHY0	BIT(4)
+#define HI3536D_PHY_CTL2_DATA_INVERT	BIT(3)
+#define HI3536D_OOB_CTL_RESET		0x84060c15	/* not written */
+/* the controller resets of PERI_CRG45 (bits 8 to 11) that the PHY pulses */
+#define HI3536D_NUM_CTRL_RSTS		4
+
+/* SATA_PORT_FIFOTH: bits 8:0 are the documented thresholds, 31:9 are reserved */
+#define HI3536D_FIFOTH_CHECK_MASK	GENMASK_U32(8, 0)
+
+/*
+ * SATA_PORT_PHYCTL1: TX amplitude (margin), pre-emphasis (deemph) and swing
+ * for Gen1 (0), Gen2 (1) and Gen3 (2); the vendor value is 0x00050438. It
+ * also clears the reserved bits 21, 14 and 7, which read 1 after a reset.
+ */
+#define HI3536D_PHYCTL1_MARGIN2		GENMASK(20, 18)
+#define HI3536D_PHYCTL1_DEEMPH2		GENMASK(17, 16)
+#define HI3536D_PHYCTL1_MARGIN1		GENMASK(13, 11)
+#define HI3536D_PHYCTL1_DEEMPH1		GENMASK(10, 9)
+#define HI3536D_PHYCTL1_MARGIN0		GENMASK(6, 4)
+#define HI3536D_PHYCTL1_DEEMPH0		GENMASK(3, 2)
+#define HI3536D_PHYCTL1_CHECK_MASK	(GENMASK_U32(20, 15) | GENMASK_U32(13, 8) | \
+					 GENMASK_U32(6, 1))
+
+/*
+ * SATA_PORT_PHYCTL of the Hi3536D V100: GEN2_EN is the field 22:21 (1 = 3
+ * Gbit/s, 0 = 1.5 Gbit/s). The vendor values are 0x0e180000 for 1.5 and
+ * 0x0e390000 for 3 Gbit/s; they also differ in bit 16, which the register
+ * description calls reserved, so it is a speed bit here like the field. The
+ * ready, calibrated and speed-change-acknowledge bits (27:25) are not compared.
+ */
+#define HI3536D_PHYCTL_GEN2_EN		BIT(21)
+#define HI3536D_PHYCTL_GEN2_RSVD	BIT(16)
+#define HI3536D_PHYCTL_CHECK_MASK	(GENMASK_U32(31, 28) | GENMASK_U32(24, 0))
+
+/*
+ * MISC_CTRL22 (0x58 of MISC_CTRL) is an indirect access port to the analog
+ * PHY: each value is written, written again with bit 6 set, written again
+ * without it and finally cleared, which looks like a strobe of the value in
+ * bits 11:0 (inferred from the sequence, the data sheet does not describe the
+ * register). The first group forces the PLL to 6 Gbit/s and the CDR to 3
+ * Gbit/s for Gen1 and 6 Gbit/s for Gen2, the second disables spread spectrum
+ * (vendor comments).
+ */
+#define HI3536D_MISC_CTRL22		0x58
+#define HI3536D_MISC_STROBE		BIT(6)
+
 /*
  * Largest valid codes of the tuning fields a board may set. TX_ATTEN: 0 to 4
  * are the ratios 16/16, 14/16, 12/16, 10/16 and 9/16, 5 is reserved. TX_BOOST
@@ -161,9 +236,10 @@
 #define SATA_CTRL_WINDOW_MIN_SIZE	(SATA_OOB_CTL + sizeof(u32))
 
 /*
- * The controller implements two ports (ports implemented 0x3); the number of
- * ports the PHY programs is the size of the "ports" window, not read back
- * from the AHCI registers.
+ * The largest controller implements two ports (the Hi3520D V100, ports
+ * implemented 0x3; the Hi3536D V100 has one); the number of ports the PHY
+ * programs is the size of the "ports" window, not read back from the AHCI
+ * registers.
  */
 #define SATA_MAX_PORTS			2
 
@@ -184,8 +260,17 @@ struct hisi_ahci_sata_phy;
  * @ctrl_size:	smallest size of the "ctrl" register window
  * @get_resources: look up the resources of the variant at probe time
  * @power_on:	set the options of the SoC before the PHY reset is released
+ * @power_off:	undo @power_on after the PHY reset is asserted (optional)
+ * @release:	step after the PHY reset is released and has settled (optional)
  * @program:	write the PHY registers that all ports share
+ * @finish:	configure the PHY after the reset pulse (optional)
  * @check:	read back the shared registers and warn about a difference
+ * @tuning:	the per-port tuning properties apply to the PHYCTL register
+ * @has_phyctl1: the ports have a PHYCTL1 register: @phyctl1 is written and
+ *		read back (the SoC has none otherwise and the register is not
+ *		touched)
+ * @phyctl1:	SATA_PORT_PHYCTL1 value
+ * @phyctl1_check: bits of PHYCTL1 that the read-back compares
  * @fifoth:	SATA_PORT_FIFOTH value
  * @fifoth_check: bits of FIFOTH that the read-back compares
  * @portctl:	SATA_PORT_PHYCTL reference value; a board may set TX_BOOST,
@@ -217,8 +302,15 @@ struct hisi_ahci_sata_phy_cfg {
 	size_t ctrl_size;
 	int (*get_resources)(struct hisi_ahci_sata_phy *priv);
 	int (*power_on)(struct hisi_ahci_sata_phy *priv);
+	void (*power_off)(struct hisi_ahci_sata_phy *priv);
+	int (*release)(struct hisi_ahci_sata_phy *priv);
 	void (*program)(struct hisi_ahci_sata_phy *priv);
+	int (*finish)(struct hisi_ahci_sata_phy *priv);
 	void (*check)(const struct hisi_ahci_sata_phy *priv);
+	bool tuning;
+	bool has_phyctl1;
+	u32 phyctl1;
+	u32 phyctl1_check;
 	u32 fifoth;
 	u32 fifoth_check;
 	u32 portctl;
@@ -250,6 +342,10 @@ struct hisi_ahci_sata_port {
  * @nports:	number of ports
  * @rst:	PHY reset, shared by the ports
  * @sysctrl:	system controller regmap (PHY power and reference options)
+ * @misc:	MISC_CTRL regmap (analog PHY parameters), Hi3536D V100
+ * @ref_clk:	PHY reference clock, Hi3536D V100
+ * @ctrl_rsts:	controller resets, shared with the AHCI node, Hi3536D V100
+ * @ctrl_held:	the PHY asserted @ctrl_rsts and has not released them yet
  * @cfg:	tuning values of the SoC
  * @portctl:	PHYCTL value of each port without GEN2_EN, which follows the
  *		link speed
@@ -266,6 +362,10 @@ struct hisi_ahci_sata_phy {
 	unsigned int nports;
 	struct reset_control *rst;
 	struct regmap *sysctrl;
+	struct regmap *misc;
+	struct clk *ref_clk;
+	struct reset_control_bulk_data ctrl_rsts[HI3536D_NUM_CTRL_RSTS];
+	bool ctrl_held;
 	const struct hisi_ahci_sata_phy_cfg *cfg;
 	u32 portctl[SATA_MAX_PORTS];
 	struct mutex lock;	/* see the kernel-doc above */
@@ -324,6 +424,11 @@ static void hisi_ahci_sata_phy_check(const struct hisi_ahci_sata_phy *priv)
 					     port + SATA_PORT_FIFOTH,
 					     priv->cfg->fifoth,
 					     priv->cfg->fifoth_check);
+		if (priv->cfg->has_phyctl1)
+			hisi_ahci_sata_phy_check_reg(priv, "PORT_PHYCTL1",
+						     port + SATA_PORT_PHYCTL1,
+						     priv->cfg->phyctl1,
+						     priv->cfg->phyctl1_check);
 		hisi_ahci_sata_phy_check_reg(priv, "PORT_PHYCTL",
 					     port + SATA_PORT_PHYCTL,
 					     hisi_ahci_sata_phy_portctl(priv, i),
@@ -381,8 +486,14 @@ static int hisi_ahci_sata_phy_do_init(struct hisi_ahci_sata_phy *priv)
 
 	ret = reset_control_deassert(priv->rst);
 	if (ret)
-		return ret;
+		goto err_off;
 	msleep(SATA_PHY_RESET_DELAY_MS);
+
+	if (priv->cfg->release) {
+		ret = priv->cfg->release(priv);
+		if (ret)
+			goto err_assert;
+	}
 
 	priv->cfg->program(priv);
 
@@ -390,6 +501,8 @@ static int hisi_ahci_sata_phy_do_init(struct hisi_ahci_sata_phy *priv)
 		void __iomem *port = priv->ports + i * SATA_PORT_STRIDE;
 
 		writel(priv->cfg->fifoth, port + SATA_PORT_FIFOTH);
+		if (priv->cfg->has_phyctl1)
+			writel(priv->cfg->phyctl1, port + SATA_PORT_PHYCTL1);
 		writel(hisi_ahci_sata_phy_portctl(priv, i),
 		       port + SATA_PORT_PHYCTL);
 	}
@@ -404,6 +517,12 @@ static int hisi_ahci_sata_phy_do_init(struct hisi_ahci_sata_phy *priv)
 	if (ret)
 		goto err_assert;
 	msleep(SATA_PHY_RESET_DELAY_MS);
+
+	if (priv->cfg->finish) {
+		ret = priv->cfg->finish(priv);
+		if (ret)
+			goto err_assert;
+	}
 
 	/*
 	 * Read back the programmed registers (a block still held in reset drops
@@ -423,6 +542,9 @@ static int hisi_ahci_sata_phy_do_init(struct hisi_ahci_sata_phy *priv)
 
 err_assert:
 	reset_control_assert(priv->rst);
+err_off:
+	if (priv->cfg->power_off)
+		priv->cfg->power_off(priv);
 	return ret;
 }
 
@@ -448,10 +570,12 @@ static int hisi_ahci_sata_phy_init(struct phy *phy)
 }
 
 /*
- * The controller and the PHY ignore the speed limit in the SControl register
- * of the port: with GEN2_EN set the link comes up at 3 Gbit/s whatever the
- * limit is, with GEN2_EN clear it comes up at 1.5 Gbit/s. The bit is sampled
- * at the next link negotiation of the port, a PHY reset is not needed.
+ * The controller and the PHY of the Hi3520D V100 ignore the speed limit in the
+ * SControl register of the port: with GEN2_EN set the link comes up at 3
+ * Gbit/s whatever the limit is, with GEN2_EN clear it comes up at 1.5 Gbit/s.
+ * The bit is sampled at the next link negotiation of the port, a PHY reset is
+ * not needed. The Hi3536D V100 takes its speed bits (see gen2_bits) the same
+ * way; whether its PHY also ignores the limit in SControl is not known.
  *
  * The register is written whole from the tuning and the state of the port: the
  * register description gives no bit of PHYCTL that the hardware changes (all
@@ -485,8 +609,11 @@ static int hisi_ahci_sata_phy_exit(struct phy *phy)
 	int ret = 0;
 
 	mutex_lock(&priv->lock);
-	if (priv->users && !--priv->users)
+	if (priv->users && !--priv->users) {
 		ret = reset_control_assert(priv->rst);
+		if (priv->cfg->power_off)
+			priv->cfg->power_off(priv);
+	}
 	mutex_unlock(&priv->lock);
 
 	return ret;
@@ -583,6 +710,13 @@ static int hisi_ahci_sata_phy_get_portctl(struct device *dev,
 	u32 boost[SATA_MAX_PORTS], atten[SATA_MAX_PORTS], eq[SATA_MAX_PORTS];
 	unsigned int i;
 	int ret;
+
+	if (!cfg->tuning) {
+		for (i = 0; i < nports; i++)
+			portctl[i] = cfg->portctl & ~cfg->gen2_bits;
+
+		return 0;
+	}
 
 	for (i = 0; i < nports; i++) {
 		boost[i] = FIELD_GET(SATA_PORT_PHYCTL_TX_BOOST, cfg->portctl);
@@ -699,6 +833,173 @@ static int hisi_ahci_sata_phy_probe(struct platform_device *pdev)
 	return PTR_ERR_OR_ZERO(provider);
 }
 
+/*
+ * Hi3536D V100: the PHY reference clock (the CRG clock driver selects its
+ * parent with the assigned-clock-parents of the node), the lane reset and the
+ * four controller resets (PERI_CRG45 bits 8 to 11) are handled here. The
+ * vendor sequence (phy-hi3536dv100-sata.c, hisi_sata_phy_init()) asserts the
+ * controller resets, then the PHY reset, selects and enables the clocks, waits
+ * 20 ms, releases the PHY reset, waits 20 ms, releases the controller resets,
+ * waits 20 ms and only then writes the registers behind them.
+ *
+ * The controller clocks and resets belong to the AHCI node, whose core enables
+ * the clocks and releases the resets before it initializes the PHY, and which
+ * asserts them again when it disables its resources. A boot loader that ran
+ * SATA leaves the resets released, so that release is no reset at all. The PHY
+ * therefore holds the same four reset lines as shared controls (the core counts
+ * the users of a shared line and hardware follows the first deassert and the
+ * last assert): by the time it runs, the AHCI node has released them, so
+ * asserting them here is the vendor's controller reset, and releasing them
+ * after the PHY reset hands them back in the state the AHCI node expects, in
+ * the vendor's order. The PHY must not leave them asserted, or the AHCI node
+ * would assert a line whose count is already zero.
+ */
+static int hisi_ahci_sata_phy_get_resources_hi3536dv100(struct hisi_ahci_sata_phy *priv)
+{
+	static const char * const ctrl_rst_names[HI3536D_NUM_CTRL_RSTS] = {
+		"ctrl-bus", "ctrl-alive", "ctrl-rx0", "ctrl-sata0",
+	};
+	struct device *dev = priv->dev;
+	unsigned int i;
+	int ret;
+
+	priv->misc = syscon_regmap_lookup_by_phandle(dev->of_node,
+						     "hisilicon,misc-ctrl");
+	if (IS_ERR(priv->misc))
+		return dev_err_probe(dev, PTR_ERR(priv->misc),
+				     "cannot get MISC_CTRL\n");
+
+	priv->ref_clk = devm_clk_get(dev, "ref");
+	if (IS_ERR(priv->ref_clk))
+		return dev_err_probe(dev, PTR_ERR(priv->ref_clk),
+				     "cannot get the reference clock\n");
+
+	for (i = 0; i < HI3536D_NUM_CTRL_RSTS; i++)
+		priv->ctrl_rsts[i].id = ctrl_rst_names[i];
+	ret = devm_reset_control_bulk_get_shared(dev, HI3536D_NUM_CTRL_RSTS,
+						 priv->ctrl_rsts);
+	if (ret)
+		return dev_err_probe(dev, ret,
+				     "cannot get the controller resets\n");
+
+	return 0;
+}
+
+/* Hand the controller resets back to the AHCI node, in the state it expects */
+static int hisi_ahci_sata_phy_release_hi3536dv100(struct hisi_ahci_sata_phy *priv)
+{
+	int ret;
+
+	if (!priv->ctrl_held)
+		return 0;
+
+	ret = reset_control_bulk_deassert(HI3536D_NUM_CTRL_RSTS, priv->ctrl_rsts);
+	if (ret)
+		return dev_err_probe(priv->dev, ret,
+				     "cannot release the controller resets\n");
+	priv->ctrl_held = false;
+	msleep(SATA_PHY_RESET_DELAY_MS);
+
+	return 0;
+}
+
+static int hisi_ahci_sata_phy_power_on_hi3536dv100(struct hisi_ahci_sata_phy *priv)
+{
+	int ret;
+
+	ret = reset_control_assert(priv->rst);
+	if (ret)
+		return ret;
+	ret = reset_control_bulk_assert(HI3536D_NUM_CTRL_RSTS, priv->ctrl_rsts);
+	if (ret)
+		return dev_err_probe(priv->dev, ret,
+				     "cannot assert the controller resets\n");
+	priv->ctrl_held = true;
+	ret = clk_prepare_enable(priv->ref_clk);
+	if (ret) {
+		hisi_ahci_sata_phy_release_hi3536dv100(priv);
+		return dev_err_probe(priv->dev, ret,
+				     "cannot enable the reference clock\n");
+	}
+	msleep(SATA_PHY_RESET_DELAY_MS);
+
+	return 0;
+}
+
+static void hisi_ahci_sata_phy_power_off_hi3536dv100(struct hisi_ahci_sata_phy *priv)
+{
+	/* only an error path still holds them, the normal sequence released them */
+	hisi_ahci_sata_phy_release_hi3536dv100(priv);
+	clk_disable_unprepare(priv->ref_clk);
+}
+
+/*
+ * The data sheet (SATA operating mode configuration) sets SATA_PHY_CTL1 bit 3
+ * so that the PHY and the controller use opposite endianness. The vendor
+ * driver also sets the same bit in the second PHY control register (0xb0)
+ * and sets the reset-back mask bits 7:5 and clears bit 4 of 0xac, which the
+ * data sheet does not describe; all three are read-modify-write here as in the
+ * vendor driver, keeping their other bits. SATA_PHY_CTL0 and SATA_OOB_CTL are
+ * not written by the vendor driver: they are only compared with their reset
+ * values by the check.
+ */
+static void hisi_ahci_sata_phy_program_hi3536dv100(struct hisi_ahci_sata_phy *priv)
+{
+	u32 val;
+
+	val = readl(priv->ctrl + HI3536D_PHY_CTL1);
+	writel(val | HI3536D_PHY_CTL1_DATA_INVERT, priv->ctrl + HI3536D_PHY_CTL1);
+
+	val = readl(priv->ctrl + HI3536D_PHY_CTL2);
+	writel(val | HI3536D_PHY_CTL2_DATA_INVERT, priv->ctrl + HI3536D_PHY_CTL2);
+
+	val = readl(priv->ctrl + HI3536D_PHY_RST_BACK_MASK);
+	val |= HI3536D_PHY_RST_BACK_ALL;
+	val &= ~HI3536D_PHY_RST_BACK_PHY0;
+	writel(val, priv->ctrl + HI3536D_PHY_RST_BACK_MASK);
+}
+
+/* The PHY takes the analog parameters after its reset is released, as in the vendor driver */
+static int hisi_ahci_sata_phy_finish_hi3536dv100(struct hisi_ahci_sata_phy *priv)
+{
+	static const u16 seq[] = {
+		0x70f, 0x70f | HI3536D_MISC_STROBE, 0x70f, 0,	/* PLL and CDR rates */
+		0x802, 0x802 | HI3536D_MISC_STROBE, 0x802, 0,	/* no spread spectrum */
+	};
+	unsigned int i;
+	int ret;
+
+	for (i = 0; i < ARRAY_SIZE(seq); i++) {
+		ret = regmap_write(priv->misc, HI3536D_MISC_CTRL22, seq[i]);
+		if (ret)
+			return ret;
+	}
+
+	return 0;
+}
+
+static void hisi_ahci_sata_phy_check_hi3536dv100(const struct hisi_ahci_sata_phy *priv)
+{
+	hisi_ahci_sata_phy_check_reg(priv, "PHY_CTL0",
+				     priv->ctrl + HI3536D_PHY_CTL0,
+				     HI3536D_PHY_CTL0_RESET, U32_MAX);
+	hisi_ahci_sata_phy_check_reg(priv, "PHY_CTL1",
+				     priv->ctrl + HI3536D_PHY_CTL1,
+				     HI3536D_PHY_CTL1_DATA_INVERT,
+				     HI3536D_PHY_CTL1_DATA_INVERT);
+	hisi_ahci_sata_phy_check_reg(priv, "PHY_CTL2",
+				     priv->ctrl + HI3536D_PHY_CTL2,
+				     HI3536D_PHY_CTL2_DATA_INVERT,
+				     HI3536D_PHY_CTL2_DATA_INVERT);
+	hisi_ahci_sata_phy_check_reg(priv, "PHY_RST_BACK_MASK",
+				     priv->ctrl + HI3536D_PHY_RST_BACK_MASK,
+				     HI3536D_PHY_RST_BACK_ALL & ~HI3536D_PHY_RST_BACK_PHY0,
+				     HI3536D_PHY_RST_BACK_ALL);
+	hisi_ahci_sata_phy_check_reg(priv, "OOB_CTL",
+				     priv->ctrl + HI3536D_OOB_CTL,
+				     HI3536D_OOB_CTL_RESET, U32_MAX);
+}
+
 /* CTLL 0x880ec888, CTLH 0x2521, OOB 0x84060c15, FIFOTH 0x3f24, PHYCTL 0x0e676706 */
 static const struct hisi_ahci_sata_phy_cfg hi3520dv100_cfg = {
 	.ctrl_size = SATA_CTRL_WINDOW_MIN_SIZE,
@@ -706,6 +1007,7 @@ static const struct hisi_ahci_sata_phy_cfg hi3520dv100_cfg = {
 	.power_on = hisi_ahci_sata_phy_power_on_hi3520dv100,
 	.program = hisi_ahci_sata_phy_program_hi3520dv100,
 	.check = hisi_ahci_sata_phy_check_ctrl_hi3520dv100,
+	.tuning = true,
 	.fifoth_check = SATA_PORT_FIFOTH_CHECK_MASK,
 	.portctl_check = SATA_PORT_PHYCTL_CHECK_MASK,
 	.gen2_bits = SATA_PORT_PHYCTL_GEN2_EN,
@@ -739,9 +1041,41 @@ static const struct hisi_ahci_sata_phy_cfg hi3520dv100_cfg = {
 		   FIELD_PREP_CONST(SATA_PORT_PHYCTL_TX_BOOST, 6),
 };
 
+/*
+ * FIFOTH 0xfeed9f24, PHYCTL1 0x00050438, PHYCTL 0x0e180000 (1.5 Gbit/s) or
+ * 0x0e390000 (3 Gbit/s). The vendor writes the same PHYCTL1 for both speeds.
+ * There is no per-port tuning: the PHYCTL fields of the Hi3520D properties
+ * are other fields here.
+ */
+static const struct hisi_ahci_sata_phy_cfg hi3536dv100_cfg = {
+	.ctrl_size = HI3536D_OOB_CTL + sizeof(u32),
+	.get_resources = hisi_ahci_sata_phy_get_resources_hi3536dv100,
+	.power_on = hisi_ahci_sata_phy_power_on_hi3536dv100,
+	.power_off = hisi_ahci_sata_phy_power_off_hi3536dv100,
+	.release = hisi_ahci_sata_phy_release_hi3536dv100,
+	.program = hisi_ahci_sata_phy_program_hi3536dv100,
+	.finish = hisi_ahci_sata_phy_finish_hi3536dv100,
+	.check = hisi_ahci_sata_phy_check_hi3536dv100,
+	.fifoth = 0xfeed9f24,
+	.fifoth_check = HI3536D_FIFOTH_CHECK_MASK,
+	.has_phyctl1 = true,
+	.phyctl1 = FIELD_PREP_CONST(HI3536D_PHYCTL1_MARGIN2, 1) |
+		   FIELD_PREP_CONST(HI3536D_PHYCTL1_DEEMPH2, 1) |
+		   FIELD_PREP_CONST(HI3536D_PHYCTL1_MARGIN1, 0) |
+		   FIELD_PREP_CONST(HI3536D_PHYCTL1_DEEMPH1, 2) |
+		   FIELD_PREP_CONST(HI3536D_PHYCTL1_MARGIN0, 3) |
+		   FIELD_PREP_CONST(HI3536D_PHYCTL1_DEEMPH0, 2),
+	.phyctl1_check = HI3536D_PHYCTL1_CHECK_MASK,
+	.portctl = 0x0e180000,
+	.portctl_check = HI3536D_PHYCTL_CHECK_MASK,
+	.gen2_bits = HI3536D_PHYCTL_GEN2_EN | HI3536D_PHYCTL_GEN2_RSVD,
+};
+
 static const struct of_device_id hisi_ahci_sata_phy_of_match[] = {
 	{ .compatible = "hisilicon,hi3520dv100-sata-phy",
 	  .data = &hi3520dv100_cfg },
+	{ .compatible = "hisilicon,hi3536dv100-sata-phy",
+	  .data = &hi3536dv100_cfg },
 	{ }
 };
 MODULE_DEVICE_TABLE(of, hisi_ahci_sata_phy_of_match);
