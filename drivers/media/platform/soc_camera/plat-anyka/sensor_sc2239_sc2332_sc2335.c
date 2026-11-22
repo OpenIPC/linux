@@ -27,6 +27,7 @@
 #define SENSOR_SC2239_ID        0x2239 ///< 序列号适配
 #define SENSOR_SC2335_ID        0x2335
 #define SENSOR_SC2332_ID        0x2332
+/* defined at the end; __probe_id() names its tuning before that */
 static AK_ISP_SENSOR_CB _callback;
 static  u32 _SENSOR_ID =        0; ///< 数值为 0 表示未检测到，当检测到某一款 SENSOR 时此值将固定为一个非 0 的值。
 
@@ -322,27 +323,33 @@ static int sc2239_init(const AK_ISP_SENSOR_INIT_PARA *para)
 static int __probe_id (void) {
 
     int const ucode = __read_ucode ();
+    const char *name = NULL;
 
     /// 对应适配设备 ID。
 	switch (ucode) {
 		case SENSOR_SC2239_UCODE:
 			_SENSOR_ID = SENSOR_SC2239_ID;
-			ispdrv_register_sensor_name(&_callback, "sc2239");
+			name = "sc2239";
 			break;
 
 		case SENSOR_SC2335_UCODE:
 			_SENSOR_ID = SENSOR_SC2335_ID;
-			ispdrv_register_sensor_name(&_callback, "sc2335");
+			name = "sc2335";
 			break;
 
         case SENSOR_SC2332_UCODE:
             _SENSOR_ID = SENSOR_SC2332_ID;
-            ispdrv_register_sensor_name(&_callback, "sc2332");
+            name = "sc2332";
             break;
            
 		default:
 			break;
 	}
+
+	/* a full name table leaves it on the fallback tuning: say so */
+	if (name && ispdrv_register_sensor_name(&_callback, name))
+		pr_err("sc2xxx: no room to name %s, its /etc/sensor tuning is not read\n",
+		       name);
 
     return _SENSOR_ID;
 }
