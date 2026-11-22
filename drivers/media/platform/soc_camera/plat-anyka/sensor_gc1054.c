@@ -26,7 +26,17 @@
 #define EFFECT_FRAMES 			1
 #define VSYNC_ACTIVE_MS			29
 
+#ifdef CONFIG_MACH_AK3918EV200
+/*
+ * EV200 has no MIPI receiver: ak-cam takes DVP only. The tuning's register
+ * list sets the DVP output (an AK3918EV201 camera's: the pads on with
+ * 0xf2 = 0x0f, the same 724-line window and VB 10 at 30 fps that
+ * gc1054_set_fps() counts on), so nothing else here changes.
+ */
+#define SENSOR_IO_INTERFACE     DVP_INTERFACE
+#else
 #define SENSOR_IO_INTERFACE     MIPI_INTERFACE
+#endif
 #define SENSOR_IO_LEVEL         SENSOR_IO_LEVEL_3V3 //SENSOR_IO_LEVEL_1V8
 
 #define SKIP_NUM 		2

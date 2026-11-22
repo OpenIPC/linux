@@ -39,8 +39,22 @@ static  u32 _SENSOR_ID =        0; ///< 数值为 0 表示未检测到，当检�
 #define SENSOR_VALID_OFFSET_X	0
 #define SENSOR_VALID_OFFSET_Y	0
 #define SENSOR_BUS_TYPE         BUS_TYPE_RAW
+#ifdef CONFIG_MACH_AK3918EV200
+/*
+ * EV200 has no MIPI receiver: ak-cam takes DVP only. The sensor's DVP
+ * output is whatever the tuning's register list programs (an AK3918EV201
+ * camera's sc2335 one: 1280x960 from the middle of the array, VTS 1000),
+ * so the output size and the timing are read back once it has run, and
+ * the pixel clock is taken as that timing at SENSOR_DVP_BASE_FPS, as
+ * sensor_sc1345.c does. The rate the list really runs at is unchecked.
+ */
+#define SENSOR_DVP              1
+#define SENSOR_IO_INTERFACE     DVP_INTERFACE
+#else
+#define SENSOR_DVP              0
 #define SENSOR_IO_INTERFACE     MIPI_INTERFACE
-//#define SENSOR_IO_INTERFACE   DVP_INTERFACE
+#endif
+#define SENSOR_DVP_BASE_FPS     30
 #define SENSOR_IO_LEVEL         SENSOR_IO_LEVEL_1V8
 
 #define OV_MAX(a, b)            (((a) < (b) ) ?  (b) : (a))
@@ -55,6 +69,9 @@ static  u32 _SENSOR_ID =        0; ///< 数值为 0 表示未检测到，当检�
 #define MIPI_2LANE      2
 
 #define PCLK_FREQ  (74250000)
+static int _pclk = PCLK_FREQ;
+static int _output_width = SENSOR_OUTPUT_WIDTH;
+static int _output_height = SENSOR_OUTPUT_HEIGHT;
 
 static int _target_frame_vts = 0; ///< 缓存帧长设置，用于限制曝光与帧长大于曝光的逻辑。
 static int _target_exp_ctrl = 0;
@@ -278,6 +295,21 @@ static int sc2239_init(const AK_ISP_SENSOR_INIT_PARA *para)
         preg_info++;
 	}
 
+	if (SENSOR_DVP) {
+		int const width = __i2c_read (0x3208) << 8 | __i2c_read (0x3209);
+		int const height = __i2c_read (0x320a) << 8 | __i2c_read (0x320b);
+
+		/* the list may have changed both; the caches hold the old */
+		_reg_frame_hts = 0;
+		_reg_frame_vts = 0;
+		_pclk = __get_frame_hts () * __get_frame_vts () *
+			SENSOR_DVP_BASE_FPS;
+		if (width > 0 && height > 0) {
+			_output_width = width;
+			_output_height = height;
+		}
+	}
+
 	return 0;
 }
 
@@ -333,8 +365,8 @@ static int __read_id (void) {
 
 static int sc2239_get_resolution(int *width, int *height)
 {
-	*width = SENSOR_OUTPUT_WIDTH;
-	*height = SENSOR_OUTPUT_HEIGHT;
+	*width = _output_width;
+	*height = _output_height;
 
 	return 0;
 }
@@ -345,7 +377,7 @@ static int sc2239_get_mclk(void) {
 
 static int __get_fps (void) {
 
-	int const fps = PCLK_FREQ / (__get_frame_hts () * __get_frame_vts ());
+	int const fps = _pclk / (__get_frame_hts () * __get_frame_vts ());
 	/// 读取实时的帧率。
 	//printk ("<0> FPS=%d\r\n", fps);
 	return fps;
@@ -437,7 +469,7 @@ static int __set_fps (const int fps) {
 
 	int vts = 0;
 	/// FPS = PCLK / FRAMEW / FRAMEH
-	vts = PCLK_FREQ;
+	vts = _pclk;
 	vts /= __get_frame_hts ();
 	vts /= fps;
 
