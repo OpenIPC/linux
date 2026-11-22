@@ -3,8 +3,9 @@
  * Sipeed MaixCAM2 (AX630C): 32 GB eMMC, TF slot, internal 10/100 EPHY,
  * UART0 console. Board details from Sipeed's 4.19 SDK devicetree
  * (AX630C_emmc_arm64_k419_sipeed_maixcam2.dts); only what the 5.15
- * drivers here support is ported. Wi-Fi (AIC8800 on SDIO), display,
- * touch, audio and the media blocks are not enabled.
+ * drivers here support is ported. Wi-Fi (AIC8800 on SDIO), the display
+ * panel, touch and audio are not enabled. The media blocks are described
+ * for the closed Axera 5.15 media modules (ax630c-media.dtsi).
  *
  * Boot: no ATF. The first stage enters U-Boot at EL1 and parks CPU1 on the
  * spin-table mailbox, as on ax620e-xm-ipc.dts. U-Boot fixes up the memory
@@ -14,6 +15,7 @@
 /dts-v1/;
 
 #include "ax620e.dtsi"
+#include "ax630c-media.dtsi"
 #include <dt-bindings/input/linux-event-codes.h>
 #include <dt-bindings/phy/axera-dt-phy.h>
 
@@ -84,16 +86,6 @@
 			debounce-interval = <10>;
 		};
 	};
-
-	/*
-	 * The media memory allocator: ax_cmm.ko is a platform driver for this
-	 * node (empty, as in the stock AX620E devicetree). Without it the
-	 * module loads but never probes, and ax_base's first allocation calls
-	 * a NULL allocator.
-	 */
-	cmm {
-		compatible = "axera,cmm";
-	};
 };
 
 &cpu0 {
@@ -104,6 +96,11 @@
 &cpu1 {
 	enable-method = "spin-table";
 	cpu-release-addr = <0x0 0x023400dc>;
+};
+
+/* The DSI panel output; DPU lite has nothing attached. */
+&vo0 {
+	status = "okay";
 };
 
 &uart0 {

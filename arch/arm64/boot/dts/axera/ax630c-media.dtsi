@@ -1,0 +1,362 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+/*
+ * AX630C media blocks as the closed Axera 5.15 media modules (ax_*.ko of
+ * the AX620E SDK) expect them: the same nodes, compatibles, clock and reset
+ * names as the stock devicetree those modules ship with (ax620e-xm-ipc.dts).
+ * Register, interrupt and clock values match Sipeed's AX630C devicetree.
+ *
+ * This selects the vendor media stack: the open-driver nodes ax620e.dtsi
+ * describes at the same addresses (vin, csi2-rx, tdp) are dropped and vdec
+ * gets the vendor compatible.
+ *
+ * Not here, because no driver in this kernel or in the module set binds
+ * them: the aclk_*_top/pclk_top/clk_isp_mm DFS nodes, ddr_dfs, avs,
+ * logctl, the isp clock syscon, mailbox, hwspinlock, the axera,dma and
+ * dma-per controllers, the IVE (no ax_ive.ko) and the DRM display pipeline
+ * (crtc, bt-dpi, dsi, lvds, panels).
+ */
+
+/delete-node/ &vin;
+/delete-node/ &mipi_rx;
+/delete-node/ &tdp;
+
+/ {
+	npu_opp_table: npu-opp-table {
+		compatible = "operating-points-v2";
+
+		opp-24000000 {
+			opp-hz = /bits/ 64 <24000000>;
+		};
+		opp-416000000 {
+			opp-hz = /bits/ 64 <416000000>;
+		};
+		opp-500000000 {
+			opp-hz = /bits/ 64 <500000000>;
+		};
+		opp-594000000 {
+			opp-hz = /bits/ 64 <594000000>;
+		};
+		opp-800000000 {
+			opp-hz = /bits/ 64 <800000000>;
+		};
+	};
+
+	isp_top_opp_table: isp-top-opp-table {
+		compatible = "operating-points-v2";
+
+		opp-24000000 {
+			opp-hz = /bits/ 64 <24000000>;
+		};
+		opp-156000000 {
+			opp-hz = /bits/ 64 <156000000>;
+		};
+		opp-208000000 {
+			opp-hz = /bits/ 64 <208000000>;
+		};
+		opp-250000000 {
+			opp-hz = /bits/ 64 <250000000>;
+		};
+		opp-312000000 {
+			opp-hz = /bits/ 64 <312000000>;
+		};
+		opp-416000000 {
+			opp-hz = /bits/ 64 <416000000>;
+		};
+	};
+
+	isp_axi_opp_table: isp-axi-opp-table {
+		compatible = "operating-points-v2";
+
+		opp-24000000 {
+			opp-hz = /bits/ 64 <24000000>;
+		};
+		opp-208000000 {
+			opp-hz = /bits/ 64 <208000000>;
+		};
+		opp-312000000 {
+			opp-hz = /bits/ 64 <312000000>;
+		};
+		opp-416000000 {
+			opp-hz = /bits/ 64 <416000000>;
+		};
+		opp-500000000 {
+			opp-hz = /bits/ 64 <500000000>;
+		};
+		opp-533333333 {
+			opp-hz = /bits/ 64 <533333333>;
+		};
+	};
+
+	isp_ir_opp_table: isp-ir-opp-table {
+		compatible = "operating-points-v2";
+
+		opp-100000000 {
+			opp-hz = /bits/ 64 <100000000>;
+		};
+		opp-208000000 {
+			opp-hz = /bits/ 64 <208000000>;
+		};
+		opp-250000000 {
+			opp-hz = /bits/ 64 <250000000>;
+		};
+		opp-297000000 {
+			opp-hz = /bits/ 64 <297000000>;
+		};
+	};
+
+	/* VPP, GDC, TDP and both VO engines share one set of steps. */
+	mm_opp_table: mm-opp-table {
+		compatible = "operating-points-v2";
+
+		opp-24000000 {
+			opp-hz = /bits/ 64 <24000000>;
+		};
+		opp-208000000 {
+			opp-hz = /bits/ 64 <208000000>;
+		};
+		opp-312000000 {
+			opp-hz = /bits/ 64 <312000000>;
+		};
+		opp-416000000 {
+			opp-hz = /bits/ 64 <416000000>;
+		};
+		opp-500000000 {
+			opp-hz = /bits/ 64 <500000000>;
+		};
+		opp-533333333 {
+			opp-hz = /bits/ 64 <533333333>;
+		};
+	};
+
+	/* ax_sys.ko */
+	sys {
+		compatible = "axera,sys";
+	};
+
+	/*
+	 * ax_cmm.ko, the media memory allocator. Without this node the module
+	 * loads but never probes, and ax_base's first allocation calls a NULL
+	 * allocator.
+	 */
+	cmm {
+		compatible = "axera,cmm";
+	};
+
+	/* /dev/ax_sysmap, used by the vendor user-space libraries. */
+	sysmap {
+		compatible = "axera,ax_sysmap";
+	};
+
+	/* Bus bandwidth limiter the media modules register their clocks with. */
+	bwlimiter {
+		compatible = "axera,bw_limiter";
+	};
+
+	/* /proc/ax_proc chip type, uid and board id. */
+	hwinfo {
+		compatible = "ax,ax_hwinfo";
+	};
+
+	/* ax_proton.ko: the ISP clock domains, beside isp@2400000. */
+	isp_top {
+		compatible = "axera,proton_top";
+		operating-points-v2 = <&isp_top_opp_table>;
+		clock-names = "isp-pll-clk";
+	};
+
+	isp_axi {
+		compatible = "axera,proton_axi";
+		operating-points-v2 = <&isp_axi_opp_table>;
+		clock-names = "isp-pll-clk";
+	};
+
+	isp_ir {
+		compatible = "axera,proton_ir";
+		operating-points-v2 = <&isp_ir_opp_table>;
+		clock-names = "isp-pll-clk";
+	};
+};
+
+&{/soc} {
+	/* The vendor modules use the 3-cell <id reg flags> reset format. */
+	mm_reset: reset-controller@4430000 {
+		compatible = "axera,axera_reset_match", "syscon";
+		reg = <0x0 0x04430000 0x0 0x10000>;
+		#reset-cells = <3>;
+	};
+
+	/* ax_npu.ko */
+	npu@3800000 {
+		compatible = "axera,npu";
+		reg = <0x0 0x03800000 0x0 0xb0000>,
+		      <0x0 0x03000000 0x0 0x280000>;
+		interrupts = <GIC_SPI 38 IRQ_TYPE_EDGE_RISING>,
+			     <GIC_SPI 39 IRQ_TYPE_EDGE_RISING>,
+			     <GIC_SPI 42 IRQ_TYPE_EDGE_RISING>,
+			     <GIC_SPI 43 IRQ_TYPE_EDGE_RISING>,
+			     <GIC_SPI 40 IRQ_TYPE_EDGE_RISING>,
+			     <GIC_SPI 41 IRQ_TYPE_EDGE_RISING>,
+			     <GIC_SPI 44 IRQ_TYPE_EDGE_RISING>,
+			     <GIC_SPI 45 IRQ_TYPE_EDGE_RISING>;
+		clocks = <&clk_common AX620X_CPLL_24M>,
+			 <&clk_common AX620X_EPLL_100M>,
+			 <&clk_common AX620X_CPLL_156M>,
+			 <&clk_common AX620X_CPLL_208M>,
+			 <&clk_common AX620X_CPLL_416M>,
+			 <&clk_common AX620X_EPLL_500M>,
+			 <&clk_common AX620X_VPLL0_594M>,
+			 <&clk_common AX620X_NPLL_800M>;
+		clock-names = "cpll_24", "epll_100", "cpll_156", "cpll_208",
+			      "cpll_416", "epll_500", "vpll0_594", "npll_800";
+		operating-points-v2 = <&npu_opp_table>;
+	};
+
+	/* ax_proton.ko */
+	isp@2400000 {
+		compatible = "axera,proton";
+		reg = <0x0 0x02400000 0x0 0x100000>;
+		interrupts = <GIC_SPI 27 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 28 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "isp0-0", "isp0-1";
+		clocks = <&clk_common AX620X_MCLK0_EB>,
+			 <&clk_common AX620X_MCLK1_EB>,
+			 <&clk_common AX620X_MCLK2_EB>,
+			 <&clk_common AX620X_MCLK3_EB>,
+			 <&clk_common AX620X_MCLK4_EB>,
+			 <&clk_common AX620X_MCLK5_EB>;
+		clock-names = "sns_mclk0", "sns_mclk1", "sns_mclk2",
+			      "sns_mclk3", "sns_mclk4", "sns_mclk5";
+	};
+
+	/* ax_mipi_rx.ko */
+	mipi_rx@2600000 {
+		compatible = "axera,mipi";
+		reg = <0x0 0x02600000 0x0 0x4000>;
+		interrupts = <GIC_SPI 31 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 33 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "csictrl0", "csictrl1";
+	};
+
+	/* ax_vpp.ko */
+	vpp@4403000 {
+		compatible = "axera, vpp-dev";
+		reg = <0x0 0x04403000 0x0 0x1000>;
+		reg-names = "vpp";
+		interrupts = <GIC_SPI 103 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&clk_mm AX620X_CLK_VPP_EB>,
+			 <&clk_mm AX620X_PCLK_VPP_EB>,
+			 <&clk_mm AX620X_CLK_CMD_EB>,
+			 <&clk_mm AX620X_PCLK_CMD_EB>,
+			 <&clk_mm AX620X_CLK_VPP_SCL0_EB>,
+			 <&clk_mm AX620X_CLK_VPP_SCL1_EB>,
+			 <&clk_mm AX620X_CLK_VPP_SCL2_EB>,
+			 <&clk_mm AX620X_CLK_VPP_SCL3_EB>,
+			 <&clk_mm AX620X_CLK_VPP_SCL4_EB>;
+		clock-names = "vpp_clk", "vpp_pclk", "cmd_clk", "cmd_pclk",
+			      "scl0_clk", "scl1_clk", "scl2_clk", "scl3_clk",
+			      "scl4_clk";
+		resets = <&mm_reset 21 0x10 1>, <&mm_reset 22 0x10 1>,
+			 <&mm_reset 23 0x10 1>, <&mm_reset 24 0x10 1>,
+			 <&mm_reset 25 0x10 1>, <&mm_reset 26 0x10 1>,
+			 <&mm_reset 27 0x10 1>, <&mm_reset 28 0x10 1>,
+			 <&mm_reset 4 0x10 1>, <&mm_reset 5 0x10 1>;
+		reset-names = "vpp_rst0", "vpp_rst1", "vpp_rst2", "vpp_rst3",
+			      "vpp_rst4", "vpp_rst5", "vpp_rst6", "vpp_rst7",
+			      "vpp_rst8", "vpp_rst9";
+		operating-points-v2 = <&mm_opp_table>;
+	};
+
+	/* ax_gdc.ko */
+	gdc@4404000 {
+		compatible = "axera, gdc-dev";
+		reg = <0x0 0x04404000 0x0 0x1000>;
+		reg-names = "gdc";
+		interrupts = <GIC_SPI 104 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&clk_mm AX620X_CLK_GDC_EB>,
+			 <&clk_mm AX620X_PCLK_GDC_EB>,
+			 <&clk_mm AX620X_CLK_CMD_EB>,
+			 <&clk_mm AX620X_PCLK_CMD_EB>;
+		clock-names = "gdc_clk", "gdc_pclk", "cmd_clk", "cmd_pclk";
+		resets = <&mm_reset 13 0x10 1>, <&mm_reset 14 0x10 1>,
+			 <&mm_reset 15 0x10 1>, <&mm_reset 4 0x10 1>,
+			 <&mm_reset 5 0x10 1>;
+		reset-names = "gdc_rst0", "gdc_rst1", "gdc_rst2", "gdc_rst3",
+			      "gdc_rst4";
+		operating-points-v2 = <&mm_opp_table>;
+	};
+
+	/* ax_tdp.ko */
+	tdp@4405000 {
+		compatible = "axera, tdp-dev";
+		reg = <0x0 0x04405000 0x0 0x1000>;
+		reg-names = "tdp0";
+		interrupts = <GIC_SPI 99 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&clk_mm AX620X_CLK_TDP_EB>,
+			 <&clk_mm AX620X_PCLK_TDP_EB>,
+			 <&clk_mm AX620X_CLK_CMD_EB>,
+			 <&clk_mm AX620X_PCLK_CMD_EB>;
+		clock-names = "tdp_clk", "tdp_pclk", "cmd_clk", "cmd_pclk";
+		resets = <&mm_reset 19 0x10 1>, <&mm_reset 20 0x10 1>,
+			 <&mm_reset 4 0x10 1>, <&mm_reset 5 0x10 1>;
+		reset-names = "tdp_rst0", "tdp_rst1", "tdp_rst2", "tdp_rst3";
+		operating-points-v2 = <&mm_opp_table>;
+	};
+
+	/* ax_vo.ko: DPU (id 0) and DPU lite (id 1). */
+	vo0: vo@4407000 {
+		compatible = "axera,vo";
+		reg = <0x0 0x04407000 0x0 0x1000>,
+		      <0x0 0x04430000 0x0 0x10000>;
+		reg-names = "dpu", "mm_sys_glb";
+		interrupts = <GIC_SPI 97 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&clk_mm AX620X_CLK_DPU_EB>,
+			 <&clk_mm AX620X_PCLK_DPU_EB>,
+			 <&clk_mm AX620X_CLK_DPU_OUT_EB>,
+			 <&clk_mm AX620X_PCLK_CMD_EB>,
+			 <&clk_mm AX620X_CLK_CMD_EB>;
+		clock-names = "clk_dpu", "pclk_dpu", "clk_dpi", "pclk_cdma",
+			      "clk_cdma";
+		resets = <&mm_reset 12 0x10 1>, <&mm_reset 11 0x10 1>,
+			 <&mm_reset 10 0x10 1>, <&mm_reset 4 0x10 1>,
+			 <&mm_reset 5 0x10 1>;
+		reset-names = "mm_dpu_rst", "mm_dpu_prst", "mm_dpu_out_rst",
+			      "mm_cdma_prst", "mm_cdma_rst";
+		id = <0>;
+		type = <0>;
+		operating-points-v2 = <&mm_opp_table>;
+		status = "disabled";
+	};
+
+	vo1: vo@4408000 {
+		compatible = "axera,vo";
+		reg = <0x0 0x04408000 0x0 0x1000>,
+		      <0x0 0x04430000 0x0 0x10000>;
+		reg-names = "dpu_lite", "mm_sys_glb";
+		interrupts = <GIC_SPI 98 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&clk_mm AX620X_CLK_DPU_LITE_EB>,
+			 <&clk_mm AX620X_PCLK_DPU_LITE_EB>,
+			 <&clk_mm AX620X_CLK_DPU_LITE_OUT_EB>;
+		clock-names = "clk_dpu", "pclk_dpu", "clk_dpi";
+		resets = <&mm_reset 9 0x10 1>, <&mm_reset 8 0x10 1>,
+			 <&mm_reset 7 0x10 1>;
+		reset-names = "mm_dpu_rst", "mm_dpu_prst", "mm_dpu_out_rst";
+		id = <1>;
+		type = <1>;
+		operating-points-v2 = <&mm_opp_table>;
+		status = "disabled";
+	};
+};
+
+/* ax_venc.ko, ax_jenc.ko, ax_vdec.ko */
+&venc {
+	status = "okay";
+};
+
+&jenc {
+	status = "okay";
+};
+
+&vdec {
+	compatible = "axera, video-decoder";
+	status = "okay";
+};
