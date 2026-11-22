@@ -46,6 +46,13 @@
  * hi3536dv100_check_selects() warns when either select holds 1, the state
  * that nothing in this driver describes. The DDR, DDRTEST and test clock
  * gates are not registered, the kernel never touches them.
+ *
+ * Programmed, not modeled: the SATA RX0 and TX0 clock phase controls
+ * (PERI_CRG45 bits 4 and 5: 0 = positive-phase clock, the reset value, 1 =
+ * negative-phase clock). They change a phase, not a rate or a parent, so no
+ * clock describes them; the SATA controller needs the positive phase.
+ * hi3536dv100_set_sata_phase() clears both bits at init, so the phase does
+ * not depend on what the boot loader left.
  */
 
 #include <dt-bindings/clock/hi3536dv100-clock.h>
@@ -56,6 +63,7 @@
 #include <linux/of.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
+#include <linux/spinlock.h>
 #include "clk.h"
 #include "reset.h"
 
@@ -410,8 +418,8 @@ static void __init hi3536dv100_check_plls(struct device_node *np,
 /*
  * Module selects that have reserved codes: the boot loader may leave one in a
  * state the table cannot describe. Say so instead of handing out a clock with
- * no parent or a wrong rate. The two selects that are not modeled are read
- * back too, see the comment at the top of the file.
+ * no parent or a wrong rate. The selects that are not modeled are read back
+ * too, see the comment at the top of the file.
  */
 #define FMC_CKEN			BIT(1)	/* PERI_CRG48 */
 #define FMC_CKSEL			GENMASK(3, 2)
@@ -419,6 +427,7 @@ static void __init hi3536dv100_check_plls(struct device_node *np,
 #define UART_CKSEL			GENMASK(19, 18)	/* PERI_CRG51 */
 #define USB2_PHY_CLK_SEL		BIT(20)	/* PERI_CRG46 */
 #define SSC_BYPASS_CLK_SEL		BIT(19)	/* PERI_CRG35 */
+#define SATA_PHASE_SEL			GENMASK(5, 4)	/* PERI_CRG45 */
 
 static void __init hi3536dv100_check_selects(struct device_node *np,
 					     struct hisi_clock_data *clk_data)
@@ -446,6 +455,36 @@ static void __init hi3536dv100_check_selects(struct device_node *np,
 	if (hdmi & SSC_BYPASS_CLK_SEL)
 		pr_warn("%pOF: the HDMI SSC bypass clock select (PERI_CRG35 bit 19) is set: the clock comes from the VDP, which this driver does not model (no rate is known)\n",
 			np);
+}
+
+/*
+ * The SATA RX0/TX0 clock phase controls share PERI_CRG45 with the SATA clock
+ * gates and resets, which are changed under the clock lock: take it too. A
+ * negative phase left by the boot loader is corrected, not inherited, and
+ * the register is read back to see that the bits took.
+ */
+static void __init hi3536dv100_set_sata_phase(struct device_node *np,
+					      struct hisi_clock_data *clk_data)
+{
+	void __iomem *reg = clk_data->base + PERI_CRG45;
+	spinlock_t *lock = hisi_clk_get_lock();
+	unsigned long flags;
+	u32 val;
+
+	spin_lock_irqsave(lock, flags);
+	val = readl(reg);
+	if (val & SATA_PHASE_SEL)
+		writel(val & ~SATA_PHASE_SEL, reg);
+	spin_unlock_irqrestore(lock, flags);
+
+	if (!(val & SATA_PHASE_SEL))
+		return;
+
+	pr_warn("%pOF: the boot loader left the SATA RX0/TX0 clock phase controls (PERI_CRG45 bits 5:4) at %lu, a negative-phase clock: set to the positive phase\n",
+		np, FIELD_GET(SATA_PHASE_SEL, val));
+	if (readl(reg) & SATA_PHASE_SEL)
+		pr_err("%pOF: the SATA RX0/TX0 clock phase controls (PERI_CRG45 bits 5:4) still read %lu after clearing them\n",
+		       np, FIELD_GET(SATA_PHASE_SEL, readl(reg)));
 }
 
 /*
@@ -790,6 +829,7 @@ static void __init hi3536dv100_crg_clk_init(struct device_node *np)
 	hi3536dv100_check_core_selects(np, clk_data);
 	hi3536dv100_check_plls(np, clk_data);
 	hi3536dv100_check_selects(np, clk_data);
+	hi3536dv100_set_sata_phase(np, clk_data);
 
 	return;
 
