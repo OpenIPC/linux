@@ -613,6 +613,18 @@ static const struct hisi_mux_clock hi3536dv100_mux_clks[] = {
  */
 static const struct hisi_gate_clock hi3536dv100_gate_clks[] = {
 	/* PERI_CRG51 */
+	/*
+	 * The UART gates have no CLK_IGNORE_UNUSED on purpose. The PL011
+	 * driver enables its gate when a port is opened and its regular
+	 * console enables it around every write, so a gate that
+	 * clk_disable_unused() switched off in between is switched on again.
+	 * The flag would only keep on what the boot loader left on. Only the
+	 * earlycon relies on that: it writes the registers without touching
+	 * the clock, so it works until a regular console takes over, or, if
+	 * none does (the UART has no driver bound), until clk_disable_unused()
+	 * switches the gate off. Boot with clk_ignore_unused to keep such an
+	 * earlycon.
+	 */
 	{ HI3536DV100_UART0_CLK, "clk_uart0", "uart_mux", 0, PERI_CRG51, 15, 0, },
 	{ HI3536DV100_UART1_CLK, "clk_uart1", "uart_mux", 0, PERI_CRG51, 16, 0, },
 	{ HI3536DV100_UART2_CLK, "clk_uart2", "uart_mux", 0, PERI_CRG51, 17, 0, },
