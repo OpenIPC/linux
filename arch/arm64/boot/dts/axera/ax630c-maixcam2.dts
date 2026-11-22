@@ -84,6 +84,16 @@
 			debounce-interval = <10>;
 		};
 	};
+
+	/*
+	 * The media memory allocator: ax_cmm.ko is a platform driver for this
+	 * node (empty, as in the stock AX620E devicetree). Without it the
+	 * module loads but never probes, and ax_base's first allocation calls
+	 * a NULL allocator.
+	 */
+	cmm {
+		compatible = "axera,cmm";
+	};
 };
 
 &cpu0 {
