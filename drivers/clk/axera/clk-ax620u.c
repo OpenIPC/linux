@@ -116,6 +116,9 @@ static struct axera_fixed_factor_clock ax620u_fixed_factor_clks_common[] __initd
 	{AX620U_EPLL_50M, "epll_50m", "epll", 1, 20, 0,},
 	{AX620U_EPLL_25M, "epll_25m", "epll", 1, 40, 0,},
 	{AX620U_EPLL_333M, "epll_333m", "epll", 1, 3, 0,},
+	/* named by the SDIO/eMMC card and SPI slave pad muxes, never registered in stock */
+	{AX620U_EPLL_5M, "epll_5m", "epll", 1, 200, 0,},
+	{AX620U_EPLL_62P5M, "epll_62p5m", "epll", 1, 16, 0,},
 	{AX620U_DPLL_1066M, "dpll_1066m", "dpll", 1, 1, 0,},
 	{AX620U_DPLL_533M, "dpll_533m", "dpll", 1, 2, 0,},
 	{AX620U_DPLL_DIV_4, "dpll_div_4", "dpll", 1, 4, 0,},

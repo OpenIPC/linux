@@ -99,7 +99,10 @@
 #define AX620U_CLK_PINMUX                  87
 #define AX620U_CLK_IRAM                    88
 #define AX620U_CLK_DBC_GPIO                89
-#define AX620U_COMMON_NR_CLKS              90
+/* Not in the stock driver, which names them as mux parents only */
+#define AX620U_EPLL_5M                     90
+#define AX620U_EPLL_62P5M                  91
+#define AX620U_COMMON_NR_CLKS              92
 
 /* dispc_clk */
 #define AX620U_CLK_DPHY_TX_ESC2_SEL        0

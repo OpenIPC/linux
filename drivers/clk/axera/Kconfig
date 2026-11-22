@@ -6,6 +6,7 @@ config COMMON_CLK_AXERA
 config COMMON_CLK_AX620E
 	bool "Clock driver for Axera AX620E"
 	depends on ARCH_AXERA || COMPILE_TEST
+	depends on !COMMON_CLK_AX620U
 	select COMMON_CLK_AXERA
 	default ARCH_AXERA
 	help
@@ -21,6 +22,5 @@ config COMMON_CLK_AX620U
 	  different die from AX620E with its own clock register map: the
 	  muxes, gates and dividers of its eight syscon clock blocks, with
 	  the stock AX620U kernel's clock names and IDs. The PLLs are
-	  fixed-rate, as the first stage programs them.
-	  Say N to COMMON_CLK_AX620E when enabling this, both bind the
-	  same compatibles.
+	  fixed-rate, as the first stage programs them. It binds the same
+	  compatibles as COMMON_CLK_AX620E, which it therefore excludes.
