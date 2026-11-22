@@ -153,6 +153,7 @@
 		 */
 		uart0: serial@12080000 {
 			compatible = "arm,pl011", "arm,primecell";
+			arm,primecell-periphid = <0x00241011>;
 			reg = <0x12080000 0x1000>;
 			interrupts = <GIC_SPI 6 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&crg HI3536DV100_UART0_CLK>,
@@ -165,6 +166,7 @@
 
 		uart1: serial@12090000 {
 			compatible = "arm,pl011", "arm,primecell";
+			arm,primecell-periphid = <0x00241011>;
 			reg = <0x12090000 0x1000>;
 			interrupts = <GIC_SPI 7 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&crg HI3536DV100_UART1_CLK>,
@@ -177,6 +179,7 @@
 
 		uart2: serial@120a0000 {
 			compatible = "arm,pl011", "arm,primecell";
+			arm,primecell-periphid = <0x00241011>;
 			reg = <0x120a0000 0x1000>;
 			interrupts = <GIC_SPI 8 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&crg HI3536DV100_UART2_CLK>,
