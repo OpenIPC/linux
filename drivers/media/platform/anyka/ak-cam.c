@@ -678,8 +678,8 @@ static int ak_cam_queue_setup(struct vb2_queue *vq,
 {
 	struct ak_cam_node *node = vb2_get_drv_priv(vq);
 
-	/* dma_alloc_from_coherent() rounds each buffer up to a whole order. */
-	if (((size_t)AK_CAM_SLOTS << (get_order(node->sizeimage) + PAGE_SHIFT)) >
+	/* dma_alloc_from_coherent() takes each buffer's whole pages. */
+	if ((size_t)AK_CAM_SLOTS * PAGE_ALIGN(node->sizeimage) >
 	    node->dev->pool_bytes)
 		return -ENOMEM;
 

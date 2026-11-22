@@ -177,8 +177,10 @@ void *dma_mark_declared_memory_occupied(struct device *dev,
 
 	spin_lock_irqsave(&mem->spinlock, flags);
 	pos = (device_addr - mem->device_base) >> PAGE_SHIFT;
-	if (pos + pages > mem->size ||
-	    find_next_bit(mem->bitmap, pos + pages, pos) < pos + pages) {
+	if (!pages) {
+		err = -EINVAL;
+	} else if (pos + pages > mem->size ||
+		   find_next_bit(mem->bitmap, pos + pages, pos) < pos + pages) {
 		err = -EBUSY;
 	} else {
 		bitmap_set(mem->bitmap, pos, pages);
@@ -225,7 +227,7 @@ int dma_alloc_from_coherent(struct device *dev, ssize_t size,
 	*ret = NULL;
 	spin_lock_irqsave(&mem->spinlock, flags);
 
-	if (unlikely(size > (mem->size << PAGE_SHIFT)))
+	if (unlikely(size > (mem->size << PAGE_SHIFT) || pages <= 0))
 		goto err;
 
 	/*
