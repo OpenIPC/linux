@@ -95,11 +95,14 @@
 #define RTC_INT_CLR			0x14
 #define RTC_MSC_INT			0x15	/* masked interrupt status */
 #define  RTC_MSC_INT_TIME		BIT(0)
+#define RTC_RAW_INT			0x16	/* raw interrupt status */
+#define  RTC_RAW_INT_TIME		BIT(0)
 #define RTC_CLK				0x17	/* test clock output select */
 #define RTC_TEMP_SEL			0x21	/* V1: temperature compensation mode */
 #define  RTC_TEMP_SEL_MASK		GENMASK(2, 0)	/* sdm_sel, fix_mode, temp_sel */
 
 #define HISI_SPI_RTC_LOAD_TIMEOUT_MS	100
+#define HISI_SPI_RTC_CLEAR_TIMEOUT_MS	50
 #define HISI_SPI_RTC_READ_RETRIES	3
 #define HISI_SPI_RTC_LOAD_RETRIES	3
 #define HISI_SPI_RTC_LOAD_GAP_MS	50
@@ -480,6 +483,37 @@ static int hisi_spi_rtc_alarm_irq_enable(struct device *dev,
 				      enabled ? hr->data->imsc_enable : 0);
 }
 
+/*
+ * RTC_INT_CLR does not clear the raw status at once: RTC_RAW_INT reads 1 for
+ * one more tick of the 100 Hz counter (10 ms, measured 9.97 to 10.27 ms on a
+ * Hi3520D V100). An alarm that is enabled while the clear is pending never
+ * fires, so wait for the clear before the interrupt is enabled.
+ */
+static int hisi_spi_rtc_wait_clear(struct hisi_spi_rtc *hr)
+{
+	unsigned long timeout =
+		jiffies + msecs_to_jiffies(HISI_SPI_RTC_CLEAR_TIMEOUT_MS);
+	bool expired;
+	u8 v;
+	int ret;
+
+	do {
+		/* sample the clock first: the last check follows the sleep */
+		expired = time_after(jiffies, timeout);
+		ret = hisi_spi_rtc_read_reg(hr, RTC_RAW_INT, &v);
+		if (ret)
+			return ret;
+		if (!(v & RTC_RAW_INT_TIME))
+			return 0;
+		if (!expired)
+			usleep_range(500, 1000);
+	} while (!expired);
+
+	dev_err(hr->dev, "RTC_RAW_INT still set %d ms after the clear: %pe\n",
+		HISI_SPI_RTC_CLEAR_TIMEOUT_MS, ERR_PTR(-ETIMEDOUT));
+	return -ETIMEDOUT;
+}
+
 static int hisi_spi_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 {
 	struct hisi_spi_rtc *hr = dev_get_drvdata(dev);
@@ -491,6 +525,12 @@ static int hisi_spi_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 	ret = ret ?: hisi_spi_rtc_write_reg(hr, RTC_INT_CLR, 1);
 	if (ret)
 		return ret;
+
+	if (alrm->enabled) {
+		ret = hisi_spi_rtc_wait_clear(hr);
+		if (ret)
+			return ret;
+	}
 
 	return hisi_spi_rtc_write_reg(hr, RTC_IMSC,
 				      alrm->enabled ? hr->data->imsc_enable : 0);
