@@ -3,3 +3,4 @@
 comment "HiSilicon media platform drivers"
 
 source "drivers/media/platform/hisilicon/hisi-jpge/Kconfig"
+source "drivers/media/platform/hisilicon/hisi-jpgd/Kconfig"
