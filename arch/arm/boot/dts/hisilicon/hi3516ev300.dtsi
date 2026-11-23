@@ -288,29 +288,19 @@
 			reset-names = "mac";
 		};
 
-		hisfc: spi-nor@10000000 {
-			compatible = "hisilicon,fmc-spi-nor";
+		fmc: spi@10000000 {
+			compatible = "hisilicon,hi3516ev300-fmc",
+				     "hisilicon,hifmc100";
 			reg = <0x10000000 0x1000>, <0x14000000 0x10000>;
 			reg-names = "control", "memory";
 			clocks = <&clock HI3516EV200_FMC_CLK>;
 			assigned-clocks = <&clock HI3516EV200_FMC_CLK>;
 			assigned-clock-rates = <24000000>;
-			#address-cells = <1>;
-			#size-cells = <0>;
-		};
-
-		hisnfc: spi-nand@10000000 {
-			compatible = "hisilicon,fmc-spi-nand";
-			reg = <0x10000000 0x1000>, <0x14000000 0x10000>;
-			reg-names = "control", "memory";
-			clocks = <&clock HI3516EV200_FMC_CLK>;
-			assigned-clocks = <&clock HI3516EV200_FMC_CLK>;
-			assigned-clock-rates = <24000000>;
+			resets = <&clock 0x144 0>;
 			#address-cells = <1>;
 			#size-cells = <0>;
 			status = "disabled";
 		};
-
 
 		iocfg_ctrl: iocfg-controller@100c0000 {
 			compatible = "hisilicon,hisi-iocfgctrl", "syscon";
