@@ -287,8 +287,16 @@ static void __init ak_timer_init(struct device_node *node)
 
     /* register to clock event framework */
     ak_ced.cpumask = cpumask_of(0);
+    /* The shortest event the clock event device is asked for, in timer
+     * cycles. It was 120000, a whole 10 ms tick at TIMER_CLK_INPUT's 12 MHz,
+     * so with the hrtimers in high resolution (hres_active 1, resolution
+     * 1 ns) every shorter sleep still waited 10 ms: a usleep(1000) took a
+     * tick, and gpiostep's pan/tilt head ran at one micro-step per 10 ms
+     * whatever its delay, 200 steps in 16 s from 1 to 7 ms
+     * (OpenIPC/majestic#380). 1200 cycles is 100 us, far above what a
+     * one-shot reload needs and far below any sleep a driver asks for. */
     clockevents_config_and_register(&ak_ced, TIMER_CLK_INPUT,
-                                    120000, 0xffffffff);
+                                    1200, 0xffffffff);
 
     if (setup_irq(irq, &ak_ce_timer_irq))
         pr_err("ak_sys_timer_init: irq register failed for %s\n",
