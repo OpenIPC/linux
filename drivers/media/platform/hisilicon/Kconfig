@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
+comment "HiSilicon media platform drivers"
+
+source "drivers/media/platform/hisilicon/hisi-jpge/Kconfig"
