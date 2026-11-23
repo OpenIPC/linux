@@ -1,3 +1,4 @@
 # SPDX-License-Identifier: GPL-2.0-only
 
 obj-y += hisi-jpge/
+obj-y += hisi-jpgd/

@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
+config VIDEO_HISI_JPGD
+	tristate "HiSilicon JPEG decoder (JPGD) mem2mem driver"
+	depends on V4L_MEM2MEM_DRIVERS
+	depends on VIDEO_DEV
+	depends on ARCH_HISI_BVT || COMPILE_TEST
+	depends on OF
+	depends on PM
+	select VIDEOBUF2_DMA_CONTIG
+	select V4L2_MEM2MEM_DEV
+	select V4L2_JPEG_HELPER
+	help
+	  Support for the baseline JPEG decoder (JPGD) of the HiSilicon
+	  Hi3520D V100 and Hi3536D V100 SoCs. The driver is a V4L2
+	  memory-to-memory device: a complete JPEG file goes in, a
+	  semi-planar YUV picture (NV21, NV61, NV42 or GREY, optionally
+	  reduced by 2, 4 or 8) comes out. Progressive, arithmetic coded,
+	  12 bit and CMYK files are refused.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called hisi-jpgd.
