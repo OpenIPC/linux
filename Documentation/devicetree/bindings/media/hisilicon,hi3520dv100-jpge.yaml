@@ -1,0 +1,71 @@
+# SPDX-License-Identifier: GPL-2.0-only OR BSD-2-Clause
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/media/hisilicon,hi3520dv100-jpge.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: HiSilicon JPEG encoder (JPGE)
+
+maintainers:
+  - Dylan Corrales <deathcamel58@gmail.com>
+
+description: |
+  Baseline JPEG encoder of the HiSilicon Hi3520D V100 and Hi3536D V100 video
+  SoCs. It reads semi-planar YCbCr pictures from memory (the Hi3520D V100 also
+  planar and packed ones) and writes entropy-coded JPEG data with fixed
+  Huffman tables; the JFIF header and the quantization tables are provided by
+  software.
+
+  The register layout is the one of the version register value 0x56325234,
+  which both SoCs report. No data sheet has a register table for this block;
+  the layout comes from vendor code and is confirmed on hardware for both
+  SoCs. SoCs with another layout (for instance the Hi3516E V200 and V300) have
+  no compatible.
+
+  The block is in reset at power-on on some SoCs and its register window must
+  not be accessed with the clock gated. The reset line is the "jpge_srst_req"
+  bit of the CRG (a set bit holds the block in reset).
+
+properties:
+  compatible:
+    enum:
+      - hisilicon,hi3520dv100-jpge
+      - hisilicon,hi3536dv100-jpge
+
+  reg:
+    maxItems: 1
+
+  interrupts:
+    maxItems: 1
+
+  clocks:
+    maxItems: 1
+    description:
+      Gate of the block (jpge_cken in the CRG).
+
+  resets:
+    maxItems: 1
+    description:
+      Soft reset of the block (jpge_srst_req in the CRG).
+
+required:
+  - compatible
+  - reg
+  - interrupts
+  - clocks
+  - resets
+
+additionalProperties: false
+
+examples:
+  - |
+    #include <dt-bindings/clock/hi3536dv100-clock.h>
+    #include <dt-bindings/interrupt-controller/arm-gic.h>
+
+    video-codec@13120000 {
+        compatible = "hisilicon,hi3536dv100-jpge";
+        reg = <0x13120000 0x10000>;
+        interrupts = <GIC_SPI 30 IRQ_TYPE_LEVEL_HIGH>;
+        clocks = <&crg HI3536DV100_JPGE_CLK>;
+        resets = <&crg 0x9c 0>;
+    };
