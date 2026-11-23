@@ -60,6 +60,24 @@
 		spi-max-frequency = <84000000>;
 		spi-rx-bus-width = <2>;
 		spi-tx-bus-width = <2>;
+
+		/*
+		 * The factory data page (MAC address, sticker ID, Wi-Fi credentials)
+		 * is at 0x7b000. The cell is described on the flash itself, at its
+		 * absolute offset, and not on a partition: the whole flash stays one
+		 * MTD device whatever partitions the bootloader's "mtdparts=" gives
+		 * (CONFIG_MTD_PARTITIONED_MASTER), so the cell exists with or without
+		 * a command line layout. Linux does not write the page.
+		 */
+		nvmem-layout {
+			compatible = "fixed-layout";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			eth_mac: mac-address@7b4a8 {
+				reg = <0x7b4a8 6>;
+			};
+		};
 	};
 };
 
@@ -77,6 +95,9 @@
 };
 
 &eth_up {
+	/* A "local-mac-address" from the bootloader wins over the cell */
+	nvmem-cells = <&eth_mac>;
+	nvmem-cell-names = "mac-address";
 	phy-handle = <&phy_up>;
 	phy-mode = "mii";
 	status = "okay";
