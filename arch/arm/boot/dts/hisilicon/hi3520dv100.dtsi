@@ -12,7 +12,7 @@
  * back from the hardware, so no boot loader state is assumed.
  *
  * Blocks without a driver in this tree (I2C, IR, PWM, DDR controller,
- * pinctrl, the media blocks other than the JPEG encoder and the SATA PHY) are
+ * pinctrl, the media blocks other than the JPEG codecs and the SATA PHY) are
  * not described yet. The IP blocks that generic drivers handle (SP804, SP805,
  * PL011, PL022, PL061) are listed as disabled reference nodes.
  */
@@ -486,6 +486,16 @@
 			interrupts = <GIC_SPI 41 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&crg HI3520DV100_JPGE_CLK>;
 			resets = <&crg 0x60 0>;
+			status = "disabled";
+		};
+
+		/* JPEG decoder: gate and reset in PERI_CRG25, data sheet interrupt 74 */
+		jpgd: video-codec@20670000 {
+			compatible = "hisilicon,hi3520dv100-jpgd";
+			reg = <0x20670000 0x10000>;
+			interrupts = <GIC_SPI 42 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&crg HI3520DV100_JPGD_CLK>;
+			resets = <&crg 0x64 0>;
 			status = "disabled";
 		};
 	};
