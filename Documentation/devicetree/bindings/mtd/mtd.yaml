@@ -35,6 +35,12 @@ properties:
     required:
       - compatible
 
+  nvmem-layout:
+    $ref: /schemas/nvmem/layouts/nvmem-layout.yaml
+    description:
+      Cells of the flash as a whole, at offsets from the start of the flash,
+      independent of how the flash is partitioned.
+
 patternProperties:
   "(^partition)?@[0-9a-f]+$":
     $ref: /schemas/mtd/partitions/partition.yaml#/$defs/partition-node
@@ -105,6 +111,27 @@ examples:
 
                 mac-address@0 {
                     reg = <0 6>;
+                };
+            };
+        };
+    };
+
+  - |
+    spi {
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        flash@0 {
+            reg = <0>;
+            compatible = "jedec,spi-nor";
+
+            nvmem-layout {
+                compatible = "fixed-layout";
+                #address-cells = <1>;
+                #size-cells = <1>;
+
+                mac-address@7b4a8 {
+                    reg = <0x7b4a8 6>;
                 };
             };
         };
