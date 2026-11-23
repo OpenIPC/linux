@@ -119,3 +119,7 @@
 &usb_phy {
 	status = "okay";
 };
+
+&jpge {
+	status = "okay";
+};
