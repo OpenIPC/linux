@@ -467,5 +467,15 @@
 			resets = <&crg 0x9c 0>;
 			status = "disabled";
 		};
+
+		/* JPEG decoder: gate and reset in PERI_CRG40, data sheet interrupt 63 */
+		jpgd: video-codec@13110000 {
+			compatible = "hisilicon,hi3536dv100-jpgd";
+			reg = <0x13110000 0x10000>;
+			interrupts = <GIC_SPI 31 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&crg HI3536DV100_JPGD_CLK>;
+			resets = <&crg 0xa0 0>;
+			status = "disabled";
+		};
 	};
 };
