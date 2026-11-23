@@ -452,5 +452,20 @@
 			#interrupt-cells = <2>;
 			status = "disabled";
 		};
+
+		/*
+		 * Baseline JPEG encoder. Interrupt bit 62 (JPGE) is SPI 30. The
+		 * gate and the soft reset are PERI_CRG39. Buffers come from the
+		 * default CMA pool: a board that encodes large pictures needs a
+		 * larger one.
+		 */
+		jpge: video-codec@13120000 {
+			compatible = "hisilicon,hi3536dv100-jpge";
+			reg = <0x13120000 0x10000>;
+			interrupts = <GIC_SPI 30 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&crg HI3536DV100_JPGE_CLK>;
+			resets = <&crg 0x9c 0>;
+			status = "disabled";
+		};
 	};
 };
