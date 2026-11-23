@@ -1,0 +1,67 @@
+# SPDX-License-Identifier: GPL-2.0-only OR BSD-2-Clause
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/media/hisilicon,hi3520dv100-jpgd.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: HiSilicon JPEG decoder (JPGD)
+
+maintainers:
+  - Dylan Corrales <deathcamel58@gmail.com>
+
+description: |
+  Baseline JPEG decoder of the HiSilicon Hi3520D V100 and Hi3536D V100 SoCs.
+  It reads the entropy-coded part of a JPEG file from memory, decodes it with
+  the quantization and Huffman tables that software loads into it, and writes
+  a semi-planar YCbCr picture, optionally reduced by 2, 4 or 8. It masters the
+  bus with 32 bit physical addresses and has no IOMMU.
+
+  The clock is the gate "jpgd_cken" and the reset the "jpgd_srst_req" bit (a
+  set bit holds the block in reset) of the same CRG register (PERI_CRG25 of
+  the Hi3520D V100, PERI_CRG40 of the Hi3536D V100). Both come out of reset
+  with the clock enabled; the Hi3520D V100 holds the block in reset then
+  (register value 0x3) while the Hi3536D V100 has released it (0x2). The
+  register window must not be accessed while the clock is gated, and reads as
+  zero while the reset is held.
+
+properties:
+  compatible:
+    enum:
+      - hisilicon,hi3520dv100-jpgd
+      - hisilicon,hi3536dv100-jpgd
+
+  reg:
+    maxItems: 1
+
+  interrupts:
+    maxItems: 1
+
+  clocks:
+    maxItems: 1
+    description: Gate of the block (jpgd_cken).
+
+  resets:
+    maxItems: 1
+    description: Soft reset of the block (jpgd_srst_req).
+
+required:
+  - compatible
+  - reg
+  - interrupts
+  - clocks
+  - resets
+
+additionalProperties: false
+
+examples:
+  - |
+    #include <dt-bindings/clock/hi3536dv100-clock.h>
+    #include <dt-bindings/interrupt-controller/arm-gic.h>
+
+    video-codec@13110000 {
+        compatible = "hisilicon,hi3536dv100-jpgd";
+        reg = <0x13110000 0x10000>;
+        interrupts = <GIC_SPI 31 IRQ_TYPE_LEVEL_HIGH>;
+        clocks = <&crg HI3536DV100_JPGD_CLK>;
+        resets = <&crg 0xa0 0>;
+    };
