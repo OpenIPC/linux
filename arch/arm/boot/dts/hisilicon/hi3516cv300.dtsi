@@ -194,25 +194,18 @@
 			status = "disabled";
 		};
 
-		fmc: spi-nor-controller@10000000 {
-			compatible = "hisilicon,hisi-fmc";
+		fmc: spi@10000000 {
+			compatible = "hisilicon,hi3516cv300-fmc",
+				     "hisilicon,hifmc100";
 			reg = <0x10000000 0x1000>, <0x14000000 0x1000000>;
 			reg-names = "control", "memory";
 			clocks = <&crg_ctrl HI3516CV300_FMC_CLK>;
+			assigned-clocks = <&crg_ctrl HI3516CV300_FMC_CLK>;
+			assigned-clock-rates = <24000000>;
+			resets = <&crg_ctrl 0xc0 0>;
 			#address-cells = <1>;
 			#size-cells = <0>;
-
-			hisfc:spi-nor@0 {
-				compatible = "hisilicon,hisi-sfc";
-				#address-cells = <1>;
-				#size-cells = <0>;
-			};
-
-			hisnfc:spi-nand@0 {
-				compatible = "hisilicon,hisi-spi-nand";
-				#address-cells = <1>;
-				#size-cells = <0>;
-			};
+			status = "disabled";
 		};
 
 		mmc2: himciv200.MMC@0x100e0000 {

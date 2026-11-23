@@ -75,26 +75,14 @@
 	pinctrl-0 = <&pwm_pmux>;
 };
 
-&hisfc {
-	assigned-clocks = <&crg_ctrl HI3516CV300_FMC_CLK>;
-	assigned-clock-rates = <24000000>;
+&fmc {
+	status = "okay";
 
-	hi_sfc {
+	flash@0 {
 		compatible = "jedec,spi-nor";
 		reg = <0>;
-		spi-max-frequency = <160000000>;
-		m25p,fast-read;
-	};
-};
-
-&hisnfc {
-	assigned-clocks = <&crg_ctrl HI3516CV300_FMC_CLK>;
-	assigned-clock-rates = <83300000>;
-
-	hinand {
-		compatible = "jedec,spi-nand";
-		reg = <0>;
-		spi-max-frequency = <160000000>;
+		label = "hi_sfc";
+		spi-max-frequency = <50000000>;
 	};
 };
 
