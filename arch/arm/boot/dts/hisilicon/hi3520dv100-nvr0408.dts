@@ -123,3 +123,7 @@
 &jpge {
 	status = "okay";
 };
+
+&jpgd {
+	status = "okay";
+};
