@@ -11579,6 +11579,13 @@ W:	https://www.hisilicon.com
 F:	Documentation/devicetree/bindings/i2c/hisilicon,ascend910-i2c.yaml
 F:	drivers/i2c/busses/i2c-hisi.c
 
+HISILICON JPEG DECODER (JPGD) DRIVER
+M:	Dylan Corrales <deathcamel58@gmail.com>
+L:	linux-media@vger.kernel.org
+S:	Maintained
+F:	Documentation/devicetree/bindings/media/hisilicon,hi3520dv100-jpgd.yaml
+F:	drivers/media/platform/hisilicon/hisi-jpgd/
+
 HISILICON JPEG ENCODER (JPGE) DRIVER
 M:	Dylan Corrales <deathcamel58@gmail.com>
 L:	linux-media@vger.kernel.org
