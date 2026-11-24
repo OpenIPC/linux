@@ -1007,16 +1007,21 @@ static void ftmac110_update_link(struct ftmac100 *priv)
 		lpa = ftmac100_mdio_read(netdev, priv->mii.phy_id, MII_LPA);
 		media = mii_nway_result(adv & lpa);
 	} else {
-		media = ftmac100_mdio_read(netdev, priv->mii.phy_id, MII_BMCR);
-		media = (media & BMCR_SPEED100 ? ADVERTISE_100HALF : 0) |
-			(media & BMCR_FULLDPLX ? ADVERTISE_FULL : 0);
+		int bmcr = ftmac100_mdio_read(netdev, priv->mii.phy_id, MII_BMCR);
+
+		if (bmcr & BMCR_SPEED100)
+			media = bmcr & BMCR_FULLDPLX ? ADVERTISE_100FULL :
+						       ADVERTISE_100HALF;
+		else
+			media = bmcr & BMCR_FULLDPLX ? ADVERTISE_10FULL :
+						       ADVERTISE_10HALF;
 	}
 
 	maccr = ioread32(priv->base + FTMAC100_OFFSET_MACCR);
 	want = maccr & ~(FTMAC110_MACCR_100M | FTMAC100_MACCR_FULLDUP);
 	if (media & (ADVERTISE_100FULL | ADVERTISE_100HALF))
 		want |= FTMAC110_MACCR_100M;
-	if (media & ADVERTISE_FULL)
+	if (media & (ADVERTISE_100FULL | ADVERTISE_10FULL))
 		want |= FTMAC100_MACCR_FULLDUP;
 	if (want != maccr) {
 		iowrite32(want, priv->base + FTMAC100_OFFSET_MACCR);

@@ -171,6 +171,27 @@ static void put_trailing(struct m2_dev *m2)
 				  0, 1000);
 }
 
+/* the lowest level the size and rate fit, table A-1 */
+static u32 m2_level(struct m2_ctx *ctx)
+{
+	static const struct {
+		u32 level, frame, rate;
+	} levels[] = {
+		{ 30, 1620, 40500 }, { 31, 3600, 108000 }, { 32, 5120, 216000 },
+		{ 40, 8192, 245760 }, { 42, 8704, 522240 }, { 50, 22080, 589824 },
+	};
+	const u32 mbs = ctx->fmt[M2_SRC].width / 16 *
+			(ctx->fmt[M2_SRC].height / 16);
+	const u32 rate = div_u64((u64)mbs * ctx->interval.denominator,
+				 ctx->interval.numerator);
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(levels); i++)
+		if (mbs <= levels[i].frame && rate <= levels[i].rate)
+			return levels[i].level;
+	return 51;
+}
+
 static void m2_sps_pps(struct m2_ctx *ctx)
 {
 	struct m2_dev *m2 = ctx->m2;
@@ -180,7 +201,7 @@ static void m2_sps_pps(struct m2_ctx *ctx)
 	put_nal(m2, 0x67);
 	put_u(m2, 8, 66);		/* baseline */
 	put_u(m2, 8, 0);		/* constraints */
-	put_u(m2, 8, mbw * mbh > 1620 ? 31 : 30);
+	put_u(m2, 8, m2_level(ctx));
 	put_ue(m2, 0);			/* seq_parameter_set_id */
 	put_ue(m2, 0);			/* log2_max_frame_num - 4 */
 	put_ue(m2, 0);			/* pic_order_cnt_type */
@@ -690,8 +711,11 @@ static void m2_fill_fmt(struct v4l2_pix_format *p, bool src)
 	} else {
 		p->pixelformat = V4L2_PIX_FMT_H264;
 		p->bytesperline = 0;
-		/* the engine is not told where the buffer ends */
-		p->sizeimage = max_t(u32, p->width * p->height * 3 / 2, 65536);
+		/*
+		 * The engine is not told where the buffer ends. A macroblock
+		 * may take 400 bytes; twice that, and room for headers.
+		 */
+		p->sizeimage = p->width * p->height / 256 * 800 + 4096;
 	}
 }
 
@@ -855,10 +879,10 @@ static int m2_init_ctrls(struct m2_ctx *ctx)
 			  1024000);
 	v4l2_ctrl_new_std(h, o, V4L2_CID_MPEG_VIDEO_FRAME_RC_ENABLE, 0, 1, 1, 1);
 	v4l2_ctrl_new_std(h, o, V4L2_CID_MPEG_VIDEO_GOP_SIZE, 0, 600, 1, 30);
-	v4l2_ctrl_new_std(h, o, V4L2_CID_MPEG_VIDEO_H264_I_FRAME_QP, 1, 51, 1, 30);
-	v4l2_ctrl_new_std(h, o, V4L2_CID_MPEG_VIDEO_H264_P_FRAME_QP, 1, 51, 1, 30);
-	v4l2_ctrl_new_std(h, o, V4L2_CID_MPEG_VIDEO_H264_MIN_QP, 1, 51, 1, 10);
-	v4l2_ctrl_new_std(h, o, V4L2_CID_MPEG_VIDEO_H264_MAX_QP, 1, 51, 1, 48);
+	v4l2_ctrl_new_std(h, o, V4L2_CID_MPEG_VIDEO_H264_I_FRAME_QP, 10, 51, 1, 30);
+	v4l2_ctrl_new_std(h, o, V4L2_CID_MPEG_VIDEO_H264_P_FRAME_QP, 10, 51, 1, 30);
+	v4l2_ctrl_new_std(h, o, V4L2_CID_MPEG_VIDEO_H264_MIN_QP, 10, 51, 1, 10);
+	v4l2_ctrl_new_std(h, o, V4L2_CID_MPEG_VIDEO_H264_MAX_QP, 10, 51, 1, 48);
 	v4l2_ctrl_new_std(h, o, V4L2_CID_MPEG_VIDEO_FORCE_KEY_FRAME, 0, 0, 0, 0);
 	v4l2_ctrl_new_std_menu(h, o, V4L2_CID_MPEG_VIDEO_H264_PROFILE,
 			       V4L2_MPEG_VIDEO_H264_PROFILE_BASELINE,

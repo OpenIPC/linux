@@ -554,10 +554,21 @@ static int moxart_get_ro(struct mmc_host *mmc)
 	return !!(readl(host->base + REG_STATUS) & WRITE_PROT);
 }
 
+static int moxart_get_cd(struct mmc_host *mmc)
+{
+	struct moxart_host *host = mmc_priv(mmc);
+	int present = !moxart_no_card(host, readl(host->base + REG_STATUS));
+
+	if (present)
+		host->is_removed = false;
+	return present;
+}
+
 static const struct mmc_host_ops moxart_ops = {
 	.request = moxart_request,
 	.set_ios = moxart_set_ios,
 	.get_ro = moxart_get_ro,
+	.get_cd = moxart_get_cd,
 };
 
 static int moxart_probe(struct platform_device *pdev)

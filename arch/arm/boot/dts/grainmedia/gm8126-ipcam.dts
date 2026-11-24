@@ -69,6 +69,7 @@
 &sdc {
 	bus-width = <4>;
 	cd-inverted;		/* a micro-SD slot */
+	broken-cd;		/* a change is polled for */
 	disable-wp;
 	status = "okay";
 };
