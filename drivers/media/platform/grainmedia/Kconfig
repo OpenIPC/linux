@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
+comment "Grain Media platform drivers"
+
+config VIDEO_GM_CAP020
+	tristate "Grain Media GM8126 video capture"
+	depends on V4L_PLATFORM_DRIVERS
+	depends on VIDEO_DEV && OF
+	depends on ARCH_GRAINMEDIA || COMPILE_TEST
+	select V4L2_FWNODE
+	select V4L2_ASYNC
+	select VIDEOBUF2_DMA_CONTIG
+	help
+	  The FTCAP020 capture unit of the GM8126: a sensor's picture,
+	  scaled down, as packed 4:2:2.
+
+config VIDEO_GM_MCP200
+	tristate "Grain Media GM8126 H.264 encoder"
+	depends on V4L_MEM2MEM_DRIVERS
+	depends on VIDEO_DEV
+	depends on ARCH_GRAINMEDIA || COMPILE_TEST
+	select VIDEOBUF2_DMA_CONTIG
+	select V4L2_MEM2MEM_DEV
+	help
+	  The FTMCP200 H.264 baseline encoder of the GM8126.
