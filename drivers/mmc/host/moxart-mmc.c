@@ -144,7 +144,14 @@ struct moxart_host {
 
 	bool				have_dma;
 	bool				is_removed;
+	/* a set CARD_DETECT says there is a card */
+	bool				cd_high;
 };
+
+static bool moxart_no_card(struct moxart_host *host, u32 status)
+{
+	return !(status & CARD_DETECT) == host->cd_high;
+}
 
 static inline void moxart_init_sg(struct moxart_host *host,
 				  struct mmc_data *data)
@@ -222,7 +229,10 @@ static void moxart_send_command(struct moxart_host *host,
 
 	writel(cmdctrl | CMD_EN, host->base + REG_COMMAND);
 
-	if (moxart_wait_for_status(host, MASK_RSP, &status) == -ETIMEDOUT)
+	/* a card that is there must not end the wait */
+	if (moxart_wait_for_status(host, host->cd_high ?
+				   MASK_RSP & ~CARD_DETECT : MASK_RSP,
+				   &status) == -ETIMEDOUT)
 		cmd->error = -ETIMEDOUT;
 
 	if (status & RSP_TIMEOUT) {
@@ -408,7 +418,7 @@ static void moxart_request(struct mmc_host *mmc, struct mmc_request *mrq)
 
 	host->mrq = mrq;
 
-	if (readl(host->base + REG_STATUS) & CARD_DETECT) {
+	if (moxart_no_card(host, readl(host->base + REG_STATUS))) {
 		mrq->cmd->error = -ETIMEDOUT;
 		goto request_done;
 	}
@@ -472,7 +482,7 @@ static irqreturn_t moxart_irq(int irq, void *devid)
 
 	status = readl(host->base + REG_STATUS);
 	if (status & CARD_CHANGE) {
-		host->is_removed = status & CARD_DETECT;
+		host->is_removed = moxart_no_card(host, status);
 		if (host->is_removed && host->have_dma) {
 			dmaengine_terminate_all(host->dma_chan_tx);
 			dmaengine_terminate_all(host->dma_chan_rx);
@@ -576,7 +586,7 @@ static int moxart_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 
-	clk = devm_clk_get(dev, NULL);
+	clk = devm_clk_get_enabled(dev, NULL);
 	if (IS_ERR(clk))
 		return PTR_ERR(clk);
 
@@ -590,7 +600,9 @@ static int moxart_probe(struct platform_device *pdev)
 	host->reg_phys = res_mmc->start;
 	host->timeout = msecs_to_jiffies(1000);
 	host->sysclk = clk_get_rate(clk);
-	host->fifo_width = readl(host->base + REG_FEATURE) << 2;
+	host->cd_high = mmc->caps2 & MMC_CAP2_CD_ACTIVE_HIGH;
+	/* above the depth are other features */
+	host->fifo_width = (readl(host->base + REG_FEATURE) & 0xff) << 2;
 	host->dma_chan_tx = dma_request_chan(dev, "tx");
 	host->dma_chan_rx = dma_request_chan(dev, "rx");
 
