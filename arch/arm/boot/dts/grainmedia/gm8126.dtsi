@@ -1,0 +1,143 @@
+// SPDX-License-Identifier: GPL-2.0-only OR MIT
+/*
+ * Grain Media GM8126, from the vendor's Linux 2.6.28
+ * (arch/arm/mach-GM/platform-GM8126).
+ */
+
+#include <dt-bindings/clock/grainmedia,gm8126.h>
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+
+/ {
+	#address-cells = <1>;
+	#size-cells = <1>;
+	compatible = "grainmedia,gm8126";
+	interrupt-parent = <&intc>;
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		cpu@0 {
+			device_type = "cpu";
+			compatible = "faraday,fa626te";
+			reg = <0>;
+		};
+	};
+
+	soc {
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		ethernet: ethernet@92500000 {
+			compatible = "faraday,ftmac110";
+			reg = <0x92500000 0x1000>;
+			interrupts = <3 IRQ_TYPE_LEVEL_HIGH>;
+			status = "disabled";
+		};
+
+		sdc: mmc@92800000 {
+			compatible = "faraday,ftsdc010";
+			reg = <0x92800000 0x1000>;
+			interrupts = <15 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&pmu GM8126_CLK_AHB>;
+			status = "disabled";
+		};
+
+		spi0: spi@98200000 {
+			compatible = "faraday,ftssp010";
+			reg = <0x98200000 0x1000>;
+			interrupts = <6 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&pmu GM8126_CLK_SSP0>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
+		uart0: serial@98300000 {
+			compatible = "ns16550a";
+			reg = <0x98300000 0x1000>;
+			reg-shift = <2>;
+			reg-io-width = <4>;
+			interrupts = <9 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&pmu GM8126_CLK_UART>;
+			status = "disabled";
+		};
+
+		uart1: serial@98400000 {
+			compatible = "ns16550a";
+			reg = <0x98400000 0x1000>;
+			reg-shift = <2>;
+			reg-io-width = <4>;
+			interrupts = <10 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&pmu GM8126_CLK_UART>;
+			status = "disabled";
+		};
+
+		pmu: clock-controller@99000000 {
+			compatible = "grainmedia,gm8126-pmu", "syscon";
+			reg = <0x99000000 0x1000>;
+			#clock-cells = <1>;
+		};
+
+		timer: timer@99100000 {
+			compatible = "grainmedia,gm8126-timer";
+			reg = <0x99100000 0x1000>;
+			interrupts = <14 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&pmu GM8126_CLK_APB>;
+			clock-names = "PCLK";
+		};
+
+		watchdog: watchdog@99200000 {
+			compatible = "grainmedia,gm8126-wdt";
+			reg = <0x99200000 0x1000>;
+			clocks = <&pmu GM8126_CLK_APB>;
+		};
+
+		gpio0: gpio@99400000 {
+			compatible = "faraday,ftgpio010";
+			reg = <0x99400000 0x1000>;
+			interrupts = <13 IRQ_TYPE_LEVEL_HIGH>;
+			gpio-controller;
+			#gpio-cells = <2>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+		};
+
+		intc: interrupt-controller@99500000 {
+			compatible = "grainmedia,gm8126-intc";
+			reg = <0x99500000 0x1000>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+		};
+
+		gpio1: gpio@99700000 {
+			compatible = "faraday,ftgpio010";
+			reg = <0x99700000 0x1000>;
+			interrupts = <17 IRQ_TYPE_LEVEL_HIGH>;
+			gpio-controller;
+			#gpio-cells = <2>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+		};
+
+		gpio2: gpio@99800000 {
+			compatible = "faraday,ftgpio010";
+			reg = <0x99800000 0x1000>;
+			interrupts = <25 IRQ_TYPE_LEVEL_HIGH>;
+			gpio-controller;
+			#gpio-cells = <2>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+		};
+
+		rtc: rtc@99900000 {
+			compatible = "faraday,ftrtc010";
+			reg = <0x99900000 0x1000>;
+			interrupts = <5 IRQ_TYPE_LEVEL_HIGH>;
+			status = "disabled";
+		};
+	};
+};

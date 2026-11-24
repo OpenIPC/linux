@@ -1,0 +1,43 @@
+// SPDX-License-Identifier: GPL-2.0-only OR MIT
+/dts-v1/;
+
+#include "gm8126.dtsi"
+
+/ {
+	model = "Grain Media GM8126 IP camera";
+	compatible = "grainmedia,gm8126-ipcam", "grainmedia,gm8126";
+
+	aliases {
+		serial0 = &uart0;
+		ethernet0 = &ethernet;
+	};
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+
+	memory@0 {
+		device_type = "memory";
+		reg = <0x00000000 0x08000000>;
+	};
+};
+
+&ethernet {
+	status = "okay";
+};
+
+&spi0 {
+	cs-gpios = <&gpio0 14 GPIO_ACTIVE_LOW>;
+	status = "okay";
+
+	flash@0 {
+		compatible = "jedec,spi-nor";
+		reg = <0>;
+		spi-max-frequency = <30000000>;
+		label = "nor-flash";
+	};
+};
+
+&uart0 {
+	status = "okay";
+};

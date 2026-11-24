@@ -13,6 +13,7 @@ subdir-y += calxeda
 subdir-y += cirrus
 subdir-y += cnxt
 subdir-y += gemini
+subdir-y += grainmedia
 subdir-y += hisilicon
 subdir-y += hpe
 subdir-y += intel
