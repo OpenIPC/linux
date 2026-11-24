@@ -8,6 +8,7 @@
 
 #define pr_fmt(fmt)	KBUILD_MODNAME ": " fmt
 
+#include <linux/clk.h>
 #include <linux/dma-mapping.h>
 #include <linux/etherdevice.h>
 #include <linux/ethtool.h>
@@ -1202,6 +1203,7 @@ static int ftmac100_probe(struct platform_device *pdev)
 	int irq;
 	struct net_device *netdev;
 	struct ftmac100 *priv;
+	struct clk_bulk_data *clks;
 	int err;
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
@@ -1211,6 +1213,10 @@ static int ftmac100_probe(struct platform_device *pdev)
 	irq = platform_get_irq(pdev, 0);
 	if (irq < 0)
 		return irq;
+
+	err = devm_clk_bulk_get_all_enabled(&pdev->dev, &clks);
+	if (err < 0)
+		return dev_err_probe(&pdev->dev, err, "no clocks\n");
 
 	/* setup net_device */
 	netdev = alloc_etherdev(sizeof(*priv));
