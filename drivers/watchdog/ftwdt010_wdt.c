@@ -9,11 +9,13 @@
  */
 
 #include <linux/bitops.h>
+#include <linux/clk.h>
 #include <linux/init.h>
 #include <linux/interrupt.h>
 #include <linux/io.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/of.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 #include <linux/watchdog.h>
@@ -38,6 +40,8 @@ struct ftwdt010_wdt {
 	struct device		*dev;
 	void __iomem		*base;
 	bool			has_irq;
+	u32			rate;
+	u32			clk_sel;
 };
 
 static inline
@@ -52,10 +56,10 @@ static void ftwdt010_enable(struct ftwdt010_wdt *gwdt,
 {
 	u32 enable;
 
-	writel(timeout * WDT_CLOCK, gwdt->base + FTWDT010_WDLOAD);
+	writel(timeout * gwdt->rate, gwdt->base + FTWDT010_WDLOAD);
 	writel(WDRESTART_MAGIC, gwdt->base + FTWDT010_WDRESTART);
 	/* set clock before enabling */
-	enable = WDCR_CLOCK_5MHZ | WDCR_SYS_RST;
+	enable = gwdt->clk_sel | WDCR_SYS_RST;
 	writel(enable, gwdt->base + FTWDT010_WDCR);
 	if (need_irq)
 		enable |= WDCR_WDINTR;
@@ -152,7 +156,18 @@ static int ftwdt010_wdt_probe(struct platform_device *pdev)
 	gwdt->wdd.info = &ftwdt010_wdt_info;
 	gwdt->wdd.ops = &ftwdt010_wdt_ops;
 	gwdt->wdd.min_timeout = 1;
-	gwdt->wdd.max_timeout = 0xFFFFFFFF / WDT_CLOCK;
+	gwdt->rate = WDT_CLOCK;
+	gwdt->clk_sel = WDCR_CLOCK_5MHZ;
+	if (of_device_is_compatible(dev->of_node, "grainmedia,gm8126-wdt")) {
+		struct clk *clk = devm_clk_get_enabled(dev, NULL);
+
+		/* it counts APB clocks */
+		if (IS_ERR(clk))
+			return dev_err_probe(dev, PTR_ERR(clk), "no clock\n");
+		gwdt->rate = clk_get_rate(clk);
+		gwdt->clk_sel = 0;
+	}
+	gwdt->wdd.max_timeout = 0xFFFFFFFF / gwdt->rate;
 	gwdt->wdd.parent = dev;
 
 	/*
@@ -223,6 +238,7 @@ static const struct dev_pm_ops ftwdt010_wdt_dev_pm_ops = {
 static const struct of_device_id ftwdt010_wdt_match[] = {
 	{ .compatible = "faraday,ftwdt010" },
 	{ .compatible = "cortina,gemini-watchdog" },
+	{ .compatible = "grainmedia,gm8126-wdt" },
 	{},
 };
 MODULE_DEVICE_TABLE(of, ftwdt010_wdt_match);
