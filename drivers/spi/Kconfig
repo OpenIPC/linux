@@ -484,6 +484,13 @@ config SPI_NXP_XSPI
 	  This controller does not support generic SPI messages and only
 	  supports the high-level SPI memory interface.
 
+config SPI_FTSSP010
+	tristate "Faraday FTSSP010 SPI controller"
+	depends on ARCH_GRAINMEDIA || COMPILE_TEST
+	help
+	  The synchronous serial port of Grain Media's GM8126 as an SPI host;
+	  the boot flash is on the first one. Chip selects are GPIOs.
+
 config SPI_GPIO
 	tristate "GPIO-based bitbanging SPI Master"
 	depends on GPIOLIB || COMPILE_TEST

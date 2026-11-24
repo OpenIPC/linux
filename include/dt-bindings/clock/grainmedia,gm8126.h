@@ -1,0 +1,34 @@
+/* SPDX-License-Identifier: GPL-2.0-only OR BSD-2-Clause */
+#ifndef _DT_BINDINGS_CLOCK_GM8126_H
+#define _DT_BINDINGS_CLOCK_GM8126_H
+
+#define GM8126_CLK_PLL1		0
+#define GM8126_CLK_PLL2		1
+#define GM8126_CLK_CPU		2
+#define GM8126_CLK_AHB		3
+#define GM8126_CLK_APB		4
+#define GM8126_CLK_SSP0_DIV	5
+#define GM8126_CLK_UART		6
+#define GM8126_CLK_SDC_DIV	7
+
+/* with a gate */
+#define GM8126_CLK_H264E	8
+#define GM8126_CLK_MCP100	9
+#define GM8126_CLK_MAC_AHB	10
+#define GM8126_CLK_MAC		11
+#define GM8126_CLK_DMAC		12
+#define GM8126_CLK_SDC_AHB	13
+#define GM8126_CLK_SCALER	14
+#define GM8126_CLK_DI3D		15
+#define GM8126_CLK_SSP0		16
+#define GM8126_CLK_SDC		17
+#define GM8126_CLK_GPIO0	18
+#define GM8126_CLK_GPIO1	19
+#define GM8126_CLK_GPIO2	20
+#define GM8126_CLK_I2C		21
+#define GM8126_CLK_WDT		22
+#define GM8126_CLK_RTC		23
+#define GM8126_CLK_ADC		24
+#define GM8126_CLK_NUM		25
+
+#endif

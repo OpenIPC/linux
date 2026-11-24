@@ -30,7 +30,7 @@
 # define MULTI_CACHE 1
 #endif
 
-#if defined(CONFIG_CPU_FA526)
+#if defined(CONFIG_CPU_FA526) || defined(CONFIG_CPU_FA626TE)
 # ifdef _CACHE
 #  define MULTI_CACHE 1
 # else

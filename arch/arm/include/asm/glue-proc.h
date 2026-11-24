@@ -83,6 +83,15 @@
 # endif
 #endif
 
+#ifdef CONFIG_CPU_FA626TE
+# ifdef CPU_NAME
+#  undef  MULTI_CPU
+#  define MULTI_CPU
+# else
+#  define CPU_NAME cpu_fa626te
+# endif
+#endif
+
 #ifdef CONFIG_CPU_ARM925T
 # ifdef CPU_NAME
 #  undef  MULTI_CPU

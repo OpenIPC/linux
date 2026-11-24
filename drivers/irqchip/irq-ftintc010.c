@@ -22,6 +22,8 @@
 #include <asm/mach/irq.h>
 
 #define FT010_NUM_IRQS 32
+/* The GM8126's has a second bank of registers for inputs 32-63 */
+#define FT010_EX_BANK	0x60
 
 #define FT010_IRQ_SOURCE(base_addr)	(base_addr + 0x00)
 #define FT010_IRQ_MASK(base_addr)	(base_addr + 0x04)
@@ -48,16 +50,28 @@ struct ft010_irq_data {
 	void __iomem *base;
 	struct irq_chip chip;
 	struct irq_domain *domain;
+	bool ex;
 };
+
+/* the registers of the bank an interrupt is in, and its bit there */
+static void __iomem *ft010_bank(struct ft010_irq_data *f, struct irq_data *d)
+{
+	return f->base + (irqd_to_hwirq(d) / 32) * FT010_EX_BANK;
+}
+
+static u32 ft010_bit(struct irq_data *d)
+{
+	return BIT(irqd_to_hwirq(d) % 32);
+}
 
 static void ft010_irq_mask(struct irq_data *d)
 {
 	struct ft010_irq_data *f = irq_data_get_irq_chip_data(d);
 	unsigned int mask;
 
-	mask = readl(FT010_IRQ_MASK(f->base));
-	mask &= ~BIT(irqd_to_hwirq(d));
-	writel(mask, FT010_IRQ_MASK(f->base));
+	mask = readl(FT010_IRQ_MASK(ft010_bank(f, d)));
+	mask &= ~ft010_bit(d);
+	writel(mask, FT010_IRQ_MASK(ft010_bank(f, d)));
 }
 
 static void ft010_irq_unmask(struct irq_data *d)
@@ -65,26 +79,27 @@ static void ft010_irq_unmask(struct irq_data *d)
 	struct ft010_irq_data *f = irq_data_get_irq_chip_data(d);
 	unsigned int mask;
 
-	mask = readl(FT010_IRQ_MASK(f->base));
-	mask |= BIT(irqd_to_hwirq(d));
-	writel(mask, FT010_IRQ_MASK(f->base));
+	mask = readl(FT010_IRQ_MASK(ft010_bank(f, d)));
+	mask |= ft010_bit(d);
+	writel(mask, FT010_IRQ_MASK(ft010_bank(f, d)));
 }
 
 static void ft010_irq_ack(struct irq_data *d)
 {
 	struct ft010_irq_data *f = irq_data_get_irq_chip_data(d);
 
-	writel(BIT(irqd_to_hwirq(d)), FT010_IRQ_CLEAR(f->base));
+	writel(ft010_bit(d), FT010_IRQ_CLEAR(ft010_bank(f, d)));
 }
 
 static int ft010_irq_set_type(struct irq_data *d, unsigned int trigger)
 {
 	struct ft010_irq_data *f = irq_data_get_irq_chip_data(d);
-	int offset = irqd_to_hwirq(d);
+	void __iomem *base = ft010_bank(f, d);
+	int offset = irqd_to_hwirq(d) % 32;
 	u32 mode, polarity;
 
-	mode = readl(FT010_IRQ_MODE(f->base));
-	polarity = readl(FT010_IRQ_POLARITY(f->base));
+	mode = readl(FT010_IRQ_MODE(base));
+	polarity = readl(FT010_IRQ_POLARITY(base));
 
 	if (trigger & (IRQ_TYPE_LEVEL_LOW)) {
 		irq_set_handler_locked(d, handle_level_irq);
@@ -108,8 +123,8 @@ static int ft010_irq_set_type(struct irq_data *d, unsigned int trigger)
 			offset);
 	}
 
-	writel(mode, FT010_IRQ_MODE(f->base));
-	writel(polarity, FT010_IRQ_POLARITY(f->base));
+	writel(mode, FT010_IRQ_MODE(base));
+	writel(polarity, FT010_IRQ_POLARITY(base));
 
 	return 0;
 }
@@ -131,9 +146,16 @@ static void __exception_irq_entry ft010_irqchip_handle_irq(struct pt_regs *regs)
 	int irq;
 	u32 status;
 
-	while ((status = readl(FT010_IRQ_STATUS(f->base)))) {
-		irq = ffs(status) - 1;
-		generic_handle_domain_irq(f->domain, irq);
+	for (;;) {
+		irq = 0;
+		status = readl(FT010_IRQ_STATUS(f->base));
+		if (!status && f->ex) {
+			irq = 32;
+			status = readl(FT010_IRQ_STATUS(f->base + FT010_EX_BANK));
+		}
+		if (!status)
+			break;
+		generic_handle_domain_irq(f->domain, irq + ffs(status) - 1);
 	}
 }
 
@@ -179,9 +201,14 @@ static int __init ft010_of_init_irq(struct device_node *node,
 	/* Disable all interrupts */
 	writel(0, FT010_IRQ_MASK(f->base));
 	writel(0, FT010_FIQ_MASK(f->base));
+	f->ex = of_device_is_compatible(node, "grainmedia,gm8126-intc");
+	if (f->ex) {
+		writel(0, FT010_IRQ_MASK(f->base + FT010_EX_BANK));
+		writel(0, FT010_FIQ_MASK(f->base + FT010_EX_BANK));
+	}
 
 	f->domain = irq_domain_create_simple(of_fwnode_handle(node),
-					     FT010_NUM_IRQS, 0,
+					     f->ex ? 2 * FT010_NUM_IRQS : FT010_NUM_IRQS, 0,
 					     &ft010_irqdomain_ops, f);
 	set_handle_irq(ft010_irqchip_handle_irq);
 
@@ -192,4 +219,6 @@ IRQCHIP_DECLARE(faraday, "faraday,ftintc010",
 IRQCHIP_DECLARE(gemini, "cortina,gemini-interrupt-controller",
 		ft010_of_init_irq);
 IRQCHIP_DECLARE(moxa, "moxa,moxart-ic",
+		ft010_of_init_irq);
+IRQCHIP_DECLARE(gm8126, "grainmedia,gm8126-intc",
 		ft010_of_init_irq);

@@ -25,7 +25,8 @@ config ARCH_MULTI_V5
 	select ARCH_MULTI_V4_V5
 	select CPU_ARM926T if !(CPU_ARM946E || CPU_ARM1020 || \
 		CPU_ARM1020E || CPU_ARM1022 || CPU_ARM1026 || \
-		CPU_XSCALE || CPU_XSC3 || CPU_MOHAWK || CPU_FEROCEON)
+		CPU_XSCALE || CPU_XSC3 || CPU_MOHAWK || CPU_FEROCEON || \
+		CPU_FA626TE)
 
 config ARCH_MULTI_V4_V5
 	bool
@@ -107,6 +108,17 @@ config ARCH_HPE_GXP
 	  infrastructure.
 
 endif
+
+config ARCH_GRAINMEDIA
+	bool "Grain Media IP camera SoCs"
+	depends on ARCH_MULTI_V5 && !ARCH_MULTI_V4
+	depends on CPU_LITTLE_ENDIAN
+	select CPU_FA626TE
+	select FARADAY_FTINTC010
+	select FTTMR010_TIMER
+	select GPIOLIB
+	help
+	  Grain Media's GM8126: a Faraday FA626TE among Faraday peripherals.
 
 menuconfig ARCH_MOXART
 	bool "MOXA ART SoC"

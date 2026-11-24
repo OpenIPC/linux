@@ -21,7 +21,11 @@
 /*
  * The size of one data cache line.
  */
+#ifdef CONFIG_CPU_FA626TE
+#define CACHE_DLINESIZE	32
+#else
 #define CACHE_DLINESIZE	16
+#endif
 
 /*
  * The total size of the data cache.
@@ -152,6 +156,7 @@ SYM_FUNC_END(fa_coherent_user_range)
  */
 SYM_TYPED_FUNC_START(fa_flush_kern_dcache_area)
 	add	r1, r0, r1
+	bic	r0, r0, #CACHE_DLINESIZE - 1
 1:	mcr	p15, 0, r0, c7, c14, 1		@ clean & invalidate D line
 	add	r0, r0, #CACHE_DLINESIZE
 	cmp	r0, r1

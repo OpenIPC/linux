@@ -8,6 +8,7 @@
 
 #define pr_fmt(fmt)	KBUILD_MODNAME ": " fmt
 
+#include <linux/clk.h>
 #include <linux/dma-mapping.h>
 #include <linux/etherdevice.h>
 #include <linux/ethtool.h>
@@ -20,6 +21,7 @@
 #include <linux/module.h>
 #include <linux/netdevice.h>
 #include <linux/platform_device.h>
+#include <linux/property.h>
 
 #include "ftmac100.h"
 
@@ -28,6 +30,11 @@
 #define RX_QUEUE_ENTRIES	128	/* must be power of 2 */
 #define TX_QUEUE_ENTRIES	16	/* must be power of 2 */
 
+/*
+ * The FTMAC110's receive DMA takes only addresses two bytes off a word; the
+ * FTMAC100's is not bothered.
+ */
+#define FTMAC110_RX_OFFSET	2
 #define RX_BUF_SIZE		2044	/* must be smaller than 0x7ff */
 #define MAX_PKT_SIZE		RX_BUF_SIZE /* multi-segment not supported */
 
@@ -67,6 +74,9 @@ struct ftmac100 {
 	struct napi_struct napi;
 
 	struct mii_if_info mii;
+	unsigned int rx_offset;
+	bool is_ftmac110;
+	struct delayed_work link_work;
 };
 
 static int ftmac100_alloc_rx_page(struct ftmac100 *priv,
@@ -462,7 +472,7 @@ static bool ftmac100_rx_packet(struct ftmac100 *priv, int *processed)
 
 	length = ftmac100_rxdes_frame_length(rxdes);
 	page = ftmac100_rxdes_get_page(rxdes);
-	skb_fill_page_desc(skb, 0, page, 0, length);
+	skb_fill_page_desc(skb, 0, page, priv->rx_offset, length);
 	skb->len += length;
 	skb->data_len += length;
 
@@ -706,7 +716,7 @@ static int ftmac100_alloc_rx_page(struct ftmac100 *priv,
 		return -ENOMEM;
 	}
 
-	map = dma_map_page(priv->dev, page, 0, RX_BUF_SIZE, DMA_FROM_DEVICE);
+	map = dma_map_page(priv->dev, page, priv->rx_offset, RX_BUF_SIZE, DMA_FROM_DEVICE);
 	if (unlikely(dma_mapping_error(priv->dev, map))) {
 		if (net_ratelimit())
 			netdev_err(netdev, "failed to map rx page\n");
@@ -978,6 +988,76 @@ static int ftmac100_poll(struct napi_struct *napi, int budget)
 	return rx;
 }
 
+/*
+ * The FTMAC110 has to be told the link's speed. Its PHY is polled, as there
+ * may be no status line to the MAC.
+ */
+static void ftmac110_update_link(struct ftmac100 *priv)
+{
+	struct net_device *netdev = priv->netdev;
+	unsigned int maccr, want;
+	int adv, lpa, media;
+
+	mii_check_link(&priv->mii);
+	if (!netif_carrier_ok(netdev))
+		return;
+
+	if (ftmac100_mdio_read(netdev, priv->mii.phy_id, MII_BMCR) & BMCR_ANENABLE) {
+		adv = ftmac100_mdio_read(netdev, priv->mii.phy_id, MII_ADVERTISE);
+		lpa = ftmac100_mdio_read(netdev, priv->mii.phy_id, MII_LPA);
+		media = mii_nway_result(adv & lpa);
+	} else {
+		int bmcr = ftmac100_mdio_read(netdev, priv->mii.phy_id, MII_BMCR);
+
+		if (bmcr & BMCR_SPEED100)
+			media = bmcr & BMCR_FULLDPLX ? ADVERTISE_100FULL :
+						       ADVERTISE_100HALF;
+		else
+			media = bmcr & BMCR_FULLDPLX ? ADVERTISE_10FULL :
+						       ADVERTISE_10HALF;
+	}
+
+	maccr = ioread32(priv->base + FTMAC100_OFFSET_MACCR);
+	want = maccr & ~(FTMAC110_MACCR_100M | FTMAC100_MACCR_FULLDUP);
+	if (media & (ADVERTISE_100FULL | ADVERTISE_100HALF))
+		want |= FTMAC110_MACCR_100M;
+	if (media & (ADVERTISE_100FULL | ADVERTISE_10FULL))
+		want |= FTMAC100_MACCR_FULLDUP;
+	if (want != maccr) {
+		iowrite32(want, priv->base + FTMAC100_OFFSET_MACCR);
+		netdev_info(netdev, "link %d Mbit/s, %s duplex\n",
+			    want & FTMAC110_MACCR_100M ? 100 : 10,
+			    want & FTMAC100_MACCR_FULLDUP ? "full" : "half");
+	}
+}
+
+static void ftmac110_link_work(struct work_struct *work)
+{
+	struct ftmac100 *priv = container_of(work, struct ftmac100,
+					     link_work.work);
+
+	rtnl_lock();
+	if (netif_running(priv->netdev)) {
+		ftmac110_update_link(priv);
+		schedule_delayed_work(&priv->link_work, HZ);
+	}
+	rtnl_unlock();
+}
+
+static void ftmac110_find_phy(struct ftmac100 *priv)
+{
+	int addr, id;
+
+	for (addr = 0; addr < 32; addr++) {
+		id = ftmac100_mdio_read(priv->netdev, addr, MII_PHYSID1);
+		if (id && id != 0xffff) {
+			priv->mii.phy_id = addr;
+			return;
+		}
+	}
+	netdev_warn(priv->netdev, "no PHY found\n");
+}
+
 /******************************************************************************
  * struct net_device_ops functions
  *****************************************************************************/
@@ -1011,6 +1091,9 @@ static int ftmac100_open(struct net_device *netdev)
 	netif_start_queue(netdev);
 
 	ftmac100_enable_all_int(priv);
+
+	if (priv->is_ftmac110)
+		schedule_delayed_work(&priv->link_work, 0);
 
 	return 0;
 
@@ -1125,6 +1208,7 @@ static int ftmac100_probe(struct platform_device *pdev)
 	int irq;
 	struct net_device *netdev;
 	struct ftmac100 *priv;
+	struct clk_bulk_data *clks;
 	int err;
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
@@ -1134,6 +1218,10 @@ static int ftmac100_probe(struct platform_device *pdev)
 	irq = platform_get_irq(pdev, 0);
 	if (irq < 0)
 		return irq;
+
+	err = devm_clk_bulk_get_all_enabled(&pdev->dev, &clks);
+	if (err < 0)
+		return dev_err_probe(&pdev->dev, err, "no clocks\n");
 
 	/* setup net_device */
 	netdev = alloc_etherdev(sizeof(*priv));
@@ -1157,6 +1245,10 @@ static int ftmac100_probe(struct platform_device *pdev)
 	priv = netdev_priv(netdev);
 	priv->netdev = netdev;
 	priv->dev = &pdev->dev;
+	if (device_is_compatible(&pdev->dev, "faraday,ftmac110")) {
+		priv->is_ftmac110 = true;
+		priv->rx_offset = FTMAC110_RX_OFFSET;
+	}
 
 	spin_lock_init(&priv->tx_lock);
 
@@ -1188,6 +1280,10 @@ static int ftmac100_probe(struct platform_device *pdev)
 	priv->mii.dev		= netdev;
 	priv->mii.mdio_read	= ftmac100_mdio_read;
 	priv->mii.mdio_write	= ftmac100_mdio_write;
+
+	INIT_DELAYED_WORK(&priv->link_work, ftmac110_link_work);
+	if (priv->is_ftmac110)
+		ftmac110_find_phy(priv);
 
 	/* register network device */
 	err = register_netdev(netdev);
@@ -1227,6 +1323,7 @@ static void ftmac100_remove(struct platform_device *pdev)
 	priv = netdev_priv(netdev);
 
 	unregister_netdev(netdev);
+	cancel_delayed_work_sync(&priv->link_work);
 
 	iounmap(priv->base);
 	release_resource(priv->res);
@@ -1237,6 +1334,7 @@ static void ftmac100_remove(struct platform_device *pdev)
 
 static const struct of_device_id ftmac100_of_ids[] = {
 	{ .compatible = "andestech,atmac100" },
+	{ .compatible = "faraday,ftmac110" },
 	{ }
 };
 

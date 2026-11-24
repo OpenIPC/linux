@@ -42,6 +42,7 @@ void fa_copy_user_highpage(struct page *to, struct page *from,
 
 	kto = kmap_atomic(to);
 	kfrom = kmap_atomic(from);
+	flush_cache_page(vma, vaddr, page_to_pfn(from));
 	fa_copy_user_page(kto, kfrom);
 	kunmap_atomic(kfrom);
 	kunmap_atomic(kto);
