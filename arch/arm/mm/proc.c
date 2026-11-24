@@ -201,6 +201,23 @@ void cpu_fa526_set_pte_ext(pte_t *ptep, pte_t pte, unsigned int ext);
 __ADDRESSABLE(cpu_fa526_set_pte_ext);
 #endif
 
+#ifdef CONFIG_CPU_FA626TE
+void cpu_fa626te_proc_init(void);
+__ADDRESSABLE(cpu_fa626te_proc_init);
+void cpu_fa626te_proc_fin(void);
+__ADDRESSABLE(cpu_fa626te_proc_fin);
+void cpu_fa626te_reset(unsigned long addr, bool hvc);
+__ADDRESSABLE(cpu_fa626te_reset);
+int cpu_fa626te_do_idle(void);
+__ADDRESSABLE(cpu_fa626te_do_idle);
+void cpu_fa626te_dcache_clean_area(void *addr, int size);
+__ADDRESSABLE(cpu_fa626te_dcache_clean_area);
+void cpu_fa626te_switch_mm(phys_addr_t pgd_phys, struct mm_struct *mm);
+__ADDRESSABLE(cpu_fa626te_switch_mm);
+void cpu_fa626te_set_pte_ext(pte_t *ptep, pte_t pte, unsigned int ext);
+__ADDRESSABLE(cpu_fa626te_set_pte_ext);
+#endif
+
 #ifdef CONFIG_CPU_ARM1020
 void cpu_arm1020_proc_init(void);
 __ADDRESSABLE(cpu_arm1020_proc_init);

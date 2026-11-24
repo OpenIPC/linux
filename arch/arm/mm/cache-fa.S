@@ -21,7 +21,11 @@
 /*
  * The size of one data cache line.
  */
+#ifdef CONFIG_CPU_FA626TE
+#define CACHE_DLINESIZE	32
+#else
 #define CACHE_DLINESIZE	16
+#endif
 
 /*
  * The total size of the data cache.
