@@ -683,6 +683,13 @@ config I2C_EXYNOS5
 	  Exynos5433, Exynos7, Exynos850 and ExynosAutoV9.
 	  Choose Y here only if you build for such Samsung SoC.
 
+config I2C_FTIIC010
+	tristate "Faraday FTIIC010 I2C controller"
+	depends on ARCH_GRAINMEDIA || COMPILE_TEST
+	help
+	  The I2C controller of Grain Media's GM8126, which the image sensor
+	  is on.
+
 config I2C_GPIO
 	tristate "GPIO-based bitbanging I2C"
 	depends on GPIOLIB || COMPILE_TEST
