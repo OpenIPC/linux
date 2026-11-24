@@ -176,8 +176,8 @@ static int ftiic010_probe(struct platform_device *pdev)
 	if (!hz || hz > I2C_MAX_FAST_MODE_FREQ)
 		return dev_err_probe(dev, -EINVAL, "bad clock-frequency\n");
 	/* SCL = clk / (2 * (CDR + 2) + GSR) */
-	iic->cdr = min_t(u32, (DIV_ROUND_UP(clk_get_rate(clk), hz) - IIC_GSR) /
-			      2 - 2, CDR_MAX);
+	iic->cdr = clamp_t(s32, ((s32)DIV_ROUND_UP(clk_get_rate(clk), hz) -
+				 IIC_GSR) / 2 - 2, 1, CDR_MAX);
 	init_completion(&iic->done);
 	ret = ftiic010_init(iic);
 	if (ret)

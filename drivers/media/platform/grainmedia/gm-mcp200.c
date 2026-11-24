@@ -91,6 +91,7 @@ struct m2_dev {
 	struct mutex lock;
 	struct clk *clk;
 	struct delayed_work watchdog;
+	u32 job, irq_job;		/* the one running, the one done */
 };
 
 struct m2_buf {
@@ -437,6 +438,7 @@ static void m2_device_run(void *priv)
 		m2_sps_pps(ctx);
 	m2_slice_header(ctx, idr);
 
+	WRITE_ONCE(m2->job, m2->job + 1);
 	schedule_delayed_work(&m2->watchdog, msecs_to_jiffies(M2_TIMEOUT_MS));
 	writel(idr ? GO_I : GO_P, m2->base + M2_GO);
 }
@@ -505,6 +507,7 @@ static irqreturn_t m2_irq(int irq, void *data)
 	if (!(readl(m2->base + M2_IRQ) & 1))
 		return IRQ_NONE;
 	writel(0, m2->base + M2_IRQ);
+	WRITE_ONCE(m2->irq_job, READ_ONCE(m2->job));
 	return IRQ_WAKE_THREAD;
 }
 
@@ -512,6 +515,9 @@ static irqreturn_t m2_irq_thread(int irq, void *data)
 {
 	struct m2_dev *m2 = data;
 
+	/* not for a job the watchdog has given up */
+	if (READ_ONCE(m2->irq_job) != READ_ONCE(m2->job))
+		return IRQ_HANDLED;
 	if (cancel_delayed_work_sync(&m2->watchdog))
 		m2_job_done(m2, VB2_BUF_STATE_DONE);
 	return IRQ_HANDLED;
@@ -523,6 +529,7 @@ static void m2_watchdog(struct work_struct *work)
 
 	dev_err(m2->dev, "encoding timed out\n");
 	m2_hw_init(m2);
+	WRITE_ONCE(m2->job, m2->job + 1);
 	m2_job_done(m2, VB2_BUF_STATE_ERROR);
 }
 
