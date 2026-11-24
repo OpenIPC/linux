@@ -338,13 +338,11 @@ static int thermal_get_temp(struct thermal_zone_device *thermal, int *temp)
 	thermal_reg.reg = adc_getreg(adc, THERMAL_SENSOR_CONFIGURE_REG_OFS);
 	temp_value = thermal_reg.bit.ain_avg_out;
 
-	if (nvt_get_chip_id() == CHIP_NA51055) {
-		*temp = (temp_value - adc->trim_value)*13;
-		*temp = *temp/10 + 30;
-	} else {
-		*temp = (temp_value - adc->trim_value)*1319;
-		*temp = *temp/1000 + 30;
-	}
+	/* The thermal sysfs ABI reports millidegrees Celsius. */
+	if (nvt_get_chip_id() == CHIP_NA51055)
+		*temp = (temp_value - adc->trim_value) * 1300 + 30000;
+	else
+		*temp = (temp_value - adc->trim_value) * 1319 + 30000;
 
 	return 0;
 }
