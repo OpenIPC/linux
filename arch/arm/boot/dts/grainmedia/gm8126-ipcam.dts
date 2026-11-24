@@ -26,6 +26,17 @@
 	status = "okay";
 };
 
+&i2c0 {
+	status = "okay";
+};
+
+&sdc {
+	bus-width = <4>;
+	cd-inverted;		/* a micro-SD slot */
+	disable-wp;
+	status = "okay";
+};
+
 &spi0 {
 	cs-gpios = <&gpio0 14 GPIO_ACTIVE_LOW>;
 	status = "okay";

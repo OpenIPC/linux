@@ -35,6 +35,7 @@
 			compatible = "faraday,ftmac110";
 			reg = <0x92500000 0x1000>;
 			interrupts = <3 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&pmu GM8126_CLK_MAC>;
 			status = "disabled";
 		};
 
@@ -42,7 +43,9 @@
 			compatible = "faraday,ftsdc010";
 			reg = <0x92800000 0x1000>;
 			interrupts = <15 IRQ_TYPE_LEVEL_HIGH>;
-			clocks = <&pmu GM8126_CLK_AHB>;
+			clocks = <&pmu GM8126_CLK_SDC>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&sdc_pins>;
 			status = "disabled";
 		};
 
@@ -77,9 +80,31 @@
 		};
 
 		pmu: clock-controller@99000000 {
-			compatible = "grainmedia,gm8126-pmu", "syscon";
+			compatible = "grainmedia,gm8126-pmu";
 			reg = <0x99000000 0x1000>;
 			#clock-cells = <1>;
+		};
+
+		pinctrl: pinctrl@99000044 {
+			compatible = "pinctrl-single";
+			reg = <0x99000044 0x2c>;
+			#pinctrl-cells = <2>;
+			pinctrl-single,bit-per-mux;
+			pinctrl-single,register-width = <32>;
+			pinctrl-single,function-mask = <0x1>;
+
+			/* offset from 0x99000044, value, mask */
+			i2c_pins: i2c-pins {
+				pinctrl-single,bits = <0x00 0x1000 0x1000>;
+			};
+
+			/* the pins, and the host's side of a shared switch */
+			sdc_pins: sdc-pins {
+				pinctrl-single,bits =
+					<0x14 0x1c000000 0x1c000000>,
+					<0x18 0x00000055 0x00000055>,
+					<0x28 0x00400000 0x00400000>;
+			};
 		};
 
 		timer: timer@99100000 {
@@ -93,13 +118,14 @@
 		watchdog: watchdog@99200000 {
 			compatible = "grainmedia,gm8126-wdt";
 			reg = <0x99200000 0x1000>;
-			clocks = <&pmu GM8126_CLK_APB>;
+			clocks = <&pmu GM8126_CLK_WDT>;
 		};
 
 		gpio0: gpio@99400000 {
 			compatible = "faraday,ftgpio010";
 			reg = <0x99400000 0x1000>;
 			interrupts = <13 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&pmu GM8126_CLK_GPIO0>;
 			gpio-controller;
 			#gpio-cells = <2>;
 			interrupt-controller;
@@ -113,10 +139,23 @@
 			#interrupt-cells = <2>;
 		};
 
+		i2c0: i2c@99600000 {
+			compatible = "faraday,ftiic010";
+			reg = <0x99600000 0x1000>;
+			interrupts = <18 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&pmu GM8126_CLK_I2C>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&i2c_pins>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
 		gpio1: gpio@99700000 {
 			compatible = "faraday,ftgpio010";
 			reg = <0x99700000 0x1000>;
 			interrupts = <17 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&pmu GM8126_CLK_GPIO1>;
 			gpio-controller;
 			#gpio-cells = <2>;
 			interrupt-controller;
@@ -127,6 +166,7 @@
 			compatible = "faraday,ftgpio010";
 			reg = <0x99800000 0x1000>;
 			interrupts = <25 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&pmu GM8126_CLK_GPIO2>;
 			gpio-controller;
 			#gpio-cells = <2>;
 			interrupt-controller;
@@ -137,6 +177,7 @@
 			compatible = "faraday,ftrtc010";
 			reg = <0x99900000 0x1000>;
 			interrupts = <5 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&pmu GM8126_CLK_RTC>;
 			status = "disabled";
 		};
 	};
