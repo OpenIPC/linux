@@ -31,6 +31,15 @@
 		#size-cells = <1>;
 		ranges;
 
+		cap0: video@90b00000 {
+			compatible = "grainmedia,gm8126-cap020";
+			reg = <0x90b00000 0x1000>;
+			interrupts = <32 IRQ_TYPE_LEVEL_HIGH>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&cap_pins>;
+			status = "disabled";
+		};
+
 		ethernet: ethernet@92500000 {
 			compatible = "faraday,ftmac110";
 			reg = <0x92500000 0x1000>;
@@ -56,6 +65,16 @@
 			clocks = <&pmu GM8126_CLK_SSP0>;
 			#address-cells = <1>;
 			#size-cells = <0>;
+			status = "disabled";
+		};
+
+		h264e: video-codec@94000000 {
+			compatible = "grainmedia,gm8126-mcp200";
+			reg = <0x94000000 0x1000>, <0x94100000 0x1000>;
+			interrupts = <29 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&pmu GM8126_CLK_H264E>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&h264e_pins>;
 			status = "disabled";
 		};
 
@@ -94,6 +113,18 @@
 			pinctrl-single,function-mask = <0x1>;
 
 			/* offset from 0x99000044, value, mask */
+			/* the sensor's bus and clock, as the vendor leaves them */
+			cap_pins: cap-pins {
+				pinctrl-single,bits =
+					<0x10 0x55555500 0xffffff00>,
+					<0x14 0x00542496 0x00ffffff>,
+					<0x28 0x00020000 0x00020000>;
+			};
+
+			h264e_pins: h264e-pins {
+				pinctrl-single,bits = <0x28 0x00000100 0x00000100>;
+			};
+
 			i2c_pins: i2c-pins {
 				pinctrl-single,bits = <0x00 0x1000 0x1000>;
 			};

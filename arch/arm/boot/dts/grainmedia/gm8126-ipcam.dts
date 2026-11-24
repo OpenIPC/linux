@@ -16,6 +16,13 @@
 		stdout-path = "serial0:115200n8";
 	};
 
+	/* assumed: the PMU's divider for it is not driven here */
+	sensor_clk: clock-sensor {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <24000000>;
+	};
+
 	memory@0 {
 		device_type = "memory";
 		reg = <0x00000000 0x08000000>;
@@ -26,8 +33,37 @@
 	status = "okay";
 };
 
+&cap0 {
+	status = "okay";
+
+	port {
+		cap0_in: endpoint {
+			remote-endpoint = <&sensor_out>;
+			bus-width = <8>;
+		};
+	};
+};
+
+&h264e {
+	status = "okay";
+};
+
 &i2c0 {
 	status = "okay";
+
+	camera@21 {
+		compatible = "ovti,ov7725";
+		reg = <0x21>;
+		clocks = <&sensor_clk>;
+
+		port {
+			sensor_out: endpoint {
+				remote-endpoint = <&cap0_in>;
+				bus-type = <5>;	/* parallel */
+				bus-width = <8>;
+			};
+		};
+	};
 };
 
 &sdc {
