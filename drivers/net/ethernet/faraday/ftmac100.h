@@ -103,6 +103,7 @@
 #define	FTMAC100_MACCR_FULLDUP		(1 << 15)
 #define	FTMAC100_MACCR_RX_MULTIPKT	(1 << 16)
 #define	FTMAC100_MACCR_RX_BROADPKT	(1 << 17)
+#define	FTMAC110_MACCR_100M		(1 << 18)
 
 /*
  * PHY control register
