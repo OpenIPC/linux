@@ -100,6 +100,7 @@ struct fttmr010 {
 	void __iomem *base;
 	unsigned int tick_rate;
 	bool is_aspeed;
+	bool is_gm;
 	u32 t1_enable_val;
 	struct clock_event_device clkevt;
 	int (*timer_shutdown)(struct clock_event_device *evt);
@@ -148,7 +149,10 @@ static int fttmr010_timer_set_next_event(unsigned long cycles,
 	/* Stop */
 	fttmr010->timer_shutdown(evt);
 
-	if (fttmr010->is_aspeed) {
+	if (fttmr010->is_gm) {
+		/* counts down and interrupts past zero */
+		writel(cycles, fttmr010->base + TIMER1_COUNT);
+	} else if (fttmr010->is_aspeed) {
 		/*
 		 * ASPEED Timer Controller will load TIMER1_LOAD register
 		 * into TIMER1_COUNT register when the timer is re-enabled.
@@ -201,7 +205,9 @@ static int fttmr010_timer_set_oneshot(struct clock_event_device *evt)
 
 	/* Setup counter start from 0 or ~0 */
 	writel(0, fttmr010->base + TIMER1_COUNT);
-	if (fttmr010->is_aspeed) {
+	if (fttmr010->is_gm) {
+		writel(0, fttmr010->base + TIMER1_LOAD);
+	} else if (fttmr010->is_aspeed) {
 		writel(~0, fttmr010->base + TIMER1_LOAD);
 	} else {
 		writel(0, fttmr010->base + TIMER1_LOAD);
@@ -226,7 +232,10 @@ static int fttmr010_timer_set_periodic(struct clock_event_device *evt)
 	fttmr010->timer_shutdown(evt);
 
 	/* Setup timer to fire at 1/HZ intervals. */
-	if (fttmr010->is_aspeed) {
+	if (fttmr010->is_gm) {
+		writel(period - 1, fttmr010->base + TIMER1_COUNT);
+		writel(period - 1, fttmr010->base + TIMER1_LOAD);
+	} else if (fttmr010->is_aspeed) {
 		writel(period, fttmr010->base + TIMER1_LOAD);
 	} else {
 		cr = 0xffffffff - (period - 1);
@@ -270,8 +279,24 @@ static irqreturn_t ast2600_timer_interrupt(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
+/* level triggered: the status has to be cleared, by writing it back */
+static irqreturn_t gm_timer_interrupt(int irq, void *dev_id)
+{
+	struct clock_event_device *evt = dev_id;
+	struct fttmr010 *fttmr010 = to_fttmr010(evt);
+
+	if (clockevent_state_oneshot(evt))
+		fttmr010->timer_shutdown(evt);
+	writel(readl(fttmr010->base + TIMER_INTR_STATE),
+	       fttmr010->base + TIMER_INTR_STATE);
+
+	evt->event_handler(evt);
+	return IRQ_HANDLED;
+}
+
 static int __init fttmr010_common_init(struct device_node *np,
-				       bool is_aspeed, bool is_ast2600)
+				       bool is_aspeed, bool is_ast2600,
+				       bool is_gm)
 {
 	struct fttmr010 *fttmr010;
 	int irq;
@@ -326,7 +351,14 @@ static int __init fttmr010_common_init(struct device_node *np,
 		fttmr010->is_aspeed = true;
 	} else {
 		fttmr010->t1_enable_val = TIMER_1_CR_ENABLE | TIMER_1_CR_INT;
+		fttmr010->is_gm = is_gm;
+	}
 
+	if (is_gm) {
+		/* a set mask bit masks here, so the reset value stays */
+		writel(0, fttmr010->base + TIMER_CR);
+		writel(TIMER_INT_ALL_MASK, fttmr010->base + TIMER_INTR_STATE);
+	} else if (!is_aspeed) {
 		/*
 		 * Reset the interrupt mask and status
 		 */
@@ -340,6 +372,8 @@ static int __init fttmr010_common_init(struct device_node *np,
 	 */
 	if (is_aspeed)
 		val = TIMER_2_CR_ASPEED_ENABLE;
+	else if (is_gm)
+		val = TIMER_2_CR_ENABLE;
 	else {
 		val = TIMER_2_CR_ENABLE | TIMER_1_CR_UPDOWN |
 			TIMER_2_CR_UPDOWN;
@@ -355,7 +389,7 @@ static int __init fttmr010_common_init(struct device_node *np,
 	writel(0, fttmr010->base + TIMER2_MATCH1);
 	writel(0, fttmr010->base + TIMER2_MATCH2);
 
-	if (fttmr010->is_aspeed) {
+	if (fttmr010->is_aspeed || is_gm) {
 		writel(~0, fttmr010->base + TIMER2_LOAD);
 		clocksource_mmio_init(fttmr010->base + TIMER2_COUNT,
 				      "FTTMR010-TIMER2",
@@ -384,6 +418,11 @@ static int __init fttmr010_common_init(struct device_node *np,
 	if (is_ast2600) {
 		fttmr010->timer_shutdown = ast2600_timer_shutdown;
 		ret = request_irq(irq, ast2600_timer_interrupt,
+				  IRQF_TIMER, "FTTMR010-TIMER1",
+				  &fttmr010->clkevt);
+	} else if (is_gm) {
+		fttmr010->timer_shutdown = fttmr010_timer_shutdown;
+		ret = request_irq(irq, gm_timer_interrupt,
 				  IRQF_TIMER, "FTTMR010-TIMER1",
 				  &fttmr010->clkevt);
 	} else {
@@ -415,7 +454,7 @@ static int __init fttmr010_common_init(struct device_node *np,
 
 #ifdef CONFIG_ARM
 	/* Also use this timer for delays */
-	if (fttmr010->is_aspeed)
+	if (fttmr010->is_aspeed || is_gm)
 		fttmr010->delay_timer.read_current_timer =
 			fttmr010_read_current_timer_down;
 	else
@@ -440,17 +479,22 @@ out_disable_clock:
 
 static __init int ast2600_timer_init(struct device_node *np)
 {
-	return fttmr010_common_init(np, true, true);
+	return fttmr010_common_init(np, true, true, false);
 }
 
 static __init int aspeed_timer_init(struct device_node *np)
 {
-	return fttmr010_common_init(np, true, false);
+	return fttmr010_common_init(np, true, false, false);
 }
 
 static __init int fttmr010_timer_init(struct device_node *np)
 {
-	return fttmr010_common_init(np, false, false);
+	return fttmr010_common_init(np, false, false, false);
+}
+
+static __init int gm_timer_init(struct device_node *np)
+{
+	return fttmr010_common_init(np, false, false, true);
 }
 
 TIMER_OF_DECLARE(fttmr010, "faraday,fttmr010", fttmr010_timer_init);
@@ -459,3 +503,4 @@ TIMER_OF_DECLARE(moxart, "moxa,moxart-timer", fttmr010_timer_init);
 TIMER_OF_DECLARE(ast2400, "aspeed,ast2400-timer", aspeed_timer_init);
 TIMER_OF_DECLARE(ast2500, "aspeed,ast2500-timer", aspeed_timer_init);
 TIMER_OF_DECLARE(ast2600, "aspeed,ast2600-timer", ast2600_timer_init);
+TIMER_OF_DECLARE(gm8126, "grainmedia,gm8126-timer", gm_timer_init);
