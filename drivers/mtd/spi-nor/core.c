@@ -21,6 +21,7 @@
 #include <linux/sched/task_stack.h>
 #include <linux/spi/flash.h>
 #include <linux/mtd/spi-nor.h>
+#include <linux/mtd/split_layout.h>
 #include <linux/miscdevice.h>
 
 #include <uapi/linux/spi_nor_misc.h>
@@ -3621,6 +3622,14 @@ static int spi_nor_probe(struct spi_mem *spimem)
 
 	if (IS_ENABLED(CONFIG_MTD_SPI_NOR_MISC))
 		spi_nor_add_misc(nor);
+
+	/* firmware.bin at 0x50000: its own partitions, not the command line's */
+	ret = mtd_split_layout_register(&nor->mtd);
+	if (!ret)
+		return 0;
+	if (ret < 0)
+		dev_warn(nor->dev, "split NOR layout not registered (%d), partitioning as without it\n",
+			 ret);
 
 	return mtd_device_register(&nor->mtd, data ? data->parts : NULL,
 				   data ? data->nr_parts : 0);
