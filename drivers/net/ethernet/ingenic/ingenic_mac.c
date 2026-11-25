@@ -2047,6 +2047,28 @@ static const struct file_operations mdio_cmd_fops ={
 	.write = mdio_cmd_set,
 };
 
+/* Raw MAC MDIO reports errors that ingenic_mdiobus_read() hides as zero. */
+static int ingenic_mac_bmcr_read(struct ingenic_mac_local *lp, int addr, u16 *bmcr)
+{
+	int ret;
+
+	if (!lp->use_mdio_goio)
+		return synopGMAC_read_phy_reg(lp->gmacdev, addr, MII_BMCR, bmcr);
+
+	ret = mdiobus_read(lp->mii_bus, addr, MII_BMCR);
+	if (ret < 0)
+		return ret;
+	*bmcr = ret;
+	return 0;
+}
+
+static int ingenic_mac_bmcr_write(struct ingenic_mac_local *lp, int addr, u16 bmcr)
+{
+	if (lp->use_mdio_goio)
+		return mdiobus_write(lp->mii_bus, addr, MII_BMCR, bmcr);
+	return synopGMAC_write_phy_reg(lp->gmacdev, addr, MII_BMCR, bmcr);
+}
+
 /*
  * Wake every PHY on the MDIO bus from BMCR power-down, as
  * ingenic_mac_open() does for its own PHY before resetting the MAC.
@@ -2057,18 +2079,22 @@ static const struct file_operations mdio_cmd_fops ={
  * PHY, and the probe's hardware reset reaches it only where the board
  * wires the DT's ingenic,rst-gpio, so on other boards the next kernel's
  * probe timed out and eth0 was gone until a power cycle
- * (OpenIPC/firmware#2839). The MDIO bus is not registered yet here, so
- * this goes through the MAC's own MII registers.
+ * (OpenIPC/firmware#2839). GPIO MDIO must be ready before this scan;
+ * the internal MDIO bus is not registered yet, so use raw MAC accesses
+ * for that bus to preserve its error reporting.
  */
-static void ingenic_mac_phy_wake(struct device *dev, synopGMACdevice *gmacdev)
+static void ingenic_mac_phy_wake(struct device *dev, struct ingenic_mac_local *lp)
 {
+	synopGMACdevice *gmacdev = lp->gmacdev;
 	u16 bmcr;
 	u32 addr;
 	bool woke = false;
 
 	/* MDC within the PHY's limit, as ingenic_mac_open() sets it */
-	synopGMAC_set_mdc_clk_div(gmacdev, GmiiCsrClk4);
-	gmacdev->ClockDivMdc = synopGMAC_get_mdc_clk_div(gmacdev);
+	if (!lp->use_mdio_goio) {
+		synopGMAC_set_mdc_clk_div(gmacdev, GmiiCsrClk4);
+		gmacdev->ClockDivMdc = synopGMAC_get_mdc_clk_div(gmacdev);
+	}
 
 	for (addr = 0; addr < PHY_MAX_ADDR; addr++) {
 		/*
@@ -2077,15 +2103,14 @@ static void ingenic_mac_phy_wake(struct device *dev, synopGMACdevice *gmacdev)
 		 * out too, each with its own log lines, so stop here and let
 		 * the reset below say whether it mattered.
 		 */
-		if (synopGMAC_read_phy_reg(gmacdev, addr, MII_BMCR, &bmcr)) {
+		if (ingenic_mac_bmcr_read(lp, addr, &bmcr)) {
 			dev_warn(dev, "MDIO read failed at PHY %u; not waking PHYs\n",
 				 addr);
 			break;
 		}
 		if (bmcr == 0xffff || !(bmcr & BMCR_PDOWN))
 			continue;
-		if (synopGMAC_write_phy_reg(gmacdev, addr, MII_BMCR,
-					    bmcr & ~BMCR_PDOWN)) {
+		if (ingenic_mac_bmcr_write(lp, addr, bmcr & ~BMCR_PDOWN)) {
 			dev_warn(dev, "PHY %u: could not clear power-down\n", addr);
 			continue;
 		}
@@ -2097,12 +2122,44 @@ static void ingenic_mac_phy_wake(struct device *dev, synopGMACdevice *gmacdev)
 		mdelay(10);
 }
 
+/* A GPIO-backed PHY cannot be woken through the MAC's MDIO pins. */
+static int ingenic_mac_gpio_mdio_init(struct platform_device *pdev,
+				     struct ingenic_mac_local *lp)
+{
+	struct device_node *child;
+
+	lp->use_mdio_goio = false;
+	child = of_get_child_by_name(pdev->dev.of_node, "mdio-gpio");
+	if (!child || !of_device_is_available(child)) {
+		of_node_put(child);
+		return 0;
+	}
+	lp->mii_pdev = of_platform_device_create(child, NULL, &pdev->dev);
+	of_node_put(child);
+	if (!lp->mii_pdev)
+		return -ENODEV;
+
+	/* Driver data can be stale after a failed child probe. */
+	if (!lp->mii_pdev->dev.driver)
+		goto defer;
+	lp->mii_bus = platform_get_drvdata(lp->mii_pdev);
+	if (!lp->mii_bus)
+		goto defer;
+	lp->use_mdio_goio = true;
+	return 0;
+
+defer:
+	platform_device_unregister(lp->mii_pdev);
+	lp->mii_pdev = NULL;
+	lp->mii_bus = NULL;
+	return -EPROBE_DEFER;
+}
+
 static int ingenic_mac_probe(struct platform_device *pdev)
 {
 	synopGMACdevice *gmacdev;
 	struct resource *r_mem = NULL;
 	struct net_device *ndev = NULL;
-	struct device_node *child = NULL;
 	struct ingenic_mac_local *lp;
 	const struct of_device_id *match;
 	struct mii_bus *miibus;
@@ -2218,26 +2275,21 @@ static int ingenic_mac_probe(struct platform_device *pdev)
 		goto err_out_clk_cgu_disable;
 	}
 
-	ingenic_mac_phy_wake(&pdev->dev, gmacdev);
+	rc = ingenic_mac_gpio_mdio_init(pdev, lp);
+	if (rc)
+		goto err_out_clk_cgu_disable;
+
+	ingenic_mac_phy_wake(&pdev->dev, lp);
 
 	if (synopGMAC_reset(gmacdev)) {
 		dev_err(&pdev->dev, "PROB:synopGMAC_reset timeout...\n");
 		rc = -ETIMEDOUT;
-		goto err_out_clk_cgu_disable;
+		goto err_out_gpio_bus_unregister;
 	}
 
 	synopGMAC_disable_interrupt_all(gmacdev);
 
-	if (!!(child = of_get_child_by_name(pdev->dev.of_node, "mdio-gpio")) &&
-			of_device_is_available(child)) {
-		if (!(lp->mii_pdev = of_platform_device_create(child, NULL, &pdev->dev))) {
-			rc = -ENODEV;
-			goto err_out_clk_cgu_disable;
-		}
-		lp->use_mdio_goio = true;
-		lp->mii_bus = platform_get_drvdata(lp->mii_pdev);
-	} else {
-		lp->use_mdio_goio = false;
+	if (!lp->use_mdio_goio) {
 		if (!(miibus = devm_mdiobus_alloc(&pdev->dev))) {
 			rc = -ENOMEM;
 			goto err_out_clk_cgu_disable;
@@ -2341,10 +2393,11 @@ static int ingenic_mac_probe(struct platform_device *pdev)
 	return 0;
 
 err_out_miibus_unregister:
+	if (!lp->use_mdio_goio)
+		mdiobus_unregister(lp->mii_bus);
+err_out_gpio_bus_unregister:
 	if (lp->use_mdio_goio)
 		platform_device_unregister(lp->mii_pdev);
-	else
-		mdiobus_unregister(lp->mii_bus);
 err_out_clk_cgu_disable:
 	clk_disable_unprepare(lp->clk_cgu);
 err_out_clk_gate_disable:
@@ -2401,13 +2454,12 @@ static void ingenic_mac_shutdown(struct platform_device *pdev)
 	 * Not phy_read(): this driver's MDIO read hands back 0 when the bus
 	 * fails, and writing that back would clear every other BMCR bit.
 	 */
-	if (synopGMAC_read_phy_reg(lp->gmacdev, lp->phydev->addr, MII_BMCR, &bmcr)) {
+	if (ingenic_mac_bmcr_read(lp, lp->phydev->addr, &bmcr)) {
 		dev_warn(&pdev->dev, "shutdown: MDIO read failed; PHY left as is\n");
 		return;
 	}
 	if ((bmcr & BMCR_PDOWN) &&
-	    synopGMAC_write_phy_reg(lp->gmacdev, lp->phydev->addr, MII_BMCR,
-				    bmcr & ~BMCR_PDOWN))
+	    ingenic_mac_bmcr_write(lp, lp->phydev->addr, bmcr & ~BMCR_PDOWN))
 		dev_warn(&pdev->dev, "shutdown: could not clear PHY power-down\n");
 }
 
