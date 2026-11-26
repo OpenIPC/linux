@@ -222,7 +222,10 @@ VPATH		:= $(srctree)$(if $(KBUILD_EXTMOD),:$(KBUILD_EXTMOD))
 export srctree objtree VPATH
 
 SSTAR_CHIP_FILE := '.sstar_chip.txt'
-SSTAR_CHIP_MODEL := $(strip $(shell cat $(SSTAR_CHIP_FILE)))
+# The SDK's build writes the chip name there; a plain kernel build (Buildroot)
+# has none and is the infinity2m one.
+SSTAR_CHIP_MODEL := $(strip $(shell cat $(SSTAR_CHIP_FILE) 2>/dev/null))
+SSTAR_CHIP_MODEL := $(if $(SSTAR_CHIP_MODEL),$(SSTAR_CHIP_MODEL),infinity2m)
 
 # SUBARCH tells the usermode build what the underlying arch is.  That is set
 # first, and if a usermode build is happening, the "ARCH=um" on the command
