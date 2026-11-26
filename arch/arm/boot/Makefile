@@ -87,7 +87,7 @@ ifeq ($(CONFIG_SS_BUILTIN_DTB), y)
 		if [ -e ${SS_DTB_NAME} ]; then \
 			echo "  IMAGE   $(obj)/Image"; \
 			echo "  BNDTB ${SS_DTB_NAME}"; \
-			python scripts/ms_builtin_dtb_update.py $(obj)/Image ${SS_DTB_NAME}; \
+			python3 scripts/ms_builtin_dtb_update.py $(obj)/Image ${SS_DTB_NAME}; \
 			echo; \
 		fi;
 		#update Image-fpga DTB
@@ -95,13 +95,13 @@ ifeq ($(CONFIG_SS_BUILTIN_DTB), y)
 			echo "  IMAGE   $(obj)/Image-fpga"; \
 			cp -f $(obj)/Image $(obj)/Image-fpga; \
 			echo "  BNDTB   $(CHIP_NAME)-fpga.dtb"; \
-			python scripts/ms_builtin_dtb_update.py $(obj)/Image-fpga "arch/arm/boot/dts/$(CHIP_NAME)-fpga.dtb"; \
+			python3 scripts/ms_builtin_dtb_update.py $(obj)/Image-fpga "arch/arm/boot/dts/$(CHIP_NAME)-fpga.dtb"; \
 			echo; \
 		fi;
 endif
 
     #update the image size into Image	
-	@python scripts/ms_bin_option_update_int.py  $(obj)/Image '#IMG_SZ#' $$(stat -c %s $(obj)/Image)
+	@python3 scripts/ms_bin_option_update_int.py  $(obj)/Image '#IMG_SZ#' $$(stat -c %s $(obj)/Image)
 	#build Image
 	@IMGNAME=$(shell strings -a -T binary $(obj)/Image | grep 'MVX' | grep 'LX'  | sed 's/\\*MVX/MVX/g' | cut -c 1-32 ); \
 	if [ -e ${MKIMAGE_BIN} ]; then \

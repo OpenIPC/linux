@@ -18,7 +18,7 @@ if __name__ == '__main__':
     #print args
     
     if args.file is None :
-        print 'ERROR: must specify output header file!!'
+        print('ERROR: must specify output header file!!')
         sys.exit(-1)
 
     version_file=open(args.file,'w')

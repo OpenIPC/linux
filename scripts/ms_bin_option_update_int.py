@@ -4,11 +4,11 @@ import re, fnmatch, os, sys, mmap, struct
 
 if __name__ == '__main__':
 
-    name=sys.argv[2]
+    name=sys.argv[2].encode()
     if sys.argv[3].upper().startswith( '0X' ):
-        value=long(sys.argv[3],16)
+        value=int(sys.argv[3],16)
     else:
-        value=long(sys.argv[3])
+        value=int(sys.argv[3])
 
     fmap=mmap.mmap(os.open(sys.argv[1],os.O_RDWR),0)
 
