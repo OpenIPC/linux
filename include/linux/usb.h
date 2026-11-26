@@ -591,7 +591,15 @@ struct usb_device {
 	struct usb_bus *bus;
 	struct usb_host_endpoint ep0;
 
+/*
+ * The AnyCloud39AV130 SDK's kernel moves dev to the end of the struct, and
+ * its prebuilt ak_hcd finds ep_in[]/ep_out[] at the offsets that gives:
+ * here, usb_maxpacket() read inside dev, and EP0 failed every transfer with
+ * "device descriptor read/64, error -75" (OpenIPC/firmware#2962).
+ */
+#ifndef CONFIG_MACH_AK3918AV130
 	struct device dev;
+#endif
 
 	struct usb_device_descriptor descriptor;
 	struct usb_host_bos *bos;
@@ -651,6 +659,9 @@ struct usb_device {
 	struct usb3_lpm_parameters u1_params;
 	struct usb3_lpm_parameters u2_params;
 	unsigned lpm_disable_count;
+#ifdef CONFIG_MACH_AK3918AV130
+	struct device dev;
+#endif
 };
 #define	to_usb_device(d) container_of(d, struct usb_device, dev)
 
