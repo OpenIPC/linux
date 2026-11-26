@@ -18,6 +18,16 @@
 #include <stdbool.h>
 #include <string.h>
 #include <err.h>
+/*
+ * Some distributions no longer export the legacy ENGINE entry points
+ * (OpenSSL 3.6 removed them). Their <openssl/engine.h> provides static
+ * inline stubs when this macro is set, so the PKCS#11 path reports a clean
+ * failure instead of failing to link. Inert on headers that do not know it.
+ */
+#ifndef OPENSSL_ENGINE_STUBS
+#define OPENSSL_ENGINE_STUBS 1
+#endif
+
 #include <openssl/bio.h>
 #include <openssl/pem.h>
 #include <openssl/err.h>
