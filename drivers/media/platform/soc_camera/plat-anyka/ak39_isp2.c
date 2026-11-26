@@ -1035,9 +1035,15 @@ int ak_isp_vi_start_capturing(void)
     return 0;
 }
 
+/*
+ * Returns -ETIMEDOUT when the ISP is still writing a frame 200 ms on
+ * (STATUS bit 14, ISP_UNDER_WORKING): capture is disabled all the same, but
+ * the caller cannot know the frame's DMA has finished.
+ */
 int ak_isp_vi_stop_capturing(void)
 {
     unsigned long peri_status;
+    int ret = 0;
 
     if (!isp)
         return -1;
@@ -1050,6 +1056,7 @@ int ak_isp_vi_stop_capturing(void)
 			isp->cb.cb_msleep(1);
 		} else {
 			isp->cb.cb_printk("[%s] reg10 b14 not clear\n", __func__);
+			ret = -ETIMEDOUT;
 			break;
 		}
 	}
@@ -1058,7 +1065,7 @@ int ak_isp_vi_stop_capturing(void)
     CLEAR_BITS(peri_status, 20, 1);
     REG32(isp->base + GEN_CTRL_ADDR) = peri_status;
 
-    return 0;   
+    return ret;
 }
 
 /**

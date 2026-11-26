@@ -335,8 +335,17 @@ static int uio_vcodec_release(struct uio_info *uioinfo, struct inode *inode)
 	struct uio_platdata *pdata = uioinfo->priv;
 
 	mutex_lock(&pdata->open_lock);
-	if (--pdata->open_count == 0)
+	if (--pdata->open_count == 0) {
 		free_irq(pdata->irq, pdata);
+		/*
+		 * The last user is gone, and so may be the memory the core reads
+		 * and writes. A picture abandoned with AKUIO_UNBLOCK_CHANNEL is
+		 * still running on the core, so reset it here, not only on the
+		 * next open.
+		 */
+		if (pdata->type == UIO_VCODEC_AL5)
+			al5_video_reset();
+	}
 	mutex_unlock(&pdata->open_lock);
 
 	return 0;

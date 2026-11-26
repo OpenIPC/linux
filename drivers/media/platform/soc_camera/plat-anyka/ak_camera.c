@@ -78,6 +78,7 @@ enum ak_cam_irq_event {
 	AK_CAM_IRQ_SPURIOUS,
 	AK_CAM_IRQ_LIST_ZERO,
 	AK_CAM_IRQ_ACTIVE_BUSY,
+	AK_CAM_IRQ_STOP_TIMEOUT,
 	AK_CAM_IRQ_EVENTS,
 };
 
@@ -223,6 +224,7 @@ static const char * const ak_cam_irq_event_name[AK_CAM_IRQ_EVENTS] = {
 	[AK_CAM_IRQ_SPURIOUS]	= "spurious_irq",
 	[AK_CAM_IRQ_LIST_ZERO]	= "list_zero",
 	[AK_CAM_IRQ_ACTIVE_BUSY] = "active_busy",
+	[AK_CAM_IRQ_STOP_TIMEOUT] = "stop_timeout",
 };
 
 /* Caller must not hold pcdev->lock; the videobuf queue path does not. */
@@ -322,12 +324,27 @@ static void ak_camera_stop_streaming(struct ak_camera_dev *pcdev)
 	stream_active = pcdev->stream_active;
 	spin_unlock_irqrestore(&pcdev->lock, flags);
 	if (stream_active) {
+		int stopped;
+
+		/*
+		 * The stop waits up to 200 ms for the ISP to finish the frame it
+		 * is writing (STATUS bit 14), then disables capture regardless.
+		 * One that gave up is counted as stop_timeout in irq_stats and
+		 * logged every time: the buffers are returned all the same, and
+		 * the frame in flight may still land in them.
+		 */
 		ispdrv_set_isp_pause();
-		ispdrv_vi_stop_capturing();
+		stopped = ispdrv_vi_stop_capturing();
+
 		spin_lock_irqsave(&pcdev->lock, flags);
 		pcdev->stream_active = 0;
+		if (stopped)
+			ak_cam_irq_note(pcdev, AK_CAM_IRQ_STOP_TIMEOUT);
 		spin_unlock_irqrestore(&pcdev->lock, flags);
 		pcdev->stream_ctrl_off = 1;
+		if (stopped)
+			pr_warn("ak_camera: capture stop gave up with the ISP still writing a frame (%d); counted as stop_timeout in irq_stats\n",
+				stopped);
 	}
 	ispdrv_vo_clear_irq_status(0xffff);
 	synchronize_irq(pcdev->irq);
