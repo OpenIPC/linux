@@ -968,6 +968,39 @@ static struct spi_nand_info fmc_spi_nand_flash_table[] = {
 		.driver    = &spi_driver_no_qe,
 	},
 
+	/* Winbond 3.3V W25N04KVZEIR 4Gbit: the W25N02KV with twice the blocks,
+	 * as OpenIPC U-Boot's table has it (4096 x 128 KiB, 2 KiB pages, 128 B
+	 * OOB). The Taobao Hi3519DV500 kit boots from it. */
+	{
+		.name      = "W25N04KVZEIR",
+		.id        = {0xef, 0xaa, 0x23},
+		.id_len    = 3,
+		.chipsize  = _512M,
+		.erasesize = _128K,
+		.pagesize  = _2K,
+		.oobsize   = 128,
+		.badblock_pos = BBP_FIRST_PAGE,
+		.read      = {
+			&read_std(1, INFINITE, 24),
+			&read_fast(1, INFINITE, 104),
+			&read_dual(1, INFINITE, 104),
+			&read_dual_addr(1, INFINITE, 104),
+			&read_quad(1, INFINITE, 104),
+			&read_quad_addr(2, INFINITE, 104),
+			0
+		},
+		.write     = {
+			&write_std(0, 256, 104),
+			&write_quad(0, 256, 104),
+			0
+		},
+		.erase     = {
+			&erase_sector_128k(0, _128K, 104),
+			0
+		},
+		.driver    = &spi_driver_general,
+	},
+
 	/* Winbond W25N01GWZEIG 1Gbit 1.8V */
 	{
 		.name      = "W25N01GWZEIG",
