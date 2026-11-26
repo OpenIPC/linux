@@ -49,6 +49,7 @@
 #include <linux/version.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
+#include "../../mtd/mtdcore.h"
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,39)
 #include <linux/slab.h>
 #endif
@@ -85,9 +86,7 @@
 
 //#define DEBUG(x...) printk(x...)
 
-extern int parse_mtd_partitions(struct mtd_info *master, const char *const *types,
-                                struct mtd_partition **pparts,
-                                struct mtd_part_parser_data *data);
+/* parse_mtd_partitions() comes from mtdcore.h */
 
 /****************************************************************************/
 
@@ -566,7 +565,34 @@ static int serflash_probe(struct platform_device *pdev)
 
 
 #ifdef CONFIG_MTD_CMDLINE_PARTS
-        nr_parts = parse_mtd_partitions(&flash->mtd,part_probes, &parts, 0);
+        /*
+         * mtdparts= on the command line. Stock SSR621Q NVR firmware names
+         * this device "nor0" (mtdparts=nor0:...); accept that or the
+         * driver's own name.
+         */
+        {
+            static const char *const ids[] = { "nor0", "NOR_FLASH" };
+            const char *orig = flash->mtd.name;
+            struct mtd_partitions mparts;
+            int k;
+
+            for (k = 0; k < ARRAY_SIZE(ids); k++) {
+                memset(&mparts, 0, sizeof(mparts));
+                flash->mtd.name = ids[k];
+                if (parse_mtd_partitions(&flash->mtd, part_probes, &mparts, NULL) == 0 &&
+                    mparts.nr_parts > 0) {
+                    flash->mtd.name = orig;
+                    flash->partitioned = 1;
+                    u32Ret = mtd_device_register(&flash->mtd, mparts.parts, mparts.nr_parts);
+                    mtd_part_parser_cleanup(&mparts);
+                    if (!u32Ret)
+                        return 0;
+                    break;
+                }
+            }
+            flash->mtd.name = orig;
+            nr_parts = 0;
+        }
 #endif
 
         if (nr_parts > 0)
