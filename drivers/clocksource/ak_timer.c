@@ -229,20 +229,34 @@ static struct clock_event_device ak_ced = {
 	.set_state_oneshot = ak_ce_timer_set_oneshot,
 };
 
-/* interrupt handler of ak timer1 */
+/*
+ * Interrupt handler of the clock event timer.
+ *
+ * The expired flag is cleared before the event handler runs, not after it.
+ * In one-shot mode the handler programs the next event, at least
+ * min_delta_ns (1 ms) away, and restarts the timer. A clear written after
+ * that also erases the next expiry if it has already come: no interrupt
+ * follows, nothing programs the timer again, and the tick stops for good.
+ * Jiffies then stand still, and timekeeping is never brought forward, so
+ * CLOCK_MONOTONIC runs within one wrap of the clocksource and goes back by
+ * 358 s at each wrap. Any timer longer than that never fires. On the
+ * camera, the handler takes far less than 1 ms. A vCPU that stalls for longer
+ * hits this within minutes in the qemu-bench twin, where it shows as
+ * watchdog resets every 7.5 minutes: Majestic's 150 s keepalive never fires.
+ */
 static irqreturn_t ak_ce_timer_interrupt(int irq, void *handle)
 {
     struct clock_event_device   *dev = handle;
     u32 ctrl2;
 
     ctrl2 = __raw_readl(AK_CE_CTRL2);
-    if (ctrl2 & TIMER_STATUS_BIT) {
-        dev->event_handler(dev);
-        __raw_writel(ctrl2 | TIMER_CLEAR_BIT, AK_CE_CTRL2);
-        return IRQ_HANDLED;
-    }      
+    if (!(ctrl2 & TIMER_STATUS_BIT))
+        return IRQ_NONE;
 
-    return IRQ_NONE;
+    __raw_writel(ctrl2 | TIMER_CLEAR_BIT, AK_CE_CTRL2);
+    dev->event_handler(dev);
+
+    return IRQ_HANDLED;
 }
 
 static struct irqaction ak_ce_timer_irq = {
