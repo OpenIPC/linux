@@ -386,7 +386,7 @@ config HW_RANDOM_CAVIUM
 
 config HW_RANDOM_NVT
 	tristate "Novatek True Random Number Generator support"
-	depends on HW_RANDOM && NVT_IVOT_PLAT_NA51055
+	depends on HW_RANDOM && (NVT_IVOT_PLAT_NA51055 || NVT_IVOT_PLAT_NA51089)
 	default HW_RANDOM
 	---help---
 	  This driver provides kernel-side support for the Random Number
