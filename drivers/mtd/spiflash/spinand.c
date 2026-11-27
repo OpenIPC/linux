@@ -427,6 +427,10 @@ static struct nand_flash_dev spinand_flash_ids[] = {
 	{"GD5F4GQ4UAYIG 4GiB 3.3V",
 		{ .id = {MFG_ID_GD, 0xF4} },
 		SZ_2K, SZ_512, SZ_128K, 0, 2, 64 },    
+	// Fudan Micro
+	{"FM25S01A 1Gbit 3.3V",
+		{ .id = {MFG_ID_FUDAN, 0xE4} },
+		SZ_2K, SZ_128, SZ_128K, 0, 2, 64 },
 };
 
 #ifdef CONFIG_MTD_SPINAND_HWECC
@@ -1390,6 +1394,9 @@ static int spinand_probe(struct platform_device *pdev)
 		} else if (chip_id == MFG_ID_XTX) {
 			info->nand_chip.ecc.strength = 8;
 			mtd->bitflip_threshold = 6;
+		} else if (chip_id == MFG_ID_FUDAN) {
+			info->nand_chip.ecc.strength = 1;
+			mtd->bitflip_threshold = 1;
 		} else {
             mtd->bitflip_threshold = DIV_ROUND_UP(info->nand_chip.ecc.strength * 3, 4);
 		}
