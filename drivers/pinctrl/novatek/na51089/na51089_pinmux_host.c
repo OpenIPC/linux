@@ -11,9 +11,66 @@
 */
 #include "na51089_pinmux.h"
 
-static spinlock_t top_lock;
+static DEFINE_SPINLOCK(top_lock);
 #define loc_cpu(lock, flags) spin_lock_irqsave(lock, flags)
 #define unl_cpu(lock, flags) spin_unlock_irqrestore(lock, flags)
+
+static const u32 nvt_top_gpio_ofs[] = {
+	TOP_REGCGPIO0_OFS,
+	TOP_REGPGPIO0_OFS,
+	TOP_REGSGPIO0_OFS,
+	TOP_REGLGPIO0_OFS,
+	TOP_REGDGPIO0_OFS,
+	TOP_REGHGPIO0_OFS,
+	TOP_REGAGPIO0_OFS,
+	TOP_REGDSIGPIO0_OFS,
+};
+static u32 gpio_requested_mask[ARRAY_SIZE(nvt_top_gpio_ofs)];
+/* Requested pins the pinmux config wants in function mode: handed back on free */
+static u32 gpio_func_mask[ARRAY_SIZE(nvt_top_gpio_ofs)];
+
+/* Called under top_lock with the value the pinmux config wants in a bank */
+static u32 nvt_gpio_merge(unsigned int bank, u32 cfg)
+{
+	gpio_func_mask[bank] = gpio_requested_mask[bank] & ~cfg;
+	return cfg | gpio_requested_mask[bank];
+}
+
+void nvt_pinmux_gpio_claim(unsigned int pin, bool claimed)
+{
+	unsigned int bank = pin >> 5;
+	u32 mask = BIT(pin & 31);
+	void __iomem *reg;
+	unsigned long flags;
+	bool taken = false;
+	u32 reg_data;
+
+	if (bank >= ARRAY_SIZE(nvt_top_gpio_ofs))
+		return;
+
+	reg = NVT_TOP_BASE_VIRT + nvt_top_gpio_ofs[bank];
+	loc_cpu(&top_lock, flags);
+	reg_data = readl(reg);
+	if (claimed) {
+		gpio_requested_mask[bank] |= mask;
+		if (!(reg_data & mask)) {
+			gpio_func_mask[bank] |= mask;
+			writel(reg_data | mask, reg);
+			taken = true;
+		}
+	} else {
+		gpio_requested_mask[bank] &= ~mask;
+		if (gpio_func_mask[bank] & mask) {
+			gpio_func_mask[bank] &= ~mask;
+			writel(reg_data & ~mask, reg);
+		}
+	}
+	unl_cpu(&top_lock, flags);
+
+	if (taken)
+		pr_info("pinmux: GPIO %u taken from its pin function\n", pin);
+}
+EXPORT_SYMBOL(nvt_pinmux_gpio_claim);
 
 static uint32_t mipi_lvds_sensor[2] = {0, 0};
 static int mclk_sensor[3] = {0, 0, 0};
@@ -207,7 +264,6 @@ void pinmux_gpio_parsing(struct nvt_pinctrl_info *info)
 
 void pinmux_preset(struct nvt_pinctrl_info *info)
 {
-	spin_lock_init(&top_lock);
 }
 
 
@@ -1124,19 +1180,19 @@ ER pinmux_init(struct nvt_pinctrl_info *info)
 	TOP_SETREG(info, TOP_REG8_OFS, top_reg8.reg);
 	TOP_SETREG(info, TOP_REG9_OFS, top_reg9.reg);
 
-	TOP_SETREG(info, TOP_REGCGPIO0_OFS, top_reg_cgpio0.reg);
-	TOP_SETREG(info, TOP_REGPGPIO0_OFS, top_reg_pgpio0.reg);
-	TOP_SETREG(info, TOP_REGSGPIO0_OFS, top_reg_sgpio0.reg);
+	TOP_SETREG(info, TOP_REGCGPIO0_OFS, nvt_gpio_merge(0, top_reg_cgpio0.reg));
+	TOP_SETREG(info, TOP_REGPGPIO0_OFS, nvt_gpio_merge(1, top_reg_pgpio0.reg));
+	TOP_SETREG(info, TOP_REGSGPIO0_OFS, nvt_gpio_merge(2, top_reg_sgpio0.reg));
 	if (lcd_mask & (~top_reg_lgpio0.reg & lgpio_mask)) {
 		pr_err("Conflict with locked LCD, lcd_mask = 0x%x, ~(lgpio0) = 0x%x\r\n", lcd_mask, (~top_reg_lgpio0.reg & lgpio_mask));
 	}
-	TOP_SETREG(info, TOP_REGLGPIO0_OFS, top_reg_lgpio0.reg & (~lcd_mask & lgpio_mask));  /*Lock lcd pin*/
-	TOP_SETREG(info, TOP_REGDGPIO0_OFS, top_reg_dgpio0.reg);
-	TOP_SETREG(info, TOP_REGHGPIO0_OFS, top_reg_hgpio0.reg);
+	TOP_SETREG(info, TOP_REGLGPIO0_OFS, nvt_gpio_merge(3, top_reg_lgpio0.reg & (~lcd_mask & lgpio_mask)));  /*Lock lcd pin*/
+	TOP_SETREG(info, TOP_REGDGPIO0_OFS, nvt_gpio_merge(4, top_reg_dgpio0.reg));
+	TOP_SETREG(info, TOP_REGHGPIO0_OFS, nvt_gpio_merge(5, top_reg_hgpio0.reg));
 	if (lcd_dsi_mask & (~top_reg_dsigpio0.reg & dsigpio_mask)) {
 		pr_err("Conflict with locked LCD, lcd_dsi_mask = 0x%x, ~(dsigpio0) = 0x%x\r\n", lcd_mask, (~top_reg_dsigpio0.reg & dsigpio_mask));
 	}
-	TOP_SETREG(info, TOP_REGDSIGPIO0_OFS, top_reg_dsigpio0.reg & (~lcd_dsi_mask & dsigpio_mask));  /*Lock lcd pin*/
+	TOP_SETREG(info, TOP_REGDSIGPIO0_OFS, nvt_gpio_merge(7, top_reg_dsigpio0.reg & (~lcd_dsi_mask & dsigpio_mask)));  /*Lock lcd pin*/
 
 	/*Leave critical section*/
 	unl_cpu(&top_lock, flags);
@@ -3654,8 +3710,8 @@ static ER pinmux_select_primary_lcd(struct nvt_pinctrl_info *info, u32 config, u
 	loc_cpu(&top_lock, flags);
 
 	TOP_SETREG(info, TOP_REG2_OFS, local_top_reg2.reg);
-	TOP_SETREG(info, TOP_REGLGPIO0_OFS, local_top_reg_lgpio0.reg);
-	TOP_SETREG(info, TOP_REGDSIGPIO0_OFS, local_top_reg_dsigpio0.reg);
+	TOP_SETREG(info, TOP_REGLGPIO0_OFS, nvt_gpio_merge(3, local_top_reg_lgpio0.reg));
+	TOP_SETREG(info, TOP_REGDSIGPIO0_OFS, nvt_gpio_merge(7, local_top_reg_dsigpio0.reg));
 	pr_debug("%s: pinmux_type = 0x%x, lcd_mask = 0x%x, lcd_dsi_mask = 0x%x\r\n", __func__, pinmux_type, lcd_mask, lcd_dsi_mask);
 
 	/*Leave critical section*/

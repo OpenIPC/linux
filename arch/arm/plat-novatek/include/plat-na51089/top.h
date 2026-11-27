@@ -1246,6 +1246,11 @@ enum CHIP_ID {
 int nvt_pinmux_capture(PIN_GROUP_CONFIG *pinmux_config, int count);
 int nvt_pinmux_update(PIN_GROUP_CONFIG *pinmux_config, int count);
 int pinmux_set_config(PINMUX_FUNC_ID id, u32 pinmux);
+#ifdef CONFIG_PINCTRL_NA51089
+void nvt_pinmux_gpio_claim(unsigned int pin, bool claimed);
+#else
+static inline void nvt_pinmux_gpio_claim(unsigned int pin, bool claimed) {}
+#endif
 UINT32 nvt_get_chip_id(void);
 PINMUX_LCDINIT pinmux_get_dispmode(PINMUX_FUNC_ID id);
 
