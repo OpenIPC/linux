@@ -19,7 +19,15 @@
 #include "anycloud_ak3918av130_pinctrl.dtsi"
 
 #define RESERVED_MEMORY_BASE     0x81400000
-#define RESERVED_MEMORY_SIZE     0x1A00000    /* 26MB*/
+/*
+ * 29MB, not the SDK's 26MB. With a 2304x1296 sensor, majestic's ISP,
+ * two VI channels and one H.264 encoder take about 27.8MB of this pool,
+ * and at 26MB ak_venc_open fails in ion_alloc (OpenIPC/firmware#2962,
+ * Yoton WS03). Both nodes below take this size: raising only the
+ * reserved-memory region leaves the ION heap, which libmpi_venc
+ * allocates from, at the old size.
+ */
+#define RESERVED_MEMORY_SIZE     0x1D00000
 
 / {
     model = "anyka,ak3918av130";
