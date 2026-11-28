@@ -283,6 +283,7 @@ struct drv_nand_dev_info {
 #define MFG_ID_DOSILICON        0xE5
 #define MFG_ID_XTX              0x0B
 #define MFG_ID_FUDAN            0xA1
+#define MFG_ID_FORESEE          0xCD
 
 #define	EPERM                   1     /* Operation not permitted */
 #define	ENOENT                  2     /* No such file or directory */
