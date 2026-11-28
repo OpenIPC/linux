@@ -2,23 +2,13 @@
 /*
  * GalaxyCore GC2083 1920x1080 RAW10 2-lane MIPI CSI-2 mode table
  *
- * There is no public GC2083 datasheet. This table is GalaxyCore's
- * reference 1080p30 setting for a 24 MHz input clock as published,
- * under GPL-2.0, in the GC2083 V4L2 driver of
- * https://github.com/leafpmpmp/sg200x-camera-dkms
- * (linux/drivers/media/i2c/sg200x-camera/gc2083.c, commit 28702ae28a1f),
- * which in turn reproduces Sophgo's duo-buildroot-sdk-v2 settings. The
- * GPL-2.0 Ingenic driver (OpenIPC/openingenic kernel/sensors/t31/gc2083)
- * carries the same sequence for a 27 MHz input with different PLL,
- * frame timing and analogue values.
+ * GalaxyCore's reference 1080p30 setting for a 24 MHz input clock. Most
+ * of these registers are undocumented, so the sequence is written as is
+ * and in order. The writes the driver owns are left out: exposure
+ * (0x0d03/0x0d04), frame length (0x0d41/0x0d42, written from VBLANK),
+ * gain and the MIPI output enable (0x023e), which stream-on writes last.
  *
- * The meaning of most registers is not public, so the sequence is kept
- * verbatim and in order. The writes the driver owns are left out:
- * exposure (0x0d03/0x0d04), frame length (0x0d41/0x0d42, written from
- * VBLANK), gain and the MIPI output enable (0x023e), which stream-on
- * writes last.
- *
- * Known timing: 0x03f8 = 0x32 multiplies the 24 MHz input by 50; the
+ * Timing: 0x03f8 = 0x32 multiplies the 24 MHz input by 50; the
  * MIPI lanes run at 500 Mbit/s each and the pixel clock is 100 MHz. A
  * line is 2 * 0x05c9 = 2962 pixel clocks (0x0d05/0x0d06) and 1125
  * lines give 30 frames/s. The output window is 1920x1080

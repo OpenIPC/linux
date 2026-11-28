@@ -7,11 +7,7 @@
  * 30 frames/s mode also runs at any lower rate down to the 14-bit frame
  * length limit; the frame interval operations set it the same way.
  *
- * The register usage, gain ladder and stream sequence are derived from
- * the GPL-2.0 GC2083 V4L2 driver by Lukasz Sobala (sg200x-camera-dkms),
- * cross-checked against Ingenic's GPL-2.0 GC2083 driver; see
- * gc2083-modes.h for the provenance of the mode table. The probe, power
- * and lifetime handling follow the FH8626 sensor drivers in this tree.
+ * Based on the GC2083 driver by Lukasz Sobala (sg200x-camera-dkms).
  */
 
 #include <linux/clk.h>
