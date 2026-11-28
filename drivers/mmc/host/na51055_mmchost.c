@@ -1882,13 +1882,15 @@ void sdiohost_power_up(struct mmc_nvt_host *host)
 
 void sdiohost_power_cycle(struct mmc_nvt_host *host, uint32_t delay_ms)
 {
-	gpio_set_value(host->cp_gpio, !host->cp_gpio_value);
+	if (host->cp_gpio)
+		gpio_set_value(host->cp_gpio, !host->cp_gpio_value);
 	sdiohost_setpower(host, SDIO_HOST_SETPOWER_VOL_0);
 	sdiohost_power_down(host);
 	msleep(delay_ms);
 	sdiohost_power_up(host);
 	sdiohost_setpower(host, SDIO_HOST_SETPOWER_VOL_3P3);
-	gpio_set_value(host->cp_gpio, host->cp_gpio_value);
+	if (host->cp_gpio)
+		gpio_set_value(host->cp_gpio, host->cp_gpio_value);
 }
 
 /*

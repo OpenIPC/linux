@@ -54,6 +54,18 @@ module_param_named(scan_indly_engineering_mode, scan_indly_engineering_mode, uin
 static int indly_debug = -1;
 module_param_named(indly_debug, indly_debug, int, 0600);
 
+static int sd_cd_gpio = -1;
+module_param_named(cd_gpio, sd_cd_gpio, int, S_IRUGO);
+MODULE_PARM_DESC(cd_gpio, "SDIO1 card-detect GPIO (-1=DT, 0=none, >0=GPIO, keeps DT detect level)");
+
+static int sd_power_gpio = -1;
+module_param_named(power_gpio, sd_power_gpio, int, S_IRUGO);
+MODULE_PARM_DESC(power_gpio, "SDIO1 card-power GPIO (-1=DT, 0=none, >0=GPIO)");
+
+static int sd_power_level = -1;
+module_param_named(power_level, sd_power_level, int, S_IRUGO);
+MODULE_PARM_DESC(power_level, "SDIO1 card-power active level (-1=DT, 0=low, 1=high)");
+
 static u32 default_pad_driving[SDIO_MAX_MODE_DRIVING] =
 {PAD_DRIVING_20MA, PAD_DRIVING_15MA, PAD_DRIVING_15MA, \
 PAD_DRIVING_20MA, PAD_DRIVING_15MA, PAD_DRIVING_15MA, \
@@ -1401,20 +1413,77 @@ static int __init nvt_mmcsd_probe(struct platform_device *pdev)
 		cd_gpio[2] = 0;
 	}
 #endif
-	host->cd_gpio = cd_gpio[0];
-	host->cd_detect_edge = cd_gpio[1];
-	host->ro_gpio = ro_gpio[0];
-	host->ro_detect_edge = ro_gpio[1];
-	host->power_en = power_en[0];
-	host->power_detect_edge = power_en[1];
-	host->cp_gpio = card_power_gpio[0];
-	host->cp_gpio_value = card_power_gpio[1];
-	host->force_power_cycle = force_power_cycle[0];
-	host->force_power_cycle_period = force_power_cycle[1];
-	host->voltage_switch = voltage_switch;
-	host->neg_sample_edge = sample_edge;
-	host->indly_sel = indly_sel;
-	host->power_down_delay_ms = power_down_delay_ms;
+	{
+		bool req_cd = false, req_cp = false;
+
+		if (host->id == SDIO_HOST_ID_1) {
+			if (sd_cd_gpio == 0) {
+				host->no_cd_flag = true;
+				cd_gpio[0] = 0;
+				cd_gpio[1] = 0;
+				cd_gpio[2] = 0;
+				host->mmc_cd_irq = -EINVAL;
+			} else if (sd_cd_gpio > 0) {
+				host->no_cd_flag = false;
+				cd_gpio[0] = sd_cd_gpio;
+				cd_gpio[2] = 0;
+				host->mmc_cd_irq = -EINVAL;
+				req_cd = true;
+			}
+			if (sd_power_gpio >= 0) {
+				card_power_gpio[0] = sd_power_gpio;
+				if (sd_power_gpio > 0) {
+					req_cp = true;
+					if (!force_power_cycle[0]) {
+						force_power_cycle[0] = 1;
+						force_power_cycle[1] = 500;
+					}
+				}
+			}
+			if (sd_power_level == 0 || sd_power_level == 1)
+				card_power_gpio[1] = sd_power_level;
+		}
+		host->cd_gpio = cd_gpio[0];
+		host->cd_detect_edge = cd_gpio[1];
+		host->ro_gpio = ro_gpio[0];
+		host->ro_detect_edge = ro_gpio[1];
+		host->power_en = power_en[0];
+		host->power_detect_edge = power_en[1];
+		host->cp_gpio = card_power_gpio[0];
+		host->cp_gpio_value = card_power_gpio[1];
+		host->force_power_cycle = force_power_cycle[0];
+		host->force_power_cycle_period = force_power_cycle[1];
+		host->voltage_switch = voltage_switch;
+		host->neg_sample_edge = sample_edge;
+		host->indly_sel = indly_sel;
+		host->power_down_delay_ms = power_down_delay_ms;
+
+		if (req_cd) {
+			ret = devm_gpio_request_one(&pdev->dev, host->cd_gpio,
+						    GPIOF_IN, "mmc_cd");
+			if (ret) {
+				dev_warn(mmc_dev(host->mmc),
+					 "failed to request cd_gpio %d (%d); disabling CD GPIO\n",
+					 host->cd_gpio, ret);
+				host->cd_gpio = 0;
+				cd_gpio[0] = 0;
+				cd_gpio[2] = 0;
+				host->mmc_cd_irq = -EINVAL;
+			}
+		}
+		if (req_cp) {
+			ret = devm_gpio_request_one(&pdev->dev, host->cp_gpio,
+						    host->cp_gpio_value ? GPIOF_OUT_INIT_HIGH
+									: GPIOF_OUT_INIT_LOW,
+						    "mmc_pwr");
+			if (ret) {
+				dev_warn(mmc_dev(host->mmc),
+					 "failed to request power_gpio %d (%d); disabling power GPIO\n",
+					 host->cp_gpio, ret);
+				host->cp_gpio = 0;
+			}
+		}
+	}
 
 	if (host->force_power_cycle) {
 		/* In general, the power cycle takes 500ms to 1s */
