@@ -429,6 +429,23 @@ static int gpio_validation(unsigned pin)
 		return 0;
 }
 
+static int nvt_gpio_request(struct gpio_chip *gc, unsigned offset)
+{
+	if (gpio_validation(offset) < 0)
+		return -ENOENT;
+
+	nvt_pinmux_gpio_claim(offset, true);
+	return 0;
+}
+
+static void nvt_gpio_free(struct gpio_chip *gc, unsigned offset)
+{
+	if (gpio_validation(offset) < 0)
+		return;
+
+	nvt_pinmux_gpio_claim(offset, false);
+}
+
 static int nvt_gpio_get(struct gpio_chip *gc, unsigned offset)
 {
 	uint32_t tmp;
@@ -600,6 +617,8 @@ static int nvt_gpio_probe(struct platform_device *pdev)
 	nvt_gpio_chip_ptr->cpu_num		 = 0;
 
 	/* gpio structure init. */
+	nvt_gpio_chip_ptr->gpio_chip.request = nvt_gpio_request;
+	nvt_gpio_chip_ptr->gpio_chip.free = nvt_gpio_free;
 	nvt_gpio_chip_ptr->gpio_chip.get = nvt_gpio_get;
 	nvt_gpio_chip_ptr->gpio_chip.set = nvt_gpio_set;
 	nvt_gpio_chip_ptr->gpio_chip.direction_input = nvt_gpio_dir_input;
