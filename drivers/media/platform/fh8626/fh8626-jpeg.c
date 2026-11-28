@@ -339,9 +339,39 @@ static bool fh8626_jpeg_direct(struct fh8626_jpeg_ctx *ctx,
 	if ((rotate == 1 || rotate == 2) &&
 	    q->height != ALIGN(q->height, FH8626_JPEG_ALIGN_HEIGHT))
 		return false;
+	/* Unaligned heights need the CPU to fill the chroma padding rows. */
+	if (q->height != ALIGN(q->height, FH8626_JPEG_ALIGN_HEIGHT) &&
+	    !vb2_plane_vaddr(vb, 0))
+		return false;
 	return q->bytesperline == ALIGN(q->width, FH8626_JPEG_ALIGN_WIDTH) &&
 	       !(y & 63) && !(uv & 63) &&
 	       vb2_plane_size(vb, 0) >= fh8626_jpeg_direct_size(q);
+}
+
+/*
+ * Nothing writes the chroma rows between height / 2 and the aligned height,
+ * yet they share 8x8 chroma blocks with the last picture rows, so whatever
+ * they hold bleeds into the colour of the bottom of the picture. Repeat the
+ * last chroma row into them, as fh8626_jpeg_copy_input() does. The luma
+ * padding rows need nothing: their blocks lie wholly below the picture and
+ * the SOF0 patch crops them.
+ */
+static void fh8626_jpeg_pad_chroma(const struct fh8626_jpeg_q_data *q,
+				   struct vb2_buffer *vb)
+{
+	u32 rows = ALIGN(q->height, FH8626_JPEG_ALIGN_HEIGHT) / 2 -
+		   q->height / 2;
+	u8 *uv, *last;
+	u32 row;
+
+	if (!rows)
+		return;
+	uv = (u8 *)vb2_plane_vaddr(vb, 0) + q->bytesperline * q->height;
+	last = uv + q->bytesperline * (q->height / 2 - 1);
+	for (row = 1; row <= rows; row++)
+		memcpy(last + row * q->bytesperline, last, q->bytesperline);
+	/* The rows must be in memory before the engine is started. */
+	wmb();
 }
 
 /* Write the displayed size into the SOF0 frame header the engine emits. */
@@ -448,6 +478,7 @@ static void fh8626_jpeg_worker(struct work_struct *work)
 	if (fh8626_jpeg_direct(ctx, &src_buf->vb2_buf, rotate)) {
 		y_dma = vb2_dma_contig_plane_dma_addr(&src_buf->vb2_buf, 0);
 		uv_dma = y_dma + ctx->out_q.bytesperline * height;
+		fh8626_jpeg_pad_chroma(&ctx->out_q, &src_buf->vb2_buf);
 	} else {
 		const u8 *src = vb2_plane_vaddr(&src_buf->vb2_buf, 0);
 
