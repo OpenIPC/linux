@@ -109,17 +109,15 @@ static void __init fullhan_map_io(void)
 /*
  * The boot ROM picks its boot device from GPIO0 pins 12-14 as it finds them
  * (GPIO13 high: SPI NOR), and the PMU software reset does not reset the GPIO
- * controllers. On the Tenda CP3 GPIO13 is also the sensor's active-low reset,
- * which Linux drives low once the sensor is off, so after a reboot the ROM
- * looked for NAND ("Use nand flash", ERR 218). Give both GPIO ports back the
- * data and direction the bootloader left before resetting.
+ * controllers. A board that drives any of those pins at run time can make the
+ * ROM look for the wrong boot device after a reboot, so give both GPIO ports
+ * back the data and direction the bootloader left before resetting.
  */
 static void __iomem *const fh8626_gpio_base[] = {
 	(void __iomem *)FH8626_GPIO0_VIRT_BASE,
 	(void __iomem *)FH8626_GPIO1_VIRT_BASE,
 };
 static u32 fh8626_boot_gpio[ARRAY_SIZE(fh8626_gpio_base)][2];
-static bool fh8626_boot_gpio_saved;
 
 static void __init fh8626_save_boot_gpio(void)
 {
@@ -131,7 +129,6 @@ static void __init fh8626_save_boot_gpio(void)
 		fh8626_boot_gpio[i][1] = readl_relaxed(fh8626_gpio_base[i] +
 						       FH8626_GPIO_SWPORTA_DDR);
 	}
-	fh8626_boot_gpio_saved = true;
 }
 
 static void fh8626_restore_boot_gpio(void)
@@ -139,15 +136,8 @@ static void fh8626_restore_boot_gpio(void)
 	void __iomem *base;
 	int i;
 
-	if (!fh8626_boot_gpio_saved)
-		return;
-
 	for (i = 0; i < ARRAY_SIZE(fh8626_gpio_base); i++) {
 		base = fh8626_gpio_base[i];
-		pr_emerg("restart: gpio%d dr %08x ddr %08x -> %08x %08x\n", i,
-			 readl_relaxed(base + FH8626_GPIO_SWPORTA_DR),
-			 readl_relaxed(base + FH8626_GPIO_SWPORTA_DDR),
-			 fh8626_boot_gpio[i][0], fh8626_boot_gpio[i][1]);
 		writel_relaxed(fh8626_boot_gpio[i][0],
 			       base + FH8626_GPIO_SWPORTA_DR);
 		writel_relaxed(fh8626_boot_gpio[i][1],
@@ -186,8 +176,6 @@ static void __init fullhan_init_machine(void)
 {
 	void __iomem *pmu_base = (void __iomem *)FH8626_PMU_VIRT_BASE;
 	u32 val;
-
-	pr_info("fh8626: boot GPIO state saved for restart\n");
 
 	/* Release the watchdog freeze before the watchdog driver probes. */
 	val = readl_relaxed(pmu_base + FH8626_PMU_WDT_CTRL_REG);
