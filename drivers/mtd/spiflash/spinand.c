@@ -431,6 +431,10 @@ static struct nand_flash_dev spinand_flash_ids[] = {
 	{"FM25S01A 1Gbit 3.3V",
 		{ .id = {MFG_ID_FUDAN, 0xE4} },
 		SZ_2K, SZ_128, SZ_128K, 0, 2, 64 },
+	// FORESEE
+	{"F35SQA512M 512Mbit 3.3V",
+		{ .id = {MFG_ID_FORESEE, 0x70} },
+		SZ_2K, SZ_64, SZ_128K, 0, 2, 64 },
 };
 
 #ifdef CONFIG_MTD_SPINAND_HWECC
@@ -1395,6 +1399,9 @@ static int spinand_probe(struct platform_device *pdev)
 			info->nand_chip.ecc.strength = 8;
 			mtd->bitflip_threshold = 6;
 		} else if (chip_id == MFG_ID_FUDAN) {
+			info->nand_chip.ecc.strength = 1;
+			mtd->bitflip_threshold = 1;
+		} else if (chip_id == MFG_ID_FORESEE) {
 			info->nand_chip.ecc.strength = 1;
 			mtd->bitflip_threshold = 1;
 		} else {
