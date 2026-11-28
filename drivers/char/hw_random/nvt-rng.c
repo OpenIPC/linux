@@ -122,6 +122,12 @@ static int nvt_rng_probe(struct platform_device *pdev)
 	rng->rng.init = nvt_rng_init;
 	rng->rng.cleanup = nvt_rng_cleanup;
 	rng->rng.read = nvt_rng_read;
+	/*
+	 * The entropy rate of the oscillator behind the CASR and the
+	 * post-processing stage is undocumented, and reads are unpaced,
+	 * so credit half of what is read.
+	 */
+	rng->rng.quality = 500;
 
 	ret = devm_hwrng_register(&pdev->dev, &rng->rng);
 	if (ret) {
